@@ -318,302 +318,33 @@ float ConvertLinearToSRGB(float linear)
   return 1.055f * powf(linear, 1.0f / 2.4f) - 0.055f;
 }
 
+// Similar to DecodePixelData() but it casts the results to float for all component types
 FloatVector DecodeFormattedComponents(const ResourceFormat &fmt, const byte *data, bool *success)
 {
-  FloatVector ret(0.0f, 0.0f, 0.0f, 1.0f);
+  PixelValue val;
+  DecodePixelData(fmt, data, val, success);
 
-  if(fmt.compType == CompType::UInt || fmt.compType == CompType::SInt || fmt.compCount == 4)
-    ret.w = 0.0f;
-
-  const uint64_t dummy = 0;
-  if(!data)
-    data = (const byte *)&dummy;
-
-  // assume success, we'll set it to false if we hit an error
-  if(success)
-    *success = true;
-
-  if(fmt.type == ResourceFormatType::R10G10B10A2)
+  FloatVector ret;
+  if(fmt.compType == CompType::UInt || fmt.compType == CompType::UScaled)
   {
-    Vec4f v;
-    if(fmt.compType == CompType::SNorm)
-      v = ConvertFromR10G10B10A2SNorm(*(const uint32_t *)data);
-    else
-      v = ConvertFromR10G10B10A2(*(const uint32_t *)data);
-    if(fmt.compType == CompType::UInt)
-    {
-      v.x *= 1023.0f;
-      v.y *= 1023.0f;
-      v.z *= 1023.0f;
-      v.w *= 3.0f;
-    }
-    ret.x = v.x;
-    ret.y = v.y;
-    ret.z = v.z;
-    ret.w = v.w;
-
-    if(fmt.BGRAOrder())
-      std::swap(ret.x, ret.z);
+    ret.x = (float)val.uintValue[0];
+    ret.y = (float)val.uintValue[1];
+    ret.z = (float)val.uintValue[2];
+    ret.w = (float)val.uintValue[3];
   }
-  else if(fmt.type == ResourceFormatType::R11G11B10)
+  else if(fmt.compType == CompType::SInt || fmt.compType == CompType::SScaled)
   {
-    Vec3f v = ConvertFromR11G11B10(*(const uint32_t *)data);
-    ret.x = v.x;
-    ret.y = v.y;
-    ret.z = v.z;
-  }
-  else if(fmt.type == ResourceFormatType::R5G5B5A1)
-  {
-    Vec4f v = ConvertFromB5G5R5A1(*(const uint16_t *)data);
-    ret.x = v.x;
-    ret.y = v.y;
-    ret.z = v.z;
-    ret.w = v.w;
-
-    // conversely we *expect* BGRA order for this format and the above conversion implicitly flips
-    // when bit-unpacking. So if the format wasn't BGRA order, flip it back
-    if(!fmt.BGRAOrder())
-      std::swap(ret.x, ret.z);
-  }
-  else if(fmt.type == ResourceFormatType::R5G6B5)
-  {
-    Vec3f v = ConvertFromB5G6R5(*(const uint16_t *)data);
-    ret.x = v.x;
-    ret.y = v.y;
-    ret.z = v.z;
-
-    // conversely we *expect* BGRA order for this format and the above conversion implicitly flips
-    // when bit-unpacking. So if the format wasn't BGRA order, flip it back
-    if(!fmt.BGRAOrder())
-      std::swap(ret.x, ret.z);
-  }
-  else if(fmt.type == ResourceFormatType::R4G4B4A4)
-  {
-    Vec4f v = ConvertFromB4G4R4A4(*(const uint16_t *)data);
-    ret.x = v.x;
-    ret.y = v.y;
-    ret.z = v.z;
-    ret.w = v.w;
-
-    // conversely we *expect* BGRA order for this format and the above conversion implicitly flips
-    // when bit-unpacking. So if the format wasn't BGRA order, flip it back
-    if(!fmt.BGRAOrder())
-      std::swap(ret.x, ret.z);
-  }
-  else if(fmt.type == ResourceFormatType::R4G4)
-  {
-    Vec4f v = ConvertFromR4G4(*(const uint8_t *)data);
-    ret.x = v.x;
-    ret.y = v.y;
-  }
-  else if(fmt.type == ResourceFormatType::R9G9B9E5)
-  {
-    Vec3f v = ConvertFromR9G9B9E5(*(const uint32_t *)data);
-    ret.x = v.x;
-    ret.y = v.y;
-    ret.z = v.z;
-  }
-  else if(fmt.type == ResourceFormatType::D16S8)
-  {
-    uint32_t val = *(const uint32_t *)data;
-    ret.x = float(val & 0x00ffff) / 65535.0f;
-    ret.y = float((val & 0xff0000) >> 16) / 255.0f;
-    ret.z = 0.0f;
-  }
-  else if(fmt.type == ResourceFormatType::D24S8)
-  {
-    uint32_t val = *(const uint32_t *)data;
-    ret.x = float(val & 0x00ffffff) / 16777215.0f;
-    ret.y = float((val & 0xff000000) >> 24) / 255.0f;
-    ret.z = 0.0f;
-  }
-  else if(fmt.type == ResourceFormatType::D32S8)
-  {
-    struct ds
-    {
-      float f;
-      uint32_t s;
-    } val;
-    val = *(const ds *)data;
-    ret.x = val.f;
-    ret.y = float(val.s) / 255.0f;
-    ret.z = 0.0f;
-  }
-  else if(fmt.type == ResourceFormatType::Regular || fmt.type == ResourceFormatType::A8 ||
-          fmt.type == ResourceFormatType::S8)
-  {
-    float *comp = &ret.x;
-
-    CompType compType = fmt.compType;
-    for(size_t c = 0; c < fmt.compCount; c++)
-    {
-      // alpha is never interpreted as sRGB
-      if(compType == CompType::UNormSRGB && c == 3)
-        compType = CompType::UNorm;
-
-      if(fmt.compByteWidth == 8)
-      {
-        // we just downcast
-        const uint64_t *u64 = (const uint64_t *)data;
-        const int64_t *i64 = (const int64_t *)data;
-
-        if(compType == CompType::Float)
-        {
-          *comp = float(*(const double *)u64);
-        }
-        else if(compType == CompType::UInt || compType == CompType::UScaled)
-        {
-          *comp = float(*u64);
-        }
-        else if(compType == CompType::SInt || compType == CompType::SScaled)
-        {
-          *comp = float(*i64);
-        }
-        else
-        {
-          if(success)
-            *success = false;
-        }
-      }
-      else if(fmt.compByteWidth == 4)
-      {
-        const uint32_t *u32 = (const uint32_t *)data;
-        const int32_t *i32 = (const int32_t *)data;
-
-        if(compType == CompType::Float || compType == CompType::Depth)
-        {
-          *comp = *(const float *)u32;
-        }
-        else if(compType == CompType::UInt || compType == CompType::UScaled)
-        {
-          *comp = float(*u32);
-        }
-        else if(compType == CompType::SInt || compType == CompType::SScaled)
-        {
-          *comp = float(*i32);
-        }
-        else
-        {
-          if(success)
-            *success = false;
-        }
-      }
-      else if(fmt.compByteWidth == 3 && compType == CompType::Depth)
-      {
-        // 24-bit depth is a weird edge case we need to assemble it by hand
-        const uint8_t *u8 = (const uint8_t *)data;
-
-        uint32_t depth = 0;
-        depth |= uint32_t(u8[0]);
-        depth |= uint32_t(u8[1]) << 8;
-        depth |= uint32_t(u8[2]) << 16;
-
-        *comp = float(depth) / float(16777215.0f);
-      }
-      else if(fmt.compByteWidth == 2)
-      {
-        const uint16_t *u16 = (const uint16_t *)data;
-        const int16_t *i16 = (const int16_t *)data;
-
-        if(compType == CompType::Float)
-        {
-          *comp = ConvertFromHalf(*u16);
-        }
-        else if(compType == CompType::UInt || compType == CompType::UScaled)
-        {
-          *comp = float(*u16);
-        }
-        else if(compType == CompType::SInt || compType == CompType::SScaled)
-        {
-          *comp = float(*i16);
-        }
-        // 16-bit depth is UNORM
-        else if(compType == CompType::UNorm || compType == CompType::Depth)
-        {
-          *comp = float(*u16) / 65535.0f;
-        }
-        else if(compType == CompType::SNorm)
-        {
-          float f = -1.0f;
-
-          if(*i16 == -32768)
-            f = -1.0f;
-          else
-            f = ((float)*i16) / 32767.0f;
-
-          *comp = f;
-        }
-        else
-        {
-          if(success)
-            *success = false;
-        }
-      }
-      else if(fmt.compByteWidth == 1)
-      {
-        const uint8_t *u8 = (const uint8_t *)data;
-        const int8_t *i8 = (const int8_t *)data;
-
-        if(compType == CompType::UInt || compType == CompType::UScaled)
-        {
-          *comp = float(*u8);
-        }
-        else if(compType == CompType::SInt || compType == CompType::SScaled)
-        {
-          *comp = float(*i8);
-        }
-        else if(compType == CompType::UNormSRGB)
-        {
-          *comp = SRGB8_lookuptable[*u8];
-        }
-        else if(compType == CompType::UNorm)
-        {
-          *comp = float(*u8) / 255.0f;
-        }
-        else if(compType == CompType::SNorm)
-        {
-          float f = -1.0f;
-
-          if(*i8 == -128)
-            f = -1.0f;
-          else
-            f = ((float)*i8) / 127.0f;
-
-          *comp = f;
-        }
-        else
-        {
-          if(success)
-            *success = false;
-        }
-      }
-      else
-      {
-        RDCERR("Unexpected format to convert from %u %u", fmt.compByteWidth, compType);
-      }
-
-      comp++;
-      data += fmt.compByteWidth;
-    }
-
-    if(fmt.type == ResourceFormatType::A8)
-    {
-      ret.w = ret.x;
-      ret.x = 0.0f;
-    }
-    else if(fmt.type == ResourceFormatType::S8)
-    {
-      ret.y = ret.x;
-      ret.x = 0.0f;
-    }
-
-    if(fmt.BGRAOrder())
-      std::swap(ret.x, ret.z);
+    ret.x = (float)val.intValue[0];
+    ret.y = (float)val.intValue[1];
+    ret.z = (float)val.intValue[2];
+    ret.w = (float)val.intValue[3];
   }
   else
   {
-    if(success)
-      *success = false;
+    ret.x = val.floatValue[0];
+    ret.y = val.floatValue[1];
+    ret.z = val.floatValue[2];
+    ret.w = val.floatValue[3];
   }
 
   return ret;
@@ -834,6 +565,337 @@ void EncodeFormattedComponents(const ResourceFormat &fmt, FloatVector v, byte *d
       comp++;
       data += fmt.compByteWidth;
     }
+  }
+  else
+  {
+    if(success)
+      *success = false;
+  }
+}
+
+void DecodePixelData(const ResourceFormat &fmt, const byte *data, PixelValue &out, bool *success)
+{
+  out.floatValue[0] = 0.0f;
+  out.floatValue[1] = 0.0f;
+  out.floatValue[2] = 0.0f;
+  out.floatValue[3] = 1.0f;
+
+  if(fmt.compType == CompType::UInt || fmt.compType == CompType::SInt || fmt.compCount == 4)
+    out.floatValue[3] = 0.0f;
+
+  const uint64_t dummy[2] = {0, 0};
+  if(!data)
+    data = (const byte *)dummy;
+
+  // assume success, we'll set it to false if we hit an error
+  if(success)
+    *success = true;
+
+  if(fmt.type == ResourceFormatType::R10G10B10A2)
+  {
+    if(fmt.compType == CompType::SNorm)
+    {
+      Vec4f v = ConvertFromR10G10B10A2SNorm(*(const uint32_t *)data);
+      out.floatValue[0] = v.x;
+      out.floatValue[1] = v.y;
+      out.floatValue[2] = v.z;
+      out.floatValue[3] = v.w;
+    }
+    else if(fmt.compType == CompType::UInt)
+    {
+      Vec4u v = ConvertFromR10G10B10A2UInt(*(const uint32_t *)data);
+      out.uintValue[0] = v.x;
+      out.uintValue[1] = v.y;
+      out.uintValue[2] = v.z;
+      out.uintValue[3] = v.w;
+    }
+    else
+    {
+      Vec4f v = ConvertFromR10G10B10A2(*(const uint32_t *)data);
+      if(fmt.compType == CompType::SInt)
+      {
+        out.intValue[0] = (int32_t)v.x;
+        out.intValue[1] = (int32_t)v.y;
+        out.intValue[2] = (int32_t)v.z;
+        out.intValue[3] = (int32_t)v.w;
+      }
+      else
+      {
+        out.floatValue[0] = v.x;
+        out.floatValue[1] = v.y;
+        out.floatValue[2] = v.z;
+        out.floatValue[3] = v.w;
+      }
+    }
+
+    // the different types are a union so we can ignore format and just treat it as a data swap
+    if(fmt.BGRAOrder())
+      std::swap(out.uintValue[0], out.uintValue[2]);
+  }
+  else if(fmt.type == ResourceFormatType::R11G11B10)
+  {
+    Vec3f v = ConvertFromR11G11B10(*(const uint32_t *)data);
+    out.floatValue[0] = v.x;
+    out.floatValue[1] = v.y;
+    out.floatValue[2] = v.z;
+  }
+  else if(fmt.type == ResourceFormatType::R5G5B5A1)
+  {
+    Vec4f v = ConvertFromB5G5R5A1(*(const uint16_t *)data);
+    out.floatValue[0] = v.x;
+    out.floatValue[1] = v.y;
+    out.floatValue[2] = v.z;
+    out.floatValue[3] = v.w;
+
+    // conversely we *expect* BGRA order for this format and the above conversion implicitly flips
+    // when bit-unpacking. So if the format wasn't BGRA order, flip it back
+    if(!fmt.BGRAOrder())
+      std::swap(out.floatValue[0], out.floatValue[2]);
+  }
+  else if(fmt.type == ResourceFormatType::R5G6B5)
+  {
+    Vec3f v = ConvertFromB5G6R5(*(const uint16_t *)data);
+    out.floatValue[0] = v.x;
+    out.floatValue[1] = v.y;
+    out.floatValue[2] = v.z;
+
+    // conversely we *expect* BGRA order for this format and the above conversion implicitly flips
+    // when bit-unpacking. So if the format wasn't BGRA order, flip it back
+    if(!fmt.BGRAOrder())
+      std::swap(out.floatValue[0], out.floatValue[2]);
+  }
+  else if(fmt.type == ResourceFormatType::R4G4B4A4)
+  {
+    Vec4f v = ConvertFromB4G4R4A4(*(const uint16_t *)data);
+    out.floatValue[0] = v.x;
+    out.floatValue[1] = v.y;
+    out.floatValue[2] = v.z;
+    out.floatValue[3] = v.w;
+
+    // conversely we *expect* BGRA order for this format and the above conversion implicitly flips
+    // when bit-unpacking. So if the format wasn't BGRA order, flip it back
+    if(!fmt.BGRAOrder())
+      std::swap(out.floatValue[0], out.floatValue[2]);
+  }
+  else if(fmt.type == ResourceFormatType::R4G4)
+  {
+    Vec4f v = ConvertFromR4G4(*(const uint8_t *)data);
+    out.floatValue[0] = v.x;
+    out.floatValue[1] = v.y;
+  }
+  else if(fmt.type == ResourceFormatType::R9G9B9E5)
+  {
+    Vec3f v = ConvertFromR9G9B9E5(*(const uint32_t *)data);
+    out.floatValue[0] = v.x;
+    out.floatValue[1] = v.y;
+    out.floatValue[2] = v.z;
+  }
+  else if(fmt.type == ResourceFormatType::D16S8)
+  {
+    uint32_t val = *(const uint32_t *)data;
+    out.floatValue[0] = float(val & 0x00ffff) / 65535.0f;
+    out.floatValue[1] = float((val & 0xff0000) >> 16) / 255.0f;
+    out.floatValue[2] = 0.0f;
+  }
+  else if(fmt.type == ResourceFormatType::D24S8)
+  {
+    uint32_t val = *(const uint32_t *)data;
+    out.floatValue[0] = float(val & 0x00ffffff) / 16777215.0f;
+    out.floatValue[1] = float((val & 0xff000000) >> 24) / 255.0f;
+    out.floatValue[2] = 0.0f;
+  }
+  else if(fmt.type == ResourceFormatType::D32S8)
+  {
+    struct ds
+    {
+      float f;
+      uint32_t s;
+    } val;
+    val = *(const ds *)data;
+    out.floatValue[0] = val.f;
+    out.floatValue[1] = float(val.s) / 255.0f;
+    out.floatValue[2] = 0.0f;
+  }
+  else if(fmt.type == ResourceFormatType::Regular || fmt.type == ResourceFormatType::A8 ||
+          fmt.type == ResourceFormatType::S8)
+  {
+    CompType compType = fmt.compType;
+    for(size_t c = 0; c < fmt.compCount; c++)
+    {
+      // alpha is never interpreted as sRGB
+      if(compType == CompType::UNormSRGB && c == 3)
+        compType = CompType::UNorm;
+
+      if(fmt.compByteWidth == 8)
+      {
+        // we just downcast
+        const uint64_t *u64 = (const uint64_t *)data;
+        const int64_t *i64 = (const int64_t *)data;
+
+        if(compType == CompType::Float)
+        {
+          out.floatValue[c] = float(*(const double *)u64);
+        }
+        else if(compType == CompType::UInt)
+        {
+          out.uintValue[c] = uint32_t(*u64);
+        }
+        else if(compType == CompType::UScaled)
+        {
+          out.floatValue[c] = float(*u64);
+        }
+        else if(compType == CompType::SInt)
+        {
+          out.intValue[c] = int32_t(*i64);
+        }
+        else if(compType == CompType::SScaled)
+        {
+          out.floatValue[c] = float(*i64);
+        }
+      }
+      else if(fmt.compByteWidth == 4)
+      {
+        const uint32_t *u32 = (const uint32_t *)data;
+        const int32_t *i32 = (const int32_t *)data;
+
+        if(compType == CompType::Float || compType == CompType::Depth)
+        {
+          out.floatValue[c] = *(const float *)u32;
+        }
+        else if(compType == CompType::UInt)
+        {
+          out.uintValue[c] = uint32_t(*u32);
+        }
+        else if(compType == CompType::UScaled)
+        {
+          out.floatValue[c] = float(*u32);
+        }
+        else if(compType == CompType::SInt)
+        {
+          out.intValue[c] = int32_t(*i32);
+        }
+        else if(compType == CompType::SScaled)
+        {
+          out.floatValue[c] = float(*i32);
+        }
+      }
+      else if(fmt.compByteWidth == 3 && compType == CompType::Depth)
+      {
+        // 24-bit depth is a weird edge case we need to assemble it by hand
+        const uint8_t *u8 = (const uint8_t *)data;
+
+        uint32_t depth = 0;
+        depth |= uint32_t(u8[0]);
+        depth |= uint32_t(u8[1]) << 8;
+        depth |= uint32_t(u8[2]) << 16;
+
+        out.floatValue[c] = float(depth) / float(16777215.0f);
+      }
+      else if(fmt.compByteWidth == 2)
+      {
+        const uint16_t *u16 = (const uint16_t *)data;
+        const int16_t *i16 = (const int16_t *)data;
+
+        if(compType == CompType::Float)
+        {
+          out.floatValue[c] = ConvertFromHalf(*u16);
+        }
+        else if(compType == CompType::UInt)
+        {
+          out.uintValue[c] = uint32_t(*u16);
+        }
+        else if(compType == CompType::UScaled)
+        {
+          out.floatValue[c] = float(*u16);
+        }
+        else if(compType == CompType::SInt)
+        {
+          out.intValue[c] = int32_t(*i16);
+        }
+        else if(compType == CompType::SScaled)
+        {
+          out.floatValue[c] = float(*i16);
+        }
+        // 16-bit depth is UNORM
+        else if(compType == CompType::UNorm || compType == CompType::Depth)
+        {
+          out.floatValue[c] = float(*u16) / 65535.0f;
+        }
+        else if(compType == CompType::SNorm)
+        {
+          float f = -1.0f;
+
+          if(*i16 == -32768)
+            f = -1.0f;
+          else
+            f = ((float)*i16) / 32767.0f;
+
+          out.floatValue[c] = f;
+        }
+      }
+      else if(fmt.compByteWidth == 1)
+      {
+        const uint8_t *u8 = (const uint8_t *)data;
+        const int8_t *i8 = (const int8_t *)data;
+
+        if(compType == CompType::UInt)
+        {
+          out.uintValue[c] = uint32_t(*u8);
+        }
+        else if(compType == CompType::UScaled)
+        {
+          out.floatValue[c] = float(*u8);
+        }
+        else if(compType == CompType::SInt)
+        {
+          out.intValue[c] = int32_t(*i8);
+        }
+        else if(compType == CompType::SScaled)
+        {
+          out.floatValue[c] = float(*i8);
+        }
+        else if(compType == CompType::UNormSRGB)
+        {
+          out.floatValue[c] = ConvertFromSRGB8(*u8);
+        }
+        else if(compType == CompType::UNorm)
+        {
+          out.floatValue[c] = float(*u8) / 255.0f;
+        }
+        else if(compType == CompType::SNorm)
+        {
+          float f = -1.0f;
+
+          if(*i8 == -128)
+            f = -1.0f;
+          else
+            f = ((float)*i8) / 127.0f;
+
+          out.floatValue[c] = f;
+        }
+      }
+      else
+      {
+        RDCERR("Unexpected format to convert from %u %u", fmt.compByteWidth, compType);
+      }
+
+      data += fmt.compByteWidth;
+    }
+
+    if(fmt.type == ResourceFormatType::A8)
+    {
+      out.floatValue[2] = out.floatValue[0];
+      out.floatValue[0] = 0.0f;
+    }
+    else if(fmt.type == ResourceFormatType::S8)
+    {
+      out.uintValue[1] = out.uintValue[0];
+      out.uintValue[0] = 0;
+    }
+
+    // the different types are a union so we can ignore format and just treat it as a data swap
+    if(fmt.BGRAOrder())
+      std::swap(out.uintValue[0], out.uintValue[2]);
   }
   else
   {
