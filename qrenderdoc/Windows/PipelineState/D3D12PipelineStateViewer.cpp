@@ -57,26 +57,15 @@ Q_DECLARE_METATYPE(D3D12VBIBTag);
 
 struct D3D12CBufTag
 {
-  D3D12CBufTag()
+  D3D12CBufTag() { index = DescriptorAccess::NoShaderBinding; }
+  D3D12CBufTag(uint32_t index, uint32_t arrayElement) : index(index), arrayElement(arrayElement) {}
+  D3D12CBufTag(Descriptor descriptor)
+      : index(DescriptorAccess::NoShaderBinding), arrayElement(0), descriptor(descriptor)
   {
-    idx = ~0U;
-    space = reg = rootElementsIdx = arrayIdx = 0;
-  }
-  D3D12CBufTag(uint32_t s, uint32_t r, uint32_t el)
-  {
-    idx = ~0U;
-    space = s;
-    reg = r;
-    rootElementsIdx = el;
-    arrayIdx = 0;
-  }
-  D3D12CBufTag(uint32_t i)
-  {
-    idx = i;
-    space = reg = rootElementsIdx = arrayIdx = 0;
   }
 
-  uint32_t idx, space, reg, rootElementsIdx, arrayIdx;
+  Descriptor descriptor;
+  uint32_t index, arrayElement;
 };
 
 Q_DECLARE_METATYPE(D3D12CBufTag);
@@ -91,20 +80,15 @@ struct D3D12ViewTag
     OMDepth,
   };
 
-  D3D12ViewTag()
-      : type(SRV), space(0), rootSignatureIndex(0), immediate(false), directHeapAccess(false)
-  {
-  }
-  D3D12ViewTag(ResType t, int s, int el, bool imm, const D3D12Pipe::View &rs)
-      : type(t), space(s), rootSignatureIndex(el), immediate(imm), directHeapAccess(false), res(rs)
+  D3D12ViewTag() : type(SRV) {}
+  D3D12ViewTag(ResType t, const DescriptorAccess &access, const Descriptor &desc)
+      : type(t), access(access), descriptor(desc)
   {
   }
 
   ResType type;
-  int space, rootSignatureIndex;
-  bool immediate;
-  bool directHeapAccess;
-  D3D12Pipe::View res;
+  DescriptorAccess access;
+  Descriptor descriptor;
 };
 
 Q_DECLARE_METATYPE(D3D12ViewTag);
@@ -287,12 +271,11 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
 
     header->setResizeContentsPrecision(20);
 
-    res->setColumns({tr("Root Sig El"), tr("Space"), tr("Register"), tr("Resource"), tr("Type"),
-                     tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"), tr("Format"),
-                     tr("Go")});
-    header->setColumnStretchHints({1, 1, 2, 4, 2, 1, 1, 1, 1, 3, -1});
+    res->setColumns({tr("Binding"), tr("Resource"), tr("Type"), tr("Width"), tr("Height"),
+                     tr("Depth"), tr("Array Size"), tr("Format"), tr("Go")});
+    header->setColumnStretchHints({2, 4, 2, 1, 1, 1, 1, 3, -1});
 
-    res->setHoverIconColumn(10, action, action_hover);
+    res->setHoverIconColumn(8, action, action_hover);
     res->setClearSelectionOnFocusLoss(true);
     res->setInstantTooltips(true);
 
@@ -306,12 +289,11 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
 
     header->setResizeContentsPrecision(20);
 
-    uav->setColumns({tr("Root Sig El"), tr("Space"), tr("Register"), tr("Resource"), tr("Type"),
-                     tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"), tr("Format"),
-                     tr("Go")});
-    header->setColumnStretchHints({1, 1, 2, 4, 2, 1, 1, 1, 1, 3, -1});
+    uav->setColumns({tr("Binding"), tr("Resource"), tr("Type"), tr("Width"), tr("Height"),
+                     tr("Depth"), tr("Array Size"), tr("Format"), tr("Go")});
+    header->setColumnStretchHints({2, 4, 2, 1, 1, 1, 1, 3, -1});
 
-    uav->setHoverIconColumn(10, action, action_hover);
+    uav->setHoverIconColumn(8, action, action_hover);
     uav->setClearSelectionOnFocusLoss(true);
     uav->setInstantTooltips(true);
 
@@ -325,9 +307,8 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
 
     header->setResizeContentsPrecision(20);
 
-    samp->setColumns({tr("Root Sig El"), tr("Space"), tr("Register"), tr("Addressing"),
-                      tr("Filter"), tr("LOD Clamp"), tr("LOD Bias")});
-    header->setColumnStretchHints({1, 1, 2, 2, 2, 2, 2});
+    samp->setColumns({tr("Binding"), tr("Addressing"), tr("Filter"), tr("LOD Clamp"), tr("LOD Bias")});
+    header->setColumnStretchHints({1, 2, 2, 2, 2});
 
     samp->setClearSelectionOnFocusLoss(true);
     samp->setInstantTooltips(true);
@@ -342,11 +323,10 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
 
     header->setResizeContentsPrecision(20);
 
-    cbuffer->setColumns({tr("Root Sig El"), tr("Space"), tr("Register"), tr("Buffer"),
-                         tr("Byte Range"), tr("Size"), tr("Go")});
-    header->setColumnStretchHints({1, 1, 2, 4, 3, 3, -1});
+    cbuffer->setColumns({tr("Binding"), tr("Buffer"), tr("Byte Range"), tr("Size"), tr("Go")});
+    header->setColumnStretchHints({2, 4, 3, 3, -1});
 
-    cbuffer->setHoverIconColumn(6, action, action_hover);
+    cbuffer->setHoverIconColumn(4, action, action_hover);
     cbuffer->setClearSelectionOnFocusLoss(true);
     cbuffer->setInstantTooltips(true);
 
@@ -518,7 +498,54 @@ void D3D12PipelineStateViewer::OnCaptureClosed()
 
 void D3D12PipelineStateViewer::OnEventChanged(uint32_t eventId)
 {
-  setState();
+  m_Ctx.Replay().AsyncInvoke([this](IReplayController *r) {
+    rdcarray<DescriptorAccess> access = m_Ctx.CurPipelineState().GetDescriptorAccess();
+
+    ResourceId descriptorStore;
+    rdcarray<DescriptorRange> ranges;
+
+    rdcarray<DescriptorLogicalLocation> locations;
+
+    for(const DescriptorAccess &acc : access)
+    {
+      if(acc.descriptorStore != descriptorStore)
+      {
+        if(descriptorStore != ResourceId())
+          locations.append(r->GetDescriptorLocations(descriptorStore, ranges));
+
+        descriptorStore = acc.descriptorStore;
+        ranges.clear();
+      }
+
+      // if the last range is contiguous with this access, append this access as a new range to query
+      if(!ranges.empty() && ranges.back().descriptorSize == acc.byteSize &&
+         ranges.back().offset + ranges.back().descriptorSize == acc.byteOffset)
+      {
+        ranges.back().count++;
+        continue;
+      }
+
+      DescriptorRange range;
+      range.offset = acc.byteOffset;
+      range.descriptorSize = acc.byteSize;
+      ranges.push_back(range);
+    }
+
+    if(descriptorStore != ResourceId())
+      locations.append(r->GetDescriptorLocations(descriptorStore, ranges));
+
+    // we only write to m_Locations etc on the GUI thread so we know there's no race here.
+    GUIInvoke::call(this, [this, access = std::move(access), locations = std::move(locations)]() {
+      m_Locations.clear();
+
+      for(size_t i = 0; i < qMin(access.size(), locations.size()); i++)
+      {
+        m_Locations[{access[i].descriptorStore, access[i].byteOffset}] = locations[i];
+      }
+
+      setState();
+    });
+  });
 }
 
 void D3D12PipelineStateViewer::SelectPipelineStage(PipelineStage stage)
@@ -540,7 +567,7 @@ ResourceId D3D12PipelineStateViewer::GetResource(RDTreeWidgetItem *item)
   else if(tag.canConvert<D3D12ViewTag>())
   {
     D3D12ViewTag viewTag = tag.value<D3D12ViewTag>();
-    return viewTag.res.resourceId;
+    return viewTag.descriptor.resource;
   }
   else if(tag.canConvert<D3D12VBIBTag>())
   {
@@ -556,26 +583,12 @@ ResourceId D3D12PipelineStateViewer::GetResource(RDTreeWidgetItem *item)
 
     D3D12CBufTag cb = tag.value<D3D12CBufTag>();
 
-    if(cb.idx == ~0U)
-    {
-      if(cb.rootElementsIdx < m_Ctx.CurD3D12PipelineState()->rootElements.size())
-      {
-        const D3D12Pipe::RootSignatureRange &range =
-            m_Ctx.CurD3D12PipelineState()->rootElements[cb.rootElementsIdx];
+    if(cb.index == DescriptorAccess::NoShaderBinding)
+      return cb.descriptor.resource;
 
-        if(cb.reg < range.constantBuffers.size())
-        {
-          // unused cbuffer, open regular buffer viewer
-          const D3D12Pipe::ConstantBuffer &buf = range.constantBuffers[cb.reg];
-
-          return buf.resourceId;
-        }
-      }
-
-      return ResourceId();
-    }
-
-    return m_Ctx.CurPipelineState().GetConstantBuffer(stage->stage, cb.idx, cb.arrayIdx).resourceId;
+    return m_Ctx.CurPipelineState()
+        .GetConstantBlockDescriptor(stage->stage, cb.index, cb.arrayElement)
+        .descriptor.resource;
   }
 
   return ResourceId();
@@ -608,7 +621,7 @@ void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
 
   QString text;
 
-  const D3D12Pipe::View &res = view.res;
+  const Descriptor &res = view.descriptor;
 
   bool viewdetails = false;
 
@@ -621,16 +634,16 @@ void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
     }
   }
 
-  if(res.viewFormat.compType != CompType::Typeless && res.viewFormat != tex->format)
+  if(res.format.compType != CompType::Typeless && res.format != tex->format)
   {
     text += tr("The texture is format %1, the view treats it as %2.\n")
                 .arg(tex->format.Name())
-                .arg(res.viewFormat.Name());
+                .arg(res.format.Name());
 
     viewdetails = true;
   }
 
-  if(view.space == D3D12ViewTag::OMDepth)
+  if(view.type == D3D12ViewTag::OMDepth)
   {
     if(m_Ctx.CurD3D12PipelineState()->outputMerger.depthReadOnly)
       text += tr("Depth component is read-only\n");
@@ -667,9 +680,9 @@ void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
     viewdetails = true;
   }
 
-  if(view.res.minLODClamp != 0.0f)
+  if(view.descriptor.minLODClamp != 0.0f)
   {
-    text += tr("The texture has a ResourceMinLODClamp of %1.\n").arg(view.res.minLODClamp);
+    text += tr("The texture has a ResourceMinLODClamp of %1.\n").arg(view.descriptor.minLODClamp);
 
     viewdetails = true;
   }
@@ -690,7 +703,7 @@ void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
 
   QString text;
 
-  const D3D12Pipe::View &res = view.res;
+  const Descriptor &res = view.descriptor;
 
   for(const D3D12Pipe::ResourceData &im : m_Ctx.CurD3D12PipelineState()->resourceStates)
   {
@@ -703,13 +716,13 @@ void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
 
   bool viewdetails = false;
 
-  if(res.firstElement > 0 || (res.numElements * res.elementByteSize) < buf->length)
+  if(res.byteOffset > 0 || res.byteSize < buf->length)
   {
     text += tr("The view covers bytes %1-%2 (%3 elements).\nThe buffer is %4 bytes in length (%5 "
                "elements).\n")
-                .arg(res.firstElement * res.elementByteSize)
-                .arg((res.firstElement + res.numElements) * res.elementByteSize)
-                .arg(res.numElements)
+                .arg(res.byteOffset)
+                .arg(res.byteOffset + res.byteSize)
+                .arg(res.byteSize / res.elementByteSize)
                 .arg(buf->length)
                 .arg(buf->length / res.elementByteSize);
 
@@ -724,16 +737,17 @@ void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
     node->setBackgroundColor(m_Common.GetViewDetailsColor());
 }
 
-void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view, const Bindpoint *bind,
-                                              const ShaderResource *shaderInput,
+void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
+                                              const ShaderResource *shaderInput, bool spacesUsed,
                                               RDTreeWidget *resources)
 {
-  const D3D12Pipe::View &r = view.res;
+  const Descriptor &descriptor = view.descriptor;
   bool uav = view.type == D3D12ViewTag::UAV;
-  bool directHeapAccess = view.directHeapAccess;
 
-  bool filledSlot = (r.resourceId != ResourceId());
-  bool usedSlot = (bind && bind->used && r.dynamicallyUsed) || directHeapAccess;
+  bool filledSlot = (descriptor.resource != ResourceId());
+  // D3D12 does not report unused elements at all because we enumerate exclusively from the
+  // perspective of which descriptors are used
+  bool usedSlot = true;
 
   // if a target is set to RTVs or DSV, it is implicitly used
   if(filledSlot)
@@ -741,19 +755,31 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view, const Bi
 
   if(showNode(usedSlot, filledSlot))
   {
-    QString regname = QString::number(view.res.bind);
+    QString regname;
 
-    if(shaderInput && !shaderInput->name.empty())
-      regname += lit(": ") + shaderInput->name;
+    if(view.type == D3D12ViewTag::OMDepth || view.type == D3D12ViewTag::OMTarget)
+    {
+      // regname unused
+    }
+    else if(shaderInput)
+    {
+      if(!spacesUsed)
+        regname = QFormatStr("%1").arg(shaderInput->fixedBindNumber);
+      else
+        regname = QFormatStr("space%1, %2")
+                      .arg(shaderInput->fixedBindSetOrSpace)
+                      .arg(shaderInput->fixedBindNumber);
 
-    if(bind && bind->arraySize > 1)
-      regname += QFormatStr("[%1]").arg(view.res.bind - bind->bind);
+      if(!shaderInput->name.empty())
+        regname += lit(": ") + shaderInput->name;
 
-    if(view.type == D3D12ViewTag::OMDepth)
-      regname = tr("Depth");
-
-    if(directHeapAccess)
-      regname = tr("");
+      if(shaderInput->bindArraySize > 1)
+        regname += QFormatStr("[%1]").arg(view.access.arrayElement);
+    }
+    else if(view.access.index == DescriptorAccess::NoShaderBinding)
+    {
+      regname = m_Locations[{view.access.descriptorStore, view.access.byteOffset}].logicalBindName;
+    }
 
     uint32_t w = 1, h = 1, d = 1;
     uint32_t a = 1;
@@ -767,7 +793,7 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view, const Bi
       w = h = d = a = 0;
     }
 
-    TextureDescription *tex = m_Ctx.GetTexture(r.resourceId);
+    TextureDescription *tex = m_Ctx.GetTexture(descriptor.resource);
 
     if(tex)
     {
@@ -778,14 +804,16 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view, const Bi
       format = tex->format.Name();
       typeName = ToQStr(tex->type);
 
-      if(r.swizzle.red != TextureSwizzle::Red || r.swizzle.green != TextureSwizzle::Green ||
-         r.swizzle.blue != TextureSwizzle::Blue || r.swizzle.alpha != TextureSwizzle::Alpha)
+      if(descriptor.swizzle.red != TextureSwizzle::Red ||
+         descriptor.swizzle.green != TextureSwizzle::Green ||
+         descriptor.swizzle.blue != TextureSwizzle::Blue ||
+         descriptor.swizzle.alpha != TextureSwizzle::Alpha)
       {
         format += tr(" swizzle[%1%2%3%4]")
-                      .arg(ToQStr(r.swizzle.red))
-                      .arg(ToQStr(r.swizzle.green))
-                      .arg(ToQStr(r.swizzle.blue))
-                      .arg(ToQStr(r.swizzle.alpha));
+                      .arg(ToQStr(descriptor.swizzle.red))
+                      .arg(ToQStr(descriptor.swizzle.green))
+                      .arg(ToQStr(descriptor.swizzle.blue))
+                      .arg(ToQStr(descriptor.swizzle.alpha));
       }
 
       if(tex->type == TextureType::Texture2DMS || tex->type == TextureType::Texture2DMSArray)
@@ -793,11 +821,11 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view, const Bi
         typeName += QFormatStr(" %1x").arg(tex->msSamp);
       }
 
-      if(tex->format != r.viewFormat)
-        format = tr("Viewed as %1").arg(r.viewFormat.Name());
+      if(tex->format != descriptor.format)
+        format = tr("Viewed as %1").arg(descriptor.format.Name());
     }
 
-    BufferDescription *buf = m_Ctx.GetBuffer(r.resourceId);
+    BufferDescription *buf = m_Ctx.GetBuffer(descriptor.resource);
 
     if(buf)
     {
@@ -808,20 +836,22 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view, const Bi
       format = QString();
       typeName = QFormatStr("%1Buffer").arg(uav ? lit("RW") : QString());
 
-      if(isByteAddress(r, shaderInput))
+      if(isByteAddress(descriptor, shaderInput))
       {
         typeName = QFormatStr("%1ByteAddressBuffer").arg(uav ? lit("RW") : QString());
       }
-      else if(r.elementByteSize > 0 && r.viewFormat.type == ResourceFormatType::Undefined)
+      else if(descriptor.elementByteSize > 0 &&
+              descriptor.format.type == ResourceFormatType::Undefined)
       {
         // for structured buffers, display how many 'elements' there are in the buffer
-        a = buf->length / r.elementByteSize;
+        a = buf->length / descriptor.elementByteSize;
         typeName = QFormatStr("%1StructuredBuffer[%2]").arg(uav ? lit("RW") : QString()).arg(a);
       }
 
-      if(r.counterResourceId != ResourceId())
+      if(descriptor.secondary != ResourceId())
       {
-        typeName += tr(" (Counter %1: %2)").arg(ToQStr(r.counterResourceId)).arg(r.bufferStructCount);
+        typeName +=
+            tr(" (Counter %1: %2)").arg(ToQStr(descriptor.secondary)).arg(descriptor.bufferStructCount);
       }
 
       // get the buffer type, whether it's just a basic type or a complex struct
@@ -829,10 +859,10 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view, const Bi
       {
         if(shaderInput->variableType.baseType == VarType::Struct)
           format = lit("struct ") + shaderInput->variableType.name;
-        else if(r.viewFormat.compType == CompType::Typeless)
+        else if(descriptor.format.compType == CompType::Typeless)
           format = shaderInput->variableType.name;
         else
-          format = r.viewFormat.Name();
+          format = descriptor.format.Name();
       }
     }
 
@@ -841,29 +871,17 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view, const Bi
     if(view.type == D3D12ViewTag::OMTarget)
     {
       node = new RDTreeWidgetItem(
-          {view.res.bind, r.resourceId, typeName, w, h, d, a, format, QString()});
+          {view.access.index, descriptor.resource, typeName, w, h, d, a, format, QString()});
     }
     else if(view.type == D3D12ViewTag::OMDepth)
     {
-      node =
-          new RDTreeWidgetItem({tr("Depth"), r.resourceId, typeName, w, h, d, a, format, QString()});
+      node = new RDTreeWidgetItem(
+          {tr("Depth"), descriptor.resource, typeName, w, h, d, a, format, QString()});
     }
     else
     {
-      QString spaceStr;
-      if(!directHeapAccess)
-        spaceStr = QString::number(view.space);
-
-      QString rootel;
-      if(directHeapAccess)
-        rootel = tr("ResourceDescriptorHeap[%1]").arg(r.tableIndex);
-      else if(view.immediate)
-        rootel = tr("#%1 Direct").arg(view.rootSignatureIndex);
-      else
-        rootel = tr("#%1 Table[%2]").arg(view.rootSignatureIndex).arg(r.tableIndex);
-
       node = new RDTreeWidgetItem(
-          {rootel, spaceStr, regname, r.resourceId, typeName, w, h, d, a, format, QString()});
+          {regname, descriptor.resource, typeName, w, h, d, a, format, QString()});
     }
 
     node->setTag(QVariant::fromValue(view));
@@ -1112,10 +1130,8 @@ void D3D12PipelineStateViewer::clearState()
   ui->computeDebugSelector->setEnabled(false);
 }
 
-void D3D12PipelineStateViewer::setShaderState(
-    const rdcarray<D3D12Pipe::RootSignatureRange> &rootElements, const D3D12Pipe::Shader &stage,
-    RDLabel *shader, RDLabel *rootSig, RDTreeWidget *resources, RDTreeWidget *samplers,
-    RDTreeWidget *cbuffers, RDTreeWidget *uavs)
+void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, RDLabel *shader,
+                                              RDLabel *rootSig)
 {
   ShaderReflection *shaderDetails = stage.reflection;
   const D3D12Pipe::State &state = *m_Ctx.CurD3D12PipelineState();
@@ -1139,492 +1155,6 @@ void D3D12PipelineStateViewer::setShaderState(
                   .arg(QFileInfo(dbg.files[entryFile].filename).fileName());
   }
   shader->setText(shText);
-
-  int resVs = resources->verticalScrollBar()->value();
-  resources->beginUpdate();
-  resources->clear();
-  int uavVs = uavs->verticalScrollBar()->value();
-  uavs->beginUpdate();
-  uavs->clear();
-  int sampVs = samplers->verticalScrollBar()->value();
-  samplers->beginUpdate();
-  samplers->clear();
-  int cbVs = cbuffers->verticalScrollBar()->value();
-  cbuffers->beginUpdate();
-  cbuffers->clear();
-
-  D3D12ViewTag tag;
-
-  for(size_t i = 0; i < rootElements.size(); ++i)
-  {
-    if((rootElements[i].visibility & MaskForStage(stage.stage)) == ShaderStageMask::Unknown)
-      continue;
-
-    if(!stage.reflection)
-      continue;
-
-    bool omittingEmpty = false;
-
-    tag.space = rootElements[i].registerSpace;
-    tag.rootSignatureIndex = rootElements[i].rootSignatureIndex;
-    tag.immediate = rootElements[i].immediate;
-
-    bool directHeapAccess = rootElements[i].registerSpace == ~0U;
-
-    switch(rootElements[i].type)
-    {
-      case BindType::ReadOnlyResource:
-      case BindType::ReadWriteResource:
-      {
-        const bool srv = rootElements[i].type == BindType::ReadOnlyResource;
-
-        tag.type = srv ? D3D12ViewTag::SRV : D3D12ViewTag::UAV;
-        RDTreeWidget *tree = srv ? resources : uavs;
-
-        const rdcarray<D3D12Pipe::View> &views = rootElements[i].views;
-
-        // add direct heap access resources
-        if(directHeapAccess)
-        {
-          for(size_t view = 0; view < views.size(); ++view)
-          {
-            tag.space = -1;
-            tag.res = views[view];
-            tag.directHeapAccess = directHeapAccess;
-            addResourceRow(tag, NULL, NULL, tree);
-          }
-          continue;
-        }
-
-        rdcarray<Bindpoint> binds = srv ? stage.bindpointMapping.readOnlyResources
-                                        : stage.bindpointMapping.readWriteResources;
-        rdcarray<ShaderResource> res =
-            srv ? stage.reflection->readOnlyResources : stage.reflection->readWriteResources;
-
-        // pre-filter binds/res by space
-        for(size_t bi = 0; bi < binds.size();)
-        {
-          if(binds[bi].bindset != tag.space)
-          {
-            binds.erase(bi);
-            res.erase(bi);
-            continue;
-          }
-
-          bi++;
-        }
-
-        // if there are no binds and we're not showing unused slots, skip now
-        if(binds.empty() && !showNode(false, true))
-          continue;
-
-        size_t firstView = rootElements[i].firstUsedIndex;
-        size_t lastView = qMin(views.size() - 1, size_t(rootElements[i].lastUsedIndex));
-
-        if(m_ShowUnused)
-        {
-          firstView = 0;
-          lastView = views.size() - 1;
-        }
-
-        const Bindpoint *bind = NULL;
-        const ShaderResource *shaderInput = NULL;
-        bool usedSlot = false;
-        uint32_t arraySize = 1;
-
-        for(size_t j = firstView; j < views.size() && j <= lastView;)
-        {
-          int shaderReg = (int)views[j].bind;
-
-          // only look for a new bind if we don't have one that already matches
-          if(bind == NULL ||
-             (bind->arraySize != ~0U && bind->bind + (int)bind->arraySize <= shaderReg))
-          {
-            // reset the bind if we don't have any match
-            bind = NULL;
-            shaderInput = NULL;
-
-            for(int k = 0; k < binds.count(); k++)
-            {
-              const Bindpoint &b = binds[k];
-
-              // if we find an exact reg match, it's a match
-              bool regMatch = (b.bind == shaderReg);
-
-              // see if this bind is an array which our range falls into. We handle unbounded arrays
-              // specially assuming any earlier unbounded array contains all larger registers, since
-              // it's illegal to have an unbounded array with anything after it
-              if(b.bind <= shaderReg)
-                regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > shaderReg);
-
-              if(regMatch)
-              {
-                bind = &b;
-                shaderInput = &res[k];
-                break;
-              }
-            }
-
-            usedSlot = (bind && bind->used) && rootElements[i].dynamicallyUsedCount > 0;
-            arraySize = bind ? qMax(1U, qMin((uint32_t)views.size(), bind->arraySize)) : 1;
-
-            // if this bind isn't used, skip
-            if(!showNode(usedSlot, true))
-            {
-              omittingEmpty = false;
-              j += arraySize;
-              continue;
-            }
-          }
-
-          if(arraySize > 1)
-          {
-            // if this is an array bind, iterate over it trying to elide large empty ranges
-            for(uint32_t k = 0; k < arraySize && j <= lastView; k++)
-            {
-              if(
-                  // if current element is empty
-                  views[j].resourceId == ResourceId() &&
-                  // and will be shown
-                  showNode(usedSlot && views[j].dynamicallyUsed, false) &&
-                  // and we have two behind us and one ahead
-                  j >= 2 && j + 1 <= lastView &&
-                  // last two are empty and were be shown
-                  views[j - 2].resourceId == ResourceId() && views[j - 1].resourceId == ResourceId() &&
-                  showNode(usedSlot && views[j - 2].dynamicallyUsed, false) &&
-                  showNode(usedSlot && views[j - 1].dynamicallyUsed, false) &&
-                  // next one is empty and will be shown
-                  views[j + 1].resourceId == ResourceId() &&
-                  showNode(usedSlot && views[j + 1].dynamicallyUsed, false))
-              {
-                // if we haven't started omitting empty rows, add an empty row
-                if(!omittingEmpty)
-                {
-                  RDTreeWidgetItem *node = new RDTreeWidgetItem(
-                      {lit("..."), QString(), QString(), QString(), QString(), QString(), QString(),
-                       QString(), QString(), QString(), QString()});
-
-                  setEmptyRow(node);
-
-                  tree->addTopLevelItem(node);
-                }
-
-                // move to the next range element
-                omittingEmpty = true;
-                j++;
-              }
-              else
-              {
-                // either we have a real element here, or it's empty but not in the middle of a
-                // large
-                // range, so add it
-                tag.res = views[j];
-                addResourceRow(tag, bind, shaderInput, tree);
-                j++;
-
-                omittingEmpty = false;
-              }
-            }
-          }
-          else
-          {
-            // if this is a single bind, just add it
-            tag.res = views[j];
-            addResourceRow(tag, bind, shaderInput, tree);
-
-            // move to next range element
-            j++;
-
-            omittingEmpty = false;
-          }
-        }
-        break;
-      }
-      case BindType::Sampler:
-      {
-        for(size_t j = 0; j < rootElements[i].samplers.size(); ++j)
-        {
-          const D3D12Pipe::Sampler &s = rootElements[i].samplers[j];
-
-          const Bindpoint *bind = NULL;
-          const ShaderSampler *shaderInput = NULL;
-
-          if(stage.reflection && !directHeapAccess)
-          {
-            for(int k = 0; k < stage.bindpointMapping.samplers.count(); ++k)
-            {
-              const Bindpoint &b = stage.bindpointMapping.samplers[k];
-              const ShaderSampler &res = stage.reflection->samplers[k];
-
-              bool regMatch = (b.bind == (int)s.bind);
-
-              // handle unbounded arrays specially. It's illegal to have an unbounded array with
-              // anything after it
-              if(b.bind <= (int)s.bind)
-                regMatch = (b.arraySize == ~0U) || (b.bind + (int)b.arraySize > (int)s.bind);
-
-              if(b.bindset == (int)rootElements[i].registerSpace && regMatch)
-              {
-                bind = &b;
-                shaderInput = &res;
-                break;
-              }
-            }
-          }
-          QString spaceStr = QString::number(rootElements[i].registerSpace);
-          QString rootel;
-          if(directHeapAccess)
-          {
-            rootel = tr("SamplerDescriptorHeap[%1]").arg(s.tableIndex);
-            spaceStr = tr("");
-          }
-          else if(rootElements[i].immediate)
-          {
-            rootel = tr("#%1 Static").arg(rootElements[i].rootSignatureIndex);
-          }
-          else
-          {
-            rootel = tr("#%1 Table[%2]").arg(rootElements[i].rootSignatureIndex).arg(s.tableIndex);
-          }
-
-          bool filledSlot = s.filter.minify != FilterMode::NoFilter;
-          bool usedSlot = (bind && bind->used) || directHeapAccess;
-
-          if(showNode(usedSlot, filledSlot))
-          {
-            QString regname;
-            if(!directHeapAccess)
-              regname = QString::number(s.bind);
-            if(shaderInput && !shaderInput->name.empty())
-              regname += lit(": ") + shaderInput->name;
-
-            QString borderColor;
-
-            if(s.borderColorType == CompType::Float)
-              borderColor = QFormatStr("%1, %2, %3, %4")
-                                .arg(s.borderColorValue.floatValue[0])
-                                .arg(s.borderColorValue.floatValue[1])
-                                .arg(s.borderColorValue.floatValue[2])
-                                .arg(s.borderColorValue.floatValue[3]);
-            else
-              borderColor = QFormatStr("%1, %2, %3, %4")
-                                .arg(s.borderColorValue.uintValue[0])
-                                .arg(s.borderColorValue.uintValue[1])
-                                .arg(s.borderColorValue.uintValue[2])
-                                .arg(s.borderColorValue.uintValue[3]);
-
-            QString addressing;
-
-            QString addPrefix;
-            QString addVal;
-
-            QString addr[] = {ToQStr(s.addressU, GraphicsAPI::D3D12),
-                              ToQStr(s.addressV, GraphicsAPI::D3D12),
-                              ToQStr(s.addressW, GraphicsAPI::D3D12)};
-
-            // arrange like either UVW: WRAP or UV: WRAP, W: CLAMP
-            for(int a = 0; a < 3; a++)
-            {
-              const QString str[] = {lit("U"), lit("V"), lit("W")};
-              QString prefix = str[a];
-
-              if(a == 0 || addr[a] == addr[a - 1])
-              {
-                addPrefix += prefix;
-              }
-              else
-              {
-                addressing += QFormatStr("%1: %2, ").arg(addPrefix).arg(addVal);
-
-                addPrefix = prefix;
-              }
-              addVal = addr[a];
-            }
-
-            addressing += addPrefix + lit(": ") + addVal;
-
-            if(s.UseBorder())
-              addressing += QFormatStr("<%1>").arg(borderColor);
-
-            if(s.unnormalized)
-              addressing += lit(" (Non-norm)");
-
-            QString filter = ToQStr(s.filter);
-
-            if(s.maxAnisotropy > 1)
-              filter += QFormatStr(" %1x").arg(s.maxAnisotropy);
-
-            if(s.filter.filter == FilterFunction::Comparison)
-              filter += QFormatStr(" (%1)").arg(ToQStr(s.compareFunction));
-            else if(s.filter.filter != FilterFunction::Normal)
-              filter += QFormatStr(" (%1)").arg(ToQStr(s.filter.filter));
-
-            RDTreeWidgetItem *node = new RDTreeWidgetItem(
-                {rootel, spaceStr, regname, addressing, filter,
-                 QFormatStr("%1 - %2")
-                     .arg(s.minLOD == -FLT_MAX ? lit("0") : QString::number(s.minLOD))
-                     .arg(s.maxLOD == FLT_MAX ? lit("FLT_MAX") : QString::number(s.maxLOD)),
-                 s.mipLODBias});
-
-            if(!filledSlot)
-              setEmptyRow(node);
-
-            if(!usedSlot)
-              setInactiveRow(node);
-
-            samplers->addTopLevelItem(node);
-          }
-        }
-        break;
-      }
-      case BindType::ConstantBuffer:
-      {
-        for(size_t j = 0; j < rootElements[i].constantBuffers.size(); ++j)
-        {
-          const D3D12Pipe::ConstantBuffer &b = rootElements[i].constantBuffers[j];
-
-          QVariant cbuftag;
-
-          const Bindpoint *bind = NULL;
-          const ConstantBlock *shaderCBuf = NULL;
-
-          if(stage.reflection && !directHeapAccess)
-          {
-            for(int k = 0; k < stage.bindpointMapping.constantBlocks.count(); ++k)
-            {
-              const Bindpoint &bm = stage.bindpointMapping.constantBlocks[k];
-              const ConstantBlock &res = stage.reflection->constantBlocks[k];
-
-              bool regMatch = bm.bind == (int)b.bind;
-
-              // handle unbounded arrays specially. It's illegal to have an unbounded array with
-              // anything after it
-              if(bm.bind <= (int)b.bind)
-                regMatch = (bm.arraySize == ~0U) || (bm.bind + (int)bm.arraySize > (int)b.bind);
-
-              if(bm.bindset == (int)rootElements[i].registerSpace && regMatch)
-              {
-                bind = &bm;
-                shaderCBuf = &res;
-                D3D12CBufTag cbufTag((uint32_t)k);
-                cbufTag.arrayIdx = b.bind - bm.bind;
-                cbuftag = QVariant::fromValue(cbufTag);
-                break;
-              }
-            }
-          }
-          if(directHeapAccess)
-            cbuftag = QVariant::fromValue(D3D12CBufTag(0, (uint32_t)j, (uint32_t)i));
-          if(!cbuftag.isValid())
-            cbuftag =
-                QVariant::fromValue(D3D12CBufTag(rootElements[i].registerSpace, b.bind, (uint32_t)i));
-
-          QString rootel;
-
-          if(directHeapAccess)
-          {
-            rootel = tr("ResourceDescriptorHeap[%1]").arg(b.tableIndex);
-          }
-          else if(rootElements[i].immediate)
-          {
-            if(!b.rootValues.empty())
-              rootel = tr("#%1 Consts").arg(rootElements[i].rootSignatureIndex);
-            else
-              rootel = tr("#%1 Direct").arg(rootElements[i].rootSignatureIndex);
-          }
-          else
-          {
-            rootel = tr("#%1 Table[%2]").arg(rootElements[i].rootSignatureIndex).arg(b.tableIndex);
-          }
-
-          bool filledSlot = (b.resourceId != ResourceId());
-          if(rootElements[i].immediate && !b.rootValues.empty())
-            filledSlot = true;
-
-          bool usedSlot = (bind && bind->used) || directHeapAccess;
-
-          if(showNode(usedSlot, filledSlot))
-          {
-            ulong length = b.byteSize;
-            uint64_t offset = b.byteOffset;
-            int numvars = shaderCBuf ? shaderCBuf->variables.count() : 0;
-            uint32_t bytesize = shaderCBuf ? shaderCBuf->byteSize : 0;
-
-            if(rootElements[i].immediate && !b.rootValues.empty())
-              bytesize = uint32_t(b.rootValues.count() * 4);
-
-            QString regname = QString::number(b.bind);
-
-            if(directHeapAccess)
-            {
-              regname = tr("");
-            }
-            else
-            {
-              if(shaderCBuf && !shaderCBuf->name.empty())
-                regname += lit(": ") + shaderCBuf->name;
-
-              if(bind != NULL && bind->arraySize > 1)
-                regname += tr("[%1]").arg(b.bind - bind->bind);
-            }
-            QString sizestr;
-            if(bytesize == (uint32_t)length)
-              sizestr = tr("%1 Variables, %2 bytes")
-                            .arg(numvars)
-                            .arg(Formatter::HumanFormat(length, Formatter::OffsetSize));
-            else
-              sizestr = tr("%1 Variables, %2 bytes needed, %3 provided")
-                            .arg(numvars)
-                            .arg(Formatter::HumanFormat(bytesize, Formatter::OffsetSize))
-                            .arg(Formatter::HumanFormat(length, Formatter::OffsetSize));
-
-            if(length < bytesize)
-              filledSlot = false;
-
-            QString spaceStr = QString::number(rootElements[i].registerSpace);
-            if(directHeapAccess)
-              spaceStr = tr("");
-            RDTreeWidgetItem *node = new RDTreeWidgetItem({
-                rootel,
-                spaceStr,
-                regname,
-                b.resourceId,
-                QFormatStr("%1 - %2")
-                    .arg(Formatter::HumanFormat(offset, Formatter::OffsetSize))
-                    .arg(Formatter::HumanFormat(offset + bytesize, Formatter::OffsetSize)),
-                sizestr,
-                QString(),
-            });
-
-            node->setTag(cbuftag);
-
-            if(!filledSlot)
-              setEmptyRow(node);
-
-            if(!usedSlot)
-              setInactiveRow(node);
-
-            cbuffers->addTopLevelItem(node);
-          }
-        }
-        break;
-      }
-      default: qCritical() << "Unexpected BindType for D3D12 pipeline"; break;
-    }
-  }
-
-  resources->clearSelection();
-  resources->endUpdate();
-  resources->verticalScrollBar()->setValue(resVs);
-  uavs->clearSelection();
-  uavs->endUpdate();
-  uavs->verticalScrollBar()->setValue(uavVs);
-  samplers->clearSelection();
-  samplers->endUpdate();
-  samplers->verticalScrollBar()->setValue(sampVs);
-  cbuffers->clearSelection();
-  cbuffers->endUpdate();
-  cbuffers->verticalScrollBar()->setValue(cbVs);
 }
 
 void D3D12PipelineStateViewer::setState()
@@ -1707,10 +1237,8 @@ void D3D12PipelineStateViewer::setState()
 
   if(m_MeshPipe)
   {
-    setShaderState(state.rootElements, state.ampShader, ui->asShader, ui->asRootSig,
-                   ui->asResources, ui->asSamplers, ui->asCBuffers, ui->asUAVs);
-    setShaderState(state.rootElements, state.meshShader, ui->msShader, ui->msRootSig,
-                   ui->msResources, ui->msSamplers, ui->msCBuffers, ui->msUAVs);
+    setShaderState(state.ampShader, ui->asShader, ui->asRootSig);
+    setShaderState(state.meshShader, ui->msShader, ui->msRootSig);
 
     if(state.meshShader.reflection)
       ui->msTopology->setText(ToQStr(state.meshShader.reflection->outputTopology));
@@ -1988,20 +1516,330 @@ void D3D12PipelineStateViewer::setState()
     ui->iaBuffers->endUpdate();
     ui->iaBuffers->verticalScrollBar()->setValue(vs);
 
-    setShaderState(state.rootElements, state.vertexShader, ui->vsShader, ui->vsRootSig,
-                   ui->vsResources, ui->vsSamplers, ui->vsCBuffers, ui->vsUAVs);
-    setShaderState(state.rootElements, state.geometryShader, ui->gsShader, ui->gsRootSig,
-                   ui->gsResources, ui->gsSamplers, ui->gsCBuffers, ui->gsUAVs);
-    setShaderState(state.rootElements, state.hullShader, ui->hsShader, ui->hsRootSig,
-                   ui->hsResources, ui->hsSamplers, ui->hsCBuffers, ui->hsUAVs);
-    setShaderState(state.rootElements, state.domainShader, ui->dsShader, ui->dsRootSig,
-                   ui->dsResources, ui->dsSamplers, ui->dsCBuffers, ui->dsUAVs);
+    setShaderState(state.vertexShader, ui->vsShader, ui->vsRootSig);
+    setShaderState(state.geometryShader, ui->gsShader, ui->gsRootSig);
+    setShaderState(state.hullShader, ui->hsShader, ui->hsRootSig);
+    setShaderState(state.domainShader, ui->dsShader, ui->dsRootSig);
   }
 
-  setShaderState(state.rootElements, state.pixelShader, ui->psShader, ui->psRootSig,
-                 ui->psResources, ui->psSamplers, ui->psCBuffers, ui->psUAVs);
-  setShaderState(state.rootElements, state.computeShader, ui->csShader, ui->csRootSig,
-                 ui->csResources, ui->csSamplers, ui->csCBuffers, ui->csUAVs);
+  setShaderState(state.pixelShader, ui->psShader, ui->psRootSig);
+  setShaderState(state.computeShader, ui->csShader, ui->csRootSig);
+
+  // fill in descriptor access
+  {
+    RDTreeWidget *resources[] = {
+        ui->vsResources, ui->hsResources, ui->dsResources, ui->gsResources,
+        ui->psResources, ui->csResources, ui->asResources, ui->msResources,
+    };
+
+    RDTreeWidget *uavs[] = {
+        ui->vsUAVs, ui->hsUAVs, ui->dsUAVs, ui->gsUAVs,
+        ui->psUAVs, ui->csUAVs, ui->asUAVs, ui->msUAVs,
+    };
+
+    RDTreeWidget *samplers[] = {
+        ui->vsSamplers, ui->hsSamplers, ui->dsSamplers, ui->gsSamplers,
+        ui->psSamplers, ui->csSamplers, ui->asSamplers, ui->msSamplers,
+    };
+
+    RDTreeWidget *cbuffers[] = {
+        ui->vsCBuffers, ui->hsCBuffers, ui->dsCBuffers, ui->gsCBuffers,
+        ui->psCBuffers, ui->csCBuffers, ui->asCBuffers, ui->msCBuffers,
+    };
+
+    ScopedTreeUpdater restorers[] = {
+        ui->vsResources, ui->hsResources, ui->dsResources, ui->gsResources, ui->psResources,
+        ui->csResources, ui->asResources, ui->msResources, ui->vsUAVs,      ui->hsUAVs,
+        ui->dsUAVs,      ui->gsUAVs,      ui->psUAVs,      ui->csUAVs,      ui->asUAVs,
+        ui->msUAVs,      ui->vsSamplers,  ui->hsSamplers,  ui->dsSamplers,  ui->gsSamplers,
+        ui->psSamplers,  ui->csSamplers,  ui->asSamplers,  ui->msSamplers,  ui->vsCBuffers,
+        ui->hsCBuffers,  ui->dsCBuffers,  ui->gsCBuffers,  ui->psCBuffers,  ui->csCBuffers,
+        ui->asCBuffers,  ui->msCBuffers,
+    };
+
+    const ShaderReflection *shaderRefls[NumShaderStages];
+    // this is a simple flag to see if any non-zero spaces are used. If not, we can be more concise
+    // and omit the space when listing the binding for a particular register.
+    bool spacesUsed[NumShaderStages] = {};
+
+    for(ShaderStage stage : values<ShaderStage>())
+    {
+      shaderRefls[(uint32_t)stage] = m_Ctx.CurPipelineState().GetShaderReflection(stage);
+
+      if(!shaderRefls[(uint32_t)stage])
+        continue;
+
+      for(const ConstantBlock &bind : shaderRefls[(uint32_t)stage]->constantBlocks)
+        spacesUsed[(uint32_t)stage] |= bind.fixedBindSetOrSpace > 0;
+      for(const ShaderSampler &bind : shaderRefls[(uint32_t)stage]->samplers)
+        spacesUsed[(uint32_t)stage] |= bind.fixedBindSetOrSpace > 0;
+      for(const ShaderResource &bind : shaderRefls[(uint32_t)stage]->readOnlyResources)
+        spacesUsed[(uint32_t)stage] |= bind.fixedBindSetOrSpace > 0;
+      for(const ShaderResource &bind : shaderRefls[(uint32_t)stage]->readWriteResources)
+        spacesUsed[(uint32_t)stage] |= bind.fixedBindSetOrSpace > 0;
+    }
+
+    rdcarray<UsedDescriptor> descriptors = m_Ctx.CurPipelineState().GetAllUsedDescriptors();
+
+    std::sort(descriptors.begin(), descriptors.end(),
+              [](const UsedDescriptor &a, const UsedDescriptor &b) {
+                // sort by declared shader interface resource order
+                if(a.access.index != b.access.index)
+                  return a.access.index < b.access.index;
+
+                return a.access.arrayElement < b.access.arrayElement;
+              });
+
+    for(const UsedDescriptor &used : descriptors)
+    {
+      const ShaderReflection *refl = shaderRefls[(uint32_t)used.access.stage];
+
+      if(IsConstantBlockDescriptor(used.access.type))
+      {
+        const Descriptor &descriptor = used.descriptor;
+
+        QVariant cbuftag;
+
+        const ConstantBlock *shaderBind = NULL;
+
+        if(used.access.index == DescriptorAccess::NoShaderBinding)
+        {
+          cbuftag = QVariant::fromValue(D3D12CBufTag(descriptor));
+        }
+        else
+        {
+          if(refl && used.access.index < refl->constantBlocks.size())
+            shaderBind = &refl->constantBlocks[used.access.index];
+
+          cbuftag = QVariant::fromValue(D3D12CBufTag(used.access.index, used.access.arrayElement));
+        }
+
+        bool filledSlot = (descriptor.resource != ResourceId());
+        // D3D12 does not report unused elements at all because we enumerate exclusively from the
+        // perspective of which descriptors are used
+        bool usedSlot = true;
+
+        if(showNode(usedSlot, filledSlot))
+        {
+          ulong length = descriptor.byteSize;
+          uint64_t offset = descriptor.byteOffset;
+          int numvars = shaderBind ? shaderBind->variables.count() : 0;
+          uint32_t bytesize = shaderBind ? shaderBind->byteSize : 0;
+
+          QString regname;
+          if(used.access.index == DescriptorAccess::NoShaderBinding)
+          {
+            regname =
+                m_Locations[{used.access.descriptorStore, used.access.byteOffset}].logicalBindName;
+          }
+          else if(shaderBind)
+          {
+            if(!spacesUsed[(uint32_t)used.access.stage])
+              regname = QFormatStr("%1").arg(shaderBind->fixedBindNumber);
+            else
+              regname = QFormatStr("space%1, %2")
+                            .arg(shaderBind->fixedBindSetOrSpace)
+                            .arg(shaderBind->fixedBindNumber);
+
+            if(!shaderBind->name.empty())
+              regname += lit(": ") + shaderBind->name;
+
+            if(shaderBind->bindArraySize > 1)
+              regname += QFormatStr("[%1]").arg(used.access.arrayElement);
+          }
+
+          QString sizestr;
+          if(bytesize == (uint32_t)length)
+            sizestr = tr("%1 Variables, %2 bytes")
+                          .arg(numvars)
+                          .arg(Formatter::HumanFormat(length, Formatter::OffsetSize));
+          else
+            sizestr = tr("%1 Variables, %2 bytes needed, %3 provided")
+                          .arg(numvars)
+                          .arg(Formatter::HumanFormat(bytesize, Formatter::OffsetSize))
+                          .arg(Formatter::HumanFormat(length, Formatter::OffsetSize));
+
+          if(length < bytesize)
+            filledSlot = false;
+
+          // ignore offset into virtualised data storage on root constants, display as 0-based
+          if(descriptor.flags & DescriptorFlags::InlineData)
+            offset = 0;
+
+          RDTreeWidgetItem *node = new RDTreeWidgetItem({
+              regname,
+              (descriptor.flags & DescriptorFlags::InlineData) ? ResourceId() : descriptor.resource,
+              QFormatStr("%1 - %2")
+                  .arg(Formatter::HumanFormat(offset, Formatter::OffsetSize))
+                  .arg(Formatter::HumanFormat(offset + bytesize, Formatter::OffsetSize)),
+              sizestr,
+              QString(),
+          });
+
+          node->setTag(cbuftag);
+
+          if(!filledSlot)
+            setEmptyRow(node);
+
+          if(!usedSlot)
+            setInactiveRow(node);
+
+          cbuffers[(uint32_t)used.access.stage]->addTopLevelItem(node);
+        }
+      }
+      else if(IsSamplerDescriptor(used.access.type))
+      {
+        const SamplerDescriptor &samplerDescriptor = used.sampler;
+
+        const ShaderSampler *shaderBind = NULL;
+
+        if(refl && used.access.index < refl->samplers.size())
+          shaderBind = &refl->samplers[used.access.index];
+
+        bool filledSlot = samplerDescriptor.filter.minify != FilterMode::NoFilter;
+        // D3D12 does not report unused elements at all because we enumerate exclusively from the
+        // perspective of which descriptors are used
+        bool usedSlot = true;
+
+        if(showNode(usedSlot, filledSlot))
+        {
+          QString regname;
+          if(used.access.index == DescriptorAccess::NoShaderBinding)
+          {
+            regname =
+                m_Locations[{used.access.descriptorStore, used.access.byteOffset}].logicalBindName;
+          }
+          else if(shaderBind)
+          {
+            if(!spacesUsed[(uint32_t)used.access.stage])
+              regname = QFormatStr("%1").arg(shaderBind->fixedBindNumber);
+            else
+              regname = QFormatStr("space%1, %2")
+                            .arg(shaderBind->fixedBindSetOrSpace)
+                            .arg(shaderBind->fixedBindNumber);
+
+            if(!shaderBind->name.empty())
+              regname += lit(": ") + shaderBind->name;
+
+            if(shaderBind->bindArraySize > 1)
+              regname += QFormatStr("[%1]").arg(used.access.arrayElement);
+          }
+
+          QString borderColor;
+
+          if(samplerDescriptor.borderColorType == CompType::Float)
+            borderColor = QFormatStr("%1, %2, %3, %4")
+                              .arg(samplerDescriptor.borderColorValue.floatValue[0])
+                              .arg(samplerDescriptor.borderColorValue.floatValue[1])
+                              .arg(samplerDescriptor.borderColorValue.floatValue[2])
+                              .arg(samplerDescriptor.borderColorValue.floatValue[3]);
+          else
+            borderColor = QFormatStr("%1, %2, %3, %4")
+                              .arg(samplerDescriptor.borderColorValue.uintValue[0])
+                              .arg(samplerDescriptor.borderColorValue.uintValue[1])
+                              .arg(samplerDescriptor.borderColorValue.uintValue[2])
+                              .arg(samplerDescriptor.borderColorValue.uintValue[3]);
+
+          QString addressing;
+
+          QString addPrefix;
+          QString addVal;
+
+          QString addr[] = {ToQStr(samplerDescriptor.addressU, GraphicsAPI::D3D12),
+                            ToQStr(samplerDescriptor.addressV, GraphicsAPI::D3D12),
+                            ToQStr(samplerDescriptor.addressW, GraphicsAPI::D3D12)};
+
+          // arrange like either UVW: WRAP or UV: WRAP, W: CLAMP
+          for(int a = 0; a < 3; a++)
+          {
+            const QString str[] = {lit("U"), lit("V"), lit("W")};
+            QString prefix = str[a];
+
+            if(a == 0 || addr[a] == addr[a - 1])
+            {
+              addPrefix += prefix;
+            }
+            else
+            {
+              addressing += QFormatStr("%1: %2, ").arg(addPrefix).arg(addVal);
+
+              addPrefix = prefix;
+            }
+            addVal = addr[a];
+          }
+
+          addressing += addPrefix + lit(": ") + addVal;
+
+          if(samplerDescriptor.UseBorder())
+            addressing += QFormatStr("<%1>").arg(borderColor);
+
+          if(samplerDescriptor.unnormalized)
+            addressing += lit(" (Non-norm)");
+
+          QString filter = ToQStr(samplerDescriptor.filter);
+
+          if(samplerDescriptor.maxAnisotropy > 1)
+            filter += QFormatStr(" %1x").arg(samplerDescriptor.maxAnisotropy);
+
+          if(samplerDescriptor.filter.filter == FilterFunction::Comparison)
+            filter += QFormatStr(" (%1)").arg(ToQStr(samplerDescriptor.compareFunction));
+          else if(samplerDescriptor.filter.filter != FilterFunction::Normal)
+            filter += QFormatStr(" (%1)").arg(ToQStr(samplerDescriptor.filter.filter));
+
+          RDTreeWidgetItem *node =
+              new RDTreeWidgetItem({regname, addressing, filter,
+                                    QFormatStr("%1 - %2")
+                                        .arg(samplerDescriptor.minLOD == -FLT_MAX
+                                                 ? lit("0")
+                                                 : QString::number(samplerDescriptor.minLOD))
+                                        .arg(samplerDescriptor.maxLOD == FLT_MAX
+                                                 ? lit("FLT_MAX")
+                                                 : QString::number(samplerDescriptor.maxLOD)),
+                                    samplerDescriptor.mipBias});
+
+          if(!filledSlot)
+            setEmptyRow(node);
+
+          if(!usedSlot)
+            setInactiveRow(node);
+
+          samplers[(uint32_t)used.access.stage]->addTopLevelItem(node);
+        }
+      }
+      else
+      {
+        const bool srv = IsReadOnlyDescriptor(used.access.type);
+
+        RDTreeWidget *tree =
+            srv ? resources[(uint32_t)used.access.stage] : uavs[(uint32_t)used.access.stage];
+
+        const Descriptor &view = used.descriptor;
+
+        D3D12ViewTag tag;
+        tag.type = srv ? D3D12ViewTag::SRV : D3D12ViewTag::UAV;
+        tag.access = used.access;
+        tag.descriptor = view;
+
+        const rdcarray<ShaderResource> &resArray =
+            srv ? refl->readOnlyResources : refl->readWriteResources;
+
+        const ShaderResource *shaderBind = NULL;
+
+        if(refl && used.access.index < resArray.size())
+          shaderBind = &resArray[used.access.index];
+
+        bool filledSlot = view.resource != ResourceId();
+        // D3D12 does not report unused elements at all because we enumerate exclusively from the
+        // perspective of which descriptors are used
+        bool usedSlot = true;
+
+        if(showNode(usedSlot, filledSlot))
+        {
+          addResourceRow(tag, shaderBind, spacesUsed[(uint32_t)used.access.stage], tree);
+        }
+      }
+    }
+  }
 
   QToolButton *shaderButtons[] = {
       // view buttons
@@ -2173,18 +2011,21 @@ void D3D12PipelineStateViewer::setState()
   ui->targetOutputs->beginUpdate();
   ui->targetOutputs->clear();
   {
-    for(int i = 0; i < state.outputMerger.renderTargets.count(); i++)
+    rdcarray<Descriptor> rts = m_Ctx.CurPipelineState().GetOutputTargetDescriptors();
+    for(uint32_t i = 0; i < rts.size(); i++)
     {
-      addResourceRow(
-          D3D12ViewTag(D3D12ViewTag::OMTarget, 0, 0, false, state.outputMerger.renderTargets[i]),
-          NULL, NULL, ui->targetOutputs);
+      DescriptorAccess access;
+      access.index = i;
+      addResourceRow(D3D12ViewTag(D3D12ViewTag::OMTarget, access, rts[i]), NULL, false,
+                     ui->targetOutputs);
 
-      if(state.outputMerger.renderTargets[i].resourceId != ResourceId())
+      if(rts[i].resource != ResourceId())
         targets[i] = true;
     }
 
-    addResourceRow(D3D12ViewTag(D3D12ViewTag::OMDepth, 0, 0, false, state.outputMerger.depthTarget),
-                   NULL, NULL, ui->targetOutputs);
+    Descriptor depth = m_Ctx.CurPipelineState().GetDepthTargetDescriptor();
+    addResourceRow(D3D12ViewTag(D3D12ViewTag::OMDepth, DescriptorAccess(), depth), NULL, false,
+                   ui->targetOutputs);
   }
   ui->targetOutputs->clearSelection();
   ui->targetOutputs->endUpdate();
@@ -2398,9 +2239,9 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
   else if(tag.canConvert<D3D12ViewTag>())
   {
     D3D12ViewTag view = tag.value<D3D12ViewTag>();
-    tex = m_Ctx.GetTexture(view.res.resourceId);
-    buf = m_Ctx.GetBuffer(view.res.resourceId);
-    typeCast = view.res.viewFormat.compType;
+    tex = m_Ctx.GetTexture(view.descriptor.resource);
+    buf = m_Ctx.GetBuffer(view.descriptor.resource);
+    typeCast = view.descriptor.format.compType;
   }
 
   if(tex)
@@ -2426,7 +2267,7 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
   {
     D3D12ViewTag view;
 
-    view.res.resourceId = buf->resourceId;
+    view.descriptor.resource = buf->resourceId;
 
     if(tag.canConvert<D3D12ViewTag>())
       view = tag.value<D3D12ViewTag>();
@@ -2434,10 +2275,10 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
     uint64_t offs = 0;
     uint64_t size = buf->length;
 
-    if(view.res.resourceId != ResourceId())
+    if(view.descriptor.resource != ResourceId())
     {
-      offs = view.res.firstElement * view.res.elementByteSize;
-      size = uint64_t(view.res.numElements) * view.res.elementByteSize;
+      offs = view.descriptor.byteOffset;
+      size = view.descriptor.byteSize;
     }
     else
     {
@@ -2467,33 +2308,20 @@ void D3D12PipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, in
                                                      ? stage->reflection->readOnlyResources
                                                      : stage->reflection->readWriteResources;
 
-      const rdcarray<Bindpoint> &bindArray = view.type == D3D12ViewTag::SRV
-                                                 ? stage->bindpointMapping.readOnlyResources
-                                                 : stage->bindpointMapping.readWriteResources;
-
-      for(int i = 0; i < bindArray.count(); i++)
-      {
-        uint32_t bind = (uint32_t)bindArray[i].bind;
-        if(bindArray[i].bindset == view.space &&
-           (bind == view.res.bind ||
-            (bind <= view.res.bind && bind + bindArray[i].arraySize > view.res.bind)))
-        {
-          shaderRes = &resArray[i];
-          break;
-        }
-      }
+      if(view.access.index < resArray.size())
+        shaderRes = &resArray[view.access.index];
     }
 
     if(shaderRes)
     {
       format = BufferFormatter::GetBufferFormatString(Packing::D3DUAV, stage->resourceId,
-                                                      *shaderRes, view.res.viewFormat);
+                                                      *shaderRes, view.descriptor.format);
 
-      if(view.res.bufferFlags & D3DBufferViewFlags::Raw)
+      if(view.descriptor.flags & DescriptorFlags::RawBuffer)
         format = lit("xint");
     }
 
-    IBufferViewer *viewer = m_Ctx.ViewBuffer(offs, size, view.res.resourceId, format);
+    IBufferViewer *viewer = m_Ctx.ViewBuffer(offs, size, view.descriptor.resource, format);
 
     m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
   }
@@ -2513,15 +2341,12 @@ void D3D12PipelineStateViewer::cbuffer_itemActivated(RDTreeWidgetItem *item, int
 
   D3D12CBufTag cb = tag.value<D3D12CBufTag>();
 
-  if(cb.idx == ~0U)
+  if(cb.index == DescriptorAccess::NoShaderBinding)
   {
-    // unused cbuffer, open regular buffer viewer
-    const D3D12Pipe::ConstantBuffer &buf =
-        m_Ctx.CurD3D12PipelineState()->rootElements[cb.rootElementsIdx].constantBuffers[cb.reg];
-
-    if(buf.resourceId != ResourceId())
+    if(cb.descriptor.resource != ResourceId())
     {
-      IBufferViewer *viewer = m_Ctx.ViewBuffer(buf.byteOffset, buf.byteSize, buf.resourceId);
+      IBufferViewer *viewer =
+          m_Ctx.ViewBuffer(cb.descriptor.byteOffset, cb.descriptor.byteSize, cb.descriptor.resource);
 
       m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
     }
@@ -2529,7 +2354,7 @@ void D3D12PipelineStateViewer::cbuffer_itemActivated(RDTreeWidgetItem *item, int
     return;
   }
 
-  IBufferViewer *prev = m_Ctx.ViewConstantBuffer(stage->stage, cb.idx, cb.arrayIdx);
+  IBufferViewer *prev = m_Ctx.ViewConstantBuffer(stage->stage, cb.index, cb.arrayElement);
 
   m_Ctx.AddDockWindow(prev->Widget(), DockReference::TransientPopupArea, this, 0.3f);
 }
@@ -2727,12 +2552,13 @@ void D3D12PipelineStateViewer::shaderSave_clicked()
   m_Common.SaveShaderFile(shaderDetails);
 }
 
-QVariantList D3D12PipelineStateViewer::exportViewHTML(const D3D12Pipe::View &view, bool rw,
+QVariantList D3D12PipelineStateViewer::exportViewHTML(const Descriptor &descriptor, bool rw,
                                                       const ShaderResource *shaderInput,
                                                       const QString &extraParams)
 {
-  QString name = view.resourceId == ResourceId() ? tr("Empty")
-                                                 : QString(m_Ctx.GetResourceName(view.resourceId));
+  QString name = descriptor.resource == ResourceId()
+                     ? tr("Empty")
+                     : QString(m_Ctx.GetResourceName(descriptor.resource));
   QString viewType = tr("Unknown");
   QString typeName = tr("Unknown");
   QString format = tr("Unknown");
@@ -2740,10 +2566,10 @@ QVariantList D3D12PipelineStateViewer::exportViewHTML(const D3D12Pipe::View &vie
   uint32_t h = 1, d = 1;
   uint32_t a = 0;
 
-  QString viewFormat = view.viewFormat.Name();
+  QString viewFormat = descriptor.format.Name();
 
-  TextureDescription *tex = m_Ctx.GetTexture(view.resourceId);
-  BufferDescription *buf = m_Ctx.GetBuffer(view.resourceId);
+  TextureDescription *tex = m_Ctx.GetTexture(descriptor.resource);
+  BufferDescription *buf = m_Ctx.GetBuffer(descriptor.resource);
 
   QString viewParams;
 
@@ -2755,34 +2581,38 @@ QVariantList D3D12PipelineStateViewer::exportViewHTML(const D3D12Pipe::View &vie
     d = tex->depth;
     a = tex->arraysize;
     format = tex->format.Name();
-    viewType = ToQStr(view.type);
+    viewType = ToQStr(descriptor.type);
     typeName = ToQStr(tex->type);
 
-    if(view.swizzle.red != TextureSwizzle::Red || view.swizzle.green != TextureSwizzle::Green ||
-       view.swizzle.blue != TextureSwizzle::Blue || view.swizzle.alpha != TextureSwizzle::Alpha)
+    if(descriptor.swizzle.red != TextureSwizzle::Red ||
+       descriptor.swizzle.green != TextureSwizzle::Green ||
+       descriptor.swizzle.blue != TextureSwizzle::Blue ||
+       descriptor.swizzle.alpha != TextureSwizzle::Alpha)
     {
       format += tr(" swizzle[%1%2%3%4]")
-                    .arg(ToQStr(view.swizzle.red))
-                    .arg(ToQStr(view.swizzle.green))
-                    .arg(ToQStr(view.swizzle.blue))
-                    .arg(ToQStr(view.swizzle.alpha));
+                    .arg(ToQStr(descriptor.swizzle.red))
+                    .arg(ToQStr(descriptor.swizzle.green))
+                    .arg(ToQStr(descriptor.swizzle.blue))
+                    .arg(ToQStr(descriptor.swizzle.alpha));
     }
 
     if(tex->mips > 1)
-      viewParams = tr("Highest Mip: %1, Num Mips: %2").arg(view.firstMip).arg(view.numMips);
+      viewParams =
+          tr("Highest Mip: %1, Num Mips: %2").arg(descriptor.firstMip).arg(descriptor.numMips);
 
     if(tex->arraysize > 1)
     {
       if(!viewParams.isEmpty())
         viewParams += lit(", ");
-      viewParams += tr("First Slice: %1, Array Size: %2").arg(view.firstSlice).arg(view.numSlices);
+      viewParams +=
+          tr("First Slice: %1, Array Size: %2").arg(descriptor.firstSlice).arg(descriptor.numSlices);
     }
 
-    if(view.minLODClamp != 0.0f)
+    if(descriptor.minLODClamp != 0.0f)
     {
       if(!viewParams.isEmpty())
         viewParams += lit(", ");
-      viewParams += tr("MinLODClamp: %1").arg(view.minLODClamp);
+      viewParams += tr("MinLODClamp: %1").arg(descriptor.minLODClamp);
     }
   }
 
@@ -2793,30 +2623,31 @@ QVariantList D3D12PipelineStateViewer::exportViewHTML(const D3D12Pipe::View &vie
     h = 0;
     d = 0;
     a = 0;
-    format = view.viewFormat.Name();
-    viewType = ToQStr(view.type);
+    format = descriptor.format.Name();
+    viewType = ToQStr(descriptor.type);
     typeName = lit("Buffer");
 
-    if(isByteAddress(view, shaderInput))
+    if(isByteAddress(descriptor, shaderInput))
     {
       typeName = rw ? lit("RWByteAddressBuffer") : lit("ByteAddressBuffer");
     }
-    else if(view.elementByteSize > 0)
+    else if(descriptor.elementByteSize > 0)
     {
       // for structured buffers, display how many 'elements' there are in the buffer
       typeName = QFormatStr("%1[%2]")
                      .arg(rw ? lit("RWStructuredBuffer") : lit("StructuredBuffer"))
-                     .arg(buf->length / view.elementByteSize);
+                     .arg(buf->length / descriptor.elementByteSize);
     }
 
-    if(view.bufferFlags & D3DBufferViewFlags::Append || view.bufferFlags & D3DBufferViewFlags::Counter)
+    if(descriptor.flags & DescriptorFlags::AppendBuffer ||
+       descriptor.flags & DescriptorFlags::CounterBuffer)
     {
-      typeName += tr(" (Count: %1)").arg(view.bufferStructCount);
+      typeName += tr(" (Count: %1)").arg(descriptor.bufferStructCount);
     }
 
     if(shaderInput && !shaderInput->isTexture)
     {
-      if(view.viewFormat.compType == CompType::Typeless)
+      if(descriptor.format.compType == CompType::Typeless)
       {
         if(shaderInput->variableType.baseType == VarType::Struct)
           viewFormat = format = lit("struct ") + shaderInput->variableType.name;
@@ -2825,20 +2656,20 @@ QVariantList D3D12PipelineStateViewer::exportViewHTML(const D3D12Pipe::View &vie
       }
       else
       {
-        format = view.viewFormat.Name();
+        format = descriptor.format.Name();
       }
     }
 
-    viewParams = tr("First Element: %1, Num Elements %2, Flags %3")
-                     .arg(view.firstElement)
-                     .arg(view.numElements)
-                     .arg(ToQStr(view.bufferFlags));
+    viewParams = tr("Byte Offset: %1, Byte Size %2, Flags %3")
+                     .arg(descriptor.byteOffset)
+                     .arg(descriptor.byteSize)
+                     .arg(ToQStr(descriptor.flags));
 
-    if(view.counterResourceId != ResourceId())
+    if(descriptor.secondary != ResourceId())
     {
       viewParams += tr(", Counter in %1 at %2 bytes")
-                        .arg(m_Ctx.GetResourceName(view.counterResourceId))
-                        .arg(view.counterByteOffset);
+                        .arg(m_Ctx.GetResourceName(descriptor.secondary))
+                        .arg(descriptor.counterByteOffset);
     }
   }
 
@@ -2847,8 +2678,7 @@ QVariantList D3D12PipelineStateViewer::exportViewHTML(const D3D12Pipe::View &vie
   else
     viewParams += lit(", ") + extraParams;
 
-  return {view.bind, name, viewType,   typeName, (qulonglong)w, h,
-          d,         a,    viewFormat, format,   viewParams};
+  return {name, viewType, typeName, (qulonglong)w, h, d, a, viewFormat, format, viewParams};
 }
 
 void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::InputAssembly &ia)
@@ -2951,8 +2781,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
   m_Common.exportHTMLTable(xml, {tr("Primitive Topology")}, {ToQStr(ia.topology)});
 }
 
-void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::Shader &sh,
-                                          const rdcarray<D3D12Pipe::RootSignatureRange> &els)
+void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::Shader &sh)
 {
   ShaderReflection *shaderDetails = sh.reflection;
 
@@ -2990,352 +2819,243 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
       return;
   }
 
+  bool spacesUsed = false;
+
+  for(ShaderStage stage : values<ShaderStage>())
+  {
+    for(const ConstantBlock &bind : shaderDetails->constantBlocks)
+      spacesUsed |= bind.fixedBindSetOrSpace > 0;
+    for(const ShaderSampler &bind : shaderDetails->samplers)
+      spacesUsed |= bind.fixedBindSetOrSpace > 0;
+    for(const ShaderResource &bind : shaderDetails->readOnlyResources)
+      spacesUsed |= bind.fixedBindSetOrSpace > 0;
+    for(const ShaderResource &bind : shaderDetails->readWriteResources)
+      spacesUsed |= bind.fixedBindSetOrSpace > 0;
+  }
+
   QList<QVariantList> rowsRO;
   QList<QVariantList> rowsRW;
   QList<QVariantList> rowsSampler;
   QList<QVariantList> rowsCB;
-  for(size_t i = 0; i < els.size(); ++i)
+
+  for(const UsedDescriptor &used : m_Ctx.CurPipelineState().GetConstantBlockDescriptors(sh.stage))
   {
-    if((els[i].visibility & MaskForStage(sh.stage)) == ShaderStageMask::Unknown)
+    if(used.access.stage != sh.stage)
       continue;
-    bool directHeapAccess = els[i].registerSpace == ~0U;
-    QString spaceStr;
-    if(!directHeapAccess)
-      spaceStr = QString::number(els[i].registerSpace);
 
-    switch(els[i].type)
+    const Descriptor &descriptor = used.descriptor;
+    const ConstantBlock *shaderCBuf = NULL;
+
+    if(used.access.index < sh.reflection->constantBlocks.size())
+      shaderCBuf = &sh.reflection->constantBlocks[used.access.index];
+
+    QString name;
+    uint64_t length = descriptor.byteSize;
+    uint64_t offset = descriptor.byteOffset;
+    int numvars = shaderCBuf ? shaderCBuf->variables.count() : 0;
+    uint32_t bytesize = shaderCBuf ? shaderCBuf->byteSize : 0;
+
+    if(descriptor.resource != ResourceId())
+      name = m_Ctx.GetResourceName(descriptor.resource);
+    else
+      name = tr("Empty");
+
+    QString regname;
+    if(used.access.index == DescriptorAccess::NoShaderBinding)
     {
-      case BindType::ReadOnlyResource:
-      {
-        for(size_t j = 0; j < els[i].views.size(); ++j)
-        {
-          const D3D12Pipe::View &v = els[i].views[j];
-          const ShaderResource *shaderInput = NULL;
-
-          if(sh.reflection && !directHeapAccess)
-          {
-            for(int32_t k = 0; k < sh.bindpointMapping.readOnlyResources.count(); ++k)
-            {
-              const Bindpoint &b = sh.bindpointMapping.readOnlyResources[k];
-              const ShaderResource &res = sh.reflection->readOnlyResources[k];
-
-              bool regMatch = b.bind == (int32_t)v.bind;
-
-              // handle unbounded arrays specially. It's illegal to have an unbounded array with
-              // anything after it
-              if(b.bind <= (int32_t)v.bind)
-              {
-                regMatch = (b.arraySize == ~0U) || (b.bind + (int32_t)b.arraySize > (int32_t)v.bind);
-              }
-
-              if(b.bindset == (int32_t)els[i].registerSpace && regMatch)
-              {
-                shaderInput = &res;
-                break;
-              }
-            }
-          }
-
-          QString rootel;
-          if(directHeapAccess)
-            rootel = tr("ResourceDescriptorHeap[%1]").arg(v.tableIndex);
-          else if(els[i].immediate)
-            rootel = tr("#%1 Direct").arg(els[i].rootSignatureIndex);
-          else
-            rootel = tr("#%1 Table[%2]").arg(els[i].rootSignatureIndex).arg(v.tableIndex);
-
-          QVariantList row = exportViewHTML(v, false, shaderInput, QString());
-
-          row.push_front(spaceStr);
-          row.push_front(rootel);
-
-          rowsRO.push_back(row);
-        }
-        break;
-      }
-      case BindType::ReadWriteResource:
-      {
-        for(size_t j = 0; j < els[i].views.size(); ++j)
-        {
-          const D3D12Pipe::View &v = els[i].views[j];
-          const ShaderResource *shaderInput = NULL;
-
-          if(sh.reflection && !directHeapAccess)
-          {
-            for(int32_t k = 0; k < sh.bindpointMapping.readWriteResources.count(); ++k)
-            {
-              const Bindpoint &b = sh.bindpointMapping.readWriteResources[k];
-              const ShaderResource &res = sh.reflection->readWriteResources[k];
-
-              bool regMatch = b.bind == (int32_t)v.bind;
-
-              // handle unbounded arrays specially. It's illegal to have an unbounded array with
-              // anything after it
-              if(b.bind <= (int32_t)v.bind)
-              {
-                regMatch = (b.arraySize == ~0U) || (b.bind + (int32_t)b.arraySize > (int32_t)v.bind);
-              }
-
-              if(b.bindset == (int32_t)els[i].registerSpace && regMatch)
-              {
-                shaderInput = &res;
-                break;
-              }
-            }
-          }
-          QString rootel;
-          if(directHeapAccess)
-            rootel = tr("ResourceDescriptorHeap[%1]").arg(v.tableIndex);
-          else if(els[i].immediate)
-            rootel = tr("#%1 Direct").arg(els[i].rootSignatureIndex);
-          else
-            rootel = tr("#%1 Table[%2]").arg(els[i].rootSignatureIndex).arg(v.tableIndex);
-          QVariantList row = exportViewHTML(v, true, shaderInput, QString());
-
-          row.push_front(spaceStr);
-          row.push_front(rootel);
-
-          rowsRW.push_back(row);
-        }
-        break;
-      }
-      case BindType::Sampler:
-      {
-        for(size_t j = 0; j < els[i].samplers.size(); ++j)
-        {
-          const D3D12Pipe::Sampler &s = els[i].samplers[j];
-          const ShaderSampler *shaderInput = NULL;
-
-          if(sh.reflection && !directHeapAccess)
-          {
-            for(int32_t k = 0; k < sh.bindpointMapping.samplers.count(); ++k)
-            {
-              const Bindpoint &b = sh.bindpointMapping.samplers[k];
-              const ShaderSampler &res = sh.reflection->samplers[k];
-
-              bool regMatch = b.bind == (int32_t)s.bind;
-
-              // handle unbounded arrays specially. It's illegal to have an unbounded array with
-              // anything after it
-              if(b.bind <= (int32_t)s.bind)
-              {
-                regMatch = (b.arraySize == ~0U) || (b.bind + (int32_t)b.arraySize > (int32_t)s.bind);
-              }
-
-              if(b.bindset == (int32_t)els[i].registerSpace && regMatch)
-              {
-                shaderInput = &res;
-                break;
-              }
-            }
-          }
-          QString rootel;
-          if(directHeapAccess)
-            rootel = tr("SamplerDescriptorHeap[%1]").arg(s.tableIndex);
-          else if(els[i].immediate)
-            rootel = tr("#%1 Static").arg(els[i].rootSignatureIndex);
-          else
-            rootel = tr("#%1 Table[%2]").arg(els[i].rootSignatureIndex).arg(s.tableIndex);
-
-          {
-            QString regname;
-            if(!directHeapAccess)
-              regname = QString::number(s.bind);
-            if(shaderInput && !shaderInput->name.empty())
-              regname += lit(": ") + shaderInput->name;
-
-            QString borderColor;
-
-            if(s.borderColorType == CompType::Float)
-              borderColor = QFormatStr("%1, %2, %3, %4")
-                                .arg(s.borderColorValue.floatValue[0])
-                                .arg(s.borderColorValue.floatValue[1])
-                                .arg(s.borderColorValue.floatValue[2])
-                                .arg(s.borderColorValue.floatValue[3]);
-            else
-              borderColor = QFormatStr("%1, %2, %3, %4")
-                                .arg(s.borderColorValue.uintValue[0])
-                                .arg(s.borderColorValue.uintValue[1])
-                                .arg(s.borderColorValue.uintValue[2])
-                                .arg(s.borderColorValue.uintValue[3]);
-
-            QString addressing;
-
-            QString addPrefix;
-            QString addVal;
-
-            QString addr[] = {ToQStr(s.addressU, GraphicsAPI::D3D12),
-                              ToQStr(s.addressV, GraphicsAPI::D3D12),
-                              ToQStr(s.addressW, GraphicsAPI::D3D12)};
-
-            // arrange like either UVW: WRAP or UV: WRAP, W: CLAMP
-            for(int a = 0; a < 3; a++)
-            {
-              const QString str[] = {lit("U"), lit("V"), lit("W")};
-              QString prefix = str[a];
-
-              if(a == 0 || addr[a] == addr[a - 1])
-              {
-                addPrefix += prefix;
-              }
-              else
-              {
-                addressing += QFormatStr("%1: %2, ").arg(addPrefix).arg(addVal);
-
-                addPrefix = prefix;
-              }
-              addVal = addr[a];
-            }
-
-            addressing += addPrefix + lit(": ") + addVal;
-
-            if(s.UseBorder())
-              addressing += QFormatStr("<%1>").arg(borderColor);
-
-            if(s.unnormalized)
-              addressing += lit(" (Un-norm)");
-
-            QString filter = ToQStr(s.filter);
-
-            if(s.maxAnisotropy > 1)
-              filter += QFormatStr(" %1x").arg(s.maxAnisotropy);
-
-            if(s.filter.filter == FilterFunction::Comparison)
-              filter += QFormatStr(" (%1)").arg(ToQStr(s.compareFunction));
-            else if(s.filter.filter != FilterFunction::Normal)
-              filter += QFormatStr(" (%1)").arg(ToQStr(s.filter.filter));
-
-            rowsSampler.push_back(
-                {rootel, spaceStr, regname, addressing, filter,
-                 QFormatStr("%1 - %2")
-                     .arg(s.minLOD == -FLT_MAX ? lit("0") : QString::number(s.minLOD))
-                     .arg(s.maxLOD == FLT_MAX ? lit("FLT_MAX") : QString::number(s.maxLOD)),
-                 s.mipLODBias});
-          }
-        }
-        break;
-      }
-      case BindType::ConstantBuffer:
-      {
-        for(size_t j = 0; j < els[i].constantBuffers.size(); ++j)
-        {
-          const D3D12Pipe::ConstantBuffer &b = els[i].constantBuffers[j];
-          const ConstantBlock *shaderCBuf = NULL;
-
-          if(sh.reflection && !directHeapAccess)
-          {
-            for(int32_t k = 0; k < sh.bindpointMapping.constantBlocks.count(); ++k)
-            {
-              const Bindpoint &bm = sh.bindpointMapping.constantBlocks[k];
-              const ConstantBlock &res = sh.reflection->constantBlocks[k];
-
-              bool regMatch = bm.bind == (int32_t)b.bind;
-
-              // handle unbounded arrays specially. It's illegal to have an unbounded array with
-              // anything after it
-              if(bm.bind <= (int32_t)b.bind)
-              {
-                regMatch =
-                    (bm.arraySize == ~0U) || (bm.bind + (int32_t)bm.arraySize > (int32_t)b.bind);
-              }
-
-              if(bm.bindset == (int32_t)els[i].registerSpace && regMatch)
-              {
-                shaderCBuf = &res;
-                break;
-              }
-            }
-          }
-
-          QString rootel;
-          if(directHeapAccess)
-          {
-            rootel = tr("ResourceDescriptorHeap[%1]").arg(b.tableIndex);
-          }
-          else if(els[i].immediate)
-          {
-            if(!b.rootValues.empty())
-              rootel = tr("#%1 Consts").arg(els[i].rootSignatureIndex);
-            else
-              rootel = tr("#%1 Direct").arg(els[i].rootSignatureIndex);
-          }
-          else
-          {
-            rootel = tr("#%1 Table[%2]").arg(els[i].rootSignatureIndex).arg(b.tableIndex);
-          }
-
-          {
-            QString name = tr("Constant Buffer %1").arg(ToQStr(b.resourceId));
-            uint64_t length = b.byteSize;
-            uint64_t offset = b.byteOffset;
-            int numvars = shaderCBuf ? shaderCBuf->variables.count() : 0;
-            uint32_t bytesize = shaderCBuf ? shaderCBuf->byteSize : 0;
-
-            if(els[i].immediate && !b.rootValues.empty())
-              bytesize = uint32_t(b.rootValues.count() * 4);
-
-            if(b.resourceId != ResourceId())
-              name = m_Ctx.GetResourceName(b.resourceId);
-            else
-              name = tr("Empty");
-
-            QString regname;
-            if(!directHeapAccess)
-              regname = QString::number(b.bind);
-            if(shaderCBuf && !shaderCBuf->name.empty())
-              regname += lit(": ") + shaderCBuf->name;
-
-            length = qMin(length, (uint64_t)bytesize);
-
-            rowsCB.push_back(
-                {rootel, spaceStr, regname, name, (qulonglong)offset, (qulonglong)length, numvars});
-          }
-        }
-        break;
-      }
-      default: qCritical() << "Unexpected BindType for D3D12 pipeline"; break;
+      regname = m_Locations[{used.access.descriptorStore, used.access.byteOffset}].logicalBindName;
     }
+    else if(shaderCBuf)
+    {
+      if(!spacesUsed)
+        regname = QFormatStr("%1").arg(shaderCBuf->fixedBindNumber);
+      else
+        regname = QFormatStr("space%1, %2")
+                      .arg(shaderCBuf->fixedBindSetOrSpace)
+                      .arg(shaderCBuf->fixedBindNumber);
+
+      if(!shaderCBuf->name.empty())
+        regname += lit(": ") + shaderCBuf->name;
+
+      if(shaderCBuf->bindArraySize > 1)
+        regname += QFormatStr("[%1]").arg(used.access.arrayElement);
+    }
+
+    length = qMin(length, (uint64_t)bytesize);
+
+    rowsCB.push_back({regname, name, (qulonglong)offset, (qulonglong)length, numvars});
+  }
+
+  for(const UsedDescriptor &used : m_Ctx.CurPipelineState().GetSamplerDescriptors(sh.stage))
+  {
+    if(used.access.stage != sh.stage)
+      continue;
+
+    const SamplerDescriptor &descriptor = used.sampler;
+    const ShaderSampler *shaderSamp = NULL;
+
+    if(used.access.index < sh.reflection->samplers.size())
+      shaderSamp = &sh.reflection->samplers[used.access.index];
+
+    {
+      QString borderColor;
+
+      if(descriptor.borderColorType == CompType::Float)
+        borderColor = QFormatStr("%1, %2, %3, %4")
+                          .arg(descriptor.borderColorValue.floatValue[0])
+                          .arg(descriptor.borderColorValue.floatValue[1])
+                          .arg(descriptor.borderColorValue.floatValue[2])
+                          .arg(descriptor.borderColorValue.floatValue[3]);
+      else
+        borderColor = QFormatStr("%1, %2, %3, %4")
+                          .arg(descriptor.borderColorValue.uintValue[0])
+                          .arg(descriptor.borderColorValue.uintValue[1])
+                          .arg(descriptor.borderColorValue.uintValue[2])
+                          .arg(descriptor.borderColorValue.uintValue[3]);
+
+      QString addressing;
+
+      QString addPrefix;
+      QString addVal;
+
+      QString addr[] = {ToQStr(descriptor.addressU, GraphicsAPI::D3D12),
+                        ToQStr(descriptor.addressV, GraphicsAPI::D3D12),
+                        ToQStr(descriptor.addressW, GraphicsAPI::D3D12)};
+
+      // arrange like either UVW: WRAP or UV: WRAP, W: CLAMP
+      for(int a = 0; a < 3; a++)
+      {
+        const QString str[] = {lit("U"), lit("V"), lit("W")};
+        QString prefix = str[a];
+
+        if(a == 0 || addr[a] == addr[a - 1])
+        {
+          addPrefix += prefix;
+        }
+        else
+        {
+          addressing += QFormatStr("%1: %2, ").arg(addPrefix).arg(addVal);
+
+          addPrefix = prefix;
+        }
+        addVal = addr[a];
+      }
+
+      addressing += addPrefix + lit(": ") + addVal;
+
+      if(descriptor.UseBorder())
+        addressing += QFormatStr("<%1>").arg(borderColor);
+
+      if(descriptor.unnormalized)
+        addressing += lit(" (Un-norm)");
+
+      QString filter = ToQStr(descriptor.filter);
+
+      if(descriptor.maxAnisotropy > 1)
+        filter += QFormatStr(" %1x").arg(descriptor.maxAnisotropy);
+
+      if(descriptor.filter.filter == FilterFunction::Comparison)
+        filter += QFormatStr(" (%1)").arg(ToQStr(descriptor.compareFunction));
+      else if(descriptor.filter.filter != FilterFunction::Normal)
+        filter += QFormatStr(" (%1)").arg(ToQStr(descriptor.filter.filter));
+
+      QString regname;
+      if(used.access.index == DescriptorAccess::NoShaderBinding)
+      {
+        regname = m_Locations[{used.access.descriptorStore, used.access.byteOffset}].logicalBindName;
+      }
+      else if(shaderSamp)
+      {
+        if(!spacesUsed)
+          regname = QFormatStr("%1").arg(shaderSamp->fixedBindNumber);
+        else
+          regname = QFormatStr("space%1, %2")
+                        .arg(shaderSamp->fixedBindSetOrSpace)
+                        .arg(shaderSamp->fixedBindNumber);
+
+        if(!shaderSamp->name.empty())
+          regname += lit(": ") + shaderSamp->name;
+
+        if(shaderSamp->bindArraySize > 1)
+          regname += QFormatStr("[%1]").arg(used.access.arrayElement);
+      }
+
+      rowsSampler.push_back(
+          {regname, addressing, filter,
+           QFormatStr("%1 - %2")
+               .arg(descriptor.minLOD == -FLT_MAX ? lit("0") : QString::number(descriptor.minLOD))
+               .arg(descriptor.maxLOD == FLT_MAX ? lit("FLT_MAX")
+                                                 : QString::number(descriptor.maxLOD)),
+           descriptor.mipBias});
+    }
+  }
+
+  for(const UsedDescriptor &used : m_Ctx.CurPipelineState().GetReadOnlyDescriptors(sh.stage))
+  {
+    if(used.access.stage != sh.stage)
+      continue;
+
+    const ShaderResource *shaderInput = NULL;
+
+    if(used.access.index < sh.reflection->readOnlyResources.size())
+      shaderInput = &sh.reflection->readOnlyResources[used.access.index];
+
+    QVariantList row = exportViewHTML(used.descriptor, false, shaderInput, QString());
+
+    rowsRO.push_back(row);
+  }
+
+  for(const UsedDescriptor &used : m_Ctx.CurPipelineState().GetReadWriteDescriptors(sh.stage))
+  {
+    if(used.access.stage != sh.stage)
+      continue;
+
+    const ShaderResource *shaderInput = NULL;
+
+    if(used.access.index < sh.reflection->readWriteResources.size())
+      shaderInput = &sh.reflection->readWriteResources[used.access.index];
+
+    QVariantList row = exportViewHTML(used.descriptor, true, shaderInput, QString());
+
+    rowsRW.push_back(row);
   }
 
   xml.writeStartElement(lit("h3"));
   xml.writeCharacters(tr("Shader Resource Views"));
   xml.writeEndElement();
 
-  m_Common.exportHTMLTable(
-      xml,
-      {tr("Root Sig El"), tr("Space"), tr("Register"), tr("Resource"), tr("View Type"),
-       tr("Resource Type"), tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
-       tr("View Format"), tr("Resource Format"), tr("View Parameters")},
-      rowsRO);
+  m_Common.exportHTMLTable(xml,
+                           {tr("Binding"), tr("Resource"), tr("View Type"), tr("Resource Type"),
+                            tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
+                            tr("View Format"), tr("Resource Format"), tr("View Parameters")},
+                           rowsRO);
 
   xml.writeStartElement(lit("h3"));
   xml.writeCharacters(tr("Unordered Access Views"));
   xml.writeEndElement();
 
-  m_Common.exportHTMLTable(
-      xml,
-      {tr("Root Sig El"), tr("Space"), tr("Register"), tr("Resource"), tr("View Type"),
-       tr("Resource Type"), tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
-       tr("View Format"), tr("Resource Format"), tr("View Parameters")},
-      rowsRW);
+  m_Common.exportHTMLTable(xml,
+                           {tr("Binding"), tr("Resource"), tr("View Type"), tr("Resource Type"),
+                            tr("Width"), tr("Height"), tr("Depth"), tr("Array Size"),
+                            tr("View Format"), tr("Resource Format"), tr("View Parameters")},
+                           rowsRW);
 
   xml.writeStartElement(lit("h3"));
   xml.writeCharacters(tr("Samplers"));
   xml.writeEndElement();
 
-  m_Common.exportHTMLTable(xml,
-                           {tr("Root Sig El"), tr("Space"), tr("Register"), tr("Addressing"),
-                            tr("Filter"), tr("LOD Clamp"), tr("LOD Bias")},
-                           rowsSampler);
+  m_Common.exportHTMLTable(
+      xml, {tr("Binding"), tr("Addressing"), tr("Filter"), tr("LOD Clamp"), tr("LOD Bias")},
+      rowsSampler);
 
   xml.writeStartElement(lit("h3"));
   xml.writeCharacters(tr("Constant Buffers"));
   xml.writeEndElement();
 
-  m_Common.exportHTMLTable(xml,
-                           {tr("Root Signature Index"), tr("Space"), tr("Register"), tr("Buffer"),
-                            tr("Byte Offset"), tr("Byte Size"), tr("Number of Variables")},
-                           rowsCB);
+  m_Common.exportHTMLTable(
+      xml,
+      {tr("Binding"), tr("Buffer"), tr("Byte Offset"), tr("Byte Size"), tr("Number of Variables")},
+      rowsCB);
 }
 
 void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::StreamOut &so)
@@ -3604,12 +3324,13 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
 
     QList<QVariantList> rows;
 
-    for(int i = 0; i < om.renderTargets.count(); i++)
+    rdcarray<Descriptor> rts = m_Ctx.CurPipelineState().GetOutputTargetDescriptors();
+    for(uint32_t i = 0; i < rts.size(); i++)
     {
-      if(om.renderTargets[i].resourceId == ResourceId())
+      if(rts[i].resource == ResourceId())
         continue;
 
-      QVariantList row = exportViewHTML(om.renderTargets[i], false, NULL, QString());
+      QVariantList row = exportViewHTML(rts[i], false, NULL, QString());
       row.push_front(i);
 
       rows.push_back(row);
@@ -3646,6 +3367,8 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
     else if(om.stencilReadOnly)
       extra = tr("Stencil Read-Only");
 
+    Descriptor depth = m_Ctx.CurPipelineState().GetDepthTargetDescriptor();
+
     m_Common.exportHTMLTable(xml,
                              {
                                  tr("Name"),
@@ -3659,19 +3382,19 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
                                  tr("Resource Format"),
                                  tr("View Parameters"),
                              },
-                             {exportViewHTML(om.depthTarget, false, NULL, extra)});
+                             {exportViewHTML(depth, false, NULL, extra)});
   }
 }
 
-bool D3D12PipelineStateViewer::isByteAddress(const D3D12Pipe::View &r,
+bool D3D12PipelineStateViewer::isByteAddress(const Descriptor &descriptor,
                                              const ShaderResource *shaderInput)
 {
-  if(r.bufferFlags & D3DBufferViewFlags::Raw)
+  if(descriptor.flags & DescriptorFlags::RawBuffer)
     return true;
 
-  if(r.viewFormat.type == ResourceFormatType::Undefined && r.elementByteSize == 4 && shaderInput &&
-     shaderInput->variableType.baseType == VarType::UByte && shaderInput->variableType.rows == 1 &&
-     shaderInput->variableType.columns == 1)
+  if(descriptor.format.type == ResourceFormatType::Undefined && descriptor.elementByteSize == 4 &&
+     shaderInput && shaderInput->variableType.baseType == VarType::UByte &&
+     shaderInput->variableType.rows == 1 && shaderInput->variableType.columns == 1)
     return true;
 
   return false;
@@ -3711,24 +3434,12 @@ void D3D12PipelineStateViewer::on_exportHTML_clicked()
       {
         switch(stage)
         {
-          case 0:
-            exportHTML(xml, m_Ctx.CurD3D12PipelineState()->ampShader,
-                       m_Ctx.CurD3D12PipelineState()->rootElements);
-            break;
-          case 1:
-            exportHTML(xml, m_Ctx.CurD3D12PipelineState()->meshShader,
-                       m_Ctx.CurD3D12PipelineState()->rootElements);
-            break;
+          case 0: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->ampShader); break;
+          case 1: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->meshShader); break;
           case 2: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->rasterizer); break;
-          case 3:
-            exportHTML(xml, m_Ctx.CurD3D12PipelineState()->pixelShader,
-                       m_Ctx.CurD3D12PipelineState()->rootElements);
-            break;
+          case 3: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->pixelShader); break;
           case 4: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->outputMerger); break;
-          case 5:
-            exportHTML(xml, m_Ctx.CurD3D12PipelineState()->computeShader,
-                       m_Ctx.CurD3D12PipelineState()->rootElements);
-            break;
+          case 5: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->computeShader); break;
         }
       }
       else
@@ -3736,33 +3447,17 @@ void D3D12PipelineStateViewer::on_exportHTML_clicked()
         switch(stage)
         {
           case 0: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->inputAssembly); break;
-          case 1:
-            exportHTML(xml, m_Ctx.CurD3D12PipelineState()->vertexShader,
-                       m_Ctx.CurD3D12PipelineState()->rootElements);
-            break;
-          case 2:
-            exportHTML(xml, m_Ctx.CurD3D12PipelineState()->hullShader,
-                       m_Ctx.CurD3D12PipelineState()->rootElements);
-            break;
-          case 3:
-            exportHTML(xml, m_Ctx.CurD3D12PipelineState()->domainShader,
-                       m_Ctx.CurD3D12PipelineState()->rootElements);
-            break;
+          case 1: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->vertexShader); break;
+          case 2: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->hullShader); break;
+          case 3: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->domainShader); break;
           case 4:
-            exportHTML(xml, m_Ctx.CurD3D12PipelineState()->geometryShader,
-                       m_Ctx.CurD3D12PipelineState()->rootElements);
+            exportHTML(xml, m_Ctx.CurD3D12PipelineState()->geometryShader);
             exportHTML(xml, m_Ctx.CurD3D12PipelineState()->streamOut);
             break;
           case 5: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->rasterizer); break;
-          case 6:
-            exportHTML(xml, m_Ctx.CurD3D12PipelineState()->pixelShader,
-                       m_Ctx.CurD3D12PipelineState()->rootElements);
-            break;
+          case 6: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->pixelShader); break;
           case 7: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->outputMerger); break;
-          case 8:
-            exportHTML(xml, m_Ctx.CurD3D12PipelineState()->computeShader,
-                       m_Ctx.CurD3D12PipelineState()->rootElements);
-            break;
+          case 8: exportHTML(xml, m_Ctx.CurD3D12PipelineState()->computeShader); break;
         }
       }
 
@@ -3805,8 +3500,6 @@ void D3D12PipelineStateViewer::on_computeDebugSelector_clicked()
 
   const ShaderReflection *shaderDetails =
       m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Compute);
-  const ShaderBindpointMapping &bindMapping =
-      m_Ctx.CurPipelineState().GetBindpointMapping(ShaderStage::Compute);
 
   if(!shaderDetails)
     return;

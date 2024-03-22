@@ -92,13 +92,10 @@ private:
   void setOldMeshPipeFlow();
   void setNewMeshPipeFlow();
 
-  void setShaderState(const rdcarray<D3D12Pipe::RootSignatureRange> &rootElements,
-                      const D3D12Pipe::Shader &stage, RDLabel *shader, RDLabel *rootSig,
-                      RDTreeWidget *tex, RDTreeWidget *samp, RDTreeWidget *cbuffer,
-                      RDTreeWidget *uavs);
+  void setShaderState(const D3D12Pipe::Shader &stage, RDLabel *shader, RDLabel *rootSig);
 
-  void addResourceRow(const D3D12ViewTag &view, const Bindpoint *bind,
-                      const ShaderResource *shaderInput, RDTreeWidget *resources);
+  void addResourceRow(const D3D12ViewTag &view, const ShaderResource *shaderInput, bool spacesUsed,
+                      RDTreeWidget *resources);
 
   void clearShaderState(RDLabel *shader, RDLabel *rootSig, RDTreeWidget *tex, RDTreeWidget *samp,
                         RDTreeWidget *cbuffer, RDTreeWidget *uavs);
@@ -113,21 +110,22 @@ private:
 
   void setViewDetails(RDTreeWidgetItem *node, const D3D12ViewTag &view, TextureDescription *tex);
   void setViewDetails(RDTreeWidgetItem *node, const D3D12ViewTag &view, BufferDescription *buf);
-  bool isByteAddress(const D3D12Pipe::View &r, const ShaderResource *shaderInput);
+  bool isByteAddress(const Descriptor &r, const ShaderResource *shaderInput);
 
   bool showNode(bool usedSlot, bool filledSlot);
 
   bool m_ShowUnused = false;
   bool m_ShowEmpty = false;
 
-  QVariantList exportViewHTML(const D3D12Pipe::View &view, bool rw,
+  QVariantList exportViewHTML(const Descriptor &descriptor, bool rw,
                               const ShaderResource *shaderInput, const QString &extraParams);
   void exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::InputAssembly &ia);
-  void exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::Shader &sh,
-                  const rdcarray<D3D12Pipe::RootSignatureRange> &els);
+  void exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::Shader &sh);
   void exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::StreamOut &so);
   void exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::Rasterizer &rs);
   void exportHTML(QXmlStreamWriter &xml, const D3D12Pipe::OM &om);
+
+  QMap<QPair<ResourceId, uint32_t>, DescriptorLogicalLocation> m_Locations;
 
   // keep track of the VB nodes (we want to be able to highlight them easily on hover)
   QList<RDTreeWidgetItem *> m_VBNodes;
