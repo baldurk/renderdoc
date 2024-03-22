@@ -219,10 +219,7 @@ enum D3D12PixelHistoryTests : uint32_t
   DepthTest_GreaterEqual = 7U << DepthTest_Shift,
 };
 
-namespace
-{
-
-bool IsDepthFormat(D3D12_RESOURCE_DESC desc, CompType typeCast)
+static bool IsDepthFormat(D3D12_RESOURCE_DESC desc, CompType typeCast)
 {
   // TODO: This function might need to handle where the resource is typeless but is actually depth
 
@@ -235,13 +232,104 @@ bool IsDepthFormat(D3D12_RESOURCE_DESC desc, CompType typeCast)
   return false;
 }
 
-DXGI_FORMAT GetDepthCopyFormat(DXGI_FORMAT format)
+static DXGI_FORMAT GetDepthCopyFormat(DXGI_FORMAT format)
 {
   if(format == DXGI_FORMAT_D16_UNORM)
     return DXGI_FORMAT_R16_TYPELESS;
   return DXGI_FORMAT_R32_TYPELESS;
 }
 
+static bool IsUavWrite(ResourceUsage usage)
+{
+  return (usage >= ResourceUsage::VS_RWResource && usage <= ResourceUsage::CS_RWResource);
+}
+
+static bool IsResolveWrite(ResourceUsage usage)
+{
+  return (usage == ResourceUsage::Resolve || usage == ResourceUsage::ResolveDst);
+}
+
+static bool IsCopyWrite(ResourceUsage usage)
+{
+  return (usage == ResourceUsage::CopyDst || usage == ResourceUsage::Copy ||
+          usage == ResourceUsage::GenMips);
+}
+
+static bool IsDirectWrite(ResourceUsage usage)
+{
+  return IsUavWrite(usage) || IsResolveWrite(usage) || IsCopyWrite(usage);
+}
+
+static void FillInColor(const ResourceFormat &fmt, const D3D12PixelHistoryValue &value,
+                        ModificationValue &mod)
+{
+  DecodePixelData(fmt, value.color, mod.col);
+}
+
+static void ConvertAndFillInColor(const ResourceFormat &srcFmt, const D3D12PixelHistoryValue &value,
+                                  const ResourceFormat &outFmt, ModificationValue &mod)
+{
+  if((outFmt.compType == CompType::UInt) || (outFmt.compType == CompType::SInt))
+  {
+    DecodePixelData(srcFmt, value.color, mod.col);
+    // TODO : handle UInt ResourceFormatType::R10G10B10A2
+    // Clamp values based on format
+    if(outFmt.compType == CompType::UInt)
+    {
+      uint32_t limits[4] = {
+          UINT8_MAX,
+          UINT16_MAX,
+          0,
+          UINT32_MAX,
+      };
+      int limit_idx = outFmt.compByteWidth - 1;
+      for(size_t c = 0; c < outFmt.compCount; c++)
+        mod.col.uintValue[c] = RDCMIN(limits[limit_idx], mod.col.uintValue[c]);
+    }
+    else
+    {
+      int32_t limits[8] = {
+          INT8_MIN, INT8_MAX, INT16_MIN, INT16_MAX, 0, 0, INT32_MIN, INT32_MAX,
+      };
+      int limit_idx = 2 * (outFmt.compByteWidth - 1);
+      for(size_t c = 0; c < outFmt.compCount; c++)
+        mod.col.intValue[c] = RDCCLAMP(mod.col.intValue[c], limits[limit_idx], limits[limit_idx + 1]);
+    }
+  }
+  else
+  {
+    FloatVector v4 = DecodeFormattedComponents(srcFmt, value.color);
+    // Roundtrip through encoding to properly handle component limits
+    uint8_t tempColor[32];
+    EncodeFormattedComponents(outFmt, v4, (byte *)tempColor);
+    v4 = DecodeFormattedComponents(outFmt, tempColor);
+    memcpy(mod.col.floatValue.data(), &v4, sizeof(v4));
+  }
+}
+
+static float GetDepthValue(DXGI_FORMAT depthFormat, const D3D12PixelHistoryValue &value)
+{
+  FloatVector v4 = DecodeFormattedComponents(MakeResourceFormat(depthFormat), (byte *)&value.depth);
+  return v4.x;
+}
+
+static bool CreateOcclusionPool(WrappedID3D12Device *device, uint32_t poolSize,
+                                ID3D12QueryHeap **ppQueryHeap)
+{
+  D3D12MarkerRegion region(device->GetQueue()->GetReal(),
+                           StringFormat::Fmt("CreateQueryHeap %u", poolSize));
+
+  D3D12_QUERY_HEAP_DESC queryDesc = {};
+  queryDesc.Count = poolSize;
+  queryDesc.Type = D3D12_QUERY_HEAP_TYPE_OCCLUSION;
+  HRESULT hr = device->CreateQueryHeap(&queryDesc, __uuidof(ID3D12QueryHeap), (void **)ppQueryHeap);
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create query heap for pixel history HRESULT: %s", ToStr(hr).c_str());
+    return false;
+  }
+
+  return true;
 }
 
 // Helper function to copy a single pixel out of a source texture, which will handle any texture
@@ -1808,8 +1896,8 @@ private:
   rdcarray<uint64_t> m_OcclusionResults;
 };
 
-void D3D12UpdateTestsFailed(const D3D12TestsFailedCallback *tfCb, uint32_t eventId,
-                            uint32_t eventFlags, PixelModification &mod)
+static void D3D12UpdateTestsFailed(const D3D12TestsFailedCallback *tfCb, uint32_t eventId,
+                                   uint32_t eventFlags, PixelModification &mod)
 {
   bool earlyFragmentTests = tfCb->HasEarlyFragments(eventId);
 
@@ -2652,109 +2740,6 @@ bool D3D12DebugManager::PixelHistoryDestroyResources(D3D12PixelHistoryResources 
   SAFE_RELEASE(r.dstBuffer);
 
   return true;
-}
-
-namespace
-{
-
-bool CreateOcclusionPool(WrappedID3D12Device *device, uint32_t poolSize, ID3D12QueryHeap **ppQueryHeap)
-{
-  D3D12MarkerRegion region(device->GetQueue()->GetReal(),
-                           StringFormat::Fmt("CreateQueryHeap %u", poolSize));
-
-  D3D12_QUERY_HEAP_DESC queryDesc = {};
-  queryDesc.Count = poolSize;
-  queryDesc.Type = D3D12_QUERY_HEAP_TYPE_OCCLUSION;
-  HRESULT hr = device->CreateQueryHeap(&queryDesc, __uuidof(ID3D12QueryHeap), (void **)ppQueryHeap);
-  if(FAILED(hr))
-  {
-    RDCERR("Failed to create query heap for pixel history HRESULT: %s", ToStr(hr).c_str());
-    return false;
-  }
-
-  return true;
-}
-
-bool IsUavWrite(ResourceUsage usage)
-{
-  return (usage >= ResourceUsage::VS_RWResource && usage <= ResourceUsage::CS_RWResource);
-}
-
-bool IsResolveWrite(ResourceUsage usage)
-{
-  return (usage == ResourceUsage::Resolve || usage == ResourceUsage::ResolveDst);
-}
-
-bool IsCopyWrite(ResourceUsage usage)
-{
-  return (usage == ResourceUsage::CopyDst || usage == ResourceUsage::Copy ||
-          usage == ResourceUsage::GenMips);
-}
-
-bool IsDirectWrite(ResourceUsage usage)
-{
-  return IsUavWrite(usage) || IsResolveWrite(usage) || IsCopyWrite(usage);
-}
-
-static void FillInColor(const ResourceFormat &fmt, const D3D12PixelHistoryValue &value,
-                        ModificationValue &mod)
-{
-  DecodePixelData(fmt, value.color, mod.col);
-}
-
-static void ConvertAndFillInColor(const ResourceFormat &srcFmt, const D3D12PixelHistoryValue &value,
-                                  const ResourceFormat &outFmt, ModificationValue &mod)
-{
-  if((outFmt.compType == CompType::UInt) || (outFmt.compType == CompType::SInt))
-  {
-    DecodePixelData(srcFmt, value.color, mod.col);
-    // TODO : handle UInt ResourceFormatType::R10G10B10A2
-    // Clamp values based on format
-    if(outFmt.compType == CompType::UInt)
-    {
-      uint32_t limits[4] = {
-          UINT8_MAX,
-          UINT16_MAX,
-          0,
-          UINT32_MAX,
-      };
-      int limit_idx = outFmt.compByteWidth - 1;
-      for(size_t c = 0; c < outFmt.compCount; c++)
-        mod.col.uintValue[c] = RDCMIN(limits[limit_idx], mod.col.uintValue[c]);
-    }
-    else
-    {
-      int32_t limits[8] = {
-          INT8_MIN, INT8_MAX, INT16_MIN, INT16_MAX, 0, 0, INT32_MIN, INT32_MAX,
-      };
-      int limit_idx = 2 * (outFmt.compByteWidth - 1);
-      for(size_t c = 0; c < outFmt.compCount; c++)
-        mod.col.intValue[c] = RDCCLAMP(mod.col.intValue[c], limits[limit_idx], limits[limit_idx + 1]);
-    }
-  }
-  else
-  {
-    FloatVector v4 = DecodeFormattedComponents(srcFmt, value.color);
-    // Roundtrip through encoding to properly handle component limits
-    uint8_t tempColor[32];
-    EncodeFormattedComponents(outFmt, v4, (byte *)tempColor);
-    v4 = DecodeFormattedComponents(outFmt, tempColor);
-    memcpy(mod.col.floatValue.data(), &v4, sizeof(v4));
-  }
-}
-
-float GetDepthValue(DXGI_FORMAT depthFormat, const D3D12PixelHistoryValue &value)
-{
-  FloatVector v4 = DecodeFormattedComponents(MakeResourceFormat(depthFormat), (byte *)&value.depth);
-  return v4.x;
-}
-
-float GetDepthValue(DXGI_FORMAT depthFormat, const byte *pValue)
-{
-  FloatVector v4 = DecodeFormattedComponents(MakeResourceFormat(depthFormat), pValue);
-  return v4.x;
-}
-
 }
 
 rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> events,
