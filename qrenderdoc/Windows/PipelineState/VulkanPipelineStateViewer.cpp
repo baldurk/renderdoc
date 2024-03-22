@@ -80,48 +80,37 @@ Q_DECLARE_METATYPE(VulkanVBIBTag);
 
 struct VulkanCBufferTag
 {
-  VulkanCBufferTag() = default;
-  VulkanCBufferTag(uint32_t s) { slotIdx = s; }
-  VulkanCBufferTag(bool g, int s, int b)
+  VulkanCBufferTag() { index = DescriptorAccess::NoShaderBinding; }
+  VulkanCBufferTag(uint32_t index, uint32_t arrayElement) : index(index), arrayElement(arrayElement)
   {
-    isGraphics = g;
-    descSet = s;
-    descBind = b;
   }
-  bool isGraphics = false;
-  int descSet = -1;
-  int descBind = -1;
+  VulkanCBufferTag(Descriptor descriptor)
+      : index(DescriptorAccess::NoShaderBinding), arrayElement(0), descriptor(descriptor)
+  {
+  }
 
-  uint32_t slotIdx = ~0U;
-
-  uint32_t arrayIdx = 0;
+  Descriptor descriptor;
+  uint32_t index, arrayElement;
 };
 
 Q_DECLARE_METATYPE(VulkanCBufferTag);
 
 struct VulkanBufferTag
 {
-  VulkanBufferTag()
+  VulkanBufferTag() {}
+  VulkanBufferTag(const DescriptorAccess &access, const Descriptor &desc)
+      : access(access), descriptor(desc)
   {
-    rwRes = false;
-    bindPoint = 0;
-    offset = size = 0;
   }
-  VulkanBufferTag(bool rw, uint32_t b, ResourceFormat f, ResourceId id, uint64_t offs, uint64_t sz)
+  VulkanBufferTag(ResourceId id, uint64_t offset, uint64_t length)
   {
-    rwRes = rw;
-    bindPoint = b;
-    ID = id;
-    fmt = f;
-    offset = offs;
-    size = sz;
+    access.index = DescriptorAccess::NoShaderBinding;
+    descriptor.resource = id;
+    descriptor.byteOffset = offset;
+    descriptor.byteSize = length;
   }
-  bool rwRes;
-  uint32_t bindPoint;
-  ResourceFormat fmt;
-  ResourceId ID;
-  uint64_t offset;
-  uint64_t size;
+  DescriptorAccess access;
+  Descriptor descriptor;
 };
 
 Q_DECLARE_METATYPE(VulkanBufferTag);
@@ -313,11 +302,11 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     res->setHeader(header);
 
-    res->setColumns({QString(), tr("Set"), tr("Binding"), tr("Type"), tr("Resource"),
-                     tr("Contents"), tr("Additional"), tr("Go")});
-    header->setColumnStretchHints({-1, -1, 2, 2, 2, 4, 4, -1});
+    res->setColumns(
+        {tr("Binding"), tr("Type"), tr("Resource"), tr("Contents"), tr("Additional"), tr("Go")});
+    header->setColumnStretchHints({2, 2, 2, 4, 4, -1});
 
-    res->setHoverIconColumn(7, action, action_hover);
+    res->setHoverIconColumn(5, action, action_hover);
     res->setClearSelectionOnFocusLoss(true);
     res->setInstantTooltips(true);
 
@@ -329,11 +318,10 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
     ubo->setHeader(header);
 
-    ubo->setColumns({QString(), tr("Set"), tr("Binding"), tr("Buffer"), tr("Byte Range"),
-                     tr("Size"), tr("Go")});
-    header->setColumnStretchHints({-1, -1, 2, 4, 3, 3, -1});
+    ubo->setColumns({tr("Binding"), tr("Buffer"), tr("Byte Range"), tr("Size"), tr("Go")});
+    header->setColumnStretchHints({2, 4, 3, 3, -1});
 
-    ubo->setHoverIconColumn(6, action, action_hover);
+    ubo->setHoverIconColumn(4, action, action_hover);
     ubo->setClearSelectionOnFocusLoss(true);
     ubo->setInstantTooltips(true);
 
@@ -558,7 +546,7 @@ ResourceId VulkanPipelineStateViewer::GetResource(RDTreeWidgetItem *item)
   else if(tag.canConvert<VulkanBufferTag>())
   {
     VulkanBufferTag buf = tag.value<VulkanBufferTag>();
-    return buf.ID;
+    return buf.descriptor.resource;
   }
   else if(tag.canConvert<VulkanVBIBTag>())
   {
@@ -574,19 +562,12 @@ ResourceId VulkanPipelineStateViewer::GetResource(RDTreeWidgetItem *item)
 
     VulkanCBufferTag cb = tag.value<VulkanCBufferTag>();
 
-    if(cb.slotIdx == ~0U)
-    {
-      // unused cbuffer, open regular buffer viewer
-      const VKPipe::Pipeline &pipe = cb.isGraphics ? m_Ctx.CurVulkanPipelineState()->graphics
-                                                   : m_Ctx.CurVulkanPipelineState()->compute;
+    if(cb.index == DescriptorAccess::NoShaderBinding)
+      return cb.descriptor.resource;
 
-      const VKPipe::BindingElement &buf =
-          pipe.descriptorSets[cb.descSet].bindings[cb.descBind].binds[cb.arrayIdx];
-
-      return buf.resourceResourceId;
-    }
-
-    return m_Ctx.CurPipelineState().GetConstantBuffer(stage->stage, cb.slotIdx, cb.arrayIdx).resourceId;
+    return m_Ctx.CurPipelineState()
+        .GetConstantBlockDescriptor(stage->stage, cb.index, cb.arrayElement)
+        .descriptor.resource;
   }
 
   return ResourceId();
@@ -613,19 +594,8 @@ void VulkanPipelineStateViewer::setEmptyRow(RDTreeWidgetItem *node)
   node->setForegroundColor(QColor(0, 0, 0));
 }
 
-float minLOD(const VKPipe::Attachment &view)
-{
-  return 0.0f;
-}
-
-float minLOD(const VKPipe::BindingElement &view)
-{
-  return view.minLOD;
-}
-
-template <typename bindType>
-bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bindType &view,
-                                               TextureDescription *tex, bool stageBitsIncluded,
+bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const Descriptor &descriptor,
+                                               TextureDescription *tex,
                                                const QString &hiddenCombinedSampler,
                                                bool includeSampleLocations, bool includeOffsets)
 {
@@ -637,11 +607,6 @@ bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
   bool viewdetails = false;
 
   const VKPipe::State &state = *m_Ctx.CurVulkanPipelineState();
-
-  if(!stageBitsIncluded)
-  {
-    text += tr("Descriptor stage mask didn't include this stage.\n\n");
-  }
 
   {
     for(const VKPipe::ImageData &im : state.images)
@@ -657,63 +622,65 @@ bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
 
     text += lit("\n");
 
-    if(view.viewFormat != tex->format)
+    if(descriptor.format != tex->format)
     {
       text += tr("The texture is format %1, the view treats it as %2.\n")
                   .arg(tex->format.Name())
-                  .arg(view.viewFormat.Name());
+                  .arg(descriptor.format.Name());
 
       viewdetails = true;
     }
 
-    if(tex->mips > 1 && (tex->mips != view.numMips || view.firstMip > 0))
+    if(tex->mips > 1 && (tex->mips != descriptor.numMips || descriptor.firstMip > 0))
     {
-      if(view.numMips == 1)
-        text +=
-            tr("The texture has %1 mips, the view covers mip %2.\n").arg(tex->mips).arg(view.firstMip);
+      if(descriptor.numMips == 1)
+        text += tr("The texture has %1 mips, the view covers mip %2.\n")
+                    .arg(tex->mips)
+                    .arg(descriptor.firstMip);
       else
         text += tr("The texture has %1 mips, the view covers mips %2-%3.\n")
                     .arg(tex->mips)
-                    .arg(view.firstMip)
-                    .arg(view.firstMip + view.numMips - 1);
+                    .arg(descriptor.firstMip)
+                    .arg(descriptor.firstMip + descriptor.numMips - 1);
 
       viewdetails = true;
     }
 
-    if(tex->arraysize > 1 && (tex->arraysize != view.numSlices || view.firstSlice > 0))
+    if(tex->arraysize > 1 && (tex->arraysize != descriptor.numSlices || descriptor.firstSlice > 0))
     {
-      if(view.numSlices == 1)
+      if(descriptor.numSlices == 1)
         text += tr("The texture has %1 array slices, the view covers slice %2.\n")
                     .arg(tex->arraysize)
-                    .arg(view.firstSlice);
+                    .arg(descriptor.firstSlice);
       else
         text += tr("The texture has %1 array slices, the view covers slices %2-%3.\n")
                     .arg(tex->arraysize)
-                    .arg(view.firstSlice)
-                    .arg(view.firstSlice + view.numSlices - 1);
+                    .arg(descriptor.firstSlice)
+                    .arg(descriptor.firstSlice + descriptor.numSlices - 1);
 
       viewdetails = true;
     }
 
-    if(tex->depth > 1 && ((tex->depth != view.numSlices && view.numSlices > 0) || view.firstSlice > 0))
+    if(tex->depth > 1 && ((tex->depth != descriptor.numSlices && descriptor.numSlices > 0) ||
+                          descriptor.firstSlice > 0))
     {
-      if(view.numSlices == 1)
+      if(descriptor.numSlices == 1)
         text += tr("The texture has %1 3D slices, the view covers slice %2.\n")
                     .arg(tex->depth)
-                    .arg(view.firstSlice);
+                    .arg(descriptor.firstSlice);
       else
         text += tr("The texture has %1 3D slices, the view covers slices %2-%3.\n")
                     .arg(tex->depth)
-                    .arg(view.firstSlice)
-                    .arg(view.firstSlice + view.numSlices - 1);
+                    .arg(descriptor.firstSlice)
+                    .arg(descriptor.firstSlice + descriptor.numSlices - 1);
 
       viewdetails = true;
     }
   }
 
-  if(minLOD(view) != 0.0f)
+  if(descriptor.minLODClamp != 0.0f)
   {
-    text += tr("Clamped to a minimum LOD of %1\n").arg(minLOD(view));
+    text += tr("Clamped to a minimum LOD of %1\n").arg(descriptor.minLODClamp);
   }
 
   if(includeSampleLocations && state.multisample.rasterSamples > 1 &&
@@ -755,7 +722,7 @@ bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
 
   node->setToolTip(text);
 
-  if(viewdetails && stageBitsIncluded)
+  if(viewdetails)
   {
     node->setBackgroundColor(m_Common.GetViewDetailsColor());
   }
@@ -763,34 +730,29 @@ bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bin
   return viewdetails;
 }
 
-template <typename bindType>
-bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const bindType &view,
-                                               BufferDescription *buf, bool stageBitsIncluded)
+bool VulkanPipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const Descriptor &descriptor,
+                                               BufferDescription *buf)
 {
   if(buf == NULL)
     return false;
 
   QString text;
 
-  if(!stageBitsIncluded)
-    text += tr("Descriptor stage mask didn't include this stage.\n\n");
-
-  if(view.byteOffset > 0 || view.byteSize < buf->length)
+  if(descriptor.byteOffset > 0 || descriptor.byteSize < buf->length)
   {
     text += tr("The view covers bytes %1-%2.\nThe buffer is %3 bytes in length.\n")
-                .arg(Formatter::HumanFormat(view.byteOffset, Formatter::OffsetSize))
-                .arg(Formatter::HumanFormat(view.byteOffset + view.byteSize, Formatter::OffsetSize))
+                .arg(Formatter::HumanFormat(descriptor.byteOffset, Formatter::OffsetSize))
+                .arg(Formatter::HumanFormat(descriptor.byteOffset + descriptor.byteSize,
+                                            Formatter::OffsetSize))
                 .arg(Formatter::HumanFormat(buf->length, Formatter::OffsetSize));
   }
-  else if(stageBitsIncluded)
+  else
   {
     return false;
   }
 
   node->setToolTip(text);
-
-  if(stageBitsIncluded)
-    node->setBackgroundColor(m_Common.GetViewDetailsColor());
+  node->setBackgroundColor(m_Common.GetViewDetailsColor());
 
   return true;
 }
@@ -813,28 +775,29 @@ bool VulkanPipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
 }
 
 QString VulkanPipelineStateViewer::formatByteRange(const BufferDescription *buf,
-                                                   const VKPipe::BindingElement *descriptorBind)
+                                                   const Descriptor &descriptor,
+                                                   uint32_t dynamicOffset)
 {
-  if(buf == NULL || descriptorBind == NULL)
+  if(buf == NULL)
     return lit("-");
-  if(descriptorBind->byteSize == 0)
+
+  uint64_t byteOffset = descriptor.byteOffset + dynamicOffset;
+
+  if(descriptor.byteSize == 0)
   {
-    return tr("%1 - %2 (empty view)").arg(descriptorBind->byteOffset).arg(descriptorBind->byteOffset);
+    return tr("%1 - %2 (empty view)").arg(byteOffset).arg(byteOffset);
   }
-  else if(descriptorBind->byteSize == UINT64_MAX)
+  else if(descriptor.byteSize == UINT64_MAX)
   {
     return QFormatStr("%1 - %2 (VK_WHOLE_SIZE)")
-        .arg(Formatter::HumanFormat(descriptorBind->byteOffset, Formatter::OffsetSize))
-        .arg(Formatter::HumanFormat(
-            descriptorBind->byteOffset + (buf->length - descriptorBind->byteOffset),
-            Formatter::OffsetSize));
+        .arg(Formatter::HumanFormat(byteOffset, Formatter::OffsetSize))
+        .arg(Formatter::HumanFormat(byteOffset + (buf->length - byteOffset), Formatter::OffsetSize));
   }
   else
   {
     return QFormatStr("%1 - %2")
-        .arg(Formatter::HumanFormat(descriptorBind->byteOffset, Formatter::OffsetSize))
-        .arg(Formatter::HumanFormat(descriptorBind->byteOffset + descriptorBind->byteSize,
-                                    Formatter::OffsetSize));
+        .arg(Formatter::HumanFormat(byteOffset, Formatter::OffsetSize))
+        .arg(Formatter::HumanFormat(byteOffset + descriptor.byteSize, Formatter::OffsetSize));
   }
 }
 
@@ -1071,8 +1034,8 @@ void VulkanPipelineStateViewer::clearState()
   ui->csConditionalRenderingGroup->setVisible(false);
 }
 
-QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, const QString &slotname,
-                                                    const VKPipe::BindingElement &descriptor)
+QVariantList VulkanPipelineStateViewer::makeSampler(const QString &slotname,
+                                                    const SamplerDescriptor &descriptor)
 {
   QString addressing;
   QString addPrefix;
@@ -1143,22 +1106,11 @@ QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, cons
     minLOD = lit("VK_LOD_CLAMP_NONE");
 
   if(descriptor.maxLOD == FLT_MAX)
-    minLOD = lit("FLT_MAX");
+    maxLOD = lit("FLT_MAX");
   if(descriptor.maxLOD == 1000.0)
-    minLOD = lit("VK_LOD_CLAMP_NONE");
+    maxLOD = lit("VK_LOD_CLAMP_NONE");
 
   QString lod = lit("LODs: %1 - %2").arg(minLOD).arg(maxLOD);
-
-  // omit lod clamp if this is an immutable sampler and the attached resource is entirely within the
-  // range
-  if(descriptor.immutableSampler)
-  {
-    TextureDescription *tex = m_Ctx.GetTexture(descriptor.resourceResourceId);
-    if(tex && descriptor.minLOD <= 0.0f && descriptor.maxLOD >= (float)(tex->mips - 1))
-    {
-      lod = QString();
-    }
-  }
 
   if(descriptor.mipBias != 0.0f)
     lod += lit(" Bias %1").arg(descriptor.mipBias);
@@ -1166,12 +1118,12 @@ QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, cons
   if(!lod.isEmpty())
     lod = lit(", ") + lod;
 
-  QString obj = ToQStr(descriptor.samplerResourceId);
+  QString obj = ToQStr(descriptor.object);
 
-  if(descriptor.samplerSwizzle.red != TextureSwizzle::Red ||
-     descriptor.samplerSwizzle.green != TextureSwizzle::Green ||
-     descriptor.samplerSwizzle.blue != TextureSwizzle::Blue ||
-     descriptor.samplerSwizzle.alpha != TextureSwizzle::Alpha)
+  if(descriptor.swizzle.red != TextureSwizzle::Red ||
+     descriptor.swizzle.green != TextureSwizzle::Green ||
+     descriptor.swizzle.blue != TextureSwizzle::Blue ||
+     descriptor.swizzle.alpha != TextureSwizzle::Alpha)
   {
     obj += tr(" swizzle[%1%2%3%4]")
                .arg(ToQStr(descriptor.swizzle.red))
@@ -1180,7 +1132,7 @@ QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, cons
                .arg(ToQStr(descriptor.swizzle.alpha));
   }
 
-  if(!descriptor.seamless)
+  if(!descriptor.seamlessCubemaps)
     addressing += tr(" Non-Seamless");
 
   if(descriptor.ycbcrSampler != ResourceId())
@@ -1199,351 +1151,243 @@ QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, cons
       addressing += tr(" Explicit");
   }
 
-  return {QString(),    bindset,
-          slotname,     descriptor.immutableSampler ? tr("Immutable Sampler") : tr("Sampler"),
+  return {slotname,     descriptor.creationTimeConstant ? tr("Immutable Sampler") : tr("Sampler"),
           obj,          addressing,
           filter + lod, QString()};
 }
 
-void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
-                                               const VKPipe::Shader &stage, int bindset, int bind,
-                                               const VKPipe::Pipeline &pipe, RDTreeWidget *resources,
+void VulkanPipelineStateViewer::addResourceRow(const ShaderResource *shaderRes,
+                                               const ShaderSampler *shaderSamp,
+                                               const UsedDescriptor &used, uint32_t dynamicOffset,
+                                               RDTreeWidget *resources,
                                                QMap<ResourceId, RDTreeWidgetItem *> &samplers)
 {
-  const ShaderResource *shaderRes = NULL;
-  const ShaderSampler *shaderSamp = NULL;
-  const Bindpoint *bindMap = NULL;
+  const Descriptor &descriptor = used.descriptor;
+  const SamplerDescriptor &samplerDescriptor = used.sampler;
 
-  bool isrw = false;
-  uint bindPoint = 0;
-
-  if(shaderDetails != NULL)
-  {
-    // we find the matching binding for this set/binding.
-    // The spec requires that there are no overlapping definitions, or if there are they have
-    // compatible types so we can just pick the first one we come across.
-    // The spec also doesn't require variables which are statically unused to have valid bindings,
-    // so they may be overlapping or possibly just defaulted to 0.
-    // Any variables with no binding declared at all were set to 0 and sorted to the end at
-    // reflection time, so we can just use a single algorithm to select the best candidate:
-    //
-    // 1. Search for matching bindset/bind resources. It doesn't matter which 'namespace' (sampler/
-    //    read-only/read-write) we search in, because if there's a conflict the behaviour is
-    //    illegal and if there's no conflict we won't get any ambiguity.
-    // 2. If we find a match, select it for use.
-    // 3. If we find a second match, use it in preference only if the old one was !used, and the new
-    //    one is used.
-    //
-    // This will make us select the best possible option - the first declared used resource
-    // at a particular binding, ignoring any unused resources at that binding before/after. Or if
-    // there's no used resource at all, the first declared unused resource (which will prefer
-    // resources with proper bindings over those without, as with the sorting mentioned above).
-
-    for(int i = 0; i < shaderDetails->samplers.count(); i++)
-    {
-      const ShaderSampler &s = shaderDetails->samplers[i];
-
-      if(stage.bindpointMapping.samplers[s.bindPoint].bindset == bindset &&
-         stage.bindpointMapping.samplers[s.bindPoint].bind == bind)
-      {
-        // use this one either if we have no candidate, or the candidate we have is unused and this
-        // one is used
-        if(bindMap == NULL || (!bindMap->used && stage.bindpointMapping.samplers[s.bindPoint].used))
-        {
-          bindPoint = (uint)i;
-          shaderSamp = &s;
-          bindMap = &stage.bindpointMapping.samplers[s.bindPoint];
-        }
-      }
-    }
-
-    for(int i = 0; i < shaderDetails->readOnlyResources.count(); i++)
-    {
-      const ShaderResource &ro = shaderDetails->readOnlyResources[i];
-
-      if(stage.bindpointMapping.readOnlyResources[ro.bindPoint].bindset == bindset &&
-         stage.bindpointMapping.readOnlyResources[ro.bindPoint].bind == bind)
-      {
-        // use this one either if we have no candidate, or the candidate we have is unused and this
-        // one is used
-        if(bindMap == NULL ||
-           (!bindMap->used && stage.bindpointMapping.readOnlyResources[ro.bindPoint].used))
-        {
-          bindPoint = (uint)i;
-          shaderRes = &ro;
-          shaderSamp = NULL;
-          bindMap = &stage.bindpointMapping.readOnlyResources[ro.bindPoint];
-        }
-      }
-    }
-
-    for(int i = 0; i < shaderDetails->readWriteResources.count(); i++)
-    {
-      const ShaderResource &rw = shaderDetails->readWriteResources[i];
-
-      if(stage.bindpointMapping.readWriteResources[rw.bindPoint].bindset == bindset &&
-         stage.bindpointMapping.readWriteResources[rw.bindPoint].bind == bind)
-      {
-        // use this one either if we have no candidate, or the candidate we have is unused and this
-        // one is used
-        if(bindMap == NULL ||
-           (!bindMap->used && stage.bindpointMapping.readWriteResources[rw.bindPoint].used))
-        {
-          bindPoint = (uint)i;
-          isrw = true;
-          shaderRes = &rw;
-          shaderSamp = NULL;
-          bindMap = &stage.bindpointMapping.readWriteResources[rw.bindPoint];
-        }
-      }
-    }
-  }
-
-  const rdcarray<VKPipe::BindingElement> *slotBinds = NULL;
-  int32_t firstUsedBind = 0;
-  int32_t lastUsedBind = 0;
-  BindType bindType = BindType::Unknown;
-  ShaderStageMask stageBits = ShaderStageMask::Unknown;
-  bool pushDescriptor = false;
-  uint32_t dynamicallyUsedCount = ~0U;
-
-  if(bindset < pipe.descriptorSets.count() && bind < pipe.descriptorSets[bindset].bindings.count())
-  {
-    pushDescriptor = pipe.descriptorSets[bindset].pushDescriptor;
-    dynamicallyUsedCount = pipe.descriptorSets[bindset].bindings[bind].dynamicallyUsedCount;
-    slotBinds = &pipe.descriptorSets[bindset].bindings[bind].binds;
-    firstUsedBind = pipe.descriptorSets[bindset].bindings[bind].firstUsedIndex;
-    lastUsedBind = pipe.descriptorSets[bindset].bindings[bind].lastUsedIndex;
-    stageBits = pipe.descriptorSets[bindset].bindings[bind].stageFlags;
-  }
-  else
-  {
-    if(shaderSamp)
-      bindType = BindType::Sampler;
-    else if(shaderRes && shaderRes->resType == TextureType::Buffer)
-      bindType = isrw ? BindType::ReadWriteBuffer : BindType::ReadOnlyBuffer;
-    else
-      bindType = isrw ? BindType::ReadWriteImage : BindType::ReadOnlyImage;
-  }
-
-  if(m_ShowUnused)
-  {
-    firstUsedBind = 0;
-    lastUsedBind = INT_MAX;
-  }
-
-  bool usedSlot = bindMap != NULL && bindMap->used && dynamicallyUsedCount > 0;
-  bool stageBitsIncluded = bool(stageBits & MaskForStage(stage.stage));
-
-  // skip descriptors that aren't for this shader stage
-  if(!usedSlot && !stageBitsIncluded)
-    return;
-
-  // TODO - check compatibility between bindType and shaderRes.resType ?
-
-  // consider it filled if any array element is filled
-  bool filledSlot = false;
-  for(int32_t idx = firstUsedBind;
-      slotBinds != NULL && !filledSlot && idx <= lastUsedBind && idx < slotBinds->count(); idx++)
-  {
-    bindType = (*slotBinds)[idx].type;
-    filledSlot |= (*slotBinds)[idx].resourceResourceId != ResourceId();
-    if(bindType == BindType::Sampler || bindType == BindType::ImageSampler)
-      filledSlot |= (*slotBinds)[idx].samplerResourceId != ResourceId();
-  }
-
-  bool containsResource = filledSlot;
-
-  // if it's masked out by stage bits, act as if it's not filled, so it's marked in red
-  if(!stageBitsIncluded)
-    filledSlot = false;
+  bool filledSlot = (descriptor.resource != ResourceId() || samplerDescriptor.object != ResourceId() ||
+                     samplerDescriptor.creationTimeConstant);
+  // Vulkan does not report unused elements at all because we enumerate exclusively from the
+  // perspective of which descriptors are used
+  bool usedSlot = true;
 
   if(showNode(usedSlot, filledSlot))
   {
-    RDTreeWidgetItem *parentNode = resources->invisibleRootItem();
-
-    QString setname = QString::number(bindset);
-
-    if(pushDescriptor)
-      setname = tr("Push ") + setname;
-
-    QString slotname = QString::number(bind);
-    if(shaderRes && !shaderRes->name.isEmpty())
-      slotname += lit(": ") + shaderRes->name;
-    else if(shaderSamp && !shaderSamp->name.isEmpty())
-      slotname += lit(": ") + shaderSamp->name;
-
-    int arrayLength = 0;
-    if(slotBinds != NULL)
-      arrayLength = slotBinds->count();
-    else
-      arrayLength = (bindMap->arraySize == ~0U ? -1 : (int)bindMap->arraySize);
-
-    // for arrays, add a parent element that we add the real resources below
-    if(arrayLength > 1 || arrayLength < 0)
+    QString slotname;
+    if(used.access.index == DescriptorAccess::NoShaderBinding)
     {
-      RDTreeWidgetItem *node =
-          new RDTreeWidgetItem({QString(), setname, slotname,
-                                arrayLength < 0 ? tr("Array[]") : tr("Array[%1]").arg(arrayLength),
-                                QString(), QString(), QString(), QString()});
+      slotname = m_Locations[{used.access.descriptorStore, used.access.byteOffset}].logicalBindName;
 
-      if(arrayLength < 0)
-        arrayLength = 0;
+      slotname += QFormatStr("[%1]").arg(used.access.arrayElement);
+    }
+    else if(shaderRes)
+    {
+      slotname =
+          QFormatStr("Set %1, %2").arg(shaderRes->fixedBindSetOrSpace).arg(shaderRes->fixedBindNumber);
 
-      if(!filledSlot)
-        setEmptyRow(node);
+      if(!shaderRes->name.empty())
+        slotname += lit(": ") + shaderRes->name;
 
-      if(!usedSlot)
-        setInactiveRow(node);
+      if(shaderRes->bindArraySize > 1)
+        slotname += QFormatStr("[%1]").arg(used.access.arrayElement);
+    }
+    else if(shaderSamp)
+    {
+      slotname =
+          QFormatStr("Set %1, %2").arg(shaderSamp->fixedBindSetOrSpace).arg(shaderSamp->fixedBindNumber);
 
-      parentNode = node;
+      if(!shaderSamp->name.empty())
+        slotname += lit(": ") + shaderSamp->name;
+
+      if(shaderSamp->bindArraySize > 1)
+        slotname += QFormatStr("[%1]").arg(used.access.arrayElement);
     }
 
-    for(int idx = firstUsedBind; idx <= lastUsedBind && idx < arrayLength; idx++)
+    bool isbuf = false;
+    uint32_t w = 1, h = 1, d = 1;
+    uint32_t a = 1;
+    uint32_t samples = 1;
+    uint64_t resourceByteSize = 0;
+    QString format = descriptor.format.Name();
+    TextureType restype = TextureType::Unknown;
+    QVariant tag;
+
+    TextureDescription *tex = NULL;
+    BufferDescription *buf = NULL;
+
+    if(descriptor.resource != ResourceId())
     {
-      bool dynamicUsed = usedSlot;
-
-      const VKPipe::BindingElement *descriptorBind = NULL;
-      if(slotBinds != NULL)
+      // check to see if it's a texture
+      tex = m_Ctx.GetTexture(descriptor.resource);
+      if(tex)
       {
-        descriptorBind = &(*slotBinds)[idx];
+        w = tex->width;
+        h = tex->height;
+        d = tex->depth;
+        a = tex->arraysize;
+        restype = tex->type;
+        samples = tex->msSamp;
 
-        bindType = descriptorBind->type;
-
-        dynamicUsed &= descriptorBind->dynamicallyUsed;
-
-        if(!showNode(dynamicUsed, filledSlot))
-          continue;
+        tag = QVariant::fromValue(VulkanTextureTag(descriptor.resource, descriptor.format.compType));
       }
 
-      if(bindType == BindType::ConstantBuffer)
-        continue;
-
-      if(arrayLength > 1)
+      // if not a texture, it must be a buffer
+      buf = m_Ctx.GetBuffer(descriptor.resource);
+      if(buf)
       {
-        if(shaderRes && !shaderRes->name.isEmpty())
-          slotname = QFormatStr("%1[%2]: %3").arg(bind).arg(idx).arg(shaderRes->name);
-        else if(shaderSamp && !shaderSamp->name.isEmpty())
-          slotname = QFormatStr("%1[%2]: %3").arg(bind).arg(idx).arg(shaderSamp->name);
-        else
-          slotname = QFormatStr("%1[%2]").arg(bind).arg(idx);
+        resourceByteSize = buf->length;
+        w = 0;
+        h = 0;
+        d = 0;
+        a = 0;
+        restype = TextureType::Buffer;
+
+        tag = QVariant::fromValue(VulkanBufferTag(used.access, used.descriptor));
+
+        isbuf = true;
       }
+    }
+    else
+    {
+      format = lit("-");
+      w = h = d = a = 0;
+    }
 
-      bool isbuf = false;
-      uint32_t w = 1, h = 1, d = 1;
-      uint32_t a = 1;
-      uint32_t samples = 1;
-      uint64_t len = 0;
-      QString format = tr("Unknown");
-      TextureType restype = TextureType::Unknown;
-      QVariant tag;
+    RDTreeWidgetItem *node = NULL;
+    RDTreeWidgetItem *samplerNode = NULL;
 
-      TextureDescription *tex = NULL;
-      BufferDescription *buf = NULL;
+    QString bindType = ToQStr(used.access.type);
 
-      uint64_t descriptorLen = descriptorBind ? descriptorBind->byteSize : 0;
+    if(shaderRes && shaderRes->isInputAttachment)
+      bindType = tr("Input Attachment");
 
-      if(containsResource && descriptorBind != NULL)
+    if(used.access.type == DescriptorType::ReadWriteBuffer)
+    {
+      if(!isbuf)
       {
-        format = descriptorBind->viewFormat.Name();
+        node = new RDTreeWidgetItem({
+            slotname,
+            bindType,
+            ResourceId(),
+            lit("-"),
+            QString(),
+            QString(),
+        });
 
-        // check to see if it's a texture
-        tex = m_Ctx.GetTexture(descriptorBind->resourceResourceId);
-        if(tex)
-        {
-          w = tex->width;
-          h = tex->height;
-          d = tex->depth;
-          a = tex->arraysize;
-          restype = tex->type;
-          samples = tex->msSamp;
-
-          tag = QVariant::fromValue(VulkanTextureTag(descriptorBind->resourceResourceId,
-                                                     descriptorBind->viewFormat.compType));
-        }
-
-        // if not a texture, it must be a buffer
-        buf = m_Ctx.GetBuffer(descriptorBind->resourceResourceId);
-        if(buf)
-        {
-          len = buf->length;
-          w = 0;
-          h = 0;
-          d = 0;
-          a = 0;
-          restype = TextureType::Buffer;
-
-          if(descriptorLen == UINT64_MAX)
-            descriptorLen = len - descriptorBind->byteOffset;
-
-          tag = QVariant::fromValue(VulkanBufferTag(isrw, bindPoint, descriptorBind->viewFormat,
-                                                    buf->resourceId, descriptorBind->byteOffset,
-                                                    descriptorLen));
-
-          isbuf = true;
-        }
+        setEmptyRow(node);
       }
       else
       {
-        format = lit("-");
-        w = h = d = a = 0;
-      }
+        node = new RDTreeWidgetItem({
+            slotname,
+            bindType,
+            descriptor.resource,
+            tr("%1 bytes").arg(Formatter::HumanFormat(resourceByteSize, Formatter::OffsetSize)),
+            QFormatStr("Viewing bytes %1").arg(formatByteRange(buf, descriptor, dynamicOffset)),
+            QString(),
+        });
 
-      RDTreeWidgetItem *node = NULL;
-      RDTreeWidgetItem *samplerNode = NULL;
+        node->setTag(tag);
 
-      if(bindType == BindType::ReadWriteBuffer)
-      {
-        if(!isbuf)
-        {
-          node = new RDTreeWidgetItem({
-              QString(),
-              setname,
-              slotname,
-              ToQStr(bindType),
-              ResourceId(),
-              lit("-"),
-              QString(),
-              QString(),
-          });
-
+        if(!filledSlot)
           setEmptyRow(node);
-
-          if(!dynamicUsed)
-            setInactiveRow(node);
-        }
-        else
-        {
-          node = new RDTreeWidgetItem({
-              QString(),
-              setname,
-              slotname,
-              ToQStr(bindType),
-              descriptorBind ? descriptorBind->resourceResourceId : ResourceId(),
-              tr("%1 bytes").arg(Formatter::HumanFormat(len, Formatter::OffsetSize)),
-              QFormatStr("Viewing bytes %1").arg(formatByteRange(buf, descriptorBind)),
-              QString(),
-          });
-
-          node->setTag(tag);
-
-          if(!filledSlot)
-            setEmptyRow(node);
-
-          if(!dynamicUsed)
-            setInactiveRow(node);
-        }
       }
-      else if(bindType == BindType::ReadOnlyTBuffer || bindType == BindType::ReadWriteTBuffer)
+    }
+    else if(used.access.type == DescriptorType::TypedBuffer ||
+            used.access.type == DescriptorType::ReadWriteTypedBuffer)
+    {
+      node = new RDTreeWidgetItem({
+          slotname,
+          bindType,
+          descriptor.resource,
+          format,
+          QFormatStr("bytes %1").arg(formatByteRange(buf, descriptor, dynamicOffset)),
+          QString(),
+      });
+
+      node->setTag(tag);
+
+      if(!filledSlot)
+        setEmptyRow(node);
+    }
+    else if(used.access.type == DescriptorType::Sampler)
+    {
+      if(samplerDescriptor.object == ResourceId())
       {
         node = new RDTreeWidgetItem({
-            QString(),
-            setname,
             slotname,
-            ToQStr(bindType),
-            descriptorBind ? descriptorBind->resourceResourceId : ResourceId(),
+            bindType,
+            ResourceId(),
+            lit("-"),
+            QString(),
+            QString(),
+        });
+
+        setEmptyRow(node);
+      }
+      else
+      {
+        node = new RDTreeWidgetItem(makeSampler(slotname, samplerDescriptor));
+
+        if(!filledSlot)
+          setEmptyRow(node);
+      }
+    }
+    else
+    {
+      if(descriptor.resource == ResourceId())
+      {
+        node = new RDTreeWidgetItem({
+            slotname,
+            bindType,
+            ResourceId(),
+            lit("-"),
+            QString(),
+            QString(),
+        });
+
+        setEmptyRow(node);
+      }
+      else
+      {
+        QString typeName = ToQStr(restype) + lit(" ") + bindType;
+
+        QString dim;
+
+        if(restype == TextureType::Texture3D)
+          dim = QFormatStr("%1x%2x%3").arg(w).arg(h).arg(d);
+        else if(restype == TextureType::Texture1D || restype == TextureType::Texture1DArray)
+          dim = QString::number(w);
+        else
+          dim = QFormatStr("%1x%2").arg(w).arg(h);
+
+        if(descriptor.swizzle.red != TextureSwizzle::Red ||
+           descriptor.swizzle.green != TextureSwizzle::Green ||
+           descriptor.swizzle.blue != TextureSwizzle::Blue ||
+           descriptor.swizzle.alpha != TextureSwizzle::Alpha)
+        {
+          format += tr(" swizzle[%1%2%3%4]")
+                        .arg(ToQStr(descriptor.swizzle.red))
+                        .arg(ToQStr(descriptor.swizzle.green))
+                        .arg(ToQStr(descriptor.swizzle.blue))
+                        .arg(ToQStr(descriptor.swizzle.alpha));
+        }
+
+        if(restype == TextureType::Texture1DArray || restype == TextureType::Texture2DArray ||
+           restype == TextureType::Texture2DMSArray || restype == TextureType::TextureCubeArray)
+        {
+          dim += QFormatStr(" %1[%2]").arg(ToQStr(restype)).arg(a);
+        }
+
+        if(restype == TextureType::Texture2DMS || restype == TextureType::Texture2DMSArray)
+          dim += QFormatStr(", %1x MSAA").arg(samples);
+
+        node = new RDTreeWidgetItem({
+            slotname,
+            typeName,
+            descriptor.resource,
+            dim,
             format,
-            QFormatStr("bytes %1").arg(formatByteRange(buf, descriptorBind)),
             QString(),
         });
 
@@ -1552,492 +1396,220 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
         if(!filledSlot)
           setEmptyRow(node);
 
-        if(!dynamicUsed)
-          setInactiveRow(node);
-      }
-      else if(bindType == BindType::Sampler)
-      {
-        if(descriptorBind == NULL || descriptorBind->samplerResourceId == ResourceId())
+        if(used.access.type == DescriptorType::ImageSampler)
         {
-          node = new RDTreeWidgetItem({
-              QString(),
-              setname,
-              slotname,
-              ToQStr(bindType),
-              ResourceId(),
-              lit("-"),
-              QString(),
-              QString(),
-          });
+          if(samplerDescriptor.object == ResourceId())
+          {
+            samplerNode = new RDTreeWidgetItem({
+                slotname,
+                bindType,
+                ResourceId(),
+                lit("-"),
+                QString(),
+                QString(),
+            });
 
-          setEmptyRow(node);
-
-          if(!dynamicUsed)
-            setInactiveRow(node);
-        }
-        else
-        {
-          node = new RDTreeWidgetItem(makeSampler(setname, slotname, *descriptorBind));
-
-          if(!filledSlot)
-            setEmptyRow(node);
-
-          if(!dynamicUsed)
-            setInactiveRow(node);
-        }
-      }
-      else
-      {
-        if(descriptorBind == NULL || descriptorBind->resourceResourceId == ResourceId())
-        {
-          node = new RDTreeWidgetItem({
-              QString(),
-              setname,
-              slotname,
-              ToQStr(bindType),
-              ResourceId(),
-              lit("-"),
-              QString(),
-              QString(),
-          });
-
-          setEmptyRow(node);
-
-          if(!dynamicUsed)
-            setInactiveRow(node);
-        }
-        else
-        {
-          QString typeName = ToQStr(restype) + lit(" ") + ToQStr(bindType);
-
-          QString dim;
-
-          if(restype == TextureType::Texture3D)
-            dim = QFormatStr("%1x%2x%3").arg(w).arg(h).arg(d);
-          else if(restype == TextureType::Texture1D || restype == TextureType::Texture1DArray)
-            dim = QString::number(w);
+            setEmptyRow(samplerNode);
+          }
           else
-            dim = QFormatStr("%1x%2").arg(w).arg(h);
-
-          if(descriptorBind->swizzle.red != TextureSwizzle::Red ||
-             descriptorBind->swizzle.green != TextureSwizzle::Green ||
-             descriptorBind->swizzle.blue != TextureSwizzle::Blue ||
-             descriptorBind->swizzle.alpha != TextureSwizzle::Alpha)
           {
-            format += tr(" swizzle[%1%2%3%4]")
-                          .arg(ToQStr(descriptorBind->swizzle.red))
-                          .arg(ToQStr(descriptorBind->swizzle.green))
-                          .arg(ToQStr(descriptorBind->swizzle.blue))
-                          .arg(ToQStr(descriptorBind->swizzle.alpha));
-          }
-
-          if(restype == TextureType::Texture1DArray || restype == TextureType::Texture2DArray ||
-             restype == TextureType::Texture2DMSArray || restype == TextureType::TextureCubeArray)
-          {
-            dim += QFormatStr(" %1[%2]").arg(ToQStr(restype)).arg(a);
-          }
-
-          if(restype == TextureType::Texture2DMS || restype == TextureType::Texture2DMSArray)
-            dim += QFormatStr(", %1x MSAA").arg(samples);
-
-          node = new RDTreeWidgetItem({
-              QString(),
-              setname,
-              slotname,
-              typeName,
-              descriptorBind->resourceResourceId,
-              dim,
-              format,
-              QString(),
-          });
-
-          node->setTag(tag);
-
-          if(!filledSlot)
-            setEmptyRow(node);
-
-          if(!dynamicUsed)
-            setInactiveRow(node);
-
-          if(bindType == BindType::ImageSampler)
-          {
-            if(descriptorBind == NULL || descriptorBind->samplerResourceId == ResourceId())
+            if(!samplers.contains(samplerDescriptor.object))
             {
-              samplerNode = new RDTreeWidgetItem({
-                  QString(),
-                  setname,
-                  slotname,
-                  ToQStr(bindType),
-                  ResourceId(),
-                  lit("-"),
-                  QString(),
-                  QString(),
-              });
+              samplerNode = new RDTreeWidgetItem(makeSampler(QString(), samplerDescriptor));
 
-              setEmptyRow(samplerNode);
+              if(!filledSlot)
+                setEmptyRow(samplerNode);
 
-              if(!dynamicUsed)
-                setInactiveRow(samplerNode);
+              CombinedSamplerData sampData;
+              sampData.node = samplerNode;
+              samplerNode->setTag(QVariant::fromValue(sampData));
+
+              samplers.insert(samplerDescriptor.object, samplerNode);
             }
-            else
+
             {
-              if(!samplers.contains(descriptorBind->samplerResourceId))
-              {
-                samplerNode =
-                    new RDTreeWidgetItem(makeSampler(QString(), QString(), *descriptorBind));
+              RDTreeWidgetItem *combinedSamp = m_CombinedImageSamplers[node] =
+                  samplers[samplerDescriptor.object];
 
-                if(!filledSlot)
-                  setEmptyRow(samplerNode);
-
-                if(!dynamicUsed)
-                  setInactiveRow(samplerNode);
-
-                CombinedSamplerData sampData;
-                sampData.node = samplerNode;
-                samplerNode->setTag(QVariant::fromValue(sampData));
-
-                samplers.insert(descriptorBind->samplerResourceId, samplerNode);
-              }
-
-              {
-                RDTreeWidgetItem *combinedSamp = m_CombinedImageSamplers[node] =
-                    samplers[descriptorBind->samplerResourceId];
-
-                CombinedSamplerData sampData = combinedSamp->tag().value<CombinedSamplerData>();
-                sampData.images.push_back(node);
-                combinedSamp->setTag(QVariant::fromValue(sampData));
-              }
-            }
-          }
-        }
-      }
-
-      if(descriptorBind && tex)
-      {
-        // for rows with view details we can't highlight used combined samplers, so instead we put
-        // it in the tooltip for that row and remove it from the m_CombinedImageSamplers list.
-        QString samplerString =
-            bindType == BindType::ImageSampler
-                ? tr("Image combined with sampler %1\n")
-                      .arg(m_Ctx.GetResourceName(descriptorBind->samplerResourceId))
-                : QString();
-
-        bool hasViewDetails =
-            setViewDetails(node, *descriptorBind, tex, stageBitsIncluded, samplerString);
-
-        if(hasViewDetails)
-        {
-          node->setText(4, tr("%1 viewed by %2")
-                               .arg(ToQStr(descriptorBind->resourceResourceId))
-                               .arg(ToQStr(descriptorBind->viewResourceId)));
-
-          if(bindType == BindType::ImageSampler)
-          {
-            RDTreeWidgetItem *combinedSamp = m_CombinedImageSamplers[node];
-
-            if(combinedSamp)
-            {
               CombinedSamplerData sampData = combinedSamp->tag().value<CombinedSamplerData>();
-              sampData.images.removeOne(node);
+              sampData.images.push_back(node);
               combinedSamp->setTag(QVariant::fromValue(sampData));
-
-              m_CombinedImageSamplers.remove(node);
             }
           }
         }
       }
-      else if(descriptorBind && buf)
-      {
-        setViewDetails(node, *descriptorBind, buf, stageBitsIncluded);
-      }
-
-      parentNode->addChild(node);
-
-      if(samplerNode)
-        parentNode->addChild(samplerNode);
     }
 
-    // if we were adding to an array node, add it now
-    if(parentNode != resources->invisibleRootItem())
+    if(tex)
     {
-      // as long as it has children - if it has no children then delete it and don't add anything
-      // this is possible e.g. if this node is a constant buffer - we couldn't tell that until we
-      // iterated all the descriptors to see if there were any non-constant buffers, given they may
-      // be mutably typed
-      if(parentNode->childCount() > 0)
+      // for rows with view details we can't highlight used combined samplers, so instead we put
+      // it in the tooltip for that row and remove it from the m_CombinedImageSamplers list.
+      QString samplerString =
+          used.access.type == DescriptorType::ImageSampler
+              ? tr("Image combined with sampler %1\n").arg(m_Ctx.GetResourceName(descriptor.secondary))
+              : QString();
+
+      bool hasViewDetails = setViewDetails(node, descriptor, tex, samplerString);
+
+      if(hasViewDetails)
       {
-        // show the tree column
-        resources->showColumn(0);
-        // add the root item
-        resources->addTopLevelItem(parentNode);
-      }
-      else
-      {
-        delete parentNode;
+        node->setText(
+            4, tr("%1 viewed by %2").arg(ToQStr(descriptor.resource)).arg(ToQStr(descriptor.view)));
+
+        if(used.access.type == DescriptorType::ImageSampler)
+        {
+          RDTreeWidgetItem *combinedSamp = m_CombinedImageSamplers[node];
+
+          if(combinedSamp)
+          {
+            CombinedSamplerData sampData = combinedSamp->tag().value<CombinedSamplerData>();
+            sampData.images.removeOne(node);
+            combinedSamp->setTag(QVariant::fromValue(sampData));
+
+            m_CombinedImageSamplers.remove(node);
+          }
+        }
       }
     }
+    else if(buf)
+    {
+      setViewDetails(node, descriptor, buf);
+    }
+
+    resources->addTopLevelItem(node);
+
+    if(samplerNode)
+      resources->addTopLevelItem(samplerNode);
   }
 }
 
-void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDetails,
-                                                    const VKPipe::Shader &stage, int bindset,
-                                                    int bind, const VKPipe::Pipeline &pipe,
-                                                    RDTreeWidget *ubos)
+void VulkanPipelineStateViewer::addConstantBlockRow(const ConstantBlock *cblock,
+                                                    const UsedDescriptor &used,
+                                                    uint32_t dynamicOffset, RDTreeWidget *ubos)
 {
-  const ConstantBlock *cblock = NULL;
-  const Bindpoint *bindMap = NULL;
+  const Descriptor &descriptor = used.descriptor;
 
-  VulkanCBufferTag tag(stage.stage != ShaderStage::Compute, bindset, bind);
-  if(shaderDetails != NULL)
-  {
-    for(uint32_t slot = 0; slot < (uint)shaderDetails->constantBlocks.count(); slot++)
-    {
-      const ConstantBlock &cb = shaderDetails->constantBlocks[slot];
-      if(stage.bindpointMapping.constantBlocks[cb.bindPoint].bindset == bindset &&
-         stage.bindpointMapping.constantBlocks[cb.bindPoint].bind == bind)
-      {
-        cblock = &cb;
-        bindMap = &stage.bindpointMapping.constantBlocks[cb.bindPoint];
-        tag = VulkanCBufferTag(slot);
-        break;
-      }
-    }
-  }
+  VulkanCBufferTag tag(used.access.index, used.access.arrayElement);
 
-  const rdcarray<VKPipe::BindingElement> *slotBinds = NULL;
-  ShaderStageMask stageBits = ShaderStageMask::Unknown;
-  uint32_t dynamicallyUsedCount = ~0U;
-  int32_t firstUsedBind = 0;
-  int32_t lastUsedBind = 0;
-
-  bool pushDescriptor = false;
-
-  if(bindset < pipe.descriptorSets.count() && bind < pipe.descriptorSets[bindset].bindings.count())
-  {
-    pushDescriptor = pipe.descriptorSets[bindset].pushDescriptor;
-    dynamicallyUsedCount = pipe.descriptorSets[bindset].bindings[bind].dynamicallyUsedCount;
-    slotBinds = &pipe.descriptorSets[bindset].bindings[bind].binds;
-    firstUsedBind = pipe.descriptorSets[bindset].bindings[bind].firstUsedIndex;
-    lastUsedBind = pipe.descriptorSets[bindset].bindings[bind].lastUsedIndex;
-    stageBits = pipe.descriptorSets[bindset].bindings[bind].stageFlags;
-  }
-
-  if(m_ShowUnused)
-  {
-    firstUsedBind = 0;
-    lastUsedBind = INT_MAX;
-  }
-
-  bool usedSlot = bindMap != NULL && bindMap->used && dynamicallyUsedCount > 0;
-  bool stageBitsIncluded = bool(stageBits & MaskForStage(stage.stage));
-
-  // skip descriptors that aren't for this shader stage
-  if(!usedSlot && !stageBitsIncluded)
-    return;
-
-  // consider it filled if any array element is filled (or it's push constants)
-  bool filledSlot = cblock != NULL && !cblock->bufferBacked;
-  for(int32_t idx = firstUsedBind;
-      slotBinds != NULL && !filledSlot && idx <= lastUsedBind && idx < slotBinds->count(); idx++)
-  {
-    filledSlot |=
-        (*slotBinds)[idx].resourceResourceId != ResourceId() || (*slotBinds)[idx].inlineBlock;
-  }
-
-  bool containsResource = filledSlot;
-
-  // if it's masked out by stage bits, act as if it's not filled, so it's marked in red
-  if(!stageBitsIncluded && (cblock == NULL || cblock->bufferBacked))
-    filledSlot = false;
+  bool filledSlot = (descriptor.resource != ResourceId());
+  // Vulkan does not report unused elements at all because we enumerate exclusively from the
+  // perspective of which descriptors are used
+  bool usedSlot = true;
 
   if(showNode(usedSlot, filledSlot))
   {
-    RDTreeWidgetItem *parentNode = ubos->invisibleRootItem();
-
-    QString setname = QString::number(bindset);
-
-    if(pushDescriptor)
-      setname = tr("Push ") + setname;
-
-    QString slotname = QString::number(bind);
-    if(cblock != NULL && !cblock->name.isEmpty())
-      slotname += lit(": ") + cblock->name;
-
-    int arrayLength = 0;
-    if(slotBinds != NULL)
-      arrayLength = slotBinds->count();
-    else
-      arrayLength = (bindMap->arraySize == ~0U ? -1 : (int)bindMap->arraySize);
-
-    // for arrays, add a parent element that we add the real cbuffers below
-    if(arrayLength > 1 || arrayLength < 0)
+    QString slotname;
+    if(used.access.index == DescriptorAccess::NoShaderBinding)
     {
-      RDTreeWidgetItem *node =
-          new RDTreeWidgetItem({QString(), setname, slotname,
-                                arrayLength < 0 ? tr("Array[]") : tr("Array[%1]").arg(arrayLength),
-                                QString(), QString(), QString()});
+      slotname = m_Locations[{used.access.descriptorStore, used.access.byteOffset}].logicalBindName;
 
-      if(arrayLength < 0)
-        arrayLength = 0;
+      slotname += QFormatStr("[%1]").arg(used.access.arrayElement);
+    }
+    else if(cblock)
+    {
+      slotname =
+          QFormatStr("Set %1, %2").arg(cblock->fixedBindSetOrSpace).arg(cblock->fixedBindNumber);
 
-      if(!filledSlot)
-        setEmptyRow(node);
+      if(!cblock->name.empty())
+        slotname += lit(": ") + cblock->name;
 
-      if(!usedSlot)
-        setInactiveRow(node);
-
-      parentNode = node;
+      if(cblock->bindArraySize > 1)
+        slotname += QFormatStr("[%1]").arg(used.access.arrayElement);
     }
 
-    for(int32_t idx = firstUsedBind; idx <= lastUsedBind && idx < arrayLength; idx++)
+    uint64_t bufferByteSize = descriptor.byteSize;
+    int numvars = cblock != NULL ? cblock->variables.count() : 0;
+    uint64_t declaredByteSize = cblock != NULL ? cblock->byteSize : 0;
+
+    QString byteRange = lit("-");
+
+    uint64_t byteOffset = descriptor.byteOffset + dynamicOffset;
+
     {
-      const VKPipe::BindingElement *descriptorBind = NULL;
-      if(slotBinds != NULL)
+      BufferDescription *buf = m_Ctx.GetBuffer(descriptor.resource);
+      if(buf && bufferByteSize == UINT64_MAX)
+        bufferByteSize = buf->length - byteOffset;
+
+      byteRange = formatByteRange(buf, descriptor, dynamicOffset);
+    }
+
+    QString sizestr;
+
+    QVariant name = descriptor.resource;
+
+    // push constants or specialization constants
+    if(cblock && !cblock->bufferBacked)
+    {
+      slotname = cblock->name;
+      if(cblock->compileConstants)
       {
-        descriptorBind = &(*slotBinds)[idx];
-
-        if(!showNode(usedSlot && descriptorBind->dynamicallyUsed, filledSlot))
-          continue;
-
-        if(descriptorBind->type != BindType::ConstantBuffer)
-          continue;
+        name = tr("Specialization constants");
+        byteRange = QString();
       }
-
-      tag.arrayIdx = (uint32_t)idx;
-
-      if(arrayLength > 1)
+      else
       {
-        if(cblock != NULL && !cblock->name.isEmpty())
-          slotname = QFormatStr("%1[%2]: %3").arg(bind).arg(idx).arg(cblock->name);
-        else
-          slotname = QFormatStr("%1[%2]").arg(bind).arg(idx);
-      }
+        name = tr("Push constants");
 
-      uint64_t length = 0;
-      int numvars = cblock != NULL ? cblock->variables.count() : 0;
-      uint64_t byteSize = cblock != NULL ? cblock->byteSize : 0;
+        uint32_t minOffset = getMinOffset(cblock->variables);
 
-      QString vecrange = lit("-");
+        if(minOffset == ~0U)
+          minOffset = 0;
 
-      if(containsResource && descriptorBind != NULL)
-      {
-        length = descriptorBind->byteSize;
+        byteRange =
+            QFormatStr("%1 - %2 bytes")
+                .arg(Formatter::HumanFormat(byteOffset + minOffset, Formatter::OffsetSize))
+                .arg(Formatter::HumanFormat(byteOffset + cblock->byteSize, Formatter::OffsetSize));
 
-        BufferDescription *buf = m_Ctx.GetBuffer(descriptorBind->resourceResourceId);
-        if(buf && length == UINT64_MAX)
-          length = buf->length - descriptorBind->byteOffset;
-
-        vecrange = formatByteRange(buf, descriptorBind);
-      }
-
-      QString sizestr;
-
-      QVariant name = descriptorBind ? descriptorBind->resourceResourceId : ResourceId();
-
-      // push constants or specialization constants
-      if(cblock != NULL && !cblock->bufferBacked)
-      {
-        setname = QString();
-        slotname = cblock->name;
-        if(cblock->compileConstants)
-          name = tr("Specialization constants");
-        else if(descriptorBind && descriptorBind->inlineBlock)
-          name = tr("Inline uniforms");
-        else
-          name = tr("Push constants");
-
-        vecrange = QString();
-        sizestr = tr("%1 Variables").arg(numvars);
-
-        if(descriptorBind && descriptorBind->inlineBlock)
+        if(byteOffset + descriptor.byteSize > m_Ctx.CurVulkanPipelineState()->pushconsts.size())
         {
-          vecrange =
-              QFormatStr("%1 - %2 bytes")
-                  .arg(Formatter::HumanFormat(descriptorBind->byteOffset, Formatter::OffsetSize))
-                  .arg(Formatter::HumanFormat(descriptorBind->byteOffset + descriptorBind->byteSize,
+          filledSlot = false;
+          byteRange +=
+              tr(", only %1 bytes pushed")
+                  .arg(Formatter::HumanFormat(m_Ctx.CurVulkanPipelineState()->pushconsts.size(),
                                               Formatter::OffsetSize));
         }
-        else if(!cblock->compileConstants)
-        {
-          vecrange = QFormatStr("%1 - %2 bytes")
-                         .arg(Formatter::HumanFormat(stage.pushConstantRangeByteOffset,
-                                                     Formatter::OffsetSize))
-                         .arg(Formatter::HumanFormat(
-                             stage.pushConstantRangeByteOffset + stage.pushConstantRangeByteSize,
-                             Formatter::OffsetSize));
-
-          if(stage.pushConstantRangeByteOffset + stage.pushConstantRangeByteSize >
-             m_Ctx.CurVulkanPipelineState()->pushconsts.size())
-          {
-            filledSlot = false;
-            vecrange +=
-                tr(", only %1 bytes pushed")
-                    .arg(Formatter::HumanFormat(m_Ctx.CurVulkanPipelineState()->pushconsts.size(),
-                                                Formatter::OffsetSize));
-          }
-        }
-      }
-      else
-      {
-        if(descriptorBind && descriptorBind->inlineBlock)
-        {
-          name = tr("Inline block");
-          vecrange = tr("%1 bytes").arg(Formatter::HumanFormat(length, Formatter::OffsetSize));
-        }
-
-        if(length == byteSize)
-          sizestr = tr("%1 Variables, %2 bytes")
-                        .arg(numvars)
-                        .arg(Formatter::HumanFormat(length, Formatter::OffsetSize));
-        else
-          sizestr = tr("%1 Variables, %2 bytes needed, %3 provided")
-                        .arg(numvars)
-                        .arg(Formatter::HumanFormat(byteSize, Formatter::OffsetSize))
-                        .arg(Formatter::HumanFormat(length, Formatter::OffsetSize));
-
-        if(length < byteSize)
-          filledSlot = false;
       }
 
-      RDTreeWidgetItem *node =
-          new RDTreeWidgetItem({QString(), setname, slotname, name, vecrange, sizestr, QString()});
-
-      node->setTag(QVariant::fromValue(tag));
-
-      if(!filledSlot)
-        setEmptyRow(node);
-
-      if(!usedSlot)
-        setInactiveRow(node);
-
-      parentNode->addChild(node);
+      sizestr = tr("%1 Variables").arg(numvars);
     }
-
-    // if we were adding to an array node, add it now
-    if(parentNode != ubos->invisibleRootItem())
+    else
     {
-      // as long as it has children - if it has no children then delete it and don't add anything
-      // this is possible e.g. if this node is not a constant buffer - we couldn't tell that until
-      // we iterated all the descriptors to see if there were any constant buffers, given they may
-      // be mutably typed
-      if(parentNode->childCount() > 0)
+      if(descriptor.flags & DescriptorFlags::InlineData)
       {
-        // show the tree column
-        ubos->showColumn(0);
-        // add the root item
-        ubos->addTopLevelItem(parentNode);
+        name = tr("Inline block");
+        byteRange = tr("%1 bytes").arg(Formatter::HumanFormat(bufferByteSize, Formatter::OffsetSize));
       }
+
+      if(bufferByteSize == declaredByteSize)
+        sizestr = tr("%1 Variables, %2 bytes")
+                      .arg(numvars)
+                      .arg(Formatter::HumanFormat(bufferByteSize, Formatter::OffsetSize));
       else
-      {
-        delete parentNode;
-      }
+        sizestr = tr("%1 Variables, %2 bytes needed, %3 provided")
+                      .arg(numvars)
+                      .arg(Formatter::HumanFormat(declaredByteSize, Formatter::OffsetSize))
+                      .arg(Formatter::HumanFormat(bufferByteSize, Formatter::OffsetSize));
+
+      if(bufferByteSize < declaredByteSize)
+        filledSlot = false;
     }
+
+    RDTreeWidgetItem *node = new RDTreeWidgetItem({slotname, name, byteRange, sizestr, QString()});
+
+    node->setTag(QVariant::fromValue(tag));
+
+    if(!filledSlot)
+      setEmptyRow(node);
+
+    if(!usedSlot)
+      setInactiveRow(node);
+
+    ubos->addTopLevelItem(node);
   }
 }
 
-void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
-                                               const VKPipe::Pipeline &pipe, RDLabel *shader,
-                                               RDTreeWidget *resources, RDTreeWidget *ubos)
+void VulkanPipelineStateViewer::setShaderState(const VKPipe::Pipeline &pipe,
+                                               const VKPipe::Shader &stage, RDLabel *shader)
 {
   ShaderReflection *shaderDetails = stage.reflection;
 
@@ -2062,179 +1634,6 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
     shText += tr(" (Subgroup size %1)").arg(stage.requiredSubgroupSize);
 
   shader->setText(shText);
-
-  int vs = 0;
-
-  // hide the tree columns. The functions below will add it
-  // if any array bindings are present
-  resources->hideColumn(0);
-  ubos->hideColumn(0);
-
-  // generate expansion key from columns 1 (set) and 2 (binding)
-  auto bindsetKeygen = [](QModelIndex idx, uint seed) {
-    int row = idx.row();
-    QString combined = idx.sibling(row, 1).data().toString() + idx.sibling(row, 2).data().toString();
-    return qHash(combined, seed);
-  };
-
-  RDTreeViewExpansionState expansion;
-  resources->saveExpansion(expansion, bindsetKeygen);
-
-  vs = resources->verticalScrollBar()->value();
-  resources->beginUpdate();
-  resources->clear();
-
-  QMap<ResourceId, RDTreeWidgetItem *> samplers;
-
-  for(int bindset = 0; bindset < pipe.descriptorSets.count(); bindset++)
-  {
-    for(int bind = 0; bind < pipe.descriptorSets[bindset].bindings.count(); bind++)
-    {
-      addResourceRow(shaderDetails, stage, bindset, bind, pipe, resources, samplers);
-    }
-
-    // if we have a shader bound, go through and add rows for any resources it wants for binds that
-    // aren't
-    // in this descriptor set (e.g. if layout mismatches)
-    if(shaderDetails != NULL)
-    {
-      for(int i = 0; i < shaderDetails->readOnlyResources.count(); i++)
-      {
-        const ShaderResource &ro = shaderDetails->readOnlyResources[i];
-
-        if(stage.bindpointMapping.readOnlyResources[ro.bindPoint].bindset == bindset &&
-           stage.bindpointMapping.readOnlyResources[ro.bindPoint].bind >=
-               pipe.descriptorSets[bindset].bindings.count())
-        {
-          addResourceRow(shaderDetails, stage, bindset,
-                         stage.bindpointMapping.readOnlyResources[ro.bindPoint].bind, pipe,
-                         resources, samplers);
-        }
-      }
-
-      for(int i = 0; i < shaderDetails->readWriteResources.count(); i++)
-      {
-        const ShaderResource &rw = shaderDetails->readWriteResources[i];
-
-        if(stage.bindpointMapping.readWriteResources[rw.bindPoint].bindset == bindset &&
-           stage.bindpointMapping.readWriteResources[rw.bindPoint].bind >=
-               pipe.descriptorSets[bindset].bindings.count())
-        {
-          addResourceRow(shaderDetails, stage, bindset,
-                         stage.bindpointMapping.readWriteResources[rw.bindPoint].bind, pipe,
-                         resources, samplers);
-        }
-      }
-    }
-  }
-
-  // if we have a shader bound, go through and add rows for any resources it wants for descriptor
-  // sets that aren't
-  // bound at all
-  if(shaderDetails != NULL)
-  {
-    for(int i = 0; i < shaderDetails->readOnlyResources.count(); i++)
-    {
-      const ShaderResource &ro = shaderDetails->readOnlyResources[i];
-
-      if(stage.bindpointMapping.readOnlyResources[ro.bindPoint].bindset >= pipe.descriptorSets.count())
-      {
-        addResourceRow(
-            shaderDetails, stage, stage.bindpointMapping.readOnlyResources[ro.bindPoint].bindset,
-            stage.bindpointMapping.readOnlyResources[ro.bindPoint].bind, pipe, resources, samplers);
-      }
-    }
-
-    for(int i = 0; i < shaderDetails->readWriteResources.count(); i++)
-    {
-      const ShaderResource &rw = shaderDetails->readWriteResources[i];
-
-      if(stage.bindpointMapping.readWriteResources[rw.bindPoint].bindset >=
-         pipe.descriptorSets.count())
-      {
-        addResourceRow(
-            shaderDetails, stage, stage.bindpointMapping.readWriteResources[rw.bindPoint].bindset,
-            stage.bindpointMapping.readWriteResources[rw.bindPoint].bind, pipe, resources, samplers);
-      }
-    }
-  }
-
-  resources->clearSelection();
-  resources->endUpdate();
-  resources->verticalScrollBar()->setValue(vs);
-
-  resources->applyExpansion(expansion, bindsetKeygen);
-
-  ubos->saveExpansion(expansion, bindsetKeygen);
-
-  vs = ubos->verticalScrollBar()->value();
-  ubos->beginUpdate();
-  ubos->clear();
-  for(int bindset = 0; bindset < pipe.descriptorSets.count(); bindset++)
-  {
-    for(int bind = 0; bind < pipe.descriptorSets[bindset].bindings.count(); bind++)
-    {
-      addConstantBlockRow(shaderDetails, stage, bindset, bind, pipe, ubos);
-    }
-
-    // if we have a shader bound, go through and add rows for any cblocks it wants for binds that
-    // aren't
-    // in this descriptor set (e.g. if layout mismatches)
-    if(shaderDetails != NULL)
-    {
-      for(int i = 0; i < shaderDetails->constantBlocks.count(); i++)
-      {
-        const ConstantBlock &cb = shaderDetails->constantBlocks[i];
-
-        if(stage.bindpointMapping.constantBlocks[cb.bindPoint].bindset == bindset &&
-           stage.bindpointMapping.constantBlocks[cb.bindPoint].bind >=
-               pipe.descriptorSets[bindset].bindings.count())
-        {
-          addConstantBlockRow(shaderDetails, stage, bindset,
-                              stage.bindpointMapping.constantBlocks[cb.bindPoint].bind, pipe, ubos);
-        }
-      }
-    }
-  }
-
-  // if we have a shader bound, go through and add rows for any resources it wants for descriptor
-  // sets that aren't
-  // bound at all
-  if(shaderDetails != NULL)
-  {
-    for(int i = 0; i < shaderDetails->constantBlocks.count(); i++)
-    {
-      const ConstantBlock &cb = shaderDetails->constantBlocks[i];
-
-      if(stage.bindpointMapping.constantBlocks[cb.bindPoint].bindset >= pipe.descriptorSets.count() &&
-         cb.bufferBacked)
-      {
-        addConstantBlockRow(shaderDetails, stage,
-                            stage.bindpointMapping.constantBlocks[cb.bindPoint].bindset,
-                            stage.bindpointMapping.constantBlocks[cb.bindPoint].bind, pipe, ubos);
-      }
-    }
-  }
-
-  // search for push constants and add them last
-  if(shaderDetails != NULL)
-  {
-    for(int cb = 0; cb < shaderDetails->constantBlocks.count(); cb++)
-    {
-      ConstantBlock &cblock = shaderDetails->constantBlocks[cb];
-      if(cblock.bufferBacked == false)
-      {
-        addConstantBlockRow(
-            shaderDetails, stage, stage.bindpointMapping.constantBlocks[cblock.bindPoint].bindset,
-            stage.bindpointMapping.constantBlocks[cblock.bindPoint].bind, pipe, ubos);
-      }
-    }
-  }
-  ubos->clearSelection();
-  ubos->endUpdate();
-  ubos->verticalScrollBar()->setValue(vs);
-
-  ubos->applyExpansion(expansion, bindsetKeygen);
 }
 
 void VulkanPipelineStateViewer::setState()
@@ -2319,8 +1718,8 @@ void VulkanPipelineStateViewer::setState()
 
   if(m_MeshPipe)
   {
-    setShaderState(state.taskShader, state.graphics, ui->tsShader, ui->tsResources, ui->tsUBOs);
-    setShaderState(state.meshShader, state.graphics, ui->msShader, ui->msResources, ui->msUBOs);
+    setShaderState(state.graphics, state.taskShader, ui->tsShader);
+    setShaderState(state.graphics, state.meshShader, ui->msShader);
 
     if(state.meshShader.reflection)
       ui->msTopology->setText(ToQStr(state.meshShader.reflection->outputTopology));
@@ -2590,16 +1989,132 @@ void VulkanPipelineStateViewer::setState()
     ui->viBuffers->endUpdate();
     ui->viBuffers->verticalScrollBar()->setValue(vs);
 
-    setShaderState(state.vertexShader, state.graphics, ui->vsShader, ui->vsResources, ui->vsUBOs);
-    setShaderState(state.geometryShader, state.graphics, ui->gsShader, ui->gsResources, ui->gsUBOs);
-    setShaderState(state.tessControlShader, state.graphics, ui->tcsShader, ui->tcsResources,
-                   ui->tcsUBOs);
-    setShaderState(state.tessEvalShader, state.graphics, ui->tesShader, ui->tesResources,
-                   ui->tesUBOs);
+    setShaderState(state.graphics, state.vertexShader, ui->vsShader);
+    setShaderState(state.graphics, state.geometryShader, ui->gsShader);
+    setShaderState(state.graphics, state.tessControlShader, ui->tcsShader);
+    setShaderState(state.graphics, state.tessEvalShader, ui->tesShader);
   }
 
-  setShaderState(state.fragmentShader, state.graphics, ui->fsShader, ui->fsResources, ui->fsUBOs);
-  setShaderState(state.computeShader, state.compute, ui->csShader, ui->csResources, ui->csUBOs);
+  setShaderState(state.graphics, state.fragmentShader, ui->fsShader);
+  setShaderState(state.compute, state.computeShader, ui->csShader);
+
+  // fill in descriptor access
+  {
+    RDTreeWidget *resources[] = {
+        ui->vsResources, ui->tcsResources, ui->tesResources, ui->gsResources,
+        ui->fsResources, ui->csResources,  ui->tsResources,  ui->msResources,
+    };
+
+    RDTreeWidget *ubos[] = {
+        ui->vsUBOs, ui->tcsUBOs, ui->tesUBOs, ui->gsUBOs,
+        ui->fsUBOs, ui->csUBOs,  ui->tsUBOs,  ui->msUBOs,
+    };
+
+    ScopedTreeUpdater restorers[] = {
+        ui->vsResources, ui->tcsResources, ui->tesResources, ui->gsResources,
+        ui->fsResources, ui->csResources,  ui->tsResources,  ui->msResources,
+        ui->vsUBOs,      ui->tcsUBOs,      ui->tesUBOs,      ui->gsUBOs,
+        ui->fsUBOs,      ui->csUBOs,       ui->tsUBOs,       ui->msUBOs,
+    };
+
+    // samplers we only deduplicate within a stage
+    QMap<ResourceId, RDTreeWidgetItem *> samplers[NumShaderStages];
+
+    const ShaderReflection *shaderRefls[NumShaderStages];
+
+    for(ShaderStage stage : values<ShaderStage>())
+      shaderRefls[(uint32_t)stage] = m_Ctx.CurPipelineState().GetShaderReflection(stage);
+
+    rdcarray<UsedDescriptor> descriptors = m_Ctx.CurPipelineState().GetAllUsedDescriptors();
+    rdcarray<ResourceId> descSets;
+
+    const VKPipe::Pipeline &pipeline =
+        (action && (action->flags & ActionFlags::Dispatch)) ? state.compute : state.graphics;
+
+    QMap<QPair<ResourceId, uint64_t>, uint32_t> dynamicOffsets;
+
+    for(const VKPipe::DescriptorSet &set : pipeline.descriptorSets)
+    {
+      descSets.push_back(set.descriptorSetResourceId);
+
+      for(const VKPipe::DynamicOffset &offs : set.dynamicOffsets)
+      {
+        dynamicOffsets[{set.descriptorSetResourceId, offs.descriptorByteOffset}] =
+            offs.dynamicBufferByteOffset;
+      }
+    }
+
+    std::sort(descriptors.begin(), descriptors.end(),
+              [descSets](const UsedDescriptor &a, const UsedDescriptor &b) {
+                int32_t a_set = descSets.indexOf(a.access.descriptorStore);
+                int32_t b_set = descSets.indexOf(b.access.descriptorStore);
+
+                // non-set associated things (specialisation constants, push constants, etc) to the end
+                if(a_set == -1)
+                  a_set = descSets.count() + 1;
+                if(b_set == -1)
+                  b_set = descSets.count() + 1;
+
+                if(a_set != b_set)
+                  return a_set < b_set;
+
+                // for non-sets, sort by interface index
+                if(a_set == b_set && a_set > descSets.count())
+                {
+                  return a.access.index < b.access.index;
+                }
+
+                // otherwise for normal sets, sort by byte offset
+                return a.access.byteOffset < b.access.byteOffset;
+              });
+
+    for(const UsedDescriptor &used : descriptors)
+    {
+      const ShaderReflection *refl = shaderRefls[(uint32_t)used.access.stage];
+
+      uint32_t dynamicOffset = 0;
+      auto dynIt =
+          dynamicOffsets.find({used.access.descriptorStore, (uint64_t)used.access.byteOffset});
+      if(dynIt != dynamicOffsets.end())
+        dynamicOffset = *dynIt;
+
+      if(IsConstantBlockDescriptor(used.access.type))
+      {
+        const ConstantBlock *shaderBind = NULL;
+
+        if(refl && used.access.index < refl->constantBlocks.size())
+          shaderBind = &refl->constantBlocks[used.access.index];
+
+        addConstantBlockRow(shaderBind, used, dynamicOffset, ubos[(uint32_t)used.access.stage]);
+      }
+      else
+      {
+        const bool ro = IsReadOnlyDescriptor(used.access.type);
+
+        const ShaderResource *shaderRes = NULL;
+        const ShaderSampler *shaderSamp = NULL;
+
+        if(IsSamplerDescriptor(used.access.type))
+        {
+          if(refl && used.access.index < refl->samplers.size())
+            shaderSamp = &refl->samplers[used.access.index];
+        }
+        else if(IsReadOnlyDescriptor(used.access.type))
+        {
+          if(refl && used.access.index < refl->readOnlyResources.size())
+            shaderRes = &refl->readOnlyResources[used.access.index];
+        }
+        else
+        {
+          if(refl && used.access.index < refl->readWriteResources.size())
+            shaderRes = &refl->readWriteResources[used.access.index];
+        }
+
+        addResourceRow(shaderRes, shaderSamp, used, dynamicOffset,
+                       resources[(uint32_t)used.access.stage], samplers[(uint32_t)used.access.stage]);
+      }
+    }
+  }
 
   QToolButton *shaderButtons[] = {
       // view buttons
@@ -2694,8 +2209,7 @@ void VulkanPipelineStateViewer::setState()
           QString(),
       });
 
-      node->setTag(QVariant::fromValue(
-          VulkanBufferTag(false, ~0U, ResourceFormat(), s.bufferResourceId, s.byteOffset, length)));
+      node->setTag(QVariant::fromValue(VulkanBufferTag(s.bufferResourceId, s.byteOffset, length)));
 
       if(!filledSlot)
         setEmptyRow(node);
@@ -3163,8 +2677,15 @@ void VulkanPipelineStateViewer::setState()
           else if(!usedSlot)
             setInactiveRow(node);
 
+          Descriptor desc;
+          desc.resource = p.imageResourceId;
+          desc.firstMip = p.firstMip;
+          desc.numMips = p.numMips;
+          desc.firstSlice = p.firstSlice;
+          desc.numSlices = p.numSlices;
+
           bool hasViewDetails = setViewDetails(
-              node, p, tex, true, QString(),
+              node, desc, tex, QString(),
               a.type == AttType::Resolve || a.type == AttType::DepthResolve, tooltipOffsets);
 
           if(hasViewDetails)
@@ -3410,21 +2931,26 @@ void VulkanPipelineStateViewer::resource_itemActivated(RDTreeWidgetItem *item, i
 
     QString format;
 
-    if(stage->reflection && buf.bindPoint < (buf.rwRes ? stage->reflection->readWriteResources.size()
-                                                       : stage->reflection->readOnlyResources.size()))
+    if(stage->reflection)
     {
-      const ShaderResource &shaderRes = buf.rwRes
-                                            ? stage->reflection->readWriteResources[buf.bindPoint]
-                                            : stage->reflection->readOnlyResources[buf.bindPoint];
+      const rdcarray<ShaderResource> &resArray =
+          (IsReadWriteDescriptor(buf.access.type) ? stage->reflection->readWriteResources
+                                                  : stage->reflection->readOnlyResources);
 
-      format = BufferFormatter::GetBufferFormatString(
-          BufferFormatter::EstimatePackingRules(stage->resourceId, shaderRes.variableType.members),
-          stage->resourceId, shaderRes, buf.fmt);
+      if(buf.access.index < resArray.size())
+      {
+        const ShaderResource &shaderRes = resArray[buf.access.index];
+
+        format = BufferFormatter::GetBufferFormatString(
+            BufferFormatter::EstimatePackingRules(stage->resourceId, shaderRes.variableType.members),
+            stage->resourceId, shaderRes, buf.descriptor.format);
+      }
     }
 
-    if(buf.ID != ResourceId())
+    if(buf.descriptor.resource != ResourceId())
     {
-      IBufferViewer *viewer = m_Ctx.ViewBuffer(buf.offset, buf.size, buf.ID, format);
+      IBufferViewer *viewer = m_Ctx.ViewBuffer(buf.descriptor.byteOffset, buf.descriptor.byteSize,
+                                               buf.descriptor.resource, format);
 
       m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
     }
@@ -3473,18 +2999,12 @@ void VulkanPipelineStateViewer::ubo_itemActivated(RDTreeWidgetItem *item, int co
 
   VulkanCBufferTag cb = tag.value<VulkanCBufferTag>();
 
-  if(cb.slotIdx == ~0U)
+  if(cb.index == DescriptorAccess::NoShaderBinding)
   {
-    // unused cbuffer, open regular buffer viewer
-    const VKPipe::Pipeline &pipe = cb.isGraphics ? m_Ctx.CurVulkanPipelineState()->graphics
-                                                 : m_Ctx.CurVulkanPipelineState()->compute;
-
-    const VKPipe::BindingElement &buf =
-        pipe.descriptorSets[cb.descSet].bindings[cb.descBind].binds[cb.arrayIdx];
-
-    if(!buf.inlineBlock && buf.resourceResourceId != ResourceId())
+    if(cb.descriptor.resource != ResourceId())
     {
-      IBufferViewer *viewer = m_Ctx.ViewBuffer(buf.byteOffset, buf.byteSize, buf.resourceResourceId);
+      IBufferViewer *viewer =
+          m_Ctx.ViewBuffer(cb.descriptor.byteOffset, cb.descriptor.byteSize, cb.descriptor.resource);
 
       m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
     }
@@ -3492,7 +3012,7 @@ void VulkanPipelineStateViewer::ubo_itemActivated(RDTreeWidgetItem *item, int co
     return;
   }
 
-  IBufferViewer *prev = m_Ctx.ViewConstantBuffer(stage->stage, cb.slotIdx, cb.arrayIdx);
+  IBufferViewer *prev = m_Ctx.ViewConstantBuffer(stage->stage, cb.index, cb.arrayElement);
 
   m_Ctx.AddDockWindow(prev->Widget(), DockReference::TransientPopupArea, this, 0.3f);
 }
@@ -3862,321 +3382,302 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       return;
   }
 
+  if(!shaderDetails)
+    return;
+
   const VKPipe::Pipeline &pipeline =
       (sh.stage == ShaderStage::Compute ? m_Ctx.CurVulkanPipelineState()->compute
                                         : m_Ctx.CurVulkanPipelineState()->graphics);
 
-  if(shaderDetails && !shaderDetails->constantBlocks.isEmpty())
+  QList<QVariantList> uboRows;
+  QList<QVariantList> roRows;
+  QList<QVariantList> rwRows;
+  QList<QVariantList> sampRows;
+
+  for(const UsedDescriptor &used : m_Ctx.CurPipelineState().GetConstantBlockDescriptors(sh.stage))
   {
-    xml.writeStartElement(lit("h3"));
-    xml.writeCharacters(tr("UBOs"));
-    xml.writeEndElement();
+    if(used.access.stage != sh.stage)
+      continue;
 
-    QList<QVariantList> rows;
+    const Descriptor &descriptor = used.descriptor;
 
-    for(int i = 0; i < shaderDetails->constantBlocks.count(); i++)
+    uint32_t dynamicOffset = 0;
+    for(const VKPipe::DescriptorSet &set : pipeline.descriptorSets)
     {
-      const ConstantBlock &b = shaderDetails->constantBlocks[i];
-      const Bindpoint &bindMap = sh.bindpointMapping.constantBlocks[i];
+      for(const VKPipe::DynamicOffset &offs : set.dynamicOffsets)
+      {
+        if(set.descriptorSetResourceId == used.access.descriptorStore &&
+           offs.descriptorByteOffset == used.access.byteOffset)
+        {
+          dynamicOffset += offs.dynamicBufferByteOffset;
+        }
+      }
+    }
 
-      if(!bindMap.used)
-        continue;
+    QString name = m_Ctx.GetResourceName(descriptor.resource);
+    uint64_t byteOffset = descriptor.byteOffset + dynamicOffset;
+    uint64_t length = descriptor.byteSize;
+    int numvars = 0;
+    uint32_t bindByteSize = 0;
+    QString slotname;
+
+    if(used.access.index == DescriptorAccess::NoShaderBinding)
+    {
+      slotname = m_Locations[{used.access.descriptorStore, used.access.byteOffset}].logicalBindName;
+
+      slotname += QFormatStr("[%1]").arg(used.access.arrayElement);
+    }
+    else
+    {
+      const ConstantBlock &b = shaderDetails->constantBlocks[used.access.index];
 
       // push constants
       if(!b.bufferBacked)
       {
-        const VKPipe::BindingElement *descriptorBind = NULL;
-
-        if(bindMap.bindset < pipeline.descriptorSets.count() &&
-           bindMap.bind < pipeline.descriptorSets[bindMap.bindset].bindings.count())
-          descriptorBind = &pipeline.descriptorSets[bindMap.bindset].bindings[bindMap.bind].binds[0];
-
-        QString name;
         if(b.compileConstants)
           name = tr("Specialization constants");
-        else if(descriptorBind && descriptorBind->inlineBlock)
-          name = tr("Inline uniforms");
         else
           name = tr("Push constants");
 
         qulonglong offset = 0, size = 0;
 
-        if(descriptorBind && descriptorBind->inlineBlock)
-        {
-          offset = descriptorBind->byteOffset;
-          size = descriptorBind->byteSize;
-        }
-        else if(!b.compileConstants)
-        {
-          offset = sh.pushConstantRangeByteOffset;
-          size = sh.pushConstantRangeByteSize;
-        }
+        offset = byteOffset;
+        size = descriptor.byteSize;
 
         // could maybe get range/size from ShaderVariable.reg if it's filled out
         // from SPIR-V side.
-        rows.push_back({QString(), b.name, name, offset, size, b.variables.count(), b.byteSize});
+        uboRows.push_back({b.name, name, offset, size, b.variables.count(), b.byteSize});
 
         continue;
       }
 
-      const VKPipe::DescriptorSet &set = pipeline.descriptorSets[bindMap.bindset];
-      const VKPipe::DescriptorBinding &bind = set.bindings[bindMap.bind];
+      slotname = QFormatStr("Set %1, %2").arg(b.fixedBindSetOrSpace).arg(b.fixedBindNumber);
 
-      QString setname = QString::number(bindMap.bindset);
+      if(!b.name.empty())
+        slotname += lit(": ") + b.name;
 
-      if(set.pushDescriptor)
-        setname = tr("Push ") + setname;
+      if(b.bindArraySize > 1)
+        slotname += QFormatStr("[%1]").arg(used.access.arrayElement);
 
-      QString slotname = QFormatStr("%1: %2").arg(bindMap.bind).arg(b.name);
+      numvars = b.variables.count();
+      bindByteSize = b.byteSize;
+    }
 
-      for(uint32_t a = 0; a < bind.descriptorCount; a++)
+    if(descriptor.flags & DescriptorFlags::InlineData)
+      name = tr("Inline block");
+
+    if(descriptor.resource == ResourceId())
+    {
+      name = tr("Empty");
+      length = 0;
+    }
+
+    BufferDescription *buf = m_Ctx.GetBuffer(descriptor.resource);
+    if(buf)
+    {
+      if(length == UINT64_MAX)
+        length = buf->length - byteOffset;
+    }
+
+    uboRows.push_back(
+        {slotname, name, (qulonglong)byteOffset, (qulonglong)length, numvars, bindByteSize});
+  }
+
+  for(const UsedDescriptor &used : m_Ctx.CurPipelineState().GetReadOnlyDescriptors(sh.stage))
+  {
+    if(used.access.stage != sh.stage)
+      continue;
+
+    const Descriptor &descriptor = used.descriptor;
+
+    uint32_t dynamicOffset = 0;
+    for(const VKPipe::DescriptorSet &set : pipeline.descriptorSets)
+    {
+      for(const VKPipe::DynamicOffset &offs : set.dynamicOffsets)
       {
-        const VKPipe::BindingElement &descriptorBind = bind.binds[a];
-
-        ResourceId id = bind.binds[a].resourceResourceId;
-
-        if(bindMap.arraySize > 1)
-          slotname = QFormatStr("%1: %2[%3]").arg(bindMap.bind).arg(b.name).arg(a);
-
-        QString name = m_Ctx.GetResourceName(descriptorBind.resourceResourceId);
-        uint64_t byteOffset = descriptorBind.byteOffset;
-        uint64_t length = descriptorBind.byteSize;
-        int numvars = b.variables.count();
-
-        if(descriptorBind.resourceResourceId == ResourceId())
+        if(set.descriptorSetResourceId == used.access.descriptorStore &&
+           offs.descriptorByteOffset == used.access.byteOffset)
         {
-          name = tr("Empty");
-          length = 0;
+          dynamicOffset += offs.dynamicBufferByteOffset;
         }
-
-        BufferDescription *buf = m_Ctx.GetBuffer(id);
-        if(buf)
-        {
-          if(length == UINT64_MAX)
-            length = buf->length - byteOffset;
-        }
-
-        rows.push_back({setname, slotname, name, (qulonglong)byteOffset, (qulonglong)length,
-                        numvars, b.byteSize});
       }
     }
 
-    m_Common.exportHTMLTable(xml,
-                             {tr("Set"), tr("Bind"), tr("Buffer"), tr("Byte Offset"),
-                              tr("Byte Size"), tr("Number of Variables"), tr("Bytes Needed")},
-                             rows);
+    exportDescriptorHTML(used, sh.reflection, descriptor, dynamicOffset, roRows);
   }
 
-  if(shaderDetails && !shaderDetails->readOnlyResources.isEmpty())
+  for(const UsedDescriptor &used : m_Ctx.CurPipelineState().GetReadWriteDescriptors(sh.stage))
+  {
+    if(used.access.stage != sh.stage)
+      continue;
+
+    const Descriptor &descriptor = used.descriptor;
+
+    uint32_t dynamicOffset = 0;
+    for(const VKPipe::DescriptorSet &set : pipeline.descriptorSets)
+    {
+      for(const VKPipe::DynamicOffset &offs : set.dynamicOffsets)
+      {
+        if(set.descriptorSetResourceId == used.access.descriptorStore &&
+           offs.descriptorByteOffset == used.access.byteOffset)
+        {
+          dynamicOffset += offs.dynamicBufferByteOffset;
+        }
+      }
+    }
+
+    exportDescriptorHTML(used, sh.reflection, descriptor, dynamicOffset, rwRows);
+  }
+
+  for(const UsedDescriptor &used : m_Ctx.CurPipelineState().GetSamplerDescriptors(sh.stage))
+  {
+    if(used.access.stage != sh.stage)
+      continue;
+
+    const SamplerDescriptor &descriptor = used.sampler;
+    const ShaderSampler *shaderSamp = NULL;
+
+    if(used.access.index < sh.reflection->samplers.size())
+      shaderSamp = &sh.reflection->samplers[used.access.index];
+
+    {
+      QString borderColor;
+
+      if(descriptor.borderColorType == CompType::Float)
+        borderColor = QFormatStr("%1, %2, %3, %4")
+                          .arg(descriptor.borderColorValue.floatValue[0])
+                          .arg(descriptor.borderColorValue.floatValue[1])
+                          .arg(descriptor.borderColorValue.floatValue[2])
+                          .arg(descriptor.borderColorValue.floatValue[3]);
+      else
+        borderColor = QFormatStr("%1, %2, %3, %4")
+                          .arg(descriptor.borderColorValue.uintValue[0])
+                          .arg(descriptor.borderColorValue.uintValue[1])
+                          .arg(descriptor.borderColorValue.uintValue[2])
+                          .arg(descriptor.borderColorValue.uintValue[3]);
+
+      QString addressing;
+
+      QString addPrefix;
+      QString addVal;
+
+      QString addr[] = {ToQStr(descriptor.addressU, GraphicsAPI::D3D12),
+                        ToQStr(descriptor.addressV, GraphicsAPI::D3D12),
+                        ToQStr(descriptor.addressW, GraphicsAPI::D3D12)};
+
+      // arrange like either UVW: WRAP or UV: WRAP, W: CLAMP
+      for(int a = 0; a < 3; a++)
+      {
+        const QString str[] = {lit("U"), lit("V"), lit("W")};
+        QString prefix = str[a];
+
+        if(a == 0 || addr[a] == addr[a - 1])
+        {
+          addPrefix += prefix;
+        }
+        else
+        {
+          addressing += QFormatStr("%1: %2, ").arg(addPrefix).arg(addVal);
+
+          addPrefix = prefix;
+        }
+        addVal = addr[a];
+      }
+
+      addressing += addPrefix + lit(": ") + addVal;
+
+      if(descriptor.UseBorder())
+        addressing += QFormatStr("<%1>").arg(borderColor);
+
+      if(descriptor.unnormalized)
+        addressing += lit(" (Un-norm)");
+
+      QString filter = ToQStr(descriptor.filter);
+
+      if(descriptor.maxAnisotropy > 1)
+        filter += QFormatStr(" %1x").arg(descriptor.maxAnisotropy);
+
+      if(descriptor.filter.filter == FilterFunction::Comparison)
+        filter += QFormatStr(" (%1)").arg(ToQStr(descriptor.compareFunction));
+      else if(descriptor.filter.filter != FilterFunction::Normal)
+        filter += QFormatStr(" (%1)").arg(ToQStr(descriptor.filter.filter));
+
+      QString slotname;
+      if(used.access.index == DescriptorAccess::NoShaderBinding)
+      {
+        slotname = m_Locations[{used.access.descriptorStore, used.access.byteOffset}].logicalBindName;
+
+        slotname += QFormatStr("[%1]").arg(used.access.arrayElement);
+      }
+      else if(shaderSamp)
+      {
+        slotname =
+            QFormatStr("Set %1, %2").arg(shaderSamp->fixedBindSetOrSpace).arg(shaderSamp->fixedBindNumber);
+
+        if(!shaderSamp->name.empty())
+          slotname += lit(": ") + shaderSamp->name;
+
+        if(shaderSamp->bindArraySize > 1)
+          slotname += QFormatStr("[%1]").arg(used.access.arrayElement);
+      }
+
+      sampRows.push_back(
+          {slotname, addressing, filter,
+           QFormatStr("%1 - %2")
+               .arg(descriptor.minLOD == -FLT_MAX ? lit("0") : QString::number(descriptor.minLOD))
+               .arg(descriptor.maxLOD == FLT_MAX ? lit("FLT_MAX")
+                                                 : QString::number(descriptor.maxLOD)),
+           descriptor.mipBias});
+    }
+  }
+
+  if(!roRows.empty())
   {
     xml.writeStartElement(lit("h3"));
     xml.writeCharacters(tr("Read-only Resources"));
     xml.writeEndElement();
 
-    QList<QVariantList> rows;
-
-    for(int i = 0; i < shaderDetails->readOnlyResources.count(); i++)
-    {
-      const ShaderResource &b = shaderDetails->readOnlyResources[i];
-      const Bindpoint &bindMap = sh.bindpointMapping.readOnlyResources[i];
-
-      if(!bindMap.used)
-        continue;
-
-      const VKPipe::DescriptorSet &set =
-          pipeline.descriptorSets[sh.bindpointMapping.readOnlyResources[i].bindset];
-      const VKPipe::DescriptorBinding &bind =
-          set.bindings[sh.bindpointMapping.readOnlyResources[i].bind];
-
-      QString setname = QString::number(bindMap.bindset);
-
-      if(set.pushDescriptor)
-        setname = tr("Push ") + setname;
-
-      QString slotname = QFormatStr("%1: %2").arg(bindMap.bind).arg(b.name);
-
-      for(uint32_t a = 0; a < bind.descriptorCount; a++)
-      {
-        const VKPipe::BindingElement &descriptorBind = bind.binds[a];
-
-        ResourceId id = descriptorBind.resourceResourceId;
-
-        if(bindMap.arraySize > 1)
-          slotname = QFormatStr("%1: %2[%3]").arg(bindMap.bind).arg(b.name).arg(a);
-
-        QString name = m_Ctx.GetResourceName(id);
-
-        if(id == ResourceId())
-          name = tr("Empty");
-
-        BufferDescription *buf = m_Ctx.GetBuffer(id);
-        TextureDescription *tex = m_Ctx.GetTexture(id);
-
-        uint64_t w = 1;
-        uint32_t h = 1, d = 1;
-        uint32_t arr = 0;
-        QString format = tr("Unknown");
-        QString viewParams;
-
-        if(tex)
-        {
-          w = tex->width;
-          h = tex->height;
-          d = tex->depth;
-          arr = tex->arraysize;
-          format = tex->format.Name();
-
-          if(tex->mips > 1)
-          {
-            viewParams = tr("Mips: %1-%2")
-                             .arg(descriptorBind.firstMip)
-                             .arg(descriptorBind.firstMip + descriptorBind.numMips - 1);
-          }
-
-          if(tex->arraysize > 1)
-          {
-            if(!viewParams.isEmpty())
-              viewParams += lit(", ");
-            viewParams += tr("Layers: %1-%2")
-                              .arg(descriptorBind.firstSlice)
-                              .arg(descriptorBind.firstSlice + descriptorBind.numSlices - 1);
-          }
-        }
-
-        if(buf)
-        {
-          w = buf->length;
-          h = 0;
-          d = 0;
-          a = 0;
-          format = lit("-");
-
-          viewParams = tr("Byte Range: %1").arg(formatByteRange(buf, &descriptorBind));
-        }
-
-        if(descriptorBind.type != BindType::Sampler)
-          rows.push_back({setname, slotname, name, ToQStr(descriptorBind.type), (qulonglong)w, h, d,
-                          arr, format, viewParams});
-
-        if(descriptorBind.type == BindType::ImageSampler || descriptorBind.type == BindType::Sampler)
-        {
-          if(descriptorBind.type == BindType::ImageSampler)
-            setname = slotname = QString();
-
-          QString samplerName = m_Ctx.GetResourceName(descriptorBind.samplerResourceId);
-
-          if(descriptorBind.samplerResourceId == ResourceId())
-            samplerName = tr("Empty");
-
-          QVariantList sampDetails = makeSampler(QString(), QString(), descriptorBind);
-          rows.push_back({setname, slotname, samplerName, ToQStr(descriptorBind.type), QString(),
-                          QString(), QString(), QString(), sampDetails[5], sampDetails[6]});
-        }
-      }
-    }
-
     m_Common.exportHTMLTable(
         xml,
-        {tr("Set"), tr("Bind"), tr("Resource"), tr("Type"), tr("Width"), tr("Height"), tr("Depth"),
+        {tr("Binding"), tr("Resource"), tr("Type"), tr("Width"), tr("Height"), tr("Depth"),
          tr("Array Size"), tr("Resource Format"), tr("View Parameters")},
-        rows);
+        roRows);
   }
 
-  if(shaderDetails && !shaderDetails->readWriteResources.isEmpty())
+  if(!rwRows.empty())
   {
     xml.writeStartElement(lit("h3"));
     xml.writeCharacters(tr("Read-write Resources"));
     xml.writeEndElement();
 
-    QList<QVariantList> rows;
-
-    for(int i = 0; i < shaderDetails->readWriteResources.count(); i++)
-    {
-      const ShaderResource &b = shaderDetails->readWriteResources[i];
-      const Bindpoint &bindMap = sh.bindpointMapping.readWriteResources[i];
-
-      if(!bindMap.used)
-        continue;
-
-      const VKPipe::DescriptorSet &set =
-          pipeline.descriptorSets[sh.bindpointMapping.readWriteResources[i].bindset];
-      const VKPipe::DescriptorBinding &bind =
-          set.bindings[sh.bindpointMapping.readWriteResources[i].bind];
-
-      QString setname = QString::number(bindMap.bindset);
-
-      if(set.pushDescriptor)
-        setname = tr("Push ") + setname;
-
-      QString slotname = QFormatStr("%1: %2").arg(bindMap.bind).arg(b.name);
-
-      for(uint32_t a = 0; a < bind.descriptorCount; a++)
-      {
-        const VKPipe::BindingElement &descriptorBind = bind.binds[a];
-
-        ResourceId id = descriptorBind.resourceResourceId;
-
-        if(bindMap.arraySize > 1)
-          slotname = QFormatStr("%1: %2[%3]").arg(bindMap.bind).arg(b.name).arg(a);
-
-        QString name = m_Ctx.GetResourceName(id);
-
-        BufferDescription *buf = m_Ctx.GetBuffer(id);
-
-        TextureDescription *tex = m_Ctx.GetTexture(id);
-
-        uint64_t w = 1;
-        uint32_t h = 1, d = 1;
-        uint32_t arr = 0;
-        QString format = tr("Unknown");
-        QString viewParams;
-
-        if(tex)
-        {
-          w = tex->width;
-          h = tex->height;
-          d = tex->depth;
-          arr = tex->arraysize;
-          format = tex->format.Name();
-
-          if(tex->mips > 1)
-          {
-            viewParams = tr("Mips: %1-%2")
-                             .arg(descriptorBind.firstMip)
-                             .arg(descriptorBind.firstMip + descriptorBind.numMips - 1);
-          }
-
-          if(tex->arraysize > 1)
-          {
-            if(!viewParams.isEmpty())
-              viewParams += lit(", ");
-            viewParams += tr("Layers: %1-%2")
-                              .arg(descriptorBind.firstSlice)
-                              .arg(descriptorBind.firstSlice + descriptorBind.numSlices - 1);
-          }
-        }
-
-        if(buf)
-        {
-          w = buf->length;
-          h = 0;
-          d = 0;
-          arr = 0;
-          format = lit("-");
-
-          viewParams = tr("Byte Range: %1").arg(formatByteRange(buf, &descriptorBind));
-        }
-
-        rows.push_back({setname, slotname, name, ToQStr(descriptorBind.type), (qulonglong)w, h, d,
-                        arr, format, viewParams});
-      }
-    }
-
     m_Common.exportHTMLTable(
         xml,
-        {tr("Set"), tr("Bind"), tr("Resource"), tr("Type"), tr("Width"), tr("Height"), tr("Depth"),
+        {tr("Binding"), tr("Resource"), tr("Type"), tr("Width"), tr("Height"), tr("Depth"),
          tr("Array Size"), tr("Resource Format"), tr("View Parameters")},
-        rows);
+        rwRows);
+  }
+
+  if(!sampRows.empty())
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("Samplers"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(
+        xml, {tr("Binding"), tr("Addressing"), tr("Filter"), tr("LOD Clamp"), tr("LOD Bias")},
+        sampRows);
+  }
+
+  if(!uboRows.empty())
+  {
+    xml.writeStartElement(lit("h3"));
+    xml.writeCharacters(tr("UBOs"));
+    xml.writeEndElement();
+
+    m_Common.exportHTMLTable(xml,
+                             {tr("Binding"), tr("Buffer"), tr("Byte Offset"), tr("Byte Size"),
+                              tr("Number of Variables"), tr("Bytes Needed")},
+                             uboRows);
   }
 }
 
@@ -4635,6 +4136,114 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml,
           bufferName,
           (qulonglong)cr.byteOffset,
       });
+}
+
+const ShaderResource *VulkanPipelineStateViewer::exportDescriptorHTML(const UsedDescriptor &used,
+                                                                      const ShaderReflection *refl,
+                                                                      const Descriptor &descriptor,
+                                                                      uint32_t dynamicOffset,
+                                                                      QList<QVariantList> &rows)
+{
+  const ShaderResource *shaderRes = NULL;
+
+  if(IsReadOnlyDescriptor(used.access.type))
+  {
+    if(used.access.index < refl->readOnlyResources.size())
+      shaderRes = &refl->readOnlyResources[used.access.index];
+  }
+  else
+  {
+    if(used.access.index < refl->readWriteResources.size())
+      shaderRes = &refl->readWriteResources[used.access.index];
+  }
+
+  QString slotname;
+
+  if(used.access.index == DescriptorAccess::NoShaderBinding)
+  {
+    slotname = m_Locations[{used.access.descriptorStore, used.access.byteOffset}].logicalBindName;
+
+    slotname += QFormatStr("[%1]").arg(used.access.arrayElement);
+  }
+  else if(shaderRes)
+  {
+    slotname =
+        QFormatStr("Set %1, %2").arg(shaderRes->fixedBindSetOrSpace).arg(shaderRes->fixedBindNumber);
+
+    if(!shaderRes->name.empty())
+      slotname += lit(": ") + shaderRes->name;
+
+    if(shaderRes->bindArraySize > 1)
+      slotname += QFormatStr("[%1]").arg(used.access.arrayElement);
+  }
+
+  ResourceId id = descriptor.resource;
+
+  QString name = m_Ctx.GetResourceName(id);
+
+  if(id == ResourceId())
+    name = tr("Empty");
+
+  BufferDescription *buf = m_Ctx.GetBuffer(id);
+  TextureDescription *tex = m_Ctx.GetTexture(id);
+
+  uint64_t w = 1;
+  uint32_t h = 1, d = 1;
+  uint32_t arr = 0;
+  QString format = tr("Unknown");
+  QString viewParams;
+
+  if(tex)
+  {
+    w = tex->width;
+    h = tex->height;
+    d = tex->depth;
+    arr = tex->arraysize;
+    format = tex->format.Name();
+
+    if(tex->mips > 1)
+    {
+      viewParams =
+          tr("Mips: %1-%2").arg(descriptor.firstMip).arg(descriptor.firstMip + descriptor.numMips - 1);
+    }
+
+    if(tex->arraysize > 1)
+    {
+      if(!viewParams.isEmpty())
+        viewParams += lit(", ");
+      viewParams += tr("Layers: %1-%2")
+                        .arg(descriptor.firstSlice)
+                        .arg(descriptor.firstSlice + descriptor.numSlices - 1);
+    }
+  }
+
+  if(buf)
+  {
+    w = buf->length;
+    h = 0;
+    d = 0;
+    arr = 0;
+    format = lit("-");
+
+    viewParams = tr("Byte Range: %1").arg(formatByteRange(buf, descriptor, dynamicOffset));
+  }
+
+  if(descriptor.type != DescriptorType::Sampler)
+    rows.push_back(
+        {slotname, name, ToQStr(descriptor.type), (qulonglong)w, h, d, arr, format, viewParams});
+
+  if(descriptor.type == DescriptorType::ImageSampler)
+  {
+    QString samplerName = m_Ctx.GetResourceName(used.sampler.object);
+
+    if(used.sampler.object == ResourceId())
+      samplerName = tr("Empty");
+
+    QVariantList sampDetails = makeSampler(QString(), used.sampler);
+    rows.push_back({slotname, samplerName, ToQStr(descriptor.type), QString(), QString(), QString(),
+                    QString(), sampDetails[3], sampDetails[4]});
+  }
+  return shaderRes;
 }
 
 QString VulkanPipelineStateViewer::GetFossilizeHash(ResourceId id)
@@ -5229,6 +4838,15 @@ void VulkanPipelineStateViewer::exportFOZ(QString dir, ResourceId pso)
   }
 }
 
+uint32_t VulkanPipelineStateViewer::getMinOffset(const rdcarray<ShaderConstant> &variables)
+{
+  uint32_t minOffset = ~0U;
+  for(const ShaderConstant &v : variables)
+    minOffset = qMin(v.byteOffset, minOffset);
+
+  return minOffset;
+}
+
 void VulkanPipelineStateViewer::exportFOZ_clicked()
 {
   if(!m_Ctx.IsCaptureLoaded())
@@ -5417,8 +5035,6 @@ void VulkanPipelineStateViewer::on_computeDebugSelector_clicked()
 
   const ShaderReflection *shaderDetails =
       m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Compute);
-  const ShaderBindpointMapping &bindMapping =
-      m_Ctx.CurPipelineState().GetBindpointMapping(ShaderStage::Compute);
 
   if(!shaderDetails)
     return;

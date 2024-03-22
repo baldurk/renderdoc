@@ -728,11 +728,11 @@ rdcstr DoStringise(const DescriptorType &el)
     STRINGISE_ENUM_CLASS_NAMED(Unknown, "Unknown");
     STRINGISE_ENUM_CLASS_NAMED(ConstantBuffer, "Constant Buffer");
     STRINGISE_ENUM_CLASS_NAMED(Sampler, "Sampler");
-    STRINGISE_ENUM_CLASS_NAMED(ImageSampler, "Image&Sampler");
+    STRINGISE_ENUM_CLASS_NAMED(ImageSampler, "Image & Sampler");
     STRINGISE_ENUM_CLASS_NAMED(Image, "Image");
-    STRINGISE_ENUM_CLASS_NAMED(TypedBuffer, "TypedBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(TypedBuffer, "Typed Buffer");
     STRINGISE_ENUM_CLASS_NAMED(ReadWriteImage, "RW Image");
-    STRINGISE_ENUM_CLASS_NAMED(ReadWriteTypedBuffer, "RW TypedBuffer");
+    STRINGISE_ENUM_CLASS_NAMED(ReadWriteTypedBuffer, "RW Typed Buffer");
     STRINGISE_ENUM_CLASS_NAMED(ReadWriteBuffer, "RW Buffer");
   }
   END_ENUM_STRINGISE();

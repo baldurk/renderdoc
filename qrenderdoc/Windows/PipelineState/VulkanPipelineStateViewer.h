@@ -104,16 +104,14 @@ private:
   void setOldMeshPipeFlow();
   void setNewMeshPipeFlow();
 
-  QVariantList makeSampler(const QString &bindset, const QString &slotname,
-                           const VKPipe::BindingElement &descriptor);
-  void addResourceRow(ShaderReflection *shaderDetails, const VKPipe::Shader &stage, int bindset,
-                      int bind, const VKPipe::Pipeline &pipe, RDTreeWidget *resources,
+  QVariantList makeSampler(const QString &slotname, const SamplerDescriptor &descriptor);
+  void addResourceRow(const ShaderResource *shaderRes, const ShaderSampler *shaderSamp,
+                      const UsedDescriptor &used, uint32_t dynamicOffset, RDTreeWidget *resources,
                       QMap<ResourceId, RDTreeWidgetItem *> &samplers);
-  void addConstantBlockRow(ShaderReflection *shaderDetails, const VKPipe::Shader &stage,
-                           int bindset, int bind, const VKPipe::Pipeline &pipe, RDTreeWidget *ubos);
+  void addConstantBlockRow(const ConstantBlock *cblock, const UsedDescriptor &used,
+                           uint32_t dynamicOffset, RDTreeWidget *ubos);
 
-  void setShaderState(const VKPipe::Shader &stage, const VKPipe::Pipeline &pipe, RDLabel *shader,
-                      RDTreeWidget *res, RDTreeWidget *ubo);
+  void setShaderState(const VKPipe::Pipeline &pipe, const VKPipe::Shader &stage, RDLabel *shader);
   void clearShaderState(RDLabel *shader, RDTreeWidget *res, RDTreeWidget *ubo);
   void setState();
   void clearState();
@@ -122,18 +120,17 @@ private:
   void setEmptyRow(RDTreeWidgetItem *node);
   void highlightIABind(int slot);
 
-  QString formatByteRange(const BufferDescription *buf, const VKPipe::BindingElement *descriptorBind);
+  uint32_t getMinOffset(const rdcarray<ShaderConstant> &variables);
+  QString formatByteRange(const BufferDescription *buf, const Descriptor &descriptor,
+                          uint32_t dynamicOffset);
   QString formatMembers(int indent, const QString &nameprefix, const rdcarray<ShaderConstant> &vars);
   const VKPipe::Shader *stageForSender(QWidget *widget);
 
-  template <typename viewType>
-  bool setViewDetails(RDTreeWidgetItem *node, const viewType &view, TextureDescription *tex,
-                      bool stageBitsIncluded, const QString &hiddenCombinedSampler,
-                      bool includeSampleLocations = false, bool includeOffsets = false);
+  bool setViewDetails(RDTreeWidgetItem *node, const Descriptor &descriptor, TextureDescription *tex,
+                      const QString &hiddenCombinedSampler, bool includeSampleLocations = false,
+                      bool includeOffsets = false);
 
-  template <typename viewType>
-  bool setViewDetails(RDTreeWidgetItem *node, const viewType &view, BufferDescription *buf,
-                      bool stageBitsIncluded);
+  bool setViewDetails(RDTreeWidgetItem *node, const Descriptor &descriptor, BufferDescription *buf);
 
   bool showNode(bool usedSlot, bool filledSlot);
 
@@ -149,6 +146,10 @@ private:
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::DepthStencil &ds);
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::CurrentPass &pass);
   void exportHTML(QXmlStreamWriter &xml, const VKPipe::ConditionalRendering &cr);
+
+  const ShaderResource *exportDescriptorHTML(const UsedDescriptor &used, const ShaderReflection *refl,
+                                             const Descriptor &descriptor, uint32_t dynamicOffset,
+                                             QList<QVariantList> &rows);
 
   QString GetFossilizeHash(ResourceId id);
   QString GetFossilizeFilename(QDir d, uint32_t tag, ResourceId id);
@@ -174,6 +175,8 @@ private:
 
   // from an combined image to its sampler (since we de-duplicate)
   QMap<RDTreeWidgetItem *, RDTreeWidgetItem *> m_CombinedImageSamplers;
+
+  QMap<QPair<ResourceId, uint32_t>, DescriptorLogicalLocation> m_Locations;
 
   bool m_MeshPipe = false;
 };
