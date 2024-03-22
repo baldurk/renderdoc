@@ -2696,328 +2696,24 @@ bool IsDirectWrite(ResourceUsage usage)
   return IsUavWrite(usage) || IsResolveWrite(usage) || IsCopyWrite(usage);
 }
 
-// NOTE: This function is quite similar to formatpacking.cpp::DecodeFormattedComponents,
-//  but it doesn't convert everything to a float since the pixel history viewer will expect
-//  them to be in the target's format.
-void PixelHistoryDecode(const ResourceFormat &fmt, const byte *data, PixelValue &out)
+static void FillInColor(const ResourceFormat &fmt, const D3D12PixelHistoryValue &value,
+                        ModificationValue &mod)
 {
-  if(fmt.compType == CompType::UInt || fmt.compType == CompType::SInt || fmt.compCount == 4)
-    out.floatValue[3] = 0.0f;
-
-  if(fmt.type == ResourceFormatType::R10G10B10A2)
-  {
-    if(fmt.compType == CompType::SNorm)
-    {
-      Vec4f v = ConvertFromR10G10B10A2SNorm(*(const uint32_t *)data);
-      out.floatValue[0] = v.x;
-      out.floatValue[1] = v.y;
-      out.floatValue[2] = v.z;
-      out.floatValue[3] = v.w;
-    }
-    else if(fmt.compType == CompType::UNorm)
-    {
-      Vec4f v = ConvertFromR10G10B10A2(*(const uint32_t *)data);
-      out.floatValue[0] = v.x;
-      out.floatValue[1] = v.y;
-      out.floatValue[2] = v.z;
-      out.floatValue[3] = v.w;
-    }
-    else if(fmt.compType == CompType::UInt)
-    {
-      Vec4u v = ConvertFromR10G10B10A2UInt(*(const uint32_t *)data);
-      out.uintValue[0] = v.x;
-      out.uintValue[1] = v.y;
-      out.uintValue[2] = v.z;
-      out.uintValue[3] = v.w;
-    }
-
-    // the different types are a union so we can ignore format and just treat it as a data swap
-    if(fmt.BGRAOrder())
-      std::swap(out.uintValue[0], out.uintValue[2]);
-  }
-  else if(fmt.type == ResourceFormatType::R11G11B10)
-  {
-    Vec3f v = ConvertFromR11G11B10(*(const uint32_t *)data);
-    out.floatValue[0] = v.x;
-    out.floatValue[1] = v.y;
-    out.floatValue[2] = v.z;
-  }
-  else if(fmt.type == ResourceFormatType::R5G5B5A1)
-  {
-    Vec4f v = ConvertFromB5G5R5A1(*(const uint16_t *)data);
-    out.floatValue[0] = v.x;
-    out.floatValue[1] = v.y;
-    out.floatValue[2] = v.z;
-    out.floatValue[3] = v.w;
-
-    // conversely we *expect* BGRA order for this format and the above conversion implicitly flips
-    // when bit-unpacking. So if the format wasn't BGRA order, flip it back
-    if(!fmt.BGRAOrder())
-      std::swap(out.floatValue[0], out.floatValue[2]);
-  }
-  else if(fmt.type == ResourceFormatType::R5G6B5)
-  {
-    Vec3f v = ConvertFromB5G6R5(*(const uint16_t *)data);
-    out.floatValue[0] = v.x;
-    out.floatValue[1] = v.y;
-    out.floatValue[2] = v.z;
-
-    // conversely we *expect* BGRA order for this format and the above conversion implicitly flips
-    // when bit-unpacking. So if the format wasn't BGRA order, flip it back
-    if(!fmt.BGRAOrder())
-      std::swap(out.floatValue[0], out.floatValue[2]);
-  }
-  else if(fmt.type == ResourceFormatType::R4G4B4A4)
-  {
-    Vec4f v = ConvertFromB4G4R4A4(*(const uint16_t *)data);
-    out.floatValue[0] = v.x;
-    out.floatValue[1] = v.y;
-    out.floatValue[2] = v.z;
-    out.floatValue[3] = v.w;
-
-    // conversely we *expect* BGRA order for this format and the above conversion implicitly flips
-    // when bit-unpacking. So if the format wasn't BGRA order, flip it back
-    if(!fmt.BGRAOrder())
-      std::swap(out.floatValue[0], out.floatValue[2]);
-  }
-  else if(fmt.type == ResourceFormatType::R4G4)
-  {
-    Vec4f v = ConvertFromR4G4(*(const uint8_t *)data);
-    out.floatValue[0] = v.x;
-    out.floatValue[1] = v.y;
-  }
-  else if(fmt.type == ResourceFormatType::R9G9B9E5)
-  {
-    Vec3f v = ConvertFromR9G9B9E5(*(const uint32_t *)data);
-    out.floatValue[0] = v.x;
-    out.floatValue[1] = v.y;
-    out.floatValue[2] = v.z;
-  }
-  else if(fmt.type == ResourceFormatType::D16S8)
-  {
-    uint32_t val = *(const uint32_t *)data;
-    out.floatValue[0] = float(val & 0x00ffff) / 65535.0f;
-    out.floatValue[1] = float((val & 0xff0000) >> 16) / 255.0f;
-    out.floatValue[2] = 0.0f;
-  }
-  else if(fmt.type == ResourceFormatType::D24S8)
-  {
-    uint32_t val = *(const uint32_t *)data;
-    out.floatValue[0] = float(val & 0x00ffffff) / 16777215.0f;
-    out.floatValue[1] = float((val & 0xff000000) >> 24) / 255.0f;
-    out.floatValue[2] = 0.0f;
-  }
-  else if(fmt.type == ResourceFormatType::D32S8)
-  {
-    struct ds
-    {
-      float f;
-      uint32_t s;
-    } val;
-    val = *(const ds *)data;
-    out.floatValue[0] = val.f;
-    out.floatValue[1] = float(val.s) / 255.0f;
-    out.floatValue[2] = 0.0f;
-  }
-  else if(fmt.type == ResourceFormatType::Regular || fmt.type == ResourceFormatType::A8 ||
-          fmt.type == ResourceFormatType::S8)
-  {
-    CompType compType = fmt.compType;
-    for(size_t c = 0; c < fmt.compCount; c++)
-    {
-      // alpha is never interpreted as sRGB
-      if(compType == CompType::UNormSRGB && c == 3)
-        compType = CompType::UNorm;
-
-      if(fmt.compByteWidth == 8)
-      {
-        // we just downcast
-        const uint64_t *u64 = (const uint64_t *)data;
-        const int64_t *i64 = (const int64_t *)data;
-
-        if(compType == CompType::Float)
-        {
-          out.floatValue[c] = float(*(const double *)u64);
-        }
-        else if(compType == CompType::UInt)
-        {
-          out.uintValue[c] = uint32_t(*u64);
-        }
-        else if(compType == CompType::UScaled)
-        {
-          out.floatValue[c] = float(*u64);
-        }
-        else if(compType == CompType::SInt)
-        {
-          out.intValue[c] = int32_t(*i64);
-        }
-        else if(compType == CompType::SScaled)
-        {
-          out.floatValue[c] = float(*i64);
-        }
-      }
-      else if(fmt.compByteWidth == 4)
-      {
-        const uint32_t *u32 = (const uint32_t *)data;
-        const int32_t *i32 = (const int32_t *)data;
-
-        if(compType == CompType::Float || compType == CompType::Depth)
-        {
-          out.floatValue[c] = *(const float *)u32;
-        }
-        else if(compType == CompType::UInt)
-        {
-          out.uintValue[c] = uint32_t(*u32);
-        }
-        else if(compType == CompType::UScaled)
-        {
-          out.floatValue[c] = float(*u32);
-        }
-        else if(compType == CompType::SInt)
-        {
-          out.intValue[c] = int32_t(*i32);
-        }
-        else if(compType == CompType::SScaled)
-        {
-          out.floatValue[c] = float(*i32);
-        }
-      }
-      else if(fmt.compByteWidth == 3 && compType == CompType::Depth)
-      {
-        // 24-bit depth is a weird edge case we need to assemble it by hand
-        const uint8_t *u8 = (const uint8_t *)data;
-
-        uint32_t depth = 0;
-        depth |= uint32_t(u8[0]);
-        depth |= uint32_t(u8[1]) << 8;
-        depth |= uint32_t(u8[2]) << 16;
-
-        out.floatValue[c] = float(depth) / float(16777215.0f);
-      }
-      else if(fmt.compByteWidth == 2)
-      {
-        const uint16_t *u16 = (const uint16_t *)data;
-        const int16_t *i16 = (const int16_t *)data;
-
-        if(compType == CompType::Float)
-        {
-          out.floatValue[c] = ConvertFromHalf(*u16);
-        }
-        else if(compType == CompType::UInt)
-        {
-          out.uintValue[c] = uint32_t(*u16);
-        }
-        else if(compType == CompType::UScaled)
-        {
-          out.floatValue[c] = float(*u16);
-        }
-        else if(compType == CompType::SInt)
-        {
-          out.intValue[c] = int32_t(*i16);
-        }
-        else if(compType == CompType::SScaled)
-        {
-          out.floatValue[c] = float(*i16);
-        }
-        // 16-bit depth is UNORM
-        else if(compType == CompType::UNorm || compType == CompType::Depth)
-        {
-          out.floatValue[c] = float(*u16) / 65535.0f;
-        }
-        else if(compType == CompType::SNorm)
-        {
-          float f = -1.0f;
-
-          if(*i16 == -32768)
-            f = -1.0f;
-          else
-            f = ((float)*i16) / 32767.0f;
-
-          out.floatValue[c] = f;
-        }
-      }
-      else if(fmt.compByteWidth == 1)
-      {
-        const uint8_t *u8 = (const uint8_t *)data;
-        const int8_t *i8 = (const int8_t *)data;
-
-        if(compType == CompType::UInt)
-        {
-          out.uintValue[c] = uint32_t(*u8);
-        }
-        else if(compType == CompType::UScaled)
-        {
-          out.floatValue[c] = float(*u8);
-        }
-        else if(compType == CompType::SInt)
-        {
-          out.intValue[c] = int32_t(*i8);
-        }
-        else if(compType == CompType::SScaled)
-        {
-          out.floatValue[c] = float(*i8);
-        }
-        else if(compType == CompType::UNormSRGB)
-        {
-          out.floatValue[c] = ConvertFromSRGB8(*u8);
-        }
-        else if(compType == CompType::UNorm)
-        {
-          out.floatValue[c] = float(*u8) / 255.0f;
-        }
-        else if(compType == CompType::SNorm)
-        {
-          float f = -1.0f;
-
-          if(*i8 == -128)
-            f = -1.0f;
-          else
-            f = ((float)*i8) / 127.0f;
-
-          out.floatValue[c] = f;
-        }
-      }
-      else
-      {
-        RDCERR("Unexpected format to convert from %u %u", fmt.compByteWidth, compType);
-      }
-
-      data += fmt.compByteWidth;
-    }
-
-    if(fmt.type == ResourceFormatType::A8)
-    {
-      out.floatValue[2] = out.floatValue[0];
-      out.floatValue[0] = 0.0f;
-    }
-    else if(fmt.type == ResourceFormatType::S8)
-    {
-      out.uintValue[1] = out.uintValue[0];
-      out.uintValue[0] = 0;
-    }
-
-    // the different types are a union so we can ignore format and just treat it as a data swap
-    if(fmt.BGRAOrder())
-      std::swap(out.uintValue[0], out.uintValue[2]);
-  }
+  DecodePixelData(fmt, value.color, mod.col);
 }
 
-void FillInColor(ResourceFormat fmt, const D3D12PixelHistoryValue &value, ModificationValue &mod)
-{
-  PixelHistoryDecode(fmt, value.color, mod.col);
-}
-
-void ConvertAndFillInColor(ResourceFormat srcFmt, ResourceFormat outFmt,
-                           const D3D12PixelHistoryValue &value, ModificationValue &mod)
+static void ConvertAndFillInColor(const ResourceFormat &srcFmt, const D3D12PixelHistoryValue &value,
+                                  const ResourceFormat &outFmt, ModificationValue &mod)
 {
   if((outFmt.compType == CompType::UInt) || (outFmt.compType == CompType::SInt))
   {
-    PixelHistoryDecode(srcFmt, value.color, mod.col);
+    DecodePixelData(srcFmt, value.color, mod.col);
+    // TODO : handle UInt ResourceFormatType::R10G10B10A2
     // Clamp values based on format
     if(outFmt.compType == CompType::UInt)
     {
       uint32_t limits[4] = {
-          255,
+          UINT8_MAX,
           UINT16_MAX,
           0,
           UINT32_MAX,
@@ -3039,7 +2735,7 @@ void ConvertAndFillInColor(ResourceFormat srcFmt, ResourceFormat outFmt,
   else
   {
     FloatVector v4 = DecodeFormattedComponents(srcFmt, value.color);
-    // To properly handle some cases of component bounds, roundtrip through encoding again
+    // Roundtrip through encoding to properly handle component limits
     uint8_t tempColor[32];
     EncodeFormattedComponents(outFmt, v4, (byte *)tempColor);
     v4 = DecodeFormattedComponents(outFmt, tempColor);
@@ -3457,7 +3153,7 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
         if((h < history.size() - 1) && (history[h].eventId == history[h + 1].eventId))
         {
           // Get post-modification value if this is not the last fragment for the event.
-          ConvertAndFillInColor(shaderOutFormat, fmt, fragInfo[offset].postMod, history[h].postMod);
+          ConvertAndFillInColor(shaderOutFormat, fragInfo[offset].postMod, fmt, history[h].postMod);
 
           // MSAA depth is expanded out to floats in the compute shader
           if(multisampled)
