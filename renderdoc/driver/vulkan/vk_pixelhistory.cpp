@@ -107,7 +107,7 @@
 #include "vk_replay.h"
 #include "vk_shader_cache.h"
 
-bool isDirectWrite(ResourceUsage usage)
+static bool IsDirectWrite(ResourceUsage usage)
 {
   return ((usage >= ResourceUsage::VS_RWResource && usage <= ResourceUsage::CS_RWResource) ||
           usage == ResourceUsage::CopyDst || usage == ResourceUsage::Copy ||
@@ -3754,7 +3754,7 @@ bool VulkanDebugManager::PixelHistoryDestroyResources(const PixelHistoryResource
   return true;
 }
 
-void CreateOcclusionPool(WrappedVulkan *vk, uint32_t poolSize, VkQueryPool *pQueryPool)
+static void CreateOcclusionPool(WrappedVulkan *vk, uint32_t poolSize, VkQueryPool *pQueryPool)
 {
   VkMarkerRegion region(StringFormat::Fmt("CreateOcclusionPool %u", poolSize));
 
@@ -3804,8 +3804,8 @@ VkImageLayout VulkanDebugManager::GetImageLayout(ResourceId image, VkImageAspect
   return ret;
 }
 
-void UpdateTestsFailed(const TestsFailedCallback *tfCb, uint32_t eventId, uint32_t eventFlags,
-                       PixelModification &mod)
+static void UpdateTestsFailed(const TestsFailedCallback *tfCb, uint32_t eventId,
+                              uint32_t eventFlags, PixelModification &mod)
 {
   bool earlyFragmentTests = tfCb->HasEarlyFragments(eventId);
 
@@ -3900,7 +3900,7 @@ static void FillInColor(ResourceFormat fmt, const PixelHistoryValue &value, Modi
   DecodePixelData(fmt, value.color, mod.col);
 }
 
-float GetDepthValue(VkFormat depthFormat, const PixelHistoryValue &value)
+static float GetDepthValue(VkFormat depthFormat, const PixelHistoryValue &value)
 {
   FloatVector v4 = DecodeFormattedComponents(MakeResourceFormat(depthFormat), (byte *)&value.depth);
   return v4.x;
@@ -3992,7 +3992,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
   for(size_t ev = 0; ev < events.size(); ev++)
   {
     bool clear = (events[ev].usage == ResourceUsage::Clear);
-    bool directWrite = isDirectWrite(events[ev].usage);
+    bool directWrite = IsDirectWrite(events[ev].usage);
 
     if(events[ev].view != ResourceId())
     {
@@ -4054,7 +4054,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
   {
     uint32_t eventId = events[ev].eventId;
     bool clear = (events[ev].usage == ResourceUsage::Clear);
-    bool directWrite = isDirectWrite(events[ev].usage);
+    bool directWrite = IsDirectWrite(events[ev].usage);
 
     if(drawEvents.contains(events[ev].eventId) ||
        (modEvents.contains(events[ev].eventId) && (clear || directWrite)))
