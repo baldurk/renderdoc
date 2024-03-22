@@ -222,7 +222,7 @@ enum D3D12PixelHistoryTests : uint32_t
 namespace
 {
 
-bool IsDepthFormat(D3D12_RESOURCE_DESC desc, CompType typeCast)
+static bool IsDepthFormat(D3D12_RESOURCE_DESC desc, CompType typeCast)
 {
   // TODO: This function might need to handle where the resource is typeless but is actually depth
 
@@ -235,7 +235,7 @@ bool IsDepthFormat(D3D12_RESOURCE_DESC desc, CompType typeCast)
   return false;
 }
 
-DXGI_FORMAT GetDepthCopyFormat(DXGI_FORMAT format)
+static DXGI_FORMAT GetDepthCopyFormat(DXGI_FORMAT format)
 {
   if(format == DXGI_FORMAT_D16_UNORM)
     return DXGI_FORMAT_R16_TYPELESS;
@@ -1808,8 +1808,8 @@ private:
   rdcarray<uint64_t> m_OcclusionResults;
 };
 
-void D3D12UpdateTestsFailed(const D3D12TestsFailedCallback *tfCb, uint32_t eventId,
-                            uint32_t eventFlags, PixelModification &mod)
+static void D3D12UpdateTestsFailed(const D3D12TestsFailedCallback *tfCb, uint32_t eventId,
+                                   uint32_t eventFlags, PixelModification &mod)
 {
   bool earlyFragmentTests = tfCb->HasEarlyFragments(eventId);
 
@@ -2685,7 +2685,8 @@ bool D3D12DebugManager::PixelHistoryDestroyResources(D3D12PixelHistoryResources 
 namespace
 {
 
-bool CreateOcclusionPool(WrappedID3D12Device *device, uint32_t poolSize, ID3D12QueryHeap **ppQueryHeap)
+static bool CreateOcclusionPool(WrappedID3D12Device *device, uint32_t poolSize,
+                                ID3D12QueryHeap **ppQueryHeap)
 {
   D3D12MarkerRegion region(device->GetQueue()->GetReal(),
                            StringFormat::Fmt("CreateQueryHeap %u", poolSize));
@@ -2703,23 +2704,23 @@ bool CreateOcclusionPool(WrappedID3D12Device *device, uint32_t poolSize, ID3D12Q
   return true;
 }
 
-bool IsUavWrite(ResourceUsage usage)
+static bool IsUavWrite(ResourceUsage usage)
 {
   return (usage >= ResourceUsage::VS_RWResource && usage <= ResourceUsage::CS_RWResource);
 }
 
-bool IsResolveWrite(ResourceUsage usage)
+static bool IsResolveWrite(ResourceUsage usage)
 {
   return (usage == ResourceUsage::Resolve || usage == ResourceUsage::ResolveDst);
 }
 
-bool IsCopyWrite(ResourceUsage usage)
+static bool IsCopyWrite(ResourceUsage usage)
 {
   return (usage == ResourceUsage::CopyDst || usage == ResourceUsage::Copy ||
           usage == ResourceUsage::GenMips);
 }
 
-bool IsDirectWrite(ResourceUsage usage)
+static bool IsDirectWrite(ResourceUsage usage)
 {
   return IsUavWrite(usage) || IsResolveWrite(usage) || IsCopyWrite(usage);
 }
@@ -2771,15 +2772,9 @@ static void ConvertAndFillInColor(const ResourceFormat &srcFmt, const D3D12Pixel
   }
 }
 
-float GetDepthValue(DXGI_FORMAT depthFormat, const D3D12PixelHistoryValue &value)
+static float GetDepthValue(DXGI_FORMAT depthFormat, const D3D12PixelHistoryValue &value)
 {
   FloatVector v4 = DecodeFormattedComponents(MakeResourceFormat(depthFormat), (byte *)&value.depth);
-  return v4.x;
-}
-
-float GetDepthValue(DXGI_FORMAT depthFormat, const byte *pValue)
-{
-  FloatVector v4 = DecodeFormattedComponents(MakeResourceFormat(depthFormat), pValue);
   return v4.x;
 }
 
