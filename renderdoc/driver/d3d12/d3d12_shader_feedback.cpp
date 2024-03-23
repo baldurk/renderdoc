@@ -65,23 +65,9 @@ struct D3D12FeedbackKey
 
 struct D3D12FeedbackSlot
 {
-public:
-  D3D12FeedbackSlot()
-  {
-    slot = 0;
-    used = 0;
-  }
-  void SetSlot(uint32_t s) { slot = s; }
-  void SetStaticUsed() { used = 0x1; }
-  bool StaticUsed() const { return used != 0x0; }
-  uint32_t Slot() const { return slot; }
-
-  uint32_t numDescriptors = 1;
-
   DescriptorAccess access;
-private:
-  uint32_t slot : 31;
-  uint32_t used : 1;
+  uint32_t slot = 0;
+  uint32_t numDescriptors = 1;
 };
 
 static const uint32_t numReservedSlots = 4;
@@ -194,7 +180,7 @@ static bool AnnotateDXBCShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       editor.InsertOperation(i++, oper(OPCODE_UMIN, {temp(t).swizzle(0), imm(maxSlot), idx}));
       // resource base plus index
       editor.InsertOperation(
-          i++, oper(OPCODE_IADD, {temp(t).swizzle(0), temp(t).swizzle(0), imm(it->second.Slot())}));
+          i++, oper(OPCODE_IADD, {temp(t).swizzle(0), temp(t).swizzle(0), imm(it->second.slot)}));
       // multiply by 4 for byte index
       editor.InsertOperation(i++,
                              oper(OPCODE_ISHL, {temp(t).swizzle(0), temp(t).swizzle(0), imm(2)}));
@@ -334,11 +320,7 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       if(it == slots.end())
         continue;
 
-      // static used i.e. not arrayed? ignore
-      if(it->second.StaticUsed())
-        continue;
-
-      uint32_t feedbackSlot = it->second.Slot();
+      uint32_t feedbackSlot = it->second.slot;
 
       // we assume all feedback slots are non-zero, so that a 0 base slot can be used as an
       // identifier for 'this resource isn't annotated'
@@ -393,11 +375,7 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       if(it == slots.end())
         continue;
 
-      // static used i.e. not arrayed? ignore
-      if(it->second.StaticUsed())
-        continue;
-
-      uint32_t feedbackSlot = it->second.Slot();
+      uint32_t feedbackSlot = it->second.slot;
 
       // we assume all feedback slots are non-zero, so that a 0 base slot can be used as an
       // identifier for 'this resource isn't annotated'
@@ -692,10 +670,8 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
         // not annotated
         if(it == slots.end())
           continue;
-        // static used i.e. not arrayed? ignore
-        if(it->second.StaticUsed())
-          continue;
-        slotInfo = {it->second.Slot(), key.bind};
+
+        slotInfo = {it->second.slot, key.bind};
       }
       if(slotInfo.first == 0)
         continue;
@@ -870,7 +846,7 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
                                        // idx to the createHandleFromHeap op
                                        idxArg,
                                        // base slot
-                                       editor.CreateConstant(it->second.Slot()),
+                                       editor.CreateConstant(it->second.slot),
                                    }));
 
       // slotPlusBaseClamped = min(slotPlusBase, maxSlot)
@@ -952,26 +928,11 @@ static bool AddArraySlots(WrappedID3D12PipelineState::ShaderEntry *shad, uint32_
       // descriptor storage side will be calculated later when finalising this with the root
       // signature information.
 
-      slots[key].SetSlot(numSlots);
       slots[key].numDescriptors = RDCMIN(maxDescriptors, ro.bindArraySize);
       slots[key].access = access;
+      slots[key].slot = numSlots;
       numSlots += slots[key].numDescriptors;
       dynamicUsed = true;
-    }
-    else if(ro.bindArraySize <= 1)
-    {
-      // since the eventual descriptor range iteration won't know which descriptors map to arrays
-      // and which to fixed slots, it can't mark fixed descriptors as dynamically used itself. So
-      // instead we don't reserve a slot and set the top bit for these binds to indicate that
-      // they're fixed used. This allows for overlap between an array and a fixed resource which is
-      // allowed
-      D3D12FeedbackKey key;
-      key.stage = refl.stage;
-      key.type = DXBCBytecode::TYPE_RESOURCE;
-      key.space = ro.fixedBindSetOrSpace;
-      key.bind = ro.fixedBindNumber;
-
-      slots[key].SetStaticUsed();
     }
   }
 
@@ -993,26 +954,11 @@ static bool AddArraySlots(WrappedID3D12PipelineState::ShaderEntry *shad, uint32_
       // descriptor storage side will be calculated later when finalising this with the root
       // signature information.
 
-      slots[key].SetSlot(numSlots);
       slots[key].numDescriptors = RDCMIN(maxDescriptors, rw.bindArraySize);
       slots[key].access = access;
+      slots[key].slot = numSlots;
       numSlots += slots[key].numDescriptors;
       dynamicUsed = true;
-    }
-    else if(rw.bindArraySize <= 1)
-    {
-      // since the eventual descriptor range iteration won't know which descriptors map to arrays
-      // and which to fixed slots, it can't mark fixed descriptors as dynamically used itself. So
-      // instead we don't reserve a slot and set the top bit for these binds to indicate that
-      // they're fixed used. This allows for overlap between an array and a fixed resource which is
-      // allowed
-      D3D12FeedbackKey key;
-      key.stage = refl.stage;
-      key.type = DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW;
-      key.space = rw.fixedBindSetOrSpace;
-      key.bind = rw.fixedBindNumber;
-
-      slots[key].SetStaticUsed();
     }
   }
 
@@ -1030,13 +976,13 @@ static bool AddArraySlots(WrappedID3D12PipelineState::ShaderEntry *shad, uint32_
     D3D12FeedbackKey key = GetDirectHeapAccessKey(false);
     if(slots.find(key) == slots.end())
     {
-      slots[key].SetSlot(numSlots);
       slots[key].numDescriptors = maxDescriptors;
+      slots[key].slot = numSlots;
       numSlots += maxDescriptors;
 
       key = GetDirectHeapAccessKey(true);
-      slots[key].SetSlot(numSlots);
       slots[key].numDescriptors = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
+      slots[key].slot = numSlots;
       numSlots += D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
     }
 
@@ -1488,191 +1434,20 @@ bool D3D12Replay::FetchShaderFeedback(uint32_t eventId)
     {
       result.valid = true;
 
-      // now we iterate over descriptor ranges and find which (of potentially multiple) registers
-      // each descriptor maps to and store the index if it's dynamically or statically used. We do
-      // this here so it only happens once instead of doing it when looking up the data.
-
-      D3D12FeedbackKey curKey;
-      D3D12FeedbackBindIdentifier curIdentifier = {};
-      // don't iterate the last signature element because that's ours!
-      for(size_t rootEl = 0; rootEl < modsig.Parameters.size() - 1; rootEl++)
-      {
-        curIdentifier.rootEl = rootEl;
-
-        const D3D12RootSignatureParameter &p = modsig.Parameters[rootEl];
-
-        // only tables need feedback data, others all are treated as dynamically used
-        if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
-        {
-          for(size_t r = 0; r < p.ranges.size(); r++)
-          {
-            const D3D12_DESCRIPTOR_RANGE1 &range = p.ranges[r];
-
-            curIdentifier.rangeIndex = r;
-
-            curKey.space = range.RegisterSpace;
-
-            UINT num = range.NumDescriptors;
-            ShaderStageMask visMask = ShaderStageMask::Unknown;
-            // see which shader's binds we should look up for this range
-            switch(p.ShaderVisibility)
-            {
-              case D3D12_SHADER_VISIBILITY_ALL:
-                visMask = result.compute ? ShaderStageMask::Compute : ShaderStageMask::All;
-                break;
-              case D3D12_SHADER_VISIBILITY_VERTEX: visMask = ShaderStageMask::Vertex; break;
-              case D3D12_SHADER_VISIBILITY_HULL: visMask = ShaderStageMask::Hull; break;
-              case D3D12_SHADER_VISIBILITY_DOMAIN: visMask = ShaderStageMask::Domain; break;
-              case D3D12_SHADER_VISIBILITY_GEOMETRY: visMask = ShaderStageMask::Geometry; break;
-              case D3D12_SHADER_VISIBILITY_PIXEL: visMask = ShaderStageMask::Pixel; break;
-              case D3D12_SHADER_VISIBILITY_AMPLIFICATION:
-                visMask = ShaderStageMask::Amplification;
-                break;
-              case D3D12_SHADER_VISIBILITY_MESH: visMask = ShaderStageMask::Mesh; break;
-              default: RDCERR("Unexpected shader visibility %d", p.ShaderVisibility); return true;
-            }
-
-            // set the key type
-            if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
-              curKey.type = DXBCBytecode::TYPE_RESOURCE;
-            else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
-              curKey.type = DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW;
-
-            for(ShaderStage st : values<ShaderStage>())
-            {
-              curKey.stage = st;
-              if(visMask & MaskForStage(st))
-              {
-                curIdentifier.descIndex = 0;
-                curKey.bind = range.BaseShaderRegister;
-
-                // the feedback entries start here
-                auto slotIt = slots.lower_bound(curKey);
-
-                // iterate over the declared range. This could be unbounded, so we might exit
-                // another way
-                for(uint32_t i = 0; i < num; i++)
-                {
-                  // stop when we've run out of recorded used slots
-                  if(slotIt == slots.end())
-                    break;
-
-                  uint32_t space = slotIt->first.space;
-                  uint32_t bind = slotIt->first.bind;
-                  uint32_t numDescriptors = slotIt->second.numDescriptors;
-
-                  // stop if the next used slot is in another space or is another type
-                  if(space > curKey.space || slotIt->first.type != curKey.type)
-                    break;
-
-                  // if the next bind is definitely outside this range, early out now instead of
-                  // iterating fruitlessly
-                  if((bind - range.BaseShaderRegister) > num)
-                    break;
-
-                  uint32_t lastBind = bind + RDCCLAMP(numDescriptors, 1U, maxDescriptors);
-
-                  // if this slot's array covers the current bind, check the result
-                  if(bind <= curKey.bind && curKey.bind < lastBind)
-                  {
-                    // if it's static used by having a fixed result declared, it's used
-                    const bool staticUsed = slotIt->second.StaticUsed();
-
-                    // otherwise check the feedback we got
-                    const uint32_t baseSlot = slotIt->second.Slot();
-                    const uint32_t arrayIndex = curKey.bind - bind;
-
-                    if(staticUsed || slotsData[baseSlot + arrayIndex])
-                      result.used.push_back(curIdentifier);
-                  }
-
-                  curKey.bind++;
-                  curIdentifier.descIndex++;
-
-                  // if we've passed this slot, move to the next one. Because we're iterating a
-                  // contiguous range of binds the next slot will be enough for the next iteration
-                  if(curKey.bind >= lastBind)
-                    slotIt++;
-                }
-              }
-            }
-          }
-        }
-      }
-
-      for(D3D12FeedbackKey directAccessKey :
-          {GetDirectHeapAccessKey(false), GetDirectHeapAccessKey(true)})
-      {
-        auto slotIt = slots.find(directAccessKey);
-        if(slotIt != slots.end())
-        {
-          const D3D12FeedbackSlot &feedbackSlots = slots.at(directAccessKey);
-          for(uint32_t i = feedbackSlots.Slot();
-              i < feedbackSlots.Slot() + feedbackSlots.numDescriptors; ++i)
-          {
-            if((slotsData[i] & magicFeedbackValue) == magicFeedbackValue)
-            {
-              uint32_t usedSlot = i - feedbackSlots.Slot();
-              D3D12FeedbackBindIdentifier directAccessIdentifier = {};
-              directAccessIdentifier.descIndex = usedSlot;
-              directAccessIdentifier.rootEl = ~0U;
-              directAccessIdentifier.rangeIndex = ~0U;
-              directAccessIdentifier.directAccess = true;
-
-              ShaderStageMask feedbackStages =
-                  ShaderStageMask((slotsData[i] & magicFeedbackStageMask) >> magicFeedbackStageShift);
-
-              DescriptorType descriptorType = DescriptorType(slotsData[i] & magicFeedbackTypeMask);
-
-              if(descriptorType == DescriptorType::Sampler)
-              {
-                directAccessIdentifier.bindType = BindType::Sampler;
-              }
-              else if(IsConstantBlockDescriptor(descriptorType))
-              {
-                directAccessIdentifier.bindType = BindType::ConstantBuffer;
-              }
-              else if(IsReadOnlyDescriptor(descriptorType))
-              {
-                directAccessIdentifier.bindType = BindType::ReadOnlyResource;
-              }
-              else if(IsReadWriteDescriptor(descriptorType))
-              {
-                directAccessIdentifier.bindType = BindType::ReadWriteResource;
-              }
-              else
-              {
-                continue;
-              }
-
-              // add a usage for each stage that reported it used
-              for(ShaderStage stage : values<ShaderStage>())
-              {
-                if(MaskForStage(stage) & feedbackStages)
-                {
-                  directAccessIdentifier.shaderStage = stage;
-                  result.used.push_back(directAccessIdentifier);
-                }
-              }
-            }
-          }
-        }
-      }
-
       D3D12FeedbackKey resourceDirectAccessKey = GetDirectHeapAccessKey(false),
                        samplerDirectAccessKey = GetDirectHeapAccessKey(true);
       for(auto it = slots.begin(); it != slots.end(); ++it)
       {
         if(it->first == resourceDirectAccessKey || it->first == samplerDirectAccessKey)
         {
-          for(uint32_t i = it->second.Slot(); i < it->second.Slot() + it->second.numDescriptors; ++i)
+          for(uint32_t i = it->second.slot; i < it->second.slot + it->second.numDescriptors; ++i)
           {
             if((slotsData[i] & magicFeedbackValue) == magicFeedbackValue)
             {
               DescriptorAccess access;
 
               access.index = DescriptorAccess::NoShaderBinding;
-              access.byteOffset = access.arrayElement = i - it->second.Slot();
+              access.byteOffset = access.arrayElement = i - it->second.slot;
               access.byteSize = 1;
               // descriptorStore will be set before this is returned by the replay, it's implicit
               // from the type
@@ -1732,7 +1507,7 @@ bool D3D12Replay::FetchShaderFeedback(uint32_t eventId)
 
         for(uint32_t i = 0; i < it->second.numDescriptors; i++)
         {
-          const uint32_t baseSlot = it->second.Slot();
+          const uint32_t baseSlot = it->second.slot;
           const uint32_t arrayIndex = i;
 
           if(slotsData[baseSlot + arrayIndex])
@@ -1748,8 +1523,6 @@ bool D3D12Replay::FetchShaderFeedback(uint32_t eventId)
           }
         }
       }
-
-      std::sort(result.used.begin(), result.used.end());
     }
     else if((pipelinestats->VSInvocations == 0 || !dynamicAccessPerStage[0]) &&
             (pipelinestats->HSInvocations == 0 || !dynamicAccessPerStage[1]) &&

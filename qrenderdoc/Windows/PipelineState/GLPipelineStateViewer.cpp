@@ -549,7 +549,7 @@ ResourceId GLPipelineStateViewer::GetResource(RDTreeWidgetItem *item)
 
     int cb = tag.value<int>();
 
-    return m_Ctx.CurPipelineState().GetConstantBlockDescriptor(stage->stage, cb, 0).descriptor.resource;
+    return m_Ctx.CurPipelineState().GetConstantBlock(stage->stage, cb, 0).descriptor.resource;
   }
 
   return ResourceId();

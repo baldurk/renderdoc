@@ -1010,14 +1010,6 @@ public:
       return *m_Details;
     }
 
-    const ShaderBindpointMapping &GetMapping()
-    {
-      if(!m_Built && GetDXBC() != NULL)
-        BuildReflection();
-      m_Built = true;
-      return m_Mapping;
-    }
-
     const rdcarray<DescriptorAccess> &GetDescriptorAccess()
     {
       if(!m_Built && GetDXBC() != NULL)
@@ -1042,7 +1034,6 @@ public:
     bool m_Built = false;
     DXBC::DXBCContainer *m_DXBCFile;
     ShaderReflection *m_Details;
-    ShaderBindpointMapping m_Mapping;
     rdcarray<DescriptorAccess> m_Access;
 
     friend class WrappedShader;
@@ -1092,11 +1083,6 @@ public:
   {
     SCOPED_LOCK(m_ShaderListLock);
     return m_ShaderList[m_ID]->GetDetails();
-  }
-  const ShaderBindpointMapping &GetMapping()
-  {
-    SCOPED_LOCK(m_ShaderListLock);
-    return m_ShaderList[m_ID]->GetMapping();
   }
   const rdcarray<DescriptorAccess> &GetDescriptorAccess()
   {

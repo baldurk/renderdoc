@@ -1380,8 +1380,7 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
 
 void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Program &program,
                            const D3D12RenderState::RootSignature &rootsig,
-                           const ShaderReflection &refl, const ShaderBindpointMapping &mapping,
-                           DXBCDebug::GlobalState &global,
+                           const ShaderReflection &refl, DXBCDebug::GlobalState &global,
                            rdcarray<SourceVariableMapping> &sourceVars)
 {
   WrappedID3D12RootSignature *pD3D12RootSig =
@@ -1598,8 +1597,8 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
   ThreadState &state = interpreter->activeLane();
 
   // Fetch constant buffer data from root signature
-  GatherConstantBuffers(m_pDevice, *dxbc->GetDXBCByteCode(), rs.graphics, refl,
-                        pso->VS()->GetMapping(), global, ret->sourceVars);
+  GatherConstantBuffers(m_pDevice, *dxbc->GetDXBCByteCode(), rs.graphics, refl, global,
+                        ret->sourceVars);
 
   for(size_t i = 0; i < state.inputs.size(); i++)
   {
@@ -2575,8 +2574,8 @@ void ExtractInputsPS(PSInput IN,
   ThreadState &state = interpreter->activeLane();
 
   // Fetch constant buffer data from root signature
-  GatherConstantBuffers(m_pDevice, *dxbc->GetDXBCByteCode(), rs.graphics, refl,
-                        origPSO->PS()->GetMapping(), global, ret->sourceVars);
+  GatherConstantBuffers(m_pDevice, *dxbc->GetDXBCByteCode(), rs.graphics, refl, global,
+                        ret->sourceVars);
 
   global.sampleEvalRegisterMask = sampleEvalRegisterMask;
 
@@ -2734,8 +2733,8 @@ ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId,
   GlobalState &global = interpreter->global;
   ThreadState &state = interpreter->activeLane();
 
-  GatherConstantBuffers(m_pDevice, *dxbc->GetDXBCByteCode(), rs.compute, refl,
-                        pso->CS()->GetMapping(), global, ret->sourceVars);
+  GatherConstantBuffers(m_pDevice, *dxbc->GetDXBCByteCode(), rs.compute, refl, global,
+                        ret->sourceVars);
 
   for(int i = 0; i < 3; i++)
   {

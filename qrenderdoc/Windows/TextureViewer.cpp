@@ -259,7 +259,7 @@ rdcarray<Descriptor> Following::GetOutputTargets(ICaptureContext &ctx)
   }
   else
   {
-    rdcarray<Descriptor> ret = ctx.CurPipelineState().GetOutputTargetDescriptors();
+    rdcarray<Descriptor> ret = ctx.CurPipelineState().GetOutputTargets();
 
     if(ret.isEmpty() && curAction != NULL && (curAction->flags & ActionFlags::Present))
     {
@@ -285,7 +285,7 @@ Descriptor Following::GetDepthTarget(ICaptureContext &ctx)
   if(copy || clear || compute)
     return Descriptor();
   else
-    return ctx.CurPipelineState().GetDepthTargetDescriptor();
+    return ctx.CurPipelineState().GetDepthTarget();
 }
 
 Descriptor Following::GetDepthResolveTarget(ICaptureContext &ctx)
@@ -296,7 +296,7 @@ Descriptor Following::GetDepthResolveTarget(ICaptureContext &ctx)
   if(copy || clear || compute)
     return Descriptor();
   else
-    return ctx.CurPipelineState().GetDepthResolveTargetDescriptor();
+    return ctx.CurPipelineState().GetDepthResolveTarget();
 }
 
 rdcarray<UsedDescriptor> Following::GetReadWriteResources(ICaptureContext &ctx, ShaderStage stage,
@@ -315,11 +315,11 @@ rdcarray<UsedDescriptor> Following::GetReadWriteResources(ICaptureContext &ctx, 
     if(stage != ShaderStage::Pixel && stage != ShaderStage::Compute)
       return rdcarray<UsedDescriptor>();
 
-    return ctx.CurPipelineState().GetReadWriteDescriptors(ShaderStage::Compute, onlyUsed);
+    return ctx.CurPipelineState().GetReadWriteResources(ShaderStage::Compute, onlyUsed);
   }
   else
   {
-    return ctx.CurPipelineState().GetReadWriteDescriptors(stage, onlyUsed);
+    return ctx.CurPipelineState().GetReadWriteResources(stage, onlyUsed);
   }
 }
 
@@ -346,11 +346,11 @@ rdcarray<UsedDescriptor> Following::GetReadOnlyResources(ICaptureContext &ctx, S
     if(stage != ShaderStage::Pixel && stage != ShaderStage::Compute)
       return rdcarray<UsedDescriptor>();
 
-    return ctx.CurPipelineState().GetReadOnlyDescriptors(ShaderStage::Compute, onlyUsed);
+    return ctx.CurPipelineState().GetReadOnlyResources(ShaderStage::Compute, onlyUsed);
   }
   else
   {
-    return ctx.CurPipelineState().GetReadOnlyDescriptors(stage, onlyUsed);
+    return ctx.CurPipelineState().GetReadOnlyResources(stage, onlyUsed);
   }
 }
 

@@ -268,11 +268,7 @@ public:
                         bool dxil);
 
 private:
-  void FillRootElements(uint32_t eventId, const D3D12RenderState::RootSignature &rootSig,
-                        const ShaderBindpointMapping *mappings[NumShaderStages],
-                        rdcarray<D3D12Pipe::RootSignatureRange> &rootElements);
   void FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor *desc);
-  void FillSampler(D3D12Pipe::Sampler &view, const D3D12_SAMPLER_DESC2 &desc);
   void FillDescriptor(Descriptor &dst, const D3D12Descriptor *src);
   void FillSamplerDescriptor(SamplerDescriptor &dst, const D3D12_SAMPLER_DESC2 &src);
 
@@ -300,7 +296,6 @@ private:
   struct D3D12DynamicShaderFeedback
   {
     bool compute = false, valid = false;
-    rdcarray<D3D12FeedbackBindIdentifier> used;
     rdcarray<DescriptorAccess> access;
   };
 

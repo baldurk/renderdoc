@@ -5145,8 +5145,6 @@ void WrappedVulkan::AddUsage(VulkanActionTreeNode &actionNode, rdcarray<DebugMes
   //////////////////////////////
   // Shaders
 
-  static bool hugeRangeWarned = false;
-
   rdcarray<int> shaderStages;
   if(action.flags & ActionFlags::Dispatch)
   {
@@ -5172,154 +5170,27 @@ void WrappedVulkan::AddUsage(VulkanActionTreeNode &actionNode, rdcarray<DebugMes
     ResourceId origPipe = GetResourceManager()->GetOriginalID(pipe);
     ResourceId origShad = GetResourceManager()->GetOriginalID(sh.module);
 
-    // 5 is the compute shader's index (VS, TCS, TES, GS, FS, CS)
-    const rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descSets =
-        (compute ? state.compute.descSets : state.graphics.descSets);
-
-    RDCASSERT(sh.mapping);
-
-    struct ResUsageType
+    for(const ConstantBlock &constantBlock : sh.refl->constantBlocks)
     {
-      ResUsageType(rdcarray<Bindpoint> &a, ResourceUsage u) : bindmap(a), usage(u) {}
-      rdcarray<Bindpoint> &bindmap;
-      ResourceUsage usage;
-    };
+      // ignore push constants
+      if(!constantBlock.bufferBacked)
+        continue;
 
-    ResUsageType types[] = {
-        ResUsageType(sh.mapping->readOnlyResources, ResourceUsage::VS_Resource),
-        ResUsageType(sh.mapping->readWriteResources, ResourceUsage::VS_RWResource),
-        ResUsageType(sh.mapping->constantBlocks, ResourceUsage::VS_Constants),
-    };
+      AddUsageForBind(actionNode, debugMessages, constantBlock.fixedBindSetOrSpace,
+                      constantBlock.fixedBindNumber,
+                      ResourceUsage(uint32_t(ResourceUsage::VS_Constants) + shad));
+    }
 
-    DebugMessage msg;
-    msg.eventId = eid;
-    msg.category = MessageCategory::Execution;
-    msg.messageID = 0;
-    msg.source = MessageSource::IncorrectAPIUse;
-    msg.severity = MessageSeverity::High;
-
-    for(size_t t = 0; t < ARRAY_COUNT(types); t++)
+    for(const ShaderResource &res : sh.refl->readOnlyResources)
     {
-      for(size_t i = 0; i < types[t].bindmap.size(); i++)
-      {
-        if(!types[t].bindmap[i].used)
-          continue;
+      AddUsageForBind(actionNode, debugMessages, res.fixedBindSetOrSpace, res.fixedBindNumber,
+                      ResourceUsage(uint32_t(ResourceUsage::VS_Resource) + shad));
+    }
 
-        // ignore push constants
-        if(t == 2 && !sh.refl->constantBlocks[i].bufferBacked)
-          continue;
-
-        int32_t bindset = types[t].bindmap[i].bindset;
-        int32_t bind = types[t].bindmap[i].bind;
-
-        if(bindset >= (int32_t)descSets.size() || descSets[bindset].descSet == ResourceId())
-        {
-          msg.description =
-              StringFormat::Fmt("Shader referenced a descriptor set %i that was not bound", bindset);
-          debugMessages.push_back(msg);
-          continue;
-        }
-
-        DescriptorSetInfo &descset = m_DescriptorSetState[descSets[bindset].descSet];
-        DescSetLayout &layout = c.m_DescSetLayout[descset.layout];
-
-        ResourceId layoutId = GetResourceManager()->GetOriginalID(descset.layout);
-
-        if(layout.bindings.empty())
-        {
-          msg.description =
-              StringFormat::Fmt("Shader referenced a descriptor set %i that was not bound", bindset);
-          debugMessages.push_back(msg);
-          continue;
-        }
-
-        if(bind >= (int32_t)layout.bindings.size())
-        {
-          msg.description = StringFormat::Fmt(
-              "Shader referenced a bind %i in descriptor set %i that does not exist. Mismatched "
-              "descriptor set?",
-              bind, bindset);
-          debugMessages.push_back(msg);
-          continue;
-        }
-
-        // no object to mark for usage with inline blocks
-        if(layout.bindings[bind].layoutDescType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
-          continue;
-
-        ResourceUsage usage = ResourceUsage(uint32_t(types[t].usage) + shad);
-
-        if(bind >= (int32_t)descset.data.binds.size())
-        {
-          msg.description = StringFormat::Fmt(
-              "Shader referenced a bind %i in descriptor set %i that does not exist. Mismatched "
-              "descriptor set?",
-              bind, bindset);
-          debugMessages.push_back(msg);
-          continue;
-        }
-
-        uint32_t descriptorCount = layout.bindings[bind].descriptorCount;
-        if(layout.bindings[bind].variableSize)
-          descriptorCount = descset.data.variableDescriptorCount;
-
-        if(descriptorCount > 1000)
-        {
-          if(!hugeRangeWarned)
-            RDCWARN("Skipping large, most likely 'bindless', descriptor range");
-          hugeRangeWarned = true;
-          continue;
-        }
-
-        for(uint32_t a = 0; a < descriptorCount; a++)
-        {
-          if(!descset.data.binds[bind])
-            continue;
-
-          DescriptorSetSlot &slot = descset.data.binds[bind][a];
-
-          // handled as part of the framebuffer attachments
-          if(slot.type == DescriptorSlotType::InputAttachment)
-            continue;
-
-          // ignore unwritten descriptors
-          if(slot.type == DescriptorSlotType::Unwritten)
-            continue;
-
-          // we don't mark samplers with usage
-          if(slot.type == DescriptorSlotType::Sampler)
-            continue;
-
-          ResourceId id;
-
-          switch(slot.type)
-          {
-            case DescriptorSlotType::CombinedImageSampler:
-            case DescriptorSlotType::SampledImage:
-            case DescriptorSlotType::StorageImage:
-              if(slot.resource != ResourceId())
-                id = c.m_ImageView[slot.resource].image;
-              break;
-            case DescriptorSlotType::UniformTexelBuffer:
-            case DescriptorSlotType::StorageTexelBuffer:
-              if(slot.resource != ResourceId())
-                id = c.m_BufferView[slot.resource].buffer;
-              break;
-            case DescriptorSlotType::UniformBuffer:
-            case DescriptorSlotType::UniformBufferDynamic:
-            case DescriptorSlotType::StorageBuffer:
-            case DescriptorSlotType::StorageBufferDynamic:
-            case DescriptorSlotType::AccelerationStructure:
-              if(slot.resource != ResourceId())
-                id = slot.resource;
-              break;
-            default: RDCERR("Unexpected type %d", slot.type); break;
-          }
-
-          if(id != ResourceId())
-            actionNode.resourceUsage.push_back(make_rdcpair(id, EventUsage(eid, usage)));
-        }
-      }
+    for(const ShaderResource &res : sh.refl->readWriteResources)
+    {
+      AddUsageForBind(actionNode, debugMessages, res.fixedBindSetOrSpace, res.fixedBindNumber,
+                      ResourceUsage(uint32_t(ResourceUsage::VS_RWResource) + shad));
     }
   }
 
@@ -5328,6 +5199,134 @@ void WrappedVulkan::AddUsage(VulkanActionTreeNode &actionNode, rdcarray<DebugMes
 
   if(!(action.flags & ActionFlags::Dispatch))
     AddFramebufferUsage(actionNode, state);
+}
+
+void WrappedVulkan::AddUsageForBind(VulkanActionTreeNode &actionNode,
+                                    rdcarray<DebugMessage> &debugMessages, uint32_t bindset,
+                                    uint32_t bind, ResourceUsage usage)
+{
+  static bool hugeRangeWarned = false;
+  uint32_t eid = actionNode.action.eventId;
+
+  const VulkanRenderState &state = m_BakedCmdBufferInfo[m_LastCmdBufferID].state;
+  const rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descSets =
+      ((actionNode.action.flags & ActionFlags::Dispatch) ? state.compute.descSets
+                                                         : state.graphics.descSets);
+
+  VulkanCreationInfo &c = m_CreationInfo;
+
+  DebugMessage msg;
+  msg.eventId = eid;
+  msg.category = MessageCategory::Execution;
+  msg.messageID = 0;
+  msg.source = MessageSource::IncorrectAPIUse;
+  msg.severity = MessageSeverity::High;
+
+  if(bindset >= descSets.size() || descSets[bindset].descSet == ResourceId())
+  {
+    msg.description =
+        StringFormat::Fmt("Shader referenced a descriptor set %i that was not bound", bindset);
+    debugMessages.push_back(msg);
+    return;
+  }
+
+  DescriptorSetInfo &descset = m_DescriptorSetState[descSets[bindset].descSet];
+  DescSetLayout &layout = c.m_DescSetLayout[descset.layout];
+
+  ResourceId layoutId = GetResourceManager()->GetOriginalID(descset.layout);
+
+  if(layout.bindings.empty())
+  {
+    msg.description =
+        StringFormat::Fmt("Shader referenced a descriptor set %i that was not bound", bindset);
+    debugMessages.push_back(msg);
+    return;
+  }
+
+  if(bind >= layout.bindings.size())
+  {
+    msg.description = StringFormat::Fmt(
+        "Shader referenced a bind %i in descriptor set %i that does not exist. Mismatched "
+        "descriptor set?",
+        bind, bindset);
+    debugMessages.push_back(msg);
+    return;
+  }
+
+  // no object to mark for usage with inline blocks
+  if(layout.bindings[bind].layoutDescType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
+    return;
+
+  if(bind >= descset.data.binds.size())
+  {
+    msg.description = StringFormat::Fmt(
+        "Shader referenced a bind %i in descriptor set %i that does not exist. Mismatched "
+        "descriptor set?",
+        bind, bindset);
+    debugMessages.push_back(msg);
+    return;
+  }
+
+  uint32_t descriptorCount = layout.bindings[bind].descriptorCount;
+  if(layout.bindings[bind].variableSize)
+    descriptorCount = descset.data.variableDescriptorCount;
+
+  if(descriptorCount > 1000)
+  {
+    if(!hugeRangeWarned)
+      RDCWARN("Skipping large, most likely 'bindless', descriptor range");
+    hugeRangeWarned = true;
+    return;
+  }
+
+  for(uint32_t a = 0; a < descriptorCount; a++)
+  {
+    if(!descset.data.binds[bind])
+      return;
+
+    DescriptorSetSlot &slot = descset.data.binds[bind][a];
+
+    // handled as part of the framebuffer attachments
+    if(slot.type == DescriptorSlotType::InputAttachment)
+      return;
+
+    // ignore unwritten descriptors
+    if(slot.type == DescriptorSlotType::Unwritten)
+      return;
+
+    // we don't mark samplers with usage
+    if(slot.type == DescriptorSlotType::Sampler)
+      return;
+
+    ResourceId id;
+
+    switch(slot.type)
+    {
+      case DescriptorSlotType::CombinedImageSampler:
+      case DescriptorSlotType::SampledImage:
+      case DescriptorSlotType::StorageImage:
+        if(slot.resource != ResourceId())
+          id = c.m_ImageView[slot.resource].image;
+        break;
+      case DescriptorSlotType::UniformTexelBuffer:
+      case DescriptorSlotType::StorageTexelBuffer:
+        if(slot.resource != ResourceId())
+          id = c.m_BufferView[slot.resource].buffer;
+        break;
+      case DescriptorSlotType::UniformBuffer:
+      case DescriptorSlotType::UniformBufferDynamic:
+      case DescriptorSlotType::StorageBuffer:
+      case DescriptorSlotType::StorageBufferDynamic:
+      case DescriptorSlotType::AccelerationStructure:
+        if(slot.resource != ResourceId())
+          id = slot.resource;
+        break;
+      default: RDCERR("Unexpected type %d", slot.type); break;
+    }
+
+    if(id != ResourceId())
+      actionNode.resourceUsage.push_back(make_rdcpair(id, EventUsage(eid, usage)));
+  }
 }
 
 void WrappedVulkan::AddFramebufferUsage(VulkanActionTreeNode &actionNode,

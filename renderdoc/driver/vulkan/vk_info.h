@@ -212,7 +212,6 @@ struct VulkanCreationInfo
     rdcstr entryPoint;
     rdcstr disassembly;
     ShaderReflection *refl;
-    ShaderBindpointMapping mapping;
     SPIRVPatchData patchData;
     std::map<size_t, uint32_t> instructionLines;
 
@@ -275,7 +274,6 @@ struct VulkanCreationInfo
       ShaderStage stage = ShaderStage::Count;
       rdcstr entryPoint;
       ShaderReflection *refl = NULL;
-      ShaderBindpointMapping *mapping = NULL;
       SPIRVPatchData *patchData = NULL;
 
       rdcarray<SpecConstant> specialization;

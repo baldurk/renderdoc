@@ -77,7 +77,7 @@ void WrappedOpenGL::ShaderData::ProcessSPIRVCompilation(WrappedOpenGL &drv, Reso
   }
 
   spirv.MakeReflection(GraphicsAPI::OpenGL, ShaderStage(ShaderIdx(type)), pEntryPoint, specInfo,
-                       *reflection, mapping, patchData);
+                       *reflection, patchData);
 
   version = 460;
 

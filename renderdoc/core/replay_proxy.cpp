@@ -1212,7 +1212,7 @@ ShaderReflection *ReplayProxy::Proxied_GetShader(ParamSerialiser &paramser,
   ShaderReflection *ret = NULL;
 
   // only consider eventID part of the key on APIs where shaders are mutable
-  ShaderReflKey key(m_APIProps.shadersMutable ? m_EventID : 0, pipeline, shader, entry);
+  ShaderReflKey key(pipeline, shader, entry);
 
   if(retser.IsReading() && m_ShaderReflectionCache.find(key) != m_ShaderReflectionCache.end())
     return m_ShaderReflectionCache[key];

@@ -32,7 +32,6 @@ enum class GraphicsAPI : uint32_t;
 enum class ShaderStage : uint8_t;
 enum class ShaderBuiltin : uint32_t;
 struct ShaderReflection;
-struct ShaderBindpointMapping;
 
 struct SPIRVInterfaceAccess
 {
@@ -103,9 +102,9 @@ public:
 
   rdcarray<ShaderEntryPoint> EntryPoints() const;
 
-  void MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage stage, const rdcstr &entryPoint,
-                      const rdcarray<SpecConstant> &specInfo, ShaderReflection &reflection,
-                      ShaderBindpointMapping &mapping, SPIRVPatchData &patchData) const;
+  void MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage stage,
+                      const rdcstr &entryPoint, const rdcarray<SpecConstant> &specInfo,
+                      ShaderReflection &reflection, SPIRVPatchData &patchData) const;
 
 private:
   virtual void PreParse(uint32_t maxId);

@@ -387,8 +387,8 @@ void ShaderViewer::editShader(ResourceId id, ShaderStage stage, const QString &e
 
 void ShaderViewer::cacheResources()
 {
-  m_ReadOnlyResources = m_Ctx.CurPipelineState().GetReadOnlyDescriptors(m_Stage, false);
-  m_ReadWriteResources = m_Ctx.CurPipelineState().GetReadWriteDescriptors(m_Stage, false);
+  m_ReadOnlyResources = m_Ctx.CurPipelineState().GetReadOnlyResources(m_Stage, false);
+  m_ReadWriteResources = m_Ctx.CurPipelineState().GetReadWriteResources(m_Stage, false);
 }
 
 void ShaderViewer::debugShader(const ShaderReflection *shader, ResourceId pipeline,
@@ -2600,7 +2600,7 @@ QString ShaderViewer::stringRep(const ShaderVariable &var, uint32_t row)
     else if(type == VarType::ReadWriteResource)
       resList = m_ReadWriteResources;
     else if(type == VarType::Sampler)
-      resList = m_Ctx.CurPipelineState().GetSamplerDescriptors(m_Stage);
+      resList = m_Ctx.CurPipelineState().GetSamplers(m_Stage);
 
     int32_t bindIdx = resList.indexOf(varBind);
 
@@ -3913,7 +3913,7 @@ void ShaderViewer::updateDebugState()
       }
     }
 
-    rdcarray<UsedDescriptor> samplers = m_Ctx.CurPipelineState().GetSamplerDescriptors(m_Stage);
+    rdcarray<UsedDescriptor> samplers = m_Ctx.CurPipelineState().GetSamplers(m_Stage);
 
     for(int i = 0; i < m_Trace->samplers.count(); i++)
     {
@@ -4594,7 +4594,7 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
 
         typeName = lit("Sampler");
 
-        rdcarray<UsedDescriptor> samplers = m_Ctx.CurPipelineState().GetSamplerDescriptors(m_Stage);
+        rdcarray<UsedDescriptor> samplers = m_Ctx.CurPipelineState().GetSamplers(m_Stage);
 
         ShaderBindIndex bind = reg->GetBindIndex();
         int32_t bindIdx = samplers.indexOf(bind);

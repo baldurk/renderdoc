@@ -28,292 +28,6 @@
 
 namespace VKPipe
 {
-DOCUMENT("The contents of a single binding element within a descriptor set, possibly in an array.");
-struct BindingElement
-{
-  DOCUMENT("");
-  BindingElement() = default;
-  BindingElement(const BindingElement &) = default;
-  BindingElement &operator=(const BindingElement &) = default;
-
-  bool operator==(const BindingElement &o) const
-  {
-    return type == o.type && dynamicallyUsed == o.dynamicallyUsed &&
-           viewResourceId == o.viewResourceId && resourceResourceId == o.resourceResourceId &&
-           samplerResourceId == o.samplerResourceId && immutableSampler == o.immutableSampler &&
-           inlineBlock == o.inlineBlock && viewFormat == o.viewFormat && swizzle == o.swizzle &&
-           firstMip == o.firstMip && firstSlice == o.firstSlice && numMips == o.numMips &&
-           numSlices == o.numSlices && byteOffset == o.byteOffset && byteSize == o.byteSize &&
-           filter == o.filter && addressU == o.addressU && addressV == o.addressV &&
-           addressW == o.addressW && mipBias == o.mipBias && maxAnisotropy == o.maxAnisotropy &&
-           compareFunction == o.compareFunction && minLOD == o.minLOD && maxLOD == o.maxLOD &&
-           borderColorValue.uintValue == o.borderColorValue.uintValue &&
-           borderColorType == o.borderColorType && unnormalized == o.unnormalized &&
-           srgbBorder == o.srgbBorder && seamless == o.seamless;
-  }
-  bool operator<(const BindingElement &o) const
-  {
-    if(!(type == o.type))
-      return type < o.type;
-    if(!(dynamicallyUsed == o.dynamicallyUsed))
-      return dynamicallyUsed < o.dynamicallyUsed;
-    if(!(viewResourceId == o.viewResourceId))
-      return viewResourceId < o.viewResourceId;
-    if(!(resourceResourceId == o.resourceResourceId))
-      return resourceResourceId < o.resourceResourceId;
-    if(!(samplerResourceId == o.samplerResourceId))
-      return samplerResourceId < o.samplerResourceId;
-    if(!(immutableSampler == o.immutableSampler))
-      return immutableSampler < o.immutableSampler;
-    if(!(inlineBlock == o.inlineBlock))
-      return inlineBlock < o.inlineBlock;
-    if(!(viewFormat == o.viewFormat))
-      return viewFormat < o.viewFormat;
-    if(!(swizzle == o.swizzle))
-      return swizzle < o.swizzle;
-    if(!(firstMip == o.firstMip))
-      return firstMip < o.firstMip;
-    if(!(firstSlice == o.firstSlice))
-      return firstSlice < o.firstSlice;
-    if(!(numMips == o.numMips))
-      return numMips < o.numMips;
-    if(!(numSlices == o.numSlices))
-      return numSlices < o.numSlices;
-    if(!(byteOffset == o.byteOffset))
-      return byteOffset < o.byteOffset;
-    if(!(byteSize == o.byteSize))
-      return byteSize < o.byteSize;
-    if(!(filter == o.filter))
-      return filter < o.filter;
-    if(!(addressU == o.addressU))
-      return addressU < o.addressU;
-    if(!(addressV == o.addressV))
-      return addressV < o.addressV;
-    if(!(addressW == o.addressW))
-      return addressW < o.addressW;
-    if(!(mipBias == o.mipBias))
-      return mipBias < o.mipBias;
-    if(!(maxAnisotropy == o.maxAnisotropy))
-      return maxAnisotropy < o.maxAnisotropy;
-    if(!(compareFunction == o.compareFunction))
-      return compareFunction < o.compareFunction;
-    if(!(minLOD == o.minLOD))
-      return minLOD < o.minLOD;
-    if(!(maxLOD == o.maxLOD))
-      return maxLOD < o.maxLOD;
-    if(!(borderColorValue.uintValue == o.borderColorValue.uintValue))
-      return borderColorValue.uintValue < o.borderColorValue.uintValue;
-    if(!(borderColorType == o.borderColorType))
-      return borderColorType < o.borderColorType;
-    if(!(unnormalized == o.unnormalized))
-      return unnormalized < o.unnormalized;
-    if(!(srgbBorder == o.srgbBorder))
-      return srgbBorder < o.srgbBorder;
-    if(!(seamless == o.seamless))
-      return seamless < o.seamless;
-    return false;
-  }
-
-  DOCUMENT("The :class:`BindType` of this binding element.");
-  BindType type = BindType::Unknown;
-  DOCUMENT("The :class:`ResourceId` of the current view object, if one is in use.");
-  ResourceId viewResourceId;    // bufferview, imageview, attachmentview
-  DOCUMENT("The :class:`ResourceId` of the current underlying buffer or image object.");
-  ResourceId resourceResourceId;    // buffer, image, attachment
-  DOCUMENT("The :class:`ResourceId` of the current sampler object.");
-  ResourceId samplerResourceId;
-  DOCUMENT("``True`` if this is an immutable sampler binding.");
-  bool immutableSampler = false;
-  DOCUMENT(R"(``True`` if this binding element is dynamically used.
-
-If set to ``False`` this means that the binding was available to the shader but during execution it
-was not referenced. The data gathered for setting this variable is conservative, meaning that only
-accesses through arrays will have this calculated to reduce the required feedback bandwidth - single
-non-arrayed descriptors may have this value set to ``True`` even if the shader did not use them,
-since single descriptors may only be dynamically skipped by control flow.
-)");
-  bool dynamicallyUsed = true;
-
-  DOCUMENT(R"(The format cast that the view uses.
-
-:type: ResourceFormat
-)");
-  ResourceFormat viewFormat;
-
-  DOCUMENT(R"(The swizzle applied to a texture by the view.
-
-:type: TextureSwizzle4
-)");
-  TextureSwizzle4 swizzle;
-
-  DOCUMENT("For textures - the first mip level used in the view.");
-  uint32_t firstMip = 0;
-  DOCUMENT("For textures - the number of mip levels in the view.");
-  uint32_t numMips = 0;
-
-  DOCUMENT("For 3D textures and texture arrays - the first slice used in the view.");
-  uint32_t firstSlice = 0;
-  DOCUMENT("For 3D textures and texture arrays - the number of array slices in the view.");
-  uint32_t numSlices = 0;
-
-  DOCUMENT(R"(For buffers - the byte offset where the buffer view starts in the underlying buffer.
-
-For inline block uniforms (see :data:`inlineBlock`) this is the byte offset into the descriptor
-set's inline block data.
-)");
-  uint64_t byteOffset = 0;
-  DOCUMENT("For buffers - how many bytes are in this buffer view.");
-  uint64_t byteSize = 0;
-
-  DOCUMENT(R"(The filtering mode.
-
-:type: TextureFilter
-)");
-  TextureFilter filter;
-  DOCUMENT("For samplers - the :class:`AddressMode` in the U direction.");
-  AddressMode addressU = AddressMode::Wrap;
-  DOCUMENT("For samplers - the :class:`AddressMode` in the V direction.");
-  AddressMode addressV = AddressMode::Wrap;
-  DOCUMENT("For samplers - the :class:`AddressMode` in the W direction.");
-  AddressMode addressW = AddressMode::Wrap;
-  DOCUMENT("For samplers - a bias to apply to the calculated mip level before sampling.");
-  float mipBias = 0.0f;
-  DOCUMENT("For samplers - the maximum anisotropic filtering level to use.");
-  float maxAnisotropy = 0.0f;
-  DOCUMENT("For samplers - the :class:`CompareFunction` for comparison samplers.");
-  CompareFunction compareFunction = CompareFunction::AlwaysTrue;
-  DOCUMENT("For samplers and image views - the minimum mip level that can be used.");
-  float minLOD = 0.0f;
-  DOCUMENT("For samplers - the maximum mip level that can be used.");
-  float maxLOD = 0.0f;
-  DOCUMENT(R"(For samplers - the RGBA border color value. Typically the float tuple inside will be used,
-but the exact component type can be checked with :data:`borderColorType`.
-
-:type: PixelValue
-)");
-  PixelValue borderColorValue = {};
-  DOCUMENT(R"(For samplers - the RGBA border color type. This determines how the data in
-:data:`borderColorValue` will be interpreted.
-
-:type: CompType
-)");
-  CompType borderColorType = CompType::Float;
-  DOCUMENT(R"(The swizzle applied to samplers. Primarily for ycbcr samplers applied before
-conversion but for non-ycbcr samplers can be used for implementations that require sampler swizzle
-information for border colors.
-
-:type: TextureSwizzle4
-)");
-  TextureSwizzle4 samplerSwizzle;
-  DOCUMENT(
-      "For samplers - ``True`` if the border colour is swizzled with an sRGB formatted image.");
-  bool srgbBorder = false;
-  DOCUMENT("For samplers - ``True`` if unnormalized co-ordinates are used in this sampler.");
-  bool unnormalized = false;
-
-  DOCUMENT("``True`` if this is an inline uniform block binding.");
-  bool inlineBlock = false;
-
-  DOCUMENT("``True`` if this sampler is seamless across cubemap boundaries (the default).");
-  bool seamless = true;
-
-  DOCUMENT(R"(For samplers - the :class:`ResourceId` of the ycbcr conversion object associated with
-this sampler.
-)");
-  ResourceId ycbcrSampler;
-
-  DOCUMENT("For ycbcr samplers - the :class:`YcbcrConversion` used for conversion.");
-  YcbcrConversion ycbcrModel;
-  DOCUMENT("For ycbcr samplers - the :class:`YcbcrRange` used for conversion.");
-  YcbcrRange ycbcrRange;
-  DOCUMENT("For ycbcr samplers - the :class:`ChromaSampleLocation` X-axis chroma offset.");
-  ChromaSampleLocation xChromaOffset;
-  DOCUMENT("For ycbcr samplers - the :class:`ChromaSampleLocation` Y-axis chroma offset.");
-  ChromaSampleLocation yChromaOffset;
-  DOCUMENT("For ycbcr samplers - the :class:`FilterMode` describing the chroma filtering mode.");
-  FilterMode chromaFilter;
-  DOCUMENT("For ycbcr samplers - ``True`` if explicit reconstruction is force enabled.");
-  bool forceExplicitReconstruction;
-
-  DOCUMENT(R"(For samplers - check if the border color is used in this Vulkan sampler.
-
-:return: ``True`` if the border color is used, ``False`` otherwise.
-:rtype: bool
-)");
-  bool UseBorder() const
-  {
-    return addressU == AddressMode::ClampBorder || addressV == AddressMode::ClampBorder ||
-           addressW == AddressMode::ClampBorder;
-  }
-};
-
-DOCUMENT("The contents of a single binding within a descriptor set, either arrayed or not.");
-struct DescriptorBinding
-{
-  DOCUMENT("");
-  DescriptorBinding() = default;
-  DescriptorBinding(const DescriptorBinding &) = default;
-  DescriptorBinding &operator=(const DescriptorBinding &) = default;
-
-  bool operator==(const DescriptorBinding &o) const
-  {
-    return descriptorCount == o.descriptorCount && dynamicallyUsedCount == o.dynamicallyUsedCount &&
-           firstUsedIndex == o.firstUsedIndex && lastUsedIndex == o.lastUsedIndex &&
-           stageFlags == o.stageFlags && binds == o.binds;
-  }
-  bool operator<(const DescriptorBinding &o) const
-  {
-    if(!(descriptorCount == o.descriptorCount))
-      return descriptorCount < o.descriptorCount;
-    if(!(dynamicallyUsedCount == o.dynamicallyUsedCount))
-      return dynamicallyUsedCount < o.dynamicallyUsedCount;
-    if(!(firstUsedIndex == o.firstUsedIndex))
-      return firstUsedIndex < o.firstUsedIndex;
-    if(!(lastUsedIndex == o.lastUsedIndex))
-      return lastUsedIndex < o.lastUsedIndex;
-    if(!(stageFlags == o.stageFlags))
-      return stageFlags < o.stageFlags;
-    if(!(binds == o.binds))
-      return binds < o.binds;
-    return false;
-  }
-  DOCUMENT(R"(How many descriptors are in this binding array.
-If this binding is empty/non-existant this value will be ``0``.
-)");
-  uint32_t descriptorCount = 0;
-  DOCUMENT(R"(Lists how many bindings in :data:`binds` are dynamically used. Useful to avoid
-redundant iteration to determine whether any bindings are present.
-
-For more information see :data:`VKBindingElement.dynamicallyUsed`.
-)");
-  uint32_t dynamicallyUsedCount = ~0U;
-  DOCUMENT(R"(Gives the index of the first binding in :data:`binds` that is dynamically used. Useful
-to avoid redundant iteration in very large descriptor arrays with a small subset that are used.
-
-For more information see :data:`VKBindingElement.dynamicallyUsed`.
-)");
-  int32_t firstUsedIndex = 0;
-  DOCUMENT(R"(Gives the index of the first binding in :data:`binds` that is dynamically used. Useful
-to avoid redundant iteration in very large descriptor arrays with a small subset that are used.
-
-.. note::
-  This may be set to a higher value than the number of bindings, if no dynamic use information is
-  available. Ensure that this is an additional check on the bind and the count is still respected.
-
-For more information see :data:`VKBindingElement.dynamicallyUsed`.
-)");
-  int32_t lastUsedIndex = 0x7fffffff;
-  DOCUMENT("The :class:`ShaderStageMask` where this binding is visible.");
-  ShaderStageMask stageFlags = ShaderStageMask::Unknown;
-
-  DOCUMENT(R"(The binding elements.
-If :data:`descriptorCount` is 1 then this list has only one element and the binding is not arrayed.
-
-:type: List[VKBindingElement]
-)");
-  rdcarray<BindingElement> binds;
-};
-
 DOCUMENT("A dynamic offset applied to a single descriptor access.");
 struct DynamicOffset
 {
@@ -359,8 +73,7 @@ struct DescriptorSet
   {
     return layoutResourceId == o.layoutResourceId &&
            descriptorSetResourceId == o.descriptorSetResourceId &&
-           pushDescriptor == o.pushDescriptor && bindings == o.bindings &&
-           inlineData == o.inlineData;
+           pushDescriptor == o.pushDescriptor;
   }
   bool operator<(const DescriptorSet &o) const
   {
@@ -370,10 +83,6 @@ struct DescriptorSet
       return descriptorSetResourceId < o.descriptorSetResourceId;
     if(!(pushDescriptor == o.pushDescriptor))
       return pushDescriptor < o.pushDescriptor;
-    if(!(bindings == o.bindings))
-      return bindings < o.bindings;
-    if(!(inlineData == o.inlineData))
-      return inlineData < o.inlineData;
     return false;
   }
   DOCUMENT("The :class:`ResourceId` of the descriptor set layout that matches this set.");
@@ -382,20 +91,6 @@ struct DescriptorSet
   ResourceId descriptorSetResourceId;
   DOCUMENT("Indicates if this is a virtual 'push' descriptor set.");
   bool pushDescriptor = false;
-
-  DOCUMENT(R"(The bindings within this set.
-This list is indexed by the binding, so it may be sparse (some entries do not contain any elements).
-
-:type: List[VKDescriptorBinding]
-)");
-  rdcarray<DescriptorBinding> bindings;
-
-  DOCUMENT(R"(The inline byte data within this descriptor set. Individual bindings will have an
-offset and size into this buffer.
-
-:type: bytes
-)");
-  bytebuf inlineData;
 
   DOCUMENT(R"(A list of dynamic offsets to be applied to specific bindings, on top of the contents
 of their descriptors.
@@ -639,11 +334,6 @@ struct Shader
 :type: ShaderReflection
 )");
   ShaderReflection *reflection = NULL;
-  DOCUMENT(R"(The bindpoint mapping data to match :data:`reflection`.
-
-:type: ShaderBindpointMapping
-)");
-  ShaderBindpointMapping bindpointMapping;
 
   DOCUMENT("A :class:`ShaderStage` identifying which stage this shader is bound to.");
   ShaderStage stage = ShaderStage::Vertex;
@@ -1518,8 +1208,6 @@ struct State
 
 };    // namespace VKPipe
 
-DECLARE_REFLECTION_STRUCT(VKPipe::BindingElement);
-DECLARE_REFLECTION_STRUCT(VKPipe::DescriptorBinding);
 DECLARE_REFLECTION_STRUCT(VKPipe::DynamicOffset);
 DECLARE_REFLECTION_STRUCT(VKPipe::DescriptorSet);
 DECLARE_REFLECTION_STRUCT(VKPipe::Pipeline);

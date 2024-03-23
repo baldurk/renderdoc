@@ -566,7 +566,7 @@ ResourceId VulkanPipelineStateViewer::GetResource(RDTreeWidgetItem *item)
       return cb.descriptor.resource;
 
     return m_Ctx.CurPipelineState()
-        .GetConstantBlockDescriptor(stage->stage, cb.index, cb.arrayElement)
+        .GetConstantBlock(stage->stage, cb.index, cb.arrayElement)
         .descriptor.resource;
   }
 
@@ -3394,7 +3394,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
   QList<QVariantList> rwRows;
   QList<QVariantList> sampRows;
 
-  for(const UsedDescriptor &used : m_Ctx.CurPipelineState().GetConstantBlockDescriptors(sh.stage))
+  for(const UsedDescriptor &used : m_Ctx.CurPipelineState().GetConstantBlocks(sh.stage))
   {
     if(used.access.stage != sh.stage)
       continue;
@@ -3483,7 +3483,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
         {slotname, name, (qulonglong)byteOffset, (qulonglong)length, numvars, bindByteSize});
   }
 
-  for(const UsedDescriptor &used : m_Ctx.CurPipelineState().GetReadOnlyDescriptors(sh.stage))
+  for(const UsedDescriptor &used : m_Ctx.CurPipelineState().GetReadOnlyResources(sh.stage))
   {
     if(used.access.stage != sh.stage)
       continue;
@@ -3506,7 +3506,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
     exportDescriptorHTML(used, sh.reflection, descriptor, dynamicOffset, roRows);
   }
 
-  for(const UsedDescriptor &used : m_Ctx.CurPipelineState().GetReadWriteDescriptors(sh.stage))
+  for(const UsedDescriptor &used : m_Ctx.CurPipelineState().GetReadWriteResources(sh.stage))
   {
     if(used.access.stage != sh.stage)
       continue;
@@ -3529,7 +3529,7 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
     exportDescriptorHTML(used, sh.reflection, descriptor, dynamicOffset, rwRows);
   }
 
-  for(const UsedDescriptor &used : m_Ctx.CurPipelineState().GetSamplerDescriptors(sh.stage))
+  for(const UsedDescriptor &used : m_Ctx.CurPipelineState().GetSamplers(sh.stage))
   {
     if(used.access.stage != sh.stage)
       continue;

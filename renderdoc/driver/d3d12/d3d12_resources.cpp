@@ -657,7 +657,7 @@ void WrappedID3D12PipelineState::ShaderEntry::BuildReflection()
       D3Dx_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT == D3D12_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT,
       "Mismatched vertex input count");
 
-  MakeShaderReflection(m_DXBCFile, m_Details, &m_Mapping);
+  MakeShaderReflection(m_DXBCFile, m_Details);
   m_Details->resourceId = GetResourceID();
 }
 
@@ -749,7 +749,6 @@ void WrappedID3D12PipelineState::ProcessDescriptorAccess()
       continue;
 
     const ShaderReflection &refl = shad->GetDetails();
-    const ShaderBindpointMapping &mapping = shad->GetMapping();
 
     D3D12_SHADER_VISIBILITY visibility;
     switch(refl.stage)
@@ -770,85 +769,81 @@ void WrappedID3D12PipelineState::ProcessDescriptorAccess()
     // we will store the root signature element in byteSize to be decoded into descriptorStore later
     access.byteSize = 0;
 
-    staticDescriptorAccess.reserve(staticDescriptorAccess.size() + mapping.constantBlocks.size() +
-                                   mapping.samplers.size() + mapping.readOnlyResources.size() +
-                                   mapping.readWriteResources.size());
+    staticDescriptorAccess.reserve(staticDescriptorAccess.size() + refl.constantBlocks.size() +
+                                   refl.samplers.size() + refl.readOnlyResources.size() +
+                                   refl.readWriteResources.size());
 
-    RDCASSERT(mapping.constantBlocks.size() < 0xffff, mapping.constantBlocks.size());
-    for(uint16_t i = 0; i < mapping.constantBlocks.size(); i++)
+    RDCASSERT(refl.constantBlocks.size() < 0xffff, refl.constantBlocks.size());
+    for(uint16_t i = 0; i < refl.constantBlocks.size(); i++)
     {
-      const Bindpoint &bind = mapping.constantBlocks[i];
+      const ConstantBlock &bind = refl.constantBlocks[i];
 
       // arrayed descriptors will be handled with bindless feedback
-      if(bind.arraySize > 1)
+      if(bind.bindArraySize > 1)
         continue;
 
-      access.staticallyUnused = !bind.used;
       access.type = DescriptorType::ConstantBuffer;
       access.index = i;
       rdctie(access.byteSize, access.byteOffset) =
           FindMatchingRootParameter(sig, visibility, D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
-                                    (uint32_t)bind.bindset, (uint32_t)bind.bind);
+                                    bind.fixedBindSetOrSpace, bind.fixedBindNumber);
 
       if(access.byteSize != ~0U)
         staticDescriptorAccess.push_back(access);
     }
 
-    RDCASSERT(mapping.samplers.size() < 0xffff, mapping.samplers.size());
-    for(uint16_t i = 0; i < mapping.samplers.size(); i++)
+    RDCASSERT(refl.samplers.size() < 0xffff, refl.samplers.size());
+    for(uint16_t i = 0; i < refl.samplers.size(); i++)
     {
-      const Bindpoint &bind = mapping.samplers[i];
+      const ShaderSampler &bind = refl.samplers[i];
 
       // arrayed descriptors will be handled with bindless feedback
-      if(bind.arraySize > 1)
+      if(bind.bindArraySize > 1)
         continue;
 
-      access.staticallyUnused = !bind.used;
       access.type = DescriptorType::Sampler;
       access.index = i;
       rdctie(access.byteSize, access.byteOffset) =
           FindMatchingRootParameter(sig, visibility, D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER,
-                                    (uint32_t)bind.bindset, (uint32_t)bind.bind);
+                                    bind.fixedBindSetOrSpace, bind.fixedBindNumber);
 
       if(access.byteSize != ~0U)
         staticDescriptorAccess.push_back(access);
     }
 
-    RDCASSERT(mapping.readOnlyResources.size() < 0xffff, mapping.readOnlyResources.size());
-    for(uint16_t i = 0; i < mapping.readOnlyResources.size(); i++)
+    RDCASSERT(refl.readOnlyResources.size() < 0xffff, refl.readOnlyResources.size());
+    for(uint16_t i = 0; i < refl.readOnlyResources.size(); i++)
     {
-      const Bindpoint &bind = mapping.readOnlyResources[i];
+      const ShaderResource &bind = refl.readOnlyResources[i];
 
       // arrayed descriptors will be handled with bindless feedback
-      if(bind.arraySize > 1)
+      if(bind.bindArraySize > 1)
         continue;
 
-      access.staticallyUnused = !bind.used;
       access.type = refl.readOnlyResources[i].descriptorType;
       access.index = i;
       rdctie(access.byteSize, access.byteOffset) =
           FindMatchingRootParameter(sig, visibility, D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
-                                    (uint32_t)bind.bindset, (uint32_t)bind.bind);
+                                    bind.fixedBindSetOrSpace, bind.fixedBindNumber);
 
       if(access.byteSize != ~0U)
         staticDescriptorAccess.push_back(access);
     }
 
-    RDCASSERT(mapping.readWriteResources.size() < 0xffff, mapping.readWriteResources.size());
-    for(uint16_t i = 0; i < mapping.readWriteResources.size(); i++)
+    RDCASSERT(refl.readWriteResources.size() < 0xffff, refl.readWriteResources.size());
+    for(uint16_t i = 0; i < refl.readWriteResources.size(); i++)
     {
-      const Bindpoint &bind = mapping.readWriteResources[i];
+      const ShaderResource &bind = refl.readWriteResources[i];
 
       // arrayed descriptors will be handled with bindless feedback
-      if(bind.arraySize > 1)
+      if(bind.bindArraySize > 1)
         continue;
 
-      access.staticallyUnused = !bind.used;
       access.type = refl.readWriteResources[i].descriptorType;
       access.index = i;
       rdctie(access.byteSize, access.byteOffset) =
           FindMatchingRootParameter(sig, visibility, D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
-                                    (uint32_t)bind.bindset, (uint32_t)bind.bind);
+                                    bind.fixedBindSetOrSpace, bind.fixedBindNumber);
 
       if(access.byteSize != ~0U)
         staticDescriptorAccess.push_back(access);

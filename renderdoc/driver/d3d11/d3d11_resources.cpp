@@ -93,7 +93,7 @@ void WrappedShader::ShaderEntry::BuildReflection()
       D3Dx_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT == D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT,
       "Mismatched vertex input count");
 
-  MakeShaderReflection(m_DXBCFile, m_Details, &m_Mapping);
+  MakeShaderReflection(m_DXBCFile, m_Details);
   m_Details->resourceId = m_ID;
 
   DescriptorAccess access;
@@ -101,50 +101,47 @@ void WrappedShader::ShaderEntry::BuildReflection()
   access.stage = m_Details->stage;
   access.byteSize = 1;
 
-  m_Access.reserve(m_Mapping.constantBlocks.size() + m_Mapping.samplers.size() +
-                   m_Mapping.readOnlyResources.size() + m_Mapping.readWriteResources.size());
+  m_Access.reserve(m_Details->constantBlocks.size() + m_Details->samplers.size() +
+                   m_Details->readOnlyResources.size() + m_Details->readWriteResources.size());
 
-  RDCASSERT(m_Mapping.constantBlocks.size() < 0xffff, m_Mapping.constantBlocks.size());
-  for(uint16_t i = 0; i < m_Mapping.constantBlocks.size(); i++)
+  RDCASSERT(m_Details->constantBlocks.size() < 0xffff, m_Details->constantBlocks.size());
+  for(uint16_t i = 0; i < m_Details->constantBlocks.size(); i++)
   {
-    access.staticallyUnused = !m_Mapping.constantBlocks[i].used;
     access.type = DescriptorType::ConstantBuffer;
     access.index = i;
     access.byteOffset = EncodeD3D11DescriptorIndex(
-        {access.stage, D3D11DescriptorMapping::CBs, (uint32_t)m_Mapping.constantBlocks[i].bind});
+        {access.stage, D3D11DescriptorMapping::CBs, m_Details->constantBlocks[i].fixedBindNumber});
     m_Access.push_back(access);
   }
 
-  RDCASSERT(m_Mapping.samplers.size() < 0xffff, m_Mapping.samplers.size());
-  for(uint16_t i = 0; i < m_Mapping.samplers.size(); i++)
+  RDCASSERT(m_Details->samplers.size() < 0xffff, m_Details->samplers.size());
+  for(uint16_t i = 0; i < m_Details->samplers.size(); i++)
   {
-    access.staticallyUnused = !m_Mapping.samplers[i].used;
     access.type = DescriptorType::Sampler;
     access.index = i;
     access.byteOffset = EncodeD3D11DescriptorIndex(
-        {access.stage, D3D11DescriptorMapping::Samplers, (uint32_t)m_Mapping.samplers[i].bind});
+        {access.stage, D3D11DescriptorMapping::Samplers, m_Details->samplers[i].fixedBindNumber});
     m_Access.push_back(access);
   }
 
-  RDCASSERT(m_Mapping.readOnlyResources.size() < 0xffff, m_Mapping.readOnlyResources.size());
-  for(uint16_t i = 0; i < m_Mapping.readOnlyResources.size(); i++)
+  RDCASSERT(m_Details->readOnlyResources.size() < 0xffff, m_Details->readOnlyResources.size());
+  for(uint16_t i = 0; i < m_Details->readOnlyResources.size(); i++)
   {
-    access.staticallyUnused = !m_Mapping.readOnlyResources[i].used;
     access.type = m_Details->readOnlyResources[i].descriptorType;
     access.index = i;
     access.byteOffset = EncodeD3D11DescriptorIndex({access.stage, D3D11DescriptorMapping::SRVs,
-                                                    (uint32_t)m_Mapping.readOnlyResources[i].bind});
+                                                    m_Details->readOnlyResources[i].fixedBindNumber});
     m_Access.push_back(access);
   }
 
-  RDCASSERT(m_Mapping.readWriteResources.size() < 0xffff, m_Mapping.readWriteResources.size());
-  for(uint16_t i = 0; i < m_Mapping.readWriteResources.size(); i++)
+  RDCASSERT(m_Details->readWriteResources.size() < 0xffff, m_Details->readWriteResources.size());
+  for(uint16_t i = 0; i < m_Details->readWriteResources.size(); i++)
   {
-    access.staticallyUnused = !m_Mapping.readWriteResources[i].used;
     access.type = m_Details->readWriteResources[i].descriptorType;
     access.index = i;
-    access.byteOffset = EncodeD3D11DescriptorIndex({access.stage, D3D11DescriptorMapping::UAVs,
-                                                    (uint32_t)m_Mapping.readWriteResources[i].bind});
+    access.byteOffset =
+        EncodeD3D11DescriptorIndex({access.stage, D3D11DescriptorMapping::UAVs,
+                                    m_Details->readWriteResources[i].fixedBindNumber});
     m_Access.push_back(access);
   }
 }

@@ -246,16 +246,6 @@ requirements.
 )");
   Scissor GetScissor(uint32_t index) const;
 
-  DOCUMENT(R"(Retrieves the current bindpoint mapping for a shader stage.
-
-This returns an empty bindpoint mapping if no shader is bound.
-
-:param ShaderStage stage: The shader stage to fetch.
-:return: The bindpoint mapping for the given shader.
-:rtype: ShaderBindpointMapping
-)");
-  const ShaderBindpointMapping &GetBindpointMapping(ShaderStage stage) const;
-
   DOCUMENT(R"(Retrieves the shader reflection information for a shader stage.
 
 This returns ``None`` if no shader is bound.
@@ -350,45 +340,6 @@ For some APIs that don't distinguish by entry point, this may be empty.
 )");
   rdcarray<VertexInputAttribute> GetVertexInputs() const;
 
-  DOCUMENT(R"(Retrieves the constant buffer at a given binding.
-
-:param ShaderStage stage: The shader stage to fetch from.
-:param int BufIdx: The index in the shader's ConstantBlocks array to look up.
-:param int ArrayIdx: For APIs that support arrays of constant buffers in a single binding, the index
-  in that array to look up.
-:return: The constant buffer at the specified binding.
-:rtype: BoundCBuffer
-)");
-  BoundCBuffer GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, uint32_t ArrayIdx) const;
-
-  DOCUMENT(R"(Retrieves the read-only resources bound to a particular shader stage.
-
-:param ShaderStage stage: The shader stage to fetch from.
-:param bool onlyUsed: Return only a subset of resources containing those actually used by the
-  shader.
-:return: The currently bound read-only resources.
-:rtype: List[BoundResourceArray]
-)");
-  rdcarray<BoundResourceArray> GetReadOnlyResources(ShaderStage stage, bool onlyUsed = false) const;
-
-  DOCUMENT(R"(Retrieves the samplers bound to a particular shader stage.
-
-:param ShaderStage stage: The shader stage to fetch from.
-:return: The currently bound sampler resources.
-:rtype: List[BoundResourceArray]
-)");
-  rdcarray<BoundResourceArray> GetSamplers(ShaderStage stage) const;
-
-  DOCUMENT(R"(Retrieves the read/write resources bound to a particular shader stage.
-
-:param ShaderStage stage: The shader stage to fetch from.
-:param bool onlyUsed: Return only a subset of resources containing those actually used by the
-  shader.
-:return: The currently bound read/write resources.
-:rtype: List[BoundResourceArray]
-)");
-  rdcarray<BoundResourceArray> GetReadWriteResources(ShaderStage stage, bool onlyUsed = false) const;
-
   DOCUMENT(R"(Retrieves the current list of descriptor accesses, as cached from a call to
 :meth:`ReplayController.GetDescriptorAccess`. The return value is identical, this is here for
 convenience of access.
@@ -415,8 +366,7 @@ convenience of access.
 :return: The constant buffer at the specified binding.
 :rtype: UsedDescriptor
 )");
-  UsedDescriptor GetConstantBlockDescriptor(ShaderStage stage, uint32_t index,
-                                            uint32_t arrayIdx) const;
+  UsedDescriptor GetConstantBlock(ShaderStage stage, uint32_t index, uint32_t arrayIdx) const;
 
   DOCUMENT(R"(Retrieves the constant blocks used by a particular shader stage.
 
@@ -425,7 +375,7 @@ convenience of access.
 :return: The currently bound constant blocks.
 :rtype: List[UsedDescriptor]
 )");
-  rdcarray<UsedDescriptor> GetConstantBlockDescriptors(ShaderStage stage, bool onlyUsed = false) const;
+  rdcarray<UsedDescriptor> GetConstantBlocks(ShaderStage stage, bool onlyUsed = false) const;
 
   DOCUMENT(R"(Retrieves the read-only resources used by a particular shader stage.
 
@@ -434,7 +384,7 @@ convenience of access.
 :return: The currently bound read-only resources.
 :rtype: List[UsedDescriptor]
 )");
-  rdcarray<UsedDescriptor> GetReadOnlyDescriptors(ShaderStage stage, bool onlyUsed = false) const;
+  rdcarray<UsedDescriptor> GetReadOnlyResources(ShaderStage stage, bool onlyUsed = false) const;
 
   DOCUMENT(R"(Retrieves the samplers bound to a particular shader stage.
 
@@ -443,7 +393,7 @@ convenience of access.
 :return: The currently bound sampler resources.
 :rtype: List[UsedDescriptor]
 )");
-  rdcarray<UsedDescriptor> GetSamplerDescriptors(ShaderStage stage, bool onlyUsed = false) const;
+  rdcarray<UsedDescriptor> GetSamplers(ShaderStage stage, bool onlyUsed = false) const;
 
   DOCUMENT(R"(Retrieves the read/write resources used by a particular shader stage.
 
@@ -452,49 +402,28 @@ convenience of access.
 :return: The currently bound read/write resources.
 :rtype: List[UsedDescriptor]
 )");
-  rdcarray<UsedDescriptor> GetReadWriteDescriptors(ShaderStage stage, bool onlyUsed = false) const;
-
-  DOCUMENT(R"(Retrieves the read/write resources bound to the depth-stencil output.
-
-:return: The currently bound depth-stencil resource.
-:rtype: BoundResource
-)");
-  BoundResource GetDepthTarget() const;
-
-  DOCUMENT(R"(Retrieves the read/write resources bound to the depth-stencil resolve output.
-
-:return: The currently bound depth-stencil resolve resource.
-:rtype: BoundResource
-)");
-  BoundResource GetDepthResolveTarget() const;
-
-  DOCUMENT(R"(Retrieves the resources bound to the color outputs.
-
-:return: The currently bound output targets.
-:rtype: List[BoundResource]
-)");
-  rdcarray<BoundResource> GetOutputTargets() const;
+  rdcarray<UsedDescriptor> GetReadWriteResources(ShaderStage stage, bool onlyUsed = false) const;
 
   DOCUMENT(R"(Retrieves the read/write resources bound to the depth-stencil output.
 
 :return: The currently bound depth-stencil resource.
 :rtype: Descriptor
 )");
-  Descriptor GetDepthTargetDescriptor() const;
+  Descriptor GetDepthTarget() const;
 
   DOCUMENT(R"(Retrieves the read/write resources bound to the depth-stencil resolve output.
 
 :return: The currently bound depth-stencil resolve resource.
 :rtype: Descriptor
 )");
-  Descriptor GetDepthResolveTargetDescriptor() const;
+  Descriptor GetDepthResolveTarget() const;
 
   DOCUMENT(R"(Retrieves the resources bound to the color outputs.
 
 :return: The currently bound output targets.
 :rtype: List[Descriptor]
 )");
-  rdcarray<Descriptor> GetOutputTargetDescriptors() const;
+  rdcarray<Descriptor> GetOutputTargets() const;
 
   DOCUMENT(R"(Retrieves the current color blending states, per target.
 

@@ -40,9 +40,7 @@ rdcstr InsertSnippetAfterVersion(ShaderType type, const char *source, int len, c
 
 // for unit tests
 struct ShaderReflection;
-struct ShaderBindpointMapping;
 enum class ShaderStage : uint8_t;
-using ReflectionMaker =
-    std::function<void(ShaderStage stage, const rdcstr &source, const rdcstr &entryPoint,
-                       ShaderReflection &refl, ShaderBindpointMapping &mapping)>;
+using ReflectionMaker = std::function<void(ShaderStage stage, const rdcstr &source,
+                                           const rdcstr &entryPoint, ShaderReflection &refl)>;
 void TestGLSLReflection(ShaderType testType, ReflectionMaker compile);

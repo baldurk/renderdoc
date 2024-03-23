@@ -837,14 +837,6 @@ public:
       return *m_Details;
     }
 
-    const ShaderBindpointMapping &GetMapping()
-    {
-      if(!m_Built && GetDXBC() != NULL)
-        BuildReflection();
-      m_Built = true;
-      return m_Mapping;
-    }
-
   private:
     void TryReplaceOriginalByteCode();
 
@@ -858,7 +850,6 @@ public:
     bool m_Built;
     DXBC::DXBCContainer *m_DXBCFile;
     ShaderReflection *m_Details;
-    ShaderBindpointMapping m_Mapping;
 
     static std::map<DXBCKey, ShaderEntry *> m_Shaders;
   };

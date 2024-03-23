@@ -255,7 +255,6 @@ struct VulkanPostVSData
 struct VKDynamicShaderFeedback
 {
   bool compute = false, valid = false;
-  rdcarray<BindpointIndex> used;
   rdcarray<DescriptorAccess> access;
   rdcarray<ShaderMessage> messages;
 };
@@ -497,7 +496,6 @@ private:
   bool FetchShaderFeedback(uint32_t eventId);
   void ClearFeedbackCache();
 
-  void FillBindingElement(VKPipe::BindingElement &dstel, const DescriptorSetSlot &srcel);
   void FillDescriptor(Descriptor &dstel, const DescriptorSetSlot &srcel);
   void FillSamplerDescriptor(SamplerDescriptor &dstel, const DescriptorSetSlot &srcel);
 

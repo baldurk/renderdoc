@@ -299,128 +299,6 @@ struct View
   DOCUMENT("Valid for texture arrays or 3D textures - the number of slices in the view.");
   uint32_t numSlices = 1;
 };
-
-DOCUMENT("Describes a sampler state object.");
-struct Sampler
-{
-  DOCUMENT("");
-  Sampler() = default;
-  Sampler(const Sampler &) = default;
-  Sampler &operator=(const Sampler &) = default;
-
-  bool operator==(const Sampler &o) const
-  {
-    return resourceId == o.resourceId && addressU == o.addressU && addressV == o.addressV &&
-           addressW == o.addressW && borderColor == o.borderColor &&
-           compareFunction == o.compareFunction && filter == o.filter &&
-           maxAnisotropy == o.maxAnisotropy && maxLOD == o.maxLOD && minLOD == o.minLOD &&
-           mipLODBias == o.mipLODBias;
-  }
-  bool operator<(const Sampler &o) const
-  {
-    if(!(resourceId == o.resourceId))
-      return resourceId < o.resourceId;
-    if(!(addressU == o.addressU))
-      return addressU < o.addressU;
-    if(!(addressV == o.addressV))
-      return addressV < o.addressV;
-    if(!(addressW == o.addressW))
-      return addressW < o.addressW;
-    if(!(borderColor == o.borderColor))
-      return borderColor < o.borderColor;
-    if(!(compareFunction == o.compareFunction))
-      return compareFunction < o.compareFunction;
-    if(!(filter == o.filter))
-      return filter < o.filter;
-    if(!(maxAnisotropy == o.maxAnisotropy))
-      return maxAnisotropy < o.maxAnisotropy;
-    if(!(maxLOD == o.maxLOD))
-      return maxLOD < o.maxLOD;
-    if(!(minLOD == o.minLOD))
-      return minLOD < o.minLOD;
-    if(!(mipLODBias == o.mipLODBias))
-      return mipLODBias < o.mipLODBias;
-    return false;
-  }
-  DOCUMENT("The :class:`ResourceId` of the sampler state object.");
-  ResourceId resourceId;
-  DOCUMENT("The :class:`AddressMode` in the U direction.");
-  AddressMode addressU = AddressMode::Wrap;
-  DOCUMENT("The :class:`AddressMode` in the V direction.");
-  AddressMode addressV = AddressMode::Wrap;
-  DOCUMENT("The :class:`AddressMode` in the W direction.");
-  AddressMode addressW = AddressMode::Wrap;
-  DOCUMENT(R"(The RGBA border color.
-
-:type: Tuple[float,float,float,float]
-)");
-  rdcfixedarray<float, 4> borderColor = {0.0f, 0.0f, 0.0f, 0.0f};
-  DOCUMENT("The :class:`CompareFunction` for comparison samplers.");
-  CompareFunction compareFunction = CompareFunction::AlwaysTrue;
-  DOCUMENT(R"(The filtering mode.
-
-:type: TextureFilter
-)");
-  TextureFilter filter;
-  DOCUMENT("The maximum anisotropic filtering level to use.");
-  uint32_t maxAnisotropy = 0;
-  DOCUMENT("The maximum mip level that can be used.");
-  float maxLOD = 0.0f;
-  DOCUMENT("The minimum mip level that can be used.");
-  float minLOD = 0.0f;
-  DOCUMENT("A bias to apply to the calculated mip level before sampling.");
-  float mipLODBias = 0.0f;
-
-  DOCUMENT(R"(Check if the border color is used in this D3D11 sampler.
-
-:return: ``True`` if the border color is used, ``False`` otherwise.
-:rtype: bool
-)");
-  bool UseBorder() const
-  {
-    return addressU == AddressMode::ClampBorder || addressV == AddressMode::ClampBorder ||
-           addressW == AddressMode::ClampBorder;
-  }
-};
-
-DOCUMENT("Describes a constant buffer binding.");
-struct ConstantBuffer
-{
-  DOCUMENT("");
-  ConstantBuffer() = default;
-  ConstantBuffer(const ConstantBuffer &) = default;
-  ConstantBuffer &operator=(const ConstantBuffer &) = default;
-
-  bool operator==(const ConstantBuffer &o) const
-  {
-    return resourceId == o.resourceId && vecOffset == o.vecOffset && vecCount == o.vecCount;
-  }
-  bool operator<(const ConstantBuffer &o) const
-  {
-    if(!(resourceId == o.resourceId))
-      return resourceId < o.resourceId;
-    if(!(vecOffset == o.vecOffset))
-      return vecOffset < o.vecOffset;
-    if(!(vecCount == o.vecCount))
-      return vecCount < o.vecCount;
-    return false;
-  }
-  DOCUMENT("The :class:`ResourceId` of the buffer.");
-  ResourceId resourceId;
-
-  DOCUMENT(R"(The offset of the buffer binding, in units of ``float4`` (16 bytes).
-
-If the capture isn't using the D3D11.1 binding methods, this offset will be 0.
-)");
-  uint32_t vecOffset = 0;
-
-  DOCUMENT(R"(The size of the buffer binding, in units of ``float4`` (16 bytes).
-
-If the capture isn't using the D3D11.1 binding methods, this offset will be 4096 (64 kiB).
-)");
-  uint32_t vecCount = 0;
-};
-
 DOCUMENT("Describes a D3D11 shader stage.");
 struct Shader
 {
@@ -437,39 +315,9 @@ struct Shader
 :type: ShaderReflection
 )");
   ShaderReflection *reflection = NULL;
-  DOCUMENT(R"(The bindpoint mapping data to match :data:`reflection`.
-
-:type: ShaderBindpointMapping
-)");
-  ShaderBindpointMapping bindpointMapping;
 
   DOCUMENT("A :class:`ShaderStage` identifying which stage this shader is bound to.");
   ShaderStage stage = ShaderStage::Vertex;
-
-  DOCUMENT(R"(The bound SRVs.
-
-:type: List[D3D11View]
-)");
-  rdcarray<View> srvs;
-
-  DOCUMENT(R"(The bound UAVs - only valid for the compute stage, other stages pull the UAVs from
-the :data:`D3D11OutputMerger`.
-
-:type: List[D3D11View]
-)");
-  rdcarray<View> uavs;
-
-  DOCUMENT(R"(The bound samplers.
-
-:type: List[D3D11Sampler]
-)");
-  rdcarray<Sampler> samplers;
-
-  DOCUMENT(R"(The bound constant buffers.
-
-:type: List[D3D11ConstantBuffer]
-)");
-  rdcarray<ConstantBuffer> constantBuffers;
 
   DOCUMENT(R"(The bound class instance names.
 
@@ -702,12 +550,6 @@ struct OutputMerger
   DOCUMENT("Which slot in the output targets is the first UAV.");
   uint32_t uavStartSlot = 0;
 
-  DOCUMENT(R"(The bound UAVs.
-
-:type: List[D3D11View]
-)");
-  rdcarray<View> uavs;
-
   DOCUMENT(R"(The currently bound depth-stencil target.
 
 :type: D3D11View
@@ -833,8 +675,6 @@ DECLARE_REFLECTION_STRUCT(D3D11Pipe::VertexBuffer);
 DECLARE_REFLECTION_STRUCT(D3D11Pipe::IndexBuffer);
 DECLARE_REFLECTION_STRUCT(D3D11Pipe::InputAssembly);
 DECLARE_REFLECTION_STRUCT(D3D11Pipe::View);
-DECLARE_REFLECTION_STRUCT(D3D11Pipe::Sampler);
-DECLARE_REFLECTION_STRUCT(D3D11Pipe::ConstantBuffer);
 DECLARE_REFLECTION_STRUCT(D3D11Pipe::Shader);
 DECLARE_REFLECTION_STRUCT(D3D11Pipe::StreamOutBind);
 DECLARE_REFLECTION_STRUCT(D3D11Pipe::StreamOut);

@@ -3315,7 +3315,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
     // update with the current cbuffer for the current slot
     if(IsCBufferView())
     {
-      UsedDescriptor cb = m_Ctx.CurPipelineState().GetConstantBlockDescriptor(
+      UsedDescriptor cb = m_Ctx.CurPipelineState().GetConstantBlock(
           m_CBufferSlot.stage, m_CBufferSlot.slot, m_CBufferSlot.arrayIdx);
       m_BufferID = cb.descriptor.resource;
       m_ByteOffset = cb.descriptor.byteOffset;

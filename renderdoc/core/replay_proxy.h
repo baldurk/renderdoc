@@ -657,18 +657,13 @@ private:
   struct ShaderReflKey
   {
     ShaderReflKey() {}
-    ShaderReflKey(uint32_t eid, ResourceId p, ResourceId s, ShaderEntryPoint e)
-        : eventId(eid), pipeline(p), shader(s), entry(e)
+    ShaderReflKey(ResourceId p, ResourceId s, ShaderEntryPoint e) : pipeline(p), shader(s), entry(e)
     {
     }
-    uint32_t eventId;
     ResourceId pipeline, shader;
     ShaderEntryPoint entry;
     bool operator<(const ShaderReflKey &o) const
     {
-      if(eventId != o.eventId)
-        return eventId < o.eventId;
-
       if(pipeline != o.pipeline)
         return pipeline < o.pipeline;
 

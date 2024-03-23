@@ -403,7 +403,8 @@ struct D3D12CommandData
 
   void AddUsageForBindInRootSig(const D3D12RenderState &state, D3D12ActionTreeNode &actionNode,
                                 const D3D12RenderState::RootSignature *rootsig,
-                                D3D12_DESCRIPTOR_RANGE_TYPE type, const Bindpoint &b);
+                                D3D12_DESCRIPTOR_RANGE_TYPE type, uint32_t space, uint32_t bind,
+                                uint32_t rangeSize);
 
   void AddResourceUsage(D3D12ActionTreeNode &actionNode, ResourceId id, uint32_t EID,
                         ResourceUsage usage);

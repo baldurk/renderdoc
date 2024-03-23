@@ -4076,7 +4076,7 @@ GLint APIENTRY _testStub_AttribLocation(GLuint program, const GLchar *name)
 }
 
 void MakeOfflineShaderReflection(ShaderStage stage, const rdcstr &source, const rdcstr &entryPoint,
-                                 ShaderReflection &refl, ShaderBindpointMapping &mapping)
+                                 ShaderReflection &refl)
 {
   rdcspv::Init();
   RenderDoc::Inst().RegisterShutdownFunction(&rdcspv::Shutdown);
@@ -4126,8 +4126,6 @@ void MakeOfflineShaderReflection(ShaderStage stage, const rdcstr &source, const 
   GL.glGetIntegerv = &_testStub_GetIntegerv;
   GL.glGetAttribLocation = &_testStub_AttribLocation;
 
-  GetBindpointMapping(fakeProg, (int)stage, &refl, mapping);
-
   RDCEraseEl(HasExt);
   GL = GLDispatchTable();
   GL.DriverForEmulation(NULL);
@@ -4137,7 +4135,7 @@ void MakeOfflineShaderReflection(ShaderStage stage, const rdcstr &source, const 
 // current driver. Unused by default but you can change the unit test below to call this function
 // instead of MakeOfflineShaderReflection.
 void MakeOnlineShaderReflection(ShaderStage stage, const rdcstr &source, const rdcstr &entryPoint,
-                                ShaderReflection &refl, ShaderBindpointMapping &mapping)
+                                ShaderReflection &refl)
 {
   RDResult status = ResultCode::APIUnsupported;
   IReplayDriver *driver = NULL;
@@ -4170,15 +4168,6 @@ void MakeOnlineShaderReflection(ShaderStage stage, const rdcstr &source, const r
   }
 
   refl = *driver->GetShader(ResourceId(), id, ShaderEntryPoint("main", ShaderStage::Fragment));
-
-  // hack the mapping so that tests can skip checks of mapping when using online compilation (see
-  // MAPPING_VALID)
-  mapping.inputAttributes.resize(1);
-  mapping.inputAttributes[0] = 0x12345678;
-
-  // Note that we can't fill out ShaderBindpointMapping easily on the actual driver through the
-  // replay interface
-  WARN("Using online reflection - all checks with ShaderBindpointMapping will fail");
 
   driver->FreeCustomShader(id);
 

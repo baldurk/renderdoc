@@ -222,7 +222,6 @@ APIProperties GLReplay::GetAPIProperties()
   ret.localRenderer = GraphicsAPI::OpenGL;
   ret.degraded = m_Degraded;
   ret.vendor = m_DriverInfo.vendor;
-  ret.shadersMutable = true;
   ret.pixelHistory = true;
 
   return ret;
@@ -1044,8 +1043,6 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
   GLint numTexUnits = 8;
   drv.glGetIntegerv(eGL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &numTexUnits);
-  pipe.textures.resize(numTexUnits);
-  pipe.samplers.resize(numTexUnits);
 
   GLenum activeTexture = eGL_TEXTURE0;
   drv.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&activeTexture);
@@ -1057,15 +1054,14 @@ void GLReplay::SavePipelineState(uint32_t eventId)
   pipe.fragmentShader.stage = ShaderStage::Fragment;
   pipe.computeShader.stage = ShaderStage::Compute;
 
-  GLuint curProg = 0;
-  drv.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&curProg);
-
   GLPipe::Shader *stages[NumShaderStages] = {
       &pipe.vertexShader,   &pipe.tessControlShader, &pipe.tessEvalShader,
       &pipe.geometryShader, &pipe.fragmentShader,    &pipe.computeShader,
   };
   ShaderReflection *refls[NumShaderStages] = {NULL};
-  ShaderBindpointMapping *mappings[NumShaderStages] = {NULL};
+  ResourceId progIds[NumShaderStages];
+  ResourceId shadIds[NumShaderStages];
+  GLuint progForStage[NumShaderStages] = {};
   bool spirv[NumShaderStages] = {false};
 
   for(size_t i = 0; i < NumShaderStages; i++)
@@ -1075,123 +1071,89 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
     stages[i]->programResourceId = stages[i]->shaderResourceId = ResourceId();
     stages[i]->reflection = NULL;
-    stages[i]->bindpointMapping = ShaderBindpointMapping();
   }
 
   rdcarray<int32_t> vertexAttrBindings;
-  if(curProg == 0)
+
   {
-    drv.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&curProg);
+    GLuint curProg = 0;
+    drv.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&curProg);
 
     if(curProg == 0)
     {
-      for(GLint unit = 0; unit < numTexUnits; unit++)
+      GLuint curPipe = 0;
+      drv.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&curPipe);
+
+      if(curPipe != 0)
       {
-        RDCEraseEl(pipe.textures[unit]);
-        RDCEraseEl(pipe.samplers[unit]);
+        ResourceId id = rm->GetResID(ProgramPipeRes(ctx, curPipe));
+        const WrappedOpenGL::PipelineData &pipeDetails = m_pDriver->m_Pipelines[id];
+
+        pipe.pipelineResourceId = rm->GetUnreplacedOriginalID(id);
+
+        for(size_t i = 0; i < ARRAY_COUNT(pipeDetails.stageShaders); i++)
+        {
+          if(!stages[i])
+            continue;
+
+          if(pipeDetails.stageShaders[i] != ResourceId())
+          {
+            progIds[i] = pipeDetails.stagePrograms[i];
+            shadIds[i] = pipeDetails.stageShaders[i];
+
+            progForStage[i] = rm->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
+          }
+        }
       }
     }
     else
     {
-      ResourceId id = rm->GetResID(ProgramPipeRes(ctx, curProg));
-      auto &pipeDetails = m_pDriver->m_Pipelines[id];
+      ResourceId id = rm->GetResID(ProgramRes(ctx, curProg));
+      const WrappedOpenGL::ProgramData &progDetails = m_pDriver->m_Programs[id];
 
-      pipe.pipelineResourceId = rm->GetUnreplacedOriginalID(id);
+      pipe.pipelineResourceId = ResourceId();
 
-      for(size_t i = 0; i < ARRAY_COUNT(pipeDetails.stageShaders); i++)
+      for(size_t i = 0; i < ARRAY_COUNT(progDetails.stageShaders); i++)
       {
         if(!stages[i])
           continue;
 
-        if(pipeDetails.stageShaders[i] != ResourceId())
+        if(progDetails.stageShaders[i] != ResourceId())
         {
-          curProg = rm->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
+          progIds[i] = id;
+          shadIds[i] = progDetails.stageShaders[i];
 
-          auto &shaderDetails = m_pDriver->m_Shaders[pipeDetails.stageShaders[i]];
-
-          if(shaderDetails.reflection->resourceId == ResourceId())
-            stages[i]->reflection = refls[i] = NULL;
-          else
-            stages[i]->reflection = refls[i] = shaderDetails.reflection;
-
-          if(!shaderDetails.spirvWords.empty())
-          {
-            stages[i]->bindpointMapping = shaderDetails.mapping;
-            spirv[i] = true;
-
-            EvaluateSPIRVBindpointMapping(curProg, (int)i, refls[i], stages[i]->bindpointMapping);
-
-            if(i == 0)
-              EvaluateVertexAttributeBinds(curProg, refls[i], true, vertexAttrBindings);
-          }
-          else
-          {
-            GetBindpointMapping(curProg, (int)i, refls[i], stages[i]->bindpointMapping);
-
-            if(i == 0)
-              EvaluateVertexAttributeBinds(curProg, refls[i], false, vertexAttrBindings);
-          }
-
-          mappings[i] = &stages[i]->bindpointMapping;
-
-          stages[i]->programResourceId = rm->GetUnreplacedOriginalID(pipeDetails.stagePrograms[i]);
-          stages[i]->shaderResourceId = rm->GetUnreplacedOriginalID(pipeDetails.stageShaders[i]);
-        }
-        else
-        {
-          stages[i]->programResourceId = stages[i]->shaderResourceId = ResourceId();
+          progForStage[i] = curProg;
         }
       }
     }
   }
-  else
+
+  for(size_t i = 0; i < NumShaderStages; i++)
   {
-    ResourceId id = rm->GetResID(ProgramRes(ctx, curProg));
-    auto &progDetails = m_pDriver->m_Programs[id];
-
-    pipe.pipelineResourceId = ResourceId();
-
-    for(size_t i = 0; i < ARRAY_COUNT(progDetails.stageShaders); i++)
+    if(progForStage[i])
     {
-      if(!stages[i])
-        continue;
+      progForStage[i] = rm->GetCurrentResource(progIds[i]).name;
+      stages[i]->programResourceId = rm->GetUnreplacedOriginalID(progIds[i]);
+      stages[i]->shaderResourceId = rm->GetUnreplacedOriginalID(shadIds[i]);
 
-      if(progDetails.stageShaders[i] != ResourceId())
-      {
-        auto &shaderDetails = m_pDriver->m_Shaders[progDetails.stageShaders[i]];
+      const WrappedOpenGL::ShaderData &shaderDetails = m_pDriver->m_Shaders[shadIds[i]];
 
-        if(shaderDetails.reflection->resourceId == ResourceId())
-          stages[i]->reflection = refls[i] = NULL;
-        else
-          stages[i]->reflection = refls[i] = shaderDetails.reflection;
-
-        if(!shaderDetails.spirvWords.empty())
-        {
-          stages[i]->bindpointMapping = shaderDetails.mapping;
-          spirv[i] = true;
-
-          EvaluateSPIRVBindpointMapping(curProg, (int)i, refls[i], stages[i]->bindpointMapping);
-
-          if(i == 0)
-            EvaluateVertexAttributeBinds(curProg, refls[i], true, vertexAttrBindings);
-        }
-        else
-        {
-          GetBindpointMapping(curProg, (int)i, refls[i], stages[i]->bindpointMapping);
-
-          if(i == 0)
-            EvaluateVertexAttributeBinds(curProg, refls[i], false, vertexAttrBindings);
-        }
-
-        mappings[i] = &stages[i]->bindpointMapping;
-
-        stages[i]->programResourceId = rm->GetUnreplacedOriginalID(id);
-        stages[i]->shaderResourceId = rm->GetUnreplacedOriginalID(progDetails.stageShaders[i]);
-      }
+      if(shaderDetails.reflection->resourceId == ResourceId())
+        stages[i]->reflection = refls[i] = NULL;
       else
-      {
-        stages[i]->programResourceId = stages[i]->shaderResourceId = ResourceId();
-      }
+        stages[i]->reflection = refls[i] = shaderDetails.reflection;
+
+      if(!shaderDetails.spirvWords.empty())
+        spirv[i] = true;
+
+      if(i == 0)
+        EvaluateVertexAttributeBinds(progForStage[i], refls[i], spirv[i], vertexAttrBindings);
+    }
+    else if(stages[i])
+    {
+      stages[i]->programResourceId = stages[i]->shaderResourceId = ResourceId();
+      stages[i]->reflection = NULL;
     }
   }
 
@@ -1203,59 +1165,55 @@ void GLReplay::SavePipelineState(uint32_t eventId)
       pipe.vertexInput.attributes[i].boundShaderInput = -1;
   }
 
-  // !!!NOTE!!! This function will MODIFY the refls[] binding arrays.
-  // See inside this function for what it does and why.
-  for(size_t i = 0; i < ARRAY_COUNT(refls); i++)
-  {
-    // don't resort if it's SPIR-V
-    if(spirv[i])
-      continue;
-
-    ResortBindings(refls[i], mappings[i]);
-  }
-
   pipe.textureCompleteness.clear();
 
   for(size_t s = 0; s < NumShaderStages; s++)
   {
-    if(!refls[s])
+    ShaderReflection *refl = refls[s];
+
+    if(!refl)
       continue;
+
+    GLuint prog = progForStage[s];
 
     DescriptorAccess access;
     access.descriptorStore = m_pDriver->m_DescriptorsID;
-    access.stage = refls[s]->stage;
+    access.stage = refl->stage;
     access.byteSize = 1;
 
-    const ShaderBindpointMapping &mapping = stages[s]->bindpointMapping;
+    m_Access.reserve(m_Access.size() + refl->constantBlocks.size() +
+                     refl->readOnlyResources.size() + refl->readWriteResources.size());
 
-    m_Access.reserve(m_Access.size() + mapping.constantBlocks.size() +
-                     mapping.readOnlyResources.size() + mapping.readWriteResources.size());
-
-    RDCASSERT(mapping.constantBlocks.size() < 0xffff, mapping.constantBlocks.size());
-    for(uint16_t i = 0; i < mapping.constantBlocks.size(); i++)
+    RDCASSERT(refl->constantBlocks.size() < 0xffff, refl->constantBlocks.size());
+    for(uint16_t i = 0; i < refl->constantBlocks.size(); i++)
     {
-      int32_t bindset = mapping.constantBlocks[i].bindset;
-      int32_t bind = mapping.constantBlocks[i].bind;
+      uint32_t slot = 0;
+      bool used = false;
+      GetCurrentBinding(prog, refl, refl->constantBlocks[i], slot, used);
 
-      access.staticallyUnused = !mapping.constantBlocks[i].used;
+      access.staticallyUnused = !used;
       access.type = DescriptorType::ConstantBuffer;
       access.index = i;
-      if(bindset < 0)
+      if(!refl->constantBlocks[i].bufferBacked)
         access.byteOffset = EncodeGLDescriptorIndex({GLDescriptorMapping::BareUniforms, (uint32_t)s});
       else
         access.byteOffset =
-            EncodeGLDescriptorIndex({GLDescriptorMapping::UniformBinding, (uint32_t)bind});
+            EncodeGLDescriptorIndex({GLDescriptorMapping::UniformBinding, (uint32_t)slot});
       m_Access.push_back(access);
     }
 
-    RDCASSERT(mapping.readOnlyResources.size() < 0xffff, mapping.readOnlyResources.size());
-    for(uint16_t i = 0; i < mapping.readOnlyResources.size(); i++)
+    RDCASSERT(refl->readOnlyResources.size() < 0xffff, refl->readOnlyResources.size());
+    for(uint16_t i = 0; i < refl->readOnlyResources.size(); i++)
     {
-      access.staticallyUnused = !mapping.readOnlyResources[i].used;
+      uint32_t slot = 0;
+      bool used = false;
+      GetCurrentBinding(prog, refl, refl->readOnlyResources[i], slot, used);
+
+      access.staticallyUnused = !used;
 
       GLDescriptorMapping descType = GLDescriptorMapping::Tex2D;
 
-      switch(refls[s]->readOnlyResources[i].resType)
+      switch(refl->readOnlyResources[i].resType)
       {
         case TextureType::Buffer: descType = GLDescriptorMapping::TexBuffer; break;
         case TextureType::Texture1D: descType = GLDescriptorMapping::Tex1D; break;
@@ -1270,7 +1228,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
         case TextureType::TextureCubeArray: descType = GLDescriptorMapping::TexCubeArray; break;
         case TextureType::Unknown:
         case TextureType::Count:
-          RDCERR("Invalid resource type on binding %s", refls[s]->readOnlyResources[i].name.c_str());
+          RDCERR("Invalid resource type on binding %s", refl->readOnlyResources[i].name.c_str());
           break;
       }
 
@@ -1278,8 +1236,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
       if(descType == GLDescriptorMapping::TexBuffer)
         access.type = DescriptorType::TypedBuffer;
       access.index = i;
-      access.byteOffset =
-          EncodeGLDescriptorIndex({descType, (uint32_t)mapping.readOnlyResources[i].bind});
+      access.byteOffset = EncodeGLDescriptorIndex({descType, slot});
       m_Access.push_back(access);
 
       // checking texture completeness is a pretty expensive operation since it requires a lot of
@@ -1290,10 +1247,10 @@ void GLReplay::SavePipelineState(uint32_t eventId)
       // samplers don't change (or are only ever used consistently with the same texture) amounts
       // to one entry per texture.
       // Note that textures can't change target, so we don't need to icnlude the target in the key
-      drv.glActiveTexture(GLenum(eGL_TEXTURE0 + mapping.readOnlyResources[i].bind));
+      drv.glActiveTexture(GLenum(eGL_TEXTURE0 + slot));
 
       GLenum binding = eGL_NONE;
-      switch(refls[s]->readOnlyResources[i].resType)
+      switch(refl->readOnlyResources[i].resType)
       {
         case TextureType::Unknown: binding = eGL_NONE; break;
         case TextureType::Buffer: binding = eGL_TEXTURE_BINDING_BUFFER; break;
@@ -1339,17 +1296,21 @@ void GLReplay::SavePipelineState(uint32_t eventId)
       }
     }
 
-    RDCASSERT(mapping.readWriteResources.size() < 0xffff, mapping.readWriteResources.size());
-    for(uint16_t i = 0; i < mapping.readWriteResources.size(); i++)
+    RDCASSERT(refl->readWriteResources.size() < 0xffff, refl->readWriteResources.size());
+    for(uint16_t i = 0; i < refl->readWriteResources.size(); i++)
     {
-      access.staticallyUnused = !mapping.readWriteResources[i].used;
+      uint32_t slot = 0;
+      bool used = false;
+      GetCurrentBinding(prog, refl, refl->readWriteResources[i], slot, used);
+
+      access.staticallyUnused = !used;
 
       GLDescriptorMapping descType = GLDescriptorMapping::Images;
 
-      if(refls[s]->readWriteResources[i].isTexture)
+      if(refl->readWriteResources[i].isTexture)
       {
         access.type = DescriptorType::ReadWriteImage;
-        if(refls[s]->readWriteResources[i].resType == TextureType::Buffer)
+        if(refl->readWriteResources[i].resType == TextureType::Buffer)
           access.type = DescriptorType::ReadWriteTypedBuffer;
       }
       else
@@ -1357,130 +1318,137 @@ void GLReplay::SavePipelineState(uint32_t eventId)
         access.type = DescriptorType::ReadWriteBuffer;
         descType = GLDescriptorMapping::ShaderStorage;
 
-        if(refls[s]->readWriteResources[i].variableType.rows == 1 &&
-           refls[s]->readWriteResources[i].variableType.columns == 1 &&
-           refls[s]->readWriteResources[i].variableType.baseType == VarType::UInt)
+        if(refl->readWriteResources[i].variableType.rows == 1 &&
+           refl->readWriteResources[i].variableType.columns == 1 &&
+           refl->readWriteResources[i].variableType.baseType == VarType::UInt)
         {
           descType = GLDescriptorMapping::AtomicCounter;
         }
       }
 
       access.index = i;
-      access.byteOffset =
-          EncodeGLDescriptorIndex({descType, (uint32_t)mapping.readWriteResources[i].bind});
+      access.byteOffset = EncodeGLDescriptorIndex({descType, slot});
       m_Access.push_back(access);
     }
   }
 
+  // GL is ass-backwards in its handling of texture units. When a shader is active
+  // the types in the glsl samplers inform which targets are used from which texture units
+  //
+  // So texture unit 5 can have a 2D bound (texture 52) and a Cube bound (texture 77).
+  // * if a uniform sampler2D has value 5 then the 2D texture is used, and we sample from 52
+  // * if a uniform samplerCube has value 5 then the Cube texture is used, and we sample from 77
+  // It's illegal for both a sampler2D and samplerCube to both have the same value (or any two
+  // different types). It makes it all rather pointless and needlessly complex.
+  //
+  // What we have to do then, is consider the program, look at the values of the uniforms, and
+  // then check if two uniforms with different types point to the same binding
+  for(uint32_t unit = 0; unit < (uint32_t)numTexUnits; unit++)
   {
-    // search for conflicts by looking at all stages
-    for(uint32_t unit = 0; unit < (uint32_t)numTexUnits; unit++)
+    rdcstr typeConflict;
+    GLenum binding = eGL_NONE;
+    GLenum target = eGL_NONE;
+    TextureType resType = TextureType::Unknown;
+    rdcstr firstBindName;
+
+    rdcarray<uint32_t> descriptorsReferenced;
+
+    for(const DescriptorAccess &access : m_Access)
     {
-      rdcstr typeConflict;
-      GLenum binding = eGL_NONE;
-      GLenum target = eGL_NONE;
-      TextureType resType = TextureType::Unknown;
-      rdcstr firstBindName;
+      // only look at read-only descriptors, these are the texture units that can clash
+      if(!IsReadOnlyDescriptor(access.type))
+        continue;
 
-      rdcarray<uint32_t> descriptorsReferenced;
-
-      for(const DescriptorAccess &access : m_Access)
+      ShaderReflection *refl = refls[(uint32_t)access.stage];
+      if(refl == NULL)
       {
-        // only look at read-only descriptors, these are the texture units that can clash
-        if(!IsReadOnlyDescriptor(access.type))
-          continue;
-
-        ShaderReflection *refl = refls[(uint32_t)access.stage];
-        if(refl == NULL)
-        {
-          RDCERR("Unexpected NULL reflection on %s shader with a descriptor access",
-                 ToStr(access.stage).c_str());
-          continue;
-        }
-
-        uint32_t accessedUnit = DecodeGLDescriptorIndex(access.byteOffset).idx;
-
-        // accessed the same unit, check its binding
-        if(accessedUnit == unit)
-        {
-          if(!descriptorsReferenced.contains(access.byteOffset))
-            descriptorsReferenced.push_back(access.byteOffset);
-
-          const ShaderResource &res = refl->readOnlyResources[access.index];
-          GLenum t = eGL_NONE;
-
-          switch(res.resType)
-          {
-            case TextureType::Unknown: target = eGL_NONE; break;
-            case TextureType::Buffer: target = eGL_TEXTURE_BUFFER; break;
-            case TextureType::Texture1D: target = eGL_TEXTURE_1D; break;
-            case TextureType::Texture1DArray: target = eGL_TEXTURE_1D_ARRAY; break;
-            case TextureType::Texture2D: target = eGL_TEXTURE_2D; break;
-            case TextureType::TextureRect: target = eGL_TEXTURE_RECTANGLE; break;
-            case TextureType::Texture2DArray: target = eGL_TEXTURE_2D_ARRAY; break;
-            case TextureType::Texture2DMS: target = eGL_TEXTURE_2D_MULTISAMPLE; break;
-            case TextureType::Texture2DMSArray: target = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY; break;
-            case TextureType::Texture3D: target = eGL_TEXTURE_3D; break;
-            case TextureType::TextureCube: target = eGL_TEXTURE_CUBE_MAP; break;
-            case TextureType::TextureCubeArray: target = eGL_TEXTURE_CUBE_MAP_ARRAY; break;
-            case TextureType::Count: RDCERR("Invalid shader resource type"); break;
-          }
-
-          if(target != eGL_NONE)
-            t = TextureBinding(target);
-
-          if(binding == eGL_NONE)
-          {
-            binding = t;
-            firstBindName = res.name;
-            resType = res.resType;
-          }
-          else if(binding == t)
-          {
-            // two uniforms with the same type pointing to the same slot is fine
-            binding = t;
-          }
-          else if(binding != t)
-          {
-            RDCERR("Two uniforms pointing to texture unit %d with types %s and %s", unit,
-                   ToStr(binding).c_str(), ToStr(t).c_str());
-
-            if(typeConflict.empty())
-            {
-              typeConflict = StringFormat::Fmt("First binding found '%s' is %s",
-                                               firstBindName.c_str(), ToStr(resType).c_str());
-            }
-
-            typeConflict +=
-                StringFormat::Fmt(", '%s' is %s", res.name.c_str(), ToStr(res.resType).c_str());
-          }
-        }
+        RDCERR("Unexpected NULL reflection on %s shader with a descriptor access",
+               ToStr(access.stage).c_str());
+        continue;
       }
 
-      // if we found a type conflict, add an entry for all descriptors
-      if(!typeConflict.empty())
+      uint32_t accessedUnit = DecodeGLDescriptorIndex(access.byteOffset).idx;
+
+      // accessed the same unit, check its binding
+      if(accessedUnit == unit)
       {
-        for(uint32_t descriptor : descriptorsReferenced)
+        if(!descriptorsReferenced.contains(access.byteOffset))
+          descriptorsReferenced.push_back(access.byteOffset);
+
+        const ShaderResource &res = refl->readOnlyResources[access.index];
+        GLenum t = eGL_NONE;
+
+        switch(res.resType)
         {
-          bool found = false;
-          for(GLPipe::TextureCompleteness &completeness : pipe.textureCompleteness)
+          case TextureType::Unknown: target = eGL_NONE; break;
+          case TextureType::Buffer: target = eGL_TEXTURE_BUFFER; break;
+          case TextureType::Texture1D: target = eGL_TEXTURE_1D; break;
+          case TextureType::Texture1DArray: target = eGL_TEXTURE_1D_ARRAY; break;
+          case TextureType::Texture2D: target = eGL_TEXTURE_2D; break;
+          case TextureType::TextureRect: target = eGL_TEXTURE_RECTANGLE; break;
+          case TextureType::Texture2DArray: target = eGL_TEXTURE_2D_ARRAY; break;
+          case TextureType::Texture2DMS: target = eGL_TEXTURE_2D_MULTISAMPLE; break;
+          case TextureType::Texture2DMSArray: target = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY; break;
+          case TextureType::Texture3D: target = eGL_TEXTURE_3D; break;
+          case TextureType::TextureCube: target = eGL_TEXTURE_CUBE_MAP; break;
+          case TextureType::TextureCubeArray: target = eGL_TEXTURE_CUBE_MAP_ARRAY; break;
+          case TextureType::Count: RDCERR("Invalid shader resource type"); break;
+        }
+
+        if(target != eGL_NONE)
+          t = TextureBinding(target);
+
+        if(binding == eGL_NONE)
+        {
+          binding = t;
+          firstBindName = res.name;
+          resType = res.resType;
+        }
+        else if(binding == t)
+        {
+          // two uniforms with the same type pointing to the same slot is fine
+          binding = t;
+        }
+        else if(binding != t)
+        {
+          RDCERR("Two uniforms pointing to texture unit %d with types %s and %s", unit,
+                 ToStr(binding).c_str(), ToStr(t).c_str());
+
+          if(typeConflict.empty())
           {
-            if(completeness.descriptorByteOffset == descriptor)
-            {
-              // don't worry about overwriting, the descriptor byte offset is unique to the unit so
-              // we should only set this at most once
-              completeness.typeConflict = typeConflict;
-              found = true;
-            }
+            typeConflict = StringFormat::Fmt("First binding found '%s' is %s",
+                                             firstBindName.c_str(), ToStr(resType).c_str());
           }
 
-          if(!found)
+          typeConflict +=
+              StringFormat::Fmt(", '%s' is %s", res.name.c_str(), ToStr(res.resType).c_str());
+        }
+      }
+    }
+
+    // if we found a type conflict, add an entry for all descriptors
+    if(!typeConflict.empty())
+    {
+      for(uint32_t descriptor : descriptorsReferenced)
+      {
+        bool found = false;
+        for(GLPipe::TextureCompleteness &completeness : pipe.textureCompleteness)
+        {
+          if(completeness.descriptorByteOffset == descriptor)
           {
-            GLPipe::TextureCompleteness completeness;
-            completeness.descriptorByteOffset = descriptor;
+            // don't worry about overwriting, the descriptor byte offset is unique to the unit so
+            // we should only set this at most once
             completeness.typeConflict = typeConflict;
-            pipe.textureCompleteness.push_back(completeness);
+            found = true;
           }
+        }
+
+        if(!found)
+        {
+          GLPipe::TextureCompleteness completeness;
+          completeness.descriptorByteOffset = descriptor;
+          completeness.typeConflict = typeConflict;
+          pipe.textureCompleteness.push_back(completeness);
         }
       }
     }
@@ -1536,420 +1504,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
     }
   }
 
-  // GL is ass-backwards in its handling of texture units. When a shader is active
-  // the types in the glsl samplers inform which targets are used from which texture units
-  //
-  // So texture unit 5 can have a 2D bound (texture 52) and a Cube bound (texture 77).
-  // * if a uniform sampler2D has value 5 then the 2D texture is used, and we sample from 52
-  // * if a uniform samplerCube has value 5 then the Cube texture is used, and we sample from 77
-  // It's illegal for both a sampler2D and samplerCube to both have the same value (or any two
-  // different types). It makes it all rather pointless and needlessly complex.
-  //
-  // What we have to do then, is consider the program, look at the values of the uniforms, and
-  // then get the appropriate current binding based on the uniform type. We can warn/alert the
-  // user if we hit the illegal case of two uniforms with different types but the same value
-  //
-  // Handling is different if no shaders are active, but we don't consider that case.
-
-  for(GLint unit = 0; unit < numTexUnits; unit++)
-  {
-    GLenum binding = eGL_NONE;
-    GLenum target = eGL_NONE;
-    TextureType resType = TextureType::Unknown;
-    rdcstr firstBindName;
-    rdcstr typeConflict;
-
-    for(size_t s = 0; s < ARRAY_COUNT(refls); s++)
-    {
-      if(refls[s] == NULL)
-        continue;
-
-      for(const ShaderResource &res : refls[s]->readOnlyResources)
-      {
-        // bindPoint is the uniform value for this sampler
-        if(mappings[s]->readOnlyResources[res.bindPoint].bind == unit)
-        {
-          GLenum t = eGL_NONE;
-
-          switch(res.resType)
-          {
-            case TextureType::Unknown: target = eGL_NONE; break;
-            case TextureType::Buffer: target = eGL_TEXTURE_BUFFER; break;
-            case TextureType::Texture1D: target = eGL_TEXTURE_1D; break;
-            case TextureType::Texture1DArray: target = eGL_TEXTURE_1D_ARRAY; break;
-            case TextureType::Texture2D: target = eGL_TEXTURE_2D; break;
-            case TextureType::TextureRect: target = eGL_TEXTURE_RECTANGLE; break;
-            case TextureType::Texture2DArray: target = eGL_TEXTURE_2D_ARRAY; break;
-            case TextureType::Texture2DMS: target = eGL_TEXTURE_2D_MULTISAMPLE; break;
-            case TextureType::Texture2DMSArray: target = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY; break;
-            case TextureType::Texture3D: target = eGL_TEXTURE_3D; break;
-            case TextureType::TextureCube: target = eGL_TEXTURE_CUBE_MAP; break;
-            case TextureType::TextureCubeArray: target = eGL_TEXTURE_CUBE_MAP_ARRAY; break;
-            case TextureType::Count: RDCERR("Invalid shader resource type"); break;
-          }
-
-          if(target != eGL_NONE)
-            t = TextureBinding(target);
-
-          if(binding == eGL_NONE)
-          {
-            binding = t;
-            firstBindName = res.name;
-            resType = res.resType;
-          }
-          else if(binding == t)
-          {
-            // two uniforms with the same type pointing to the same slot is fine
-            binding = t;
-          }
-          else if(binding != t)
-          {
-            RDCERR("Two uniforms pointing to texture unit %d with types %s and %s", unit,
-                   ToStr(binding).c_str(), ToStr(t).c_str());
-
-            if(typeConflict.empty())
-            {
-              typeConflict = StringFormat::Fmt("First binding found '%s' is %s",
-                                               firstBindName.c_str(), ToStr(resType).c_str());
-            }
-
-            typeConflict +=
-                StringFormat::Fmt(", '%s' is %s", res.name.c_str(), ToStr(res.resType).c_str());
-          }
-        }
-      }
-    }
-
-    if(binding != eGL_NONE)
-    {
-      drv.glActiveTexture(GLenum(eGL_TEXTURE0 + unit));
-
-      GLuint tex = 0;
-
-      if(binding == eGL_TEXTURE_CUBE_MAP_ARRAY && !HasExt[ARB_texture_cube_map_array])
-        tex = 0;
-      else
-        drv.glGetIntegerv(binding, (GLint *)&tex);
-
-      pipe.textures[unit].typeConflict = typeConflict;
-
-      if(tex == 0)
-      {
-        pipe.textures[unit].resourceId = ResourceId();
-        pipe.textures[unit].firstMip = 0;
-        pipe.textures[unit].numMips = 1;
-        pipe.textures[unit].type = TextureType::Unknown;
-        pipe.textures[unit].depthReadChannel = -1;
-        pipe.textures[unit].swizzle.red = TextureSwizzle::Red;
-        pipe.textures[unit].swizzle.green = TextureSwizzle::Green;
-        pipe.textures[unit].swizzle.blue = TextureSwizzle::Blue;
-        pipe.textures[unit].swizzle.alpha = TextureSwizzle::Alpha;
-
-        RDCEraseEl(pipe.samplers[unit].borderColor);
-        pipe.samplers[unit].addressS = AddressMode::Wrap;
-        pipe.samplers[unit].addressT = AddressMode::Wrap;
-        pipe.samplers[unit].addressR = AddressMode::Wrap;
-        pipe.samplers[unit].compareFunction = CompareFunction::AlwaysTrue;
-        pipe.samplers[unit].filter = TextureFilter();
-        pipe.samplers[unit].seamlessCubeMap = false;
-        pipe.samplers[unit].maxAnisotropy = 0.0f;
-        pipe.samplers[unit].maxLOD = 0.0f;
-        pipe.samplers[unit].minLOD = 0.0f;
-        pipe.samplers[unit].mipLODBias = 0.0f;
-      }
-      else
-      {
-        GLint firstMip = 0, numMips = 1;
-
-        if(target != eGL_TEXTURE_BUFFER)
-        {
-          drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_BASE_LEVEL, &firstMip);
-          drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_MAX_LEVEL, &numMips);
-
-          numMips = numMips - firstMip + 1;
-        }
-
-        pipe.textures[unit].resourceId = rm->GetOriginalID(rm->GetResID(TextureRes(ctx, tex)));
-        pipe.textures[unit].firstMip = (uint32_t)firstMip;
-        pipe.textures[unit].numMips = (uint32_t)numMips;
-        pipe.textures[unit].type = resType;
-
-        pipe.textures[unit].depthReadChannel = -1;
-
-        GLenum levelQueryType =
-            target == eGL_TEXTURE_CUBE_MAP ? eGL_TEXTURE_CUBE_MAP_POSITIVE_X : target;
-        GLenum fmt = eGL_NONE;
-        drv.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_INTERNAL_FORMAT, (GLint *)&fmt);
-        if(IsDepthStencilFormat(fmt))
-        {
-          GLint depthMode = eGL_DEPTH_COMPONENT;
-
-          if(HasExt[ARB_stencil_texturing])
-            drv.glGetTextureParameterivEXT(tex, target, eGL_DEPTH_STENCIL_TEXTURE_MODE, &depthMode);
-
-          if(depthMode == eGL_DEPTH_COMPONENT)
-            pipe.textures[unit].depthReadChannel = 0;
-          else if(depthMode == eGL_STENCIL_INDEX)
-            pipe.textures[unit].depthReadChannel = 1;
-        }
-
-        GLenum swizzles[4] = {eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA};
-        if(target != eGL_TEXTURE_BUFFER &&
-           (HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle]))
-          GetTextureSwizzle(tex, target, swizzles);
-
-        pipe.textures[unit].swizzle.red = MakeSwizzle(swizzles[0]);
-        pipe.textures[unit].swizzle.green = MakeSwizzle(swizzles[1]);
-        pipe.textures[unit].swizzle.blue = MakeSwizzle(swizzles[2]);
-        pipe.textures[unit].swizzle.alpha = MakeSwizzle(swizzles[3]);
-
-        GLuint samp = 0;
-        if(HasExt[ARB_sampler_objects])
-          drv.glGetIntegerv(eGL_SAMPLER_BINDING, (GLint *)&samp);
-
-        pipe.samplers[unit].resourceId = rm->GetOriginalID(rm->GetResID(SamplerRes(ctx, samp)));
-
-        // checking texture completeness is a pretty expensive operation since it requires a lot of
-        // queries against the driver's texture properties.
-        // We assume that if a texture and sampler are complete at any point, even if their
-        // properties change mid-frame they will stay complete. Similarly if they are _incomplete_
-        // they will stay incomplete. Thus we can cache the results for a given pair, which if
-        // samplers don't change (or are only ever used consistently with the same texture) amounts
-        // to one entry per texture.
-        // Note that textures can't change target, so we don't need to icnlude the target in the key
-        CompleteCacheKey complete = {tex, samp};
-
-        auto it = m_CompleteCache.find(complete);
-        if(it == m_CompleteCache.end())
-          it = m_CompleteCache.insert(
-              it, std::make_pair(complete, GetTextureCompleteStatus(target, tex, samp)));
-        pipe.textures[unit].completeStatus = it->second;
-
-        if(target != eGL_TEXTURE_BUFFER && target != eGL_TEXTURE_2D_MULTISAMPLE &&
-           target != eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
-        {
-          if(samp != 0)
-            drv.glGetSamplerParameterfv(samp, eGL_TEXTURE_BORDER_COLOR,
-                                        pipe.samplers[unit].borderColor.data());
-          else
-            drv.glGetTextureParameterfvEXT(tex, target, eGL_TEXTURE_BORDER_COLOR,
-                                           pipe.samplers[unit].borderColor.data());
-
-          GLint v;
-          v = 0;
-          if(samp != 0)
-            drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_S, &v);
-          else
-            drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_WRAP_S, &v);
-          pipe.samplers[unit].addressS = MakeAddressMode((GLenum)v);
-
-          v = 0;
-          if(samp != 0)
-            drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_T, &v);
-          else
-            drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_WRAP_T, &v);
-          pipe.samplers[unit].addressT = MakeAddressMode((GLenum)v);
-
-          v = 0;
-          if(samp != 0)
-            drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_R, &v);
-          else
-            drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_WRAP_R, &v);
-          pipe.samplers[unit].addressR = MakeAddressMode((GLenum)v);
-
-          // GLES 3 is always seamless
-          if(IsGLES && GLCoreVersion > 30)
-          {
-            pipe.samplers[unit].seamlessCubeMap = true;
-          }
-          else
-          {
-            // toggle on proper GL, GLES 2 this is always going to be false
-            pipe.samplers[unit].seamlessCubeMap = rs.Enabled[GLRenderState::eEnabled_TexCubeSeamless];
-          }
-
-          v = 0;
-          if(samp != 0)
-            drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_COMPARE_FUNC, &v);
-          else
-            drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_COMPARE_FUNC, &v);
-          pipe.samplers[unit].compareFunction = MakeCompareFunc((GLenum)v);
-
-          GLint minf = 0;
-          GLint magf = 0;
-          if(samp != 0)
-            drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_MIN_FILTER, &minf);
-          else
-            drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_MIN_FILTER, &minf);
-
-          if(samp != 0)
-            drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_MAG_FILTER, &magf);
-          else
-            drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_MAG_FILTER, &magf);
-
-          if(HasExt[ARB_texture_filter_anisotropic])
-          {
-            if(samp != 0)
-              drv.glGetSamplerParameterfv(samp, eGL_TEXTURE_MAX_ANISOTROPY,
-                                          &pipe.samplers[unit].maxAnisotropy);
-            else
-              drv.glGetTextureParameterfvEXT(tex, target, eGL_TEXTURE_MAX_ANISOTROPY,
-                                             &pipe.samplers[unit].maxAnisotropy);
-          }
-          else
-          {
-            pipe.samplers[unit].maxAnisotropy = 0.0f;
-          }
-
-          pipe.samplers[unit].filter =
-              MakeFilter((GLenum)minf, (GLenum)magf, pipe.samplers[unit].maxAnisotropy);
-
-          v = 0;
-          if(samp != 0)
-            drv.glGetSamplerParameteriv(samp, eGL_TEXTURE_COMPARE_MODE, &v);
-          else
-            drv.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_COMPARE_MODE, &v);
-          pipe.samplers[unit].filter.filter = (GLenum)v == eGL_COMPARE_REF_TO_TEXTURE
-                                                  ? FilterFunction::Comparison
-                                                  : FilterFunction::Normal;
-
-          if(samp != 0)
-            drv.glGetSamplerParameterfv(samp, eGL_TEXTURE_MAX_LOD, &pipe.samplers[unit].maxLOD);
-          else
-            drv.glGetTextureParameterfvEXT(tex, target, eGL_TEXTURE_MAX_LOD,
-                                           &pipe.samplers[unit].maxLOD);
-
-          if(samp != 0)
-            drv.glGetSamplerParameterfv(samp, eGL_TEXTURE_MIN_LOD, &pipe.samplers[unit].minLOD);
-          else
-            drv.glGetTextureParameterfvEXT(tex, target, eGL_TEXTURE_MIN_LOD,
-                                           &pipe.samplers[unit].minLOD);
-
-          if(!IsGLES)
-          {
-            if(samp != 0)
-              drv.glGetSamplerParameterfv(samp, eGL_TEXTURE_LOD_BIAS,
-                                          &pipe.samplers[unit].mipLODBias);
-            else
-              drv.glGetTextureParameterfvEXT(tex, target, eGL_TEXTURE_LOD_BIAS,
-                                             &pipe.samplers[unit].mipLODBias);
-          }
-          else
-          {
-            pipe.samplers[unit].mipLODBias = 0.0f;
-          }
-        }
-        else
-        {
-          // texture buffers don't support sampling
-          RDCEraseEl(pipe.samplers[unit].borderColor);
-          pipe.samplers[unit].addressS = AddressMode::Wrap;
-          pipe.samplers[unit].addressT = AddressMode::Wrap;
-          pipe.samplers[unit].addressR = AddressMode::Wrap;
-          pipe.samplers[unit].compareFunction = CompareFunction::AlwaysTrue;
-          pipe.samplers[unit].filter = TextureFilter();
-          pipe.samplers[unit].seamlessCubeMap = false;
-          pipe.samplers[unit].maxAnisotropy = 0.0f;
-          pipe.samplers[unit].maxLOD = 0.0f;
-          pipe.samplers[unit].minLOD = 0.0f;
-          pipe.samplers[unit].mipLODBias = 0.0f;
-        }
-      }
-    }
-    else
-    {
-      // what should we do in this case? there could be something bound just not used,
-      // it'd be nice to return that
-    }
-  }
-
   drv.glActiveTexture(activeTexture);
-
-  pipe.uniformBuffers.resize(ARRAY_COUNT(rs.UniformBinding));
-  for(size_t b = 0; b < pipe.uniformBuffers.size(); b++)
-  {
-    if(rs.UniformBinding[b].res.name == 0)
-    {
-      pipe.uniformBuffers[b].resourceId = ResourceId();
-      pipe.uniformBuffers[b].byteOffset = pipe.uniformBuffers[b].byteSize = 0;
-    }
-    else
-    {
-      pipe.uniformBuffers[b].resourceId = rm->GetOriginalID(rm->GetResID(rs.UniformBinding[b].res));
-      pipe.uniformBuffers[b].byteOffset = rs.UniformBinding[b].start;
-      pipe.uniformBuffers[b].byteSize = rs.UniformBinding[b].size;
-    }
-  }
-
-  pipe.atomicBuffers.resize(ARRAY_COUNT(rs.AtomicCounter));
-  for(size_t b = 0; b < pipe.atomicBuffers.size(); b++)
-  {
-    if(rs.AtomicCounter[b].res.name == 0)
-    {
-      pipe.atomicBuffers[b].resourceId = ResourceId();
-      pipe.atomicBuffers[b].byteOffset = pipe.atomicBuffers[b].byteSize = 0;
-    }
-    else
-    {
-      pipe.atomicBuffers[b].resourceId = rm->GetOriginalID(rm->GetResID(rs.AtomicCounter[b].res));
-      pipe.atomicBuffers[b].byteOffset = rs.AtomicCounter[b].start;
-      pipe.atomicBuffers[b].byteSize = rs.AtomicCounter[b].size;
-    }
-  }
-
-  pipe.shaderStorageBuffers.resize(ARRAY_COUNT(rs.ShaderStorage));
-  for(size_t b = 0; b < pipe.shaderStorageBuffers.size(); b++)
-  {
-    if(rs.ShaderStorage[b].res.name == 0)
-    {
-      pipe.shaderStorageBuffers[b].resourceId = ResourceId();
-      pipe.shaderStorageBuffers[b].byteOffset = pipe.shaderStorageBuffers[b].byteSize = 0;
-    }
-    else
-    {
-      pipe.shaderStorageBuffers[b].resourceId =
-          rm->GetOriginalID(rm->GetResID(rs.ShaderStorage[b].res));
-      pipe.shaderStorageBuffers[b].byteOffset = rs.ShaderStorage[b].start;
-      pipe.shaderStorageBuffers[b].byteSize = rs.ShaderStorage[b].size;
-    }
-  }
-
-  pipe.images.resize(ARRAY_COUNT(rs.Images));
-  for(size_t i = 0; i < pipe.images.size(); i++)
-  {
-    if(rs.Images[i].res.name == 0)
-    {
-      RDCEraseEl(pipe.images[i]);
-    }
-    else
-    {
-      ResourceId id = rm->GetResID(rs.Images[i].res);
-      pipe.images[i].resourceId = rm->GetOriginalID(id);
-      pipe.images[i].mipLevel = rs.Images[i].level;
-      pipe.images[i].layered = rs.Images[i].layered;
-      pipe.images[i].slice = rs.Images[i].layer;
-      if(rs.Images[i].access == eGL_READ_ONLY)
-      {
-        pipe.images[i].readAllowed = true;
-        pipe.images[i].writeAllowed = false;
-      }
-      else if(rs.Images[i].access == eGL_WRITE_ONLY)
-      {
-        pipe.images[i].readAllowed = false;
-        pipe.images[i].writeAllowed = true;
-      }
-      else
-      {
-        pipe.images[i].readAllowed = true;
-        pipe.images[i].writeAllowed = true;
-      }
-      pipe.images[i].imageFormat = MakeResourceFormat(eGL_TEXTURE_2D, rs.Images[i].format);
-
-      CacheTexture(id);
-
-      pipe.images[i].type = m_CachedTextures[id].type;
-    }
-  }
 
   // Vertex post processing and rasterization
 
@@ -3283,7 +2838,7 @@ void GLReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, Shad
   }
   else
   {
-    if(shaderDetails.mapping.constantBlocks[cbufSlot].bindset == SpecializationConstantBindSet)
+    if(cblock.fixedBindSetOrSpace == SpecializationConstantBindSet)
     {
       rdcarray<SpecConstant> specconsts;
 

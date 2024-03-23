@@ -5447,7 +5447,7 @@ void WrappedOpenGL::AddUsage(const ActionDescription &a)
     rs.FetchState(this);
 
     ShaderReflection *refl[NumShaderStages] = {NULL};
-    ShaderBindpointMapping mapping[NumShaderStages];
+    GLuint progForStage[NumShaderStages] = {};
 
     GLuint curProg = 0;
     GL.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&curProg);
@@ -5471,7 +5471,7 @@ void WrappedOpenGL::AddUsage(const ActionDescription &a)
             curProg = rm->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
 
             refl[i] = m_Shaders[pipeDetails.stageShaders[i]].reflection;
-            GetBindpointMapping(curProg, (int)i, refl[i], mapping[i]);
+            progForStage[i] = curProg;
           }
         }
       }
@@ -5485,7 +5485,7 @@ void WrappedOpenGL::AddUsage(const ActionDescription &a)
         if(progDetails.stageShaders[i] != ResourceId())
         {
           refl[i] = m_Shaders[progDetails.stageShaders[i]].reflection;
-          GetBindpointMapping(curProg, (int)i, refl[i], mapping[i]);
+          progForStage[i] = curProg;
         }
       }
     }
@@ -5502,47 +5502,59 @@ void WrappedOpenGL::AddUsage(const ActionDescription &a)
         {
           if(!cblock.bufferBacked)
             continue;
-          if(cblock.bindPoint < 0 || cblock.bindPoint >= mapping[i].constantBlocks.count())
+
+          uint32_t slot = 0;
+          bool used = false;
+          GetCurrentBinding(progForStage[i], refl[i], cblock, slot, used);
+
+          if(!used)
             continue;
 
-          int32_t bind = mapping[i].constantBlocks[cblock.bindPoint].bind;
-
-          if(rs.UniformBinding[bind].res.name)
-            m_ResourceUses[rm->GetResID(rs.UniformBinding[bind].res)].push_back(cb);
+          if(rs.UniformBinding[slot].res.name)
+            m_ResourceUses[rm->GetResID(rs.UniformBinding[slot].res)].push_back(cb);
         }
 
         for(const ShaderResource &res : refl[i]->readWriteResources)
         {
-          int32_t bind = mapping[i].readWriteResources[res.bindPoint].bind;
+          uint32_t slot = 0;
+          bool used = false;
+          GetCurrentBinding(progForStage[i], refl[i], res, slot, used);
+
+          if(!used)
+            continue;
 
           if(res.isTexture)
           {
-            if(rs.Images[bind].res.name)
-              m_ResourceUses[rm->GetResID(rs.Images[bind].res)].push_back(rw);
+            if(slot < ARRAY_COUNT(rs.Images) && rs.Images[slot].res.name)
+              m_ResourceUses[rm->GetResID(rs.Images[slot].res)].push_back(rw);
           }
           else
           {
             if(res.variableType.columns == 1 && res.variableType.rows == 1 &&
                res.variableType.baseType == VarType::UInt)
             {
-              if(rs.AtomicCounter[bind].res.name)
-                m_ResourceUses[rm->GetResID(rs.AtomicCounter[bind].res)].push_back(rw);
+              if(slot < ARRAY_COUNT(rs.AtomicCounter) && rs.AtomicCounter[slot].res.name)
+                m_ResourceUses[rm->GetResID(rs.AtomicCounter[slot].res)].push_back(rw);
             }
             else
             {
-              if(rs.ShaderStorage[bind].res.name)
-                m_ResourceUses[rm->GetResID(rs.ShaderStorage[bind].res)].push_back(rw);
+              if(slot < ARRAY_COUNT(rs.ShaderStorage) && rs.ShaderStorage[slot].res.name)
+                m_ResourceUses[rm->GetResID(rs.ShaderStorage[slot].res)].push_back(rw);
             }
           }
         }
 
         for(const ShaderResource &res : refl[i]->readOnlyResources)
         {
-          int32_t bind = mapping[i].readOnlyResources[res.bindPoint].bind;
+          uint32_t slot = 0;
+          bool used = false;
+          GetCurrentBinding(progForStage[i], refl[i], res, slot, used);
+
+          if(!used)
+            continue;
 
           GLResource *texList = NULL;
           const int32_t listSize = (int32_t)ARRAY_COUNT(rs.Tex2D);
-          ;
 
           switch(res.resType)
           {
@@ -5561,8 +5573,8 @@ void WrappedOpenGL::AddUsage(const ActionDescription &a)
             case TextureType::Count: RDCERR("Invalid shader resource type"); break;
           }
 
-          if(texList != NULL && bind >= 0 && bind < listSize && texList[bind].name != 0)
-            m_ResourceUses[rm->GetResID(texList[bind])].push_back(ro);
+          if(texList != NULL && slot < listSize && texList[slot].name != 0)
+            m_ResourceUses[rm->GetResID(texList[slot])].push_back(ro);
         }
       }
     }

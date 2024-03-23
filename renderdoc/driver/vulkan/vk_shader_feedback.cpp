@@ -2161,43 +2161,14 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   {
     uint32_t *readbackData = (uint32_t *)(data.data() + it->second.offset);
 
-    BindpointIndex used;
-
-    ShaderReflection *refl = stageRefls[(uint32_t)it->first.stage];
-    if(refl)
-    {
-      if(it->first.index.category == DescriptorCategory::ConstantBlock)
-      {
-        used.bindset = refl->constantBlocks[it->first.index.index].fixedBindSetOrSpace;
-        used.bind = refl->constantBlocks[it->first.index.index].fixedBindNumber;
-      }
-      else if(it->first.index.category == DescriptorCategory::Sampler)
-      {
-        used.bindset = refl->samplers[it->first.index.index].fixedBindSetOrSpace;
-        used.bind = refl->samplers[it->first.index.index].fixedBindNumber;
-      }
-      else if(it->first.index.category == DescriptorCategory::ReadOnlyResource)
-      {
-        used.bindset = refl->readOnlyResources[it->first.index.index].fixedBindSetOrSpace;
-        used.bind = refl->readOnlyResources[it->first.index.index].fixedBindNumber;
-      }
-      else if(it->first.index.category == DescriptorCategory::ReadWriteResource)
-      {
-        used.bindset = refl->readWriteResources[it->first.index.index].fixedBindSetOrSpace;
-        used.bind = refl->readWriteResources[it->first.index.index].fixedBindNumber;
-      }
-    }
-
     DescriptorAccess access = it->second.access;
 
     for(uint32_t i = 0; i < it->second.numEntries; i++)
     {
       if(readbackData[i])
       {
-        used.arrayIndex = i;
         access.arrayElement = i;
 
-        result.used.push_back(used);
         result.access.push_back(access);
       }
 

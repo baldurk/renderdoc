@@ -832,88 +832,88 @@ void VulkanCreationInfo::Pipeline::Shader::ProcessStaticDescriptorAccess(
   // we will store the descriptor set in byteSize to be decoded into descriptorStore later
   access.byteSize = 0;
 
-  staticDescriptorAccess.reserve(staticDescriptorAccess.size() + mapping->constantBlocks.size() +
-                                 mapping->samplers.size() + mapping->readOnlyResources.size() +
-                                 mapping->readWriteResources.size());
+  staticDescriptorAccess.reserve(staticDescriptorAccess.size() + refl->constantBlocks.size() +
+                                 refl->samplers.size() + refl->readOnlyResources.size() +
+                                 refl->readWriteResources.size());
 
-  RDCASSERT(mapping->constantBlocks.size() < 0xffff, mapping->constantBlocks.size());
-  for(uint16_t i = 0; i < mapping->constantBlocks.size(); i++)
+  RDCASSERT(refl->constantBlocks.size() < 0xffff, refl->constantBlocks.size());
+  for(uint16_t i = 0; i < refl->constantBlocks.size(); i++)
   {
-    const Bindpoint &bind = mapping->constantBlocks[i];
+    const ConstantBlock &bind = refl->constantBlocks[i];
     // arrayed descriptors will be handled with bindless feedback
-    if(bind.arraySize > 1)
+    if(bind.bindArraySize > 1)
       continue;
 
-    access.staticallyUnused = !bind.used;
     access.type = DescriptorType::ConstantBuffer;
     access.index = i;
 
-    if(bind.bindset == PushConstantBindSet)
+    if(bind.fixedBindSetOrSpace == PushConstantBindSet)
     {
-      access.byteSize = bind.bindset;
+      access.byteSize = bind.fixedBindSetOrSpace;
       access.byteOffset = 0;
       staticDescriptorAccess.push_back(access);
     }
-    else if(bind.bindset == SpecializationConstantBindSet)
+    else if(bind.fixedBindSetOrSpace == SpecializationConstantBindSet)
     {
-      access.byteSize = bind.bindset;
+      access.byteSize = bind.fixedBindSetOrSpace;
       access.byteOffset = 0;
       staticDescriptorAccess.push_back(access);
     }
     else
     {
-      access.byteSize = bind.bindset;
-      access.byteOffset = setLayoutInfos[bind.bindset]->bindings[bind.bind].elemOffset +
-                          setLayoutInfos[bind.bindset]->inlineByteSize;
+      access.byteSize = bind.fixedBindSetOrSpace;
+      access.byteOffset =
+          setLayoutInfos[bind.fixedBindSetOrSpace]->bindings[bind.fixedBindNumber].elemOffset +
+          setLayoutInfos[bind.fixedBindSetOrSpace]->inlineByteSize;
       staticDescriptorAccess.push_back(access);
     }
   }
 
-  RDCASSERT(mapping->samplers.size() < 0xffff, mapping->samplers.size());
-  for(uint16_t i = 0; i < mapping->samplers.size(); i++)
+  RDCASSERT(refl->samplers.size() < 0xffff, refl->samplers.size());
+  for(uint16_t i = 0; i < refl->samplers.size(); i++)
   {
-    const Bindpoint &bind = mapping->samplers[i];
+    const ShaderSampler &bind = refl->samplers[i];
     // arrayed descriptors will be handled with bindless feedback
-    if(bind.arraySize > 1)
+    if(bind.bindArraySize > 1)
       continue;
 
-    access.staticallyUnused = !bind.used;
     access.type = DescriptorType::Sampler;
     access.index = i;
-    access.byteSize = bind.bindset;
-    access.byteOffset = setLayoutInfos[bind.bindset]->bindings[bind.bind].elemOffset;
+    access.byteSize = bind.fixedBindSetOrSpace;
+    access.byteOffset =
+        setLayoutInfos[bind.fixedBindSetOrSpace]->bindings[bind.fixedBindNumber].elemOffset;
     staticDescriptorAccess.push_back(access);
   }
 
-  RDCASSERT(mapping->readOnlyResources.size() < 0xffff, mapping->readOnlyResources.size());
-  for(uint16_t i = 0; i < mapping->readOnlyResources.size(); i++)
+  RDCASSERT(refl->readOnlyResources.size() < 0xffff, refl->readOnlyResources.size());
+  for(uint16_t i = 0; i < refl->readOnlyResources.size(); i++)
   {
-    const Bindpoint &bind = mapping->readOnlyResources[i];
+    const ShaderResource &bind = refl->readOnlyResources[i];
     // arrayed descriptors will be handled with bindless feedback
-    if(bind.arraySize > 1)
+    if(bind.bindArraySize > 1)
       continue;
 
-    access.staticallyUnused = !bind.used;
     access.type = refl->readOnlyResources[i].descriptorType;
     access.index = i;
-    access.byteSize = bind.bindset;
-    access.byteOffset = setLayoutInfos[bind.bindset]->bindings[bind.bind].elemOffset;
+    access.byteSize = bind.fixedBindSetOrSpace;
+    access.byteOffset =
+        setLayoutInfos[bind.fixedBindSetOrSpace]->bindings[bind.fixedBindNumber].elemOffset;
     staticDescriptorAccess.push_back(access);
   }
 
-  RDCASSERT(mapping->readWriteResources.size() < 0xffff, mapping->readWriteResources.size());
-  for(uint16_t i = 0; i < mapping->readWriteResources.size(); i++)
+  RDCASSERT(refl->readWriteResources.size() < 0xffff, refl->readWriteResources.size());
+  for(uint16_t i = 0; i < refl->readWriteResources.size(); i++)
   {
-    const Bindpoint &bind = mapping->readWriteResources[i];
+    const ShaderResource &bind = refl->readWriteResources[i];
     // arrayed descriptors will be handled with bindless feedback
-    if(bind.arraySize > 1)
+    if(bind.bindArraySize > 1)
       continue;
 
-    access.staticallyUnused = !bind.used;
     access.type = refl->readWriteResources[i].descriptorType;
     access.index = i;
-    access.byteSize = bind.bindset;
-    access.byteOffset = setLayoutInfos[bind.bindset]->bindings[bind.bind].elemOffset;
+    access.byteSize = bind.fixedBindSetOrSpace;
+    access.byteOffset =
+        setLayoutInfos[bind.fixedBindSetOrSpace]->bindings[bind.fixedBindNumber].elemOffset;
     staticDescriptorAccess.push_back(access);
   }
 }
@@ -1036,7 +1036,6 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
                   pCreateInfo->pStages[i].stage, shad.specialization);
 
     shad.refl = reflData.refl;
-    shad.mapping = &reflData.mapping;
     shad.patchData = &reflData.patchData;
   }
 
@@ -1657,7 +1656,6 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
                   pCreateInfo->stage.stage, shad.specialization);
 
     shad.refl = reflData.refl;
-    shad.mapping = &reflData.mapping;
     shad.patchData = &reflData.patchData;
   }
 
@@ -2444,7 +2442,7 @@ void VulkanCreationInfo::ShaderModuleReflection::Init(VulkanResourceManager *res
     stageIndex = StageIndex(stage);
 
     spv.MakeReflection(GraphicsAPI::Vulkan, ShaderStage(stageIndex), entryPoint, specInfo, *refl,
-                       mapping, patchData);
+                       patchData);
 
     refl->resourceId = resourceMan->GetOriginalID(id);
   }

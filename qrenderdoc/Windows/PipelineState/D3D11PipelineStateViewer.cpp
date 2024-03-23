@@ -1602,7 +1602,7 @@ void D3D11PipelineStateViewer::setState()
         ui->targetOutputs,
     };
 
-    rdcarray<Descriptor> outputs = m_Ctx.CurPipelineState().GetOutputTargetDescriptors();
+    rdcarray<Descriptor> outputs = m_Ctx.CurPipelineState().GetOutputTargets();
     for(uint32_t i = 0; i < outputs.size(); i++)
     {
       addResourceRow(D3D11ViewTag(D3D11ViewTag::OMTarget, i, outputs[i]), NULL, NULL,
@@ -1779,9 +1779,8 @@ void D3D11PipelineStateViewer::setState()
       }
     }
 
-    addResourceRow(
-        D3D11ViewTag(D3D11ViewTag::OMDepth, 0, m_Ctx.CurPipelineState().GetDepthTargetDescriptor()),
-        NULL, NULL, ui->targetOutputs);
+    addResourceRow(D3D11ViewTag(D3D11ViewTag::OMDepth, 0, m_Ctx.CurPipelineState().GetDepthTarget()),
+                   NULL, NULL, ui->targetOutputs);
 
     ui->vsClasses->parentWidget()->setVisible(ui->vsClasses->topLevelItemCount() > 0);
     ui->hsClasses->parentWidget()->setVisible(ui->hsClasses->topLevelItemCount() > 0);
@@ -2822,8 +2821,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
 
     QList<QVariantList> rows;
 
-    const rdcarray<UsedDescriptor> &samplers =
-        m_Ctx.CurPipelineState().GetSamplerDescriptors(sh.stage);
+    const rdcarray<UsedDescriptor> &samplers = m_Ctx.CurPipelineState().GetSamplers(sh.stage);
 
     for(int i = 0; i < samplers.count(); i++)
     {
@@ -2895,8 +2893,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
 
     QList<QVariantList> rows;
 
-    const rdcarray<UsedDescriptor> &cblocks =
-        m_Ctx.CurPipelineState().GetConstantBlockDescriptors(sh.stage);
+    const rdcarray<UsedDescriptor> &cblocks = m_Ctx.CurPipelineState().GetConstantBlocks(sh.stage);
 
     for(int i = 0; i < cblocks.count(); i++)
     {
@@ -3188,7 +3185,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
 
     QList<QVariantList> rows;
 
-    rdcarray<Descriptor> rts = m_Ctx.CurPipelineState().GetOutputTargetDescriptors();
+    rdcarray<Descriptor> rts = m_Ctx.CurPipelineState().GetOutputTargets();
     for(int i = 0; i < rts.count(); i++)
     {
       if(rts[i].view == ResourceId())
@@ -3280,8 +3277,7 @@ void D3D11PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D11Pipe
     else if(om.stencilReadOnly)
       extra = tr("Stencil Read-Only");
 
-    rows.push_back(
-        exportViewHTML(m_Ctx.CurPipelineState().GetDepthTargetDescriptor(), 0, NULL, extra));
+    rows.push_back(exportViewHTML(m_Ctx.CurPipelineState().GetDepthTarget(), 0, NULL, extra));
 
     m_Common.exportHTMLTable(xml,
                              {

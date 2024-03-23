@@ -1792,12 +1792,6 @@ with software rendering, or with some functionality disabled due to lack of supp
 )");
   bool degraded = false;
 
-  DOCUMENT(R"(``True`` if the driver mutates shader reflection structures from event to event.
-Currently this is only true for OpenGL where the superfluous indirect in the binding model must be
-worked around by re-sorting bindings.
-)");
-  bool shadersMutable = false;
-
   DOCUMENT("(``True`` if the API supports shader debugging.");
   bool shaderDebugging = false;
 

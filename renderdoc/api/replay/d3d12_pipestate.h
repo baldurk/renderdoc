@@ -202,9 +202,6 @@ If the value is 0, strip cutting is disabled.
   Topology topology = Topology::Unknown;
 };
 
-// immediate indicates either a root parameter (not in a table), or static samplers
-// rootElement is the index in the original root signature that this descriptor came from.
-
 DOCUMENT("Describes the details of a D3D12 resource view - any one of UAV, SRV, RTV or DSV.");
 struct View
 {
@@ -320,250 +317,6 @@ since single descriptors may only be dynamically skipped by control flow.
   float minLODClamp = 0.0f;
 };
 
-DOCUMENT("Describes the details of a sampler descriptor.");
-struct Sampler
-{
-  DOCUMENT("");
-  Sampler() = default;
-  Sampler(uint32_t binding) : bind(binding) {}
-  Sampler(const Sampler &) = default;
-  Sampler &operator=(const Sampler &) = default;
-
-  bool operator==(const Sampler &o) const
-  {
-    return bind == o.bind && tableIndex == o.tableIndex && addressU == o.addressU &&
-           addressV == o.addressV && addressW == o.addressW &&
-           borderColorValue.uintValue == o.borderColorValue.uintValue &&
-           borderColorType == o.borderColorType && unnormalized == o.unnormalized &&
-           compareFunction == o.compareFunction && filter == o.filter &&
-           maxAnisotropy == o.maxAnisotropy && maxLOD == o.maxLOD && minLOD == o.minLOD &&
-           mipLODBias == o.mipLODBias;
-  }
-  bool operator<(const Sampler &o) const
-  {
-    if(!(bind == o.bind))
-      return bind < o.bind;
-    if(!(tableIndex == o.tableIndex))
-      return tableIndex < o.tableIndex;
-    if(!(addressU == o.addressU))
-      return addressU < o.addressU;
-    if(!(addressV == o.addressV))
-      return addressV < o.addressV;
-    if(!(addressW == o.addressW))
-      return addressW < o.addressW;
-    if(!(borderColorValue.uintValue == o.borderColorValue.uintValue))
-      return borderColorValue.uintValue < o.borderColorValue.uintValue;
-    if(!(borderColorType == o.borderColorType))
-      return borderColorType < o.borderColorType;
-    if(!(unnormalized == o.unnormalized))
-      return unnormalized < o.unnormalized;
-    if(!(compareFunction == o.compareFunction))
-      return compareFunction < o.compareFunction;
-    if(!(filter == o.filter))
-      return filter < o.filter;
-    if(!(maxAnisotropy == o.maxAnisotropy))
-      return maxAnisotropy < o.maxAnisotropy;
-    if(!(maxLOD == o.maxLOD))
-      return maxLOD < o.maxLOD;
-    if(!(minLOD == o.minLOD))
-      return minLOD < o.minLOD;
-    if(!(mipLODBias == o.mipLODBias))
-      return mipLODBias < o.mipLODBias;
-    return false;
-  }
-  DOCUMENT("The shader register that this sampler is bound to.");
-  uint32_t bind = ~0U;
-  DOCUMENT("The index in the the parent descriptor table where this descriptor came from.");
-  uint32_t tableIndex = ~0U;
-
-  DOCUMENT("The :class:`AddressMode` in the U direction.");
-  AddressMode addressU = AddressMode::Wrap;
-  DOCUMENT("The :class:`AddressMode` in the V direction.");
-  AddressMode addressV = AddressMode::Wrap;
-  DOCUMENT("The :class:`AddressMode` in the W direction.");
-  AddressMode addressW = AddressMode::Wrap;
-  DOCUMENT(R"(For samplers - the RGBA border color value. Typically the float tuple inside will be used,
-but the exact component type can be checked with :data:`borderColorType`.
-
-:type: PixelValue
-)");
-  PixelValue borderColorValue = {};
-  DOCUMENT(R"(For samplers - the RGBA border color type. This determines how the data in
-:data:`borderColorValue` will be interpreted.
-
-:type: CompType
-)");
-  CompType borderColorType = CompType::Float;
-  DOCUMENT("``True`` if unnormalized co-ordinates are used in this sampler.");
-  bool unnormalized = false;
-  DOCUMENT("The :class:`CompareFunction` for comparison samplers.");
-  CompareFunction compareFunction = CompareFunction::AlwaysTrue;
-  DOCUMENT(R"(The filtering mode.
-
-:type: TextureFilter
-)");
-  TextureFilter filter;
-  DOCUMENT("The maximum anisotropic filtering level to use.");
-  uint32_t maxAnisotropy = 0;
-  DOCUMENT("The maximum mip level that can be used.");
-  float maxLOD = 0.0f;
-  DOCUMENT("The minimum mip level that can be used.");
-  float minLOD = 0.0f;
-  DOCUMENT("A bias to apply to the calculated mip level before sampling.");
-  float mipLODBias = 0.0f;
-
-  DOCUMENT(R"(Check if the border color is used in this D3D12 sampler.
-
-:return: ``True`` if the border color is used, ``False`` otherwise.
-:rtype: bool
-)");
-  bool UseBorder() const
-  {
-    return addressU == AddressMode::ClampBorder || addressV == AddressMode::ClampBorder ||
-           addressW == AddressMode::ClampBorder;
-  }
-};
-
-DOCUMENT("Describes the details of a constant buffer view descriptor.");
-struct ConstantBuffer
-{
-  DOCUMENT("");
-  ConstantBuffer() = default;
-  ConstantBuffer(uint32_t binding) : bind(binding) {}
-  ConstantBuffer(const ConstantBuffer &) = default;
-  ConstantBuffer &operator=(const ConstantBuffer &) = default;
-
-  bool operator==(const ConstantBuffer &o) const
-  {
-    return bind == o.bind && tableIndex == o.tableIndex && resourceId == o.resourceId &&
-           byteOffset == o.byteOffset && byteSize == o.byteSize && rootValues == o.rootValues;
-  }
-  bool operator<(const ConstantBuffer &o) const
-  {
-    if(!(bind == o.bind))
-      return bind < o.bind;
-    if(!(tableIndex == o.tableIndex))
-      return tableIndex < o.tableIndex;
-    if(!(resourceId == o.resourceId))
-      return resourceId < o.resourceId;
-    if(!(byteOffset == o.byteOffset))
-      return byteOffset < o.byteOffset;
-    if(!(byteSize == o.byteSize))
-      return byteSize < o.byteSize;
-    if(!(rootValues == o.rootValues))
-      return rootValues < o.rootValues;
-    return false;
-  }
-  DOCUMENT("The shader register that this constant buffer is bound to.");
-  uint32_t bind = ~0U;
-  DOCUMENT("The index in the the parent descriptor table where this descriptor came from.");
-  uint32_t tableIndex = ~0U;
-
-  DOCUMENT("The :class:`ResourceId` of the underlying buffer resource.");
-  ResourceId resourceId;
-  DOCUMENT("The byte offset where the buffer view starts in the underlying buffer.");
-  uint64_t byteOffset = 0;
-  DOCUMENT("How many bytes are in this constant buffer view.");
-  uint32_t byteSize = 0;
-
-  DOCUMENT(R"(If :data:`immediate` is ``True`` and this is a root constant, this contains the root
-values set as interpreted as a series of DWORD values.
-
-:type: List[int]
-)");
-  rdcarray<uint32_t> rootValues;
-};
-
-DOCUMENT("Contains information for a single root signature element range");
-struct RootSignatureRange
-{
-  DOCUMENT("");
-  RootSignatureRange() = default;
-  RootSignatureRange(const RootSignatureRange &) = default;
-  RootSignatureRange &operator=(const RootSignatureRange &) = default;
-
-  bool operator==(const RootSignatureRange &o) const
-  {
-    return immediate == o.immediate && rootSignatureIndex == o.rootSignatureIndex &&
-           visibility == o.visibility && registerSpace == o.registerSpace &&
-           dynamicallyUsedCount == o.dynamicallyUsedCount && firstUsedIndex == o.firstUsedIndex &&
-           lastUsedIndex == o.lastUsedIndex && constantBuffers == o.constantBuffers &&
-           samplers == o.samplers && views == o.views;
-  }
-  bool operator<(const RootSignatureRange &o) const
-  {
-    if(!(immediate == o.immediate))
-      return immediate < o.immediate;
-    if(!(rootSignatureIndex == o.rootSignatureIndex))
-      return rootSignatureIndex < o.rootSignatureIndex;
-    if(!(visibility == o.visibility))
-      return visibility < o.visibility;
-    if(!(registerSpace == o.registerSpace))
-      return registerSpace < o.registerSpace;
-    if(!(dynamicallyUsedCount == o.dynamicallyUsedCount))
-      return dynamicallyUsedCount < o.dynamicallyUsedCount;
-    if(!(firstUsedIndex == o.firstUsedIndex))
-      return firstUsedIndex < o.firstUsedIndex;
-    if(!(lastUsedIndex == o.lastUsedIndex))
-      return lastUsedIndex < o.lastUsedIndex;
-    if(!(constantBuffers == o.constantBuffers))
-      return constantBuffers < o.constantBuffers;
-    if(!(samplers == o.samplers))
-      return samplers < o.samplers;
-    if(!(views == o.views))
-      return views < o.views;
-    return false;
-  }
-
-  DOCUMENT("``True`` if this root element is a root constant (i.e. not in a table).");
-  bool immediate = false;
-  DOCUMENT("The index in the original root signature that this descriptor came from.");
-  uint32_t rootSignatureIndex = ~0U;
-  DOCUMENT("The :class:`BindType` contained by this element.");
-  BindType type = BindType::Unknown;
-  DOCUMENT("The :class:`ShaderStageMask` of this element.");
-  ShaderStageMask visibility = ShaderStageMask::All;
-  DOCUMENT("The register space of this element.");
-  uint32_t registerSpace;
-  DOCUMENT(R"(Lists how many bindings in :data:`views` are dynamically used. Useful to avoid
-redundant iteration to determine whether any bindings are present.
-
-For more information see :data:`D3D12View.dynamicallyUsed`.
-)");
-  uint32_t dynamicallyUsedCount = ~0U;
-  DOCUMENT(R"(Gives the index of the first binding in :data:`views` that is dynamically used. Useful
-to avoid redundant iteration in very large descriptor arrays with a small subset that are used.
-
-For more information see :data:`D3D12View.dynamicallyUsed`.
-)");
-  int32_t firstUsedIndex = 0;
-  DOCUMENT(R"(Gives the index of the first binding in :data:`views` that is dynamically used. Useful
-to avoid redundant iteration in very large descriptor arrays with a small subset that are used.
-
-.. note::
-  This may be set to a higher value than the number of bindings, if no dynamic use information is
-  available. Ensure that this is an additional check on the bind and the count is still respected.
-
-For more information see :data:`D3D12View.dynamicallyUsed`.
-)");
-  int32_t lastUsedIndex = 0x7fffffff;
-  DOCUMENT(R"(The constant buffers in this range.
-
-:type: List[D3D12ConstantBuffer]
-)");
-  rdcarray<ConstantBuffer> constantBuffers;
-  DOCUMENT(R"(The samplers in this range.
-
-:type: List[D3D12Sampler]
-)");
-  rdcarray<Sampler> samplers;
-  DOCUMENT(R"(The SRVs or UAVs in this range.
-
-:type: List[D3D12View]
-)");
-  rdcarray<View> views;
-};
-
 DOCUMENT("Describes a D3D12 shader stage.");
 struct Shader
 {
@@ -580,11 +333,6 @@ struct Shader
 :type: ShaderReflection
 )");
   ShaderReflection *reflection = NULL;
-  DOCUMENT(R"(The bindpoint mapping data to match :data:`reflection`.
-
-:type: ShaderBindpointMapping
-)");
-  ShaderBindpointMapping bindpointMapping;
 
   DOCUMENT("A :class:`ShaderStage` identifying which stage this shader is bound to.");
   ShaderStage stage = ShaderStage::Vertex;
@@ -938,12 +686,6 @@ struct State
 )");
   rdcarray<ResourceId> descriptorHeaps;
 
-  DOCUMENT(R"(The root signature, as a range per element.
-    
-:type: List[D3D12RootSignatureRange]
-)");
-  rdcarray<RootSignatureRange> rootElements;
-
   DOCUMENT(R"(The input assembly pipeline stage.
 
 :type: D3D12InputAssembly
@@ -1023,9 +765,6 @@ DECLARE_REFLECTION_STRUCT(D3D12Pipe::VertexBuffer);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::IndexBuffer);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::InputAssembly);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::View);
-DECLARE_REFLECTION_STRUCT(D3D12Pipe::Sampler);
-DECLARE_REFLECTION_STRUCT(D3D12Pipe::ConstantBuffer);
-DECLARE_REFLECTION_STRUCT(D3D12Pipe::RootSignatureRange);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::Shader);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::StreamOutBind);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::StreamOut);

@@ -735,9 +735,6 @@ public:
     rdcarray<uint32_t> specIDs;
     rdcarray<uint32_t> specValues;
 
-    // pre-calculated bindpoint mapping for SPIR-V shaders. NOT valid for normal GLSL shaders
-    ShaderBindpointMapping mapping;
-
     void ProcessCompilation(WrappedOpenGL &drv, ResourceId id, GLuint realShader);
     void ProcessSPIRVCompilation(WrappedOpenGL &drv, ResourceId id, GLuint realShader,
                                  const GLchar *pEntryPoint, GLuint numSpecializationConstants,
@@ -797,7 +794,6 @@ public:
       if(shadId != ResourceId())
       {
         stages.refls[i] = m_Shaders[shadId].reflection;
-        stages.mappings[i] = &m_Shaders[shadId].mapping;
       }
     }
   }

@@ -302,7 +302,6 @@ APIProperties D3D12Replay::GetAPIProperties()
   ret.localRenderer = GraphicsAPI::D3D12;
   ret.vendor = m_DriverInfo.vendor;
   ret.degraded = false;
-  ret.shadersMutable = false;
   ret.rgpCapture =
       (m_DriverInfo.vendor == GPUVendor::AMD || m_DriverInfo.vendor == GPUVendor::Samsung) &&
       m_RGP != NULL && m_RGP->DriverSupportsInterop();
@@ -1006,29 +1005,6 @@ void D3D12Replay::FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor 
   desc->GetHeap()->SetToViewCache(desc->GetHeapIndex(), view);
 }
 
-void D3D12Replay::FillSampler(D3D12Pipe::Sampler &samp, const D3D12_SAMPLER_DESC2 &sampDesc)
-{
-  samp.addressU = MakeAddressMode(sampDesc.AddressU);
-  samp.addressV = MakeAddressMode(sampDesc.AddressV);
-  samp.addressW = MakeAddressMode(sampDesc.AddressW);
-
-  samp.borderColorValue.uintValue = sampDesc.UintBorderColor;
-  samp.borderColorType =
-      ((sampDesc.Flags & D3D12_SAMPLER_FLAG_UINT_BORDER_COLOR) != 0 ? CompType::UInt
-                                                                    : CompType::Float);
-
-  samp.unnormalized = (sampDesc.Flags & D3D12_SAMPLER_FLAG_NON_NORMALIZED_COORDINATES) != 0;
-
-  samp.compareFunction = MakeCompareFunc(sampDesc.ComparisonFunc);
-  samp.filter = MakeFilter(sampDesc.Filter);
-  samp.maxAnisotropy = 0;
-  if(samp.filter.minify == FilterMode::Anisotropic)
-    samp.maxAnisotropy = sampDesc.MaxAnisotropy;
-  samp.maxLOD = sampDesc.MaxLOD;
-  samp.minLOD = sampDesc.MinLOD;
-  samp.mipLODBias = sampDesc.MipLODBias;
-}
-
 void D3D12Replay::FillDescriptor(Descriptor &dst, const D3D12Descriptor *src)
 {
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
@@ -1303,608 +1279,6 @@ ShaderStageMask ToShaderStageMask(D3D12_SHADER_VISIBILITY vis)
   }
 }
 
-void D3D12Replay::FillRootElements(uint32_t eventId, const D3D12RenderState::RootSignature &rootSig,
-                                   const ShaderBindpointMapping *mappings[NumShaderStages],
-                                   rdcarray<D3D12Pipe::RootSignatureRange> &rootElements)
-{
-  if(rootSig.rootsig == ResourceId())
-    return;
-
-  D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
-
-  const D3D12DynamicShaderFeedback &usage = m_BindlessFeedback.Usage[eventId];
-
-  const D3D12FeedbackBindIdentifier *curUsage = usage.used.begin();
-  const D3D12FeedbackBindIdentifier *lastUsage = usage.used.end();
-  D3D12FeedbackBindIdentifier curIdentifier = {};
-
-  WrappedID3D12RootSignature *sig =
-      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(rootSig.rootsig);
-
-  size_t numReserve = sig->sig.Parameters.size() + sig->sig.StaticSamplers.size();
-
-  for(size_t rootEl = 0; rootEl < sig->sig.Parameters.size(); rootEl++)
-    if(sig->sig.Parameters[rootEl].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
-      numReserve += sig->sig.Parameters[rootEl].ranges.size();
-
-  rootElements.reserve(numReserve);
-
-  size_t ridx = 0;
-
-  for(size_t rootEl = 0; rootEl < sig->sig.Parameters.size(); rootEl++)
-  {
-    curIdentifier.rootEl = rootEl;
-
-    const D3D12RootSignatureParameter &p = sig->sig.Parameters[rootEl];
-
-    if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
-    {
-      rootElements.resize_for_index(ridx);
-      D3D12Pipe::RootSignatureRange &element = rootElements[ridx++];
-      element.immediate = true;
-      element.rootSignatureIndex = (uint32_t)rootEl;
-      element.type = BindType::ConstantBuffer;
-      element.registerSpace = p.Constants.RegisterSpace;
-      element.visibility = ToShaderStageMask(p.ShaderVisibility);
-
-      element.samplers.clear();
-      element.constantBuffers.clear();
-      element.views.clear();
-
-      element.constantBuffers.push_back(D3D12Pipe::ConstantBuffer(p.Constants.ShaderRegister));
-      D3D12Pipe::ConstantBuffer &cb = element.constantBuffers.back();
-      cb.resourceId = ResourceId();
-      cb.byteOffset = 0;
-      cb.byteSize = uint32_t(sizeof(uint32_t) * p.Constants.Num32BitValues);
-
-      if(rootEl < rootSig.sigelems.size())
-      {
-        const D3D12RenderState::SignatureElement &e = rootSig.sigelems[rootEl];
-        if(e.type == eRootConst)
-          cb.rootValues.assign(e.constants.data(),
-                               RDCMIN(e.constants.size(), (size_t)p.Constants.Num32BitValues));
-      }
-
-      if(cb.rootValues.empty())
-        cb.rootValues.resize(p.Constants.Num32BitValues);
-    }
-    else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_CBV)
-    {
-      rootElements.resize_for_index(ridx);
-      D3D12Pipe::RootSignatureRange &element = rootElements[ridx++];
-      element.immediate = true;
-      element.rootSignatureIndex = (uint32_t)rootEl;
-      element.type = BindType::ConstantBuffer;
-      element.registerSpace = p.Descriptor.RegisterSpace;
-      element.visibility = ToShaderStageMask(p.ShaderVisibility);
-
-      element.samplers.clear();
-      element.constantBuffers.clear();
-      element.views.clear();
-
-      element.constantBuffers.push_back(D3D12Pipe::ConstantBuffer(p.Descriptor.ShaderRegister));
-      D3D12Pipe::ConstantBuffer &cb = element.constantBuffers.back();
-
-      if(rootEl < rootSig.sigelems.size())
-      {
-        const D3D12RenderState::SignatureElement &e = rootSig.sigelems[rootEl];
-        if(e.type == eRootCBV)
-        {
-          ID3D12Resource *res = rm->GetCurrentAs<ID3D12Resource>(e.id);
-
-          cb.resourceId = rm->GetOriginalID(e.id);
-          cb.byteOffset = e.offset;
-          if(res)
-            cb.byteSize = uint32_t(res->GetDesc().Width - cb.byteOffset);
-          else
-            cb.byteSize = 0;
-        }
-      }
-    }
-    else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV)
-    {
-      rootElements.resize_for_index(ridx);
-      D3D12Pipe::RootSignatureRange &element = rootElements[ridx++];
-      element.immediate = true;
-      element.rootSignatureIndex = (uint32_t)rootEl;
-      element.type = BindType::ReadOnlyResource;
-      element.registerSpace = p.Descriptor.RegisterSpace;
-      element.visibility = ToShaderStageMask(p.ShaderVisibility);
-
-      element.samplers.clear();
-      element.constantBuffers.clear();
-      element.views.clear();
-
-      element.views.push_back(D3D12Pipe::View(p.Descriptor.ShaderRegister));
-      D3D12Pipe::View &view = element.views.back();
-
-      view.dynamicallyUsed = true;
-
-      if(rootEl < rootSig.sigelems.size())
-      {
-        const D3D12RenderState::SignatureElement &e = rootSig.sigelems[rootEl];
-        if(e.type == eRootSRV)
-        {
-          ID3D12Resource *res = rm->GetCurrentAs<ID3D12Resource>(e.id);
-
-          // parameters from resource/view
-          view.resourceId = rm->GetOriginalID(e.id);
-          view.type = TextureType::Buffer;
-          view.viewFormat = MakeResourceFormat(DXGI_FORMAT_R32_UINT);
-
-          view.elementByteSize = sizeof(uint32_t);
-          view.firstElement = e.offset / sizeof(uint32_t);
-          if(res)
-            view.numElements = uint32_t((res->GetDesc().Width - e.offset) / sizeof(uint32_t));
-          else
-            view.numElements = 0;
-        }
-      }
-    }
-    else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV)
-    {
-      rootElements.resize_for_index(ridx);
-      D3D12Pipe::RootSignatureRange &element = rootElements[ridx++];
-      element.immediate = true;
-      element.rootSignatureIndex = (uint32_t)rootEl;
-      element.type = BindType::ReadWriteResource;
-      element.registerSpace = p.Descriptor.RegisterSpace;
-      element.visibility = ToShaderStageMask(p.ShaderVisibility);
-
-      element.samplers.clear();
-      element.constantBuffers.clear();
-      element.views.clear();
-
-      element.views.push_back(D3D12Pipe::View(p.Descriptor.ShaderRegister));
-      D3D12Pipe::View &view = element.views.back();
-
-      view.dynamicallyUsed = true;
-
-      if(rootEl < rootSig.sigelems.size())
-      {
-        const D3D12RenderState::SignatureElement &e = rootSig.sigelems[rootEl];
-        if(e.type == eRootUAV)
-        {
-          ID3D12Resource *res = rm->GetCurrentAs<ID3D12Resource>(e.id);
-
-          // parameters from resource/view
-          view.resourceId = rm->GetOriginalID(e.id);
-          view.type = TextureType::Buffer;
-          view.viewFormat = MakeResourceFormat(DXGI_FORMAT_R32_UINT);
-
-          view.elementByteSize = sizeof(uint32_t);
-          view.firstElement = e.offset / sizeof(uint32_t);
-          if(res)
-            view.numElements = uint32_t((res->GetDesc().Width - e.offset) / sizeof(uint32_t));
-          else
-            view.numElements = 0;
-        }
-      }
-    }
-    else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
-    {
-      const D3D12RenderState::SignatureElement *e = NULL;
-      WrappedID3D12DescriptorHeap *heap = NULL;
-
-      if(rootEl < rootSig.sigelems.size() && rootSig.sigelems[rootEl].type == eRootTable)
-      {
-        e = &rootSig.sigelems[rootEl];
-
-        heap = rm->GetCurrentAs<WrappedID3D12DescriptorHeap>(e->id);
-      }
-
-      UINT prevTableOffset = 0;
-
-      for(size_t r = 0; r < p.ranges.size(); r++)
-      {
-        const D3D12_DESCRIPTOR_RANGE1 &range = p.ranges[r];
-
-        curIdentifier.rangeIndex = r;
-
-        // Here we diverge slightly from how root signatures store data. A descriptor table can
-        // contain multiple ranges which can each contain different types. D3D12Pipe treats
-        // each range as a separate RootElement
-        rootElements.resize_for_index(ridx);
-        D3D12Pipe::RootSignatureRange &element = rootElements[ridx++];
-
-        element.immediate = false;
-        element.rootSignatureIndex = (uint32_t)rootEl;
-        element.registerSpace = range.RegisterSpace;
-        element.visibility = ToShaderStageMask(p.ShaderVisibility);
-
-        element.samplers.clear();
-        element.constantBuffers.clear();
-        element.views.clear();
-
-        UINT shaderReg = range.BaseShaderRegister;
-
-        D3D12Descriptor *desc = NULL;
-
-        UINT offset = range.OffsetInDescriptorsFromTableStart;
-
-        if(range.OffsetInDescriptorsFromTableStart == D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND)
-          offset = prevTableOffset;
-
-        UINT num = range.NumDescriptors;
-
-        if(heap)
-        {
-          desc = (D3D12Descriptor *)heap->GetCPUDescriptorHandleForHeapStart().ptr;
-          const D3D12Descriptor *endDesc = desc + heap->GetNumDescriptors();
-          desc += e->offset;
-          desc += offset;
-
-          if(desc >= endDesc)
-          {
-            RDCERR("Binding points past end of corresponding heap.");
-            num = 0;
-          }
-          else if(desc + num >= endDesc)
-          {
-            const UINT availDescriptors = UINT(endDesc - desc);
-
-            const Bindpoint *highestBind = NULL;
-            UINT maxBindReg = shaderReg + availDescriptors;
-
-            // Find shader binds that map any or all of this range to see if we can trim it
-            for(ShaderStage stage = ShaderStage::Vertex; stage < ShaderStage::Count; ++stage)
-            {
-              const ShaderBindpointMapping *mapping = mappings[(uint32_t)stage];
-              if((element.visibility & MaskForStage(stage)) != ShaderStageMask::Unknown)
-              {
-                // This range is visible to this shader stage, check its mappings
-                const rdcarray<Bindpoint> &bps = range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV
-                                                     ? mapping->readWriteResources
-                                                     : mapping->readOnlyResources;
-                for(size_t b = 0; b < bps.size(); ++b)
-                {
-                  if(bps[b].bindset == (int32_t)element.registerSpace &&
-                     bps[b].bind >= (int32_t)shaderReg)
-                  {
-                    UINT bindEnd = bps[b].arraySize == ~0U ? ~0U : bps[b].bind + bps[b].arraySize;
-                    if(highestBind == NULL || bindEnd > maxBindReg)
-                    {
-                      highestBind = &bps[b];
-                      maxBindReg = bindEnd;
-                    }
-                  }
-                }
-              }
-            }
-
-            // If we didn't find a bindpoint, this will evaluate to simply availDescriptors - the
-            // number of remaining entries in the heap. If we did find a bind in this range, it
-            // will trim to the max register used by bindings in the range.
-            num = RDCMIN(availDescriptors, maxBindReg - shaderReg);
-          }
-        }
-        else if(num == UINT_MAX)
-        {
-          RDCWARN(
-              "Heap not available on replay with unbounded descriptor range, clamping to 1 "
-              "descriptor.");
-          num = 1;
-        }
-
-        prevTableOffset = offset + num;
-
-        if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
-        {
-          element.type = BindType::Sampler;
-
-          element.samplers.reserve(num);
-
-          for(UINT i = 0; i < num; i++, shaderReg++)
-          {
-            element.samplers.push_back(D3D12Pipe::Sampler(shaderReg));
-            D3D12Pipe::Sampler &samp = element.samplers.back();
-            samp.tableIndex = offset + i;
-
-            if(desc)
-            {
-              const D3D12_SAMPLER_DESC2 &sampDesc = desc->GetSampler();
-              FillSampler(samp, sampDesc);
-              desc++;
-            }
-          }
-        }
-        else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
-        {
-          element.type = BindType::ConstantBuffer;
-
-          element.constantBuffers.reserve(num);
-
-          for(UINT i = 0; i < num; i++, shaderReg++)
-          {
-            element.constantBuffers.push_back(D3D12Pipe::ConstantBuffer(shaderReg));
-            D3D12Pipe::ConstantBuffer &cb = element.constantBuffers.back();
-            cb.tableIndex = offset + i;
-
-            if(desc)
-            {
-              const D3D12_CONSTANT_BUFFER_VIEW_DESC &cbv = desc->GetCBV();
-              WrappedID3D12Resource::GetResIDFromAddr(cbv.BufferLocation, cb.resourceId,
-                                                      cb.byteOffset);
-              cb.resourceId = rm->GetOriginalID(cb.resourceId);
-              cb.byteSize = cbv.SizeInBytes;
-
-              desc++;
-            }
-          }
-        }
-        else if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV ||
-                range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
-        {
-          if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
-            element.type = BindType::ReadOnlyResource;
-          else
-            element.type = BindType::ReadWriteResource;
-
-          element.firstUsedIndex = -1;
-          element.lastUsedIndex = -1;
-          element.dynamicallyUsedCount = 0;
-
-          element.views.reserve(num);
-
-          for(UINT i = 0; i < num; i++, shaderReg++)
-          {
-            element.views.push_back(D3D12Pipe::View(shaderReg));
-            D3D12Pipe::View &view = element.views.back();
-            view.tableIndex = offset + i;
-
-            if(usage.valid)
-            {
-              curIdentifier.descIndex = i;
-
-              // if the usage data is valid we expect entries for all descriptors that are used.
-              // Note that because of the messed up root signature/binding split, some of these
-              // entries will just be statically inserted and not actually from dynamic feedback
-              //
-              // usage data is only valid when at least one array exists to have feedback
-              if(curUsage >= lastUsage)
-              {
-                // if we exhausted the list, all other elements are unused
-                view.dynamicallyUsed = false;
-              }
-              else
-              {
-                // we never saw the current value of curUsage (which is odd, we should have
-                // when iterating over all descriptors. This could only happen if there's some
-                // layout mismatch or a feedback bug that lead to an invalid entry in the list).
-                // Keep advancing until we get to one that is >= our current bind
-                while(*curUsage < curIdentifier && curUsage < lastUsage)
-                {
-                  curUsage++;
-                }
-
-                // the next used bind is equal to this one. Mark it as dynamically used, and consume
-                if(curUsage < lastUsage && *curUsage == curIdentifier)
-                {
-                  view.dynamicallyUsed = true;
-                  curUsage++;
-                }
-                // the next used bind is after the current one, this is not used.
-                else if(curUsage < lastUsage && curIdentifier < *curUsage)
-                {
-                  view.dynamicallyUsed = false;
-                }
-              }
-            }
-            else
-            {
-              view.dynamicallyUsed = true;
-            }
-
-            if(view.dynamicallyUsed)
-            {
-              element.dynamicallyUsedCount++;
-              // we iterate in forward order, so we can unconditinoally set the last bind to the
-              // current one, and only set the first bind if we haven't encountered one before
-              element.lastUsedIndex = i;
-
-              if(element.firstUsedIndex < 0)
-                element.firstUsedIndex = i;
-            }
-
-            if(desc)
-            {
-              FillResourceView(view, desc);
-              desc++;
-            }
-          }
-
-          // if no bindings were set these will still be negative. Set them to something sensible.
-          if(element.firstUsedIndex < 0)
-          {
-            element.firstUsedIndex = 0;
-            element.lastUsedIndex = 0x7fffffff;
-          }
-        }
-      }
-    }
-  }
-
-  // direct heap access resources
-  {
-    D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
-    WrappedID3D12DescriptorHeap *resourceHeap = NULL;
-    WrappedID3D12DescriptorHeap *samplerHeap = NULL;
-    for(ResourceId id : rs.heaps)
-    {
-      WrappedID3D12DescriptorHeap *heap =
-          (WrappedID3D12DescriptorHeap *)rm->GetCurrentAs<ID3D12DescriptorHeap>(id);
-      D3D12_DESCRIPTOR_HEAP_DESC desc = heap->GetDesc();
-      if(desc.Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
-        resourceHeap = heap;
-      else
-        samplerHeap = heap;
-    }
-
-    D3D12Pipe::RootSignatureRange *element = NULL;
-    while(curUsage < lastUsage && curUsage->directAccess)
-    {
-      ShaderStageMask visibility = (ShaderStageMask)(1 << (int)curUsage->shaderStage);
-      if(element == NULL || (element->visibility != visibility) ||
-         (element->type != curUsage->bindType))
-      {
-        rootElements.resize_for_index(ridx);
-        element = &rootElements[ridx++];
-        element->immediate = false;
-        element->rootSignatureIndex = ~0U;
-        element->type = curUsage->bindType;
-        element->visibility = visibility;
-        element->registerSpace = ~0U;
-        element->dynamicallyUsedCount = 0;
-        element->samplers.clear();
-        element->constantBuffers.clear();
-        element->views.clear();
-      }
-      if(curUsage->bindType == BindType::Sampler)
-      {
-        if(samplerHeap)
-        {
-          D3D12Descriptor *desc =
-              (D3D12Descriptor *)samplerHeap->GetCPUDescriptorHandleForHeapStart().ptr;
-          desc += curUsage->descIndex;
-          element->samplers.push_back(D3D12Pipe::Sampler());
-          D3D12Pipe::Sampler &samp = element->samplers.back();
-          const D3D12_SAMPLER_DESC2 &sampDesc = desc->GetSampler();
-          FillSampler(samp, sampDesc);
-          samp.tableIndex = curUsage->descIndex;
-          element->dynamicallyUsedCount++;
-        }
-        else
-        {
-          RDCERR("Access to sampler heap detected with no sampler heap bound");
-        }
-      }
-      else if(curUsage->bindType == BindType::ConstantBuffer)
-      {
-        if(resourceHeap)
-        {
-          D3D12Descriptor *desc =
-              (D3D12Descriptor *)resourceHeap->GetCPUDescriptorHandleForHeapStart().ptr;
-          desc += curUsage->descIndex;
-          element->constantBuffers.push_back(D3D12Pipe::ConstantBuffer());
-          D3D12Pipe::ConstantBuffer &cb = element->constantBuffers.back();
-
-          const D3D12_CONSTANT_BUFFER_VIEW_DESC &cbv = desc->GetCBV();
-          WrappedID3D12Resource::GetResIDFromAddr(cbv.BufferLocation, cb.resourceId, cb.byteOffset);
-          cb.resourceId = rm->GetOriginalID(cb.resourceId);
-          cb.byteSize = cbv.SizeInBytes;
-          cb.tableIndex = curUsage->descIndex;
-          element->dynamicallyUsedCount++;
-        }
-        else
-        {
-          RDCERR("Access to resource heap detected with no resource heap bound");
-        }
-      }
-      else
-      {
-        if(resourceHeap)
-        {
-          D3D12Descriptor *desc =
-              (D3D12Descriptor *)resourceHeap->GetCPUDescriptorHandleForHeapStart().ptr;
-          desc += curUsage->descIndex;
-          D3D12Pipe::View view;
-          FillResourceView(view, desc);
-          view.tableIndex = curUsage->descIndex;
-          element->views.push_back(view);
-          element->dynamicallyUsedCount++;
-        }
-        else
-        {
-          RDCERR("Access to resource heap detected with no resource heap bound");
-        }
-      }
-      curUsage++;
-    }
-  }
-
-  // Each static sampler gets its own RootElement
-  for(size_t i = 0; i < sig->sig.StaticSamplers.size(); i++)
-  {
-    D3D12_STATIC_SAMPLER_DESC1 &sampDesc = sig->sig.StaticSamplers[i];
-
-    rootElements.resize_for_index(ridx);
-    D3D12Pipe::RootSignatureRange &element = rootElements[ridx++];
-    element.immediate = true;
-    element.rootSignatureIndex = (uint32_t)i;
-    element.type = BindType::Sampler;
-    element.registerSpace = sampDesc.RegisterSpace;
-    element.visibility = ToShaderStageMask(sampDesc.ShaderVisibility);
-
-    element.samplers.clear();
-    element.constantBuffers.clear();
-    element.views.clear();
-
-    element.samplers.push_back(D3D12Pipe::Sampler(sampDesc.ShaderRegister));
-    D3D12Pipe::Sampler &samp = element.samplers[0];
-
-    samp.addressU = MakeAddressMode(sampDesc.AddressU);
-    samp.addressV = MakeAddressMode(sampDesc.AddressV);
-    samp.addressW = MakeAddressMode(sampDesc.AddressW);
-
-    samp.borderColorType = CompType::Float;
-
-    if(sampDesc.BorderColor == D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK)
-    {
-      samp.borderColorValue.floatValue[0] = 0.0f;
-      samp.borderColorValue.floatValue[1] = 0.0f;
-      samp.borderColorValue.floatValue[2] = 0.0f;
-      samp.borderColorValue.floatValue[3] = 0.0f;
-    }
-    else if(sampDesc.BorderColor == D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK)
-    {
-      samp.borderColorValue.floatValue[0] = 0.0f;
-      samp.borderColorValue.floatValue[1] = 0.0f;
-      samp.borderColorValue.floatValue[2] = 0.0f;
-      samp.borderColorValue.floatValue[3] = 1.0f;
-    }
-    else if(sampDesc.BorderColor == D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE)
-    {
-      samp.borderColorValue.floatValue[0] = 1.0f;
-      samp.borderColorValue.floatValue[1] = 1.0f;
-      samp.borderColorValue.floatValue[2] = 1.0f;
-      samp.borderColorValue.floatValue[3] = 1.0f;
-    }
-    else if(sampDesc.BorderColor == D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK_UINT)
-    {
-      samp.borderColorValue.uintValue[0] = 0;
-      samp.borderColorValue.uintValue[1] = 0;
-      samp.borderColorValue.uintValue[2] = 0;
-      samp.borderColorValue.uintValue[3] = 1;
-      samp.borderColorType = CompType::UInt;
-    }
-    else if(sampDesc.BorderColor == D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE_UINT)
-    {
-      samp.borderColorValue.uintValue[0] = 1;
-      samp.borderColorValue.uintValue[1] = 1;
-      samp.borderColorValue.uintValue[2] = 1;
-      samp.borderColorValue.uintValue[3] = 1;
-      samp.borderColorType = CompType::UInt;
-    }
-    else
-    {
-      RDCERR("Unexpected static border colour: %u", sampDesc.BorderColor);
-    }
-
-    samp.unnormalized = (sampDesc.Flags & D3D12_SAMPLER_FLAG_NON_NORMALIZED_COORDINATES) != 0;
-
-    samp.compareFunction = MakeCompareFunc(sampDesc.ComparisonFunc);
-    samp.filter = MakeFilter(sampDesc.Filter);
-    samp.maxAnisotropy = 0;
-    if(samp.filter.minify == FilterMode::Anisotropic)
-      samp.maxAnisotropy = sampDesc.MaxAnisotropy;
-    samp.maxLOD = sampDesc.MaxLOD;
-    samp.minLOD = sampDesc.MinLOD;
-    samp.mipLODBias = sampDesc.MipLODBias;
-  }
-
-  rootElements.resize(ridx);
-}
-
 void D3D12Replay::SavePipelineState(uint32_t eventId)
 {
   if(!m_D3D12PipelineState)
@@ -1995,7 +1369,6 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
     state.computeShader.resourceId = rm->GetUnreplacedOriginalID(sh->GetResourceID());
     state.computeShader.stage = ShaderStage::Compute;
     state.computeShader.reflection = &sh->GetDetails();
-    state.computeShader.bindpointMapping = sh->GetMapping();
   }
   else if(pipe)
   {
@@ -2038,13 +1411,11 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
       if(sh)
       {
         dst.resourceId = rm->GetUnreplacedOriginalID(sh->GetResourceID());
-        dst.bindpointMapping = sh->GetMapping();
         dst.reflection = &sh->GetDetails();
       }
       else
       {
         dst.resourceId = ResourceId();
-        dst.bindpointMapping = ShaderBindpointMapping();
         dst.reflection = NULL;
       }
     }
@@ -2054,26 +1425,10 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
   // Root Signature
   /////////////////////////////////////////////////
   {
-    const ShaderBindpointMapping *mappings[NumShaderStages];
-    mappings[(uint32_t)ShaderStage::Vertex] = &state.vertexShader.bindpointMapping;
-    mappings[(uint32_t)ShaderStage::Hull] = &state.hullShader.bindpointMapping;
-    mappings[(uint32_t)ShaderStage::Domain] = &state.domainShader.bindpointMapping;
-    mappings[(uint32_t)ShaderStage::Geometry] = &state.geometryShader.bindpointMapping;
-    mappings[(uint32_t)ShaderStage::Pixel] = &state.pixelShader.bindpointMapping;
-    mappings[(uint32_t)ShaderStage::Compute] = &state.computeShader.bindpointMapping;
-    mappings[(uint32_t)ShaderStage::Amplification] = &state.ampShader.bindpointMapping;
-    mappings[(uint32_t)ShaderStage::Mesh] = &state.meshShader.bindpointMapping;
-
     if(pipe && pipe->IsCompute())
-    {
-      FillRootElements(eventId, rs.compute, mappings, state.rootElements);
       state.rootSignatureResourceId = rm->GetOriginalID(rs.compute.rootsig);
-    }
     else if(pipe)
-    {
-      FillRootElements(eventId, rs.graphics, mappings, state.rootElements);
       state.rootSignatureResourceId = rm->GetOriginalID(rs.graphics.rootsig);
-    }
   }
 
   state.descriptorHeaps.clear();
@@ -2481,7 +1836,6 @@ rdcarray<Descriptor> D3D12Replay::GetDescriptors(ResourceId descriptorStore,
       }
       else if(desc->GetType() != D3D12DescriptorType::Sampler)
       {
-        D3D12Pipe::View view;
         FillDescriptor(ret[dst], desc);
       }
       dst++;
@@ -4063,16 +3417,14 @@ void D3D12Replay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, S
   WrappedID3D12Shader *sh = (WrappedID3D12Shader *)res;
 
   const ShaderReflection &refl = sh->GetDetails();
-  const ShaderBindpointMapping &mapping = sh->GetMapping();
 
-  if(cbufSlot >= (uint32_t)mapping.constantBlocks.count())
+  if(cbufSlot >= (uint32_t)refl.constantBlocks.count())
   {
     RDCERR("Invalid cbuffer slot");
     return;
   }
 
   const ConstantBlock &c = refl.constantBlocks[cbufSlot];
-  const Bindpoint &bind = mapping.constantBlocks[c.bindPoint];
 
   // check if the data actually comes from root constants
   const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
@@ -4103,8 +3455,8 @@ void D3D12Replay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, S
 
     if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS &&
        (ToShaderStageMask(p.ShaderVisibility) & reflMask) &&
-       p.Constants.RegisterSpace == (UINT)bind.bindset &&
-       p.Constants.ShaderRegister == (UINT)bind.bind)
+       p.Constants.RegisterSpace == c.fixedBindSetOrSpace &&
+       p.Constants.ShaderRegister == c.fixedBindNumber)
     {
       size_t dstSize = sig->sig.Parameters[i].Constants.Num32BitValues * sizeof(uint32_t);
       rootData.resize(dstSize);

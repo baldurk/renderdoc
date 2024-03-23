@@ -187,7 +187,6 @@ APIProperties VulkanReplay::GetAPIProperties()
   ret.pipelineType = GraphicsAPI::Vulkan;
   ret.localRenderer = GraphicsAPI::Vulkan;
   ret.degraded = false;
-  ret.shadersMutable = false;
   ret.rgpCapture =
       (m_DriverInfo.vendor == GPUVendor::AMD || m_DriverInfo.vendor == GPUVendor::Samsung) &&
       m_RGP != NULL && m_RGP->DriverSupportsInterop();
@@ -979,11 +978,12 @@ void VulkanReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len,
     for(size_t i = 0; i < NumShaderStages; i++)
     {
       // set up the defaults
-      if(p.shaders[i].mapping && p.shaders[i].refl)
+      if(p.shaders[i].refl)
       {
-        for(size_t cb = 0; cb < p.shaders[i].mapping->constantBlocks.size(); cb++)
+        for(size_t cb = 0; cb < p.shaders[i].refl->constantBlocks.size(); cb++)
         {
-          if(p.shaders[i].mapping->constantBlocks[cb].bindset == SpecializationConstantBindSet)
+          if(p.shaders[i].refl->constantBlocks[cb].fixedBindSetOrSpace ==
+             SpecializationConstantBindSet)
           {
             for(const ShaderConstant &sc : p.shaders[i].refl->constantBlocks[cb].variables)
             {
@@ -1197,8 +1197,6 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       stage.entryPoint = p.shaders[i].entryPoint;
 
       stage.stage = ShaderStage::Compute;
-      if(p.shaders[i].mapping)
-        stage.bindpointMapping = *p.shaders[i].mapping;
       if(p.shaders[i].refl)
         stage.reflection = p.shaders[i].refl;
 
@@ -1218,11 +1216,12 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       stage.specializationData.clear();
 
       // set up the defaults
-      if(p.shaders[i].mapping && p.shaders[i].refl)
+      if(p.shaders[i].refl)
       {
-        for(size_t cb = 0; cb < p.shaders[i].mapping->constantBlocks.size(); cb++)
+        for(size_t cb = 0; cb < p.shaders[i].refl->constantBlocks.size(); cb++)
         {
-          if(p.shaders[i].mapping->constantBlocks[cb].bindset == SpecializationConstantBindSet)
+          if(p.shaders[i].refl->constantBlocks[cb].fixedBindSetOrSpace ==
+             SpecializationConstantBindSet)
           {
             for(const ShaderConstant &sc : p.shaders[i].refl->constantBlocks[cb].variables)
             {
@@ -1329,8 +1328,6 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       stages[i]->entryPoint = p.shaders[i].entryPoint;
 
       stages[i]->stage = StageFromIndex(i);
-      if(p.shaders[i].mapping)
-        stages[i]->bindpointMapping = *p.shaders[i].mapping;
       if(p.shaders[i].refl)
         stages[i]->reflection = p.shaders[i].refl;
 
@@ -1351,11 +1348,12 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       stages[i]->requiredSubgroupSize = p.shaders[i].requiredSubgroupSize;
 
       // set up the defaults
-      if(p.shaders[i].mapping && p.shaders[i].refl)
+      if(p.shaders[i].refl)
       {
-        for(size_t cb = 0; cb < p.shaders[i].mapping->constantBlocks.size(); cb++)
+        for(size_t cb = 0; cb < p.shaders[i].refl->constantBlocks.size(); cb++)
         {
-          if(p.shaders[i].mapping->constantBlocks[cb].bindset == SpecializationConstantBindSet)
+          if(p.shaders[i].refl->constantBlocks[cb].fixedBindSetOrSpace ==
+             SpecializationConstantBindSet)
           {
             for(const ShaderConstant &sc : p.shaders[i].refl->constantBlocks[cb].variables)
             {
@@ -2082,57 +2080,18 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
     for(size_t p = 0; p < ARRAY_COUNT(srcs); p++)
     {
-      bool hasUsedBinds = false;
-      const BindpointIndex *usedBindsData = NULL;
-      size_t usedBindsSize = 0;
-
-      {
-        bool curCompute = (p == 1);
-        if(usage.valid && usage.compute == curCompute)
-        {
-          hasUsedBinds = true;
-          usedBindsData = usage.used.data();
-          usedBindsSize = usage.used.size();
-        }
-
-        const ActionDescription *action = m_pDriver->GetAction(eventId);
-        if(action)
-        {
-          bool isDispatch = bool(action->flags & ActionFlags::Dispatch);
-
-          // ifor compute stage on draws, and non-compute stages on dispatches, pretend all
-          // resources are dynamically unused, to prevent the lack of data from causing large arrays
-          // to be force-expanded
-          if((curCompute && !isDispatch) || (!curCompute && isDispatch))
-          {
-            hasUsedBinds = true;
-            usedBindsData = NULL;
-            usedBindsSize = 0;
-          }
-        }
-      }
-
-      BindpointIndex curBind;
-
       for(size_t i = 0; i < srcs[p]->size(); i++)
       {
         ResourceId sourceSet = (*srcs[p])[i].descSet;
-        const uint32_t *srcOffset = (*srcs[p])[i].offsets.begin();
         VKPipe::DescriptorSet &destSet = (*dsts[p])[i];
 
         if(sourceSet == ResourceId())
         {
-          destSet.inlineData.clear();
           destSet.descriptorSetResourceId = ResourceId();
           destSet.pushDescriptor = false;
           destSet.layoutResourceId = ResourceId();
-          destSet.bindings.clear();
           continue;
         }
-
-        destSet.inlineData = m_pDriver->m_DescriptorSetState[sourceSet].data.inlineBytes;
-
-        curBind.bindset = (uint32_t)i;
 
         ResourceId layoutId = m_pDriver->m_DescriptorSetState[sourceSet].layout;
 
@@ -2141,111 +2100,6 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                                   VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR);
 
         destSet.layoutResourceId = rm->GetOriginalID(layoutId);
-        destSet.bindings.resize(m_pDriver->m_DescriptorSetState[sourceSet].data.binds.size());
-        for(size_t b = 0; b < m_pDriver->m_DescriptorSetState[sourceSet].data.binds.size(); b++)
-        {
-          DescriptorSetSlot *sourceSlots = m_pDriver->m_DescriptorSetState[sourceSet].data.binds[b];
-          VKPipe::DescriptorBinding &destSlots = destSet.bindings[b];
-          const DescSetLayout::Binding &layoutBind = c.m_DescSetLayout[layoutId].bindings[b];
-
-          curBind.bind = (uint32_t)b;
-
-          destSlots.descriptorCount = layoutBind.descriptorCount;
-
-          if(layoutBind.layoutDescType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
-            destSlots.descriptorCount = 1;
-          else if(layoutBind.variableSize)
-            destSlots.descriptorCount =
-                m_pDriver->m_DescriptorSetState[sourceSet].data.variableDescriptorCount;
-
-          destSlots.stageFlags = (ShaderStageMask)layoutBind.stageFlags;
-
-          destSlots.firstUsedIndex = -1;
-          destSlots.lastUsedIndex = -1;
-          destSlots.dynamicallyUsedCount = 0;
-
-          destSlots.binds.resize(destSlots.descriptorCount);
-          for(uint32_t a = 0; a < destSlots.descriptorCount; a++)
-          {
-            const DescriptorSetSlot &srcel = sourceSlots[a];
-            VKPipe::BindingElement &dstel = destSlots.binds[a];
-
-            // clear it so we don't have to manually reset all elements back to normal
-            memset(&dstel, 0, sizeof(dstel));
-
-            curBind.arrayIndex = a;
-
-            // if we have a list of used binds, and this is an array descriptor (so would be
-            // expected to be in the list), check it for dynamic usage.
-            if(destSlots.descriptorCount > 1 && hasUsedBinds)
-            {
-              // if we exhausted the list, all other elements are unused
-              if(usedBindsSize == 0)
-              {
-                dstel.dynamicallyUsed = false;
-              }
-              else
-              {
-                // we never saw the current value of usedBindsData (which is odd, we should have
-                // when iterating over all descriptors. This could only happen if there's some
-                // layout mismatch or a feedback bug that lead to an invalid entry in the list).
-                // Keep advancing until we get to one that is >= our current bind
-                while(curBind > *usedBindsData && usedBindsSize)
-                {
-                  usedBindsData++;
-                  usedBindsSize--;
-                }
-
-                // the next used bind is equal to this one. Mark it as dynamically used, and consume
-                if(usedBindsSize > 0 && curBind == *usedBindsData)
-                {
-                  dstel.dynamicallyUsed = true;
-                  usedBindsData++;
-                  usedBindsSize--;
-                }
-                // the next used bind is after the current one, this is not used.
-                else if(usedBindsSize > 0 && curBind < *usedBindsData)
-                {
-                  dstel.dynamicallyUsed = false;
-                }
-              }
-            }
-            else
-            {
-              dstel.dynamicallyUsed = true;
-            }
-
-            if(dstel.dynamicallyUsed)
-            {
-              destSlots.dynamicallyUsedCount++;
-              // we iterate in forward order, so we can unconditinoally set the last bind to the
-              // current one, and only set the first bind if we haven't encountered one before
-              destSlots.lastUsedIndex = a;
-
-              if(destSlots.firstUsedIndex < 0)
-                destSlots.firstUsedIndex = a;
-            }
-
-            if(layoutBind.immutableSampler)
-              dstel.immutableSampler = true;
-
-            FillBindingElement(dstel, srcel);
-
-            if(srcel.type == DescriptorSlotType::StorageBufferDynamic ||
-               srcel.type == DescriptorSlotType::UniformBufferDynamic)
-            {
-              dstel.byteOffset += *srcOffset;
-              srcOffset++;
-            }
-          }
-
-          // if no bindings were set these will still be negative. Set them to something sensible.
-          if(destSlots.firstUsedIndex < 0)
-          {
-            destSlots.firstUsedIndex = 0;
-            destSlots.lastUsedIndex = 0x7fffffff;
-          }
-        }
       }
     }
   }
@@ -2305,179 +2159,6 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
     if(ret.conditionalRendering.isInverted)
       ret.conditionalRendering.isPassing = !ret.conditionalRendering.isPassing;
-  }
-}
-
-void VulkanReplay::FillBindingElement(VKPipe::BindingElement &dstel, const DescriptorSetSlot &srcel)
-{
-  DescriptorSlotType descriptorType = srcel.type;
-
-  VulkanResourceManager *rm = m_pDriver->GetResourceManager();
-  VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
-
-  switch(descriptorType)
-  {
-    case DescriptorSlotType::Sampler: dstel.type = BindType::Sampler; break;
-    case DescriptorSlotType::CombinedImageSampler: dstel.type = BindType::ImageSampler; break;
-    case DescriptorSlotType::SampledImage: dstel.type = BindType::ReadOnlyImage; break;
-    case DescriptorSlotType::StorageImage: dstel.type = BindType::ReadWriteImage; break;
-    case DescriptorSlotType::UniformTexelBuffer: dstel.type = BindType::ReadOnlyTBuffer; break;
-    case DescriptorSlotType::StorageTexelBuffer: dstel.type = BindType::ReadWriteTBuffer; break;
-    case DescriptorSlotType::UniformBuffer: dstel.type = BindType::ConstantBuffer; break;
-    case DescriptorSlotType::StorageBuffer:
-    case DescriptorSlotType::AccelerationStructure: dstel.type = BindType::ReadWriteBuffer; break;
-    case DescriptorSlotType::UniformBufferDynamic: dstel.type = BindType::ConstantBuffer; break;
-    case DescriptorSlotType::StorageBufferDynamic: dstel.type = BindType::ReadWriteBuffer; break;
-    case DescriptorSlotType::InputAttachment: dstel.type = BindType::InputAttachment; break;
-    case DescriptorSlotType::InlineBlock: dstel.type = BindType::ConstantBuffer; break;
-    case DescriptorSlotType::Unwritten:
-    case DescriptorSlotType::Count: dstel.type = BindType::Unknown; break;
-  }
-
-  // first handle the sampler separately because it might be in a combined descriptor
-  if(descriptorType == DescriptorSlotType::Sampler ||
-     descriptorType == DescriptorSlotType::CombinedImageSampler)
-  {
-    if(srcel.sampler != ResourceId())
-    {
-      dstel.samplerResourceId = srcel.sampler;
-
-      const VulkanCreationInfo::Sampler &sampl = c.m_Sampler[dstel.samplerResourceId];
-
-      dstel.samplerResourceId = rm->GetOriginalID(dstel.samplerResourceId);
-
-      // sampler info
-      dstel.filter =
-          MakeFilter(sampl.minFilter, sampl.magFilter, sampl.mipmapMode,
-                     sampl.maxAnisotropy >= 1.0f, sampl.compareEnable, sampl.reductionMode);
-      dstel.addressU = MakeAddressMode(sampl.address[0]);
-      dstel.addressV = MakeAddressMode(sampl.address[1]);
-      dstel.addressW = MakeAddressMode(sampl.address[2]);
-      dstel.mipBias = sampl.mipLodBias;
-      dstel.maxAnisotropy = sampl.maxAnisotropy;
-      dstel.compareFunction = MakeCompareFunc(sampl.compareOp);
-      dstel.minLOD = sampl.minLod;
-      dstel.maxLOD = sampl.maxLod;
-      MakeBorderColor(sampl.borderColor, dstel.borderColorValue.floatValue);
-      dstel.borderColorType = CompType::Float;
-      dstel.unnormalized = sampl.unnormalizedCoordinates;
-      dstel.seamless = sampl.seamless;
-
-      if(sampl.ycbcr != ResourceId())
-      {
-        const VulkanCreationInfo::YCbCrSampler &ycbcr = c.m_YCbCrSampler[sampl.ycbcr];
-        dstel.ycbcrSampler = rm->GetOriginalID(sampl.ycbcr);
-
-        dstel.ycbcrModel = ycbcr.ycbcrModel;
-        dstel.ycbcrRange = ycbcr.ycbcrRange;
-        Convert(dstel.samplerSwizzle, ycbcr.componentMapping);
-        dstel.xChromaOffset = ycbcr.xChromaOffset;
-        dstel.yChromaOffset = ycbcr.yChromaOffset;
-        dstel.chromaFilter = ycbcr.chromaFilter;
-        dstel.forceExplicitReconstruction = ycbcr.forceExplicitReconstruction;
-      }
-      else
-      {
-        Convert(dstel.samplerSwizzle, sampl.componentMapping);
-        dstel.srgbBorder = sampl.srgbBorder;
-      }
-
-      if(sampl.customBorder)
-      {
-        if(sampl.borderColor == VK_BORDER_COLOR_INT_CUSTOM_EXT)
-        {
-          dstel.borderColorValue.uintValue = sampl.customBorderColor.uint32;
-          dstel.borderColorType = CompType::UInt;
-        }
-        else
-        {
-          dstel.borderColorValue.floatValue = sampl.customBorderColor.float32;
-        }
-      }
-    }
-  }
-
-  // now look at the 'base' type. Sampler is excluded from these ifs
-  if(descriptorType == DescriptorSlotType::SampledImage ||
-     descriptorType == DescriptorSlotType::CombinedImageSampler ||
-     descriptorType == DescriptorSlotType::InputAttachment ||
-     descriptorType == DescriptorSlotType::StorageImage)
-  {
-    ResourceId viewid = srcel.resource;
-
-    if(viewid != ResourceId())
-    {
-      dstel.viewResourceId = rm->GetOriginalID(viewid);
-      dstel.resourceResourceId = rm->GetOriginalID(c.m_ImageView[viewid].image);
-      dstel.viewFormat = MakeResourceFormat(c.m_ImageView[viewid].format);
-
-      Convert(dstel.swizzle, c.m_ImageView[viewid].componentMapping);
-      dstel.firstMip = c.m_ImageView[viewid].range.baseMipLevel;
-      dstel.firstSlice = c.m_ImageView[viewid].range.baseArrayLayer;
-      dstel.numMips = c.m_ImageView[viewid].range.levelCount;
-      dstel.numSlices = c.m_ImageView[viewid].range.layerCount;
-
-      if(c.m_ImageView[viewid].viewType == VK_IMAGE_VIEW_TYPE_3D)
-        dstel.firstSlice = dstel.numSlices = 0;
-
-      // cheeky hack, store image layout enum in byteOffset as it's not used for images
-      dstel.byteOffset = convert(srcel.imageLayout);
-
-      dstel.minLOD = c.m_ImageView[viewid].minLOD;
-    }
-    else
-    {
-      dstel.viewResourceId = ResourceId();
-      dstel.resourceResourceId = ResourceId();
-      dstel.firstMip = 0;
-      dstel.firstSlice = 0;
-      dstel.numMips = 1;
-      dstel.numSlices = 1;
-      dstel.minLOD = 0.0f;
-    }
-  }
-  else if(descriptorType == DescriptorSlotType::UniformTexelBuffer ||
-          descriptorType == DescriptorSlotType::StorageTexelBuffer)
-  {
-    ResourceId viewid = srcel.resource;
-
-    if(viewid != ResourceId())
-    {
-      dstel.viewResourceId = rm->GetOriginalID(viewid);
-      dstel.resourceResourceId = rm->GetOriginalID(c.m_BufferView[viewid].buffer);
-      dstel.byteOffset = c.m_BufferView[viewid].offset;
-      dstel.viewFormat = MakeResourceFormat(c.m_BufferView[viewid].format);
-      dstel.byteSize = c.m_BufferView[viewid].size;
-    }
-    else
-    {
-      dstel.viewResourceId = ResourceId();
-      dstel.resourceResourceId = ResourceId();
-      dstel.byteOffset = 0;
-      dstel.byteSize = 0;
-    }
-  }
-  else if(descriptorType == DescriptorSlotType::InlineBlock)
-  {
-    dstel.viewResourceId = ResourceId();
-    dstel.resourceResourceId = ResourceId();
-    dstel.inlineBlock = true;
-    dstel.byteOffset = srcel.offset;
-    dstel.byteSize = srcel.range;
-  }
-  else if(descriptorType == DescriptorSlotType::StorageBuffer ||
-          descriptorType == DescriptorSlotType::StorageBufferDynamic ||
-          descriptorType == DescriptorSlotType::UniformBuffer ||
-          descriptorType == DescriptorSlotType::UniformBufferDynamic ||
-          descriptorType == DescriptorSlotType::AccelerationStructure)
-  {
-    dstel.viewResourceId = ResourceId();
-
-    if(srcel.resource != ResourceId())
-      dstel.resourceResourceId = rm->GetOriginalID(srcel.resource);
-
-    dstel.byteOffset = srcel.offset;
-    dstel.byteSize = srcel.GetRange();
   }
 }
 
@@ -3032,7 +2713,6 @@ void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, 
   }
 
   ShaderReflection &refl = *it->second.GetReflection(stage, entryPoint, pipeline).refl;
-  ShaderBindpointMapping &mapping = it->second.GetReflection(stage, entryPoint, pipeline).mapping;
 
   if(cbufSlot >= (uint32_t)refl.constantBlocks.count())
   {
@@ -3048,27 +2728,26 @@ void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, 
         (refl.stage == ShaderStage::Compute) ? m_pDriver->m_RenderState.compute.descSets
                                              : m_pDriver->m_RenderState.graphics.descSets;
 
-    Bindpoint bind = mapping.constantBlocks[c.bindPoint];
-
-    if(bind.bindset < descSets.count())
+    if(c.fixedBindSetOrSpace < descSets.size())
     {
-      ResourceId set = descSets[bind.bindset].descSet;
+      ResourceId set = descSets[c.fixedBindSetOrSpace].descSet;
 
       const WrappedVulkan::DescriptorSetInfo &setData = m_pDriver->m_DescriptorSetState[set];
 
       ResourceId layoutId = setData.layout;
 
-      if(bind.bind < m_pDriver->m_CreationInfo.m_DescSetLayout[layoutId].bindings.count())
+      if(c.fixedBindNumber < m_pDriver->m_CreationInfo.m_DescSetLayout[layoutId].bindings.size())
       {
         const DescSetLayout::Binding &layoutBind =
-            m_pDriver->m_CreationInfo.m_DescSetLayout[layoutId].bindings[bind.bind];
+            m_pDriver->m_CreationInfo.m_DescSetLayout[layoutId].bindings[c.fixedBindNumber];
 
         if(layoutBind.layoutDescType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
         {
           bytebuf inlineData;
-          inlineData.assign(setData.data.inlineBytes.data() + setData.data.binds[bind.bind]->offset,
-                            layoutBind.variableSize ? setData.data.variableDescriptorCount
-                                                    : layoutBind.descriptorCount);
+          inlineData.assign(
+              setData.data.inlineBytes.data() + setData.data.binds[c.fixedBindNumber]->offset,
+              layoutBind.variableSize ? setData.data.variableDescriptorCount
+                                      : layoutBind.descriptorCount);
           StandardFillCBufferVariables(refl.resourceId, c.variables, outvars, inlineData);
           return;
         }
@@ -3080,7 +2759,7 @@ void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, 
   else
   {
     // specialised path to display specialization constants
-    if(mapping.constantBlocks[c.bindPoint].bindset == SpecializationConstantBindSet)
+    if(c.fixedBindSetOrSpace == SpecializationConstantBindSet)
     {
       auto pipeIt = m_pDriver->m_CreationInfo.m_Pipeline.find(pipeline);
 

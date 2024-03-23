@@ -30,9 +30,7 @@ class DXBCContainer;
 }
 
 struct ShaderReflection;
-struct ShaderBindpointMapping;
 
 #define D3Dx_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT 32
 
-void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl,
-                          ShaderBindpointMapping *mapping);
+void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl);
