@@ -5334,7 +5334,7 @@ void EventBrowser::repopulateBookmarks()
 
       QRClickToolButton *but = new QRClickToolButton(this);
 
-      but->setText(mark.text.empty() ? QString::number(EID) : mark.text);
+      but->setText(mark.text.empty() ? QString::number(EID) : (QString)mark.text);
       but->setCheckable(true);
       but->setAutoRaise(true);
       but->setProperty("eid", EID);
@@ -5428,7 +5428,7 @@ void EventBrowser::bookmarkContextMenu(QRClickToolButton *button, uint32_t EID)
       bool ok;
       editedBookmark.text = QInputDialog::getText(
           this, lit("Rename"), lit("New name:"), QLineEdit::Normal,
-          editedBookmark.text.empty() ? QString::number(EID) : editedBookmark.text, &ok);
+          editedBookmark.text.empty() ? QString::number(EID) : (QString)editedBookmark.text, &ok);
       if(ok && !editedBookmark.text.empty())
       {
         button->setText(editedBookmark.text);
