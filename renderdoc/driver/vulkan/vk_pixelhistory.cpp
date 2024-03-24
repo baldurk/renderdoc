@@ -3895,10 +3895,9 @@ void UpdateTestsFailed(const TestsFailedCallback *tfCb, uint32_t eventId, uint32
   }
 }
 
-void FillInColor(ResourceFormat fmt, const PixelHistoryValue &value, ModificationValue &mod)
+static void FillInColor(ResourceFormat fmt, const PixelHistoryValue &value, ModificationValue &mod)
 {
-  FloatVector v4 = DecodeFormattedComponents(fmt, value.color);
-  memcpy(mod.col.floatValue.data(), &v4, sizeof(v4));
+  DecodePixelData(fmt, value.color, mod.col);
 }
 
 float GetDepthValue(VkFormat depthFormat, const PixelHistoryValue &value)
