@@ -28,7 +28,6 @@
 #include <QIcon>
 #include <QLabel>
 #include <QSet>
-#include <QToolButton>
 #include "Code/Interface/QRDInterface.h"
 
 namespace Ui
@@ -109,22 +108,6 @@ public:
 protected:
   void paintEvent(QPaintEvent *);
   void resizeEvent(QResizeEvent *);
-};
-
-class QRClickToolButton : public QToolButton
-{
-  Q_OBJECT
-
-public:
-  explicit QRClickToolButton(QWidget *parent = 0);
-
-private slots:
-  void mousePressEvent(QMouseEvent *e);
-
-signals:
-  void rightClicked();
-
-public slots:
 };
 
 class EventBrowser : public QFrame, public IEventBrowser, public ICaptureViewer
@@ -216,7 +199,7 @@ private:
   void jumpToBookmark(int idx);
   void repopulateBookmarks();
   void highlightBookmarks();
-  void bookmarkContextMenu(QRClickToolButton* button, uint32_t EID);
+  void bookmarkContextMenu(QRClickToolButton *button, uint32_t EID);
 
   int FindEvent(QModelIndex parent, QString filter, uint32_t after, bool forward);
   int FindEvent(QString filter, uint32_t after, bool forward);

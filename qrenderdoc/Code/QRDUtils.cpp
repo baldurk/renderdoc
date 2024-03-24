@@ -3683,3 +3683,15 @@ QVariant StructuredDataItemModel::data(const QModelIndex &index, int role) const
 
   return QVariant();
 }
+
+QRClickToolButton::QRClickToolButton(QWidget *parent) : QToolButton(parent)
+{
+}
+
+void QRClickToolButton::mousePressEvent(QMouseEvent *e)
+{
+  if(e->button() == Qt::RightButton)
+    emit rightClicked();
+  else
+    QToolButton::mousePressEvent(e);
+}
