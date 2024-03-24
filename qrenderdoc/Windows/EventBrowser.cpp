@@ -5344,7 +5344,8 @@ void EventBrowser::repopulateBookmarks()
           ui->events->setCurrentIndex(QModelIndex());
         highlightBookmarks();
       });
-      QObject::connect(but, &QRClickToolButton::rightClicked, [this, but, EID]() { bookmarkContextMenu(but, EID); });
+      QObject::connect(but, &QRClickToolButton::rightClicked,
+                       [this, but, EID]() { bookmarkContextMenu(but, EID); });
 
       m_BookmarkButtons[EID] = but;
 
@@ -5393,7 +5394,7 @@ void EventBrowser::highlightBookmarks()
   }
 }
 
-void EventBrowser::bookmarkContextMenu(QRClickToolButton* button, uint32_t EID)
+void EventBrowser::bookmarkContextMenu(QRClickToolButton *button, uint32_t EID)
 {
   QMenu contextMenu(this);
 
@@ -5406,14 +5407,12 @@ void EventBrowser::bookmarkContextMenu(QRClickToolButton* button, uint32_t EID)
   contextMenu.addAction(&renameBookmark);
   contextMenu.addAction(&deleteBookmark);
 
-  QObject::connect(&deleteBookmark, &QAction::triggered, [this, EID]()
-  {
+  QObject::connect(&deleteBookmark, &QAction::triggered, [this, EID]() {
     m_Ctx.RemoveBookmark(EID);
     repopulateBookmarks();
   });
 
-  QObject::connect(&renameBookmark, &QAction::triggered, [this, button, EID]()
-  {
+  QObject::connect(&renameBookmark, &QAction::triggered, [this, button, EID]() {
     EventBookmark editedBookmark;
     for(const EventBookmark &bookmark : m_Ctx.GetBookmarks())
     {
@@ -5428,11 +5427,8 @@ void EventBrowser::bookmarkContextMenu(QRClickToolButton* button, uint32_t EID)
     {
       bool ok;
       editedBookmark.text = QInputDialog::getText(
-          this,
-          lit("Rename"),
-          lit("New name:"), QLineEdit::Normal,
-          editedBookmark.text.empty() ? QString::number(EID) : editedBookmark.text,
-          &ok);
+          this, lit("Rename"), lit("New name:"), QLineEdit::Normal,
+          editedBookmark.text.empty() ? QString::number(EID) : editedBookmark.text, &ok);
       if(ok && !editedBookmark.text.empty())
       {
         button->setText(editedBookmark.text);
