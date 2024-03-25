@@ -120,7 +120,10 @@ private:
   void setEmptyRow(RDTreeWidgetItem *node);
   void highlightIABind(int slot);
 
+  bool IsPushSet(ShaderStage stage, ResourceId id);
+
   uint32_t getMinOffset(const rdcarray<ShaderConstant> &variables);
+
   QString formatByteRange(const BufferDescription *buf, const Descriptor &descriptor,
                           uint32_t dynamicOffset);
   QString formatMembers(int indent, const QString &nameprefix, const rdcarray<ShaderConstant> &vars);

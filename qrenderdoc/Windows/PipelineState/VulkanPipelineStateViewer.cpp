@@ -1182,7 +1182,10 @@ void VulkanPipelineStateViewer::addResourceRow(const ShaderResource *shaderRes,
     }
     else if(shaderRes)
     {
-      slotname =
+      if(IsPushSet(used.access.stage, used.access.descriptorStore))
+        slotname = tr("Push ");
+
+      slotname +=
           QFormatStr("Set %1, %2").arg(shaderRes->fixedBindSetOrSpace).arg(shaderRes->fixedBindNumber);
 
       if(!shaderRes->name.empty())
@@ -1193,7 +1196,10 @@ void VulkanPipelineStateViewer::addResourceRow(const ShaderResource *shaderRes,
     }
     else if(shaderSamp)
     {
-      slotname =
+      if(IsPushSet(used.access.stage, used.access.descriptorStore))
+        slotname = tr("Push ");
+
+      slotname +=
           QFormatStr("Set %1, %2").arg(shaderSamp->fixedBindSetOrSpace).arg(shaderSamp->fixedBindNumber);
 
       if(!shaderSamp->name.empty())
@@ -1507,7 +1513,10 @@ void VulkanPipelineStateViewer::addConstantBlockRow(const ConstantBlock *cblock,
     }
     else if(cblock)
     {
-      slotname =
+      if(IsPushSet(used.access.stage, used.access.descriptorStore))
+        slotname = tr("Push ");
+
+      slotname +=
           QFormatStr("Set %1, %2").arg(cblock->fixedBindSetOrSpace).arg(cblock->fixedBindNumber);
 
       if(!cblock->name.empty())
@@ -3076,6 +3085,24 @@ void VulkanPipelineStateViewer::highlightIABind(int slot)
   ui->viBuffers->endUpdate();
 }
 
+bool VulkanPipelineStateViewer::IsPushSet(ShaderStage stage, ResourceId id)
+{
+  if(stage == ShaderStage::Compute)
+  {
+    for(const VKPipe::DescriptorSet &set : m_Ctx.CurVulkanPipelineState()->compute.descriptorSets)
+      if(set.descriptorSetResourceId == id)
+        return set.pushDescriptor;
+  }
+  else
+  {
+    for(const VKPipe::DescriptorSet &set : m_Ctx.CurVulkanPipelineState()->graphics.descriptorSets)
+      if(set.descriptorSetResourceId == id)
+        return set.pushDescriptor;
+  }
+
+  return false;
+}
+
 void VulkanPipelineStateViewer::on_viAttrs_mouseMove(QMouseEvent *e)
 {
   if(!m_Ctx.IsCaptureLoaded())
@@ -3441,7 +3468,10 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
         continue;
       }
 
-      slotname = QFormatStr("Set %1, %2").arg(b.fixedBindSetOrSpace).arg(b.fixedBindNumber);
+      if(IsPushSet(used.access.stage, used.access.descriptorStore))
+        slotname = tr("Push ");
+
+      slotname += QFormatStr("Set %1, %2").arg(b.fixedBindSetOrSpace).arg(b.fixedBindNumber);
 
       if(!b.name.empty())
         slotname += lit(": ") + b.name;
@@ -3601,7 +3631,10 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       }
       else if(shaderSamp)
       {
-        slotname =
+        if(IsPushSet(used.access.stage, used.access.descriptorStore))
+          slotname = tr("Push ");
+
+        slotname +=
             QFormatStr("Set %1, %2").arg(shaderSamp->fixedBindSetOrSpace).arg(shaderSamp->fixedBindNumber);
 
         if(!shaderSamp->name.empty())
@@ -4157,7 +4190,10 @@ const ShaderResource *VulkanPipelineStateViewer::exportDescriptorHTML(const Used
   }
   else if(shaderRes)
   {
-    slotname =
+    if(IsPushSet(used.access.stage, used.access.descriptorStore))
+      slotname = tr("Push ");
+
+    slotname +=
         QFormatStr("Set %1, %2").arg(shaderRes->fixedBindSetOrSpace).arg(shaderRes->fixedBindNumber);
 
     if(!shaderRes->name.empty())
