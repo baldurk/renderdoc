@@ -5070,6 +5070,13 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     VkMemoryRequirements mrq = {0};
     m_pDriver->vkGetBufferMemoryRequirements(dev, meshBuffer, &mrq);
 
+    if(mrq.size > m_pDriver->GetMaxMemoryAllocationSize())
+    {
+      ret.vsout.status = StringFormat::Fmt("OOM %llu bytes Max %llu bytes", mrq.size,
+                                           m_pDriver->GetMaxMemoryAllocationSize());
+      return;
+    }
+
     VkMemoryAllocateInfo allocInfo = {
         VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
         NULL,

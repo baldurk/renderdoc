@@ -437,6 +437,8 @@ private:
     VkDriverInfo driverInfo = VkDriverInfo(false);
 
     VkPhysicalDevicePerformanceQueryFeaturesKHR performanceQueryFeatures = {};
+    // Only set during replay
+    VkDeviceSize maxMemoryAllocationSize = 0U;
 
     uint32_t queueCount = 0;
     VkQueueFamilyProperties queueProps[16] = {};
@@ -1304,6 +1306,10 @@ public:
   const VkPhysicalDevicePerformanceQueryFeaturesKHR &GetPhysicalDevicePerformanceQueryFeatures()
   {
     return m_PhysicalDeviceData.performanceQueryFeatures;
+  }
+  const VkDeviceSize &GetMaxMemoryAllocationSize()
+  {
+    return m_PhysicalDeviceData.maxMemoryAllocationSize;
   }
   const VkDriverInfo &GetDriverInfo() const { return m_PhysicalDeviceData.driverInfo; }
   uint32_t FindCommandQueueFamily(ResourceId cmdId);

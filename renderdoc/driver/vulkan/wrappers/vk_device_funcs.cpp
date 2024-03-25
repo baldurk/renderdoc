@@ -4048,6 +4048,22 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     for(size_t i = 0; i < queueProps.size(); i++)
       m_PhysicalDeviceData.queueProps[i] = queueProps[i];
 
+    if(RDCMIN(m_EnabledExtensions.vulkanVersion, physProps.apiVersion) >= VK_MAKE_VERSION(1, 1, 0))
+    {
+      VkPhysicalDeviceVulkan11Properties vulkan11Props = {
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES,
+      };
+
+      VkPhysicalDeviceProperties2 devProps2 = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+      devProps2.pNext = &vulkan11Props;
+      ObjDisp(physicalDevice)->GetPhysicalDeviceProperties2(Unwrap(physicalDevice), &devProps2);
+      m_PhysicalDeviceData.maxMemoryAllocationSize = vulkan11Props.maxMemoryAllocationSize;
+    }
+    else
+    {
+      m_PhysicalDeviceData.maxMemoryAllocationSize = 0x80000000U;
+    }
+
     ChooseMemoryIndices();
 
     APIProps.vendor = GetDriverInfo().Vendor();
@@ -4512,6 +4528,7 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
       RDCLOG("Forcing 200MB soft memory limit");
     }
 
+    m_PhysicalDeviceData.maxMemoryAllocationSize = 0;
     ChooseMemoryIndices();
 
     m_PhysicalDeviceData.queueCount = (uint32_t)queueProps.size();
