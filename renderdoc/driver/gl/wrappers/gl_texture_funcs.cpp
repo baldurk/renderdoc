@@ -725,11 +725,11 @@ bool WrappedOpenGL::Serialise_glTextureView(SerialiserType &ser, GLuint textureH
     m_Textures[liveTexId].curType = TextureTarget(target);
     m_Textures[liveTexId].internalFormat = internalformat;
     m_Textures[liveTexId].view = true;
-    m_Textures[liveTexId].width = m_Textures[liveOrigId].width;
-    m_Textures[liveTexId].height = m_Textures[liveOrigId].height;
+    m_Textures[liveTexId].width = RDCMAX(1U, m_Textures[liveOrigId].width >> minlevel);
+    m_Textures[liveTexId].height = RDCMAX(1U, m_Textures[liveOrigId].height >> minlevel);
     m_Textures[liveTexId].depth = numlayers;
     if(target == eGL_TEXTURE_3D)
-      m_Textures[liveTexId].depth = m_Textures[liveOrigId].depth;
+      m_Textures[liveTexId].depth = RDCMAX(m_Textures[liveOrigId].depth >> minlevel);
     m_Textures[liveTexId].mipsValid = (1 << numlevels) - 1;
     m_Textures[liveTexId].emulated = emulated;
 
