@@ -1686,14 +1686,14 @@ void GLReplay::SavePipelineState(uint32_t eventId)
       ResourceId id =
           rm->GetResID(rbCol[i] ? RenderbufferRes(ctx, curCol[i]) : TextureRes(ctx, curCol[i]));
 
-      pipe.framebuffer.drawFBO.colorAttachments[i].resourceId = rm->GetOriginalID(id);
+      pipe.framebuffer.drawFBO.colorAttachments[i].resource = rm->GetOriginalID(id);
 
       GLenum attachment = GLenum(eGL_COLOR_ATTACHMENT0 + i);
 
-      if(pipe.framebuffer.drawFBO.colorAttachments[i].resourceId != ResourceId() && !rbCol[i])
+      if(pipe.framebuffer.drawFBO.colorAttachments[i].resource != ResourceId() && !rbCol[i])
         GetFramebufferMipAndLayer(curDrawFBO, attachment,
-                                  (GLint *)&pipe.framebuffer.drawFBO.colorAttachments[i].mipLevel,
-                                  (GLint *)&pipe.framebuffer.drawFBO.colorAttachments[i].slice);
+                                  (GLint *)&pipe.framebuffer.drawFBO.colorAttachments[i].firstMip,
+                                  (GLint *)&pipe.framebuffer.drawFBO.colorAttachments[i].firstSlice);
 
       pipe.framebuffer.drawFBO.colorAttachments[i].numSlices = 1;
 
@@ -1708,7 +1708,8 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
           if(layered)
           {
-            pipe.framebuffer.drawFBO.colorAttachments[i].numSlices = m_pDriver->m_Textures[id].depth;
+            pipe.framebuffer.drawFBO.colorAttachments[i].numSlices =
+                m_pDriver->m_Textures[id].depth & 0xffff;
           }
         }
         else
@@ -1725,8 +1726,8 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
             if(numViews > 1)
             {
-              pipe.framebuffer.drawFBO.colorAttachments[i].numSlices = numViews;
-              pipe.framebuffer.drawFBO.colorAttachments[i].slice = startView;
+              pipe.framebuffer.drawFBO.colorAttachments[i].numSlices = numViews & 0xffff;
+              pipe.framebuffer.drawFBO.colorAttachments[i].firstSlice = startView & 0xffff;
             }
           }
         }
@@ -1748,19 +1749,19 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
     ResourceId id =
         rm->GetResID(rbDepth ? RenderbufferRes(ctx, curDepth) : TextureRes(ctx, curDepth));
-    pipe.framebuffer.drawFBO.depthAttachment.resourceId = rm->GetOriginalID(id);
-    pipe.framebuffer.drawFBO.stencilAttachment.resourceId = rm->GetOriginalID(
+    pipe.framebuffer.drawFBO.depthAttachment.resource = rm->GetOriginalID(id);
+    pipe.framebuffer.drawFBO.stencilAttachment.resource = rm->GetOriginalID(
         rm->GetResID(rbStencil ? RenderbufferRes(ctx, curStencil) : TextureRes(ctx, curStencil)));
 
-    if(pipe.framebuffer.drawFBO.depthAttachment.resourceId != ResourceId() && !rbDepth)
+    if(pipe.framebuffer.drawFBO.depthAttachment.resource != ResourceId() && !rbDepth)
       GetFramebufferMipAndLayer(curDrawFBO, eGL_DEPTH_ATTACHMENT,
-                                (GLint *)&pipe.framebuffer.drawFBO.depthAttachment.mipLevel,
-                                (GLint *)&pipe.framebuffer.drawFBO.depthAttachment.slice);
+                                &pipe.framebuffer.drawFBO.depthAttachment.firstMip,
+                                &pipe.framebuffer.drawFBO.depthAttachment.firstSlice);
 
-    if(pipe.framebuffer.drawFBO.stencilAttachment.resourceId != ResourceId() && !rbStencil)
+    if(pipe.framebuffer.drawFBO.stencilAttachment.resource != ResourceId() && !rbStencil)
       GetFramebufferMipAndLayer(curDrawFBO, eGL_STENCIL_ATTACHMENT,
-                                (GLint *)&pipe.framebuffer.drawFBO.stencilAttachment.mipLevel,
-                                (GLint *)&pipe.framebuffer.drawFBO.stencilAttachment.slice);
+                                &pipe.framebuffer.drawFBO.stencilAttachment.firstMip,
+                                &pipe.framebuffer.drawFBO.stencilAttachment.firstSlice);
 
     pipe.framebuffer.drawFBO.depthAttachment.numSlices = 1;
     pipe.framebuffer.drawFBO.stencilAttachment.numSlices = 1;
@@ -1776,7 +1777,8 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
         if(layered)
         {
-          pipe.framebuffer.drawFBO.depthAttachment.numSlices = m_pDriver->m_Textures[id].depth;
+          pipe.framebuffer.drawFBO.depthAttachment.numSlices =
+              m_pDriver->m_Textures[id].depth & 0xffff;
         }
       }
       else
@@ -1794,17 +1796,17 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
           if(numViews > 1)
           {
-            pipe.framebuffer.drawFBO.depthAttachment.numSlices = numViews;
-            pipe.framebuffer.drawFBO.depthAttachment.slice = startView;
+            pipe.framebuffer.drawFBO.depthAttachment.numSlices = numViews & 0xffff;
+            pipe.framebuffer.drawFBO.depthAttachment.firstSlice = startView & 0xffff;
           }
         }
       }
 
-      if(pipe.framebuffer.drawFBO.stencilAttachment.resourceId ==
-         pipe.framebuffer.drawFBO.depthAttachment.resourceId)
+      if(pipe.framebuffer.drawFBO.stencilAttachment.resource ==
+         pipe.framebuffer.drawFBO.depthAttachment.resource)
       {
-        pipe.framebuffer.drawFBO.stencilAttachment.slice =
-            pipe.framebuffer.drawFBO.depthAttachment.slice;
+        pipe.framebuffer.drawFBO.stencilAttachment.firstSlice =
+            pipe.framebuffer.drawFBO.depthAttachment.firstSlice;
         pipe.framebuffer.drawFBO.stencilAttachment.numSlices =
             pipe.framebuffer.drawFBO.depthAttachment.numSlices;
       }
@@ -1858,29 +1860,29 @@ void GLReplay::SavePipelineState(uint32_t eventId)
     pipe.framebuffer.readFBO.colorAttachments.resize(numCols);
     for(GLint i = 0; i < numCols; i++)
     {
-      pipe.framebuffer.readFBO.colorAttachments[i].resourceId = rm->GetOriginalID(
+      pipe.framebuffer.readFBO.colorAttachments[i].resource = rm->GetOriginalID(
           rm->GetResID(rbCol[i] ? RenderbufferRes(ctx, curCol[i]) : TextureRes(ctx, curCol[i])));
 
-      if(pipe.framebuffer.readFBO.colorAttachments[i].resourceId != ResourceId() && !rbCol[i])
+      if(pipe.framebuffer.readFBO.colorAttachments[i].resource != ResourceId() && !rbCol[i])
         GetFramebufferMipAndLayer(curReadFBO, GLenum(eGL_COLOR_ATTACHMENT0 + i),
-                                  (GLint *)&pipe.framebuffer.readFBO.colorAttachments[i].mipLevel,
-                                  (GLint *)&pipe.framebuffer.readFBO.colorAttachments[i].slice);
+                                  &pipe.framebuffer.readFBO.colorAttachments[i].firstMip,
+                                  &pipe.framebuffer.readFBO.colorAttachments[i].firstSlice);
     }
 
-    pipe.framebuffer.readFBO.depthAttachment.resourceId = rm->GetOriginalID(
+    pipe.framebuffer.readFBO.depthAttachment.resource = rm->GetOriginalID(
         rm->GetResID(rbDepth ? RenderbufferRes(ctx, curDepth) : TextureRes(ctx, curDepth)));
-    pipe.framebuffer.readFBO.stencilAttachment.resourceId = rm->GetOriginalID(
+    pipe.framebuffer.readFBO.stencilAttachment.resource = rm->GetOriginalID(
         rm->GetResID(rbStencil ? RenderbufferRes(ctx, curStencil) : TextureRes(ctx, curStencil)));
 
-    if(pipe.framebuffer.readFBO.depthAttachment.resourceId != ResourceId() && !rbDepth)
+    if(pipe.framebuffer.readFBO.depthAttachment.resource != ResourceId() && !rbDepth)
       GetFramebufferMipAndLayer(curReadFBO, eGL_DEPTH_ATTACHMENT,
-                                (GLint *)&pipe.framebuffer.readFBO.depthAttachment.mipLevel,
-                                (GLint *)&pipe.framebuffer.readFBO.depthAttachment.slice);
+                                &pipe.framebuffer.readFBO.depthAttachment.firstMip,
+                                &pipe.framebuffer.readFBO.depthAttachment.firstSlice);
 
-    if(pipe.framebuffer.readFBO.stencilAttachment.resourceId != ResourceId() && !rbStencil)
+    if(pipe.framebuffer.readFBO.stencilAttachment.resource != ResourceId() && !rbStencil)
       GetFramebufferMipAndLayer(curReadFBO, eGL_STENCIL_ATTACHMENT,
-                                (GLint *)&pipe.framebuffer.readFBO.stencilAttachment.mipLevel,
-                                (GLint *)&pipe.framebuffer.readFBO.stencilAttachment.slice);
+                                &pipe.framebuffer.readFBO.stencilAttachment.firstMip,
+                                &pipe.framebuffer.readFBO.stencilAttachment.firstSlice);
 
     pipe.framebuffer.readFBO.drawBuffers.resize(numCols);
     for(GLint i = 0; i < numCols; i++)

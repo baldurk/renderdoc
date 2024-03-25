@@ -237,8 +237,8 @@ public:
                          VKPipe::State *vk)
   {
     d3d11->outputMerger.renderTargets.resize(1);
-    d3d11->outputMerger.renderTargets[0].resourceResourceId = m_TextureID;
-    d3d11->outputMerger.renderTargets[0].viewFormat = m_TexDetails.format;
+    d3d11->outputMerger.renderTargets[0].resource = m_TextureID;
+    d3d11->outputMerger.renderTargets[0].format = m_TexDetails.format;
   }
 
   // other operations are dropped/ignored, to avoid confusion

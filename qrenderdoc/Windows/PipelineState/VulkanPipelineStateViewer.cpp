@@ -2491,7 +2491,7 @@ void VulkanPipelineStateViewer::setState()
 
       bool filledSlot = false;
       if(usedSlot && attIdx < fb.attachments.count())
-        filledSlot = fb.attachments[attIdx].imageResourceId != ResourceId();
+        filledSlot = fb.attachments[attIdx].resource != ResourceId();
 
       if(showNode(usedSlot, filledSlot))
       {
@@ -2525,15 +2525,15 @@ void VulkanPipelineStateViewer::setState()
 
           if(filledSlot)
           {
-            const VKPipe::Attachment &p = fb.attachments[attIdx];
+            const Descriptor &p = fb.attachments[attIdx];
 
             slotname = lit("Depth");
 
-            if(p.viewFormat.type == ResourceFormatType::D16S8 ||
-               p.viewFormat.type == ResourceFormatType::D24S8 ||
-               p.viewFormat.type == ResourceFormatType::D32S8)
+            if(p.format.type == ResourceFormatType::D16S8 ||
+               p.format.type == ResourceFormatType::D24S8 ||
+               p.format.type == ResourceFormatType::D32S8)
               slotname = lit("Depth/Stencil");
-            else if(p.viewFormat.type == ResourceFormatType::S8)
+            else if(p.format.type == ResourceFormatType::S8)
               slotname = lit("Stencil");
           }
         }
@@ -2554,7 +2554,7 @@ void VulkanPipelineStateViewer::setState()
 
         if(filledSlot)
         {
-          const VKPipe::Attachment &p = fb.attachments[attIdx];
+          const Descriptor &p = fb.attachments[attIdx];
 
           QString format;
           QString typeName;
@@ -2562,9 +2562,9 @@ void VulkanPipelineStateViewer::setState()
           QString samples;
           bool tooltipOffsets = false;
 
-          if(p.imageResourceId != ResourceId())
+          if(p.resource != ResourceId())
           {
-            format = p.viewFormat.Name();
+            format = p.format.Name();
             typeName = tr("Unknown");
           }
           else
@@ -2575,7 +2575,7 @@ void VulkanPipelineStateViewer::setState()
             samples = lit("-");
           }
 
-          TextureDescription *tex = m_Ctx.GetTexture(p.imageResourceId);
+          TextureDescription *tex = m_Ctx.GetTexture(p.resource);
           if(tex)
           {
             dimensions += tr("%1x%2").arg(tex->width).arg(tex->height);
@@ -2624,7 +2624,7 @@ void VulkanPipelineStateViewer::setState()
             shadingRateTexelSize = state.currentPass.renderpass.shadingRateTexelSize;
           }
 
-          QString resName = ToQStr(p.imageResourceId);
+          QString resName = ToQStr(p.resource);
 
           if(shadingRateTexelSize.first > 0)
             resName +=
@@ -2669,29 +2669,19 @@ void VulkanPipelineStateViewer::setState()
               {slotname, resName, typeName, dimensions, format, samples, QString()});
 
           if(tex)
-            node->setTag(
-                QVariant::fromValue(VulkanTextureTag(p.imageResourceId, p.viewFormat.compType)));
+            node->setTag(QVariant::fromValue(VulkanTextureTag(p.resource, p.format.compType)));
 
-          if(p.imageResourceId == ResourceId())
+          if(p.resource == ResourceId())
             setEmptyRow(node);
           else if(!usedSlot)
             setInactiveRow(node);
 
-          Descriptor desc;
-          desc.resource = p.imageResourceId;
-          desc.firstMip = p.firstMip;
-          desc.numMips = p.numMips;
-          desc.firstSlice = p.firstSlice;
-          desc.numSlices = p.numSlices;
-
           bool hasViewDetails = setViewDetails(
-              node, desc, tex, QString(),
+              node, p, tex, QString(),
               a.type == AttType::Resolve || a.type == AttType::DepthResolve, tooltipOffsets);
 
           if(hasViewDetails)
-            node->setText(
-                1,
-                tr("%1 viewed by %2").arg(ToQStr(p.imageResourceId)).arg(ToQStr(p.viewResourceId)));
+            node->setText(1, tr("%1 viewed by %2").arg(ToQStr(p.resource)).arg(ToQStr(p.view)));
         }
         else
         {
@@ -3971,11 +3961,11 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
     QList<QVariantList> rows;
 
     int i = 0;
-    for(const VKPipe::Attachment &a : pass.framebuffer.attachments)
+    for(const Descriptor &a : pass.framebuffer.attachments)
     {
-      TextureDescription *tex = m_Ctx.GetTexture(a.imageResourceId);
+      TextureDescription *tex = m_Ctx.GetTexture(a.resource);
 
-      QString name = m_Ctx.GetResourceName(a.imageResourceId);
+      QString name = m_Ctx.GetResourceName(a.resource);
 
       rows.push_back({i, name, tex->width, tex->height, tex->depth, tex->arraysize, a.firstMip,
                       a.numMips, a.firstSlice, a.numSlices,

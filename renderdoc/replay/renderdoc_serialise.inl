@@ -1266,30 +1266,6 @@ void DoSerialise(SerialiserType &ser, D3D11Pipe::InputAssembly &el)
 }
 
 template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, D3D11Pipe::View &el)
-{
-  SERIALISE_MEMBER(viewResourceId);
-  SERIALISE_MEMBER(resourceResourceId);
-  SERIALISE_MEMBER(counterResourceId);
-  SERIALISE_MEMBER(type);
-  SERIALISE_MEMBER(viewFormat);
-
-  SERIALISE_MEMBER(structured);
-  SERIALISE_MEMBER(bufferStructCount);
-  SERIALISE_MEMBER(elementByteSize);
-  SERIALISE_MEMBER(firstElement);
-  SERIALISE_MEMBER(numElements);
-
-  SERIALISE_MEMBER(bufferFlags);
-  SERIALISE_MEMBER(firstMip);
-  SERIALISE_MEMBER(numMips);
-  SERIALISE_MEMBER(firstSlice);
-  SERIALISE_MEMBER(numSlices);
-
-  SIZE_CHECK(72);
-}
-
-template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D11Pipe::Shader &el)
 {
   SERIALISE_MEMBER(resourceId);
@@ -1387,7 +1363,7 @@ void DoSerialise(SerialiserType &ser, D3D11Pipe::OutputMerger &el)
   SERIALISE_MEMBER(depthReadOnly);
   SERIALISE_MEMBER(stencilReadOnly);
 
-  SIZE_CHECK(248);
+  SIZE_CHECK(256);
 }
 
 template <typename SerialiserType>
@@ -1423,7 +1399,7 @@ void DoSerialise(SerialiserType &ser, D3D11Pipe::State &el)
 
   SERIALISE_MEMBER(predication);
 
-  SIZE_CHECK(784);
+  SIZE_CHECK(792);
 }
 
 #pragma endregion D3D11 pipeline state
@@ -1479,35 +1455,6 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::InputAssembly &el)
   SIZE_CHECK(80);
 }
 
-template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, D3D12Pipe::View &el)
-{
-  SERIALISE_MEMBER(bind);
-  SERIALISE_MEMBER(tableIndex);
-  SERIALISE_MEMBER(resourceId);
-  SERIALISE_MEMBER(type);
-  SERIALISE_MEMBER(viewFormat);
-
-  SERIALISE_MEMBER(swizzle);
-  SERIALISE_MEMBER(dynamicallyUsed);
-  SERIALISE_MEMBER(bufferFlags);
-  SERIALISE_MEMBER(bufferStructCount);
-  SERIALISE_MEMBER(elementByteSize);
-  SERIALISE_MEMBER(firstElement);
-  SERIALISE_MEMBER(numElements);
-
-  SERIALISE_MEMBER(counterResourceId);
-  SERIALISE_MEMBER(counterByteOffset);
-
-  SERIALISE_MEMBER(firstMip);
-  SERIALISE_MEMBER(numMips);
-  SERIALISE_MEMBER(firstSlice);
-  SERIALISE_MEMBER(numSlices);
-
-  SERIALISE_MEMBER(minLODClamp);
-
-  SIZE_CHECK(72);
-}
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12Pipe::Shader &el)
 {
@@ -1612,7 +1559,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::OM &el)
   SERIALISE_MEMBER(multiSampleCount);
   SERIALISE_MEMBER(multiSampleQuality);
 
-  SIZE_CHECK(232);
+  SIZE_CHECK(240);
 }
 
 template <typename SerialiserType>
@@ -1658,7 +1605,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::State &el)
 
   SERIALISE_MEMBER(resourceStates);
 
-  SIZE_CHECK(720);
+  SIZE_CHECK(728);
 }
 
 #pragma endregion D3D12 pipeline state
@@ -1822,18 +1769,6 @@ void DoSerialise(SerialiserType &ser, GLPipe::StencilState &el)
 }
 
 template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, GLPipe::Attachment &el)
-{
-  SERIALISE_MEMBER(resourceId);
-  SERIALISE_MEMBER(slice);
-  SERIALISE_MEMBER(numSlices);
-  SERIALISE_MEMBER(mipLevel);
-  SERIALISE_MEMBER(swizzle);
-
-  SIZE_CHECK(24);
-}
-
-template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, GLPipe::FBO &el)
 {
   SERIALISE_MEMBER(resourceId);
@@ -1843,7 +1778,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::FBO &el)
   SERIALISE_MEMBER(drawBuffers);
   SERIALISE_MEMBER(readBuffer);
 
-  SIZE_CHECK(112);
+  SIZE_CHECK(224);
 }
 
 template <typename SerialiserType>
@@ -1864,7 +1799,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::FrameBuffer &el)
   SERIALISE_MEMBER(readFBO);
   SERIALISE_MEMBER(blendState);
 
-  SIZE_CHECK(272);
+  SIZE_CHECK(496);
 }
 
 template <typename SerialiserType>
@@ -1911,7 +1846,7 @@ void DoSerialise(SerialiserType &ser, GLPipe::State &el)
 
   SERIALISE_MEMBER(hints);
 
-  SIZE_CHECK(1128);
+  SIZE_CHECK(1352);
 }
 
 #pragma endregion OpenGL pipeline state
@@ -2189,23 +2124,6 @@ void DoSerialise(SerialiserType &ser, VKPipe::RenderPass &el)
 }
 
 template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, VKPipe::Attachment &el)
-{
-  SERIALISE_MEMBER(viewResourceId);
-  SERIALISE_MEMBER(imageResourceId);
-
-  SERIALISE_MEMBER(viewFormat);
-  SERIALISE_MEMBER(swizzle);
-
-  SERIALISE_MEMBER(firstMip);
-  SERIALISE_MEMBER(firstSlice);
-  SERIALISE_MEMBER(numMips);
-  SERIALISE_MEMBER(numSlices);
-
-  SIZE_CHECK(48);
-}
-
-template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VKPipe::Framebuffer &el)
 {
   SERIALISE_MEMBER(resourceId);
@@ -2379,14 +2297,12 @@ INSTANTIATE_SERIALISE_TYPE(DescriptorAccess)
 INSTANTIATE_SERIALISE_TYPE(DescriptorLogicalLocation)
 INSTANTIATE_SERIALISE_TYPE(D3D11Pipe::Layout)
 INSTANTIATE_SERIALISE_TYPE(D3D11Pipe::InputAssembly)
-INSTANTIATE_SERIALISE_TYPE(D3D11Pipe::View)
 INSTANTIATE_SERIALISE_TYPE(D3D11Pipe::Shader)
 INSTANTIATE_SERIALISE_TYPE(D3D11Pipe::Rasterizer)
 INSTANTIATE_SERIALISE_TYPE(D3D11Pipe::OutputMerger)
 INSTANTIATE_SERIALISE_TYPE(D3D11Pipe::State)
 INSTANTIATE_SERIALISE_TYPE(D3D12Pipe::Layout)
 INSTANTIATE_SERIALISE_TYPE(D3D12Pipe::InputAssembly)
-INSTANTIATE_SERIALISE_TYPE(D3D12Pipe::View)
 INSTANTIATE_SERIALISE_TYPE(D3D12Pipe::Shader)
 INSTANTIATE_SERIALISE_TYPE(D3D12Pipe::Rasterizer)
 INSTANTIATE_SERIALISE_TYPE(D3D12Pipe::OM)
@@ -2400,7 +2316,6 @@ INSTANTIATE_SERIALISE_TYPE(GLPipe::Rasterizer)
 INSTANTIATE_SERIALISE_TYPE(GLPipe::DepthState)
 INSTANTIATE_SERIALISE_TYPE(GLPipe::StencilState)
 INSTANTIATE_SERIALISE_TYPE(GLPipe::BlendState)
-INSTANTIATE_SERIALISE_TYPE(GLPipe::Attachment)
 INSTANTIATE_SERIALISE_TYPE(GLPipe::FrameBuffer)
 INSTANTIATE_SERIALISE_TYPE(GLPipe::State)
 INSTANTIATE_SERIALISE_TYPE(VKPipe::DescriptorSet)
@@ -2410,7 +2325,6 @@ INSTANTIATE_SERIALISE_TYPE(VKPipe::VertexInput)
 INSTANTIATE_SERIALISE_TYPE(VKPipe::Shader)
 INSTANTIATE_SERIALISE_TYPE(VKPipe::ViewState)
 INSTANTIATE_SERIALISE_TYPE(VKPipe::ColorBlendState)
-INSTANTIATE_SERIALISE_TYPE(VKPipe::Attachment)
 INSTANTIATE_SERIALISE_TYPE(VKPipe::DepthStencil)
 INSTANTIATE_SERIALISE_TYPE(VKPipe::CurrentPass)
 INSTANTIATE_SERIALISE_TYPE(VKPipe::ImageLayout)

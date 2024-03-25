@@ -660,26 +660,6 @@ TextureFilter MakeFilter(D3D12_FILTER filter)
   return ret;
 }
 
-D3DBufferViewFlags MakeBufferFlags(D3D12_BUFFER_SRV_FLAGS flags)
-{
-  D3DBufferViewFlags ret = D3DBufferViewFlags::NoFlags;
-
-  if(flags & D3D12_BUFFER_SRV_FLAG_RAW)
-    ret |= D3DBufferViewFlags::Raw;
-
-  return ret;
-}
-
-D3DBufferViewFlags MakeBufferFlags(D3D12_BUFFER_UAV_FLAGS flags)
-{
-  D3DBufferViewFlags ret = D3DBufferViewFlags::NoFlags;
-
-  if(flags & D3D12_BUFFER_UAV_FLAG_RAW)
-    ret |= D3DBufferViewFlags::Raw;
-
-  return ret;
-}
-
 DescriptorFlags MakeDescriptorFlags(D3D12_BUFFER_SRV_FLAGS flags)
 {
   DescriptorFlags ret = DescriptorFlags::NoFlags;

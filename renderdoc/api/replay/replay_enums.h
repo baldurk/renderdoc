@@ -4597,35 +4597,6 @@ enum class BufferCategory : uint32_t
 BITMASK_OPERATORS(BufferCategory);
 DECLARE_REFLECTION_ENUM(BufferCategory);
 
-DOCUMENT(R"(A set of flags for D3D buffer view properties.
-
-.. data:: NoFlags
-
-  The buffer will not be used for any of the uses below.
-
-.. data:: Raw
-
-  The buffer is used as a raw (byte-addressed) buffer.
-
-.. data:: Append
-
-  The buffer is used as a append/consume view.
-
-.. data:: Counter
-
-  The buffer is used with a structured buffer with associated hidden counter.
-)");
-enum class D3DBufferViewFlags : uint8_t
-{
-  NoFlags = 0x0,
-  Raw = 0x1,
-  Append = 0x2,
-  Counter = 0x4,
-};
-
-BITMASK_OPERATORS(D3DBufferViewFlags);
-DECLARE_REFLECTION_ENUM(D3DBufferViewFlags);
-
 DOCUMENT(R"(A set of flags for descriptor properties.
 
 .. data:: NoFlags

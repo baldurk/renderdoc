@@ -982,21 +982,22 @@ RenderOutputSubresource D3D12Replay::GetRenderOutputSubresource(ResourceId id)
 {
   const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
 
-  D3D12Pipe::View view;
+  Descriptor descriptor;
 
   for(size_t i = 0; i < rs.rts.size(); i++)
   {
     if(id == rs.rts[i].GetResResourceId())
     {
-      FillResourceView(view, &rs.rts[i]);
-      return RenderOutputSubresource(view.firstMip, view.firstSlice, view.numSlices);
+      FillDescriptor(descriptor, &rs.rts[i]);
+      return RenderOutputSubresource(descriptor.firstMip, descriptor.firstSlice,
+                                     descriptor.numSlices);
     }
   }
 
   if(id == rs.dsv.GetResResourceId() && rs.dsv.GetResResourceId() != ResourceId())
   {
-    FillResourceView(view, &rs.dsv);
-    return RenderOutputSubresource(view.firstMip, view.firstSlice, view.numSlices);
+    FillDescriptor(descriptor, &rs.dsv);
+    return RenderOutputSubresource(descriptor.firstMip, descriptor.firstSlice, descriptor.numSlices);
   }
 
   return RenderOutputSubresource(~0U, ~0U, 0);

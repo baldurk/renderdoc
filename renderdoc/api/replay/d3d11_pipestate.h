@@ -201,104 +201,6 @@ struct InputAssembly
   Topology topology = Topology::Unknown;
 };
 
-DOCUMENT("Describes the details of a D3D11 resource view - any one of UAV, SRV, RTV or DSV.");
-struct View
-{
-  DOCUMENT("");
-  View() = default;
-  View(const View &) = default;
-  View &operator=(const View &) = default;
-
-  bool operator==(const View &o) const
-  {
-    return viewResourceId == o.viewResourceId && resourceResourceId == o.resourceResourceId &&
-           counterResourceId == o.counterResourceId && type == o.type && viewFormat == o.viewFormat &&
-           structured == o.structured && bufferStructCount == o.bufferStructCount &&
-           elementByteSize == o.elementByteSize && firstElement == o.firstElement &&
-           numElements == o.numElements && bufferFlags == o.bufferFlags && firstMip == o.firstMip &&
-           numMips == o.numMips && numSlices == o.numSlices && firstSlice == o.firstSlice;
-  }
-  bool operator<(const View &o) const
-  {
-    if(!(viewResourceId == o.viewResourceId))
-      return viewResourceId < o.viewResourceId;
-    if(!(resourceResourceId == o.resourceResourceId))
-      return resourceResourceId < o.resourceResourceId;
-    if(!(counterResourceId == o.counterResourceId))
-      return counterResourceId < o.counterResourceId;
-    if(!(type == o.type))
-      return type < o.type;
-    if(!(viewFormat == o.viewFormat))
-      return viewFormat < o.viewFormat;
-    if(!(structured == o.structured))
-      return structured < o.structured;
-    if(!(bufferStructCount == o.bufferStructCount))
-      return bufferStructCount < o.bufferStructCount;
-    if(!(elementByteSize == o.elementByteSize))
-      return elementByteSize < o.elementByteSize;
-    if(!(firstElement == o.firstElement))
-      return firstElement < o.firstElement;
-    if(!(numElements == o.numElements))
-      return numElements < o.numElements;
-    if(!(bufferFlags == o.bufferFlags))
-      return bufferFlags < o.bufferFlags;
-    if(!(firstMip == o.firstMip))
-      return firstMip < o.firstMip;
-    if(!(numMips == o.numMips))
-      return numMips < o.numMips;
-    if(!(numSlices == o.numSlices))
-      return numSlices < o.numSlices;
-    if(!(firstSlice == o.firstSlice))
-      return firstSlice < o.firstSlice;
-    return false;
-  }
-  DOCUMENT("The :class:`ResourceId` of the view itself.");
-  ResourceId viewResourceId;
-
-  DOCUMENT("The :class:`ResourceId` of the underlying resource the view refers to.");
-  ResourceId resourceResourceId;
-
-  DOCUMENT("The :class:`ResourceId` of the resource where the hidden buffer counter is stored.");
-  ResourceId counterResourceId;
-
-  DOCUMENT("The :class:`TextureType` of the view type.");
-  TextureType type;
-
-  DOCUMENT(R"(The format cast that the view uses.
-
-:type: ResourceFormat
-)");
-  ResourceFormat viewFormat;
-
-  DOCUMENT("``True`` if this view describes a structured buffer.");
-  bool structured = false;
-
-  DOCUMENT("If the view has a hidden counter, this stores the current value of the counter.");
-  uint32_t bufferStructCount = 0;
-
-  DOCUMENT(R"(The byte size of a single element in the view. Either the byte size of
-:data:`viewFormat`, or the structured buffer element size, as appropriate.
-)");
-  uint32_t elementByteSize = 0;
-
-  DOCUMENT("Valid for buffers - the first element to be used in the view.");
-  uint32_t firstElement = 0;
-  DOCUMENT("Valid for buffers - the number of elements to be used in the view.");
-  uint32_t numElements = 1;
-
-  DOCUMENT("Valid for buffers - the flags for additional view properties.");
-  D3DBufferViewFlags bufferFlags = D3DBufferViewFlags::NoFlags;
-
-  DOCUMENT("Valid for textures - the first mip that is available through the view.");
-  uint32_t firstMip = 0;
-  DOCUMENT("Valid for textures - the number of mip levels in the view.");
-  uint32_t numMips = 0;
-
-  DOCUMENT("Valid for texture arrays or 3D textures - the first slice available through the view.");
-  uint32_t firstSlice = 0;
-  DOCUMENT("Valid for texture arrays or 3D textures - the number of slices in the view.");
-  uint32_t numSlices = 1;
-};
 DOCUMENT("Describes a D3D11 shader stage.");
 struct Shader
 {
@@ -543,18 +445,18 @@ struct OutputMerger
 
   DOCUMENT(R"(The bound render targets.
 
-:type: List[D3D11View]
+:type: List[Descriptor]
 )");
-  rdcarray<View> renderTargets;
+  rdcarray<Descriptor> renderTargets;
 
   DOCUMENT("Which slot in the output targets is the first UAV.");
   uint32_t uavStartSlot = 0;
 
   DOCUMENT(R"(The currently bound depth-stencil target.
 
-:type: D3D11View
+:type: Descriptor
 )");
-  View depthTarget;
+  Descriptor depthTarget;
   DOCUMENT("``True`` if depth access to the depth-stencil target is read-only.");
   bool depthReadOnly = false;
   DOCUMENT("``True`` if stencil access to the depth-stencil target is read-only.");
@@ -674,7 +576,6 @@ DECLARE_REFLECTION_STRUCT(D3D11Pipe::Layout);
 DECLARE_REFLECTION_STRUCT(D3D11Pipe::VertexBuffer);
 DECLARE_REFLECTION_STRUCT(D3D11Pipe::IndexBuffer);
 DECLARE_REFLECTION_STRUCT(D3D11Pipe::InputAssembly);
-DECLARE_REFLECTION_STRUCT(D3D11Pipe::View);
 DECLARE_REFLECTION_STRUCT(D3D11Pipe::Shader);
 DECLARE_REFLECTION_STRUCT(D3D11Pipe::StreamOutBind);
 DECLARE_REFLECTION_STRUCT(D3D11Pipe::StreamOut);

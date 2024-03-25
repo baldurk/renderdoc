@@ -473,46 +473,6 @@ struct StencilState
   StencilFace backFace;
 };
 
-DOCUMENT("Describes the state of a framebuffer attachment.");
-struct Attachment
-{
-  DOCUMENT("");
-  Attachment() = default;
-  Attachment(const Attachment &) = default;
-  Attachment &operator=(const Attachment &) = default;
-
-  bool operator==(const Attachment &o) const
-  {
-    return resourceId == o.resourceId && slice == o.slice && numSlices == o.numSlices &&
-           mipLevel == o.mipLevel && swizzle == o.swizzle;
-  }
-  bool operator<(const Attachment &o) const
-  {
-    if(!(resourceId == o.resourceId))
-      return resourceId < o.resourceId;
-    if(!(slice == o.slice))
-      return slice < o.slice;
-    if(!(mipLevel == o.mipLevel))
-      return mipLevel < o.mipLevel;
-    if(!(swizzle == o.swizzle))
-      return swizzle < o.swizzle;
-    return false;
-  }
-  DOCUMENT("The :class:`ResourceId` of the texture bound to this attachment.");
-  ResourceId resourceId;
-  DOCUMENT("The slice of the texture that's used in the attachment.");
-  uint32_t slice = 0;
-  DOCUMENT("The number of slices of the texture that are used in the attachment.");
-  uint32_t numSlices = 1;
-  DOCUMENT("The mip of the texture that's used in the attachment.");
-  uint32_t mipLevel = 0;
-  DOCUMENT(R"(The swizzle applied to the texture.
-
-:type: TextureSwizzle4
-)");
-  TextureSwizzle4 swizzle;
-};
-
 DOCUMENT("Describes the contents of a framebuffer object.");
 struct FBO
 {
@@ -525,19 +485,19 @@ struct FBO
   ResourceId resourceId;
   DOCUMENT(R"(The framebuffer color attachments.
 
-:type: List[GLAttachment]
+:type: List[Descriptor]
 )");
-  rdcarray<Attachment> colorAttachments;
+  rdcarray<Descriptor> colorAttachments;
   DOCUMENT(R"(The framebuffer depth attachment.
 
-:type: GLAttachment
+:type: Descriptor
 )");
-  Attachment depthAttachment;
+  Descriptor depthAttachment;
   DOCUMENT(R"(The framebuffer stencil attachment.
 
-:type: GLAttachment
+:type: Descriptor
 )");
-  Attachment stencilAttachment;
+  Descriptor stencilAttachment;
 
   DOCUMENT(R"(The draw buffer indices into the :data:`colorAttachments` attachment list.
 
@@ -753,7 +713,6 @@ DECLARE_REFLECTION_STRUCT(GLPipe::RasterizerState);
 DECLARE_REFLECTION_STRUCT(GLPipe::Rasterizer);
 DECLARE_REFLECTION_STRUCT(GLPipe::DepthState);
 DECLARE_REFLECTION_STRUCT(GLPipe::StencilState);
-DECLARE_REFLECTION_STRUCT(GLPipe::Attachment);
 DECLARE_REFLECTION_STRUCT(GLPipe::FBO);
 DECLARE_REFLECTION_STRUCT(GLPipe::BlendState);
 DECLARE_REFLECTION_STRUCT(GLPipe::FrameBuffer);

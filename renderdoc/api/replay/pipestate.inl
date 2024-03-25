@@ -1079,40 +1079,15 @@ Descriptor PipeState::GetDepthTarget() const
   {
     if(IsCaptureD3D11())
     {
-      const D3D11Pipe::View &depthTarget = m_D3D11->outputMerger.depthTarget;
-
-      ret.resource = depthTarget.resourceResourceId;
-      ret.view = depthTarget.viewResourceId;
-      ret.firstMip = depthTarget.firstMip & 0xff;
-      ret.numMips = depthTarget.numMips & 0xff;
-      ret.firstSlice = depthTarget.firstSlice & 0xffff;
-      ret.numSlices = depthTarget.numSlices & 0xffff;
-      ret.format = depthTarget.viewFormat;
-      ret.textureType = depthTarget.type;
+      return m_D3D11->outputMerger.depthTarget;
     }
     else if(IsCaptureD3D12())
     {
-      const D3D12Pipe::View &depthTarget = m_D3D12->outputMerger.depthTarget;
-
-      ret.resource = depthTarget.resourceId;
-      ret.firstMip = depthTarget.firstMip & 0xff;
-      ret.numMips = depthTarget.numMips & 0xff;
-      ret.firstSlice = depthTarget.firstSlice & 0xffff;
-      ret.numSlices = depthTarget.numSlices & 0xffff;
-      ret.format = depthTarget.viewFormat;
-      ret.textureType = depthTarget.type;
+      return m_D3D12->outputMerger.depthTarget;
     }
     else if(IsCaptureGL())
     {
-      const GLPipe::Attachment &depthAttachment = m_GL->framebuffer.drawFBO.depthAttachment;
-
-      ret.resource = depthAttachment.resourceId;
-      ret.firstMip = depthAttachment.mipLevel & 0xff;
-      ret.numMips = 1;
-      ret.firstSlice = depthAttachment.slice & 0xffff;
-      ret.numSlices = depthAttachment.numSlices & 0xffff;
-      ret.swizzle = depthAttachment.swizzle;
-      ret.textureType = ret.numSlices > 1 ? TextureType::Texture2DArray : TextureType::Texture2D;
+      return m_GL->framebuffer.drawFBO.depthAttachment;
     }
     else if(IsCaptureVK())
     {
@@ -1121,17 +1096,7 @@ Descriptor PipeState::GetDepthTarget() const
 
       if(rp.depthstencilAttachment >= 0 && rp.depthstencilAttachment < fb.attachments.count())
       {
-        const VKPipe::Attachment &depthAttachment = fb.attachments[rp.depthstencilAttachment];
-
-        ret.resource = depthAttachment.imageResourceId;
-        ret.view = depthAttachment.viewResourceId;
-        ret.firstMip = depthAttachment.firstMip & 0xff;
-        ret.numMips = depthAttachment.numMips & 0xff;
-        ret.firstSlice = depthAttachment.firstSlice & 0xffff;
-        ret.numSlices = depthAttachment.numSlices & 0xffff;
-        ret.format = depthAttachment.viewFormat;
-        ret.swizzle = depthAttachment.swizzle;
-        ret.textureType = ret.numSlices > 1 ? TextureType::Texture2DArray : TextureType::Texture2D;
+        return fb.attachments[rp.depthstencilAttachment];
       }
     }
   }
@@ -1154,18 +1119,7 @@ Descriptor PipeState::GetDepthResolveTarget() const
       if(rp.depthstencilResolveAttachment >= 0 &&
          rp.depthstencilResolveAttachment < fb.attachments.count())
       {
-        const VKPipe::Attachment &depthResolveAttachment =
-            fb.attachments[rp.depthstencilResolveAttachment];
-
-        ret.resource = depthResolveAttachment.imageResourceId;
-        ret.view = depthResolveAttachment.viewResourceId;
-        ret.firstMip = depthResolveAttachment.firstMip & 0xff;
-        ret.numMips = depthResolveAttachment.numMips & 0xff;
-        ret.firstSlice = depthResolveAttachment.firstSlice & 0xffff;
-        ret.numSlices = depthResolveAttachment.numSlices & 0xffff;
-        ret.format = depthResolveAttachment.viewFormat;
-        ret.swizzle = depthResolveAttachment.swizzle;
-        ret.textureType = ret.numSlices > 1 ? TextureType::Texture2DArray : TextureType::Texture2D;
+        return fb.attachments[rp.depthstencilResolveAttachment];
       }
     }
   }
@@ -1181,36 +1135,11 @@ rdcarray<Descriptor> PipeState::GetOutputTargets() const
   {
     if(IsCaptureD3D11())
     {
-      ret.resize(m_D3D11->outputMerger.renderTargets.count());
-      for(int i = 0; i < m_D3D11->outputMerger.renderTargets.count(); i++)
-      {
-        const D3D11Pipe::View &rt = m_D3D11->outputMerger.renderTargets[i];
-
-        ret[i].resource = rt.resourceResourceId;
-        ret[i].view = rt.viewResourceId;
-        ret[i].firstMip = rt.firstMip & 0xff;
-        ret[i].numMips = rt.numMips & 0xff;
-        ret[i].firstSlice = rt.firstSlice & 0xffff;
-        ret[i].numSlices = rt.numSlices & 0xffff;
-        ret[i].format = rt.viewFormat;
-        ret[i].textureType = rt.type;
-      }
+      return m_D3D11->outputMerger.renderTargets;
     }
     else if(IsCaptureD3D12())
     {
-      ret.resize(m_D3D12->outputMerger.renderTargets.count());
-      for(int i = 0; i < m_D3D12->outputMerger.renderTargets.count(); i++)
-      {
-        const D3D12Pipe::View &rt = m_D3D12->outputMerger.renderTargets[i];
-
-        ret[i].resource = rt.resourceId;
-        ret[i].firstMip = rt.firstMip & 0xff;
-        ret[i].numMips = rt.numMips & 0xff;
-        ret[i].firstSlice = rt.firstSlice & 0xffff;
-        ret[i].numSlices = rt.numSlices & 0xffff;
-        ret[i].format = rt.viewFormat;
-        ret[i].textureType = rt.type;
-      }
+      return m_D3D12->outputMerger.renderTargets;
     }
     else if(IsCaptureGL())
     {
@@ -1221,16 +1150,7 @@ rdcarray<Descriptor> PipeState::GetOutputTargets() const
 
         if(db >= 0)
         {
-          const GLPipe::Attachment &col = m_GL->framebuffer.drawFBO.colorAttachments[db];
-
-          ret[i].resource = col.resourceId;
-          ret[i].firstMip = col.mipLevel & 0xff;
-          ret[i].numMips = 1;
-          ret[i].firstSlice = col.slice & 0xffff;
-          ret[i].numSlices = col.numSlices & 0xffff;
-          ret[i].swizzle = col.swizzle;
-          ret[i].textureType =
-              ret[i].numSlices > 1 ? TextureType::Texture2DArray : TextureType::Texture2D;
+          ret[i] = m_GL->framebuffer.drawFBO.colorAttachments[db];
         }
       }
     }
@@ -1246,18 +1166,7 @@ rdcarray<Descriptor> PipeState::GetOutputTargets() const
       {
         if(rp.colorAttachments[i] < (uint32_t)fb.attachments.count())
         {
-          const VKPipe::Attachment &col = fb.attachments[rp.colorAttachments[i]];
-
-          ret[idx].resource = col.imageResourceId;
-          ret[idx].view = col.viewResourceId;
-          ret[idx].firstMip = col.firstMip & 0xff;
-          ret[idx].numMips = col.numMips & 0xff;
-          ret[idx].firstSlice = col.firstSlice & 0xffff;
-          ret[idx].numSlices = col.numSlices & 0xffff;
-          ret[idx].format = col.viewFormat;
-          ret[idx].swizzle = col.swizzle;
-          ret[idx].textureType =
-              ret[idx].numSlices > 1 ? TextureType::Texture2DArray : TextureType::Texture2D;
+          ret[idx] = fb.attachments[rp.colorAttachments[i]];
         }
 
         idx++;
@@ -1267,18 +1176,7 @@ rdcarray<Descriptor> PipeState::GetOutputTargets() const
       {
         if(rp.resolveAttachments[i] < (uint32_t)fb.attachments.count())
         {
-          const VKPipe::Attachment &resolve = fb.attachments[rp.resolveAttachments[i]];
-
-          ret[idx].resource = resolve.imageResourceId;
-          ret[idx].view = resolve.viewResourceId;
-          ret[idx].firstMip = resolve.firstMip & 0xff;
-          ret[idx].numMips = resolve.numMips & 0xff;
-          ret[idx].firstSlice = resolve.firstSlice & 0xffff;
-          ret[idx].numSlices = resolve.numSlices & 0xffff;
-          ret[idx].format = resolve.viewFormat;
-          ret[idx].swizzle = resolve.swizzle;
-          ret[idx].textureType =
-              ret[idx].numSlices > 1 ? TextureType::Texture2DArray : TextureType::Texture2D;
+          ret[idx] = fb.attachments[rp.resolveAttachments[i]];
         }
 
         idx++;

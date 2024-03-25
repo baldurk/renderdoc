@@ -1138,20 +1138,6 @@ rdcstr DoStringise(const ReplayOptimisationLevel &el)
 }
 
 template <>
-rdcstr DoStringise(const D3DBufferViewFlags &el)
-{
-  BEGIN_BITFIELD_STRINGISE(D3DBufferViewFlags);
-  {
-    STRINGISE_BITFIELD_CLASS_VALUE_NAMED(NoFlags, "");
-
-    STRINGISE_BITFIELD_CLASS_BIT(Raw);
-    STRINGISE_BITFIELD_CLASS_BIT(Append);
-    STRINGISE_BITFIELD_CLASS_BIT(Counter);
-  }
-  END_BITFIELD_STRINGISE();
-}
-
-template <>
 rdcstr DoStringise(const DescriptorFlags &el)
 {
   BEGIN_BITFIELD_STRINGISE(DescriptorFlags);

@@ -1743,22 +1743,22 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
       if(viewid != ResourceId())
       {
-        fbState.attachments.back().viewResourceId = rm->GetOriginalID(viewid);
-        ret.currentPass.framebuffer.attachments[attIdx].imageResourceId =
+        fbState.attachments.back().view = rm->GetOriginalID(viewid);
+        ret.currentPass.framebuffer.attachments[attIdx].resource =
             rm->GetOriginalID(c.m_ImageView[viewid].image);
 
-        fbState.attachments.back().viewFormat = MakeResourceFormat(c.m_ImageView[viewid].format);
-        fbState.attachments.back().firstMip = c.m_ImageView[viewid].range.baseMipLevel;
-        fbState.attachments.back().firstSlice = c.m_ImageView[viewid].range.baseArrayLayer;
-        fbState.attachments.back().numMips = c.m_ImageView[viewid].range.levelCount;
-        fbState.attachments.back().numSlices = c.m_ImageView[viewid].range.layerCount;
+        fbState.attachments.back().format = MakeResourceFormat(c.m_ImageView[viewid].format);
+        fbState.attachments.back().firstMip = c.m_ImageView[viewid].range.baseMipLevel & 0xff;
+        fbState.attachments.back().firstSlice = c.m_ImageView[viewid].range.baseArrayLayer & 0xffff;
+        fbState.attachments.back().numMips = c.m_ImageView[viewid].range.levelCount & 0xff;
+        fbState.attachments.back().numSlices = c.m_ImageView[viewid].range.layerCount & 0xffff;
 
         Convert(fbState.attachments.back().swizzle, c.m_ImageView[viewid].componentMapping);
       }
       else
       {
-        fbState.attachments.back().viewResourceId = ResourceId();
-        fbState.attachments.back().imageResourceId = ResourceId();
+        fbState.attachments.back().view = ResourceId();
+        fbState.attachments.back().resource = ResourceId();
 
         fbState.attachments.back().firstMip = 0;
         fbState.attachments.back().firstSlice = 0;
@@ -1774,15 +1774,15 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
         viewid = GetResID(dyn.color[i].resolveImageView);
 
-        fbState.attachments.back().viewResourceId = rm->GetOriginalID(viewid);
-        ret.currentPass.framebuffer.attachments[attIdx].imageResourceId =
+        fbState.attachments.back().view = rm->GetOriginalID(viewid);
+        ret.currentPass.framebuffer.attachments[attIdx].resource =
             rm->GetOriginalID(c.m_ImageView[viewid].image);
 
-        fbState.attachments.back().viewFormat = MakeResourceFormat(c.m_ImageView[viewid].format);
-        fbState.attachments.back().firstMip = c.m_ImageView[viewid].range.baseMipLevel;
-        fbState.attachments.back().firstSlice = c.m_ImageView[viewid].range.baseArrayLayer;
-        fbState.attachments.back().numMips = c.m_ImageView[viewid].range.levelCount;
-        fbState.attachments.back().numSlices = c.m_ImageView[viewid].range.layerCount;
+        fbState.attachments.back().format = MakeResourceFormat(c.m_ImageView[viewid].format);
+        fbState.attachments.back().firstMip = c.m_ImageView[viewid].range.baseMipLevel & 0xff;
+        fbState.attachments.back().firstSlice = c.m_ImageView[viewid].range.baseArrayLayer & 0xffff;
+        fbState.attachments.back().numMips = c.m_ImageView[viewid].range.levelCount & 0xff;
+        fbState.attachments.back().numSlices = c.m_ImageView[viewid].range.layerCount & 0xffff;
 
         Convert(fbState.attachments.back().swizzle, c.m_ImageView[viewid].componentMapping);
 
@@ -1798,15 +1798,15 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       if(dyn.depth.imageView == VK_NULL_HANDLE)
         viewid = GetResID(dyn.stencil.imageView);
 
-      fbState.attachments.back().viewResourceId = rm->GetOriginalID(viewid);
-      ret.currentPass.framebuffer.attachments[attIdx].imageResourceId =
+      fbState.attachments.back().view = rm->GetOriginalID(viewid);
+      ret.currentPass.framebuffer.attachments[attIdx].resource =
           rm->GetOriginalID(c.m_ImageView[viewid].image);
 
-      fbState.attachments.back().viewFormat = MakeResourceFormat(c.m_ImageView[viewid].format);
-      fbState.attachments.back().firstMip = c.m_ImageView[viewid].range.baseMipLevel;
-      fbState.attachments.back().firstSlice = c.m_ImageView[viewid].range.baseArrayLayer;
-      fbState.attachments.back().numMips = c.m_ImageView[viewid].range.levelCount;
-      fbState.attachments.back().numSlices = c.m_ImageView[viewid].range.layerCount;
+      fbState.attachments.back().format = MakeResourceFormat(c.m_ImageView[viewid].format);
+      fbState.attachments.back().firstMip = c.m_ImageView[viewid].range.baseMipLevel & 0xff;
+      fbState.attachments.back().firstSlice = c.m_ImageView[viewid].range.baseArrayLayer & 0xffff;
+      fbState.attachments.back().numMips = c.m_ImageView[viewid].range.levelCount & 0xff;
+      fbState.attachments.back().numSlices = c.m_ImageView[viewid].range.layerCount & 0xffff;
 
       Convert(fbState.attachments.back().swizzle, c.m_ImageView[viewid].componentMapping);
 
@@ -1823,15 +1823,15 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
       ResourceId viewid = GetResID(dyn.fragmentDensityView);
 
-      fbState.attachments.back().viewResourceId = rm->GetOriginalID(viewid);
-      ret.currentPass.framebuffer.attachments[attIdx].imageResourceId =
+      fbState.attachments.back().view = rm->GetOriginalID(viewid);
+      ret.currentPass.framebuffer.attachments[attIdx].resource =
           rm->GetOriginalID(c.m_ImageView[viewid].image);
 
-      fbState.attachments.back().viewFormat = MakeResourceFormat(c.m_ImageView[viewid].format);
-      fbState.attachments.back().firstMip = c.m_ImageView[viewid].range.baseMipLevel;
-      fbState.attachments.back().firstSlice = c.m_ImageView[viewid].range.baseArrayLayer;
-      fbState.attachments.back().numMips = c.m_ImageView[viewid].range.levelCount;
-      fbState.attachments.back().numSlices = c.m_ImageView[viewid].range.layerCount;
+      fbState.attachments.back().format = MakeResourceFormat(c.m_ImageView[viewid].format);
+      fbState.attachments.back().firstMip = c.m_ImageView[viewid].range.baseMipLevel & 0xff;
+      fbState.attachments.back().firstSlice = c.m_ImageView[viewid].range.baseArrayLayer & 0xffff;
+      fbState.attachments.back().numMips = c.m_ImageView[viewid].range.levelCount & 0xff;
+      fbState.attachments.back().numSlices = c.m_ImageView[viewid].range.layerCount & 0xffff;
 
       Convert(fbState.attachments.back().swizzle, c.m_ImageView[viewid].componentMapping);
 
@@ -1848,15 +1848,15 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
       ResourceId viewid = GetResID(dyn.shadingRateView);
 
-      fbState.attachments.back().viewResourceId = rm->GetOriginalID(viewid);
-      ret.currentPass.framebuffer.attachments[attIdx].imageResourceId =
+      fbState.attachments.back().view = rm->GetOriginalID(viewid);
+      ret.currentPass.framebuffer.attachments[attIdx].resource =
           rm->GetOriginalID(c.m_ImageView[viewid].image);
 
-      fbState.attachments.back().viewFormat = MakeResourceFormat(c.m_ImageView[viewid].format);
-      fbState.attachments.back().firstMip = c.m_ImageView[viewid].range.baseMipLevel;
-      fbState.attachments.back().firstSlice = c.m_ImageView[viewid].range.baseArrayLayer;
-      fbState.attachments.back().numMips = c.m_ImageView[viewid].range.levelCount;
-      fbState.attachments.back().numSlices = c.m_ImageView[viewid].range.layerCount;
+      fbState.attachments.back().format = MakeResourceFormat(c.m_ImageView[viewid].format);
+      fbState.attachments.back().firstMip = c.m_ImageView[viewid].range.baseMipLevel & 0xff;
+      fbState.attachments.back().firstSlice = c.m_ImageView[viewid].range.baseArrayLayer & 0xffff;
+      fbState.attachments.back().numMips = c.m_ImageView[viewid].range.levelCount & 0xff;
+      fbState.attachments.back().numSlices = c.m_ImageView[viewid].range.layerCount & 0xffff;
 
       Convert(fbState.attachments.back().swizzle, c.m_ImageView[viewid].componentMapping);
 
@@ -1926,27 +1926,28 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
         if(viewid != ResourceId())
         {
-          ret.currentPass.framebuffer.attachments[i].viewResourceId = rm->GetOriginalID(viewid);
-          ret.currentPass.framebuffer.attachments[i].imageResourceId =
+          ret.currentPass.framebuffer.attachments[i].view = rm->GetOriginalID(viewid);
+          ret.currentPass.framebuffer.attachments[i].resource =
               rm->GetOriginalID(c.m_ImageView[viewid].image);
 
-          ret.currentPass.framebuffer.attachments[i].viewFormat =
+          ret.currentPass.framebuffer.attachments[i].format =
               MakeResourceFormat(c.m_ImageView[viewid].format);
           ret.currentPass.framebuffer.attachments[i].firstMip =
-              c.m_ImageView[viewid].range.baseMipLevel;
+              c.m_ImageView[viewid].range.baseMipLevel & 0xff;
           ret.currentPass.framebuffer.attachments[i].firstSlice =
-              c.m_ImageView[viewid].range.baseArrayLayer;
-          ret.currentPass.framebuffer.attachments[i].numMips = c.m_ImageView[viewid].range.levelCount;
+              c.m_ImageView[viewid].range.baseArrayLayer & 0xffff;
+          ret.currentPass.framebuffer.attachments[i].numMips =
+              c.m_ImageView[viewid].range.levelCount & 0xff;
           ret.currentPass.framebuffer.attachments[i].numSlices =
-              c.m_ImageView[viewid].range.layerCount;
+              c.m_ImageView[viewid].range.layerCount & 0xffff;
 
           Convert(ret.currentPass.framebuffer.attachments[i].swizzle,
                   c.m_ImageView[viewid].componentMapping);
         }
         else
         {
-          ret.currentPass.framebuffer.attachments[i].viewResourceId = ResourceId();
-          ret.currentPass.framebuffer.attachments[i].imageResourceId = ResourceId();
+          ret.currentPass.framebuffer.attachments[i].view = ResourceId();
+          ret.currentPass.framebuffer.attachments[i].resource = ResourceId();
 
           ret.currentPass.framebuffer.attachments[i].firstMip = 0;
           ret.currentPass.framebuffer.attachments[i].firstSlice = 0;

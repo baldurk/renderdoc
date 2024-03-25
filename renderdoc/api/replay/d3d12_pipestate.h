@@ -202,121 +202,6 @@ If the value is 0, strip cutting is disabled.
   Topology topology = Topology::Unknown;
 };
 
-DOCUMENT("Describes the details of a D3D12 resource view - any one of UAV, SRV, RTV or DSV.");
-struct View
-{
-  DOCUMENT("");
-  View() = default;
-  View(uint32_t binding) : bind(binding) {}
-  View(const View &) = default;
-  View &operator=(const View &) = default;
-
-  bool operator==(const View &o) const
-  {
-    return bind == o.bind && tableIndex == o.tableIndex && resourceId == o.resourceId &&
-           type == o.type && viewFormat == o.viewFormat && swizzle == o.swizzle &&
-           bufferFlags == o.bufferFlags && bufferStructCount == o.bufferStructCount &&
-           elementByteSize == o.elementByteSize && firstElement == o.firstElement &&
-           numElements == o.numElements && counterResourceId == o.counterResourceId &&
-           counterByteOffset == o.counterByteOffset && firstMip == o.firstMip &&
-           numMips == o.numMips && numSlices == o.numSlices && firstSlice == o.firstSlice;
-  }
-  bool operator<(const View &o) const
-  {
-    if(!(bind == o.bind))
-      return bind < o.bind;
-    if(!(tableIndex == o.tableIndex))
-      return tableIndex < o.tableIndex;
-    if(!(resourceId == o.resourceId))
-      return resourceId < o.resourceId;
-    if(!(type == o.type))
-      return type < o.type;
-    if(!(viewFormat == o.viewFormat))
-      return viewFormat < o.viewFormat;
-    if(!(swizzle == o.swizzle))
-      return swizzle < o.swizzle;
-    if(!(bufferFlags == o.bufferFlags))
-      return bufferFlags < o.bufferFlags;
-    if(!(bufferStructCount == o.bufferStructCount))
-      return bufferStructCount < o.bufferStructCount;
-    if(!(elementByteSize == o.elementByteSize))
-      return elementByteSize < o.elementByteSize;
-    if(!(firstElement == o.firstElement))
-      return firstElement < o.firstElement;
-    if(!(numElements == o.numElements))
-      return numElements < o.numElements;
-    if(!(counterResourceId == o.counterResourceId))
-      return counterResourceId < o.counterResourceId;
-    if(!(counterByteOffset == o.counterByteOffset))
-      return counterByteOffset < o.counterByteOffset;
-    if(!(firstMip == o.firstMip))
-      return firstMip < o.firstMip;
-    if(!(numMips == o.numMips))
-      return numMips < o.numMips;
-    if(!(numSlices == o.numSlices))
-      return numSlices < o.numSlices;
-    if(!(firstSlice == o.firstSlice))
-      return firstSlice < o.firstSlice;
-    return false;
-  }
-  DOCUMENT("The shader register that this view is bound to.");
-  uint32_t bind = ~0U;
-  DOCUMENT("The index in the the parent descriptor table where this descriptor came from.");
-  uint32_t tableIndex = ~0U;
-
-  DOCUMENT("The :class:`ResourceId` of the underlying resource the view refers to.");
-  ResourceId resourceId;
-  DOCUMENT("The :class:`ResourceId` of the resource where the hidden buffer counter is stored.");
-  ResourceId counterResourceId;
-  DOCUMENT("The byte offset in :data:`counterResourceId` where the counter is stored.");
-  uint32_t counterByteOffset = 0;
-  DOCUMENT("The :class:`TextureType` of the view type.");
-  TextureType type;
-  DOCUMENT(R"(The format cast that the view uses.
-
-:type: ResourceFormat
-)");
-  ResourceFormat viewFormat;
-
-  DOCUMENT(R"(The swizzle applied to a texture by the view.
-
-:type: TextureSwizzle4
-)");
-  TextureSwizzle4 swizzle;
-  DOCUMENT(R"(``True`` if this binding element is dynamically used.
-
-If set to ``False`` this means that the binding was available to the shader but during execution it
-was not referenced. The data gathered for setting this variable is conservative, meaning that only
-accesses through arrays will have this calculated to reduce the required feedback bandwidth - single
-non-arrayed descriptors may have this value set to ``True`` even if the shader did not use them,
-since single descriptors may only be dynamically skipped by control flow.
-)");
-  bool dynamicallyUsed = true;
-  DOCUMENT("The :class:`D3DBufferViewFlags` set for the buffer.");
-  D3DBufferViewFlags bufferFlags = D3DBufferViewFlags::NoFlags;
-  DOCUMENT("Valid for textures - the highest mip that is available through the view.");
-  uint8_t firstMip = 0;
-  DOCUMENT("Valid for textures - the number of mip levels in the view.");
-  uint8_t numMips = 1;
-  DOCUMENT("Valid for texture arrays or 3D textures - the first slice available through the view.");
-  uint16_t firstSlice = 0;
-  DOCUMENT("Valid for texture arrays or 3D textures - the number of slices in the view.");
-  uint16_t numSlices = 1;
-  DOCUMENT("If the view has a hidden counter, this stores the current value of the counter.");
-  uint32_t bufferStructCount = 0;
-  DOCUMENT(R"(The byte size of a single element in the view. Either the byte size of
-:data:`viewFormat`, or the structured buffer element size, as appropriate.
-)");
-  uint32_t elementByteSize = 0;
-  DOCUMENT("Valid for buffers - the first element to be used in the view.");
-  uint64_t firstElement = 0;
-  DOCUMENT("Valid for buffers - the number of elements to be used in the view.");
-  uint32_t numElements = 1;
-
-  DOCUMENT("The minimum mip-level clamp applied when sampling this texture.");
-  float minLODClamp = 0.0f;
-};
-
 DOCUMENT("Describes a D3D12 shader stage.");
 struct Shader
 {
@@ -596,15 +481,15 @@ struct OM
 
   DOCUMENT(R"(The bound render targets.
 
-:type: List[D3D12View]
+:type: List[Descriptor]
 )");
-  rdcarray<View> renderTargets;
+  rdcarray<Descriptor> renderTargets;
 
   DOCUMENT(R"(The currently bound depth-stencil target.
 
-:type: D3D12View
+:type: Descriptor
 )");
-  View depthTarget = D3D12Pipe::View(0);
+  Descriptor depthTarget;
   DOCUMENT("``True`` if depth access to the depth-stencil target is read-only.");
   bool depthReadOnly = false;
   DOCUMENT("``True`` if stenncil access to the depth-stencil target is read-only.");
@@ -764,7 +649,6 @@ DECLARE_REFLECTION_STRUCT(D3D12Pipe::Layout);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::VertexBuffer);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::IndexBuffer);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::InputAssembly);
-DECLARE_REFLECTION_STRUCT(D3D12Pipe::View);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::Shader);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::StreamOutBind);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::StreamOut);

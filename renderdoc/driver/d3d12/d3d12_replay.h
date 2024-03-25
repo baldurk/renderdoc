@@ -268,7 +268,6 @@ public:
                         bool dxil);
 
 private:
-  void FillResourceView(D3D12Pipe::View &view, const D3D12Descriptor *desc);
   void FillDescriptor(Descriptor &dst, const D3D12Descriptor *src);
   void FillSamplerDescriptor(SamplerDescriptor &dst, const D3D12_SAMPLER_DESC2 &src);
 

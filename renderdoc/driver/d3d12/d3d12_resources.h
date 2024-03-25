@@ -399,9 +399,8 @@ class WrappedID3D12DescriptorHeap : public WrappedDeviceChild12<ID3D12Descriptor
 
   D3D12Descriptor *descriptors;
 
-  D3D12Pipe::View *cachedViews;
   Descriptor *cachedDescriptors;
-  uint64_t *mutableViewBitmask;
+  uint64_t *mutableDescriptorBitmask;
 
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12DescriptorHeap);
@@ -419,11 +418,6 @@ public:
   UINT GetNumDescriptors() { return numDescriptors; }
 
   void MarkMutableIndex(uint32_t index);
-
-  void EnsureViewCache();
-  bool HasValidViewCache(uint32_t index);
-  void GetFromViewCache(uint32_t index, D3D12Pipe::View &view);
-  void SetToViewCache(uint32_t index, const D3D12Pipe::View &view);
 
   void EnsureDescriptorCache();
   bool HasValidDescriptorCache(uint32_t index);

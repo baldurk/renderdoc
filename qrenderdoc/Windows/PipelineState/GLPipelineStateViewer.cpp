@@ -2212,11 +2212,11 @@ void GLPipelineStateViewer::setState()
     for(int db : state.framebuffer.drawFBO.drawBuffers)
     {
       ResourceId p;
-      const GLPipe::Attachment *r = NULL;
+      const Descriptor *r = NULL;
 
       if(db >= 0 && db < state.framebuffer.drawFBO.colorAttachments.count())
       {
-        p = state.framebuffer.drawFBO.colorAttachments[db].resourceId;
+        p = state.framebuffer.drawFBO.colorAttachments[db].resource;
         r = &state.framebuffer.drawFBO.colorAttachments[db];
       }
 
@@ -2286,7 +2286,7 @@ void GLPipelineStateViewer::setState()
         if(tex)
         {
           if(r)
-            setViewDetails(node, tex, r->mipLevel, 1, r->slice, r->numSlices);
+            setViewDetails(node, tex, r->firstMip, 1, r->firstSlice, r->numSlices);
           node->setTag(QVariant::fromValue(p));
         }
 
@@ -2306,18 +2306,18 @@ void GLPipelineStateViewer::setState()
     }
 
     ResourceId dsObjects[] = {
-        state.framebuffer.drawFBO.depthAttachment.resourceId,
-        state.framebuffer.drawFBO.stencilAttachment.resourceId,
+        state.framebuffer.drawFBO.depthAttachment.resource,
+        state.framebuffer.drawFBO.stencilAttachment.resource,
     };
 
     uint32_t dsMips[] = {
-        state.framebuffer.drawFBO.depthAttachment.mipLevel,
-        state.framebuffer.drawFBO.stencilAttachment.mipLevel,
+        state.framebuffer.drawFBO.depthAttachment.firstMip,
+        state.framebuffer.drawFBO.stencilAttachment.firstMip,
     };
 
     uint32_t dsSlice[] = {
-        state.framebuffer.drawFBO.depthAttachment.slice,
-        state.framebuffer.drawFBO.stencilAttachment.slice,
+        state.framebuffer.drawFBO.depthAttachment.firstSlice,
+        state.framebuffer.drawFBO.stencilAttachment.firstSlice,
     };
 
     uint32_t dsNumSlices[] = {
@@ -2365,9 +2365,9 @@ void GLPipelineStateViewer::setState()
 
         bool depthstencil = false;
 
-        if(state.framebuffer.drawFBO.depthAttachment.resourceId ==
-               state.framebuffer.drawFBO.stencilAttachment.resourceId &&
-           state.framebuffer.drawFBO.depthAttachment.resourceId != ResourceId())
+        if(state.framebuffer.drawFBO.depthAttachment.resource ==
+               state.framebuffer.drawFBO.stencilAttachment.resource &&
+           state.framebuffer.drawFBO.depthAttachment.resource != ResourceId())
         {
           depthstencil = true;
           slot = tr("Depth-Stencil");
@@ -3727,22 +3727,22 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Fram
 
     QList<QVariantList> rows;
 
-    QList<const GLPipe::Attachment *> atts;
-    for(const GLPipe::Attachment &att : fb.drawFBO.colorAttachments)
+    QList<const Descriptor *> atts;
+    for(const Descriptor &att : fb.drawFBO.colorAttachments)
       atts.push_back(&att);
     atts.push_back(&fb.drawFBO.depthAttachment);
     atts.push_back(&fb.drawFBO.stencilAttachment);
 
     int i = 0;
-    for(const GLPipe::Attachment *att : atts)
+    for(const Descriptor *att : atts)
     {
-      const GLPipe::Attachment &a = *att;
+      const Descriptor &a = *att;
 
-      TextureDescription *tex = m_Ctx.GetTexture(a.resourceId);
+      TextureDescription *tex = m_Ctx.GetTexture(a.resource);
 
-      QString name = m_Ctx.GetResourceName(a.resourceId);
+      QString name = m_Ctx.GetResourceName(a.resource);
 
-      if(a.resourceId == ResourceId())
+      if(a.resource == ResourceId())
         name = tr("Empty");
 
       QString slotname = QString::number(i);
@@ -3752,7 +3752,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Fram
       else if(i == atts.count() - 1)
         slotname = tr("Stencil");
 
-      rows.push_back({slotname, name, a.mipLevel, a.slice});
+      rows.push_back({slotname, name, a.firstMip, a.firstSlice});
 
       i++;
     }
@@ -3788,22 +3788,22 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Fram
 
     QList<QVariantList> rows;
 
-    QList<const GLPipe::Attachment *> atts;
-    for(const GLPipe::Attachment &att : fb.readFBO.colorAttachments)
+    QList<const Descriptor *> atts;
+    for(const Descriptor &att : fb.readFBO.colorAttachments)
       atts.push_back(&att);
     atts.push_back(&fb.readFBO.depthAttachment);
     atts.push_back(&fb.readFBO.stencilAttachment);
 
     int i = 0;
-    for(const GLPipe::Attachment *att : atts)
+    for(const Descriptor *att : atts)
     {
-      const GLPipe::Attachment &a = *att;
+      const Descriptor &a = *att;
 
-      TextureDescription *tex = m_Ctx.GetTexture(a.resourceId);
+      TextureDescription *tex = m_Ctx.GetTexture(a.resource);
 
-      QString name = m_Ctx.GetResourceName(a.resourceId);
+      QString name = m_Ctx.GetResourceName(a.resource);
 
-      if(a.resourceId == ResourceId())
+      if(a.resource == ResourceId())
         name = tr("Empty");
 
       QString slotname = QString::number(i);
@@ -3813,7 +3813,7 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Fram
       else if(i == atts.count() - 1)
         slotname = tr("Stencil");
 
-      rows.push_back({slotname, name, a.mipLevel, a.slice});
+      rows.push_back({slotname, name, a.firstMip, a.firstSlice});
 
       i++;
     }

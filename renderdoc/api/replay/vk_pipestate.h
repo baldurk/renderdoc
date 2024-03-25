@@ -858,65 +858,6 @@ If the subpass is not internally multisampled, tileOnlyMSAASampleCount is set to
   uint32_t tileOnlyMSAASampleCount = 0;
 };
 
-DOCUMENT("Describes a single attachment in a framebuffer object.");
-struct Attachment
-{
-  DOCUMENT("");
-  Attachment() = default;
-  Attachment(const Attachment &) = default;
-  Attachment &operator=(const Attachment &) = default;
-
-  bool operator==(const Attachment &o) const
-  {
-    return viewResourceId == o.viewResourceId && imageResourceId == o.imageResourceId &&
-           viewFormat == o.viewFormat && swizzle == o.swizzle && firstMip == o.firstMip &&
-           firstSlice == o.firstSlice && numMips == o.numMips && numSlices == o.numSlices;
-  }
-  bool operator<(const Attachment &o) const
-  {
-    if(!(viewResourceId == o.viewResourceId))
-      return viewResourceId < o.viewResourceId;
-    if(!(imageResourceId == o.imageResourceId))
-      return imageResourceId < o.imageResourceId;
-    if(!(viewFormat == o.viewFormat))
-      return viewFormat < o.viewFormat;
-    if(!(swizzle == o.swizzle))
-      return swizzle < o.swizzle;
-    if(!(firstMip == o.firstMip))
-      return firstMip < o.firstMip;
-    if(!(firstSlice == o.firstSlice))
-      return firstSlice < o.firstSlice;
-    if(!(numMips == o.numMips))
-      return numMips < o.numMips;
-    if(!(numSlices == o.numSlices))
-      return numSlices < o.numSlices;
-    return false;
-  }
-  DOCUMENT("The :class:`ResourceId` of the image view itself.");
-  ResourceId viewResourceId;
-  DOCUMENT("The :class:`ResourceId` of the underlying image that the view refers to.");
-  ResourceId imageResourceId;
-
-  DOCUMENT(R"(The format cast that the view uses.
-
-:type: ResourceFormat
-)");
-  ResourceFormat viewFormat;
-  DOCUMENT(R"(The swizzle applied to the texture by the view.
-
-:type: TextureSwizzle4
-)");
-  TextureSwizzle4 swizzle;
-  DOCUMENT("The first mip level used in the attachment.");
-  uint32_t firstMip = 0;
-  DOCUMENT("For 3D textures and texture arrays, the first slice used in the attachment.");
-  uint32_t firstSlice = 0;
-  DOCUMENT("The number of mip levels in the attachment.");
-  uint32_t numMips = 1;
-  DOCUMENT("For 3D textures and texture arrays, the number of array slices in the attachment.");
-  uint32_t numSlices = 1;
-};
-
 DOCUMENT("Describes a framebuffer object and its attachments.");
 struct Framebuffer
 {
@@ -930,9 +871,9 @@ struct Framebuffer
 
   DOCUMENT(R"(The attachments of this framebuffer.
 
-:type: List[VKAttachment]
+:type: List[Descriptor]
 )");
-  rdcarray<Attachment> attachments;
+  rdcarray<Descriptor> attachments;
 
   DOCUMENT("The width of this framebuffer in pixels.");
   uint32_t width = 0;
@@ -1229,7 +1170,6 @@ DECLARE_REFLECTION_STRUCT(VKPipe::MultiSample);
 DECLARE_REFLECTION_STRUCT(VKPipe::ColorBlendState);
 DECLARE_REFLECTION_STRUCT(VKPipe::DepthStencil);
 DECLARE_REFLECTION_STRUCT(VKPipe::RenderPass);
-DECLARE_REFLECTION_STRUCT(VKPipe::Attachment);
 DECLARE_REFLECTION_STRUCT(VKPipe::Framebuffer);
 DECLARE_REFLECTION_STRUCT(VKPipe::RenderArea);
 DECLARE_REFLECTION_STRUCT(VKPipe::CurrentPass);

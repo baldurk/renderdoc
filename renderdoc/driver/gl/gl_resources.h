@@ -34,6 +34,16 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type);
 GLenum GetBaseFormat(GLenum internalFormat);
 GLenum GetDataType(GLenum internalFormat);
 void GetFramebufferMipAndLayer(GLuint framebuffer, GLenum attachment, GLint *mip, GLint *layer);
+
+inline void GetFramebufferMipAndLayer(GLuint framebuffer, GLenum attachment, uint8_t *mip,
+                                      uint16_t *layer)
+{
+  GLint outMip = 0, outLayer = 0;
+  GetFramebufferMipAndLayer(framebuffer, attachment, &outMip, &outLayer);
+  *mip = outMip & 0xff;
+  *layer = outLayer & 0xff;
+}
+
 void GetTextureSwizzle(GLuint tex, GLenum target, GLenum *swizzleRGBA);
 void SetTextureSwizzle(GLuint tex, GLenum target, const GLenum *swizzleRGBA);
 
