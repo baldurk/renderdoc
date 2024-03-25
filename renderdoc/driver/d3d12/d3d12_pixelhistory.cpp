@@ -2101,12 +2101,27 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
 
       if(f == 0)
       {
+        m_pDevice->GetDebugManager()->SetDescriptorHeaps(cmd, true, false);
+
         // Before starting the draw, initialize the pixel to the premodification value
         // for this event, for both color and depth. Depth was handled above already.
-        cmd->ClearRenderTargetView(m_pDevice->GetDebugManager()->GetCPUHandle(PIXEL_HISTORY_RTV),
-                                   premod.col.floatValue.data(), 1, &state.scissors[0]);
+        // Use ClearUnorderedAccessViewUint() because it preserves bit patterns unlike
+        // ClearRenderTarget() or ClearUnorderedAccessViewFloat()
+        D3D12_RESOURCE_BARRIER barrier = {};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Transition.pResource = m_CallbackInfo.colorImage;
+        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+        barrier.Transition.Subresource = 0;
+        cmd->ResourceBarrier(1, &barrier);
 
+        cmd->ClearUnorderedAccessViewUint(
+            m_pDevice->GetDebugManager()->GetGPUHandle(PIXELHISTORY_CLEAR_UAV),
+            m_pDevice->GetDebugManager()->GetUAVClearHandle(PIXELHISTORY_CLEAR_UAV),
+            m_CallbackInfo.colorImage, premod.col.uintValue.data(), 1, &state.scissors[0]);
         // TODO: Does anything different need to happen here if the target resource is depth/stencil?
+        std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+        cmd->ResourceBarrier(1, &barrier);
       }
 
       state.stencilRefFront = f;
@@ -2557,7 +2572,8 @@ bool D3D12DebugManager::PixelHistorySetupResources(D3D12PixelHistoryResources &r
   D3D12_RESOURCE_DESC imageDesc = desc;
   imageDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
   imageDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-  imageDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+  imageDesc.Flags =
+      D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
   imageDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 
   hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &imageDesc,
@@ -2577,6 +2593,18 @@ bool D3D12DebugManager::PixelHistorySetupResources(D3D12PixelHistoryResources &r
                                                          : D3D12_RTV_DIMENSION_TEXTURE2D;
   D3D12_CPU_DESCRIPTOR_HANDLE rtv = m_pDevice->GetDebugManager()->GetCPUHandle(PIXEL_HISTORY_RTV);
   m_pDevice->CreateRenderTargetView(colorImage, &rtvDesc, rtv);
+
+  D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+  uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+  uavDesc.Format = imageDesc.Format;
+  uavDesc.Texture2D.MipSlice = 0;
+  uavDesc.Texture2D.PlaneSlice = 0;
+
+  m_pDevice->CreateUnorderedAccessView(
+      colorImage, NULL, &uavDesc, m_pDevice->GetDebugManager()->GetCPUHandle(PIXELHISTORY_CLEAR_UAV));
+  m_pDevice->CreateUnorderedAccessView(
+      colorImage, NULL, &uavDesc,
+      m_pDevice->GetDebugManager()->GetUAVClearHandle(PIXELHISTORY_CLEAR_UAV));
 
   imageDesc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
   imageDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
