@@ -894,11 +894,7 @@ void VulkanCreationInfo::Pipeline::Shader::ProcessStaticDescriptorAccess(
       continue;
 
     access.staticallyUnused = !bind.used;
-    access.type = DescriptorType::Image;
-    if(!refl->readOnlyResources[i].isTexture)
-      access.type = DescriptorType::TypedBuffer;
-    if(refl->readOnlyResources[i].hasSampler)
-      access.type = DescriptorType::ImageSampler;
+    access.type = refl->readOnlyResources[i].descriptorType;
     access.index = i;
     access.byteSize = bind.bindset;
     access.byteOffset = setLayoutInfos[bind.bindset]->bindings[bind.bind].elemOffset;
@@ -914,10 +910,7 @@ void VulkanCreationInfo::Pipeline::Shader::ProcessStaticDescriptorAccess(
       continue;
 
     access.staticallyUnused = !bind.used;
-    access.type = DescriptorType::ReadWriteImage;
-    if(!refl->readWriteResources[i].isTexture)
-      access.type = DescriptorType::ReadWriteBuffer;
-
+    access.type = refl->readWriteResources[i].descriptorType;
     access.index = i;
     access.byteSize = bind.bindset;
     access.byteOffset = setLayoutInfos[bind.bindset]->bindings[bind.bind].elemOffset;

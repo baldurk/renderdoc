@@ -1270,12 +1270,15 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     res.variableType.arrayByteStride = 0;
     res.variableType.matrixByteStride = 0;
 
+    res.descriptorType = DescriptorType::ImageSampler;
+
     // float samplers
     if(values[0] == eGL_SAMPLER_BUFFER)
     {
       res.resType = TextureType::Buffer;
       res.variableType.name = "samplerBuffer";
       res.variableType.baseType = VarType::Float;
+      res.descriptorType = DescriptorType::TypedBuffer;
     }
     else if(values[0] == eGL_SAMPLER_1D)
     {
@@ -1379,6 +1382,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
       res.resType = TextureType::Buffer;
       res.variableType.name = "isamplerBuffer";
       res.variableType.baseType = VarType::SInt;
+      res.descriptorType = DescriptorType::TypedBuffer;
     }
     else if(values[0] == eGL_INT_SAMPLER_1D)
     {
@@ -1446,6 +1450,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
       res.resType = TextureType::Buffer;
       res.variableType.name = "usamplerBuffer";
       res.variableType.baseType = VarType::UInt;
+      res.descriptorType = DescriptorType::TypedBuffer;
     }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_1D)
     {
@@ -1514,6 +1519,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
       res.variableType.name = "imageBuffer";
       res.variableType.baseType = VarType::Float;
       res.isReadOnly = false;
+      res.descriptorType = DescriptorType::ReadWriteTypedBuffer;
     }
     else if(values[0] == eGL_IMAGE_1D)
     {
@@ -1592,6 +1598,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
       res.variableType.name = "iimageBuffer";
       res.variableType.baseType = VarType::SInt;
       res.isReadOnly = false;
+      res.descriptorType = DescriptorType::ReadWriteTypedBuffer;
     }
     else if(values[0] == eGL_INT_IMAGE_1D)
     {
@@ -1670,6 +1677,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
       res.variableType.name = "uimageBuffer";
       res.variableType.baseType = VarType::UInt;
       res.isReadOnly = false;
+      res.descriptorType = DescriptorType::ReadWriteTypedBuffer;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_1D)
     {
@@ -1750,12 +1758,16 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
       res.isReadOnly = false;
       res.isTexture = false;
       res.variableType.columns = 1;
+      res.descriptorType = DescriptorType::ReadWriteBuffer;
     }
     else
     {
       // not a sampler
       continue;
     }
+
+    if(!res.isReadOnly && res.resType == TextureType::Buffer)
+      res.descriptorType = DescriptorType::ReadWriteImage;
 
     res.hasSampler = res.isReadOnly;
 
@@ -1820,6 +1832,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
       res.variableType.baseType = VarType::UInt;
       res.bindPoint = (int32_t)rwresources.size();
       res.name = nm;
+      res.descriptorType = DescriptorType::ReadWriteBuffer;
 
       GLint numMembers = 0;
 

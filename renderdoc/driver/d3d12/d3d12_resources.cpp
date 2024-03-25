@@ -824,12 +824,7 @@ void WrappedID3D12PipelineState::ProcessDescriptorAccess()
         continue;
 
       access.staticallyUnused = !bind.used;
-      access.type = DescriptorType::Image;
-      if(!refl.readOnlyResources[i].isTexture)
-        access.type = (refl.readOnlyResources[i].variableType.baseType == VarType::UByte ||
-                       !refl.readOnlyResources[i].variableType.members.empty())
-                          ? DescriptorType::Buffer
-                          : DescriptorType::TypedBuffer;
+      access.type = refl.readOnlyResources[i].descriptorType;
       access.index = i;
       rdctie(access.byteSize, access.byteOffset) =
           FindMatchingRootParameter(sig, visibility, D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
@@ -849,13 +844,7 @@ void WrappedID3D12PipelineState::ProcessDescriptorAccess()
         continue;
 
       access.staticallyUnused = !bind.used;
-      access.type = DescriptorType::ReadWriteImage;
-      if(!refl.readWriteResources[i].isTexture)
-        access.type = (refl.readWriteResources[i].variableType.baseType == VarType::UByte ||
-                       !refl.readWriteResources[i].variableType.members.empty())
-                          ? DescriptorType::ReadWriteBuffer
-                          : DescriptorType::ReadWriteTypedBuffer;
-
+      access.type = refl.readWriteResources[i].descriptorType;
       access.index = i;
       rdctie(access.byteSize, access.byteOffset) =
           FindMatchingRootParameter(sig, visibility, D3D12_DESCRIPTOR_RANGE_TYPE_UAV,

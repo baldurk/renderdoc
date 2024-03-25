@@ -224,6 +224,7 @@ template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, ShaderResource &el)
 {
   SERIALISE_MEMBER(resType);
+  SERIALISE_MEMBER(descriptorType);
   SERIALISE_MEMBER(name);
   SERIALISE_MEMBER(variableType);
   SERIALISE_MEMBER(bindPoint);

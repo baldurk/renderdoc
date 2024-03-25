@@ -1399,6 +1399,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
         if(res.name.empty())
           res.name = StringFormat::Fmt("atomic%u", global.id.value());
         res.resType = TextureType::Buffer;
+        res.descriptorType = DescriptorType::ReadWriteBuffer;
 
         res.variableType.columns = 1;
         res.variableType.rows = 1;
@@ -1479,9 +1480,22 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
           res.variableType.baseType = imageType.retType.Type();
 
           if(res.isReadOnly)
+          {
+            res.descriptorType =
+                res.hasSampler ? DescriptorType::ImageSampler : DescriptorType::Image;
+            if(!res.isTexture)
+              res.descriptorType = DescriptorType::TypedBuffer;
+
             roresources.push_back(shaderrespair(bindmap, global.id, res));
+          }
           else
+          {
+            res.descriptorType = DescriptorType::ReadWriteImage;
+            if(!res.isTexture)
+              res.descriptorType = DescriptorType::ReadWriteTypedBuffer;
+
             rwresources.push_back(shaderrespair(bindmap, global.id, res));
+          }
         }
       }
       else
@@ -1552,6 +1566,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
             if(res.name.empty())
               res.name = StringFormat::Fmt("ssbo%u", global.id.value());
             res.resType = TextureType::Buffer;
+            res.descriptorType = DescriptorType::ReadWriteBuffer;
 
             res.fixedBindNumber = bindmap.bind;
             res.fixedBindSetOrSpace = bindmap.bindset;

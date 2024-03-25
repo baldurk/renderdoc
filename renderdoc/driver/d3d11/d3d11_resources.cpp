@@ -130,12 +130,7 @@ void WrappedShader::ShaderEntry::BuildReflection()
   for(uint16_t i = 0; i < m_Mapping.readOnlyResources.size(); i++)
   {
     access.staticallyUnused = !m_Mapping.readOnlyResources[i].used;
-    access.type = DescriptorType::Image;
-    if(!m_Details->readOnlyResources[i].isTexture)
-      access.type = (m_Details->readOnlyResources[i].variableType.baseType == VarType::UByte ||
-                     !m_Details->readOnlyResources[i].variableType.members.empty())
-                        ? DescriptorType::Buffer
-                        : DescriptorType::TypedBuffer;
+    access.type = m_Details->readOnlyResources[i].descriptorType;
     access.index = i;
     access.byteOffset = EncodeD3D11DescriptorIndex({access.stage, D3D11DescriptorMapping::SRVs,
                                                     (uint32_t)m_Mapping.readOnlyResources[i].bind});
@@ -146,13 +141,7 @@ void WrappedShader::ShaderEntry::BuildReflection()
   for(uint16_t i = 0; i < m_Mapping.readWriteResources.size(); i++)
   {
     access.staticallyUnused = !m_Mapping.readWriteResources[i].used;
-    access.type = DescriptorType::ReadWriteImage;
-    if(!m_Details->readWriteResources[i].isTexture)
-      access.type = (m_Details->readWriteResources[i].variableType.baseType == VarType::UByte ||
-                     !m_Details->readWriteResources[i].variableType.members.empty())
-                        ? DescriptorType::ReadWriteBuffer
-                        : DescriptorType::ReadWriteTypedBuffer;
-
+    access.type = m_Details->readWriteResources[i].descriptorType;
     access.index = i;
     access.byteOffset = EncodeD3D11DescriptorIndex({access.stage, D3D11DescriptorMapping::UAVs,
                                                     (uint32_t)m_Mapping.readWriteResources[i].bind});

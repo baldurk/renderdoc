@@ -1461,6 +1461,12 @@ struct ShaderResource
   DOCUMENT("The :class:`TextureType` that describes the type of this resource.");
   TextureType resType;
 
+  DOCUMENT(R"(The :class:`DescriptorType` which this resource expects to access.
+
+:type: DescriptorType
+)");
+  DescriptorType descriptorType;
+
   DOCUMENT("The name of this resource.");
   rdcstr name;
 

@@ -256,6 +256,24 @@ static void MakeResourceList(bool srv, DXBC::DXBCContainer *dxbc,
     res.fixedBindSetOrSpace = r.space;
     res.bindArraySize = r.bindCount == 0 ? ~0U : r.bindCount;
 
+    if(res.isReadOnly)
+    {
+      res.descriptorType = DescriptorType::Image;
+      if(!res.isTexture)
+        res.descriptorType = (r.type == DXBC::ShaderInputBind::TYPE_TBUFFER ||
+                              r.type == DXBC::ShaderInputBind::TYPE_TEXTURE)
+                                 ? DescriptorType::TypedBuffer
+                                 : DescriptorType::Buffer;
+    }
+    else
+    {
+      res.descriptorType = DescriptorType::ReadWriteImage;
+      if(!res.isTexture)
+        res.descriptorType = r.type == DXBC::ShaderInputBind::TYPE_UAV_RWTYPED
+                                 ? DescriptorType::ReadWriteTypedBuffer
+                                 : DescriptorType::ReadWriteBuffer;
+    }
+
     Bindpoint map;
     map.arraySize = r.bindCount == 0 ? ~0U : r.bindCount;
     map.bindset = r.space;
