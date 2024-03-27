@@ -2121,6 +2121,9 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
                 dstel.type = BindType::InputAttachment;
                 break;
               case DescriptorSlotType::InlineBlock: dstel.type = BindType::ConstantBuffer; break;
+              case DescriptorSlotType::AccelerationStructure:
+                dstel.type = BindType::ReadWriteBuffer;
+                break;
               case DescriptorSlotType::Unwritten:
               case DescriptorSlotType::Count: dstel.type = BindType::Unknown; break;
             }
@@ -2272,7 +2275,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
             else if(descriptorType == DescriptorSlotType::StorageBuffer ||
                     descriptorType == DescriptorSlotType::StorageBufferDynamic ||
                     descriptorType == DescriptorSlotType::UniformBuffer ||
-                    descriptorType == DescriptorSlotType::UniformBufferDynamic)
+                    descriptorType == DescriptorSlotType::UniformBufferDynamic ||
+                    descriptorType == DescriptorSlotType::AccelerationStructure)
             {
               destSlots.binds[a].viewResourceId = ResourceId();
 

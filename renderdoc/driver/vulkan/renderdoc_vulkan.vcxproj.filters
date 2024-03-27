@@ -151,12 +151,18 @@
     <ClCompile Include="vk_msaa_buffer_conv.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
+    <ClCompile Include="vk_acceleration_structure.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vk_replay.h">
       <Filter>Replay</Filter>
     </ClInclude>
     <ClInclude Include="vk_debug.h">
+      <Filter>Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="vk_acceleration_structure.h">
       <Filter>Replay</Filter>
     </ClInclude>
     <ClInclude Include="vk_resources.h">

@@ -133,6 +133,8 @@ struct VkInitialContents
   // sparse bind. Similar to the descriptors above
   rdcarray<AspectSparseTable> *sparseTables;
   SparseBinding *sparseBind;
+
+  bool isTLAS;    // If the contents are an AS, this determines if it is a TLAS or BLAS
 };
 
 struct VulkanResourceManagerConfiguration

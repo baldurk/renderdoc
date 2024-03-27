@@ -11866,8 +11866,16 @@ void DoSerialise(SerialiserType &ser, VkAccelerationStructureGeometryKHR &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR);
   SerialiseNext(ser, el.sType, el.pNext);
 
+  // el.geometry is a union so we need to determine which member it is supposed to be before
+  // serialising further
   SERIALISE_MEMBER(geometryType).Important();
-  SERIALISE_MEMBER(geometry);
+  if(el.geometryType == VK_GEOMETRY_TYPE_TRIANGLES_KHR)
+    ser.Serialise("geometry.triangles"_lit, el.geometry.triangles);
+  else if(el.geometryType == VK_GEOMETRY_TYPE_AABBS_KHR)
+    ser.Serialise("geometry.aabbs"_lit, el.geometry.aabbs);
+  else
+    ser.Serialise("geometry.instances"_lit, el.geometry.instances);
+
   SERIALISE_MEMBER_VKFLAGS(VkGeometryFlagsKHR, flags);
 }
 
@@ -12065,14 +12073,6 @@ void Deserialise(const VkWriteDescriptorSetAccelerationStructureKHR &el)
 {
   DeserialiseNext(el.pNext);
   delete[] el.pAccelerationStructures;
-}
-
-template <typename SerialiserType>
-void DoSerialise(SerialiserType &ser, VkAccelerationStructureGeometryDataKHR &el)
-{
-  SERIALISE_MEMBER(triangles);
-  SERIALISE_MEMBER(aabbs);
-  SERIALISE_MEMBER(instances);
 }
 
 template <typename SerialiserType>
@@ -12537,7 +12537,6 @@ INSTANTIATE_SERIALISE_TYPE(VkWriteDescriptorSetAccelerationStructureKHR);
 // plain structs with no next chain
 INSTANTIATE_SERIALISE_TYPE(VkAabbPositionsKHR);
 INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureBuildRangeInfoKHR);
-INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureGeometryDataKHR);
 INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureInstanceKHR);
 INSTANTIATE_SERIALISE_TYPE(VkAllocationCallbacks);
 INSTANTIATE_SERIALISE_TYPE(VkAttachmentDescription);
