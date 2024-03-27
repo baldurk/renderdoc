@@ -1717,6 +1717,15 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
         return;
       }
 
+      // VkShaderStageFlagBits and ShaderStageMask are identical bit-for-bit.
+      if((descLayouts[bindset]->bindings[bind].stageFlags &
+          (VkShaderStageFlags)MaskForStage(key.stage)) == 0)
+      {
+        // this might be deliberate if the binding is never actually used dynamically, only
+        // statically used bindings must be declared
+        return;
+      }
+
       if(descLayouts[bindset]->bindings[bind].variableSize)
       {
         auto it = m_pDriver->m_DescriptorSetState.find(descSet);

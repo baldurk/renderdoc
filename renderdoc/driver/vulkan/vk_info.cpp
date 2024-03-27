@@ -844,6 +844,13 @@ void VulkanCreationInfo::Pipeline::Shader::ProcessStaticDescriptorAccess(
     if(bind.bindArraySize > 1)
       continue;
 
+    // VkShaderStageFlagBits and ShaderStageMask are identical bit-for-bit.
+    // this might be deliberate if the binding is never actually used dynamically, only
+    // statically used bindings must be declared
+    if((setLayoutInfos[bind.fixedBindSetOrSpace]->bindings[bind.fixedBindNumber].stageFlags &
+        (VkShaderStageFlags)MaskForStage(refl->stage)) == 0)
+      continue;
+
     access.type = DescriptorType::ConstantBuffer;
     access.index = i;
 
@@ -877,6 +884,13 @@ void VulkanCreationInfo::Pipeline::Shader::ProcessStaticDescriptorAccess(
     if(bind.bindArraySize > 1)
       continue;
 
+    // VkShaderStageFlagBits and ShaderStageMask are identical bit-for-bit.
+    // this might be deliberate if the binding is never actually used dynamically, only
+    // statically used bindings must be declared
+    if((setLayoutInfos[bind.fixedBindSetOrSpace]->bindings[bind.fixedBindNumber].stageFlags &
+        (VkShaderStageFlags)MaskForStage(refl->stage)) == 0)
+      continue;
+
     access.type = DescriptorType::Sampler;
     access.index = i;
     access.byteSize = bind.fixedBindSetOrSpace;
@@ -893,6 +907,13 @@ void VulkanCreationInfo::Pipeline::Shader::ProcessStaticDescriptorAccess(
     if(bind.bindArraySize > 1)
       continue;
 
+    // VkShaderStageFlagBits and ShaderStageMask are identical bit-for-bit.
+    // this might be deliberate if the binding is never actually used dynamically, only
+    // statically used bindings must be declared
+    if((setLayoutInfos[bind.fixedBindSetOrSpace]->bindings[bind.fixedBindNumber].stageFlags &
+        (VkShaderStageFlags)MaskForStage(refl->stage)) == 0)
+      continue;
+
     access.type = refl->readOnlyResources[i].descriptorType;
     access.index = i;
     access.byteSize = bind.fixedBindSetOrSpace;
@@ -907,6 +928,13 @@ void VulkanCreationInfo::Pipeline::Shader::ProcessStaticDescriptorAccess(
     const ShaderResource &bind = refl->readWriteResources[i];
     // arrayed descriptors will be handled with bindless feedback
     if(bind.bindArraySize > 1)
+      continue;
+
+    // VkShaderStageFlagBits and ShaderStageMask are identical bit-for-bit.
+    // this might be deliberate if the binding is never actually used dynamically, only
+    // statically used bindings must be declared
+    if((setLayoutInfos[bind.fixedBindSetOrSpace]->bindings[bind.fixedBindNumber].stageFlags &
+        (VkShaderStageFlags)MaskForStage(refl->stage)) == 0)
       continue;
 
     access.type = refl->readWriteResources[i].descriptorType;
