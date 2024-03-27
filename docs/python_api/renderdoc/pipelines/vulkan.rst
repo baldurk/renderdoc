@@ -17,10 +17,7 @@ Pipeline and Bindings
 .. autoclass:: VKDescriptorSet
   :members:
 
-.. autoclass:: VKDescriptorBinding
-  :members:
-
-.. autoclass:: VKBindingElement
+.. autoclass:: VKDynamicOffset
   :members:
 
 Vertex Input
@@ -108,9 +105,6 @@ Renderpass and Framebuffer
   :members:
 
 .. autoclass:: VKFramebuffer
-  :members:
-
-.. autoclass:: VKAttachment
   :members:
 
 .. autoclass:: VKRenderArea

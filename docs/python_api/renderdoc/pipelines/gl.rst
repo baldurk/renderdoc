@@ -26,25 +26,13 @@ Shader
 .. autoclass:: GLShader
   :members:
 
+.. autoclass:: GLTextureCompleteness
+  :members:
+
 Fixed Vertex Processing
 -----------------------
 
 .. autoclass:: GLFixedVertexProcessing
-  :members:
-
-Shader Bindings
----------------
-
-.. autoclass:: GLTexture
-  :members:
-
-.. autoclass:: GLSampler
-  :members:
-
-.. autoclass:: GLBuffer
-  :members:
-
-.. autoclass:: GLImageLoadStore
   :members:
 
 Transform Feedback
@@ -78,9 +66,6 @@ Framebuffer
   :members:
 
 .. autoclass:: GLFBO
-  :members:
-
-.. autoclass:: GLAttachment
   :members:
 
 Blending

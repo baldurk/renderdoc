@@ -5,16 +5,37 @@ Shaders
 
 .. currentmodule:: renderdoc
 
-Bindpoints
-----------
+Descriptors
+-----------
 
-.. autoclass:: renderdoc.ShaderBindpointMapping
+.. autoclass:: renderdoc.Descriptor
   :members:
 
-.. autoclass:: renderdoc.Bindpoint
+.. autoclass:: renderdoc.SamplerDescriptor
   :members:
 
-.. autoclass:: renderdoc.BindpointIndex
+.. autoclass:: renderdoc.DescriptorFlags
+  :members:
+   
+.. autoclass:: renderdoc.DescriptorCategory
+  :members:
+   
+.. autoclass:: renderdoc.DescriptorType
+  :members:
+   
+.. autofunction:: renderdoc.CategoryForDescriptorType
+.. autofunction:: renderdoc.IsConstantBlockDescriptor
+.. autofunction:: renderdoc.IsReadOnlyDescriptor
+.. autofunction:: renderdoc.IsReadWriteDescriptor
+.. autofunction:: renderdoc.IsSamplerDescriptor
+
+.. autoclass:: renderdoc.DescriptorLogicalLocation
+  :members:
+
+.. autoclass:: renderdoc.DescriptorRange
+  :members:
+
+.. autoclass:: renderdoc.DescriptorAccess
   :members:
 
 Reflection
@@ -30,6 +51,7 @@ Reflection
   :members:
 
 .. autofunction:: renderdoc.MaskForStage
+.. autofunction:: renderdoc.FirstStageForMask
 
 .. autoclass:: renderdoc.SigParameter
   :members:
@@ -142,3 +164,5 @@ Shader Variables
 .. autoclass:: renderdoc.PointerVal
   :members:
 
+.. autoclass:: renderdoc.ShaderBindIndex
+  :members:

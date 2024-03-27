@@ -35,13 +35,7 @@ Vertex Inputs
 Shader Resource Bindings
 ------------------------
 
-.. autoclass:: renderdoc.BoundResourceArray
-  :members:
-
-.. autoclass:: renderdoc.BoundResource
-  :members:
-
-.. autoclass:: renderdoc.BoundCBuffer
+.. autoclass:: renderdoc.UsedDescriptor
   :members:
 
 .. autoclass:: renderdoc.BindType
@@ -51,9 +45,6 @@ Shader Resource Bindings
   :members:
 
 .. autoclass:: renderdoc.TextureSwizzle4
-  :members:
-
-.. autoclass:: renderdoc.D3DBufferViewFlags
   :members:
 
 Samplers

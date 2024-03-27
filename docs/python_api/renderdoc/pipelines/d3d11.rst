@@ -29,15 +29,6 @@ Shaders and Bindings
 .. autoclass:: D3D11Shader
   :members:
 
-.. autoclass:: D3D11ConstantBuffer
-  :members:
-
-.. autoclass:: D3D11Sampler
-  :members:
-
-.. autoclass:: D3D11View
-  :members:
-
 Stream-out
 ----------
 

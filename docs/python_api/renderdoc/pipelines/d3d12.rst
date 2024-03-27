@@ -8,21 +8,6 @@ D3D12 Pipeline State
 .. autoclass:: D3D12State
   :members:
 
-Root Signature and Bindings
----------------------------
-
-.. autoclass:: D3D12RootSignatureRange
-  :members:
-  
-.. autoclass:: D3D12ConstantBuffer
-  :members:
-
-.. autoclass:: D3D12Sampler
-  :members:
-
-.. autoclass:: D3D12View
-  :members:
-
 Vertex Input
 ------------
 
