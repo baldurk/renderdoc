@@ -259,7 +259,7 @@ struct VulkanCreationInfo
     VkPipeline subpass0pipe;
 
     // VkGraphicsPipelineCreateInfo
-    VkPipelineCreateFlags flags;
+    VkPipelineCreateFlags2KHR flags;
 
     // VkPipelineShaderStageCreateInfo
     struct Shader
@@ -540,7 +540,7 @@ struct VulkanCreationInfo
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
               const VkBufferCreateInfo *pCreateInfo, VkMemoryRequirements origMrq);
 
-    VkBufferUsageFlags usage;
+    VkBufferUsageFlags2KHR usage;
     uint64_t size;
     uint64_t gpuAddress;
     bool external;

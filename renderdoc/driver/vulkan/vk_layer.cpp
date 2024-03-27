@@ -396,12 +396,16 @@ VK_LAYER_RENDERDOC_CaptureEnumerateInstanceExtensionProperties(
 
 // for promoted extensions, we return the function pointer for either name as an alias.
 #undef HookInitPromotedExtension
-#define HookInitPromotedExtension(cond, function, suffix)                     \
-  if(!strcmp(pName, STRINGIZE(CONCAT(vk, function))) ||                       \
-             !strcmp(pName, STRINGIZE(CONCAT(vk, CONCAT(function, suffix))))) \
-  {                                                                           \
-    if(cond)                                                                  \
-      return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function);                \
+#define HookInitPromotedExtension(cond, version, function, suffix)    \
+  if(!strcmp(pName, STRINGIZE(CONCAT(vk, CONCAT(function, suffix))))) \
+  {                                                                   \
+    if(cond)                                                          \
+      return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function);        \
+  }                                                                   \
+  if(!strcmp(pName, STRINGIZE(CONCAT(vk, function))))                 \
+  {                                                                   \
+    if(instDevInfo->vulkanVersion >= version)                         \
+      return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function);        \
   }
 
 #undef HookInitExtensionEXTtoKHR
@@ -412,6 +416,9 @@ VK_LAYER_RENDERDOC_CaptureEnumerateInstanceExtensionProperties(
 VK_LAYER_EXPORT VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr(VkDevice device, const char *pName)
 {
+  if(device == VK_NULL_HANDLE || pName == NULL)
+    return NULL;
+
   if(!strcmp("vkGetDeviceProcAddr", pName))
     return (PFN_vkVoidFunction)&VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr;
   if(!strcmp("vkCreateDevice", pName))
@@ -420,9 +427,6 @@ VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr(VkDevice device, const char *pName)
     return (PFN_vkVoidFunction)&hooked_vkDestroyDevice;
 
   HookInitVulkanDevice();
-
-  if(device == VK_NULL_HANDLE)
-    return NULL;
 
   InstanceDeviceInfo *instDevInfo = GetRecord(device)->instDevInfo;
 
@@ -511,7 +515,7 @@ VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr(VkInstance instance, const char *p
     return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function);
 
 #undef HookInitPromotedExtension
-#define HookInitPromotedExtension(cond, function, suffix)                     \
+#define HookInitPromotedExtension(cond, version, function, suffix)            \
   if(!strcmp(pName, STRINGIZE(CONCAT(vk, function))) ||                       \
              !strcmp(pName, STRINGIZE(CONCAT(vk, CONCAT(function, suffix))))) \
     return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function);
@@ -592,7 +596,7 @@ VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr(VkInstance instance, c
     return NULL;
 
 #undef HookInitPromotedExtension
-#define HookInitPromotedExtension(cond, function, suffix)                     \
+#define HookInitPromotedExtension(cond, version, function, suffix)            \
   if(!strcmp(pName, STRINGIZE(CONCAT(vk, function))) ||                       \
              !strcmp(pName, STRINGIZE(CONCAT(vk, CONCAT(function, suffix))))) \
     return NULL;

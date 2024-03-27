@@ -1352,6 +1352,17 @@ public:
     return NULL;
   }
 
+  // VK_KHR_maintenance5 helpers
+  static VkPipelineCreateFlags2KHR GetPipelineCreateFlags(const VkGraphicsPipelineCreateInfo *info);
+  static VkPipelineCreateFlags2KHR GetPipelineCreateFlags(const VkComputePipelineCreateInfo *info);
+  static VkBufferUsageFlags2KHR GetBufferUsageFlags(const VkBufferCreateInfo *info);
+
+  static void SetPipelineCreateFlags(VkGraphicsPipelineCreateInfo *info,
+                                     VkPipelineCreateFlags2KHR flags);
+  static void SetPipelineCreateFlags(VkComputePipelineCreateInfo *info,
+                                     VkPipelineCreateFlags2KHR flags);
+  static void SetBufferUsageFlags(VkBufferCreateInfo *info, VkBufferUsageFlags2KHR flags);
+
   // Device initialization
 
   IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateInstance, const VkInstanceCreateInfo *pCreateInfo,
@@ -2868,4 +2879,18 @@ public:
       VkDevice device, uint32_t accelerationStructureCount,
       const VkAccelerationStructureKHR *pAccelerationStructures, VkQueryType queryType,
       size_t dataSize, void *pData, size_t stride);
+
+  // VK_KHR_maintenance5
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindIndexBuffer2KHR, VkCommandBuffer commandBuffer,
+                                VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size,
+                                VkIndexType indexType);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkGetDeviceImageSubresourceLayoutKHR, VkDevice device,
+                                const VkDeviceImageSubresourceInfoKHR *pInfo,
+                                VkSubresourceLayout2KHR *pLayout);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkGetImageSubresourceLayout2KHR, VkDevice device,
+                                VkImage image, const VkImageSubresource2KHR *pSubresource,
+                                VkSubresourceLayout2KHR *pLayout);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkGetRenderingAreaGranularityKHR, VkDevice device,
+                                const VkRenderingAreaInfoKHR *pRenderingAreaInfo,
+                                VkExtent2D *pGranularity);
 };

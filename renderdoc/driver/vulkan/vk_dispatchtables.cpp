@@ -90,15 +90,15 @@ void InitInstanceExtensionTables(VkInstance instance, InstanceDeviceInfo *info)
   }
 
 #undef HookInitPromotedExtension
-#define HookInitPromotedExtension(cond, func, suffix) \
-  if(cond)                                            \
-  {                                                   \
-    InstanceGPA(func);                                \
-    InstanceGPA(CONCAT(func, suffix));                \
-    if(table->func == NULL)                           \
-      table->func = table->CONCAT(func, suffix);      \
-    if(table->CONCAT(func, suffix) == NULL)           \
-      table->CONCAT(func, suffix) = table->func;      \
+#define HookInitPromotedExtension(cond, version, func, suffix) \
+  if(cond)                                                     \
+  {                                                            \
+    InstanceGPA(func);                                         \
+    InstanceGPA(CONCAT(func, suffix));                         \
+    if(table->func == NULL)                                    \
+      table->func = table->CONCAT(func, suffix);               \
+    if(table->CONCAT(func, suffix) == NULL)                    \
+      table->CONCAT(func, suffix) = table->func;               \
   }
 
 #undef HookInitExtensionEXTtoKHR
@@ -140,15 +140,15 @@ void InitDeviceExtensionTables(VkDevice device, InstanceDeviceInfo *info)
   }
 
 #undef HookInitPromotedExtension
-#define HookInitPromotedExtension(cond, func, suffix) \
-  if(cond)                                            \
-  {                                                   \
-    DeviceGPA(func);                                  \
-    DeviceGPA(CONCAT(func, suffix));                  \
-    if(table->func == NULL)                           \
-      table->func = table->CONCAT(func, suffix);      \
-    if(table->CONCAT(func, suffix) == NULL)           \
-      table->CONCAT(func, suffix) = table->func;      \
+#define HookInitPromotedExtension(cond, version, func, suffix) \
+  if(cond)                                                     \
+  {                                                            \
+    DeviceGPA(func);                                           \
+    DeviceGPA(CONCAT(func, suffix));                           \
+    if(table->func == NULL)                                    \
+      table->func = table->CONCAT(func, suffix);               \
+    if(table->CONCAT(func, suffix) == NULL)                    \
+      table->CONCAT(func, suffix) = table->func;               \
   }
 
 #undef HookInitExtensionEXTtoKHR
