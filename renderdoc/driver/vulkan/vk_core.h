@@ -26,6 +26,7 @@
 
 #include "common/timing.h"
 #include "serialise/serialiser.h"
+#include "vk_acceleration_structure.h"
 #include "vk_common.h"
 #include "vk_info.h"
 #include "vk_manager.h"
@@ -53,7 +54,7 @@ struct VkInitParams
   uint64_t GetSerialiseSize();
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0x15;
+  static const uint64_t CurrentVersion = 0x16;
   static bool IsSupportedVersion(uint64_t ver);
 };
 
@@ -382,6 +383,7 @@ private:
   VulkanDebugManager *m_DebugManager = NULL;
   VulkanShaderCache *m_ShaderCache = NULL;
   VulkanTextRenderer *m_TextRenderer = NULL;
+  VulkanAccelerationStructureManager *m_ASManager = NULL;
 
   Threading::RWLock m_CapTransitionLock;
 
@@ -478,6 +480,7 @@ private:
   bool m_MeshShaders = false;
   bool m_TaskShaders = false;
   bool m_ListRestart = false;
+  bool m_AccelerationStructures = false;
 
   PFN_vkSetDeviceLoaderData m_SetDeviceLoaderData;
 
@@ -632,11 +635,6 @@ private:
   void FreeAllMemory(MemoryScope scope);
   uint64_t CurMemoryUsage(MemoryScope scope);
   void ResetMemoryBlocks(MemoryScope scope);
-  void FreeMemoryAllocation(MemoryAllocation alloc);
-
-  // internal implementation - call one of the functions above
-  MemoryAllocation AllocateMemoryForResource(bool buffer, VkMemoryRequirements mrq,
-                                             MemoryScope scope, MemoryType type);
 
   rdcarray<VkEvent> m_CleanupEvents;
 
@@ -1122,6 +1120,7 @@ public:
   VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
   VulkanDebugManager *GetDebugManager() { return m_DebugManager; }
   VulkanShaderCache *GetShaderCache() { return m_ShaderCache; }
+  VulkanAccelerationStructureManager *GetAccelerationStructureManager() { return m_ASManager; }
   CaptureState GetState() { return m_State; }
   VulkanReplay *GetReplay() { return m_Replay; }
   // replay interface
@@ -1177,8 +1176,12 @@ public:
   uint32_t GetUploadMemoryIndex(uint32_t resourceCompatibleBitmask);
   uint32_t GetGPULocalMemoryIndex(uint32_t resourceCompatibleBitmask);
 
+  // Low-level implementation, always prefer the two below
+  MemoryAllocation AllocateMemoryForResource(bool buffer, VkMemoryRequirements mrq,
+                                             MemoryScope scope, MemoryType type);
   MemoryAllocation AllocateMemoryForResource(VkImage im, MemoryScope scope, MemoryType type);
   MemoryAllocation AllocateMemoryForResource(VkBuffer buf, MemoryScope scope, MemoryType type);
+  void FreeMemoryAllocation(MemoryAllocation alloc);
 
   void ChooseMemoryIndices();
 
@@ -1277,6 +1280,7 @@ public:
   bool TaskShaders() const { return m_TaskShaders; }
   bool MeshShaders() const { return m_MeshShaders; }
   bool ListRestart() const { return m_ListRestart; }
+  bool AccelerationStructures() const { return m_AccelerationStructures; }
   VulkanRenderState &GetRenderState() { return m_RenderState; }
   void SetActionCB(VulkanActionCallback *cb) { m_ActionCallback = cb; }
   void SetSubmitChain(void *submitChain) { m_SubmitChain = submitChain; }
@@ -2827,14 +2831,6 @@ public:
       void, vkCmdBuildAccelerationStructuresKHR, VkCommandBuffer commandBuffer, uint32_t infoCount,
       const VkAccelerationStructureBuildGeometryInfoKHR *pInfos,
       const VkAccelerationStructureBuildRangeInfoKHR *const *ppBuildRangeInfos);
-  VkResult vkCopyAccelerationStructureKHR(VkDevice device, VkDeferredOperationKHR deferredOperation,
-                                          const VkCopyAccelerationStructureInfoKHR *pInfo);
-  VkResult vkCopyAccelerationStructureToMemoryKHR(
-      VkDevice device, VkDeferredOperationKHR deferredOperation,
-      const VkCopyAccelerationStructureToMemoryInfoKHR *pInfo);
-  VkResult vkCopyMemoryToAccelerationStructureKHR(
-      VkDevice device, VkDeferredOperationKHR deferredOperation,
-      const VkCopyMemoryToAccelerationStructureInfoKHR *pInfo);
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyAccelerationStructureKHR,
                                 VkCommandBuffer commandBuffer,
                                 const VkCopyAccelerationStructureInfoKHR *pInfo);
@@ -2848,6 +2844,14 @@ public:
       VkCommandBuffer commandBuffer, uint32_t accelerationStructureCount,
       const VkAccelerationStructureKHR *pAccelerationStructures, VkQueryType queryType,
       VkQueryPool queryPool, uint32_t firstQuery);
+  VkResult vkCopyAccelerationStructureKHR(VkDevice device, VkDeferredOperationKHR deferredOperation,
+                                          const VkCopyAccelerationStructureInfoKHR *pInfo);
+  VkResult vkCopyAccelerationStructureToMemoryKHR(
+      VkDevice device, VkDeferredOperationKHR deferredOperation,
+      const VkCopyAccelerationStructureToMemoryInfoKHR *pInfo);
+  VkResult vkCopyMemoryToAccelerationStructureKHR(
+      VkDevice device, VkDeferredOperationKHR deferredOperation,
+      const VkCopyMemoryToAccelerationStructureInfoKHR *pInfo);
   IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateAccelerationStructureKHR, VkDevice device,
                                 const VkAccelerationStructureCreateInfoKHR *pCreateInfo,
                                 const VkAllocationCallbacks *,

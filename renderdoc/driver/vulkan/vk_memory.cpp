@@ -319,9 +319,16 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
         break;
     }
 
+    // if ray tracing acceleration structures are in use, then allocate memory with buffer device
+    // address support enabled
+    VkMemoryAllocateFlagsInfo flagsInfo = {
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
+        NULL,
+        VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT,
+    };
     VkMemoryAllocateInfo info = {
         VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-        NULL,
+        AccelerationStructures() ? &flagsInfo : NULL,
         allocSize * 1024 * 1024,
         memoryTypeIndex,
     };
