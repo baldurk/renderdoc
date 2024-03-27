@@ -1846,10 +1846,6 @@ void WrappedID3D11Device::FlushPendingDead()
 {
   SCOPED_LOCK(m_D3DLock);
 
-  // to be safe, don't destroy anything while active capturing
-  if(IsActiveCapturing(m_State))
-    return;
-
   D3D11ResourceManager *rm = GetResourceManager();
 
   int pass = 0;
