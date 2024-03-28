@@ -403,7 +403,7 @@ void main()
     glGetInternalformativ(test.target, test.fmt.internalFormat, GL_NUM_SAMPLE_COUNTS, 1, &numSamples);
 
     GLint samples[8];
-    glGetInternalformativ(test.target, test.fmt.internalFormat, GL_SAMPLES, 1, samples);
+    glGetInternalformativ(test.target, test.fmt.internalFormat, GL_SAMPLES, numSamples, samples);
 
     Vec4i dimensions(texWidth, texHeight, texDepth);
 
