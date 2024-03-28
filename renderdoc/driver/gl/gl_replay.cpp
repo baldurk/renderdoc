@@ -2840,7 +2840,7 @@ void GLReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, Shad
   }
   else
   {
-    if(cblock.fixedBindSetOrSpace == SpecializationConstantBindSet)
+    if(cblock.compileConstants)
     {
       rdcarray<SpecConstant> specconsts;
 

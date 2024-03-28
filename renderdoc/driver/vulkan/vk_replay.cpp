@@ -982,8 +982,7 @@ void VulkanReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len,
       {
         for(size_t cb = 0; cb < p.shaders[i].refl->constantBlocks.size(); cb++)
         {
-          if(p.shaders[i].refl->constantBlocks[cb].fixedBindSetOrSpace ==
-             SpecializationConstantBindSet)
+          if(p.shaders[i].refl->constantBlocks[cb].compileConstants)
           {
             for(const ShaderConstant &sc : p.shaders[i].refl->constantBlocks[cb].variables)
             {
@@ -1220,8 +1219,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       {
         for(size_t cb = 0; cb < p.shaders[i].refl->constantBlocks.size(); cb++)
         {
-          if(p.shaders[i].refl->constantBlocks[cb].fixedBindSetOrSpace ==
-             SpecializationConstantBindSet)
+          if(p.shaders[i].refl->constantBlocks[cb].compileConstants)
           {
             for(const ShaderConstant &sc : p.shaders[i].refl->constantBlocks[cb].variables)
             {
@@ -1352,8 +1350,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       {
         for(size_t cb = 0; cb < p.shaders[i].refl->constantBlocks.size(); cb++)
         {
-          if(p.shaders[i].refl->constantBlocks[cb].fixedBindSetOrSpace ==
-             SpecializationConstantBindSet)
+          if(p.shaders[i].refl->constantBlocks[cb].compileConstants)
           {
             for(const ShaderConstant &sc : p.shaders[i].refl->constantBlocks[cb].variables)
             {
@@ -2540,19 +2537,11 @@ rdcarray<DescriptorAccess> VulkanReplay::GetDescriptorAccess(uint32_t eventId)
   {
     uint32_t bindset = (uint32_t)access.byteSize;
     access.byteSize = 1;
-    if(bindset == PushConstantBindSet)
+    if(access.descriptorStore == m_pDriver->m_CreationInfo.pushConstantDescriptorStorage)
     {
-      // push constants are stored as a virtual descriptor in the command buffer which references
-      // itself for storage
       access.descriptorStore = m_pDriver->GetPushConstantCommandBuffer();
     }
-    else if(bindset == SpecializationConstantBindSet)
-    {
-      // push constants are stored as a virtual descriptor in the pipeline, the same way
-      access.descriptorStore = rm->GetOriginalID(
-          access.stage == ShaderStage::Compute ? state.compute.pipeline : state.graphics.pipeline);
-    }
-    else
+    else if(access.descriptorStore == ResourceId())
     {
       const rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descSets =
           access.stage == ShaderStage::Compute ? state.compute.descSets : state.graphics.descSets;
@@ -2760,7 +2749,7 @@ void VulkanReplay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, 
   else
   {
     // specialised path to display specialization constants
-    if(c.fixedBindSetOrSpace == SpecializationConstantBindSet)
+    if(c.compileConstants)
     {
       auto pipeIt = m_pDriver->m_CreationInfo.m_Pipeline.find(pipeline);
 

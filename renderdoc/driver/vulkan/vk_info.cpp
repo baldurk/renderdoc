@@ -820,6 +820,7 @@ bool CreateDescriptorWritesForSlotData(WrappedVulkan *vk, rdcarray<VkWriteDescri
 }
 
 void VulkanCreationInfo::Pipeline::Shader::ProcessStaticDescriptorAccess(
+    ResourceId pushStorage, ResourceId specStorage,
     rdcarray<DescriptorAccess> &staticDescriptorAccess,
     rdcarray<const DescSetLayout *> setLayoutInfos) const
 {
@@ -844,30 +845,39 @@ void VulkanCreationInfo::Pipeline::Shader::ProcessStaticDescriptorAccess(
     if(bind.bindArraySize > 1)
       continue;
 
-    // VkShaderStageFlagBits and ShaderStageMask are identical bit-for-bit.
-    // this might be deliberate if the binding is never actually used dynamically, only
-    // statically used bindings must be declared
-    if((setLayoutInfos[bind.fixedBindSetOrSpace]->bindings[bind.fixedBindNumber].stageFlags &
-        (VkShaderStageFlags)MaskForStage(refl->stage)) == 0)
-      continue;
-
     access.type = DescriptorType::ConstantBuffer;
     access.index = i;
 
-    if(bind.fixedBindSetOrSpace == PushConstantBindSet)
+    if(!bind.bufferBacked)
     {
-      access.byteSize = bind.fixedBindSetOrSpace;
-      access.byteOffset = 0;
-      staticDescriptorAccess.push_back(access);
-    }
-    else if(bind.fixedBindSetOrSpace == SpecializationConstantBindSet)
-    {
-      access.byteSize = bind.fixedBindSetOrSpace;
-      access.byteOffset = 0;
-      staticDescriptorAccess.push_back(access);
+      if(bind.compileConstants)
+      {
+        // spec constants
+        access.descriptorStore = specStorage;
+        access.byteSize = 1;
+        access.byteOffset = 0;
+        staticDescriptorAccess.push_back(access);
+      }
+      else
+      {
+        // push constants
+        access.descriptorStore = pushStorage;
+        access.byteSize = 1;
+        access.byteOffset = 0;
+        staticDescriptorAccess.push_back(access);
+      }
     }
     else
     {
+      access.descriptorStore = ResourceId();
+
+      // VkShaderStageFlagBits and ShaderStageMask are identical bit-for-bit.
+      // this might be deliberate if the binding is never actually used dynamically, only
+      // statically used bindings must be declared
+      if((setLayoutInfos[bind.fixedBindSetOrSpace]->bindings[bind.fixedBindNumber].stageFlags &
+          (VkShaderStageFlags)MaskForStage(refl->stage)) == 0)
+        continue;
+
       access.byteSize = bind.fixedBindSetOrSpace;
       access.byteOffset =
           setLayoutInfos[bind.fixedBindSetOrSpace]->bindings[bind.fixedBindNumber].elemOffset +
@@ -875,6 +885,8 @@ void VulkanCreationInfo::Pipeline::Shader::ProcessStaticDescriptorAccess(
       staticDescriptorAccess.push_back(access);
     }
   }
+
+  access.descriptorStore = ResourceId();
 
   RDCASSERT(refl->samplers.size() < 0xffff, refl->samplers.size());
   for(uint16_t i = 0; i < refl->samplers.size(); i++)
@@ -1624,7 +1636,9 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
     setLayoutInfos.push_back(&info.m_DescSetLayout[setLayout]);
 
   for(const Shader &shad : shaders)
-    shad.ProcessStaticDescriptorAccess(staticDescriptorAccess, setLayoutInfos);
+    shad.ProcessStaticDescriptorAccess(info.pushConstantDescriptorStorage,
+                                       resourceMan->GetOriginalID(id), staticDescriptorAccess,
+                                       setLayoutInfos);
 }
 
 void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
@@ -1732,7 +1746,9 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
     setLayoutInfos.push_back(&info.m_DescSetLayout[setLayout]);
 
   for(const Shader &shad : shaders)
-    shad.ProcessStaticDescriptorAccess(staticDescriptorAccess, setLayoutInfos);
+    shad.ProcessStaticDescriptorAccess(info.pushConstantDescriptorStorage,
+                                       resourceMan->GetOriginalID(id), staticDescriptorAccess,
+                                       setLayoutInfos);
 }
 
 void VulkanCreationInfo::PipelineLayout::Init(VulkanResourceManager *resourceMan,

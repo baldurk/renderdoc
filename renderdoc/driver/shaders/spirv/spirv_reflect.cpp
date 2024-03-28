@@ -1353,11 +1353,8 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       if(ssbo)
         effectiveStorage = StorageClass::StorageBuffer;
 
-      uint32_t bindset;
-      // set something crazy so this doesn't overlap with a real buffer binding
-      if(pushConst)
-        bindset = PushConstantBindSet;
-      else
+      uint32_t bindset = 0;
+      if(!pushConst)
         bindset = GetDescSet(decorations[global.id].set);
 
       uint32_t bind = GetBinding(decorations[global.id].binding);
@@ -1646,7 +1643,6 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
     specblock.inlineDataBytes = true;
     specblock.compileConstants = true;
     specblock.byteSize = 0;
-    specblock.fixedBindSetOrSpace = SpecializationConstantBindSet;
     // set the binding number to some huge value to try to sort it to the end
     specblock.fixedBindNumber = 0x8000000;
     specblock.bindArraySize = 1;

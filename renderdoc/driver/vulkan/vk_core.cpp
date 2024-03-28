@@ -168,6 +168,8 @@ WrappedVulkan::WrappedVulkan()
     m_FrameCaptureRecord = NULL;
 
     ResourceIDGen::SetReplayResourceIDs();
+
+    m_CreationInfo.pushConstantDescriptorStorage = ResourceIDGen::GetNewUniqueID();
   }
 }
 

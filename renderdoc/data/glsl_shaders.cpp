@@ -306,6 +306,7 @@ void main() {
           INFO("UBO: " << cblock.name.c_str());
 
           CHECK(!cblock.bufferBacked);
+          CHECK(!cblock.compileConstants);
 
           REQUIRE_ARRAY_SIZE(cblock.variables.size(), 2);
           {
@@ -473,10 +474,10 @@ void main() {
           const ConstantBlock &cblock = refl.constantBlocks[0];
           INFO("UBO: " << cblock.name.c_str());
 
-          CHECK(cblock.fixedBindSetOrSpace == SpecializationConstantBindSet);
           CHECK(cblock.fixedBindNumber == 0);
           CHECK(cblock.bindArraySize == 1);
           CHECK(!cblock.bufferBacked);
+          CHECK(cblock.compileConstants);
           CHECK(cblock.byteSize == 0);
 
           REQUIRE_ARRAY_SIZE(cblock.variables.size(), 2);
@@ -548,10 +549,9 @@ void main() {
           const ConstantBlock &cblock = refl.constantBlocks[0];
           INFO("UBO: " << cblock.name.c_str());
 
-          CHECK(cblock.fixedBindSetOrSpace == PushConstantBindSet);
-          CHECK(cblock.fixedBindNumber == 0);
           CHECK(cblock.bindArraySize == 1);
           CHECK(!cblock.bufferBacked);
+          CHECK(!cblock.compileConstants);
           CHECK(cblock.byteSize == 16);
 
           REQUIRE_ARRAY_SIZE(cblock.variables.size(), 3);

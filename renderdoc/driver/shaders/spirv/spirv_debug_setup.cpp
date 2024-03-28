@@ -1083,19 +1083,6 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
                                            decorations[v.id].binding);
         }
 
-        uint32_t bindset = 0, bind = 0;
-        if(v.storage == StorageClass::PushConstant)
-        {
-          bindset = PushConstantBindSet;
-        }
-        else
-        {
-          if(decorations[v.id].flags & Decorations::HasDescriptorSet)
-            bindset = decorations[v.id].set;
-          if(decorations[v.id].flags & Decorations::HasBinding)
-            bind = decorations[v.id].binding;
-        }
-
         SourceVariableMapping sourceVar;
         sourceVar.name = sourceName;
         sourceVar.offset = 0;

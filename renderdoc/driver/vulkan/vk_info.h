@@ -281,7 +281,8 @@ struct VulkanCreationInfo
       // VkPipelineShaderStageRequiredSubgroupSizeCreateInfo
       uint32_t requiredSubgroupSize = 0;
 
-      void ProcessStaticDescriptorAccess(rdcarray<DescriptorAccess> &staticDescriptorAccess,
+      void ProcessStaticDescriptorAccess(ResourceId pushStorage, ResourceId specStorage,
+                                         rdcarray<DescriptorAccess> &staticDescriptorAccess,
                                          rdcarray<const DescSetLayout *> setLayoutInfos) const;
     };
     Shader shaders[NumShaderStages];
@@ -744,6 +745,9 @@ struct VulkanCreationInfo
 
   // just contains the queueFamilyIndex (after remapping)
   std::unordered_map<ResourceId, uint32_t> m_Queue;
+
+  // the fake ID of the 'command buffer' descriptor store for push constants
+  ResourceId pushConstantDescriptorStorage;
 
   void erase(ResourceId id)
   {
