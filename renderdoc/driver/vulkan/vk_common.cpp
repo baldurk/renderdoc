@@ -881,9 +881,9 @@ rdcstr HumanDriverName(VkDriverId driverId)
     case VK_DRIVER_ID_NVIDIA_PROPRIETARY: return "NVIDIA Proprietary";
     case VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS: return "Intel Proprietary";
     case VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA: return "Intel Open-source";
-    case VK_DRIVER_ID_IMAGINATION_PROPRIETARY: return "NVIDIA Proprietary";
-    case VK_DRIVER_ID_QUALCOMM_PROPRIETARY: return "NVIDIA Proprietary";
-    case VK_DRIVER_ID_ARM_PROPRIETARY: return "NVIDIA Proprietary";
+    case VK_DRIVER_ID_IMAGINATION_PROPRIETARY: return "Imagination Proprietary";
+    case VK_DRIVER_ID_QUALCOMM_PROPRIETARY: return "Qualcomm Proprietary";
+    case VK_DRIVER_ID_ARM_PROPRIETARY: return "Arm Proprietary";
     case VK_DRIVER_ID_GOOGLE_SWIFTSHADER: return "Swiftshader";
     case VK_DRIVER_ID_GGP_PROPRIETARY: return "GGP Proprietary";
     case VK_DRIVER_ID_BROADCOM_PROPRIETARY: return "Broadcom Proprietary";
