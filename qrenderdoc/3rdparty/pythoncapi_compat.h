@@ -30,14 +30,14 @@ extern "C" {
 #  define _Py_CAST(type, expr) ((type)(expr))
 #endif
 
-// On C++11 and newer, _Py_NULL is defined as nullptr on C++11,
-// otherwise it is defined as NULL.
-#ifndef _Py_NULL
-#  if defined(__cplusplus) && __cplusplus >= 201103
-#    define _Py_NULL nullptr
-#  else
-#    define _Py_NULL NULL
-#  endif
+// Static inline functions should use _Py_NULL rather than using directly NULL
+// to prevent C++ compiler warnings. On C23 and newer and on C++11 and newer,
+// _Py_NULL is defined as nullptr.
+#if (defined (__STDC_VERSION__) && __STDC_VERSION__ > 201710L) \
+        || (defined(__cplusplus) && __cplusplus >= 201103)
+#  define _Py_NULL nullptr
+#else
+#  define _Py_NULL NULL
 #endif
 
 // Cast argument to PyObject* type.
@@ -1107,6 +1107,196 @@ static inline Py_hash_t Py_HashPointer(const void *ptr)
 #endif
 }
 #endif
+
+
+// Python 3.13a4 added a PyTime API.
+// Use the private API added to Python 3.5.
+#if PY_VERSION_HEX < 0x030D00A4 && PY_VERSION_HEX  >= 0x03050000
+typedef _PyTime_t PyTime_t;
+#define PyTime_MIN _PyTime_MIN
+#define PyTime_MAX _PyTime_MAX
+
+static inline double PyTime_AsSecondsDouble(PyTime_t t)
+{ return _PyTime_AsSecondsDouble(t); }
+
+static inline int PyTime_Monotonic(PyTime_t *result)
+{ return _PyTime_GetMonotonicClockWithInfo(result, NULL); }
+
+static inline int PyTime_Time(PyTime_t *result)
+{ return _PyTime_GetSystemClockWithInfo(result, NULL); }
+
+static inline int PyTime_PerfCounter(PyTime_t *result)
+{
+#if PY_VERSION_HEX >= 0x03070000 && !defined(PYPY_VERSION)
+    return _PyTime_GetPerfCounterWithInfo(result, NULL);
+#elif PY_VERSION_HEX >= 0x03070000
+    // Call time.perf_counter_ns() and convert Python int object to PyTime_t.
+    // Cache time.perf_counter_ns() function for best performance.
+    static PyObject *func = NULL;
+    if (func == NULL) {
+        PyObject *mod = PyImport_ImportModule("time");
+        if (mod == NULL) {
+            return -1;
+        }
+
+        func = PyObject_GetAttrString(mod, "perf_counter_ns");
+        Py_DECREF(mod);
+        if (func == NULL) {
+            return -1;
+        }
+    }
+
+    PyObject *res = PyObject_CallNoArgs(func);
+    if (res == NULL) {
+        return -1;
+    }
+    long long value = PyLong_AsLongLong(res);
+    Py_DECREF(res);
+
+    if (value == -1 && PyErr_Occurred()) {
+        return -1;
+    }
+
+    Py_BUILD_ASSERT(sizeof(value) >= sizeof(PyTime_t));
+    *result = (PyTime_t)value;
+    return 0;
+#else
+    // Call time.perf_counter() and convert C double to PyTime_t.
+    // Cache time.perf_counter() function for best performance.
+    static PyObject *func = NULL;
+    if (func == NULL) {
+        PyObject *mod = PyImport_ImportModule("time");
+        if (mod == NULL) {
+            return -1;
+        }
+
+        func = PyObject_GetAttrString(mod, "perf_counter");
+        Py_DECREF(mod);
+        if (func == NULL) {
+            return -1;
+        }
+    }
+
+    PyObject *res = PyObject_CallNoArgs(func);
+    if (res == NULL) {
+        return -1;
+    }
+    double d = PyFloat_AsDouble(res);
+    Py_DECREF(res);
+
+    if (d == -1.0 && PyErr_Occurred()) {
+        return -1;
+    }
+
+    // Avoid floor() to avoid having to link to libm
+    *result = (PyTime_t)(d * 1e9);
+    return 0;
+#endif
+}
+
+#endif
+
+// gh-111389 added hash constants to Python 3.13.0a5. These constants were
+// added first as private macros to Python 3.4.0b1 and PyPy 7.3.9.
+#if (!defined(PyHASH_BITS) \
+     && ((!defined(PYPY_VERSION) && PY_VERSION_HEX >= 0x030400B1) \
+         || (defined(PYPY_VERSION) && PY_VERSION_HEX >= 0x03070000 \
+             && PYPY_VERSION_NUM >= 0x07090000)))
+#  define PyHASH_BITS _PyHASH_BITS
+#  define PyHASH_MODULUS _PyHASH_MODULUS
+#  define PyHASH_INF _PyHASH_INF
+#  define PyHASH_IMAG _PyHASH_IMAG
+#endif
+
+
+// gh-111545 added Py_GetConstant() and Py_GetConstantBorrowed()
+// to Python 3.13.0a6
+#if PY_VERSION_HEX < 0x030D00A6
+
+#define Py_CONSTANT_NONE 0
+#define Py_CONSTANT_FALSE 1
+#define Py_CONSTANT_TRUE 2
+#define Py_CONSTANT_ELLIPSIS 3
+#define Py_CONSTANT_NOT_IMPLEMENTED 4
+#define Py_CONSTANT_ZERO 5
+#define Py_CONSTANT_ONE 6
+#define Py_CONSTANT_EMPTY_STR 7
+#define Py_CONSTANT_EMPTY_BYTES 8
+#define Py_CONSTANT_EMPTY_TUPLE 9
+
+static inline PyObject* Py_GetConstant(unsigned int constant_id)
+{
+    static PyObject* constants[Py_CONSTANT_EMPTY_TUPLE + 1] = {NULL};
+
+    if (constants[Py_CONSTANT_NONE] == NULL) {
+        constants[Py_CONSTANT_NONE] = Py_None;
+        constants[Py_CONSTANT_FALSE] = Py_False;
+        constants[Py_CONSTANT_TRUE] = Py_True;
+        constants[Py_CONSTANT_ELLIPSIS] = Py_Ellipsis;
+        constants[Py_CONSTANT_NOT_IMPLEMENTED] = Py_NotImplemented;
+
+        constants[Py_CONSTANT_ZERO] = PyLong_FromLong(0);
+        if (constants[Py_CONSTANT_ZERO] == NULL) {
+            goto fatal_error;
+        }
+
+        constants[Py_CONSTANT_ONE] = PyLong_FromLong(1);
+        if (constants[Py_CONSTANT_ONE] == NULL) {
+            goto fatal_error;
+        }
+
+        constants[Py_CONSTANT_EMPTY_STR] = PyUnicode_FromStringAndSize("", 0);
+        if (constants[Py_CONSTANT_EMPTY_STR] == NULL) {
+            goto fatal_error;
+        }
+
+        constants[Py_CONSTANT_EMPTY_BYTES] = PyBytes_FromStringAndSize("", 0);
+        if (constants[Py_CONSTANT_EMPTY_BYTES] == NULL) {
+            goto fatal_error;
+        }
+
+        constants[Py_CONSTANT_EMPTY_TUPLE] = PyTuple_New(0);
+        if (constants[Py_CONSTANT_EMPTY_TUPLE] == NULL) {
+            goto fatal_error;
+        }
+        // goto dance to avoid compiler warnings about Py_FatalError()
+        goto init_done;
+
+fatal_error:
+        // This case should never happen
+        Py_FatalError("Py_GetConstant() failed to get constants");
+    }
+
+init_done:
+    if (constant_id <= Py_CONSTANT_EMPTY_TUPLE) {
+        return Py_NewRef(constants[constant_id]);
+    }
+    else {
+        PyErr_BadInternalCall();
+        return NULL;
+    }
+}
+
+static inline PyObject* Py_GetConstantBorrowed(unsigned int constant_id)
+{
+    PyObject *obj = Py_GetConstant(constant_id);
+    Py_XDECREF(obj);
+    return obj;
+}
+#endif
+
+
+// gh-114329 added PyList_GetItemRef() to Python 3.13.0a4
+#if PY_VERSION_HEX < 0x030D00A4
+static inline PyObject *
+PyList_GetItemRef(PyObject *op, Py_ssize_t index)
+{
+    PyObject *item = PyList_GetItem(op, index);
+    Py_XINCREF(item);
+    return item;
+}
+#endif
+
 
 #ifdef __cplusplus
 }
