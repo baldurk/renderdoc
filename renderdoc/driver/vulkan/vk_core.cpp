@@ -147,6 +147,7 @@ WrappedVulkan::WrappedVulkan()
   m_SetDeviceLoaderData = NULL;
 
   m_ResourceManager = new VulkanResourceManager(m_State, this);
+  m_ASManager = new VulkanAccelerationStructureManager(this);
 
   m_Instance = VK_NULL_HANDLE;
   m_PhysicalDevice = VK_NULL_HANDLE;
@@ -190,6 +191,8 @@ WrappedVulkan::~WrappedVulkan()
   // In a well-behaved application, this should be a no-op.
   m_ResourceManager->ClearWithoutReleasing();
   SAFE_DELETE(m_ResourceManager);
+
+  SAFE_DELETE(m_ASManager);
 
   SAFE_DELETE(m_FrameReader);
 
@@ -1948,6 +1951,35 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
         return true;
       }
 
+      if(!strcmp(ext.extensionName, VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME))
+      {
+        // require GPDP2
+        if(instDevInfo->ext_KHR_get_physical_device_properties2)
+        {
+          VkPhysicalDeviceAccelerationStructureFeaturesKHR accStruct = {
+              VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
+          VkPhysicalDeviceFeatures2 base = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+          base.pNext = &accStruct;
+          ObjDisp(physDev)->GetPhysicalDeviceFeatures2(Unwrap(physDev), &base);
+
+          if(accStruct.accelerationStructureCaptureReplay)
+          {
+            // supported, don't remove
+            return false;
+          }
+          else if(!filterWarned)
+          {
+            RDCWARN(
+                "VkPhysicalDeviceAccelerationStructureFeaturesKHR."
+                "accelerationStructureCaptureReplay "
+                "is false, can't support capture of VK_KHR_acceleration_structure");
+          }
+        }
+
+        // if it wasn't supported, remove the extension
+        return true;
+      }
+
       // not an extension with conditional support, don't remove
       return false;
     });
@@ -2191,7 +2223,7 @@ void WrappedVulkan::StartFrameCapture(DeviceOwnedWindow devWnd)
     // reference the buffer
     GetResourceManager()->MarkResourceFrameReferenced((*it)->GetResourceID(), eFrameRef_Read);
     // and its backing memory
-    GetResourceManager()->MarkMemoryFrameReferenced((*it)->baseResource, (*it)->memOffset,
+    GetResourceManager()->MarkMemoryFrameReferenced((*it)->baseResourceMem, (*it)->memOffset,
                                                     (*it)->memSize, eFrameRef_ReadBeforeWrite);
   }
 }
@@ -2464,10 +2496,13 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
       SubmitAndFlushExtQueue(swapQueueIndex);
     }
 
+    const VkDeviceSize alignedSize =
+        AlignUp(readbackMem.size, GetDeviceProps().limits.nonCoherentAtomSize);
+
     // map memory and readback
     byte *pData = NULL;
-    vkr = vt->MapMemory(Unwrap(device), Unwrap(readbackMem.mem), readbackMem.offs, readbackMem.size,
-                        0, (void **)&pData);
+    vkr = vt->MapMemory(Unwrap(device), Unwrap(readbackMem.mem), readbackMem.offs, alignedSize, 0,
+                        (void **)&pData);
     CheckVkResult(vkr);
     RDCASSERT(pData != NULL);
 
@@ -2480,7 +2515,7 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
         NULL,
         Unwrap(readbackMem.mem),
         readbackMem.offs,
-        readbackMem.size,
+        alignedSize,
     };
 
     vkr = vt->InvalidateMappedMemoryRanges(Unwrap(device), 1, &range);
@@ -5188,6 +5223,7 @@ void WrappedVulkan::AddUsage(VulkanActionTreeNode &actionNode, rdcarray<DebugMes
             case DescriptorSlotType::UniformBufferDynamic:
             case DescriptorSlotType::StorageBuffer:
             case DescriptorSlotType::StorageBufferDynamic:
+            case DescriptorSlotType::AccelerationStructure:
               if(slot.resource != ResourceId())
                 id = slot.resource;
               break;

@@ -3272,6 +3272,37 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
           RDCWARN("meshShaderQueries = false, mesh shader performance counters unavailable");
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceAccelerationStructureFeaturesKHR,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR);
+      {
+        CHECK_PHYS_EXT_FEATURE(accelerationStructure)
+        CHECK_PHYS_EXT_FEATURE(accelerationStructureCaptureReplay)
+        CHECK_PHYS_EXT_FEATURE(accelerationStructureIndirectBuild)
+        CHECK_PHYS_EXT_FEATURE(descriptorBindingAccelerationStructureUpdateAfterBind)
+
+        if(ext->accelerationStructure && !avail.accelerationStructureCaptureReplay)
+        {
+          SET_ERROR_RESULT(
+              m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+              "Capture requires accelerationStructure support, which is available, but "
+              "accelerationStructureCaptureReplay support is not available which is required to "
+              "replay\n"
+              "\n%s",
+              GetPhysDeviceCompatString(false, false).c_str());
+          return false;
+        }
+
+        m_AccelerationStructures = ext->accelerationStructure != VK_FALSE;
+        if(m_AccelerationStructures)
+        {
+          RDCLOG(
+              "Ray tracing acceleration structures requested, allocating all device memory with "
+              "VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT");
+          ext->accelerationStructureCaptureReplay = VK_TRUE;
+        }
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)
@@ -4316,6 +4347,18 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
 
   if(separateDepthStencilFeatures)
     m_SeparateDepthStencil |= (separateDepthStencilFeatures->separateDepthStencilLayouts != VK_FALSE);
+
+  // we need to enable acceleration structure capture/replay. We verified that this is OK before
+  // whitelisting the extension
+
+  VkPhysicalDeviceAccelerationStructureFeaturesKHR *accFeatures =
+      (VkPhysicalDeviceAccelerationStructureFeaturesKHR *)FindNextStruct(
+          &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR);
+  if(accFeatures && accFeatures->accelerationStructure)
+  {
+    accFeatures->accelerationStructureCaptureReplay = VK_TRUE;
+    m_AccelerationStructures = true;
+  }
 
   VkResult ret;
   SERIALISE_TIME_CALL(ret = createFunc(Unwrap(physicalDevice), &createInfo, NULL, pDevice));

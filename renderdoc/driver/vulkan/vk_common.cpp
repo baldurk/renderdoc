@@ -362,6 +362,10 @@ bool VkInitParams::IsSupportedVersion(uint64_t ver)
   if(ver == CurrentVersion)
     return true;
 
+  // 0x15 -> 0x16 - added support for acceleration structures
+  if(ver == 0x15)
+    return true;
+
   // 0x14 -> 0x15 - added support for mutable descriptors
   if(ver == 0x14)
     return true;
@@ -1154,6 +1158,19 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps,
       qualcommLeakingUBOOffsets = true;
     }
   }
+
+  if(driverProps.driverID == VK_DRIVER_ID_ARM_PROPRIETARY)
+  {
+    if(Major() >= 36 && Major() < 43)
+    {
+      if(active)
+        RDCLOG(
+            "Using host acceleration structure deserialisation commands on Mali - update to a "
+            "newer "
+            "driver for fix");
+      maliBrokenASDeviceSerialisation = true;
+    }
+  }
 }
 
 FrameRefType GetRefType(DescriptorSlotType descType)
@@ -1168,7 +1185,8 @@ FrameRefType GetRefType(DescriptorSlotType descType)
     case DescriptorSlotType::UniformBuffer:
     case DescriptorSlotType::UniformBufferDynamic:
     case DescriptorSlotType::InputAttachment:
-    case DescriptorSlotType::InlineBlock: return eFrameRef_Read;
+    case DescriptorSlotType::InlineBlock:
+    case DescriptorSlotType::AccelerationStructure: return eFrameRef_Read;
     case DescriptorSlotType::StorageImage:
     case DescriptorSlotType::StorageTexelBuffer:
     case DescriptorSlotType::StorageBuffer:
@@ -1205,6 +1223,13 @@ void DescriptorSetSlot::SetTexelBuffer(VkDescriptorType writeType, ResourceId id
 {
   type = convert(writeType);
   resource = id;
+}
+
+void DescriptorSetSlot::SetAccelerationStructure(VkDescriptorType writeType,
+                                                 VkAccelerationStructureKHR accelerationStructure)
+{
+  type = convert(writeType);
+  resource = GetResID(accelerationStructure);
 }
 
 void AddBindFrameRef(DescriptorBindRefs &refs, ResourceId id, FrameRefType ref)
@@ -1263,7 +1288,7 @@ void DescriptorSetSlot::AccumulateBindRefs(DescriptorBindRefs &refs, VulkanResou
   RDCCOMPILE_ASSERT(offsetof(DescriptorSetSlot, offset) == 8,
                     "DescriptorSetSlot first uint64_t bitpacking isn't working as expected");
 
-  VkResourceRecord *bufView = NULL, *imgView = NULL, *buffer = NULL;
+  VkResourceRecord *bufView = NULL, *imgView = NULL, *buffer = NULL, *accStruct = NULL;
 
   switch(type)
   {
@@ -1277,6 +1302,9 @@ void DescriptorSetSlot::AccumulateBindRefs(DescriptorBindRefs &refs, VulkanResou
     case DescriptorSlotType::SampledImage:
     case DescriptorSlotType::StorageImage:
     case DescriptorSlotType::InputAttachment: imgView = rm->GetResourceRecord(resource); break;
+    case DescriptorSlotType::AccelerationStructure:
+      accStruct = rm->GetResourceRecord(resource);
+      break;
     default: break;
   }
 
@@ -1311,6 +1339,10 @@ void DescriptorSetSlot::AccumulateBindRefs(DescriptorBindRefs &refs, VulkanResou
       AddMemFrameRef(refs, buffer->baseResource, buffer->memOffset, buffer->memSize, ref);
     if(buffer->storable)
       refs.storableRefs.insert(buffer);
+  }
+  if(accStruct)
+  {
+    AddBindFrameRef(refs, resource, eFrameRef_Read);
   }
 }
 

@@ -1719,10 +1719,17 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
   // effectively free as a usage bit for all sensible implementations so we just add it here.
   adjusted_info.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
-  // If we're using this buffer for device addresses, ensure we force on capture replay bit.
-  // We ensured the physical device can support this feature before whitelisting the extension.
-  if(IsCaptureMode(m_State) && (adjusted_info.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT))
-    adjusted_info.flags |= VK_BUFFER_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT;
+  if(IsCaptureMode(m_State))
+  {
+    // If we're using this buffer for AS storage we need to enable BDA
+    if(adjusted_info.usage & VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR)
+      adjusted_info.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+
+    // If we're using this buffer for device addresses, ensure we force on capture replay bit.
+    // We ensured the physical device can support this feature before whitelisting the extension.
+    if(adjusted_info.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
+      adjusted_info.flags |= VK_BUFFER_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT;
+  }
 
   byte *tempMem = GetTempMemory(GetNextPatchSize(adjusted_info.pNext));
 
@@ -3139,7 +3146,7 @@ bool WrappedVulkan::Serialise_vkCreateAccelerationStructureKHR(
 
     VkAccelerationStructureKHR acc = VK_NULL_HANDLE;
     VkResult ret =
-        ObjDisp(device)->CreateAccelerationStructureKHR(Unwrap(device), &CreateInfo, NULL, &acc);
+        ObjDisp(device)->CreateAccelerationStructureKHR(Unwrap(device), &unwrappedInfo, NULL, &acc);
 
     if(ret != VK_SUCCESS)
     {
@@ -3186,6 +3193,13 @@ VkResult WrappedVulkan::vkCreateAccelerationStructureKHR(
     const VkAllocationCallbacks *, VkAccelerationStructureKHR *pAccelerationStructure)
 {
   VkAccelerationStructureCreateInfoKHR unwrappedInfo = *pCreateInfo;
+
+  // Ensure we force on capture replay bit. We ensured the physical device can support this feature
+  // before whitelisting the extension.
+  if(IsCaptureMode(m_State))
+    unwrappedInfo.createFlags |=
+        VK_ACCELERATION_STRUCTURE_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_KHR;
+
   unwrappedInfo.buffer = Unwrap(unwrappedInfo.buffer);
   VkResult ret;
   SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateAccelerationStructureKHR(
@@ -3197,13 +3211,27 @@ VkResult WrappedVulkan::vkCreateAccelerationStructureKHR(
 
     if(IsCaptureMode(m_State))
     {
+      // We're capturing, so get the device address of the created AS
+      VkAccelerationStructureCreateInfoKHR serialisedCreateInfo = *pCreateInfo;
+      serialisedCreateInfo.createFlags |=
+          VK_ACCELERATION_STRUCTURE_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_KHR;
+
+      const VkAccelerationStructureDeviceAddressInfoKHR getInfo = {
+          VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR,
+          NULL,
+          Unwrap(*pAccelerationStructure),
+      };
+      const VkDeviceAddress addr =
+          ObjDisp(device)->GetAccelerationStructureDeviceAddressKHR(Unwrap(device), &getInfo);
+      serialisedCreateInfo.deviceAddress = addr;
+
       Chunk *chunk = NULL;
 
       {
         CACHE_THREAD_SERIALISER();
 
         SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCreateAccelerationStructureKHR);
-        Serialise_vkCreateAccelerationStructureKHR(ser, device, pCreateInfo, NULL,
+        Serialise_vkCreateAccelerationStructureKHR(ser, device, &serialisedCreateInfo, NULL,
                                                    pAccelerationStructure);
 
         chunk = scope.Get();
@@ -3223,6 +3251,16 @@ VkResult WrappedVulkan::vkCreateAccelerationStructureKHR(
       record->storable = bufferRecord->storable;
       record->memOffset = bufferRecord->memOffset + pCreateInfo->offset;
       record->memSize = pCreateInfo->size;
+
+      GetResourceManager()->MarkDirtyResource(id);
+      if(pCreateInfo->type == VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR ||
+         pCreateInfo->type == VK_ACCELERATION_STRUCTURE_TYPE_GENERIC_KHR)
+      {
+        // We force reference BLASs as it is not feasible to track at the API level which TLASs
+        // reference them.  We force ref generics too as they could bottom or top level so we
+        // conservatively assume they are bottom
+        AddForcedReference(record);
+      }
     }
     else
     {

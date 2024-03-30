@@ -305,6 +305,9 @@ public:
   // If we do have a pipeline to bind, we should never be perturbing dynamic state in between static
   // pipeline binds.
   bool NVStaticPipelineRebindStates() const { return nvidiaStaticPipelineRebindStates; }
+  // On Mali there are some known issues regarding acceleration structure serialisation to device
+  // memory, for the affected driver versions we switch to the host command variants
+  bool MaliBrokenASDeviceSerialisation() const { return maliBrokenASDeviceSerialisation; }
 private:
   GPUVendor m_Vendor;
 
@@ -320,6 +323,7 @@ private:
   bool qualcommLineWidthCrash = false;
   bool intelBrokenOcclusionQueries = false;
   bool nvidiaStaticPipelineRebindStates = false;
+  bool maliBrokenASDeviceSerialisation = false;
 };
 
 enum
@@ -527,6 +531,7 @@ enum class DescriptorSlotType : EnumBaseType
   StorageBufferDynamic,
   InputAttachment,
   InlineBlock,
+  AccelerationStructure,
   Count,
 };
 
@@ -550,7 +555,9 @@ constexpr VkDescriptorType convert(DescriptorSlotType type)
              ? VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC
          : type == DescriptorSlotType::InputAttachment ? VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
          : type == DescriptorSlotType::InlineBlock     ? VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK
-                                                       : VK_DESCRIPTOR_TYPE_MAX_ENUM;
+         : type == DescriptorSlotType::AccelerationStructure
+             ? VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR
+             : VK_DESCRIPTOR_TYPE_MAX_ENUM;
 }
 
 constexpr DescriptorSlotType convert(VkDescriptorType type)
@@ -682,6 +689,8 @@ struct DescriptorSetSlot
   void SetBuffer(VkDescriptorType writeType, const VkDescriptorBufferInfo &bufInfo);
   void SetImage(VkDescriptorType writeType, const VkDescriptorImageInfo &imInfo, bool useSampler);
   void SetTexelBuffer(VkDescriptorType writeType, ResourceId id);
+  void SetAccelerationStructure(VkDescriptorType writeType,
+                                VkAccelerationStructureKHR accelerationStructure);
 
   // 48-bit truncated VK_WHOLE_SIZE
   static const VkDeviceSize WholeSizeRange = 0xFFFFFFFFFFFF;
@@ -714,8 +723,8 @@ struct DescriptorSetSlot
   // as a different type and the resource ID is partly trampled. Since these are disjoint we know
   // that even if they're stale they're valid IDs.
 
-  // main contents: buffer, image, texel buffer view. NOT the sampler for sampler-only descriptors,
-  // just to avoid confusion
+  // main contents: buffer, image, texel buffer view, or acceleration structure. NOT the sampler for
+  // sampler-only descriptors, just to avoid confusion
   ResourceId resource;
   // sampler for sampler-only descriptors, or sampler for combined image-sampler descriptors
   ResourceId sampler;
@@ -1977,7 +1986,6 @@ DECLARE_DESERIALISE_TYPE(VkWriteDescriptorSetInlineUniformBlock);
 // plain structs with no next chain
 DECLARE_REFLECTION_STRUCT(VkAabbPositionsKHR);
 DECLARE_REFLECTION_STRUCT(VkAccelerationStructureBuildRangeInfoKHR);
-DECLARE_REFLECTION_STRUCT(VkAccelerationStructureGeometryDataKHR);
 DECLARE_REFLECTION_STRUCT(VkAccelerationStructureInstanceKHR);
 DECLARE_REFLECTION_STRUCT(VkAllocationCallbacks);
 DECLARE_REFLECTION_STRUCT(VkAttachmentDescription);

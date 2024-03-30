@@ -7633,6 +7633,16 @@ bool WrappedVulkan::Serialise_vkCmdBuildAccelerationStructuresIndirectKHR(
     for(uint32_t i = 0; i < infoCount; ++i)
       tmpMaxPrimitiveCounts[i] = maxPrimitives[i].data();
 
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+      else
+        return true;
+    }
+
     ObjDisp(commandBuffer)
         ->CmdBuildAccelerationStructuresIndirectKHR(Unwrap(commandBuffer), infoCount,
                                                     unwrappedInfos, pIndirectDeviceAddresses,
@@ -7732,9 +7742,20 @@ bool WrappedVulkan::Serialise_vkCmdBuildAccelerationStructuresKHR(
       unwrappedInfos[i] = *UnwrapStructAndChain(m_State, memory, &pInfos[i]);
 
     // Convert the rangeInfos back to a C-style array-of-arrays
-    rdcarray<const VkAccelerationStructureBuildRangeInfoKHR *> tmpBuildRangeInfos(nullptr, infoCount);
+    rdcarray<const VkAccelerationStructureBuildRangeInfoKHR *> tmpBuildRangeInfos;
+    tmpBuildRangeInfos.resize(infoCount);
     for(uint32_t i = 0; i < infoCount; ++i)
       tmpBuildRangeInfos[i] = rangeInfos[i].data();
+
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+      else
+        return true;
+    }
 
     ObjDisp(commandBuffer)
         ->CmdBuildAccelerationStructuresKHR(Unwrap(commandBuffer), infoCount, unwrappedInfos,
@@ -7790,28 +7811,6 @@ void WrappedVulkan::vkCmdBuildAccelerationStructuresKHR(
                                                         eFrameRef_CompleteWrite);
     }
   }
-}
-
-// CPU-side VK_KHR_acceleration_structure calls are not supported for now
-VkResult WrappedVulkan::vkCopyAccelerationStructureKHR(VkDevice device,
-                                                       VkDeferredOperationKHR deferredOperation,
-                                                       const VkCopyAccelerationStructureInfoKHR *pInfo)
-{
-  return VK_ERROR_UNKNOWN;
-}
-
-VkResult WrappedVulkan::vkCopyAccelerationStructureToMemoryKHR(
-    VkDevice device, VkDeferredOperationKHR deferredOperation,
-    const VkCopyAccelerationStructureToMemoryInfoKHR *pInfo)
-{
-  return VK_ERROR_UNKNOWN;
-}
-
-VkResult WrappedVulkan::vkCopyMemoryToAccelerationStructureKHR(
-    VkDevice device, VkDeferredOperationKHR deferredOperation,
-    const VkCopyMemoryToAccelerationStructureInfoKHR *pInfo)
-{
-  return VK_ERROR_UNKNOWN;
 }
 
 template <typename SerialiserType>
@@ -7961,6 +7960,28 @@ VkResult WrappedVulkan::vkWriteAccelerationStructuresPropertiesKHR(
 
   return ObjDisp(device)->WriteAccelerationStructuresPropertiesKHR(
       Unwrap(device), accelerationStructureCount, unwrappedASes, queryType, dataSize, pData, stride);
+}
+
+// CPU-side VK_KHR_acceleration_structure calls are not supported for now
+VkResult WrappedVulkan::vkCopyAccelerationStructureKHR(VkDevice device,
+                                                       VkDeferredOperationKHR deferredOperation,
+                                                       const VkCopyAccelerationStructureInfoKHR *pInfo)
+{
+  return VK_ERROR_UNKNOWN;
+}
+
+VkResult WrappedVulkan::vkCopyAccelerationStructureToMemoryKHR(
+    VkDevice device, VkDeferredOperationKHR deferredOperation,
+    const VkCopyAccelerationStructureToMemoryInfoKHR *pInfo)
+{
+  return VK_ERROR_UNKNOWN;
+}
+
+VkResult WrappedVulkan::vkCopyMemoryToAccelerationStructureKHR(
+    VkDevice device, VkDeferredOperationKHR deferredOperation,
+    const VkCopyMemoryToAccelerationStructureInfoKHR *pInfo)
+{
+  return VK_ERROR_UNKNOWN;
 }
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateCommandPool, VkDevice device,
