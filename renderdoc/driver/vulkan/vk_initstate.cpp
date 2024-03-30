@@ -571,6 +571,26 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
     return true;
   }
+  else if(type == eResAccelerationStructureKHR)
+  {
+    VulkanAccelerationStructureManager::ASMemory result;
+    VkAccelerationStructureKHR as = ToUnwrappedHandle<VkAccelerationStructureKHR>(res);
+    if(!GetAccelerationStructureManager()->Prepare(as, m_QueueFamilyIndices, result))
+    {
+      SET_ERROR_RESULT(m_LastCaptureError, ResultCode::OutOfMemory,
+                       "Couldn't allocate readback memory");
+      m_CaptureFailure = true;
+      return false;
+    }
+
+    VkInitialContents ic = VkInitialContents(type, result.alloc);
+    ic.isTLAS = result.isTLAS;
+
+    GetResourceManager()->SetInitialContents(id, ic);
+    m_PreparedNotSerialisedInitStates.push_back(id);
+
+    return true;
+  }
   else
   {
     RDCERR("Unhandled resource type %d", type);
@@ -608,7 +628,8 @@ uint64_t WrappedVulkan::GetSize_InitialState(ResourceId id, const VkInitialConte
     // buffers only have initial states when they're sparse
     return ret;
   }
-  else if(initial.type == eResImage || initial.type == eResDeviceMemory)
+  else if(initial.type == eResImage || initial.type == eResDeviceMemory ||
+          initial.type == eResAccelerationStructureKHR)
   {
     // the size primarily comes from the buffer, the size of which we conveniently have stored.
     return ret + uint64_t(128 + initial.mem.size + WriteSerialiser::GetChunkAlignment());
@@ -1637,6 +1658,10 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
       }
     }
   }
+  else if(type == eResAccelerationStructureKHR)
+  {
+    ret = GetAccelerationStructureManager()->Serialise(ser, id, initial, m_State);
+  }
   else
   {
     RDCERR("Unhandled resource type %s", ToStr(type).c_str());
@@ -2311,6 +2336,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialConten
       SubmitCmds();
       FlushQ();
     }
+  }
+  else if(type == eResAccelerationStructureKHR)
+  {
+    GetAccelerationStructureManager()->Apply(id, initial);
   }
   else
   {

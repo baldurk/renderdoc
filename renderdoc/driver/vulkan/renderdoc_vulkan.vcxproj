@@ -155,6 +155,7 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="vk_resources.cpp" />
+    <ClCompile Include="vk_acceleration_structure.cpp" />
     <ClCompile Include="wrappers\vk_cmd_funcs.cpp" />
     <ClCompile Include="wrappers\vk_dynamic_funcs.cpp" />
     <ClCompile Include="wrappers\vk_descriptor_funcs.cpp" />
@@ -186,6 +187,7 @@
     <ClInclude Include="official\vulkan_xlib.h" />
     <ClInclude Include="official\vulkan_xlib_xrandr.h" />
     <ClInclude Include="precompiled.h" />
+    <ClInclude Include="vk_acceleration_structure.h" />
     <ClInclude Include="vk_common.h" />
     <ClInclude Include="vk_core.h" />
     <ClInclude Include="vk_debug.h" />

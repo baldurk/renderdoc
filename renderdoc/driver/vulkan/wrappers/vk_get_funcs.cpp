@@ -852,6 +852,17 @@ void WrappedVulkan::vkGetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice
   }
 
 #undef DISABLE_EDS3_FEATURE
+
+  // we don't want to report support for acceleration structure host commands
+  VkPhysicalDeviceAccelerationStructureFeaturesKHR *accStruct =
+      (VkPhysicalDeviceAccelerationStructureFeaturesKHR *)FindNextStruct(
+          pFeatures, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR);
+
+  if(accStruct && accStruct->accelerationStructureHostCommands)
+  {
+    RDCWARN("Disabling support for acceleration structure host commands");
+    accStruct->accelerationStructureHostCommands = VK_FALSE;
+  }
 }
 
 void WrappedVulkan::vkGetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
