@@ -325,14 +325,14 @@ FloatVector DecodeFormattedComponents(const ResourceFormat &fmt, const byte *dat
   DecodePixelData(fmt, data, val, success);
 
   FloatVector ret;
-  if(fmt.compType == CompType::UInt || fmt.compType == CompType::UScaled)
+  if(fmt.compType == CompType::UInt)
   {
     ret.x = (float)val.uintValue[0];
     ret.y = (float)val.uintValue[1];
     ret.z = (float)val.uintValue[2];
     ret.w = (float)val.uintValue[3];
   }
-  else if(fmt.compType == CompType::SInt || fmt.compType == CompType::SScaled)
+  else if(fmt.compType == CompType::SInt)
   {
     ret.x = (float)val.intValue[0];
     ret.y = (float)val.intValue[1];
