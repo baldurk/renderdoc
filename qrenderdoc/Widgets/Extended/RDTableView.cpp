@@ -158,67 +158,75 @@ void RDTableView::keyPressEvent(QKeyEvent *e)
 {
   if(e == QKeySequence::Copy)
   {
-    QModelIndexList sel = selectionModel()->selectedIndexes();
-
-    if(!sel.isEmpty())
-    {
-      int stackWidths[16];
-      int *heapWidths = NULL;
-
-      int colCount = model()->columnCount();
-
-      if(colCount >= 16)
-        heapWidths = new int[colCount];
-
-      int *widths = heapWidths ? heapWidths : stackWidths;
-
-      for(int i = 0; i < colCount; i++)
-        widths[i] = 0;
-
-      int top = sel[0].row(), bottom = sel[0].row();
-      int left = sel[0].column(), right = sel[0].column();
-
-      // align the copied data so that each column is the same width
-      for(QModelIndex idx : sel)
-      {
-        QString text = model()->data(idx).toString();
-        widths[idx.column()] = qMax(widths[idx.column()], text.count());
-
-        top = qMin(top, idx.row());
-        bottom = qMax(bottom, idx.row());
-        left = qMin(left, idx.column());
-        right = qMax(right, idx.column());
-      }
-
-      // only align up to 50 characters so one really long item doesn't mess up the whole thing
-      for(int i = 0; i < colCount; i++)
-        widths[i] = qMin(50, widths[i]);
-
-      QString clipData;
-      for(int row = top; row <= bottom; row++)
-      {
-        for(int col = left; col <= right; col++)
-        {
-          QString format = col == left ? lit("%1") : lit(" %1");
-          QString text = model()->data(model()->index(row, col)).toString();
-
-          clipData += format.arg(text, -widths[col]);
-        }
-
-        clipData += lit("\n");
-      }
-
-      QClipboard *clipboard = QApplication::clipboard();
-      clipboard->setText(clipData.trimmed());
-
-      delete[] heapWidths;
-    }
+    copySelectedIndices();
 
     e->accept();
     return;
   }
 
   return QTableView::keyPressEvent(e);
+}
+
+void RDTableView::copyIndices(const QModelIndexList &sel)
+{
+  if(!sel.isEmpty())
+  {
+    int stackWidths[16];
+    int *heapWidths = NULL;
+
+    int colCount = model()->columnCount();
+
+    if(colCount >= 16)
+      heapWidths = new int[colCount];
+
+    int *widths = heapWidths ? heapWidths : stackWidths;
+
+    for(int i = 0; i < colCount; i++)
+      widths[i] = 0;
+
+    int top = sel[0].row(), bottom = sel[0].row();
+    int left = sel[0].column(), right = sel[0].column();
+
+    // align the copied data so that each column is the same width
+    for(QModelIndex idx : sel)
+    {
+      QString text = model()->data(idx).toString();
+      widths[idx.column()] = qMax(widths[idx.column()], text.count());
+
+      top = qMin(top, idx.row());
+      bottom = qMax(bottom, idx.row());
+      left = qMin(left, idx.column());
+      right = qMax(right, idx.column());
+    }
+
+    // only align up to 50 characters so one really long item doesn't mess up the whole thing
+    for(int i = 0; i < colCount; i++)
+      widths[i] = qMin(50, widths[i]);
+
+    QString clipData;
+    for(int row = top; row <= bottom; row++)
+    {
+      for(int col = left; col <= right; col++)
+      {
+        QString format = col == left ? lit("%1") : lit(" %1");
+        QString text = model()->data(model()->index(row, col)).toString();
+
+        clipData += format.arg(text, -widths[col]);
+      }
+
+      clipData += lit("\n");
+    }
+
+    QClipboard *clipboard = QApplication::clipboard();
+    clipboard->setText(clipData.trimmed());
+
+    delete[] heapWidths;
+  }
+}
+
+void RDTableView::copySelectedIndices()
+{
+  copyIndices(selectionModel()->selectedIndexes());
 }
 
 void RDTableView::keyboardSearch(const QString &search)

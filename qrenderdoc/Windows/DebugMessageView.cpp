@@ -26,6 +26,7 @@
 #include <QAction>
 #include <QMenu>
 #include "Code/QRDUtils.h"
+#include "Code/Resources.h"
 #include "ui_DebugMessageView.h"
 
 static const int EIDRole = Qt::UserRole + 1;
@@ -235,6 +236,10 @@ DebugMessageView::DebugMessageView(ICaptureContext &ctx, QWidget *parent)
 
   m_ShowHidden->setCheckable(true);
 
+  QAction *copy = new QAction(tr("&Copy"), this);
+  copy->setIcon(Icons::copy());
+  m_ContextMenu->addAction(copy);
+  m_ContextMenu->addSeparator();
   m_ContextMenu->addAction(m_ShowHidden);
   m_ContextMenu->addSeparator();
   m_ContextMenu->addAction(m_ToggleSource);
@@ -248,6 +253,7 @@ DebugMessageView::DebugMessageView(ICaptureContext &ctx, QWidget *parent)
   QObject::connect(m_ToggleCategory, &QAction::triggered, this, &DebugMessageView::messages_toggled);
   QObject::connect(m_ToggleMessageType, &QAction::triggered, this,
                    &DebugMessageView::messages_toggled);
+  QObject::connect(copy, &QAction::triggered, [this]() { ui->messages->copySelectedIndices(); });
 
   RefreshMessageList();
 

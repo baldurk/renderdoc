@@ -45,6 +45,9 @@ public:
   void setColumnWidths(const QList<int> &widths);
   void resizeColumnsToContents();
 
+  void copyIndices(const QModelIndexList &sel);
+  void copySelectedIndices();
+
   void setAllowKeyboardSearches(bool allow) { m_allowKeyboardSearches = allow; }
   bool allowKeyboardSearches() const { return m_allowKeyboardSearches; }
   void keyboardSearch(const QString &search) override;
