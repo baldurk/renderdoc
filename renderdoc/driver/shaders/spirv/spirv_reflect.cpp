@@ -661,13 +661,14 @@ void Reflector::RegisterOp(Iter it)
       if(dbg.inst == ShaderDbg::Source)
       {
         rdcstr name = strings[dbg.arg<Id>(0)];
-        if(name.empty())
-          name = "unnamed_shader";
         rdcstr source = dbg.params.size() > 1 ? strings[dbg.arg<Id>(1)] : rdcstr();
 
         // don't add empty source statements as actual files
         if(!name.empty() || !source.empty())
         {
+          if(name.empty())
+            name = "unnamed_shader";
+
           debugSources[dbg.result] = sources.size();
           sources.push_back({name, source});
         }
