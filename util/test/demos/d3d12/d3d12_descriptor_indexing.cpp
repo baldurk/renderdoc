@@ -59,7 +59,9 @@ void main()
 	bufs[buf_idx][1] = make_tex_ref(1, 9);
 	bufs[buf_idx][2] = make_tex_ref(2, 19);
 	bufs[buf_idx][3] = make_tex_ref(2, 23);
-	bufs[buf_idx][4] = make_tex_ref(100, 100);
+	bufs[buf_idx][4] = make_tex_ref(3, 6);
+	bufs[buf_idx][5] = make_tex_ref(3, 12);
+	bufs[buf_idx][6] = make_tex_ref(100, 100);
 }
 
 )EOSHADER";
@@ -87,6 +89,20 @@ Texture2D<float4> fixedtex : register(t12);
 Texture2D<float4> texArray1[32] : register(t0, space1);
 Texture2D<float4> texArray2[32] : register(t40, space1);
 Texture2D<float4> texArray3[32] : register(t80, space1);
+
+struct alias1
+{
+  float4 Color;
+  float4 ignored;
+  float4 also_ignored;
+};
+
+struct alias2
+{
+  float4 ignored;
+  float4 also_ignored;
+  float4 Color;
+};
 
 float4 main(v2f IN) : SV_Target0
 {
@@ -154,6 +170,20 @@ struct CBuffer
   uint tex_idx;
 };
 
+struct alias1
+{
+  float4 Color;
+  float4 ignored;
+  float4 also_ignored;
+};
+
+struct alias2
+{
+  float4 ignored;
+  float4 also_ignored;
+  float4 Color;
+};
+
 float4 main(v2f IN) : SV_Target0
 {
   StructuredBuffer<tex_ref> buf = ResourceDescriptorHeap[8];
@@ -205,6 +235,16 @@ float4 main(v2f IN) : SV_Target0
         SamplerState s = SamplerDescriptorHeap[7];
         Texture2D<float4> tex = ResourceDescriptorHeap[80+t.binding];
         ret *= tex.SampleLevel(s, uv.xy, 0);
+      }
+      else if(t.tex == 3)
+      {
+        StructuredBuffer<alias1> alias1buf = ResourceDescriptorHeap[150+t.binding];
+        ret *= alias1buf[0].Color;
+      }
+      else if(t.tex == 4)
+      {
+        StructuredBuffer<alias2> alias2buf = ResourceDescriptorHeap[150+t.binding];
+        ret *= alias2buf[0].Color;
       }
 
       uv *= 1.8f;
@@ -261,6 +301,7 @@ float4 main(v2f IN) : SV_Target0
         {
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 20, 0),
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 150, 0),
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 15, 32, 150),
         },
         D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 1, &staticSamp);
     ID3D12PipelineStatePtr graphicspso[4];
@@ -364,11 +405,51 @@ float4 main(v2f IN) : SV_Target0
       GPUSync();
     }
 
+    ID3D12ResourcePtr aliasEmptyBuf = MakeBuffer().Size(192).Upload();
+    ID3D12ResourcePtr alias1Buf = MakeBuffer().Size(192).Upload();
+    ID3D12ResourcePtr alias2Buf = MakeBuffer().Size(192).Upload();
+
+    // these correspond to alias1/alias2 structure types
+    Vec4f aliasbuf_data[3] = {};
+    {
+      byte *mapptr = NULL;
+      aliasEmptyBuf->Map(0, NULL, (void **)&mapptr);
+      memcpy(mapptr, aliasbuf_data, sizeof(aliasbuf_data));
+      aliasEmptyBuf->Unmap(0, NULL);
+    }
+
+    // first alias stores color first
+    aliasbuf_data[0] = Vec4f(1.1f, 0.9f, 1.2f, 1.0f);
+
+    {
+      byte *mapptr = NULL;
+      alias1Buf->Map(0, NULL, (void **)&mapptr);
+      memcpy(mapptr, aliasbuf_data, sizeof(aliasbuf_data));
+      alias1Buf->Unmap(0, NULL);
+    }
+
+    // second alias stores color last
+    aliasbuf_data[0] = Vec4f();
+    aliasbuf_data[2] = Vec4f(1.1f, 0.9f, 1.2f, 1.0f);
+
+    {
+      byte *mapptr = NULL;
+      alias2Buf->Map(0, NULL, (void **)&mapptr);
+      memcpy(mapptr, aliasbuf_data, sizeof(aliasbuf_data));
+      alias2Buf->Unmap(0, NULL);
+    }
+
     for(int i = 0; i < 150; i++)
     {
       MakeSRV(blacktex).CreateGPU(i);
       MakeSRV(blacktex).CreateCPU(i);
     }
+    for(int i = 0; i < 32; i++)
+    {
+      MakeSRV(aliasEmptyBuf).StructureStride(3 * sizeof(Vec4f)).CreateGPU(150 + i);
+      MakeSRV(aliasEmptyBuf).StructureStride(3 * sizeof(Vec4f)).CreateCPU(150 + i);
+    }
+
     ID3D12ResourcePtr structBuf = MakeBuffer().UAV().Size(8192);
     D3D12_GPU_DESCRIPTOR_HANDLE structGPU =
         MakeUAV(structBuf).Format(DXGI_FORMAT_R32_UINT).CreateGPU(16);
@@ -377,12 +458,16 @@ float4 main(v2f IN) : SV_Target0
     MakeUAV(structBuf).StructureStride(2 * sizeof(uint32_t)).CreateGPU(15);
     MakeSRV(structBuf).StructureStride(2 * sizeof(uint32_t)).CreateGPU(8);
 
+    MakeSRV(alias1Buf).StructureStride(3 * sizeof(Vec4f)).CreateGPU(150 + 6);
+    MakeSRV(alias2Buf).StructureStride(3 * sizeof(Vec4f)).CreateGPU(150 + 12);
+
     MakeSRV(smiley).CreateGPU(12);
     MakeSRV(smiley).CreateGPU(19);
     MakeSRV(smiley).CreateGPU(20);
     MakeSRV(smiley).CreateGPU(21);
     MakeSRV(smiley).CreateGPU(49);
     MakeSRV(smiley).CreateGPU(59);
+    MakeSRV(smiley).CreateGPU(60);
     MakeSRV(smiley).CreateGPU(99);
     MakeSRV(smiley).CreateGPU(103);
     MakeCBV(constBuf).SizeBytes(256).CreateGPU(9);

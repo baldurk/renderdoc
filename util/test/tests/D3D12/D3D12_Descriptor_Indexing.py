@@ -153,7 +153,7 @@ class D3D12_Descriptor_Indexing(rdtest.TestCase):
             bind_info = {
                 rd.DescriptorCategory.ConstantBlock: [9],
                 rd.DescriptorCategory.Sampler: [0, 1, 2, 4, 5, 6, 7],
-                rd.DescriptorCategory.ReadOnlyResource: [8, 12, 19, 20, 21, 49, 59, 6, 99, 103],
+                rd.DescriptorCategory.ReadOnlyResource: [8, 12, 19, 20, 21, 49, 59, 6, 99, 103, 156, 162],
                 rd.DescriptorCategory.ReadWriteResource: [10],
             }
 

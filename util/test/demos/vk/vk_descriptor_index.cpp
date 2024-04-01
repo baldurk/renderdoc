@@ -46,6 +46,8 @@
 #define INDEX2 381
 #define NONUNIFORMIDX 20
 #define TEX3_INDEX 1
+#define ALIAS1_INDEX 6
+#define ALIAS2_INDEX 12
 
 RD_TEST(VK_Descriptor_Indexing, VulkanGraphicsTest)
 {
@@ -97,6 +99,8 @@ layout(push_constant) uniform PushData
   uint idx1;
   uint idx2;
   uint idx3;
+  uint idx4;
+  uint idx5;
 } push;
 
 struct tex_ref
@@ -130,8 +134,14 @@ void main()
   outbuf[push.bufidx].outrefs[4].binding = 3;
   outbuf[push.bufidx].outrefs[4].idx = push.idx3;
 
+  outbuf[push.bufidx].outrefs[5].binding = 4;
+  outbuf[push.bufidx].outrefs[5].idx = push.idx4;
+
+  outbuf[push.bufidx].outrefs[6].binding = 5;
+  outbuf[push.bufidx].outrefs[6].idx = push.idx5;
+
   // terminator
-  outbuf[push.bufidx].outrefs[5].binding = 100;
+  outbuf[push.bufidx].outrefs[7].binding = 100;
 }
 
 )EOSHADER";
@@ -159,7 +169,19 @@ layout(binding = 0, std430) buffer inbuftype {
 
 layout(binding = 1) uniform sampler2D tex1[)EOSHADER" STRINGIZE(DESC_ARRAY1_SIZE) R"EOSHADER(];
 layout(binding = 2) uniform sampler2D tex2[];
-layout(binding = 3) uniform sampler2D tex3[)EOSHADER" STRINGIZE(DESC_ARRAY3_SIZE) R"EOSHADER(];
+layout(binding = 4) uniform sampler2D tex3[)EOSHADER" STRINGIZE(DESC_ARRAY3_SIZE) R"EOSHADER(];
+
+layout(binding = 3, std430) buffer aliasbuf1type {
+  vec4 Color;
+  vec4 ignored;
+  vec4 also_ignored;
+} aliasbuf1[];
+
+layout(binding = 3, std430) buffer aliasbuf2type {
+  vec4 ignored;
+  vec4 also_ignored;
+  vec4 Color;
+} aliasbuf2[];
 
 void add_color(sampler2D tex)
 {
@@ -228,10 +250,14 @@ void main()
       // function call with array parameters
       if(t.binding < 2)
         dispatch_indirect_color(0, tex1, tex1, 5.0f, t);
-      else if(t.binding < 3)
+      else if(t.binding == 2)
         add_color(tex2[t.idx]);
-      else
+      else if(t.binding == 3)
         add_color(tex3[t.idx]);
+      else if(t.binding == 4)
+        Color *= aliasbuf1[t.idx].Color;
+      else if(t.binding == 5)
+        Color *= aliasbuf2[t.idx].Color;
     }
   }
 }
@@ -305,9 +331,10 @@ void main()
         VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT,
     };
 
-    VkDescriptorBindingFlagsEXT bindFlags[4] = {
+    VkDescriptorBindingFlagsEXT bindFlags[5] = {
         VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT,
         0,
+        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT,
         VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT,
         VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT,
     };
@@ -338,6 +365,12 @@ void main()
                 },
                 {
                     3,
+                    VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                    DESC_ARRAY1_SIZE,
+                    VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT,
+                },
+                {
+                    4,
                     VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     UINT32_MAX,
                     VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT,
@@ -351,7 +384,7 @@ void main()
         },
         {
             vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT, 0,
-                                   sizeof(Vec4i)),
+                                   sizeof(Vec4i) * 2),
         }));
 
     vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
@@ -496,7 +529,7 @@ void main()
               8,
               {
                   {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, DESC_ARRAY2_SIZE * 10},
-                  {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, DESC_ARRAY1_SIZE * 10},
+                  {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, DESC_ARRAY1_SIZE * 20},
               }),
           NULL, &descpool));
 
@@ -524,6 +557,38 @@ void main()
 
     VkSampler sampler = createSampler(vkh::SamplerCreateInfo(VK_FILTER_LINEAR));
 
+    // this corresponds to aliasbuf1type / aliasbuf2type
+    Vec4f aliasbuf_data[3] = {};
+
+    AllocatedBuffer alias_empty(this,
+                                vkh::BufferCreateInfo(192, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                                               VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                                VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+
+    alias_empty.upload(aliasbuf_data);
+
+    AllocatedBuffer alias1(this,
+                           vkh::BufferCreateInfo(192, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                                          VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                           VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+
+    // first alias stores color first
+    aliasbuf_data[0] = Vec4f(1.1f, 0.9f, 1.2f, 1.0f);
+
+    alias1.upload(aliasbuf_data);
+
+    AllocatedBuffer alias2(this,
+                           vkh::BufferCreateInfo(192, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                                          VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                           VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+
+    // second alias stores color last
+    aliasbuf_data[0] = Vec4f();
+    aliasbuf_data[2] = Vec4f(1.1f, 0.9f, 1.2f, 1.0f);
+
+    alias2.upload(aliasbuf_data);
+
+    vkh::DescriptorBufferInfo bufinfo(alias_empty.buffer);
     vkh::DescriptorImageInfo iminfo(badimgview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler);
     vkh::WriteDescriptorSet up(VK_NULL_HANDLE, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                                {iminfo});
@@ -553,9 +618,28 @@ void main()
 
       ups.push_back(up);
 
-      up.dstBinding = 3;
+      up.dstBinding = 4;
       up.dstArrayElement = 0;
       up.descriptorCount = DESC_ARRAY3_SIZE;
+
+      ups.push_back(up);
+    }
+
+    vkh::updateDescriptorSets(device, ups);
+
+    std::vector<vkh::DescriptorBufferInfo> bufs;
+    bufs.resize(DESC_ARRAY1_SIZE, bufinfo);
+    up.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    up.pBufferInfo = bufs.data();
+
+    ups.clear();
+    for(int i = 0; i < 5; i++)
+    {
+      up.dstSet = descset[i];
+
+      up.dstBinding = 3;
+      up.dstArrayElement = 0;
+      up.descriptorCount = DESC_ARRAY1_SIZE;
 
       ups.push_back(up);
     }
@@ -608,8 +692,12 @@ void main()
                 {
                     vkh::DescriptorImageInfo(imgview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler),
                 }),
+            vkh::WriteDescriptorSet(descset[0], 3, ALIAS1_INDEX, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                    {vkh::DescriptorBufferInfo(alias1.buffer)}),
+            vkh::WriteDescriptorSet(descset[0], 3, ALIAS2_INDEX, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                    {vkh::DescriptorBufferInfo(alias2.buffer)}),
             vkh::WriteDescriptorSet(
-                descset[0], 3, TEX3_INDEX, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                descset[0], 4, TEX3_INDEX, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                 {
                     vkh::DescriptorImageInfo(imgview, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler),
                 }),
@@ -633,14 +721,19 @@ void main()
       vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, layout, 0, 1, &descset[0], 0,
                               NULL);
 
-      Vec4i idx = {BUFIDX, INDEX1, INDEX2, TEX3_INDEX};
+      Vec4i idx[2] = {
+          Vec4i(BUFIDX, INDEX1, INDEX2, TEX3_INDEX),
+          Vec4i(ALIAS1_INDEX, ALIAS2_INDEX, 0, 0),
+      };
       vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT, 0,
-                         sizeof(Vec4i), &idx);
+                         sizeof(idx), idx);
 
       static_assert(BUFIDX < DESC_ARRAY1_SIZE, "Buffer index is out of bounds");
       static_assert(INDEX1 < DESC_ARRAY1_SIZE, "Index 1 is out of bounds");
       static_assert(INDEX2 < DESC_ARRAY2_SIZE, "Index 2 is out of bounds");
       static_assert(TEX3_INDEX < DESC_ARRAY3_SIZE, "Index 3 is out of bounds");
+      static_assert(ALIAS1_INDEX < DESC_ARRAY1_SIZE, "Alias index 1 is out of bounds");
+      static_assert(ALIAS2_INDEX < DESC_ARRAY1_SIZE, "Alias index 2 is out of bounds");
 
       vkCmdFillBuffer(cmd, ssbo.buffer, 0, 1024 * 1024, 0);
 
@@ -674,9 +767,10 @@ void main()
       vkCmdSetViewport(cmd, 0, 1, &mainWindow->viewport);
       vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
-      idx = {BUFIDX, 0, 0, 0};
+      idx[0] = {BUFIDX, 0, 0, 0};
+      idx[1] = {0, 0, 0, 0};
       vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT, 0,
-                         sizeof(Vec4i), &idx);
+                         sizeof(idx), idx);
       vkCmdDraw(cmd, 3, 1, 0, 0);
 
       vkCmdEndRenderPass(cmd);

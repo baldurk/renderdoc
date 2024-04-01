@@ -1,4 +1,5 @@
 import rdtest
+import struct
 import renderdoc as rd
 
 
@@ -46,17 +47,21 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
         vkpipe = self.controller.GetVulkanPipelineState()
 
         # Check bindings:
-        #   - buffer 15 in bind 0 (the SSBO) should be used
-        #   - images 19, 20, 21 in bind 1 should be used for the non-uniform index
-        #     images 49 & 59 in bind 1 should be used for the first fixed index
-        #     image 4 in bind 1 should be used for the global access from a function with no dynamic/patched parameters
-        #   - images 381 & 386 in bind 2 should be used for the second fixed index
-        #   - image 1 in bind 3 should be used
+        #   - buffer 15 in bind 0 (the SSBO) should be use
+        #   - buffer 6 in bind 1 (the first aliased SSBO) should be used
+        #   - buffer 12 in bind 2 (the first aliased SSBO) should be used
+        #   - images 19, 20, 21 in bind 0 should be used for the non-uniform index
+        #     images 49 & 59 in bind 0 should be used for the first fixed index
+        #     image 4 in bind 0 should be used for the global access from a function with no dynamic/patched parameters
+        #   - images 381 & 386 in bind 1 should be used for the second fixed index
+        #   - image 1 in bind 2 should be used
         bind_info = {
             (rd.DescriptorType.ReadWriteBuffer, 0): {'loc': (0, 0), 'elems': [15]},
+            (rd.DescriptorType.ReadWriteBuffer, 1): {'loc': (0, 3), 'elems': [6]},
+            (rd.DescriptorType.ReadWriteBuffer, 2): {'loc': (0, 3), 'elems': [12]},
             (rd.DescriptorType.ImageSampler, 0): {'loc': (0, 1), 'elems': [4, 19, 20, 21, 49, 59]},
             (rd.DescriptorType.ImageSampler, 1): {'loc': (0, 2), 'elems': [381, 386]},
-            (rd.DescriptorType.ImageSampler, 2): {'loc': (0, 3), 'elems': [1]},
+            (rd.DescriptorType.ImageSampler, 2): {'loc': (0, 4), 'elems': [1]},
         }
 
         if len(vkpipe.graphics.descriptorSets) != 1:
@@ -69,7 +74,7 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
         ro = pipe.GetReadOnlyResources(rd.ShaderStage.Fragment)
 
         self.check_eq(len(ro), 1+6+2)
-        self.check_eq(len(rw), 1)
+        self.check_eq(len(rw), 1+1+1)
 
         refl = pipe.GetShaderReflection(rd.ShaderStage.Fragment)
 
@@ -107,5 +112,26 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
                                                   .format(loc.logicalBindName, bind_info[idx]['loc'], a.access.arrayElement))
 
             bind_info[idx]['elems'].remove(a.access.arrayElement)
+
+        for a in rw:
+            res = refl.readWriteResources[a.access.index]
+            data = self.controller.GetBufferData(a.descriptor.resource, a.descriptor.byteOffset, a.descriptor.byteSize)
+
+            offset = 0
+            if res.name == "aliasbuf1":
+                self.check_eq(res.variableType.members[0].name, "Color")
+                self.check_eq(res.variableType.members[0].byteOffset, 0)
+                offset = res.variableType.members[0].byteOffset
+            elif res.name == "aliasbuf2":
+                self.check_eq(res.variableType.members[2].name, "Color")
+                self.check_eq(res.variableType.members[2].byteOffset, 32)
+                offset = res.variableType.members[2].byteOffset
+            else:
+                continue
+
+            col = struct.unpack_from("4f", data, offset)
+            if col[0] == 0.0 or col[1] == 0.0 or col[2] == 0.0 or col[3] == 0.0:
+                raise rdtest.TestFailureException(
+                    "Color from aliased buffer {} doesn't match expected value: {}".format(res.name, col))
 
         rdtest.log.success("Dynamic usage is as expected")
