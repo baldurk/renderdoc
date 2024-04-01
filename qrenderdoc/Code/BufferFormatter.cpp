@@ -1219,6 +1219,13 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         break;
       }
 
+      if(!isPointer && structContext.structDef.type.name == cur->structDef.type.name)
+      {
+        reportError(tr("Invalid nested struct declaration, only allowed for pointers."));
+        success = false;
+        break;
+      }
+
       QString varName = structMatch.captured(3).trimmed();
 
       if(varName.isEmpty())
