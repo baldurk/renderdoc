@@ -1275,247 +1275,247 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     // float samplers
     if(values[0] == eGL_SAMPLER_BUFFER)
     {
-      res.resType = TextureType::Buffer;
+      res.textureType = TextureType::Buffer;
       res.variableType.name = "samplerBuffer";
       res.variableType.baseType = VarType::Float;
       res.descriptorType = DescriptorType::TypedBuffer;
     }
     else if(values[0] == eGL_SAMPLER_1D)
     {
-      res.resType = TextureType::Texture1D;
+      res.textureType = TextureType::Texture1D;
       res.variableType.name = "sampler1D";
       res.variableType.baseType = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_1D_ARRAY)
     {
-      res.resType = TextureType::Texture1DArray;
+      res.textureType = TextureType::Texture1DArray;
       res.variableType.name = "sampler1DArray";
       res.variableType.baseType = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_1D_SHADOW)
     {
-      res.resType = TextureType::Texture1D;
+      res.textureType = TextureType::Texture1D;
       res.variableType.name = "sampler1DShadow";
       res.variableType.baseType = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_1D_ARRAY_SHADOW)
     {
-      res.resType = TextureType::Texture1DArray;
+      res.textureType = TextureType::Texture1DArray;
       res.variableType.name = "sampler1DArrayShadow";
       res.variableType.baseType = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_2D)
     {
-      res.resType = TextureType::Texture2D;
+      res.textureType = TextureType::Texture2D;
       res.variableType.name = "sampler2D";
       res.variableType.baseType = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_2D_ARRAY)
     {
-      res.resType = TextureType::Texture2DArray;
+      res.textureType = TextureType::Texture2DArray;
       res.variableType.name = "sampler2DArray";
       res.variableType.baseType = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_2D_SHADOW)
     {
-      res.resType = TextureType::Texture2D;
+      res.textureType = TextureType::Texture2D;
       res.variableType.name = "sampler2DShadow";
       res.variableType.baseType = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_2D_ARRAY_SHADOW)
     {
-      res.resType = TextureType::Texture2DArray;
+      res.textureType = TextureType::Texture2DArray;
       res.variableType.name = "sampler2DArrayShadow";
       res.variableType.baseType = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_2D_RECT)
     {
-      res.resType = TextureType::TextureRect;
+      res.textureType = TextureType::TextureRect;
       res.variableType.name = "sampler2DRect";
       res.variableType.baseType = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_2D_RECT_SHADOW)
     {
-      res.resType = TextureType::TextureRect;
+      res.textureType = TextureType::TextureRect;
       res.variableType.name = "sampler2DRectShadow";
       res.variableType.baseType = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_3D)
     {
-      res.resType = TextureType::Texture3D;
+      res.textureType = TextureType::Texture3D;
       res.variableType.name = "sampler3D";
       res.variableType.baseType = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_CUBE)
     {
-      res.resType = TextureType::TextureCube;
+      res.textureType = TextureType::TextureCube;
       res.variableType.name = "samplerCube";
       res.variableType.baseType = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_CUBE_SHADOW)
     {
-      res.resType = TextureType::TextureCube;
+      res.textureType = TextureType::TextureCube;
       res.variableType.name = "samplerCubeShadow";
       res.variableType.baseType = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_CUBE_MAP_ARRAY)
     {
-      res.resType = TextureType::TextureCubeArray;
+      res.textureType = TextureType::TextureCubeArray;
       res.variableType.name = "samplerCubeArray";
       res.variableType.baseType = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_2D_MULTISAMPLE)
     {
-      res.resType = TextureType::Texture2DMS;
+      res.textureType = TextureType::Texture2DMS;
       res.variableType.name = "sampler2DMS";
       res.variableType.baseType = VarType::Float;
     }
     else if(values[0] == eGL_SAMPLER_2D_MULTISAMPLE_ARRAY)
     {
-      res.resType = TextureType::Texture2DMSArray;
+      res.textureType = TextureType::Texture2DMSArray;
       res.variableType.name = "sampler2DMSArray";
       res.variableType.baseType = VarType::Float;
     }
     // int samplers
     else if(values[0] == eGL_INT_SAMPLER_BUFFER)
     {
-      res.resType = TextureType::Buffer;
+      res.textureType = TextureType::Buffer;
       res.variableType.name = "isamplerBuffer";
       res.variableType.baseType = VarType::SInt;
       res.descriptorType = DescriptorType::TypedBuffer;
     }
     else if(values[0] == eGL_INT_SAMPLER_1D)
     {
-      res.resType = TextureType::Texture1D;
+      res.textureType = TextureType::Texture1D;
       res.variableType.name = "isampler1D";
       res.variableType.baseType = VarType::SInt;
     }
     else if(values[0] == eGL_INT_SAMPLER_1D_ARRAY)
     {
-      res.resType = TextureType::Texture1DArray;
+      res.textureType = TextureType::Texture1DArray;
       res.variableType.name = "isampler1DArray";
       res.variableType.baseType = VarType::SInt;
     }
     else if(values[0] == eGL_INT_SAMPLER_2D)
     {
-      res.resType = TextureType::Texture2D;
+      res.textureType = TextureType::Texture2D;
       res.variableType.name = "isampler2D";
       res.variableType.baseType = VarType::SInt;
     }
     else if(values[0] == eGL_INT_SAMPLER_2D_ARRAY)
     {
-      res.resType = TextureType::Texture2DArray;
+      res.textureType = TextureType::Texture2DArray;
       res.variableType.name = "isampler2DArray";
       res.variableType.baseType = VarType::SInt;
     }
     else if(values[0] == eGL_INT_SAMPLER_2D_RECT)
     {
-      res.resType = TextureType::TextureRect;
+      res.textureType = TextureType::TextureRect;
       res.variableType.name = "isampler2DRect";
       res.variableType.baseType = VarType::SInt;
     }
     else if(values[0] == eGL_INT_SAMPLER_3D)
     {
-      res.resType = TextureType::Texture3D;
+      res.textureType = TextureType::Texture3D;
       res.variableType.name = "isampler3D";
       res.variableType.baseType = VarType::SInt;
     }
     else if(values[0] == eGL_INT_SAMPLER_CUBE)
     {
-      res.resType = TextureType::TextureCube;
+      res.textureType = TextureType::TextureCube;
       res.variableType.name = "isamplerCube";
       res.variableType.baseType = VarType::SInt;
     }
     else if(values[0] == eGL_INT_SAMPLER_CUBE_MAP_ARRAY)
     {
-      res.resType = TextureType::TextureCubeArray;
+      res.textureType = TextureType::TextureCubeArray;
       res.variableType.name = "isamplerCubeArray";
       res.variableType.baseType = VarType::SInt;
     }
     else if(values[0] == eGL_INT_SAMPLER_2D_MULTISAMPLE)
     {
-      res.resType = TextureType::Texture2DMS;
+      res.textureType = TextureType::Texture2DMS;
       res.variableType.name = "isampler2DMS";
       res.variableType.baseType = VarType::SInt;
     }
     else if(values[0] == eGL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY)
     {
-      res.resType = TextureType::Texture2DMSArray;
+      res.textureType = TextureType::Texture2DMSArray;
       res.variableType.name = "isampler2DMSArray";
       res.variableType.baseType = VarType::SInt;
     }
     // unsigned int samplers
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_BUFFER)
     {
-      res.resType = TextureType::Buffer;
+      res.textureType = TextureType::Buffer;
       res.variableType.name = "usamplerBuffer";
       res.variableType.baseType = VarType::UInt;
       res.descriptorType = DescriptorType::TypedBuffer;
     }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_1D)
     {
-      res.resType = TextureType::Texture1D;
+      res.textureType = TextureType::Texture1D;
       res.variableType.name = "usampler1D";
       res.variableType.baseType = VarType::UInt;
     }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_1D_ARRAY)
     {
-      res.resType = TextureType::Texture1DArray;
+      res.textureType = TextureType::Texture1DArray;
       res.variableType.name = "usampler1DArray";
       res.variableType.baseType = VarType::UInt;
     }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_2D)
     {
-      res.resType = TextureType::Texture2D;
+      res.textureType = TextureType::Texture2D;
       res.variableType.name = "usampler2D";
       res.variableType.baseType = VarType::UInt;
     }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_2D_ARRAY)
     {
-      res.resType = TextureType::Texture2DArray;
+      res.textureType = TextureType::Texture2DArray;
       res.variableType.name = "usampler2DArray";
       res.variableType.baseType = VarType::UInt;
     }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_2D_RECT)
     {
-      res.resType = TextureType::TextureRect;
+      res.textureType = TextureType::TextureRect;
       res.variableType.name = "usampler2DRect";
       res.variableType.baseType = VarType::UInt;
     }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_3D)
     {
-      res.resType = TextureType::Texture3D;
+      res.textureType = TextureType::Texture3D;
       res.variableType.name = "usampler3D";
       res.variableType.baseType = VarType::UInt;
     }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_CUBE)
     {
-      res.resType = TextureType::TextureCube;
+      res.textureType = TextureType::TextureCube;
       res.variableType.name = "usamplerCube";
       res.variableType.baseType = VarType::UInt;
     }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY)
     {
-      res.resType = TextureType::TextureCubeArray;
+      res.textureType = TextureType::TextureCubeArray;
       res.variableType.name = "usamplerCubeArray";
       res.variableType.baseType = VarType::UInt;
     }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE)
     {
-      res.resType = TextureType::Texture2DMS;
+      res.textureType = TextureType::Texture2DMS;
       res.variableType.name = "usampler2DMS";
       res.variableType.baseType = VarType::UInt;
     }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY)
     {
-      res.resType = TextureType::Texture2DMSArray;
+      res.textureType = TextureType::Texture2DMSArray;
       res.variableType.name = "usampler2DMSArray";
       res.variableType.baseType = VarType::UInt;
     }
     // float images
     else if(values[0] == eGL_IMAGE_BUFFER)
     {
-      res.resType = TextureType::Buffer;
+      res.textureType = TextureType::Buffer;
       res.variableType.name = "imageBuffer";
       res.variableType.baseType = VarType::Float;
       res.isReadOnly = false;
@@ -1523,70 +1523,70 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     }
     else if(values[0] == eGL_IMAGE_1D)
     {
-      res.resType = TextureType::Texture1D;
+      res.textureType = TextureType::Texture1D;
       res.variableType.name = "image1D";
       res.variableType.baseType = VarType::Float;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_1D_ARRAY)
     {
-      res.resType = TextureType::Texture1DArray;
+      res.textureType = TextureType::Texture1DArray;
       res.variableType.name = "image1DArray";
       res.variableType.baseType = VarType::Float;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_2D)
     {
-      res.resType = TextureType::Texture2D;
+      res.textureType = TextureType::Texture2D;
       res.variableType.name = "image2D";
       res.variableType.baseType = VarType::Float;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_2D_ARRAY)
     {
-      res.resType = TextureType::Texture2DArray;
+      res.textureType = TextureType::Texture2DArray;
       res.variableType.name = "image2DArray";
       res.variableType.baseType = VarType::Float;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_2D_RECT)
     {
-      res.resType = TextureType::TextureRect;
+      res.textureType = TextureType::TextureRect;
       res.variableType.name = "image2DRect";
       res.variableType.baseType = VarType::Float;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_3D)
     {
-      res.resType = TextureType::Texture3D;
+      res.textureType = TextureType::Texture3D;
       res.variableType.name = "image3D";
       res.variableType.baseType = VarType::Float;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_CUBE)
     {
-      res.resType = TextureType::TextureCube;
+      res.textureType = TextureType::TextureCube;
       res.variableType.name = "imageCube";
       res.variableType.baseType = VarType::Float;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_CUBE_MAP_ARRAY)
     {
-      res.resType = TextureType::TextureCubeArray;
+      res.textureType = TextureType::TextureCubeArray;
       res.variableType.name = "imageCubeArray";
       res.variableType.baseType = VarType::Float;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_2D_MULTISAMPLE)
     {
-      res.resType = TextureType::Texture2DMS;
+      res.textureType = TextureType::Texture2DMS;
       res.variableType.name = "image2DMS";
       res.variableType.baseType = VarType::Float;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_2D_MULTISAMPLE_ARRAY)
     {
-      res.resType = TextureType::Texture2DMSArray;
+      res.textureType = TextureType::Texture2DMSArray;
       res.variableType.name = "image2DMSArray";
       res.variableType.baseType = VarType::Float;
       res.isReadOnly = false;
@@ -1594,7 +1594,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     // int images
     else if(values[0] == eGL_INT_IMAGE_BUFFER)
     {
-      res.resType = TextureType::Buffer;
+      res.textureType = TextureType::Buffer;
       res.variableType.name = "iimageBuffer";
       res.variableType.baseType = VarType::SInt;
       res.isReadOnly = false;
@@ -1602,70 +1602,70 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     }
     else if(values[0] == eGL_INT_IMAGE_1D)
     {
-      res.resType = TextureType::Texture1D;
+      res.textureType = TextureType::Texture1D;
       res.variableType.name = "iimage1D";
       res.variableType.baseType = VarType::SInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_1D_ARRAY)
     {
-      res.resType = TextureType::Texture1DArray;
+      res.textureType = TextureType::Texture1DArray;
       res.variableType.name = "iimage1DArray";
       res.variableType.baseType = VarType::SInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_2D)
     {
-      res.resType = TextureType::Texture2D;
+      res.textureType = TextureType::Texture2D;
       res.variableType.name = "iimage2D";
       res.variableType.baseType = VarType::SInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_2D_ARRAY)
     {
-      res.resType = TextureType::Texture2DArray;
+      res.textureType = TextureType::Texture2DArray;
       res.variableType.name = "iimage2DArray";
       res.variableType.baseType = VarType::SInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_2D_RECT)
     {
-      res.resType = TextureType::TextureRect;
+      res.textureType = TextureType::TextureRect;
       res.variableType.name = "iimage2DRect";
       res.variableType.baseType = VarType::SInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_3D)
     {
-      res.resType = TextureType::Texture3D;
+      res.textureType = TextureType::Texture3D;
       res.variableType.name = "iimage3D";
       res.variableType.baseType = VarType::SInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_CUBE)
     {
-      res.resType = TextureType::TextureCube;
+      res.textureType = TextureType::TextureCube;
       res.variableType.name = "iimageCube";
       res.variableType.baseType = VarType::SInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_CUBE_MAP_ARRAY)
     {
-      res.resType = TextureType::TextureCubeArray;
+      res.textureType = TextureType::TextureCubeArray;
       res.variableType.name = "iimageCubeArray";
       res.variableType.baseType = VarType::SInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_2D_MULTISAMPLE)
     {
-      res.resType = TextureType::Texture2DMS;
+      res.textureType = TextureType::Texture2DMS;
       res.variableType.name = "iimage2DMS";
       res.variableType.baseType = VarType::SInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_2D_MULTISAMPLE_ARRAY)
     {
-      res.resType = TextureType::Texture2DMSArray;
+      res.textureType = TextureType::Texture2DMSArray;
       res.variableType.name = "iimage2DMSArray";
       res.variableType.baseType = VarType::SInt;
       res.isReadOnly = false;
@@ -1673,7 +1673,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     // unsigned int images
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_BUFFER)
     {
-      res.resType = TextureType::Buffer;
+      res.textureType = TextureType::Buffer;
       res.variableType.name = "uimageBuffer";
       res.variableType.baseType = VarType::UInt;
       res.isReadOnly = false;
@@ -1681,70 +1681,70 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_1D)
     {
-      res.resType = TextureType::Texture1D;
+      res.textureType = TextureType::Texture1D;
       res.variableType.name = "uimage1D";
       res.variableType.baseType = VarType::UInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_1D_ARRAY)
     {
-      res.resType = TextureType::Texture1DArray;
+      res.textureType = TextureType::Texture1DArray;
       res.variableType.name = "uimage1DArray";
       res.variableType.baseType = VarType::UInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D)
     {
-      res.resType = TextureType::Texture2D;
+      res.textureType = TextureType::Texture2D;
       res.variableType.name = "uimage2D";
       res.variableType.baseType = VarType::UInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D_ARRAY)
     {
-      res.resType = TextureType::Texture2DArray;
+      res.textureType = TextureType::Texture2DArray;
       res.variableType.name = "uimage2DArray";
       res.variableType.baseType = VarType::UInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D_RECT)
     {
-      res.resType = TextureType::TextureRect;
+      res.textureType = TextureType::TextureRect;
       res.variableType.name = "uimage2DRect";
       res.variableType.baseType = VarType::UInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_3D)
     {
-      res.resType = TextureType::Texture3D;
+      res.textureType = TextureType::Texture3D;
       res.variableType.name = "uimage3D";
       res.variableType.baseType = VarType::UInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_CUBE)
     {
-      res.resType = TextureType::TextureCube;
+      res.textureType = TextureType::TextureCube;
       res.variableType.name = "uimageCube";
       res.variableType.baseType = VarType::UInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY)
     {
-      res.resType = TextureType::TextureCubeArray;
+      res.textureType = TextureType::TextureCubeArray;
       res.variableType.name = "uimageCubeArray";
       res.variableType.baseType = VarType::UInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE)
     {
-      res.resType = TextureType::Texture2DMS;
+      res.textureType = TextureType::Texture2DMS;
       res.variableType.name = "uimage2DMS";
       res.variableType.baseType = VarType::UInt;
       res.isReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY)
     {
-      res.resType = TextureType::Texture2DMSArray;
+      res.textureType = TextureType::Texture2DMSArray;
       res.variableType.name = "uimage2DMSArray";
       res.variableType.baseType = VarType::UInt;
       res.isReadOnly = false;
@@ -1752,7 +1752,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
     // atomic counter
     else if(values[0] == eGL_UNSIGNED_INT_ATOMIC_COUNTER)
     {
-      res.resType = TextureType::Buffer;
+      res.textureType = TextureType::Buffer;
       res.variableType.name = "atomic_uint";
       res.variableType.baseType = VarType::UInt;
       res.isReadOnly = false;
@@ -1766,7 +1766,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
       continue;
     }
 
-    if(!res.isReadOnly && res.resType == TextureType::Buffer)
+    if(!res.isReadOnly && res.textureType == TextureType::Buffer)
       res.descriptorType = DescriptorType::ReadWriteImage;
 
     res.hasSampler = res.isReadOnly;
@@ -1820,7 +1820,7 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
       ShaderResource res;
       res.isReadOnly = false;
       res.isTexture = false;
-      res.resType = TextureType::Buffer;
+      res.textureType = TextureType::Buffer;
       res.variableType.rows = 0;
       res.variableType.columns = 0;
       res.variableType.elements = 1;

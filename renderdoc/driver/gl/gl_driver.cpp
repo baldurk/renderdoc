@@ -5556,7 +5556,7 @@ void WrappedOpenGL::AddUsage(const ActionDescription &a)
           GLResource *texList = NULL;
           const int32_t listSize = (int32_t)ARRAY_COUNT(rs.Tex2D);
 
-          switch(res.resType)
+          switch(res.textureType)
           {
             case TextureType::Unknown: texList = NULL; break;
             case TextureType::Buffer: texList = rs.TexBuffer; break;

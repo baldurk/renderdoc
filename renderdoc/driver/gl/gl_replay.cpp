@@ -1213,7 +1213,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
       GLDescriptorMapping descType = GLDescriptorMapping::Tex2D;
 
-      switch(refl->readOnlyResources[i].resType)
+      switch(refl->readOnlyResources[i].textureType)
       {
         case TextureType::Buffer: descType = GLDescriptorMapping::TexBuffer; break;
         case TextureType::Texture1D: descType = GLDescriptorMapping::Tex1D; break;
@@ -1250,7 +1250,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
       drv.glActiveTexture(GLenum(eGL_TEXTURE0 + slot));
 
       GLenum binding = eGL_NONE;
-      switch(refl->readOnlyResources[i].resType)
+      switch(refl->readOnlyResources[i].textureType)
       {
         case TextureType::Unknown: binding = eGL_NONE; break;
         case TextureType::Buffer: binding = eGL_TEXTURE_BINDING_BUFFER; break;
@@ -1310,7 +1310,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
       if(refl->readWriteResources[i].isTexture)
       {
         access.type = DescriptorType::ReadWriteImage;
-        if(refl->readWriteResources[i].resType == TextureType::Buffer)
+        if(refl->readWriteResources[i].textureType == TextureType::Buffer)
           access.type = DescriptorType::ReadWriteTypedBuffer;
       }
       else
@@ -1378,7 +1378,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
         const ShaderResource &res = refl->readOnlyResources[access.index];
         GLenum t = eGL_NONE;
 
-        switch(res.resType)
+        switch(res.textureType)
         {
           case TextureType::Unknown: target = eGL_NONE; break;
           case TextureType::Buffer: target = eGL_TEXTURE_BUFFER; break;
@@ -1402,7 +1402,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
         {
           binding = t;
           firstBindName = res.name;
-          resType = res.resType;
+          resType = res.textureType;
         }
         else if(binding == t)
         {
@@ -1421,7 +1421,7 @@ void GLReplay::SavePipelineState(uint32_t eventId)
           }
 
           typeConflict +=
-              StringFormat::Fmt(", '%s' is %s", res.name.c_str(), ToStr(res.resType).c_str());
+              StringFormat::Fmt(", '%s' is %s", res.name.c_str(), ToStr(res.textureType).c_str());
         }
       }
     }

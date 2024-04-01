@@ -855,7 +855,7 @@ QString PipelineStateViewer::GenerateHLSLStub(const ShaderReflection *shaderDeta
       if(res.isTexture)
       {
         hlsl += lit("%1<%2> %3 : register(%4%5);\n")
-                    .arg(textureDim[(size_t)res.resType])
+                    .arg(textureDim[(size_t)res.textureType])
                     .arg(res.variableType.name)
                     .arg(res.name)
                     .arg(QLatin1Char(regChar))

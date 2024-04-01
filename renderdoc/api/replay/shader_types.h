@@ -1340,15 +1340,15 @@ struct ShaderResource
 
   bool operator==(const ShaderResource &o) const
   {
-    return resType == o.resType && name == o.name && variableType == o.variableType &&
+    return textureType == o.textureType && name == o.name && variableType == o.variableType &&
            fixedBindNumber == o.fixedBindNumber && fixedBindSetOrSpace == o.fixedBindSetOrSpace &&
            isTexture == o.isTexture && hasSampler == o.hasSampler &&
            isInputAttachment == o.isInputAttachment && isReadOnly == o.isReadOnly;
   }
   bool operator<(const ShaderResource &o) const
   {
-    if(!(resType == o.resType))
-      return resType < o.resType;
+    if(!(textureType == o.textureType))
+      return textureType < o.textureType;
     if(!(name == o.name))
       return name < o.name;
     if(!(variableType == o.variableType))
@@ -1365,8 +1365,12 @@ struct ShaderResource
       return isReadOnly < o.isReadOnly;
     return false;
   }
-  DOCUMENT("The :class:`TextureType` that describes the type of this resource.");
-  TextureType resType;
+
+  DOCUMENT(R"(The :class:`TextureType` that describes the type of this resource.
+
+:type: TextureType
+)");
+  TextureType textureType;
 
   DOCUMENT(R"(The :class:`DescriptorType` which this resource expects to access.
 

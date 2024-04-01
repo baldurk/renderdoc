@@ -198,7 +198,7 @@ void DoSerialise(SerialiserType &ser, ShaderSampler &el)
 template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, ShaderResource &el)
 {
-  SERIALISE_MEMBER(resType);
+  SERIALISE_MEMBER(textureType);
   SERIALISE_MEMBER(descriptorType);
   SERIALISE_MEMBER(name);
   SERIALISE_MEMBER(variableType);

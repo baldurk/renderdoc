@@ -368,7 +368,7 @@ void main() {
           CHECK(res.fixedBindSetOrSpace == 0);
           CHECK(res.fixedBindNumber == 0);
           CHECK(res.bindArraySize == 1);
-          CHECK(res.resType == TextureType::Buffer);
+          CHECK(res.textureType == TextureType::Buffer);
           CHECK(res.variableType.members.empty());
           CHECK(res.variableType.baseType == VarType::UInt);
           CHECK(res.variableType.rows == 1);
@@ -426,7 +426,7 @@ void main() {
           CHECK(res.fixedBindSetOrSpace == 2);
           CHECK(res.fixedBindNumber == 4);
           CHECK(res.bindArraySize == 1);
-          CHECK(res.resType == TextureType::Texture2D);
+          CHECK(res.textureType == TextureType::Texture2D);
           CHECK(res.variableType.members.empty());
           CHECK(res.variableType.baseType == VarType::Float);
         }
@@ -439,7 +439,7 @@ void main() {
           CHECK(res.fixedBindSetOrSpace == 2);
           CHECK(res.fixedBindNumber == 5);
           CHECK(res.bindArraySize == 1);
-          CHECK(res.resType == TextureType::Texture2D);
+          CHECK(res.textureType == TextureType::Texture2D);
           CHECK(res.variableType.members.empty());
           CHECK(res.variableType.baseType == VarType::Float);
         }
@@ -1022,7 +1022,7 @@ void main() {
         CHECK(res.fixedBindSetOrSpace == 0);
         CHECK(res.fixedBindNumber == 3);
         CHECK(res.bindArraySize == 1);
-        CHECK(res.resType == TextureType::Texture2D);
+        CHECK(res.textureType == TextureType::Texture2D);
         CHECK(res.variableType.members.empty());
         CHECK(res.variableType.baseType == VarType::Float);
       }
@@ -1035,7 +1035,7 @@ void main() {
         CHECK(res.fixedBindSetOrSpace == 0);
         CHECK(res.fixedBindNumber == 5);
         CHECK(res.bindArraySize == 1);
-        CHECK(res.resType == TextureType::Texture3D);
+        CHECK(res.textureType == TextureType::Texture3D);
         CHECK(res.variableType.members.empty());
         CHECK(res.variableType.baseType == VarType::SInt);
       }
@@ -1048,7 +1048,7 @@ void main() {
         CHECK(res.fixedBindSetOrSpace == 0);
         CHECK(res.fixedBindNumber == 7);
         CHECK(res.bindArraySize == 1);
-        CHECK(res.resType == TextureType::Buffer);
+        CHECK(res.textureType == TextureType::Buffer);
         CHECK(res.variableType.members.empty());
         CHECK(res.variableType.baseType == VarType::Float);
       }
@@ -1640,7 +1640,7 @@ void main() {
         CHECK(res.fixedBindSetOrSpace == 0);
         CHECK(res.fixedBindNumber == 2);
         CHECK(res.bindArraySize == 1);
-        CHECK(res.resType == TextureType::Buffer);
+        CHECK(res.textureType == TextureType::Buffer);
 
         REQUIRE_ARRAY_SIZE(res.variableType.members.size(), 3);
         {
@@ -1735,7 +1735,7 @@ void main() {
         CHECK(res.fixedBindSetOrSpace == 0);
         CHECK(res.fixedBindNumber == 5);
         CHECK(res.bindArraySize == 1);
-        CHECK(res.resType == TextureType::Buffer);
+        CHECK(res.textureType == TextureType::Buffer);
 
         REQUIRE_ARRAY_SIZE(res.variableType.members.size(), 1);
         {
@@ -2560,7 +2560,7 @@ void main() {
           CHECK(res.fixedBindSetOrSpace == 0);
           CHECK(res.fixedBindNumber == 3 + i);
           CHECK(res.bindArraySize == arraySizeRO);
-          CHECK(res.resType == TextureType::Texture2D);
+          CHECK(res.textureType == TextureType::Texture2D);
           CHECK(res.variableType.members.empty());
           CHECK(res.variableType.baseType == VarType::Float);
         }
@@ -2586,7 +2586,7 @@ void main() {
           CHECK(res.fixedBindSetOrSpace == 0);
           CHECK(res.fixedBindNumber == 2 + i);
           CHECK(res.bindArraySize == arraySizeRW);
-          CHECK(res.resType == TextureType::Buffer);
+          CHECK(res.textureType == TextureType::Buffer);
 
           // due to a bug in glslang the reflection is broken for these SSBOs. So we can still run
           // this test on GLSL we do a little hack here, which can get removed when we update

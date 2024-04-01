@@ -161,25 +161,29 @@ static void MakeResourceList(bool srv, DXBC::DXBCContainer *dxbc,
     switch(r.dimension)
     {
       default:
-      case DXBC::ShaderInputBind::DIM_UNKNOWN: res.resType = TextureType::Unknown; break;
+      case DXBC::ShaderInputBind::DIM_UNKNOWN: res.textureType = TextureType::Unknown; break;
       case DXBC::ShaderInputBind::DIM_BUFFER:
-      case DXBC::ShaderInputBind::DIM_BUFFEREX: res.resType = TextureType::Buffer; break;
-      case DXBC::ShaderInputBind::DIM_TEXTURE1D: res.resType = TextureType::Texture1D; break;
+      case DXBC::ShaderInputBind::DIM_BUFFEREX: res.textureType = TextureType::Buffer; break;
+      case DXBC::ShaderInputBind::DIM_TEXTURE1D: res.textureType = TextureType::Texture1D; break;
       case DXBC::ShaderInputBind::DIM_TEXTURE1DARRAY:
-        res.resType = TextureType::Texture1DArray;
+        res.textureType = TextureType::Texture1DArray;
         break;
-      case DXBC::ShaderInputBind::DIM_TEXTURE2D: res.resType = TextureType::Texture2D; break;
+      case DXBC::ShaderInputBind::DIM_TEXTURE2D: res.textureType = TextureType::Texture2D; break;
       case DXBC::ShaderInputBind::DIM_TEXTURE2DARRAY:
-        res.resType = TextureType::Texture2DArray;
+        res.textureType = TextureType::Texture2DArray;
         break;
-      case DXBC::ShaderInputBind::DIM_TEXTURE2DMS: res.resType = TextureType::Texture2DMS; break;
+      case DXBC::ShaderInputBind::DIM_TEXTURE2DMS:
+        res.textureType = TextureType::Texture2DMS;
+        break;
       case DXBC::ShaderInputBind::DIM_TEXTURE2DMSARRAY:
-        res.resType = TextureType::Texture2DMSArray;
+        res.textureType = TextureType::Texture2DMSArray;
         break;
-      case DXBC::ShaderInputBind::DIM_TEXTURE3D: res.resType = TextureType::Texture3D; break;
-      case DXBC::ShaderInputBind::DIM_TEXTURECUBE: res.resType = TextureType::TextureCube; break;
+      case DXBC::ShaderInputBind::DIM_TEXTURE3D: res.textureType = TextureType::Texture3D; break;
+      case DXBC::ShaderInputBind::DIM_TEXTURECUBE:
+        res.textureType = TextureType::TextureCube;
+        break;
       case DXBC::ShaderInputBind::DIM_TEXTURECUBEARRAY:
-        res.resType = TextureType::TextureCubeArray;
+        res.textureType = TextureType::TextureCubeArray;
         break;
     }
 

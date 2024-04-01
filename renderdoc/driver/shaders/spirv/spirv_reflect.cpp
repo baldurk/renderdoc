@@ -1395,7 +1395,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
           res.name = varType->name;
         if(res.name.empty())
           res.name = StringFormat::Fmt("atomic%u", global.id.value());
-        res.resType = TextureType::Buffer;
+        res.textureType = TextureType::Buffer;
         res.descriptorType = DescriptorType::ReadWriteBuffer;
 
         res.variableType.columns = 1;
@@ -1451,25 +1451,27 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
           const Image &imageType = imageTypes[imageTypeId];
 
           if(imageType.ms)
-            res.resType =
+            res.textureType =
                 imageType.arrayed ? TextureType::Texture2DMSArray : TextureType::Texture2DMS;
           else if(imageType.dim == rdcspv::Dim::_1D)
-            res.resType = imageType.arrayed ? TextureType::Texture1DArray : TextureType::Texture1D;
+            res.textureType =
+                imageType.arrayed ? TextureType::Texture1DArray : TextureType::Texture1D;
           else if(imageType.dim == rdcspv::Dim::_2D)
-            res.resType = imageType.arrayed ? TextureType::Texture2DArray : TextureType::Texture2D;
+            res.textureType =
+                imageType.arrayed ? TextureType::Texture2DArray : TextureType::Texture2D;
           else if(imageType.dim == rdcspv::Dim::Cube)
-            res.resType =
+            res.textureType =
                 imageType.arrayed ? TextureType::TextureCubeArray : TextureType::TextureCube;
           else if(imageType.dim == rdcspv::Dim::_3D)
-            res.resType = TextureType::Texture3D;
+            res.textureType = TextureType::Texture3D;
           else if(imageType.dim == rdcspv::Dim::Rect)
-            res.resType = TextureType::TextureRect;
+            res.textureType = TextureType::TextureRect;
           else if(imageType.dim == rdcspv::Dim::Buffer)
-            res.resType = TextureType::Buffer;
+            res.textureType = TextureType::Buffer;
           else if(imageType.dim == rdcspv::Dim::SubpassData)
-            res.resType = TextureType::Texture2D;
+            res.textureType = TextureType::Texture2D;
 
-          res.isTexture = res.resType != TextureType::Buffer;
+          res.isTexture = res.textureType != TextureType::Buffer;
           res.isReadOnly = imageType.sampled != 2 || imageType.dim == rdcspv::Dim::SubpassData;
           res.isInputAttachment = imageType.dim == rdcspv::Dim::SubpassData;
 
@@ -1561,7 +1563,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
             res.name = strings[global.id];
             if(res.name.empty())
               res.name = StringFormat::Fmt("ssbo%u", global.id.value());
-            res.resType = TextureType::Buffer;
+            res.textureType = TextureType::Buffer;
             res.descriptorType = DescriptorType::ReadWriteBuffer;
 
             res.fixedBindNumber = bind;
