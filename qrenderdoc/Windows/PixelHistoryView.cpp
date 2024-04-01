@@ -310,7 +310,7 @@ public:
             }
             if(mod.directShaderWrite)
               return tr("Tex Before\n\n") + modString(mod.preMod);
-            return tr("Shader Out\n\n") + modString(mod.shaderOut);
+            return tr("Shader Out\n\n") + modString(mod.shaderOut, true);
           }
         }
 
@@ -537,7 +537,7 @@ private:
                                   (int)(255.0f * b + 0.5f)));
   }
 
-  QString modString(const ModificationValue &val) const
+  QString modString(const ModificationValue &val, bool forceShowAlpha = false) const
   {
     QString s;
 
@@ -564,6 +564,21 @@ private:
       {
         for(int i = 0; i < numComps; i++)
           s += colourLetterPrefix[i] + Formatter::Format(val.col.floatValue[i]) + lit("\n");
+      }
+      if(forceShowAlpha && numComps < 4)
+      {
+        if(m_IsUint)
+        {
+          s += colourLetterPrefix[3] + Formatter::Format(val.col.uintValue[3]) + lit("\n");
+        }
+        else if(m_IsSint)
+        {
+          s += colourLetterPrefix[3] + Formatter::Format(val.col.intValue[3]) + lit("\n");
+        }
+        else
+        {
+          s += colourLetterPrefix[3] + Formatter::Format(val.col.floatValue[3]) + lit("\n");
+        }
       }
     }
 
