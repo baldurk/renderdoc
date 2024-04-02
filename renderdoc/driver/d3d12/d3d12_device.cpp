@@ -4978,14 +4978,22 @@ void WrappedID3D12Device::ReplayDraw(ID3D12GraphicsCommandListX *cmd, const Acti
   if(action.drawIndex == 0)
   {
     if(action.flags & ActionFlags::MeshDispatch)
+    {
       cmd->DispatchMesh(action.dispatchDimension[0], action.dispatchDimension[1],
                         action.dispatchDimension[2]);
+    }
     else if(action.flags & ActionFlags::Indexed)
+    {
+      RDCASSERT(action.flags & ActionFlags::Drawcall);
       cmd->DrawIndexedInstanced(action.numIndices, action.numInstances, action.indexOffset,
                                 action.baseVertex, action.instanceOffset);
+    }
     else
+    {
+      RDCASSERT(action.flags & ActionFlags::Drawcall);
       cmd->DrawInstanced(action.numIndices, action.numInstances, action.vertexOffset,
                          action.instanceOffset);
+    }
   }
   else
   {

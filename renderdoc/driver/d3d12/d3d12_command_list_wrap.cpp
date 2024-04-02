@@ -4056,19 +4056,33 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
             m_Cmd->m_IndirectData.commandSig = pCommandSignature;
             m_Cmd->m_IndirectData.argsBuffer = patched.first;
             m_Cmd->m_IndirectData.argsOffset = patched.second;
+            ActionFlags drawType =
+                comSig->sig.graphics ? ActionFlags::Drawcall : ActionFlags::Dispatch;
 
-            uint32_t eventId = m_Cmd->HandlePreCallback(list, ActionFlags::Drawcall,
-                                                        (i + 1) * comSig->sig.arguments.count());
+            uint32_t eventId =
+                m_Cmd->HandlePreCallback(list, drawType, (i + 1) * comSig->sig.arguments.count());
 
             // action up to and including i. The previous draws will be nop'd out
             Unwrap(list)->ExecuteIndirect(Unwrap(pCommandSignature), 1, Unwrap(patched.first),
                                           patched.second, NULL, 0);
 
-            if(eventId && m_Cmd->m_ActionCallback->PostDraw(eventId, list))
+            if(drawType == ActionFlags::Drawcall)
             {
-              Unwrap(list)->ExecuteIndirect(Unwrap(pCommandSignature), 1, Unwrap(patched.first),
-                                            patched.second, NULL, 0);
-              m_Cmd->m_ActionCallback->PostRedraw(eventId, list);
+              if(eventId && m_Cmd->m_ActionCallback->PostDraw(eventId, list))
+              {
+                Unwrap(list)->ExecuteIndirect(Unwrap(pCommandSignature), 1, Unwrap(patched.first),
+                                              patched.second, NULL, 0);
+                m_Cmd->m_ActionCallback->PostRedraw(eventId, list);
+              }
+            }
+            else
+            {
+              if(eventId && m_Cmd->m_ActionCallback->PostDispatch(eventId, list))
+              {
+                Unwrap(list)->ExecuteIndirect(Unwrap(pCommandSignature), 1, Unwrap(patched.first),
+                                              patched.second, NULL, 0);
+                m_Cmd->m_ActionCallback->PostRedispatch(eventId, list);
+              }
             }
 
             m_Cmd->m_IndirectData.commandSig = NULL;
