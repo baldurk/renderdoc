@@ -529,6 +529,14 @@ private:
     g = qBound(0.0f, (g - m_Display.rangeMin) / rangesize, 1.0f);
     b = qBound(0.0f, (b - m_Display.rangeMin) / rangesize, 1.0f);
 
+    int numComps = (int)(m_Tex->format.compCount);
+    if(numComps < 3)
+    {
+      b = 0.0f;
+      if(numComps < 2)
+        g = 0.0f;
+    }
+
     if(m_IsDepth)
       r = g = b = qBound(0.0f, (val.depth - m_Display.rangeMin) / rangesize, 1.0f);
 
