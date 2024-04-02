@@ -82,7 +82,7 @@ layout(location = 0) in v2f vertIn;
 layout(location = 0, index = 0) out vec4 Color;
 layout(location = 1, index = 0) out vec4 Color1;
 
-layout(set = 2, binding = 0) uniform sampler2D smiley[16];
+layout(set = 1, binding = 0) uniform sampler2D smiley[16];
 
 layout(constant_id = 1) const int spec_canary = 0;
 
@@ -149,14 +149,14 @@ void main()
       layoutFlags = VK_PIPELINE_LAYOUT_CREATE_INDEPENDENT_SETS_BIT_EXT;
 
     VkPipelineLayout vlayout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
-        {vsetlayout, VK_NULL_HANDLE, VK_NULL_HANDLE},
-        {vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 0, 4)}, layoutFlags));
+        {vsetlayout, VK_NULL_HANDLE}, {vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 0, 4)},
+        layoutFlags));
     VkPipelineLayout flayout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
-        {VK_NULL_HANDLE, VK_NULL_HANDLE, fsetlayout},
-        {vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 0, 4)}, layoutFlags));
+        {VK_NULL_HANDLE, fsetlayout}, {vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 0, 4)},
+        layoutFlags));
     VkPipelineLayout fulllayout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
-        {vsetlayout, VK_NULL_HANDLE, fsetlayout},
-        {vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 0, 4)}, layoutFlags));
+        {vsetlayout, fsetlayout}, {vkh::PushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, 0, 4)},
+        layoutFlags));
 
     vkh::RenderPassCreator renderPassCreateInfo;
 
@@ -202,6 +202,7 @@ void main()
     info->pMultisampleState = NULL;
     info->pDepthStencilState = NULL;
     info->pColorBlendState = NULL;
+    info->flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR;
     libList[0] = createGraphicsPipeline(info);
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {};
@@ -223,8 +224,8 @@ void main()
     libInfo.flags = VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT;
     info = pipeCreateInfo;
     info->pTessellationState = NULL;
-    info->pViewportState = NULL;
     info->pMultisampleState = NULL;
+    info->flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR;
     libList[1] = createGraphicsPipeline(info);
 
     spirv = ::CompileShaderToSpv(pixel, SPIRVTarget::vulkan12, ShaderLang::glsl, ShaderStage::frag,
@@ -260,8 +261,8 @@ void main()
     info->pRasterizationState = NULL;
     info->pTessellationState = NULL;
     info->pViewportState = NULL;
-    info->pDepthStencilState = NULL;
     info->pColorBlendState = NULL;
+    info->flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR;
     libList[2] = createGraphicsPipeline(info);
 
     pipeCreateInfo.stages = {};
@@ -291,6 +292,7 @@ void main()
     info->pTessellationState = NULL;
     info->pViewportState = NULL;
     info->pRasterizationState = NULL;
+    info->flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR;
     libList[3] = createGraphicsPipeline(info);
 
     VkPipelineLibraryCreateInfoKHR libs = {};
@@ -300,6 +302,7 @@ void main()
 
     VkGraphicsPipelineCreateInfo linkedPipeInfo = {};
     linkedPipeInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    linkedPipeInfo.layout = fulllayout;
     linkedPipeInfo.pNext = &libs;
 
     VkPipeline pipe = createGraphicsPipeline(&linkedPipeInfo);
@@ -468,7 +471,7 @@ void main()
       vkCmdSetViewport(cmd, 0, 1, &mainWindow->viewport);
       vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
       vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, fulllayout, 0, {vdescset}, {});
-      vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, fulllayout, 2, {fdescset}, {});
+      vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, fulllayout, 1, {fdescset}, {});
       vkCmdDraw(cmd, 3, 1, 0, 0);
 
       vkCmdEndRenderPass(cmd);
