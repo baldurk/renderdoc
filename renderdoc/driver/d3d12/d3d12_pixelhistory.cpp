@@ -1213,42 +1213,47 @@ private:
       return;
 
     // Get the bound depth format for this event
-    ResourceId resId = m_SavedState.dsv.GetResResourceId();
-    if(resId != ResourceId())
+    WrappedID3D12PipelineState *pipe =
+        m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(m_SavedState.pipe);
+    if(pipe && pipe->IsGraphics())
     {
-      WrappedID3D12Resource *depthImage =
-          m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Resource>(resId);
-
-      DXGI_FORMAT depthFormat = m_SavedState.dsv.GetDSV().Format;
-      // Descriptors with unknown type are valid and indicate to use the resource's format
-      if(depthFormat == DXGI_FORMAT_UNKNOWN)
-        depthFormat = depthImage->GetDesc().Format;
-
-      D3D12CopyPixelParams depthCopyParams = targetCopyParams;
-      depthCopyParams.srcImage = depthImage;
-      depthCopyParams.srcImageFormat = GetDepthSRVFormat(depthFormat, 0);
-      depthCopyParams.copyFormat = GetDepthCopyFormat(depthFormat);
-      depthCopyParams.depthcopy = true;
-      fallback = m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH
-                     ? D3D12_RESOURCE_STATE_DEPTH_READ
-                     : D3D12_RESOURCE_STATE_DEPTH_WRITE;
-      depthCopyParams.srcImageState = rtOutput ? fallback : nonRtFallback;
-      CopyImagePixel(cmd, depthCopyParams, offset + offsetof(struct D3D12PixelHistoryValue, depth));
-
-      if(IsDepthAndStencilFormat(depthFormat))
+      ResourceId resId = m_SavedState.dsv.GetResResourceId();
+      if(resId != ResourceId())
       {
-        depthCopyParams.srcImageFormat = GetDepthSRVFormat(depthFormat, 1);
-        depthCopyParams.copyFormat = DXGI_FORMAT_R8_TYPELESS;
-        depthCopyParams.planeSlice = 1;
-        fallback = m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_STENCIL
+        WrappedID3D12Resource *depthImage =
+            m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Resource>(resId);
+
+        DXGI_FORMAT depthFormat = m_SavedState.dsv.GetDSV().Format;
+        // Descriptors with unknown type are valid and indicate to use the resource's format
+        if(depthFormat == DXGI_FORMAT_UNKNOWN)
+          depthFormat = depthImage->GetDesc().Format;
+
+        D3D12CopyPixelParams depthCopyParams = targetCopyParams;
+        depthCopyParams.srcImage = depthImage;
+        depthCopyParams.srcImageFormat = GetDepthSRVFormat(depthFormat, 0);
+        depthCopyParams.copyFormat = GetDepthCopyFormat(depthFormat);
+        depthCopyParams.depthcopy = true;
+        fallback = m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH
                        ? D3D12_RESOURCE_STATE_DEPTH_READ
                        : D3D12_RESOURCE_STATE_DEPTH_WRITE;
         depthCopyParams.srcImageState = rtOutput ? fallback : nonRtFallback;
-        CopyImagePixel(cmd, depthCopyParams,
-                       offset + offsetof(struct D3D12PixelHistoryValue, stencil));
-      }
+        CopyImagePixel(cmd, depthCopyParams, offset + offsetof(struct D3D12PixelHistoryValue, depth));
 
-      m_DepthFormats.insert(std::make_pair(eid, depthFormat));
+        if(IsDepthAndStencilFormat(depthFormat))
+        {
+          depthCopyParams.srcImageFormat = GetDepthSRVFormat(depthFormat, 1);
+          depthCopyParams.copyFormat = DXGI_FORMAT_R8_TYPELESS;
+          depthCopyParams.planeSlice = 1;
+          fallback = m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_STENCIL
+                         ? D3D12_RESOURCE_STATE_DEPTH_READ
+                         : D3D12_RESOURCE_STATE_DEPTH_WRITE;
+          depthCopyParams.srcImageState = rtOutput ? fallback : nonRtFallback;
+          CopyImagePixel(cmd, depthCopyParams,
+                         offset + offsetof(struct D3D12PixelHistoryValue, stencil));
+        }
+
+        m_DepthFormats.insert(std::make_pair(eid, depthFormat));
+      }
     }
   }
 
