@@ -938,6 +938,12 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
               StringFormat::Fmt("_%s%u", isInput ? "input" : "output", decorations[v.id].location);
         else
           sourceName = StringFormat::Fmt("_sig%u", v.id.value());
+
+        for(const DecorationAndParamData &d : decorations[v.id].others)
+        {
+          if(d.value == Decoration::Component)
+            sourceName += StringFormat::Fmt("_%u", d.component);
+        }
       }
 
       const DataType &type = dataTypes[v.type];

@@ -1204,6 +1204,12 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
                                    decorations[global.id].location);
         else
           name = StringFormat::Fmt("_sig%u", global.id.value());
+
+        for(const DecorationAndParamData &d : decorations[global.id].others)
+        {
+          if(d.value == Decoration::Component)
+            name += StringFormat::Fmt("_%u", d.component);
+        }
       }
 
       const bool used = usedIds.find(global.id) != usedIds.end();
