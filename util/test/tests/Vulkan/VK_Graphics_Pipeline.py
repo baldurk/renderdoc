@@ -68,7 +68,7 @@ class VK_Graphics_Pipeline(rdtest.TestCase):
 
         vkpipe = self.controller.GetVulkanPipelineState()
 
-        binding = vkpipe.graphics.descriptorSets[2].bindings[0]
+        binding = vkpipe.graphics.descriptorSets[1].bindings[0]
 
         if binding.dynamicallyUsedCount != 1:
             raise rdtest.TestFailureException("Bind 0 doesn't have the right used count {}"
