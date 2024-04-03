@@ -819,9 +819,14 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
             it != record->bakedCommands->cmdInfo->boundDescs.end(); ++it)
         {
           rdcpair<D3D12Descriptor *, UINT> &descRange = *it;
+          WrappedID3D12DescriptorHeap *heap = descRange.first->GetHeap();
+          D3D12Descriptor *end = heap->GetDescriptors() + heap->GetNumDescriptors();
           for(UINT d = 0; d < descRange.second; ++d)
           {
             D3D12Descriptor *desc = descRange.first + d;
+
+            if(desc >= end)
+              break;
 
             ResourceId id, id2;
             FrameRefType ref = eFrameRef_Read;
