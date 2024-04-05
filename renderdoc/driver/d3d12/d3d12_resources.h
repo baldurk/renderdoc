@@ -337,7 +337,6 @@ class WrappedID3D12CommandAllocator : public WrappedDeviceChild12<ID3D12CommandA
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12CommandAllocator);
 
-  ChunkAllocator *alloc = NULL;
   bool m_Internal = false;
 
   enum
@@ -359,8 +358,8 @@ public:
   {
     // reset the allocator. D3D12 munges the pool and the allocator together, so the allocator
     // becomes redundant as the only pool client and the pool is reset together.
-    if(Atomic::CmpExch32(&m_ResetEnabled, 1, 1) == 1 && alloc)
-      alloc->Reset();
+    if(Atomic::CmpExch32(&m_ResetEnabled, 1, 1) == 1 && m_pRecord && m_pRecord->cmdInfo->alloc)
+      m_pRecord->cmdInfo->alloc->Reset();
     return m_pReal->Reset();
   }
 };
