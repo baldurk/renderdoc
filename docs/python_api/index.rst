@@ -35,6 +35,7 @@ Each example has a simple motivating goal and shows how to achieve it using the 
     examples/qrenderdoc_intro
     dev_environment
     ui_extensions
+    descriptors_bindings
     examples/basics
     examples/renderdoc/index
     examples/qrenderdoc/index
