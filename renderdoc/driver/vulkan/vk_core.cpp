@@ -206,7 +206,10 @@ WrappedVulkan::~WrappedVulkan()
   }
 
   for(size_t i = 0; i < m_Partial.commandTree.size(); i++)
+  {
+    m_Partial.commandTree[i]->DeleteChildren();
     delete m_Partial.commandTree[i];
+  }
 
   delete m_Replay;
 }

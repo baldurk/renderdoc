@@ -662,6 +662,15 @@ private:
     rdcarray<CommandBufferNode *> childCmdNodes;
     CommandBufferNode *rootNode = NULL;
     bool renderPassActive = false;
+
+    void DeleteChildren()
+    {
+      for(CommandBufferNode *child : childCmdNodes)
+      {
+        child->DeleteChildren();
+        delete child;
+      }
+    }
   };
 
   // CommandBufferExecuteInfo tracks the position of the execution of a secondary command buffer
