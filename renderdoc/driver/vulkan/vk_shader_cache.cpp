@@ -1047,7 +1047,7 @@ void VulkanShaderCache::MakeComputePipelineInfo(VkComputePipelineCreateInfo &pip
 
   specdata.resize(specEntries);
   specMapEntries.resize(specEntries);
-  VkSpecializationMapEntry *entry = &specMapEntries[0];
+  VkSpecializationMapEntry *entry = specMapEntries.data();
 
   stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   stage.stage = (VkShaderStageFlagBits)(1 << i);
