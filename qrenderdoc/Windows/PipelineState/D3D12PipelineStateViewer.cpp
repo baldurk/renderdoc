@@ -1136,7 +1136,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, RD
   ShaderReflection *shaderDetails = stage.reflection;
   const D3D12Pipe::State &state = *m_Ctx.CurD3D12PipelineState();
 
-  rootSig->setText(ToQStr(state.rootSignatureResourceId));
+  rootSig->setText(ToQStr(state.rootSignature.resourceId));
 
   QString shText = ToQStr(stage.resourceId);
 

@@ -177,6 +177,10 @@ public:
   TextureDescription *GetTexture(ResourceId id) override { return m_Textures[id]; }
   const rdcarray<TextureDescription> &GetTextures() override { return m_TextureList; }
   BufferDescription *GetBuffer(ResourceId id) override { return m_Buffers[id]; }
+  DescriptorStoreDescription *GetDescriptorStore(ResourceId id) override
+  {
+    return m_DescriptorStores[id];
+  }
   const rdcarray<BufferDescription> &GetBuffers() const override { return m_BufferList; }
   const ActionDescription *GetAction(uint32_t eventId) override
   {
@@ -374,6 +378,8 @@ private:
   rdcarray<TextureDescription> m_TextureList;
   QMap<ResourceId, BufferDescription *> m_Buffers;
   rdcarray<BufferDescription> m_BufferList;
+  QMap<ResourceId, DescriptorStoreDescription *> m_DescriptorStores;
+  rdcarray<DescriptorStoreDescription> m_DescriptorStoreList;
   QMap<ResourceId, ResourceDescription *> m_Resources;
   rdcarray<ResourceDescription> m_ResourceList;
 

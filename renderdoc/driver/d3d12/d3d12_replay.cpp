@@ -350,6 +350,16 @@ rdcarray<ResourceDescription> D3D12Replay::GetResources()
   return m_Resources;
 }
 
+rdcarray<DescriptorStoreDescription> D3D12Replay::GetDescriptorStores()
+{
+  return m_DescriptorStores;
+}
+
+void D3D12Replay::RegisterDescriptorStore(const DescriptorStoreDescription &desc)
+{
+  m_DescriptorStores.push_back(desc);
+}
+
 rdcarray<BufferDescription> D3D12Replay::GetBuffers()
 {
   rdcarray<BufferDescription> ret;
@@ -1049,19 +1059,58 @@ void D3D12Replay::FillSamplerDescriptor(SamplerDescriptor &dst, const D3D12_SAMP
   dst.mipBias = src.MipLODBias;
 }
 
-ShaderStageMask ToShaderStageMask(D3D12_SHADER_VISIBILITY vis)
+void D3D12Replay::FillRootDescriptor(Descriptor &dst, const D3D12RenderState::SignatureElement &src)
 {
-  switch(vis)
+  D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
+
+  if(src.type == eRootCBV)
   {
-    case D3D12_SHADER_VISIBILITY_ALL: return ShaderStageMask::All;
-    case D3D12_SHADER_VISIBILITY_VERTEX: return ShaderStageMask::Vertex;
-    case D3D12_SHADER_VISIBILITY_HULL: return ShaderStageMask::Hull;
-    case D3D12_SHADER_VISIBILITY_DOMAIN: return ShaderStageMask::Domain;
-    case D3D12_SHADER_VISIBILITY_GEOMETRY: return ShaderStageMask::Geometry;
-    case D3D12_SHADER_VISIBILITY_PIXEL: return ShaderStageMask::Pixel;
-    case D3D12_SHADER_VISIBILITY_AMPLIFICATION: return ShaderStageMask::Amplification;
-    case D3D12_SHADER_VISIBILITY_MESH: return ShaderStageMask::Mesh;
-    default: return ShaderStageMask::Unknown;
+    dst.type = DescriptorType::ConstantBuffer;
+
+    ID3D12Resource *buf = rm->GetCurrentAs<ID3D12Resource>(src.id);
+
+    dst.resource = rm->GetOriginalID(src.id);
+    dst.byteOffset = src.offset;
+    if(buf)
+      dst.byteSize = uint32_t(buf->GetDesc().Width - dst.byteOffset);
+    else
+      dst.byteSize = 0;
+  }
+  else if(src.type == eRootSRV)
+  {
+    dst.type = DescriptorType::Buffer;
+
+    ID3D12Resource *buf = rm->GetCurrentAs<ID3D12Resource>(src.id);
+
+    // parameters from resource/view
+    dst.resource = rm->GetOriginalID(src.id);
+    dst.textureType = TextureType::Buffer;
+    dst.format = MakeResourceFormat(DXGI_FORMAT_R32_UINT);
+
+    dst.elementByteSize = sizeof(uint32_t);
+    dst.byteOffset = src.offset;
+    if(buf)
+      dst.byteSize = uint32_t(buf->GetDesc().Width - src.offset);
+    else
+      dst.byteSize = 0;
+  }
+  else if(src.type == eRootUAV)
+  {
+    dst.type = DescriptorType::ReadWriteBuffer;
+
+    ID3D12Resource *buf = rm->GetCurrentAs<ID3D12Resource>(src.id);
+
+    // parameters from resource/view
+    dst.resource = rm->GetOriginalID(src.id);
+    dst.textureType = TextureType::Buffer;
+    dst.format = MakeResourceFormat(DXGI_FORMAT_R32_UINT);
+
+    dst.elementByteSize = sizeof(uint32_t);
+    dst.byteOffset = src.offset;
+    if(buf)
+      dst.byteSize = uint32_t(buf->GetDesc().Width - src.offset);
+    else
+      dst.byteSize = 0;
   }
 }
 
@@ -1211,10 +1260,136 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
   // Root Signature
   /////////////////////////////////////////////////
   {
-    if(pipe && pipe->IsCompute())
-      state.rootSignatureResourceId = rm->GetOriginalID(rs.compute.rootsig);
-    else if(pipe)
-      state.rootSignatureResourceId = rm->GetOriginalID(rs.graphics.rootsig);
+    const D3D12RenderState::RootSignature &sig =
+        (pipe && pipe->IsCompute()) ? rs.compute : rs.graphics;
+    const rdcarray<D3D12RenderState::SignatureElement> &rootElems = sig.sigelems;
+
+    WrappedID3D12RootSignature *rootSig = rm->GetCurrentAs<WrappedID3D12RootSignature>(sig.rootsig);
+
+    state.rootSignature.resourceId = rm->GetOriginalID(GetResID(rootSig));
+    state.rootSignature.parameters.clear();
+    state.rootSignature.staticSamplers.clear();
+
+    if(rootSig)
+    {
+      state.rootSignature.parameters.reserve(rootSig->sig.Parameters.size());
+      for(size_t i = 0; i < rootSig->sig.Parameters.size(); i++)
+      {
+        const D3D12RootSignatureParameter &src = rootSig->sig.Parameters[i];
+        D3D12Pipe::RootParam dst;
+        dst.visibility = ConvertVisibility(src.ShaderVisibility);
+
+        switch(src.ParameterType)
+        {
+          case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
+          {
+            if(i < rootElems.size())
+            {
+              dst.heap = rm->GetOriginalID(rootElems[i].id);
+              dst.heapByteOffset = (uint32_t)rootElems[i].offset;
+            }
+
+            UINT prevTableOffset = 0;
+
+            dst.tableRanges.reserve(src.DescriptorTable.NumDescriptorRanges);
+            for(UINT r = 0; r < src.DescriptorTable.NumDescriptorRanges; r++)
+            {
+              const D3D12_DESCRIPTOR_RANGE1 &srcRange = src.DescriptorTable.pDescriptorRanges[r];
+
+              D3D12Pipe::RootTableRange range;
+
+              switch(srcRange.RangeType)
+              {
+                case D3D12_DESCRIPTOR_RANGE_TYPE_CBV:
+                  range.category = DescriptorCategory::ConstantBlock;
+                  break;
+                case D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER:
+                  range.category = DescriptorCategory::Sampler;
+                  break;
+                case D3D12_DESCRIPTOR_RANGE_TYPE_SRV:
+                  range.category = DescriptorCategory::ReadOnlyResource;
+                  break;
+                case D3D12_DESCRIPTOR_RANGE_TYPE_UAV:
+                  range.category = DescriptorCategory::ReadWriteResource;
+                  break;
+              }
+
+              UINT offset = srcRange.OffsetInDescriptorsFromTableStart;
+
+              if(srcRange.OffsetInDescriptorsFromTableStart == D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND)
+              {
+                range.appended = true;
+                offset = prevTableOffset;
+              }
+
+              range.space = srcRange.RegisterSpace;
+              range.baseRegister = srcRange.BaseShaderRegister;
+              range.count = srcRange.NumDescriptors;
+              range.tableByteOffset = offset;
+
+              prevTableOffset = offset + srcRange.NumDescriptors;
+
+              dst.tableRanges.push_back(range);
+            }
+
+            break;
+          }
+          case D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS:
+          {
+            dst.constants.resize(src.Constants.Num32BitValues * 4);
+
+            if(i < rootElems.size())
+            {
+              memcpy(dst.constants.data(), rootElems[i].constants.data(),
+                     RDCMIN(rootElems[i].constants.byteSize(), dst.constants.byteSize()));
+            }
+
+            break;
+          }
+          case D3D12_ROOT_PARAMETER_TYPE_CBV:
+          {
+            dst.descriptor.type = DescriptorType::ConstantBuffer;
+
+            if(i < rootElems.size())
+              FillRootDescriptor(dst.descriptor, rootElems[i]);
+            break;
+
+            case D3D12_ROOT_PARAMETER_TYPE_SRV:
+            {
+              dst.descriptor.type = DescriptorType::Buffer;
+
+              if(i < rootElems.size())
+                FillRootDescriptor(dst.descriptor, rootElems[i]);
+              break;
+            }
+            case D3D12_ROOT_PARAMETER_TYPE_UAV:
+            {
+              dst.descriptor.type = DescriptorType::ReadWriteBuffer;
+
+              if(i < rootElems.size())
+                FillRootDescriptor(dst.descriptor, rootElems[i]);
+              break;
+            }
+          }
+        }
+
+        state.rootSignature.parameters.push_back(std::move(dst));
+      }
+
+      state.rootSignature.staticSamplers.reserve(rootSig->sig.StaticSamplers.size());
+      for(const D3D12_STATIC_SAMPLER_DESC1 &src : rootSig->sig.StaticSamplers)
+      {
+        D3D12Pipe::StaticSampler dst;
+        dst.visibility = ConvertVisibility(src.ShaderVisibility);
+
+        dst.space = src.RegisterSpace;
+        dst.reg = src.ShaderRegister;
+
+        FillSamplerDescriptor(dst.descriptor, ConvertStaticSampler(src));
+
+        state.rootSignature.staticSamplers.push_back(std::move(dst));
+      }
+    }
   }
 
   state.descriptorHeaps.clear();
@@ -1488,6 +1663,8 @@ rdcarray<Descriptor> D3D12Replay::GetDescriptors(ResourceId descriptorStore,
   if(WrappedID3D12RootSignature::IsAlloc(res))
   {
     // root signature descriptor storage is for static samplers
+    for(Descriptor &d : ret)
+      d.type = DescriptorType::Sampler;
     return ret;
   }
 
@@ -1532,54 +1709,9 @@ rdcarray<Descriptor> D3D12Replay::GetDescriptors(ResourceId descriptorStore,
               d.byteOffset += rootElems[root].constants.byteSize();
           d.byteSize = rootEl.constants.byteSize();
         }
-        else if(rootEl.type == eRootCBV)
+        else
         {
-          d.type = DescriptorType::ConstantBuffer;
-
-          ID3D12Resource *buf = rm->GetCurrentAs<ID3D12Resource>(rootEl.id);
-
-          d.resource = rm->GetOriginalID(rootEl.id);
-          d.byteOffset = rootEl.offset;
-          if(buf)
-            d.byteSize = uint32_t(buf->GetDesc().Width - d.byteOffset);
-          else
-            d.byteSize = 0;
-        }
-        else if(rootEl.type == eRootSRV)
-        {
-          d.type = DescriptorType::Buffer;
-
-          ID3D12Resource *buf = rm->GetCurrentAs<ID3D12Resource>(rootEl.id);
-
-          // parameters from resource/view
-          d.resource = rm->GetOriginalID(rootEl.id);
-          d.textureType = TextureType::Buffer;
-          d.format = MakeResourceFormat(DXGI_FORMAT_R32_UINT);
-
-          d.elementByteSize = sizeof(uint32_t);
-          d.byteOffset = rootEl.offset;
-          if(buf)
-            d.byteSize = uint32_t(buf->GetDesc().Width - rootEl.offset);
-          else
-            d.byteSize = 0;
-        }
-        else if(rootEl.type == eRootUAV)
-        {
-          d.type = DescriptorType::ReadWriteBuffer;
-
-          ID3D12Resource *buf = rm->GetCurrentAs<ID3D12Resource>(rootEl.id);
-
-          // parameters from resource/view
-          d.resource = rm->GetOriginalID(rootEl.id);
-          d.textureType = TextureType::Buffer;
-          d.format = MakeResourceFormat(DXGI_FORMAT_R32_UINT);
-
-          d.elementByteSize = sizeof(uint32_t);
-          d.byteOffset = rootEl.offset;
-          if(buf)
-            d.byteSize = uint32_t(buf->GetDesc().Width - rootEl.offset);
-          else
-            d.byteSize = 0;
+          FillRootDescriptor(d, rootEl);
         }
       }
     }
@@ -1618,7 +1750,11 @@ rdcarray<Descriptor> D3D12Replay::GetDescriptors(ResourceId descriptorStore,
         ret[dst].resource = rm->GetOriginalID(ret[dst].resource);
         ret[dst].byteSize = cbv.SizeInBytes;
       }
-      else if(desc->GetType() != D3D12DescriptorType::Sampler)
+      else if(desc->GetType() == D3D12DescriptorType::Sampler)
+      {
+        ret[dst].type = DescriptorType::Sampler;
+      }
+      else
       {
         FillDescriptor(ret[dst], desc);
       }
@@ -1834,7 +1970,7 @@ rdcarray<DescriptorLogicalLocation> D3D12Replay::GetDescriptorLocations(
         else
         {
           ret[dst].fixedBindNumber = ~0U - 2048 + staticIdx;
-          ret[dst].stageMask = ToShaderStageMask(sig->sig.StaticSamplers[staticIdx].ShaderVisibility);
+          ret[dst].stageMask = ConvertVisibility(sig->sig.StaticSamplers[staticIdx].ShaderVisibility);
           ret[dst].category = DescriptorCategory::Sampler;
           ret[dst].logicalBindName = StringFormat::Fmt("Static #%u", staticIdx);
         }
@@ -1867,7 +2003,7 @@ rdcarray<DescriptorLogicalLocation> D3D12Replay::GetDescriptorLocations(
         DescriptorLogicalLocation &l = ret[dst];
 
         l.fixedBindNumber = ~0U - 2048 - 64 + rootIndex;
-        l.stageMask = ToShaderStageMask(param.ShaderVisibility);
+        l.stageMask = ConvertVisibility(param.ShaderVisibility);
 
         if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
         {
@@ -3238,7 +3374,7 @@ void D3D12Replay::FillCBufferVariables(ResourceId pipeline, ResourceId shader, S
     const D3D12RootSignatureParameter &p = sig->sig.Parameters[i];
 
     if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS &&
-       (ToShaderStageMask(p.ShaderVisibility) & reflMask) &&
+       (ConvertVisibility(p.ShaderVisibility) & reflMask) &&
        p.Constants.RegisterSpace == c.fixedBindSetOrSpace &&
        p.Constants.ShaderRegister == c.fixedBindNumber)
     {

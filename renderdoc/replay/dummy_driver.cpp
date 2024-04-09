@@ -32,6 +32,7 @@ DummyDriver::DummyDriver(IReplayDriver *original, const rdcarray<ShaderReflectio
 
   m_Props = original->GetAPIProperties();
   m_Resources = original->GetResources();
+  m_DescriptorStores = original->GetDescriptorStores();
   m_Buffers = original->GetBuffers();
   m_Textures = original->GetTextures();
   m_FrameRecord = original->GetFrameRecord();
@@ -68,6 +69,11 @@ APIProperties DummyDriver::GetAPIProperties()
 rdcarray<ResourceDescription> DummyDriver::GetResources()
 {
   return m_Resources;
+}
+
+rdcarray<DescriptorStoreDescription> DummyDriver::GetDescriptorStores()
+{
+  return m_DescriptorStores;
 }
 
 rdcarray<BufferDescription> DummyDriver::GetBuffers()

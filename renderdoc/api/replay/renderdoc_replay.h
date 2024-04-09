@@ -850,6 +850,13 @@ are only used as intermediary elements.
 )");
   virtual const rdcarray<BufferDescription> &GetBuffers() = 0;
 
+  DOCUMENT(R"(Retrieve the list of descriptor storage objects alive in the capture.
+
+:return: The list of descriptor storage objects in the capture.
+:rtype: List[DescriptorStoreDescription]
+)");
+  virtual const rdcarray<DescriptorStoreDescription> &GetDescriptorStores() = 0;
+
   DOCUMENT(R"(Retrieve a list of any newly generated diagnostic messages.
 
 Every time this function is called, any debug messages returned will not be returned again. Only

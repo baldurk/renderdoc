@@ -550,6 +550,219 @@ struct ResourceData
   rdcarray<ResourceState> states;
 };
 
+DOCUMENT("Contains the structure of a single range within a root table definition.");
+struct RootTableRange
+{
+  DOCUMENT("");
+  RootTableRange() = default;
+  RootTableRange(const RootTableRange &) = default;
+  RootTableRange &operator=(const RootTableRange &) = default;
+
+  bool operator==(const RootTableRange &o) const
+  {
+    return category == o.category && space == o.space && baseRegister == o.baseRegister &&
+           count == o.count && tableByteOffset == o.tableByteOffset;
+  }
+  bool operator<(const RootTableRange &o) const
+  {
+    if(!(category == o.category))
+      return category < o.category;
+    if(!(space == o.space))
+      return space < o.space;
+    if(!(baseRegister == o.baseRegister))
+      return baseRegister < o.baseRegister;
+    if(!(count == o.count))
+      return count < o.count;
+    if(!(tableByteOffset == o.tableByteOffset))
+      return tableByteOffset < o.tableByteOffset;
+    return false;
+  }
+  DOCUMENT(R"(The descriptor category specified in this range.
+
+:type: DescriptorCategory
+)");
+  DescriptorCategory category = DescriptorCategory::Unknown;
+
+  DOCUMENT(R"(The register space of this range.
+
+:type: int
+)");
+  uint32_t space = 0;
+
+  DOCUMENT(R"(The first register in this range.
+
+:type: int
+)");
+  uint32_t baseRegister = 0;
+
+  DOCUMENT(R"(The number of registers in this range.
+
+:type: int
+)");
+  uint32_t count = 0;
+
+  DOCUMENT(R"(The offset in bytes from the start of the table as defined in :class:`D3D12RootParam`.
+
+:type: int
+)");
+  uint32_t tableByteOffset = 0;
+
+  DOCUMENT(R"(Whether or not this table was appended after the previous, leading to an auto-calculated
+offset in :data:`tableByteOffset`.
+
+:type: bool
+)");
+  bool appended = false;
+};
+
+DOCUMENT("Contains the structure and content of a single root parameter.");
+struct RootParam
+{
+  DOCUMENT("");
+  RootParam() = default;
+  RootParam(const RootParam &) = default;
+  RootParam &operator=(const RootParam &) = default;
+
+  bool operator==(const RootParam &o) const
+  {
+    return visibility == o.visibility && heap == o.heap && heapByteOffset == o.heapByteOffset &&
+           tableRanges == o.tableRanges && descriptor == o.descriptor && constants == o.constants;
+  }
+  bool operator<(const RootParam &o) const
+  {
+    if(!(visibility == o.visibility))
+      return visibility < o.visibility;
+    if(!(heap == o.heap))
+      return heap < o.heap;
+    if(!(heapByteOffset == o.heapByteOffset))
+      return heapByteOffset < o.heapByteOffset;
+    if(!(tableRanges == o.tableRanges))
+      return tableRanges < o.tableRanges;
+    if(!(descriptor == o.descriptor))
+      return descriptor < o.descriptor;
+    if(!(constants == o.constants))
+      return constants < o.constants;
+    return false;
+  }
+
+  DOCUMENT(R"(The shader stage that can access this parameter.
+
+:type: ShaderStageMask
+)");
+  ShaderStageMask visibility;
+
+  DOCUMENT(R"(For a root constant parameter, the words defined.
+
+:type: bytes
+)");
+  bytebuf constants;
+
+  DOCUMENT(R"(For a root descriptor parameter, the descriptor itself.
+
+:type: Descriptor
+)");
+  Descriptor descriptor;
+
+  DOCUMENT(R"(For a root table parameter, the descriptor heap bound to this parameter. See
+:data:`heapByteOffset` and :data:`tableRanges`.
+
+:type: ResourceId
+)");
+  ResourceId heap;
+
+  DOCUMENT(R"(For a root table parameter, the byte offset into the descriptor heap bound to this
+parameter. See :data:`heap` and :data:`tableRanges`.
+
+:type: ResourceId
+)");
+  uint32_t heapByteOffset = 0;
+
+  DOCUMENT(R"(For a root table parameter, the descriptor ranges that define this table. See
+:data:`heap` and :data:`heapByteOffset`.
+
+:type: List[D3D12RootTableRange]
+)");
+  rdcarray<RootTableRange> tableRanges;
+};
+
+DOCUMENT("Contains the details of a single static sampler in a root signature.");
+struct StaticSampler
+{
+  DOCUMENT("");
+  StaticSampler() = default;
+  StaticSampler(const StaticSampler &) = default;
+  StaticSampler &operator=(const StaticSampler &) = default;
+
+  bool operator==(const StaticSampler &o) const
+  {
+    return visibility == o.visibility && space == o.space && reg == o.reg &&
+           descriptor == o.descriptor;
+  }
+  bool operator<(const StaticSampler &o) const
+  {
+    if(!(visibility == o.visibility))
+      return visibility < o.visibility;
+    if(!(space == o.space))
+      return space < o.space;
+    if(!(reg == o.reg))
+      return reg < o.reg;
+    if(!(descriptor == o.descriptor))
+      return descriptor < o.descriptor;
+    return false;
+  }
+
+  DOCUMENT(R"(The shader stage that can access this sampler.
+
+:type: ShaderStageMask
+)");
+  ShaderStageMask visibility;
+
+  DOCUMENT(R"(The register space of this sampler.
+
+:type: int
+)");
+  uint32_t space = 0;
+
+  DOCUMENT(R"(The register number of this sampler.
+
+:type: int
+)");
+  uint32_t reg = 0;
+
+  DOCUMENT(R"(The details of the sampler descriptor itself.
+
+:type: SamplerDescriptor
+)");
+  SamplerDescriptor descriptor;
+};
+
+DOCUMENT("Contains the root signature structure and root parameters.");
+struct RootSignature
+{
+  DOCUMENT("");
+  RootSignature() = default;
+  RootSignature(const RootSignature &) = default;
+  RootSignature &operator=(const RootSignature &) = default;
+
+  DOCUMENT(R"(The :class:`ResourceId` of the root signature object.
+
+:type: ResourceId
+)");
+  ResourceId resourceId;
+
+  DOCUMENT(R"(The parameters in this root signature.
+    
+:type: List[D3D12RootParam]
+)");
+  rdcarray<RootParam> parameters;
+
+  DOCUMENT(R"(The static samplers defined in this root signature.
+    
+:type: List[SamplerDescriptor]
+)");
+  rdcarray<StaticSampler> staticSamplers;
+};
+
 DOCUMENT("The full current D3D12 pipeline state.");
 struct State
 {
@@ -562,14 +775,17 @@ struct State
   DOCUMENT("The :class:`ResourceId` of the pipeline state object.");
   ResourceId pipelineResourceId;
 
-  DOCUMENT("The :class:`ResourceId` of the root signature object.");
-  ResourceId rootSignatureResourceId;
-
   DOCUMENT(R"(The descriptor heaps currently bound.
     
 :type: List[ResourceId]
 )");
   rdcarray<ResourceId> descriptorHeaps;
+
+  DOCUMENT(R"(Details of the root signature structure and root parameters.
+    
+:type: D3D12RootSignature
+)");
+  RootSignature rootSignature;
 
   DOCUMENT(R"(The input assembly pipeline stage.
 
@@ -659,4 +875,8 @@ DECLARE_REFLECTION_STRUCT(D3D12Pipe::BlendState);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::OM);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::ResourceState);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::ResourceData);
+DECLARE_REFLECTION_STRUCT(D3D12Pipe::RootTableRange);
+DECLARE_REFLECTION_STRUCT(D3D12Pipe::RootParam);
+DECLARE_REFLECTION_STRUCT(D3D12Pipe::StaticSampler);
+DECLARE_REFLECTION_STRUCT(D3D12Pipe::RootSignature);
 DECLARE_REFLECTION_STRUCT(D3D12Pipe::State);

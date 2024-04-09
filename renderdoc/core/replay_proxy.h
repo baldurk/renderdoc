@@ -110,6 +110,7 @@ enum ReplayProxyPacket
   eReplayProxy_GetSamplerDescriptors,
   eReplayProxy_GetDescriptorAccess,
   eReplayProxy_GetDescriptorLocations,
+  eReplayProxy_GetDescriptorStores,
 };
 
 DECLARE_REFLECTION_ENUM(ReplayProxyPacket);
@@ -468,6 +469,8 @@ public:
   IMPLEMENT_FUNCTION_PROXIED(void, FetchStructuredFile);
 
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<ResourceDescription>, GetResources);
+
+  IMPLEMENT_FUNCTION_PROXIED(rdcarray<DescriptorStoreDescription>, GetDescriptorStores);
 
   IMPLEMENT_FUNCTION_PROXIED(rdcarray<BufferDescription>, GetBuffers);
   IMPLEMENT_FUNCTION_PROXIED(BufferDescription, GetBuffer, ResourceId id);

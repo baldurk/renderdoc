@@ -324,6 +324,9 @@ public:
   ResourceDescription &GetResourceDesc(ResourceId id);
   rdcarray<ResourceDescription> GetResources();
 
+  rdcarray<DescriptorStoreDescription> GetDescriptorStores();
+  void RegisterDescriptorStore(const DescriptorStoreDescription &desc);
+
   rdcarray<BufferDescription> GetBuffers();
   BufferDescription GetBuffer(ResourceId id);
 
@@ -823,6 +826,7 @@ private:
   ShaderDebugData m_ShaderDebugData;
 
   rdcarray<ResourceDescription> m_Resources;
+  rdcarray<DescriptorStoreDescription> m_DescriptorStores;
   std::map<ResourceId, size_t> m_ResourceIdx;
 
   VKPipe::State *m_VulkanPipelineState = NULL;

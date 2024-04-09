@@ -1066,6 +1066,10 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const Repla
     for(BufferDescription &b : m_BufferList)
       m_Buffers[b.resourceId] = &b;
 
+    m_DescriptorStoreList = r->GetDescriptorStores();
+    for(DescriptorStoreDescription &d : m_DescriptorStoreList)
+      m_DescriptorStores[d.resourceId] = &d;
+
     m_PostloadProgress = 0.8f;
 
     m_TextureList = r->GetTextures();

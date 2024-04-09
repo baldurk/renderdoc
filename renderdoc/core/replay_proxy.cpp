@@ -102,6 +102,7 @@ rdcstr DoStringise(const ReplayProxyPacket &el)
     STRINGISE_ENUM_NAMED(eReplayProxy_GetSamplerDescriptors, "GetSamplerDescriptors");
     STRINGISE_ENUM_NAMED(eReplayProxy_GetDescriptorAccess, "GetDescriptorAccess");
     STRINGISE_ENUM_NAMED(eReplayProxy_GetDescriptorLocations, "GetDescriptorLocations");
+    STRINGISE_ENUM_NAMED(eReplayProxy_GetDescriptorStores, "GetDescriptorStores");
   }
   END_ENUM_STRINGISE();
 }
@@ -528,6 +529,35 @@ TextureDescription ReplayProxy::Proxied_GetTexture(ParamSerialiser &paramser,
 TextureDescription ReplayProxy::GetTexture(ResourceId id)
 {
   PROXY_FUNCTION(GetTexture, id);
+}
+
+template <typename ParamSerialiser, typename ReturnSerialiser>
+rdcarray<DescriptorStoreDescription> ReplayProxy::Proxied_GetDescriptorStores(
+    ParamSerialiser &paramser, ReturnSerialiser &retser)
+{
+  const ReplayProxyPacket expectedPacket = eReplayProxy_GetDescriptorStores;
+  ReplayProxyPacket packet = eReplayProxy_GetDescriptorStores;
+  rdcarray<DescriptorStoreDescription> ret;
+
+  {
+    BEGIN_PARAMS();
+    END_PARAMS();
+  }
+
+  {
+    REMOTE_EXECUTION();
+    if(paramser.IsReading() && !paramser.IsErrored() && !m_IsErrored)
+      ret = m_Remote->GetDescriptorStores();
+  }
+
+  SERIALISE_RETURN(ret);
+
+  return ret;
+}
+
+rdcarray<DescriptorStoreDescription> ReplayProxy::GetDescriptorStores()
+{
+  PROXY_FUNCTION(GetDescriptorStores);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -3046,6 +3076,7 @@ bool ReplayProxy::Tick(int type)
     case eReplayProxy_GetSamplerDescriptors: GetSamplerDescriptors(ResourceId(), {}); break;
     case eReplayProxy_GetDescriptorAccess: GetDescriptorAccess(0); break;
     case eReplayProxy_GetDescriptorLocations: GetDescriptorLocations(ResourceId(), {}); break;
+    case eReplayProxy_GetDescriptorStores: GetDescriptorStores(); break;
     case eReplayProxy_GetUsage: GetUsage(ResourceId()); break;
     case eReplayProxy_GetLiveID: GetLiveID(ResourceId()); break;
     case eReplayProxy_GetFrameRecord: GetFrameRecord(); break;

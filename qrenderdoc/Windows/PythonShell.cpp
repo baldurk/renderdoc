@@ -519,6 +519,10 @@ struct CaptureContextInvoker : ObjectForwarder<ICaptureContext>
   virtual TextureDescription *GetTexture(ResourceId id) override { return m_Obj.GetTexture(id); }
   virtual const rdcarray<TextureDescription> &GetTextures() override { return m_Obj.GetTextures(); }
   virtual BufferDescription *GetBuffer(ResourceId id) override { return m_Obj.GetBuffer(id); }
+  virtual DescriptorStoreDescription *GetDescriptorStore(ResourceId id) override
+  {
+    return m_Obj.GetDescriptorStore(id);
+  }
   virtual const rdcarray<BufferDescription> &GetBuffers() const override
   {
     return m_Obj.GetBuffers();

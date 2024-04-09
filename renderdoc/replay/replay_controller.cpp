@@ -481,6 +481,13 @@ const rdcarray<BufferDescription> &ReplayController::GetBuffers()
   return m_Buffers;
 }
 
+const rdcarray<DescriptorStoreDescription> &ReplayController::GetDescriptorStores()
+{
+  CHECK_REPLAY_THREAD();
+
+  return m_DescriptorStores;
+}
+
 const rdcarray<TextureDescription> &ReplayController::GetTextures()
 {
   CHECK_REPLAY_THREAD();
@@ -2206,6 +2213,8 @@ RDResult ReplayController::PostCreateInit(IReplayDriver *device, RDCFile *rdc)
   m_Textures = m_pDevice->GetTextures();
   FatalErrorCheck();
   m_Resources = m_pDevice->GetResources();
+  FatalErrorCheck();
+  m_DescriptorStores = m_pDevice->GetDescriptorStores();
   FatalErrorCheck();
 
   m_FrameRecord = m_pDevice->GetFrameRecord();

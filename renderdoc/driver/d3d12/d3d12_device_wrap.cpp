@@ -29,6 +29,7 @@
 #include "driver/ihv/amd/official/DXExt/AmdExtD3DCommandListMarkerApi.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
+#include "d3d12_replay.h"
 #include "d3d12_resources.h"
 #include "d3d12_shader_cache.h"
 
@@ -963,6 +964,13 @@ bool WrappedID3D12Device::Serialise_CreateDescriptorHeap(
       GetResourceManager()->AddLiveResource(pHeap, ret);
 
       AddResource(pHeap, ResourceType::DescriptorStore, "Descriptor Heap");
+
+      DescriptorStoreDescription desc;
+      desc.resourceId = pHeap;
+      desc.descriptorByteSize = 1;
+      desc.firstDescriptorOffset = 0;
+      desc.descriptorCount = Descriptor.NumDescriptors;
+      GetReplay()->RegisterDescriptorStore(desc);
     }
   }
 

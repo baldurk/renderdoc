@@ -250,6 +250,7 @@ public:
   void RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secondaryDraws, const MeshDisplay &cfg)
   {
   }
+  rdcarray<DescriptorStoreDescription> GetDescriptorStores() { return {}; }
   rdcarray<BufferDescription> GetBuffers() { return {}; }
   rdcarray<DebugMessage> GetDebugMessages() { return rdcarray<DebugMessage>(); }
   BufferDescription GetBuffer(ResourceId id)

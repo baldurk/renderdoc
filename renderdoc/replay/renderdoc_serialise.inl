@@ -476,6 +476,17 @@ void DoSerialise(SerialiserType &ser, BufferDescription &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, DescriptorStoreDescription &el)
+{
+  SERIALISE_MEMBER(resourceId);
+  SERIALISE_MEMBER(descriptorByteSize);
+  SERIALISE_MEMBER(firstDescriptorOffset);
+  SERIALISE_MEMBER(descriptorCount);
+
+  SIZE_CHECK(24);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, APIProperties &el)
 {
   SERIALISE_MEMBER(pipelineType);
@@ -1580,11 +1591,58 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::ResourceData &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12Pipe::RootTableRange &el)
+{
+  SERIALISE_MEMBER(category);
+  SERIALISE_MEMBER(space);
+  SERIALISE_MEMBER(baseRegister);
+  SERIALISE_MEMBER(count);
+  SERIALISE_MEMBER(tableByteOffset);
+  SERIALISE_MEMBER(appended);
+
+  SIZE_CHECK(24);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12Pipe::RootParam &el)
+{
+  SERIALISE_MEMBER(visibility);
+  SERIALISE_MEMBER(constants);
+  SERIALISE_MEMBER(descriptor);
+  SERIALISE_MEMBER(heap);
+  SERIALISE_MEMBER(heapByteOffset);
+  SERIALISE_MEMBER(tableRanges);
+
+  SIZE_CHECK(152);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12Pipe::StaticSampler &el)
+{
+  SERIALISE_MEMBER(visibility);
+  SERIALISE_MEMBER(space);
+  SERIALISE_MEMBER(reg);
+  SERIALISE_MEMBER(descriptor);
+
+  SIZE_CHECK(88);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12Pipe::RootSignature &el)
+{
+  SERIALISE_MEMBER(resourceId);
+  SERIALISE_MEMBER(parameters);
+  SERIALISE_MEMBER(staticSamplers);
+
+  SIZE_CHECK(56);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12Pipe::State &el)
 {
   SERIALISE_MEMBER(pipelineResourceId);
-  SERIALISE_MEMBER(rootSignatureResourceId);
   SERIALISE_MEMBER(descriptorHeaps);
+  SERIALISE_MEMBER(rootSignature);
 
   SERIALISE_MEMBER(inputAssembly);
 
@@ -1605,7 +1663,7 @@ void DoSerialise(SerialiserType &ser, D3D12Pipe::State &el)
 
   SERIALISE_MEMBER(resourceStates);
 
-  SIZE_CHECK(728);
+  SIZE_CHECK(776);
 }
 
 #pragma endregion D3D12 pipeline state
@@ -2254,6 +2312,7 @@ INSTANTIATE_SERIALISE_TYPE(ShaderDebugTrace)
 INSTANTIATE_SERIALISE_TYPE(ResourceDescription)
 INSTANTIATE_SERIALISE_TYPE(TextureDescription)
 INSTANTIATE_SERIALISE_TYPE(BufferDescription)
+INSTANTIATE_SERIALISE_TYPE(DescriptorStoreDescription)
 INSTANTIATE_SERIALISE_TYPE(APIProperties)
 INSTANTIATE_SERIALISE_TYPE(DriverInformation)
 INSTANTIATE_SERIALISE_TYPE(DebugMessage)

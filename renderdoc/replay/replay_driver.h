@@ -140,6 +140,8 @@ public:
 
   virtual rdcarray<ResourceDescription> GetResources() = 0;
 
+  virtual rdcarray<DescriptorStoreDescription> GetDescriptorStores() = 0;
+
   virtual rdcarray<BufferDescription> GetBuffers() = 0;
   virtual BufferDescription GetBuffer(ResourceId id) = 0;
 

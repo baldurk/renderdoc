@@ -41,6 +41,8 @@ public:
 
   rdcarray<ResourceDescription> GetResources();
 
+  rdcarray<DescriptorStoreDescription> GetDescriptorStores();
+
   rdcarray<BufferDescription> GetBuffers();
   BufferDescription GetBuffer(ResourceId id);
 
@@ -193,6 +195,7 @@ private:
 
   APIProperties m_Props;
   rdcarray<ResourceDescription> m_Resources;
+  rdcarray<DescriptorStoreDescription> m_DescriptorStores;
   rdcarray<BufferDescription> m_Buffers;
   rdcarray<TextureDescription> m_Textures;
   FrameRecord m_FrameRecord;

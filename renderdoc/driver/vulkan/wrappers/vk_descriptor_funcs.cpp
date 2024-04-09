@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "../vk_core.h"
+#include "../vk_replay.h"
 #include "core/settings.h"
 
 RDOC_DEBUG_CONFIG(bool, Vulkan_Debug_AllowDescriptorSetReuse, true,
@@ -469,11 +470,11 @@ bool WrappedVulkan::Serialise_vkAllocateDescriptorSets(SerialiserType &ser, VkDe
     // if we got here we must have succeeded
     RDCASSERTEQUAL(ret, VK_SUCCESS);
 
+    ResourceId layoutId = GetResID(AllocateInfo.pSetLayouts[0]);
+
     {
       ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), descset);
       GetResourceManager()->AddLiveResource(DescriptorSet, descset);
-
-      ResourceId layoutId = GetResID(AllocateInfo.pSetLayouts[0]);
 
       // this is stored in the resource record on capture, we need to be able to look to up
       m_DescriptorSetState[live].layout = layoutId;
@@ -506,6 +507,15 @@ bool WrappedVulkan::Serialise_vkAllocateDescriptorSets(SerialiserType &ser, VkDe
     DerivedResource(device, DescriptorSet);
     DerivedResource(AllocateInfo.pSetLayouts[0], DescriptorSet);
     DerivedResource(AllocateInfo.descriptorPool, DescriptorSet);
+
+    DescriptorStoreDescription desc;
+    desc.resourceId = DescriptorSet;
+    desc.descriptorByteSize = 1;
+    // descriptors are stored after all the inline bytes
+    desc.firstDescriptorOffset = m_CreationInfo.m_DescSetLayout[layoutId].inlineByteSize;
+    desc.descriptorCount =
+        (uint32_t)m_DescriptorSetState[GetResID(descset)].data.totalDescriptorCount();
+    GetReplay()->RegisterDescriptorStore(desc);
   }
 
   return true;

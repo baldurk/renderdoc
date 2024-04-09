@@ -304,6 +304,16 @@ rdcarray<ResourceDescription> VulkanReplay::GetResources()
   return m_Resources;
 }
 
+rdcarray<DescriptorStoreDescription> VulkanReplay::GetDescriptorStores()
+{
+  return m_DescriptorStores;
+}
+
+void VulkanReplay::RegisterDescriptorStore(const DescriptorStoreDescription &desc)
+{
+  m_DescriptorStores.push_back(desc);
+}
+
 rdcarray<TextureDescription> VulkanReplay::GetTextures()
 {
   rdcarray<TextureDescription> texs;
@@ -2436,7 +2446,11 @@ rdcarray<Descriptor> VulkanReplay::GetDescriptors(ResourceId descriptorStore,
       {
         // silently drop out of bounds descriptor reads
       }
-      else if(desc->type != DescriptorSlotType::Sampler)
+      else if(desc->type == DescriptorSlotType::Sampler)
+      {
+        ret[dst].type = DescriptorType::Sampler;
+      }
+      else
       {
         FillDescriptor(ret[dst], *desc);
 

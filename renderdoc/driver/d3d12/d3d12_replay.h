@@ -114,6 +114,9 @@ public:
   ResourceDescription &GetResourceDesc(ResourceId id);
   rdcarray<ResourceDescription> GetResources();
 
+  rdcarray<DescriptorStoreDescription> GetDescriptorStores();
+  void RegisterDescriptorStore(const DescriptorStoreDescription &desc);
+
   rdcarray<BufferDescription> GetBuffers();
   BufferDescription GetBuffer(ResourceId id);
 
@@ -269,6 +272,7 @@ public:
 
 private:
   void FillDescriptor(Descriptor &dst, const D3D12Descriptor *src);
+  void FillRootDescriptor(Descriptor &dst, const D3D12RenderState::SignatureElement &src);
   void FillSamplerDescriptor(SamplerDescriptor &dst, const D3D12_SAMPLER_DESC2 &src);
 
   bool CreateSOBuffers();
@@ -541,6 +545,7 @@ private:
   } m_Histogram;
 
   rdcarray<ResourceDescription> m_Resources;
+  rdcarray<DescriptorStoreDescription> m_DescriptorStores;
   std::map<ResourceId, size_t> m_ResourceIdx;
 
   bool m_ISAChecked = false;

@@ -188,6 +188,7 @@ public:
   CounterDescription DescribeCounter(GPUCounter counterID);
   const rdcarray<TextureDescription> &GetTextures();
   const rdcarray<BufferDescription> &GetBuffers();
+  const rdcarray<DescriptorStoreDescription> &GetDescriptorStores();
   const rdcarray<ResourceDescription> &GetResources();
   rdcarray<DebugMessage> GetDebugMessages();
   ResultDetails GetFatalErrorStatus()
@@ -283,6 +284,7 @@ private:
 
   rdcarray<ResourceDescription> m_Resources;
   rdcarray<BufferDescription> m_Buffers;
+  rdcarray<DescriptorStoreDescription> m_DescriptorStores;
   rdcarray<TextureDescription> m_Textures;
 
   IReplayDriver *m_pDevice;

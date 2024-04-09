@@ -1271,6 +1271,25 @@ protected:
 
 DECLARE_REFLECTION_STRUCT(IShaderMessageViewer);
 
+DOCUMENT("A descriptor viewer window.");
+struct IDescriptorViewer
+{
+  DOCUMENT(R"(Retrieves the PySide2 QWidget for this :class:`DescriptorViewer` if PySide2 is available, or otherwise
+returns a unique opaque pointer that can be passed back to any RenderDoc functions expecting a
+QWidget.
+
+:return: Return the widget handle, either a PySide2 handle or an opaque handle.
+:rtype: QWidget
+)");
+  virtual QWidget *Widget() = 0;
+
+protected:
+  IDescriptorViewer() = default;
+  ~IDescriptorViewer() = default;
+};
+
+DECLARE_REFLECTION_STRUCT(IDescriptorViewer);
+
 DOCUMENT("A pixel history window.");
 struct IPixelHistoryView
 {
@@ -2140,6 +2159,15 @@ considered out of date
 :rtype: List[renderdoc.BufferDescription]
 )");
   virtual const rdcarray<BufferDescription> &GetBuffers() const = 0;
+
+  DOCUMENT(R"(Retrieve the information about a particular descriptor store.
+
+:param renderdoc.ResourceId id: The ID of the buffer to query about.
+:return: The information about a descriptor store, or ``None`` if the ID does not correspond to a
+  descriptor store.
+:rtype: renderdoc.DescriptorStoreDescription
+)");
+  virtual DescriptorStoreDescription *GetDescriptorStore(ResourceId id) = 0;
 
   DOCUMENT(R"(Retrieve the information about an action at a given
 :data:`eventId <renderdoc.APIEvent.eventId>`.
