@@ -320,12 +320,6 @@ void ShaderViewer::editShader(ResourceId id, ShaderStage stage, const QString &e
 
                        MarkModification();
                      });
-
-    m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(QKeySequence::Refresh).toString(), this,
-                                            [this](QWidget *) { on_refresh_clicked(); });
-    ui->refresh->setToolTip(ui->refresh->toolTip() +
-                            lit(" (%1)").arg(QKeySequence(QKeySequence::Refresh).toString()));
-
     QWidget *w = (QWidget *)scintilla;
     w->setProperty("filename", kv.first);
     w->setProperty("origText", kv.second);
@@ -337,6 +331,11 @@ void ShaderViewer::editShader(ResourceId id, ShaderStage stage, const QString &e
       title = tr(" - %1 - %2()").arg(name).arg(entryPoint);
     }
   }
+
+  m_Ctx.GetMainWindow()->RegisterShortcut(QKeySequence(QKeySequence::Refresh).toString(), this,
+                                          [this](QWidget *) { on_refresh_clicked(); });
+  ui->refresh->setToolTip(ui->refresh->toolTip() +
+                          lit(" (%1)").arg(QKeySequence(QKeySequence::Refresh).toString()));
 
   if(sel != NULL)
     ToolWindowManager::raiseToolWindow(sel);
