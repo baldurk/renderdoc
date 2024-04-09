@@ -3139,7 +3139,7 @@ void MainWindow::showLaunchError(ResultDetails result)
       break;
     case ResultCode::AndroidAPKFolderNotFound: message = result.Message(); break;
     case ResultCode::AndroidAPKInstallFailed:
-      message = tr("%1.\n\nlease check that your device is connected and accessible to "
+      message = tr("%1.\n\nPlease check that your device is connected and accessible to "
                    "adb, and that installing APKs over USB is allowed.")
                     .arg(result.Message());
       break;
