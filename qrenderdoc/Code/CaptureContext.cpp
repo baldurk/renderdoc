@@ -42,6 +42,7 @@
 #include "Windows/BufferViewer.h"
 #include "Windows/CommentView.h"
 #include "Windows/DebugMessageView.h"
+#include "Windows/DescriptorViewer.h"
 #include "Windows/Dialogs/CaptureDialog.h"
 #include "Windows/Dialogs/CrashDialog.h"
 #include "Windows/Dialogs/LiveCapture.h"
@@ -2587,6 +2588,25 @@ IShaderViewer *CaptureContext::ViewShader(const ShaderReflection *shader, Resour
 IShaderMessageViewer *CaptureContext::ViewShaderMessages(ShaderStageMask stages)
 {
   return new ShaderMessageViewer(*this, stages, m_MainWindow);
+}
+
+IDescriptorViewer *CaptureContext::ViewDescriptorStore(ResourceId id)
+{
+  DescriptorViewer *viewer = new DescriptorViewer(*this, m_MainWindow);
+
+  viewer->ViewDescriptorStore(id);
+
+  return viewer;
+}
+
+IDescriptorViewer *CaptureContext::ViewDescriptors(const rdcarray<Descriptor> &descriptors,
+                                                   const rdcarray<SamplerDescriptor> &samplerDescriptors)
+{
+  DescriptorViewer *viewer = new DescriptorViewer(*this, m_MainWindow);
+
+  viewer->ViewDescriptors(descriptors, samplerDescriptors);
+
+  return viewer;
 }
 
 IBufferViewer *CaptureContext::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,

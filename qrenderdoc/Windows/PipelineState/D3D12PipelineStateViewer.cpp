@@ -31,6 +31,7 @@
 #include "Code/Resources.h"
 #include "Widgets/ComputeDebugSelector.h"
 #include "Widgets/Extended/RDHeaderView.h"
+#include "Windows/DescriptorViewer.h"
 #include "flowlayout/FlowLayout.h"
 #include "toolwindowmanager/ToolWindowManager.h"
 #include "PipelineStateViewer.h"
@@ -114,6 +115,11 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
       ui->psRootSig, ui->csRootSig, ui->asRootSig, ui->msRootSig,
   };
 
+  QToolButton *sigButtons[] = {
+      ui->vsRootSigButton, ui->hsRootSigButton, ui->dsRootSigButton, ui->gsRootSigButton,
+      ui->psRootSigButton, ui->csRootSigButton, ui->asRootSigButton, ui->msRootSigButton,
+  };
+
   QToolButton *viewButtons[] = {
       ui->vsShaderViewButton, ui->hsShaderViewButton, ui->dsShaderViewButton,
       ui->gsShaderViewButton, ui->psShaderViewButton, ui->csShaderViewButton,
@@ -171,6 +177,9 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(ICaptureContext &ctx,
 
   for(QToolButton *b : viewButtons)
     QObject::connect(b, &QToolButton::clicked, this, &D3D12PipelineStateViewer::shaderView_clicked);
+
+  for(QToolButton *b : sigButtons)
+    QObject::connect(b, &QToolButton::clicked, this, &D3D12PipelineStateViewer::rootSigView_clicked);
 
   for(RDLabel *b : shaderLabels)
   {
@@ -1086,6 +1095,14 @@ void D3D12PipelineStateViewer::clearState()
   for(QToolButton *b : shaderButtons)
     b->setEnabled(false);
 
+  QToolButton *sigButtons[] = {
+      ui->vsRootSigButton, ui->hsRootSigButton, ui->dsRootSigButton, ui->gsRootSigButton,
+      ui->psRootSigButton, ui->csRootSigButton, ui->asRootSigButton, ui->msRootSigButton,
+  };
+
+  for(QToolButton *b : sigButtons)
+    b->setEnabled(false);
+
   const QPixmap &tick = Pixmaps::tick(this);
   const QPixmap &cross = Pixmaps::cross(this);
 
@@ -1883,6 +1900,14 @@ void D3D12PipelineStateViewer::setState()
     m_Common.SetupShaderEditButton(b, state.pipelineResourceId, stage->resourceId, stage->reflection);
   }
 
+  QToolButton *sigButtons[] = {
+      ui->vsRootSigButton, ui->hsRootSigButton, ui->dsRootSigButton, ui->gsRootSigButton,
+      ui->psRootSigButton, ui->csRootSigButton, ui->asRootSigButton, ui->msRootSigButton,
+  };
+
+  for(QToolButton *b : sigButtons)
+    b->setEnabled(state.rootSignature.resourceId != ResourceId());
+
   bool streamoutSet = false;
   vs = ui->gsStreamOut->verticalScrollBar()->value();
   ui->gsStreamOut->beginUpdate();
@@ -2535,6 +2560,15 @@ void D3D12PipelineStateViewer::shaderView_clicked()
       m_Ctx.ViewShader(stage->reflection, m_Ctx.CurD3D12PipelineState()->pipelineResourceId);
 
   m_Ctx.AddDockWindow(shad->Widget(), DockReference::AddTo, this);
+}
+
+void D3D12PipelineStateViewer::rootSigView_clicked()
+{
+  DescriptorViewer *view = (DescriptorViewer *)m_Ctx.ViewDescriptors({}, {});
+
+  view->ViewD3D12State();
+
+  m_Ctx.AddDockWindow(view->Widget(), DockReference::AddTo, this);
 }
 
 void D3D12PipelineStateViewer::shaderSave_clicked()

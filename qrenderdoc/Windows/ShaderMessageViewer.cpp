@@ -37,102 +37,6 @@
 static const int debuggableRole = Qt::UserRole + 1;
 static const int gotoableRole = Qt::UserRole + 2;
 
-ButtonDelegate::ButtonDelegate(const QIcon &icon, int enableRole, QWidget *parent)
-    : m_Icon(icon), m_EnableRole(enableRole), QStyledItemDelegate(parent)
-{
-}
-
-void ButtonDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
-                           const QModelIndex &index) const
-{
-  // draw the background to get selection etc
-  QApplication::style()->drawControl(QStyle::CE_ItemViewItem, &option, painter);
-
-  QStyleOptionButton button;
-
-  QSize sz = sizeHint(option, index);
-  button.rect = option.rect;
-  button.rect.setLeft(button.rect.center().x() - sz.width() / 2);
-  button.rect.setTop(button.rect.center().y() - sz.height() / 2);
-  button.rect.setSize(sz);
-  button.icon = m_Icon;
-  button.iconSize = sz;
-
-  if(m_EnableRole == 0 || index.data(m_EnableRole).toBool())
-    button.state = QStyle::State_Enabled;
-
-  if(m_ClickedIndex == index)
-    button.state |= QStyle::State_Sunken;
-
-  QApplication::style()->drawControl(QStyle::CE_PushButton, &button, painter);
-}
-
-QSize ButtonDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
-{
-  QStyleOptionButton button;
-  button.icon = m_Icon;
-  button.state = QStyle::State_Enabled;
-
-  return QApplication::style()->sizeFromContents(QStyle::CT_PushButton, &button,
-                                                 option.decorationSize);
-}
-
-bool ButtonDelegate::editorEvent(QEvent *event, QAbstractItemModel *model,
-                                 const QStyleOptionViewItem &option, const QModelIndex &index)
-{
-  if(event->type() == QEvent::MouseButtonPress)
-  {
-    if(m_EnableRole == 0 || index.data(m_EnableRole).toBool())
-      m_ClickedIndex = index;
-  }
-  else if(event->type() == QEvent::MouseMove)
-  {
-    QMouseEvent *e = (QMouseEvent *)event;
-
-    if(m_ClickedIndex != index || (e->buttons() & Qt::LeftButton) == 0)
-    {
-      m_ClickedIndex = QModelIndex();
-    }
-    else
-    {
-      QPoint p = e->pos();
-
-      QSize sz = option.decorationSize;
-      QRect rect = option.rect;
-      rect.setLeft(rect.center().x() - sz.width() / 2);
-      rect.setTop(rect.center().y() - sz.height() / 2);
-      rect.setSize(sz);
-
-      if(!rect.contains(p))
-      {
-        m_ClickedIndex = QModelIndex();
-      }
-    }
-  }
-  else if(event->type() == QEvent::MouseButtonRelease)
-  {
-    if(m_ClickedIndex == index && index != QModelIndex())
-    {
-      m_ClickedIndex = QModelIndex();
-
-      QMouseEvent *e = (QMouseEvent *)event;
-
-      QPoint p = e->pos();
-
-      QSize sz = option.decorationSize;
-      QRect rect = option.rect;
-      rect.setLeft(rect.center().x() - sz.width() / 2);
-      rect.setTop(rect.center().y() - sz.height() / 2);
-      rect.setSize(sz);
-
-      if(rect.contains(p))
-        emit messageClicked(index);
-    }
-  }
-
-  return true;
-}
-
 ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask stages, QWidget *parent)
     : QFrame(parent), ui(new Ui::ShaderMessageViewer), m_Ctx(ctx)
 {
@@ -211,7 +115,8 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
 
   int sortColumn = 0;
 
-  m_debugDelegate = new ButtonDelegate(Icons::wrench(), debuggableRole, this);
+  m_debugDelegate = new ButtonDelegate(Icons::wrench(), QString(), this);
+  m_debugDelegate->setEnableTrigger(debuggableRole, true);
 
   if(m_Action && (m_Action->flags & ActionFlags::Dispatch))
   {
@@ -248,7 +153,8 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
       m_LayoutStage = ShaderStage::Vertex;
     }
 
-    m_gotoDelegate = new ButtonDelegate(Icons::find(), gotoableRole, this);
+    m_gotoDelegate = new ButtonDelegate(Icons::find(), QString(), this);
+    m_gotoDelegate->setEnableTrigger(gotoableRole, true);
 
     ui->messages->setItemDelegateForColumn(0, m_debugDelegate);
     ui->messages->setItemDelegateForColumn(1, m_gotoDelegate);

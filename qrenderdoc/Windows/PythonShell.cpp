@@ -835,6 +835,17 @@ struct CaptureContextInvoker : ObjectForwarder<ICaptureContext>
     return InvokeRetFunction<IShaderMessageViewer *>(&ICaptureContext::ViewShaderMessages, stages);
   }
 
+  virtual IDescriptorViewer *ViewDescriptorStore(ResourceId id) override
+  {
+    return InvokeRetFunction<IDescriptorViewer *>(&ICaptureContext::ViewDescriptorStore, id);
+  }
+  virtual IDescriptorViewer *ViewDescriptors(const rdcarray<Descriptor> &descriptors,
+                                             const rdcarray<SamplerDescriptor> &samplerDescriptors) override
+  {
+    return InvokeRetFunction<IDescriptorViewer *>(&ICaptureContext::ViewDescriptors, descriptors,
+                                                  samplerDescriptors);
+  }
+
   virtual IBufferViewer *ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
                                     const rdcstr &format = "") override
   {

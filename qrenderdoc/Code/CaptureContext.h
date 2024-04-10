@@ -266,6 +266,9 @@ public:
 
   IShaderMessageViewer *ViewShaderMessages(ShaderStageMask stages) override;
 
+  IDescriptorViewer *ViewDescriptorStore(ResourceId id) override;
+  IDescriptorViewer *ViewDescriptors(const rdcarray<Descriptor> &descriptors,
+                                     const rdcarray<SamplerDescriptor> &samplerDescriptors) override;
   IBufferViewer *ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
                             const rdcstr &format = "") override;
   IBufferViewer *ViewTextureAsBuffer(ResourceId id, const Subresource &sub,

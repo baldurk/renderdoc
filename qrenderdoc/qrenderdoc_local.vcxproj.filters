@@ -378,6 +378,9 @@
     <ClCompile Include="Windows\CommentView.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
+    <ClCompile Include="Windows\DescriptorViewer.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
     <ClCompile Include="Windows\StatisticsViewer.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
@@ -430,6 +433,9 @@
       <Filter>Generated Files</Filter>
     </ClCompile>
     <ClCompile Include="$(IntDir)generated\moc_CommentView.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_DescriptorViewer.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
     <ClCompile Include="$(IntDir)generated\moc_EventBrowser.cpp">
@@ -992,6 +998,9 @@
     <ClInclude Include="$(IntDir)generated\ui_CommentView.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_DescriptorViewer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
     <ClInclude Include="$(IntDir)generated\ui_EnvironmentEditor.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
@@ -1190,6 +1199,9 @@
     <CustomBuild Include="Windows\CommentView.ui">
       <Filter>Windows</Filter>
     </CustomBuild>
+    <CustomBuild Include="Windows\DescriptorViewer.ui">
+      <Filter>Windows</Filter>
+    </CustomBuild>
     <CustomBuild Include="Windows\EventBrowser.ui">
       <Filter>Windows</Filter>
     </CustomBuild>
@@ -1275,6 +1287,9 @@
       <Filter>Windows</Filter>
     </CustomBuild>
     <CustomBuild Include="Windows\CommentView.h">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\DescriptorViewer.h">
       <Filter>Windows</Filter>
     </CustomBuild>
     <CustomBuild Include="Windows\EventBrowser.h">

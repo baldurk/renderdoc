@@ -2608,6 +2608,34 @@ through the execution of a given shader.
 )");
   virtual IShaderMessageViewer *ViewShaderMessages(ShaderStageMask stages) = 0;
 
+  DOCUMENT(R"(Show a new :class:`DescriptorViewer` window, showing the full raw contents of a
+descriptor store.
+
+:param renderdoc.ResourceId id: The ID of the descriptor store to fetch data from.
+:return: The new :class:`DescriptorViewer` window opened, but not shown.
+:rtype: DescriptorViewer
+)");
+  virtual IDescriptorViewer *ViewDescriptorStore(ResourceId id) = 0;
+
+  DOCUMENT(R"(Show a new :class:`DescriptorViewer` window, showing contents of an arbitrary list of
+descriptors.
+
+The descriptor lists should be in parallel, with identical sizes. If a non-sampler descriptor is
+to be displayed, the corresponding sampler descriptor should be uninitialised and vice-versa. If
+the lists are not the same length, only indices up to the minimum of the two lengths will be used.
+
+This function should not be used to view the entirety of a descriptor store - in that case the
+:func:`ViewDescriptorStore` function will be more efficient.
+
+:param List[renderdoc.Descriptor] descriptors: The list of descriptors to process and show.
+:param List[renderdoc.Descriptor] samplerDescriptors: The list of sampler descriptors to process and
+  show.
+:return: The new :class:`DescriptorViewer` window opened, but not shown.
+:rtype: DescriptorViewer
+)");
+  virtual IDescriptorViewer *ViewDescriptors(const rdcarray<Descriptor> &descriptors,
+                                             const rdcarray<SamplerDescriptor> &samplerDescriptors) = 0;
+
   DOCUMENT(R"(Show a new :class:`BufferViewer` window, showing a read-only view of buffer data.
 
 :param int byteOffset: The offset in bytes to the start of the buffer data to show.

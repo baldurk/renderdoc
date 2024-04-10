@@ -145,6 +145,11 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
       ui->tesShader, ui->gsShader, ui->fsShader, ui->csShader,
   };
 
+  RDLabel *pipeLayoutLabels[] = {
+      ui->tsPipeLayout,  ui->msPipeLayout, ui->vsPipeLayout, ui->tcsPipeLayout,
+      ui->tesPipeLayout, ui->gsPipeLayout, ui->fsPipeLayout, ui->csPipeLayout,
+  };
+
   QToolButton *viewButtons[] = {
       ui->tsShaderViewButton,  ui->msShaderViewButton,  ui->vsShaderViewButton,
       ui->tcsShaderViewButton, ui->tesShaderViewButton, ui->gsShaderViewButton,
@@ -184,6 +189,11 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
       ui->tesUBOs, ui->gsUBOs, ui->fsUBOs, ui->csUBOs,
   };
 
+  RDTreeWidget *descSets[] = {
+      ui->tsDescSets,  ui->msDescSets, ui->vsDescSets, ui->tcsDescSets,
+      ui->tesDescSets, ui->gsDescSets, ui->fsDescSets, ui->csDescSets,
+  };
+
   // setup FlowLayout for CS shader group, with debugging controls
   {
     QLayout *oldLayout = ui->csShaderGroup->layout();
@@ -210,7 +220,27 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
     b->setBackgroundRole(QPalette::ToolTipBase);
     b->setForegroundRole(QPalette::ToolTipText);
     b->setMinimumSizeHint(QSize(250, 0));
+    b->setFont(Formatter::PreferredFont());
   }
+
+  for(RDLabel *b : pipeLayoutLabels)
+  {
+    b->setAutoFillBackground(true);
+    b->setBackgroundRole(QPalette::ToolTipBase);
+    b->setForegroundRole(QPalette::ToolTipText);
+    b->setMinimumSizeHint(QSize(250, ui->vsShaderViewButton->minimumSizeHint().height()));
+    b->setFont(Formatter::PreferredFont());
+  }
+
+  // collapse the descriptor groups by default
+  ui->vsDescGroup->setCollapsed(true);
+  ui->tcsDescGroup->setCollapsed(true);
+  ui->tesDescGroup->setCollapsed(true);
+  ui->gsDescGroup->setCollapsed(true);
+  ui->fsDescGroup->setCollapsed(true);
+  ui->csDescGroup->setCollapsed(true);
+  ui->tsDescGroup->setCollapsed(true);
+  ui->msDescGroup->setCollapsed(true);
 
   QObject::connect(m_ComputeDebugSelector, &ComputeDebugSelector::beginDebug, this,
                    &VulkanPipelineStateViewer::computeDebugSelector_beginDebug);
@@ -250,6 +280,10 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
   for(RDTreeWidget *ubo : ubos)
     QObject::connect(ubo, &RDTreeWidget::itemActivated, this,
                      &VulkanPipelineStateViewer::ubo_itemActivated);
+
+  for(RDTreeWidget *desc : descSets)
+    QObject::connect(desc, &RDTreeWidget::itemActivated, this,
+                     &VulkanPipelineStateViewer::descSet_itemActivated);
 
   {
     QMenu *extensionsMenu = new QMenu(this);
@@ -327,6 +361,23 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
 
     m_Common.SetupResourceView(ubo);
   }
+
+  for(RDTreeWidget *desc : descSets)
+  {
+    RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
+    desc->setHeader(header);
+
+    desc->setColumns({tr("Index"), tr("Layout"), tr("Bound Set"), tr("Go")});
+    header->setColumnStretchHints({-1, 4, 4, -1});
+
+    desc->setHoverIconColumn(3, action, action_hover);
+    desc->setClearSelectionOnFocusLoss(true);
+    desc->setInstantTooltips(true);
+
+    m_Common.SetupResourceView(desc);
+  }
+
+  ui->vsDescGroupVLayout->activate();
 
   {
     RDHeaderView *header = new RDHeaderView(Qt::Horizontal, this);
@@ -441,28 +492,20 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(ICaptureContext &ctx,
 
   ui->viAttrs->setFont(Formatter::PreferredFont());
   ui->viBuffers->setFont(Formatter::PreferredFont());
-  ui->tsShader->setFont(Formatter::PreferredFont());
   ui->tsResources->setFont(Formatter::PreferredFont());
   ui->tsUBOs->setFont(Formatter::PreferredFont());
-  ui->msShader->setFont(Formatter::PreferredFont());
   ui->msResources->setFont(Formatter::PreferredFont());
   ui->msUBOs->setFont(Formatter::PreferredFont());
-  ui->vsShader->setFont(Formatter::PreferredFont());
   ui->vsResources->setFont(Formatter::PreferredFont());
   ui->vsUBOs->setFont(Formatter::PreferredFont());
-  ui->gsShader->setFont(Formatter::PreferredFont());
   ui->gsResources->setFont(Formatter::PreferredFont());
   ui->gsUBOs->setFont(Formatter::PreferredFont());
-  ui->tcsShader->setFont(Formatter::PreferredFont());
   ui->tcsResources->setFont(Formatter::PreferredFont());
   ui->tcsUBOs->setFont(Formatter::PreferredFont());
-  ui->tesShader->setFont(Formatter::PreferredFont());
   ui->tesResources->setFont(Formatter::PreferredFont());
   ui->tesUBOs->setFont(Formatter::PreferredFont());
-  ui->fsShader->setFont(Formatter::PreferredFont());
   ui->fsResources->setFont(Formatter::PreferredFont());
   ui->fsUBOs->setFont(Formatter::PreferredFont());
-  ui->csShader->setFont(Formatter::PreferredFont());
   ui->csResources->setFont(Formatter::PreferredFont());
   ui->csUBOs->setFont(Formatter::PreferredFont());
   ui->xfbBuffers->setFont(Formatter::PreferredFont());
@@ -895,12 +938,15 @@ void VulkanPipelineStateViewer::setNewMeshPipeFlow()
   ui->pipeFlow->setIsolatedStage(5);    // compute shader isolated
 }
 
-void VulkanPipelineStateViewer::clearShaderState(RDLabel *shader, RDTreeWidget *resources,
-                                                 RDTreeWidget *cbuffers)
+void VulkanPipelineStateViewer::clearShaderState(RDLabel *shader, RDLabel *pipeLayout,
+                                                 RDTreeWidget *resources, RDTreeWidget *cbuffers,
+                                                 RDTreeWidget *descSets)
 {
+  pipeLayout->setText(tr("Pipeline Layout"));
   shader->setText(QFormatStr("%1: %1").arg(ToQStr(ResourceId())));
   resources->clear();
   cbuffers->clear();
+  descSets->clear();
 }
 
 void VulkanPipelineStateViewer::clearState()
@@ -917,14 +963,14 @@ void VulkanPipelineStateViewer::clearState()
   ui->primRestart->setVisible(false);
   ui->topologyDiagram->setPixmap(QPixmap());
 
-  clearShaderState(ui->tsShader, ui->tsResources, ui->tsUBOs);
-  clearShaderState(ui->msShader, ui->msResources, ui->msUBOs);
-  clearShaderState(ui->vsShader, ui->vsResources, ui->vsUBOs);
-  clearShaderState(ui->tcsShader, ui->tcsResources, ui->tcsUBOs);
-  clearShaderState(ui->tesShader, ui->tesResources, ui->tesUBOs);
-  clearShaderState(ui->gsShader, ui->gsResources, ui->gsUBOs);
-  clearShaderState(ui->fsShader, ui->fsResources, ui->fsUBOs);
-  clearShaderState(ui->csShader, ui->csResources, ui->csUBOs);
+  clearShaderState(ui->tsShader, ui->tsPipeLayout, ui->tsResources, ui->tsUBOs, ui->tsDescSets);
+  clearShaderState(ui->msShader, ui->msPipeLayout, ui->msResources, ui->msUBOs, ui->msDescSets);
+  clearShaderState(ui->vsShader, ui->vsPipeLayout, ui->vsResources, ui->vsUBOs, ui->vsDescSets);
+  clearShaderState(ui->tcsShader, ui->tcsPipeLayout, ui->tcsResources, ui->tcsUBOs, ui->tcsDescSets);
+  clearShaderState(ui->tesShader, ui->tesPipeLayout, ui->tesResources, ui->tesUBOs, ui->tesDescSets);
+  clearShaderState(ui->gsShader, ui->gsPipeLayout, ui->gsResources, ui->gsUBOs, ui->gsDescSets);
+  clearShaderState(ui->fsShader, ui->fsPipeLayout, ui->fsResources, ui->fsUBOs, ui->fsDescSets);
+  clearShaderState(ui->csShader, ui->csPipeLayout, ui->csResources, ui->csUBOs, ui->csDescSets);
 
   ui->xfbBuffers->clear();
 
@@ -1618,7 +1664,8 @@ void VulkanPipelineStateViewer::addConstantBlockRow(const ConstantBlock *cblock,
 }
 
 void VulkanPipelineStateViewer::setShaderState(const VKPipe::Pipeline &pipe,
-                                               const VKPipe::Shader &stage, RDLabel *shader)
+                                               const VKPipe::Shader &stage, RDLabel *shader,
+                                               RDLabel *pipeLayout, RDTreeWidget *descSets)
 {
   ShaderReflection *shaderDetails = stage.reflection;
 
@@ -1643,6 +1690,31 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Pipeline &pipe,
     shText += tr(" (Subgroup size %1)").arg(stage.requiredSubgroupSize);
 
   shader->setText(shText);
+
+  if(pipe.pipelineComputeLayoutResourceId != ResourceId())
+  {
+    pipeLayout->setText(tr("Pipeline Layout: %1").arg(ToQStr(pipe.pipelineComputeLayoutResourceId)));
+  }
+  else if(pipe.pipelinePreRastLayoutResourceId == pipe.pipelineFragmentLayoutResourceId)
+  {
+    pipeLayout->setText(tr("Pipeline Layout: %1").arg(ToQStr(pipe.pipelineFragmentLayoutResourceId)));
+  }
+  else
+  {
+    pipeLayout->setText(tr("Pipeline Layouts: %1 and %2")
+                            .arg(ToQStr(pipe.pipelinePreRastLayoutResourceId))
+                            .arg(ToQStr(pipe.pipelineFragmentLayoutResourceId)));
+  }
+
+  descSets->clear();
+  for(uint32_t i = 0; i < pipe.descriptorSets.size(); i++)
+  {
+    RDTreeWidgetItem *item =
+        new RDTreeWidgetItem({i, pipe.descriptorSets[i].layoutResourceId,
+                              pipe.descriptorSets[i].descriptorSetResourceId, QString()});
+    item->setTag(i);
+    descSets->addTopLevelItem(item);
+  }
 }
 
 void VulkanPipelineStateViewer::setState()
@@ -1727,8 +1799,8 @@ void VulkanPipelineStateViewer::setState()
 
   if(m_MeshPipe)
   {
-    setShaderState(state.graphics, state.taskShader, ui->tsShader);
-    setShaderState(state.graphics, state.meshShader, ui->msShader);
+    setShaderState(state.graphics, state.taskShader, ui->tsShader, ui->tsPipeLayout, ui->tsDescSets);
+    setShaderState(state.graphics, state.meshShader, ui->msShader, ui->msPipeLayout, ui->msDescSets);
 
     if(state.meshShader.reflection)
       ui->msTopology->setText(ToQStr(state.meshShader.reflection->outputTopology));
@@ -1998,14 +2070,19 @@ void VulkanPipelineStateViewer::setState()
     ui->viBuffers->endUpdate();
     ui->viBuffers->verticalScrollBar()->setValue(vs);
 
-    setShaderState(state.graphics, state.vertexShader, ui->vsShader);
-    setShaderState(state.graphics, state.geometryShader, ui->gsShader);
-    setShaderState(state.graphics, state.tessControlShader, ui->tcsShader);
-    setShaderState(state.graphics, state.tessEvalShader, ui->tesShader);
+    setShaderState(state.graphics, state.vertexShader, ui->vsShader, ui->vsPipeLayout,
+                   ui->vsDescSets);
+    setShaderState(state.graphics, state.geometryShader, ui->gsShader, ui->gsPipeLayout,
+                   ui->gsDescSets);
+    setShaderState(state.graphics, state.tessControlShader, ui->tcsShader, ui->tcsPipeLayout,
+                   ui->tcsDescSets);
+    setShaderState(state.graphics, state.tessEvalShader, ui->tesShader, ui->tesPipeLayout,
+                   ui->tesDescSets);
   }
 
-  setShaderState(state.graphics, state.fragmentShader, ui->fsShader);
-  setShaderState(state.compute, state.computeShader, ui->csShader);
+  setShaderState(state.graphics, state.fragmentShader, ui->fsShader, ui->fsPipeLayout,
+                 ui->fsDescSets);
+  setShaderState(state.compute, state.computeShader, ui->csShader, ui->csPipeLayout, ui->csDescSets);
 
   // fill in descriptor access
   {
@@ -3014,6 +3091,27 @@ void VulkanPipelineStateViewer::ubo_itemActivated(RDTreeWidgetItem *item, int co
   IBufferViewer *prev = m_Ctx.ViewConstantBuffer(stage->stage, cb.index, cb.arrayElement);
 
   m_Ctx.AddDockWindow(prev->Widget(), DockReference::TransientPopupArea, this, 0.3f);
+}
+
+void VulkanPipelineStateViewer::descSet_itemActivated(RDTreeWidgetItem *item, int column)
+{
+  const VKPipe::Shader *stage = stageForSender(item->treeWidget());
+
+  if(stage == NULL)
+    return;
+
+  int index = item->tag().toInt();
+
+  const rdcarray<VKPipe::DescriptorSet> &descSets =
+      stage->stage == ShaderStage::Compute ? m_Ctx.CurVulkanPipelineState()->compute.descriptorSets
+                                           : m_Ctx.CurVulkanPipelineState()->graphics.descriptorSets;
+
+  if(index < descSets.count())
+  {
+    IDescriptorViewer *viewer = m_Ctx.ViewDescriptorStore(descSets[index].descriptorSetResourceId);
+
+    m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
+  }
 }
 
 void VulkanPipelineStateViewer::on_viAttrs_itemActivated(RDTreeWidgetItem *item, int column)

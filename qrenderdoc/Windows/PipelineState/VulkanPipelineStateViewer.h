@@ -86,6 +86,7 @@ private slots:
   void resource_itemActivated(RDTreeWidgetItem *item, int column);
   void resource_hoverItemChanged(RDTreeWidgetItem *hover);
   void ubo_itemActivated(RDTreeWidgetItem *item, int column);
+  void descSet_itemActivated(RDTreeWidgetItem *item, int column);
   void vertex_leave(QEvent *e);
 
   void on_computeDebugSelector_clicked();
@@ -111,8 +112,10 @@ private:
   void addConstantBlockRow(const ConstantBlock *cblock, const UsedDescriptor &used,
                            uint32_t dynamicOffset, RDTreeWidget *ubos);
 
-  void setShaderState(const VKPipe::Pipeline &pipe, const VKPipe::Shader &stage, RDLabel *shader);
-  void clearShaderState(RDLabel *shader, RDTreeWidget *res, RDTreeWidget *ubo);
+  void setShaderState(const VKPipe::Pipeline &pipe, const VKPipe::Shader &stage, RDLabel *shader,
+                      RDLabel *pipeLayout, RDTreeWidget *descSets);
+  void clearShaderState(RDLabel *shader, RDLabel *pipeLayout, RDTreeWidget *resources,
+                        RDTreeWidget *cbuffers, RDTreeWidget *descSets);
   void setState();
   void clearState();
 

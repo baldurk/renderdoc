@@ -2410,7 +2410,7 @@ QString BufferFormatter::GetBufferFormatString(Packing::Rules pack, ResourceId s
   }
   else
   {
-    const auto &desc = res.variableType;
+    const ShaderConstantType &desc = res.variableType;
 
     if(viewFormat.type == ResourceFormatType::Undefined)
     {

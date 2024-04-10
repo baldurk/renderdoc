@@ -766,6 +766,47 @@ private:
   QAbstractItemView *m_widget;
 };
 
+class ButtonDelegate : public QStyledItemDelegate
+{
+private:
+  Q_OBJECT
+
+  QModelIndex m_ClickedIndex;
+  QIcon m_Icon;
+  QString m_Text;
+  bool m_Centered = true;
+
+  int m_EnableRole = -1;
+  QVariant m_EnableValue;
+
+  int m_VisibleRole = -1;
+  QVariant m_VisibleValue;
+
+  QRect getButtonRect(const QRect boundsRect, const QSize sz) const;
+
+public:
+  ButtonDelegate(const QIcon &icon, QString text, QWidget *parent);
+  void paint(QPainter *painter, const QStyleOptionViewItem &option,
+             const QModelIndex &index) const override;
+  QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
+  bool editorEvent(QEvent *event, QAbstractItemModel *model, const QStyleOptionViewItem &option,
+                   const QModelIndex &index) override;
+
+  void setVisibleTrigger(int role, QVariant value)
+  {
+    m_VisibleRole = role;
+    m_VisibleValue = value;
+  }
+  void setEnableTrigger(int role, QVariant value)
+  {
+    m_EnableRole = role;
+    m_EnableValue = value;
+  }
+  void setCentred(bool centered) { m_Centered = centered; }
+signals:
+  void messageClicked(const QModelIndex &index);
+};
+
 class StructuredDataItemModel : public QAbstractItemModel
 {
 public:

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2021-2024 Baldur Karlsson
+ * Copyright (c) 2019-2024 Baldur Karlsson
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,58 +25,59 @@
 #pragma once
 
 #include <QFrame>
-#include <QStyledItemDelegate>
 #include "Code/Interface/QRDInterface.h"
-
-class ButtonDelegate;
 
 namespace Ui
 {
-class ShaderMessageViewer;
+class DescriptorViewer;
 }
 
-class ShaderMessageViewer : public QFrame, public IShaderMessageViewer, public ICaptureViewer
+class DescriptorItemModel;
+
+class DescriptorViewer : public QFrame, public IDescriptorViewer, public ICaptureViewer
 {
   Q_OBJECT
 
 public:
-  explicit ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask stages, QWidget *parent = 0);
-  ~ShaderMessageViewer();
+  explicit DescriptorViewer(ICaptureContext &ctx, QWidget *parent = 0);
+  ~DescriptorViewer();
 
-  // IShaderMessageViewer
+  void ViewDescriptorStore(ResourceId id);
+  void ViewDescriptors(const rdcarray<Descriptor> &descriptors,
+                       const rdcarray<SamplerDescriptor> &samplerDescriptors);
+  void ViewD3D12State();
+
+  // IDescriptorViewer
   QWidget *Widget() override { return this; }
-  uint32_t GetEvent() override { return m_EID; };
-  rdcarray<ShaderMessage> GetShaderMessages() override { return m_Messages; };
-  bool IsOutOfDate() override;
-
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;
   void OnSelectedEventChanged(uint32_t eventId) override {}
   void OnEventChanged(uint32_t eventId) override;
-private slots:
 
-  void exportText();
-  void exportCSV();
+private slots:
+  void on_pipeButton_clicked();
 
 private:
-  void refreshMessages();
-  void exportData(bool csv);
-
-  Ui::ShaderMessageViewer *ui;
+  Ui::DescriptorViewer *ui;
   ICaptureContext &m_Ctx;
 
-  ButtonDelegate *m_debugDelegate = NULL;
-  ButtonDelegate *m_gotoDelegate = NULL;
+  DescriptorStoreDescription m_DescriptorStore;
 
-  bool m_Multiview = false, m_Multisampled = false;
+  rdcarray<Descriptor> m_Descriptors;
+  rdcarray<SamplerDescriptor> m_SamplerDescriptors;
+  rdcarray<DescriptorLogicalLocation> m_Locations;
 
-  GraphicsAPI m_API;
-  uint32_t m_EID;
-  const ActionDescription *m_Action;
-  rdcarray<ShaderMessage> m_Messages;
+  // the descriptors array is always full (we don't worry about the overallocation for only-samplers),
+  // but if we fetched these ourselves we will have fetched samplers sparsely only when necessary.
+  // This array is the same size as m_Descriptors in that case containing the lookup indices in the samplers array
+  rdcarray<uint32_t> m_DescriptorToSamplerLookup;
 
-  ShaderStage m_LayoutStage;
-  ResourceId m_OrigShaders[NumShaderStages];
-  ResourceId m_ReplacedShaders[NumShaderStages];
+  rdcarray<ResourceId> m_D3D12Heaps;
+  D3D12Pipe::RootSignature m_D3D12RootSig;
+
+  // make the model a friend for simplicity
+  friend class DescriptorItemModel;
+
+  DescriptorItemModel *m_Model;
 };

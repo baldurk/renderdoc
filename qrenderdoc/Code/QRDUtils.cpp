@@ -1365,6 +1365,134 @@ bool RichTextViewDelegate::linkHover(QMouseEvent *e, const QFont &font, const QM
   return false;
 }
 
+ButtonDelegate::ButtonDelegate(const QIcon &icon, QString text, QWidget *parent)
+    : m_Icon(icon), m_Text(text), QStyledItemDelegate(parent)
+{
+}
+
+void ButtonDelegate::paint(QPainter *painter, const QStyleOptionViewItem &option,
+                           const QModelIndex &index) const
+{
+  if(m_VisibleRole != -1 && index.data(m_VisibleRole) != m_VisibleValue)
+    return QStyledItemDelegate::paint(painter, option, index);
+
+  // draw the background to get selection etc
+  QApplication::style()->drawControl(QStyle::CE_ItemViewItem, &option, painter);
+
+  QStyleOptionButton button;
+
+  button.text = m_Text;
+  button.icon = m_Icon;
+
+  if(m_EnableRole == -1 || index.data(m_EnableRole) == m_EnableValue)
+    button.state = QStyle::State_Enabled;
+
+  if(m_ClickedIndex == index)
+    button.state |= QStyle::State_Sunken;
+
+  QSize sz =
+      QApplication::style()->sizeFromContents(QStyle::CT_PushButton, &button, option.decorationSize);
+
+  button.rect = getButtonRect(option.rect, sz);
+  button.iconSize = option.decorationSize;
+
+  QApplication::style()->drawControl(QStyle::CE_PushButton, &button, painter);
+}
+
+QSize ButtonDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
+{
+  if(m_VisibleRole != -1 && index.data(m_VisibleRole) != m_VisibleValue)
+    return QStyledItemDelegate::sizeHint(option, index);
+
+  QStyleOptionButton button;
+  button.text = m_Text;
+  button.icon = m_Icon;
+  button.state = QStyle::State_Enabled;
+
+  return QApplication::style()->sizeFromContents(QStyle::CT_PushButton, &button,
+                                                 option.decorationSize);
+}
+
+bool ButtonDelegate::editorEvent(QEvent *event, QAbstractItemModel *model,
+                                 const QStyleOptionViewItem &option, const QModelIndex &index)
+{
+  if(m_VisibleRole != -1 && index.data(m_VisibleRole) != m_VisibleValue)
+    return QStyledItemDelegate::editorEvent(event, model, option, index);
+
+  if(event->type() == QEvent::MouseButtonPress)
+  {
+    QMouseEvent *e = (QMouseEvent *)event;
+
+    QPoint p = e->pos();
+
+    QSize sz = sizeHint(option, index);
+    QRect rect = getButtonRect(option.rect, sz);
+
+    if(rect.contains(p) && (m_EnableRole == -1 || index.data(m_EnableRole) == m_EnableValue))
+    {
+      m_ClickedIndex = index;
+      return true;
+    }
+  }
+  else if(event->type() == QEvent::MouseMove)
+  {
+    QMouseEvent *e = (QMouseEvent *)event;
+
+    if(m_ClickedIndex != index || (e->buttons() & Qt::LeftButton) == 0)
+    {
+      m_ClickedIndex = QModelIndex();
+    }
+    else
+    {
+      QPoint p = e->pos();
+
+      QSize sz = sizeHint(option, index);
+      QRect rect = getButtonRect(option.rect, sz);
+
+      if(!rect.contains(p))
+      {
+        m_ClickedIndex = QModelIndex();
+      }
+    }
+  }
+  else if(event->type() == QEvent::MouseButtonRelease)
+  {
+    if(m_ClickedIndex == index && index != QModelIndex())
+    {
+      m_ClickedIndex = QModelIndex();
+
+      QMouseEvent *e = (QMouseEvent *)event;
+
+      QPoint p = e->pos();
+
+      QSize sz = sizeHint(option, index);
+      QRect rect = getButtonRect(option.rect, sz);
+
+      if(rect.contains(p))
+      {
+        emit messageClicked(index);
+        return true;
+      }
+    }
+  }
+
+  return QStyledItemDelegate::editorEvent(event, model, option, index);
+}
+
+QRect ButtonDelegate::getButtonRect(const QRect boundsRect, const QSize sz) const
+{
+  QRect rect = boundsRect;
+  rect.setWidth(qMin(rect.width(), sz.width()));
+  rect.setHeight(qMin(rect.height(), sz.height()));
+  if(m_Centered)
+    rect.moveLeft(rect.center().x() - rect.width() / 2);
+  rect.moveTop(rect.center().y() - rect.height() / 2);
+  // clip if the rounding from centering caused us to go out of bounds
+  rect.setTop(qMax(rect.top(), boundsRect.top()));
+  rect.setLeft(qMax(rect.left(), boundsRect.left()));
+  return rect;
+}
+
 #include "renderdoc_tostr.inl"
 
 QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype)

@@ -190,6 +190,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Windows/TextureViewer.cpp \
     Windows/ShaderViewer.cpp \
     Windows/ShaderMessageViewer.cpp \
+    Windows/DescriptorViewer.cpp \
     Widgets/Extended/RDLineEdit.cpp \
     Widgets/Extended/RDTextEdit.cpp \
     Widgets/Extended/RDLabel.cpp \
@@ -275,6 +276,7 @@ HEADERS += Code/CaptureContext.h \
     Windows/TextureViewer.h \
     Windows/ShaderViewer.h \
     Windows/ShaderMessageViewer.h \
+    Windows/DescriptorViewer.h \
     Widgets/Extended/RDLineEdit.h \
     Widgets/Extended/RDTextEdit.h \
     Widgets/Extended/RDLabel.h \
@@ -356,6 +358,7 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/BufferViewer.ui \
     Windows/ShaderViewer.ui \
     Windows/ShaderMessageViewer.ui \
+    Windows/DescriptorViewer.ui \
     Windows/DebugMessageView.ui \
     Windows/LogView.ui \
     Windows/CommentView.ui \

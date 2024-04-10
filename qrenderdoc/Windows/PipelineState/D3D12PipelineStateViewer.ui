@@ -506,7 +506,7 @@
           </sizepolicy>
          </property>
          <property name="title">
-          <string>Shader</string>
+          <string>Root Signature &amp;&amp; Shader</string>
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_3">
           <property name="spacing">
@@ -522,6 +522,29 @@
            <widget class="RDLabel" name="vsRootSig">
             <property name="frameShape">
              <enum>QFrame::Box</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="vsRootSigButton">
+            <property name="cursor">
+             <cursorShape>PointingHandCursor</cursorShape>
+            </property>
+            <property name="toolTip">
+             <string>Open Root Signature View</string>
+            </property>
+            <property name="text">
+             <string>View</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/action.png</normaloff>:/action.png</iconset>
+            </property>
+            <property name="toolButtonStyle">
+             <enum>Qt::ToolButtonTextBesideIcon</enum>
+            </property>
+            <property name="autoRaise">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -912,7 +935,7 @@
           </sizepolicy>
          </property>
          <property name="title">
-          <string>Shader</string>
+          <string>Root Signature &amp;&amp; Shader</string>
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_7">
           <property name="spacing">
@@ -928,6 +951,29 @@
            <widget class="RDLabel" name="hsRootSig">
             <property name="frameShape">
              <enum>QFrame::Box</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="hsRootSigButton">
+            <property name="cursor">
+             <cursorShape>PointingHandCursor</cursorShape>
+            </property>
+            <property name="toolTip">
+             <string>Open Root Signature View</string>
+            </property>
+            <property name="text">
+             <string>View</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/action.png</normaloff>:/action.png</iconset>
+            </property>
+            <property name="toolButtonStyle">
+             <enum>Qt::ToolButtonTextBesideIcon</enum>
+            </property>
+            <property name="autoRaise">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -1318,7 +1364,7 @@
           </sizepolicy>
          </property>
          <property name="title">
-          <string>Shader</string>
+          <string>Root Signature &amp;&amp; Shader</string>
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_10">
           <property name="spacing">
@@ -1334,6 +1380,29 @@
            <widget class="RDLabel" name="dsRootSig">
             <property name="frameShape">
              <enum>QFrame::Box</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="dsRootSigButton">
+            <property name="cursor">
+             <cursorShape>PointingHandCursor</cursorShape>
+            </property>
+            <property name="toolTip">
+             <string>Open Root Signature View</string>
+            </property>
+            <property name="text">
+             <string>View</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/action.png</normaloff>:/action.png</iconset>
+            </property>
+            <property name="toolButtonStyle">
+             <enum>Qt::ToolButtonTextBesideIcon</enum>
+            </property>
+            <property name="autoRaise">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -1724,7 +1793,7 @@
           </sizepolicy>
          </property>
          <property name="title">
-          <string>Shader</string>
+          <string>Root Signature &amp;&amp; Shader</string>
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_13">
           <property name="spacing">
@@ -1740,6 +1809,29 @@
            <widget class="RDLabel" name="gsRootSig">
             <property name="frameShape">
              <enum>QFrame::Box</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="gsRootSigButton">
+            <property name="cursor">
+             <cursorShape>PointingHandCursor</cursorShape>
+            </property>
+            <property name="toolTip">
+             <string>Open Root Signature View</string>
+            </property>
+            <property name="text">
+             <string>View</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/action.png</normaloff>:/action.png</iconset>
+            </property>
+            <property name="toolButtonStyle">
+             <enum>Qt::ToolButtonTextBesideIcon</enum>
+            </property>
+            <property name="autoRaise">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -2750,7 +2842,7 @@
           </sizepolicy>
          </property>
          <property name="title">
-          <string>Shader</string>
+          <string>Root Signature &amp;&amp; Shader</string>
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_16">
           <property name="spacing">
@@ -2766,6 +2858,29 @@
            <widget class="RDLabel" name="psRootSig">
             <property name="frameShape">
              <enum>QFrame::Box</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="psRootSigButton">
+            <property name="cursor">
+             <cursorShape>PointingHandCursor</cursorShape>
+            </property>
+            <property name="toolTip">
+             <string>Open Root Signature View</string>
+            </property>
+            <property name="text">
+             <string>View</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/action.png</normaloff>:/action.png</iconset>
+            </property>
+            <property name="toolButtonStyle">
+             <enum>Qt::ToolButtonTextBesideIcon</enum>
+            </property>
+            <property name="autoRaise">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -3684,7 +3799,7 @@
           </sizepolicy>
          </property>
          <property name="title">
-          <string>Shader</string>
+          <string>Root Signature &amp;&amp; Shader</string>
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_8">
           <property name="spacing">
@@ -3712,6 +3827,29 @@
               <widget class="RDLabel" name="csRootSig">
                <property name="frameShape">
                 <enum>QFrame::Box</enum>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QToolButton" name="csRootSigButton">
+               <property name="cursor">
+                <cursorShape>PointingHandCursor</cursorShape>
+               </property>
+               <property name="toolTip">
+                <string>Open Root Signature View</string>
+               </property>
+               <property name="text">
+                <string>View</string>
+               </property>
+               <property name="icon">
+                <iconset resource="../../Resources/resources.qrc">
+                 <normaloff>:/action.png</normaloff>:/action.png</iconset>
+               </property>
+               <property name="toolButtonStyle">
+                <enum>Qt::ToolButtonTextBesideIcon</enum>
+               </property>
+               <property name="autoRaise">
+                <bool>true</bool>
                </property>
               </widget>
              </item>
@@ -4122,7 +4260,7 @@
           </sizepolicy>
          </property>
          <property name="title">
-          <string>Shader</string>
+          <string>Root Signature &amp;&amp; Shader</string>
          </property>
          <layout class="QHBoxLayout" name="asHorizontalLayout1">
           <property name="spacing">
@@ -4150,6 +4288,29 @@
               <widget class="RDLabel" name="asRootSig">
                <property name="frameShape">
                 <enum>QFrame::Box</enum>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QToolButton" name="asRootSigButton">
+               <property name="cursor">
+                <cursorShape>PointingHandCursor</cursorShape>
+               </property>
+               <property name="toolTip">
+                <string>Open Root Signature View</string>
+               </property>
+               <property name="text">
+                <string>View</string>
+               </property>
+               <property name="icon">
+                <iconset resource="../../Resources/resources.qrc">
+                 <normaloff>:/action.png</normaloff>:/action.png</iconset>
+               </property>
+               <property name="toolButtonStyle">
+                <enum>Qt::ToolButtonTextBesideIcon</enum>
+               </property>
+               <property name="autoRaise">
+                <bool>true</bool>
                </property>
               </widget>
              </item>
@@ -4543,7 +4704,7 @@
           </sizepolicy>
          </property>
          <property name="title">
-          <string>Shader</string>
+          <string>Root Signature &amp;&amp; Shader</string>
          </property>
          <layout class="QHBoxLayout" name="msHorizontalLayout1">
           <property name="spacing">
@@ -4571,6 +4732,29 @@
               <widget class="RDLabel" name="msRootSig">
                <property name="frameShape">
                 <enum>QFrame::Box</enum>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QToolButton" name="msRootSigButton">
+               <property name="cursor">
+                <cursorShape>PointingHandCursor</cursorShape>
+               </property>
+               <property name="toolTip">
+                <string>Open Root Signature View</string>
+               </property>
+               <property name="text">
+                <string>View</string>
+               </property>
+               <property name="icon">
+                <iconset resource="../../Resources/resources.qrc">
+                 <normaloff>:/action.png</normaloff>:/action.png</iconset>
+               </property>
+               <property name="toolButtonStyle">
+                <enum>Qt::ToolButtonTextBesideIcon</enum>
+               </property>
+               <property name="autoRaise">
+                <bool>true</bool>
                </property>
               </widget>
              </item>

@@ -262,7 +262,8 @@ void ResourceInspector::Inspect(ResourceId id)
 
   m_Resource = id;
 
-  ui->viewContents->setVisible(m_Ctx.GetTexture(id) || m_Ctx.GetBuffer(id));
+  ui->viewContents->setVisible(m_Ctx.GetTexture(id) || m_Ctx.GetBuffer(id) ||
+                               m_Ctx.GetDescriptorStore(id));
 
   m_Entries.clear();
 
@@ -568,6 +569,7 @@ void ResourceInspector::on_viewContents_clicked()
 {
   TextureDescription *tex = m_Ctx.GetTexture(m_Resource);
   BufferDescription *buf = m_Ctx.GetBuffer(m_Resource);
+  DescriptorStoreDescription *desc = m_Ctx.GetDescriptorStore(m_Resource);
 
   if(tex)
   {
@@ -589,6 +591,12 @@ void ResourceInspector::on_viewContents_clicked()
   else if(buf)
   {
     IBufferViewer *viewer = m_Ctx.ViewBuffer(0, buf->length, buf->resourceId);
+
+    m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
+  }
+  else if(desc)
+  {
+    IDescriptorViewer *viewer = m_Ctx.ViewDescriptorStore(desc->resourceId);
 
     m_Ctx.AddDockWindow(viewer->Widget(), DockReference::AddTo, this);
   }
