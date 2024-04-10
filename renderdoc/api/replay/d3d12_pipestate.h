@@ -758,7 +758,7 @@ struct RootSignature
 
   DOCUMENT(R"(The static samplers defined in this root signature.
     
-:type: List[SamplerDescriptor]
+:type: List[D3D12StaticSampler]
 )");
   rdcarray<StaticSampler> staticSamplers;
 };

@@ -4603,15 +4603,15 @@ DOCUMENT(R"(A set of flags for descriptor properties.
 
   The buffer will not be used for any of the uses below.
 
-.. data:: Raw
+.. data:: RawBuffer
 
   On D3D, a buffer is used as a raw (byte-addressed) buffer.
 
-.. data:: Append
+.. data:: AppendBuffer
 
   On D3D, a buffer is used as a append/consume view.
 
-.. data:: Counter
+.. data:: CounterBuffer
 
   On D3D, a buffer is used with a structured buffer with associated hidden counter.
 

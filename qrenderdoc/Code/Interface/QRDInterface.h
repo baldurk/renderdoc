@@ -2628,7 +2628,7 @@ This function should not be used to view the entirety of a descriptor store - in
 :func:`ViewDescriptorStore` function will be more efficient.
 
 :param List[renderdoc.Descriptor] descriptors: The list of descriptors to process and show.
-:param List[renderdoc.Descriptor] samplerDescriptors: The list of sampler descriptors to process and
+:param List[renderdoc.SamplerDescriptor] samplerDescriptors: The list of sampler descriptors to process and
   show.
 :return: The new :class:`DescriptorViewer` window opened, but not shown.
 :rtype: DescriptorViewer
