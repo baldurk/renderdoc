@@ -17,6 +17,9 @@ General
 .. autoclass:: renderdoc.ResourceType
   :members:
 
+.. autoclass:: renderdoc.DescriptorStoreDescription
+  :members:
+
 Textures
 --------
 

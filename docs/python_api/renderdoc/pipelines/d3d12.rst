@@ -29,6 +29,21 @@ Shader
 .. autoclass:: D3D12Shader
   :members:
 
+Root Signature
+--------------
+
+.. autoclass:: D3D12RootSignature
+  :members:
+
+.. autoclass:: D3D12RootParam
+  :members:
+
+.. autoclass:: D3D12RootTableRange
+  :members:
+
+.. autoclass:: D3D12StaticSampler
+  :members:
+
 Stream-out
 ----------
 

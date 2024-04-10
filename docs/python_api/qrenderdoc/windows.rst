@@ -33,6 +33,12 @@ Pipeline State
 .. autoclass:: qrenderdoc.PipelineStateViewer
   :members:
 
+Descriptor Viewer
+-----------------
+
+.. autoclass:: qrenderdoc.DescriptorViewer
+  :members:
+
 Texture Viewer
 --------------
 
