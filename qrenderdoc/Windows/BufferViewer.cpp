@@ -3616,7 +3616,9 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
           m_ObjectByteSize = buf->storage.size();
       }
 
-      uint32_t repeatedDataAvailable = uint32_t(buf->size() - fixedLength);
+      uint32_t repeatedDataAvailable = uint32_t(buf->size());
+      if(repeatedDataAvailable > fixedLength)
+        repeatedDataAvailable -= fixedLength;
 
       bufdata->inConfig.pagingOffset = uint32_t(m_PagingByteOffset / buf->stride);
       bufdata->inConfig.numRows = uint32_t((repeatedDataAvailable + buf->stride - 1) / buf->stride);
