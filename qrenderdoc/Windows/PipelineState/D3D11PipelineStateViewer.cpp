@@ -1605,7 +1605,7 @@ void D3D11PipelineStateViewer::setState()
     rdcarray<Descriptor> outputs = m_Ctx.CurPipelineState().GetOutputTargets();
     for(uint32_t i = 0; i < outputs.size(); i++)
     {
-      addResourceRow(D3D11ViewTag(D3D11ViewTag::OMTarget, i, outputs[i]), NULL, NULL,
+      addResourceRow(D3D11ViewTag(D3D11ViewTag::OMTarget, i, outputs[i]), NULL, true,
                      ui->targetOutputs);
 
       if(outputs[i].resource != ResourceId())
@@ -1780,7 +1780,7 @@ void D3D11PipelineStateViewer::setState()
     }
 
     addResourceRow(D3D11ViewTag(D3D11ViewTag::OMDepth, 0, m_Ctx.CurPipelineState().GetDepthTarget()),
-                   NULL, NULL, ui->targetOutputs);
+                   NULL, true, ui->targetOutputs);
 
     ui->vsClasses->parentWidget()->setVisible(ui->vsClasses->topLevelItemCount() > 0);
     ui->hsClasses->parentWidget()->setVisible(ui->hsClasses->topLevelItemCount() > 0);

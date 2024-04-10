@@ -820,8 +820,7 @@ bool CreateDescriptorWritesForSlotData(WrappedVulkan *vk, rdcarray<VkWriteDescri
 }
 
 void VulkanCreationInfo::Pipeline::Shader::ProcessStaticDescriptorAccess(
-    ResourceId pushStorage, ResourceId specStorage,
-    rdcarray<DescriptorAccess> &staticDescriptorAccess,
+    ResourceId pushStorage, ResourceId specStorage, rdcarray<DescriptorAccess> &descriptorAccess,
     rdcarray<const DescSetLayout *> setLayoutInfos) const
 {
   if(!refl)
@@ -833,9 +832,9 @@ void VulkanCreationInfo::Pipeline::Shader::ProcessStaticDescriptorAccess(
   // we will store the descriptor set in byteSize to be decoded into descriptorStore later
   access.byteSize = 0;
 
-  staticDescriptorAccess.reserve(staticDescriptorAccess.size() + refl->constantBlocks.size() +
-                                 refl->samplers.size() + refl->readOnlyResources.size() +
-                                 refl->readWriteResources.size());
+  descriptorAccess.reserve(descriptorAccess.size() + refl->constantBlocks.size() +
+                           refl->samplers.size() + refl->readOnlyResources.size() +
+                           refl->readWriteResources.size());
 
   RDCASSERT(refl->constantBlocks.size() < 0xffff, refl->constantBlocks.size());
   for(uint16_t i = 0; i < refl->constantBlocks.size(); i++)
@@ -856,7 +855,7 @@ void VulkanCreationInfo::Pipeline::Shader::ProcessStaticDescriptorAccess(
         access.descriptorStore = specStorage;
         access.byteSize = 1;
         access.byteOffset = 0;
-        staticDescriptorAccess.push_back(access);
+        descriptorAccess.push_back(access);
       }
       else
       {
@@ -864,7 +863,7 @@ void VulkanCreationInfo::Pipeline::Shader::ProcessStaticDescriptorAccess(
         access.descriptorStore = pushStorage;
         access.byteSize = 1;
         access.byteOffset = 0;
-        staticDescriptorAccess.push_back(access);
+        descriptorAccess.push_back(access);
       }
     }
     else
@@ -882,7 +881,7 @@ void VulkanCreationInfo::Pipeline::Shader::ProcessStaticDescriptorAccess(
       access.byteOffset =
           setLayoutInfos[bind.fixedBindSetOrSpace]->bindings[bind.fixedBindNumber].elemOffset +
           setLayoutInfos[bind.fixedBindSetOrSpace]->inlineByteSize;
-      staticDescriptorAccess.push_back(access);
+      descriptorAccess.push_back(access);
     }
   }
 
@@ -908,7 +907,7 @@ void VulkanCreationInfo::Pipeline::Shader::ProcessStaticDescriptorAccess(
     access.byteSize = bind.fixedBindSetOrSpace;
     access.byteOffset =
         setLayoutInfos[bind.fixedBindSetOrSpace]->bindings[bind.fixedBindNumber].elemOffset;
-    staticDescriptorAccess.push_back(access);
+    descriptorAccess.push_back(access);
   }
 
   RDCASSERT(refl->readOnlyResources.size() < 0xffff, refl->readOnlyResources.size());
@@ -931,7 +930,7 @@ void VulkanCreationInfo::Pipeline::Shader::ProcessStaticDescriptorAccess(
     access.byteSize = bind.fixedBindSetOrSpace;
     access.byteOffset =
         setLayoutInfos[bind.fixedBindSetOrSpace]->bindings[bind.fixedBindNumber].elemOffset;
-    staticDescriptorAccess.push_back(access);
+    descriptorAccess.push_back(access);
   }
 
   RDCASSERT(refl->readWriteResources.size() < 0xffff, refl->readWriteResources.size());
@@ -954,7 +953,7 @@ void VulkanCreationInfo::Pipeline::Shader::ProcessStaticDescriptorAccess(
     access.byteSize = bind.fixedBindSetOrSpace;
     access.byteOffset =
         setLayoutInfos[bind.fixedBindSetOrSpace]->bindings[bind.fixedBindNumber].elemOffset;
-    staticDescriptorAccess.push_back(access);
+    descriptorAccess.push_back(access);
   }
 }
 

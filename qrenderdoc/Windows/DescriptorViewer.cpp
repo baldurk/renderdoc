@@ -641,19 +641,20 @@ public:
 
         // first/num slices
         if(row == 0)
-          return col == 0 ? lit("Slice Range")
-                          : QFormatStr("%1 - %2")
-                                .arg(desc.firstSlice)
-                                .arg(desc.numSlices == UINT_MAX ? desc.numSlices
-                                                                : desc.firstSlice + desc.numSlices);
+          return col == 0
+                     ? lit("Slice Range")
+                     : QFormatStr("%1 - %2")
+                           .arg(desc.firstSlice)
+                           .arg(desc.numSlices == UINT16_MAX ? desc.numSlices
+                                                             : desc.firstSlice + desc.numSlices);
 
         // first/num mips
         if(row == 1)
           return col == 0 ? lit("Mip Range")
                           : QFormatStr("%1 - %2")
                                 .arg(desc.firstMip)
-                                .arg(desc.numMips == UINT_MAX ? desc.numMips
-                                                              : desc.firstMip + desc.numMips);
+                                .arg(desc.numMips == UINT8_MAX ? desc.numMips
+                                                               : desc.firstMip + desc.numMips);
 
         // swizzle
         if(row == 2)
