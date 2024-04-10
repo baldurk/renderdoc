@@ -366,8 +366,12 @@ void main() {
           const ShaderResource &res = refl.readWriteResources[0];
           INFO("read-write resource: " << res.name.c_str());
 
-          CHECK(res.fixedBindSetOrSpace == 0);
-          CHECK(res.fixedBindNumber == 0);
+          // GLSL does not have register bindings as they're dynamic
+          if(testType != ShaderType::GLSL)
+          {
+            CHECK(res.fixedBindSetOrSpace == 0);
+            CHECK(res.fixedBindNumber == 0);
+          }
           CHECK(res.bindArraySize == 1);
           CHECK(res.textureType == TextureType::Buffer);
           CHECK(res.variableType.members.empty());
@@ -411,8 +415,12 @@ void main() {
           const ShaderSampler &samp = refl.samplers[0];
           INFO("read-only resource: " << samp.name.c_str());
 
-          CHECK(samp.fixedBindSetOrSpace == 1);
-          CHECK(samp.fixedBindNumber == 2);
+          // GLSL does not have register bindings as they're dynamic
+          if(testType != ShaderType::GLSL)
+          {
+            CHECK(samp.fixedBindSetOrSpace == 1);
+            CHECK(samp.fixedBindNumber == 2);
+          }
           CHECK(samp.bindArraySize == 1);
         }
       }
@@ -424,8 +432,12 @@ void main() {
           const ShaderResource &res = refl.readOnlyResources[0];
           INFO("read-only resource: " << res.name.c_str());
 
-          CHECK(res.fixedBindSetOrSpace == 2);
-          CHECK(res.fixedBindNumber == 4);
+          // GLSL does not have register bindings as they're dynamic
+          if(testType != ShaderType::GLSL)
+          {
+            CHECK(res.fixedBindSetOrSpace == 2);
+            CHECK(res.fixedBindNumber == 4);
+          }
           CHECK(res.bindArraySize == 1);
           CHECK(res.textureType == TextureType::Texture2D);
           CHECK(res.variableType.members.empty());
@@ -437,8 +449,12 @@ void main() {
           const ShaderResource &res = refl.readOnlyResources[1];
           INFO("read-only resource: " << res.name.c_str());
 
-          CHECK(res.fixedBindSetOrSpace == 2);
-          CHECK(res.fixedBindNumber == 5);
+          // GLSL does not have register bindings as they're dynamic
+          if(testType != ShaderType::GLSL)
+          {
+            CHECK(res.fixedBindSetOrSpace == 2);
+            CHECK(res.fixedBindNumber == 5);
+          }
           CHECK(res.bindArraySize == 1);
           CHECK(res.textureType == TextureType::Texture2D);
           CHECK(res.variableType.members.empty());
@@ -474,7 +490,6 @@ void main() {
           const ConstantBlock &cblock = refl.constantBlocks[0];
           INFO("UBO: " << cblock.name.c_str());
 
-          CHECK(cblock.fixedBindNumber == 0);
           CHECK(cblock.bindArraySize == 1);
           CHECK(!cblock.bufferBacked);
           CHECK(cblock.compileConstants);
@@ -837,8 +852,12 @@ void main() {
         const ConstantBlock &cblock = refl.constantBlocks[0];
         INFO("UBO: " << cblock.name.c_str());
 
-        CHECK(cblock.fixedBindSetOrSpace == 0);
-        CHECK(cblock.fixedBindNumber == 8);
+        // GLSL does not have register bindings as they're dynamic
+        if(testType != ShaderType::GLSL)
+        {
+          CHECK(cblock.fixedBindSetOrSpace == 0);
+          CHECK(cblock.fixedBindNumber == 8);
+        }
         CHECK(cblock.bindArraySize == 1);
         CHECK(cblock.bufferBacked);
         CHECK(cblock.byteSize == 272);
@@ -1019,8 +1038,12 @@ void main() {
         const ShaderResource &res = refl.readOnlyResources[0];
         INFO("read-only resource: " << res.name.c_str());
 
-        CHECK(res.fixedBindSetOrSpace == 0);
-        CHECK(res.fixedBindNumber == 3);
+        // GLSL does not have register bindings as they're dynamic
+        if(testType != ShaderType::GLSL)
+        {
+          CHECK(res.fixedBindSetOrSpace == 0);
+          CHECK(res.fixedBindNumber == 3);
+        }
         CHECK(res.bindArraySize == 1);
         CHECK(res.textureType == TextureType::Texture2D);
         CHECK(res.variableType.members.empty());
@@ -1032,8 +1055,12 @@ void main() {
         const ShaderResource &res = refl.readOnlyResources[1];
         INFO("read-only resource: " << res.name.c_str());
 
-        CHECK(res.fixedBindSetOrSpace == 0);
-        CHECK(res.fixedBindNumber == 5);
+        // GLSL does not have register bindings as they're dynamic
+        if(testType != ShaderType::GLSL)
+        {
+          CHECK(res.fixedBindSetOrSpace == 0);
+          CHECK(res.fixedBindNumber == 5);
+        }
         CHECK(res.bindArraySize == 1);
         CHECK(res.textureType == TextureType::Texture3D);
         CHECK(res.variableType.members.empty());
@@ -1045,8 +1072,12 @@ void main() {
         const ShaderResource &res = refl.readOnlyResources[2];
         INFO("read-only resource: " << res.name.c_str());
 
-        CHECK(res.fixedBindSetOrSpace == 0);
-        CHECK(res.fixedBindNumber == 7);
+        // GLSL does not have register bindings as they're dynamic
+        if(testType != ShaderType::GLSL)
+        {
+          CHECK(res.fixedBindSetOrSpace == 0);
+          CHECK(res.fixedBindNumber == 7);
+        }
         CHECK(res.bindArraySize == 1);
         CHECK(res.textureType == TextureType::Buffer);
         CHECK(res.variableType.members.empty());
@@ -1637,8 +1668,12 @@ void main() {
         const ShaderResource &res = refl.readWriteResources[0];
         INFO("read-write resource: " << res.name.c_str());
 
-        CHECK(res.fixedBindSetOrSpace == 0);
-        CHECK(res.fixedBindNumber == 2);
+        // GLSL does not have register bindings as they're dynamic
+        if(testType != ShaderType::GLSL)
+        {
+          CHECK(res.fixedBindSetOrSpace == 0);
+          CHECK(res.fixedBindNumber == 2);
+        }
         CHECK(res.bindArraySize == 1);
         CHECK(res.textureType == TextureType::Buffer);
 
@@ -1732,8 +1767,12 @@ void main() {
         const ShaderResource &res = refl.readWriteResources[1];
         INFO("read-write resource: " << res.name.c_str());
 
-        CHECK(res.fixedBindSetOrSpace == 0);
-        CHECK(res.fixedBindNumber == 5);
+        // GLSL does not have register bindings as they're dynamic
+        if(testType != ShaderType::GLSL)
+        {
+          CHECK(res.fixedBindSetOrSpace == 0);
+          CHECK(res.fixedBindNumber == 5);
+        }
         CHECK(res.bindArraySize == 1);
         CHECK(res.textureType == TextureType::Buffer);
 
@@ -2557,8 +2596,12 @@ void main() {
           const ShaderResource &res = refl.readOnlyResources[i];
           INFO("read-only resource: " << res.name.c_str());
 
-          CHECK(res.fixedBindSetOrSpace == 0);
-          CHECK(res.fixedBindNumber == 3 + i);
+          // GLSL does not have register bindings as they're dynamic
+          if(testType != ShaderType::GLSL)
+          {
+            CHECK(res.fixedBindSetOrSpace == 0);
+            CHECK(res.fixedBindNumber == 3 + i);
+          }
           CHECK(res.bindArraySize == arraySizeRO);
           CHECK(res.textureType == TextureType::Texture2D);
           CHECK(res.variableType.members.empty());
@@ -2583,8 +2626,12 @@ void main() {
           const ShaderResource &res = refl.readWriteResources[i];
           INFO("read-write resource: " << res.name.c_str());
 
-          CHECK(res.fixedBindSetOrSpace == 0);
-          CHECK(res.fixedBindNumber == 2 + i);
+          // GLSL does not have register bindings as they're dynamic
+          if(testType != ShaderType::GLSL)
+          {
+            CHECK(res.fixedBindSetOrSpace == 0);
+            CHECK(res.fixedBindNumber == 2 + i);
+          }
           CHECK(res.bindArraySize == arraySizeRW);
           CHECK(res.textureType == TextureType::Buffer);
 

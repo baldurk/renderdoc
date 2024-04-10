@@ -1362,16 +1362,19 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
       // On GL if we have a location and no binding, put that in as the bind. It is not used
       // otherwise on GL as the bindings are dynamic. This should only happen for
       // bare uniforms and not for texture/buffer type uniforms which should have a binding
-      if(sourceAPI == GraphicsAPI::OpenGL &&
-         (decorations[global.id].flags & (Decorations::HasLocation | Decorations::HasBinding)) ==
-             Decorations::HasLocation)
+      if(sourceAPI == GraphicsAPI::OpenGL)
       {
-        bind = decorations[global.id].location;
-      }
-      else if(sourceAPI == GraphicsAPI::OpenGL &&
-              (decorations[global.id].flags & Decorations::HasLocation) == Decorations::NoFlags)
-      {
-        bind = ~0U;
+        Decorations::Flags flags = Decorations::Flags(
+            decorations[global.id].flags & (Decorations::HasLocation | Decorations::HasBinding));
+
+        if(flags == Decorations::HasLocation)
+        {
+          bind = decorations[global.id].location;
+        }
+        else if(flags == Decorations::NoFlags)
+        {
+          bind = ~0U;
+        }
       }
 
       if(usedIds.find(global.id) == usedIds.end())
