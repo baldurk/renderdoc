@@ -166,6 +166,11 @@ void VkMarkerRegion::End(VkQueue q)
 }
 
 template <>
+VkObjectType objType<VkBuffer>()
+{
+  return VK_OBJECT_TYPE_BUFFER;
+}
+template <>
 VkObjectType objType<VkImage>()
 {
   return VK_OBJECT_TYPE_IMAGE;

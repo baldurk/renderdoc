@@ -117,8 +117,8 @@ struct ShaderUniformParameters
 class VulkanAPIWrapper : public rdcspv::DebugAPIWrapper
 {
 public:
-  VulkanAPIWrapper(WrappedVulkan *vk, VulkanCreationInfo &creation, VkShaderStageFlagBits stage,
-                   uint32_t eid, ResourceId shadId)
+  VulkanAPIWrapper(WrappedVulkan *vk, VulkanCreationInfo &creation, ShaderStage stage, uint32_t eid,
+                   ResourceId shadId)
       : m_DebugData(vk->GetReplay()->GetShaderDebugData()),
         m_Creation(creation),
         m_EventID(eid),
@@ -133,6 +133,9 @@ public:
 
     // cache the descriptor access. This should be a superset of all descriptors we need to read from
     m_Access = replay->GetDescriptorAccess(eid);
+
+    // filter to only accesses from the stage we care about, as access lookups will be stage-specific
+    m_Access.removeIf([stage](const DescriptorAccess &access) { return access.stage != stage; });
 
     // fetch all descriptor contents now too
     m_Descriptors.reserve(m_Access.size());
@@ -3965,8 +3968,8 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
 
   shadRefl.PopulateDisassembly(shader.spirv);
 
-  VulkanAPIWrapper *apiWrapper = new VulkanAPIWrapper(m_pDriver, c, VK_SHADER_STAGE_VERTEX_BIT,
-                                                      eventId, shadRefl.refl->resourceId);
+  VulkanAPIWrapper *apiWrapper =
+      new VulkanAPIWrapper(m_pDriver, c, ShaderStage::Vertex, eventId, shadRefl.refl->resourceId);
 
   // clamp the view index to the number of multiviews, just to be sure
   size_t numViews;
@@ -4223,8 +4226,8 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
   shadRefl.PopulateDisassembly(shader.spirv);
 
-  VulkanAPIWrapper *apiWrapper = new VulkanAPIWrapper(m_pDriver, c, VK_SHADER_STAGE_FRAGMENT_BIT,
-                                                      eventId, shadRefl.refl->resourceId);
+  VulkanAPIWrapper *apiWrapper =
+      new VulkanAPIWrapper(m_pDriver, c, ShaderStage::Pixel, eventId, shadRefl.refl->resourceId);
 
   std::map<ShaderBuiltin, ShaderVariable> &builtins = apiWrapper->builtin_inputs;
   builtins[ShaderBuiltin::DeviceIndex] = ShaderVariable(rdcstr(), 0U, 0U, 0U, 0U);
@@ -4403,6 +4406,8 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
     m_BindlessFeedback.FeedbackBuffer.Destroy();
     m_BindlessFeedback.FeedbackBuffer.Create(m_pDriver, dev, feedbackStorageSize, 1, flags);
+
+    NameVulkanObject(m_BindlessFeedback.FeedbackBuffer.buf, "m_BindlessFeedback.FeedbackBuffer");
   }
 
   struct SpecData
@@ -4966,8 +4971,8 @@ ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId,
 
   shadRefl.PopulateDisassembly(shader.spirv);
 
-  VulkanAPIWrapper *apiWrapper = new VulkanAPIWrapper(m_pDriver, c, VK_SHADER_STAGE_COMPUTE_BIT,
-                                                      eventId, shadRefl.refl->resourceId);
+  VulkanAPIWrapper *apiWrapper =
+      new VulkanAPIWrapper(m_pDriver, c, ShaderStage::Compute, eventId, shadRefl.refl->resourceId);
 
   uint32_t threadDim[3];
   threadDim[0] = shadRefl.refl->dispatchThreadsDimension[0];
