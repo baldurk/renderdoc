@@ -264,7 +264,7 @@ struct TypeData
   bool colMajorMat = false;
 
   Id baseType;
-  uint32_t arrayDimension = 0;
+  rdcarray<uint32_t> arrayDimensions;
   rdcarray<rdcpair<rdcstr, Id>> structMembers;
 };
 

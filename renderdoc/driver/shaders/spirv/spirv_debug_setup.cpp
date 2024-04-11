@@ -1697,10 +1697,10 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo)
 
           while(!indexes.empty())
           {
-            if(typeWalk->arrayDimension > 0)
+            if(typeWalk->arrayDimensions.size() > 0)
             {
               uint32_t numIdxs = (uint32_t)indexes.size();
-              for(size_t a = 0; a < RDCMIN(typeWalk->arrayDimension, numIdxs); a++)
+              for(size_t a = 0; a < RDCMIN((uint32_t)typeWalk->arrayDimensions.size(), numIdxs); a++)
               {
                 sourceVar.name += StringFormat::Fmt("[%u]", indexes.back());
                 indexes.pop_back();
@@ -3583,7 +3583,15 @@ void Debugger::RegisterOp(Iter it)
         case ShaderDbg::TypeArray:
         {
           m_DebugInfo.types[dbg.result].baseType = dbg.arg<Id>(0);
-          m_DebugInfo.types[dbg.result].arrayDimension = (uint32_t)dbg.params.size() - 1;
+          size_t countDims = dbg.params.size();
+          m_DebugInfo.types[dbg.result].arrayDimensions.resize(countDims - 1);
+          for(uint32_t i = 1; i < countDims; ++i)
+          {
+            size_t idx = i - 1;
+            m_DebugInfo.types[dbg.result].arrayDimensions[idx] =
+                EvaluateConstant(dbg.arg<Id>(i), {}).value.u32v[0];
+          }
+
           break;
         }
         case ShaderDbg::TypeComposite:
