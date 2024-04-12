@@ -152,7 +152,7 @@ if(ANDROID)
     if(APK_TARGET_ID STREQUAL "")
         # This seems different from the platform we're targetting,
         # default to the latest available that's greater or equal to our target platform
-        file(GLOB __platforms RELATIVE "${ANDROID_SDK_ROOT_PATH}/platforms" "${ANDROID_SDK_ROOT_PATH}/platforms/*")
+        file(GLOB __platforms RELATIVE "${ANDROID_SDK_ROOT_PATH}/platforms" "${ANDROID_SDK_ROOT_PATH}/platforms/android-*")
         list(SORT __platforms)
 
         # In case we don't find one, target the latest platform
