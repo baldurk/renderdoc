@@ -3168,6 +3168,14 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCount(SerialiserType &ser
             EventUsage(m_CurEventID, ResourceUsage::Indirect));
       }
 
+      {
+        GLuint buf = 0;
+        GL.glGetIntegerv(eGL_PARAMETER_BUFFER_BINDING, (GLint *)&buf);
+
+        m_ResourceUses[GetResourceManager()->GetResID(BufferRes(GetCtx(), buf))].push_back(
+            EventUsage(m_CurEventID, ResourceUsage::Indirect));
+      }
+
       GLintptr offs = (GLintptr)offset;
 
       SDChunk *baseChunk = m_StructuredFile->chunks.back();
@@ -3399,6 +3407,14 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCount(SerialiserType &s
       {
         GLuint buf = 0;
         GL.glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
+
+        m_ResourceUses[GetResourceManager()->GetResID(BufferRes(GetCtx(), buf))].push_back(
+            EventUsage(m_CurEventID, ResourceUsage::Indirect));
+      }
+
+      {
+        GLuint buf = 0;
+        GL.glGetIntegerv(eGL_PARAMETER_BUFFER_BINDING, (GLint *)&buf);
 
         m_ResourceUses[GetResourceManager()->GetResID(BufferRes(GetCtx(), buf))].push_back(
             EventUsage(m_CurEventID, ResourceUsage::Indirect));

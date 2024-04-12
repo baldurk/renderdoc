@@ -2999,6 +2999,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
 
       actionNode.resourceUsage.push_back(make_rdcpair(
           GetResID(buffer), EventUsage(actionNode.action.eventId, ResourceUsage::Indirect)));
+      actionNode.resourceUsage.push_back(make_rdcpair(
+          GetResID(countBuffer), EventUsage(actionNode.action.eventId, ResourceUsage::Indirect)));
 
       m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
 
@@ -3345,6 +3347,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
 
       actionNode.resourceUsage.push_back(make_rdcpair(
           GetResID(buffer), EventUsage(actionNode.action.eventId, ResourceUsage::Indirect)));
+      actionNode.resourceUsage.push_back(make_rdcpair(
+          GetResID(countBuffer), EventUsage(actionNode.action.eventId, ResourceUsage::Indirect)));
 
       m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
 
@@ -5121,6 +5125,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawMeshTasksIndirectCountEXT(
 
       actionNode.resourceUsage.push_back(make_rdcpair(
           GetResID(buffer), EventUsage(actionNode.action.eventId, ResourceUsage::Indirect)));
+      actionNode.resourceUsage.push_back(make_rdcpair(
+          GetResID(countBuffer), EventUsage(actionNode.action.eventId, ResourceUsage::Indirect)));
 
       m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
 
