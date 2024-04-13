@@ -12939,6 +12939,7 @@ _MTL_INLINE MTL::Device* MTL::DepthStencilState::device() const
 
 namespace MTL
 {
+class SamplerDescriptor;	// RD: forward declare SamplerDescriptor
 _MTL_ENUM(NS::Integer, IOCompressionMethod) {
     IOCompressionMethodZlib = 0,
     IOCompressionMethodLZFSE = 1,
