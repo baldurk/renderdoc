@@ -63,7 +63,7 @@
 }
 
 // MTLResource : based on the protocol defined in
-// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLResource.h
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLResource.h
 
 - (nullable NSString *)label
 {
@@ -131,6 +131,15 @@
 {
   return [self.real isAliasable];
 }
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_14_4
+- (kern_return_t)setOwnerWithIdentity:(task_id_token_t)task_id_token
+    API_AVAILABLE(ios(17.4), watchos(10.4), tvos(17.4), macos(14.4))
+{
+  METAL_NOT_HOOKED();
+  return [self.real setOwnerWithIdentity:task_id_token];
+}
+#endif
 
 // MTLBuffer : based on the protocol defined in
 // Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLBuffer.h
