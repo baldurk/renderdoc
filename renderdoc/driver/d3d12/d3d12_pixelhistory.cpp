@@ -219,14 +219,12 @@ enum D3D12PixelHistoryTests : uint32_t
   DepthTest_GreaterEqual = 7U << DepthTest_Shift,
 };
 
-static bool IsDepthFormat(D3D12_RESOURCE_DESC desc, CompType typeCast)
+static bool IsDepthFormat(D3D12_RESOURCE_DESC desc)
 {
-  // TODO: This function might need to handle where the resource is typeless but is actually depth
-
   if(IsDepthFormat(desc.Format))
     return true;
 
-  if(typeCast == CompType::Depth && (desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL))
+  if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
     return true;
 
   return false;
@@ -234,7 +232,7 @@ static bool IsDepthFormat(D3D12_RESOURCE_DESC desc, CompType typeCast)
 
 static DXGI_FORMAT GetDepthCopyFormat(DXGI_FORMAT format)
 {
-  if(format == DXGI_FORMAT_D16_UNORM)
+  if(GetDepthTypedFormat(format) == DXGI_FORMAT_D16_UNORM)
     return DXGI_FORMAT_R16_TYPELESS;
   return DXGI_FORMAT_R32_TYPELESS;
 }
@@ -1154,7 +1152,7 @@ struct D3D12ColorAndStencilCallback : public D3D12PixelHistoryCallback
 
   DXGI_FORMAT GetDepthFormat(uint32_t eventId)
   {
-    if(IsDepthFormat(m_CallbackInfo.targetDesc.Format))
+    if(IsDepthFormat(m_CallbackInfo.targetDesc))
       return m_CallbackInfo.targetDesc.Format;
     auto it = m_DepthFormats.find(eventId);
     if(it == m_DepthFormats.end())
@@ -1180,7 +1178,8 @@ private:
     bool rtOutput = (nonRtFallback == D3D12_RESOURCE_STATE_RENDER_TARGET);
     D3D12_RESOURCE_STATES fallback = D3D12_RESOURCE_STATE_RENDER_TARGET;
 
-    if(IsDepthFormat(m_CallbackInfo.targetDesc, m_CallbackInfo.compType))
+    bool depthTarget = false;
+    if(IsDepthFormat(m_CallbackInfo.targetDesc))
     {
       fallback = m_SavedState.dsv.GetDSV().Flags & D3D12_DSV_FLAG_READ_ONLY_DEPTH
                      ? D3D12_RESOURCE_STATE_DEPTH_READ
@@ -1189,7 +1188,9 @@ private:
       targetCopyParams.depthcopy = true;
       targetCopyParams.copyFormat = GetDepthCopyFormat(m_CallbackInfo.targetDesc.Format);
       offset += offsetof(struct D3D12PixelHistoryValue, depth);
+      depthTarget = true;
     }
+
     targetCopyParams.srcImageState = rtOutput ? fallback : nonRtFallback;
 
     CopyImagePixel(cmd, targetCopyParams, offset);
@@ -1206,10 +1207,11 @@ private:
                      : D3D12_RESOURCE_STATE_DEPTH_WRITE;
       stencilCopyParams.srcImageState = rtOutput ? fallback : nonRtFallback;
       CopyImagePixel(cmd, stencilCopyParams, offset + sizeof(float));
+      depthTarget = true;
     }
 
     // If the target image is a depth/stencil view, we already copied the value above.
-    if(IsDepthFormat(m_CallbackInfo.targetDesc.Format))
+    if(depthTarget)
       return;
 
     // Get the bound depth format for this event
@@ -2026,7 +2028,7 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
 
     // TODO: Do we need to test for stencil format here too, or does this check catch planar depth/stencil?
     uint32_t renderTargetIndex = 0;
-    if(IsDepthFormat(m_CallbackInfo.targetDesc.Format))
+    if(IsDepthFormat(m_CallbackInfo.targetDesc))
     {
       // Color target not needed
       renderTargetIndex = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT;
