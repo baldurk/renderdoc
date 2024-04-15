@@ -1013,7 +1013,7 @@ void ImageState::RecordBarrier(VkImageMemoryBarrier barrier, uint32_t queueFamil
      barrier.dstQueueFamilyIndex == VK_QUEUE_FAMILY_EXTERNAL ||
      barrier.dstQueueFamilyIndex == VK_QUEUE_FAMILY_FOREIGN_EXT)
   {
-    RDCERR("External/foreign queue families are not supported");
+    RDCDEBUG("External/foreign queue families are not supported");
     return;
   }
   if(GetImageInfo().sharingMode == VK_SHARING_MODE_CONCURRENT)

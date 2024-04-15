@@ -307,6 +307,23 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
 
     UnwrapNextChain(m_State, "VkMemoryAllocateInfo", tempMem, (VkBaseInStructure *)&patched);
 
+    // remove dedicated memory struct if it is not allowed due to changing memory sizes
+    {
+      VkMemoryDedicatedAllocateInfo *dedicated = (VkMemoryDedicatedAllocateInfo *)FindNextStruct(
+          &AllocateInfo, VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO);
+      if(dedicated && dedicated->image != VK_NULL_HANDLE)
+      {
+        VkMemoryRequirements mrq = {};
+        ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(dedicated->image), &mrq);
+
+        if(mrq.size != AllocateInfo.allocationSize)
+        {
+          RDCDEBUG("Removing dedicated allocation for incompatible size");
+          RemoveNextStruct(&patched, VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO);
+        }
+      }
+    }
+
     if(patched.memoryTypeIndex >= m_PhysicalDeviceData.memProps.memoryTypeCount)
     {
       SET_ERROR_RESULT(
@@ -495,6 +512,19 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
   // when whitelisting the extension and creating the device.
   if(IsCaptureMode(m_State) && memFlags && (memFlags->flags & VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT))
     memFlags->flags |= VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT;
+
+  // remove dedicated memory struct if it is not allowed
+  {
+    VkMemoryDedicatedAllocateInfo *dedicated = (VkMemoryDedicatedAllocateInfo *)FindNextStruct(
+        pAllocateInfo, VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO);
+    if(dedicated && dedicated->image != VK_NULL_HANDLE)
+    {
+      VkResourceRecord *imageRecord = GetRecord(dedicated->image);
+
+      if(imageRecord->resInfo->banDedicated)
+        RemoveNextStruct(&unwrapped, VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO);
+    }
+  }
 
   VkResult ret;
   SERIALISE_TIME_CALL(
@@ -2506,6 +2536,14 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
               RDCDEBUG(
                   "Non-external version requires %llu bytes at %llu alignment, in %x memory types",
                   mrq.size, mrq.alignment, mrq.memoryTypeBits);
+
+              if(resInfo.memreqs.size != mrq.size)
+              {
+                RDCWARN(
+                    "Required size changed on image between external/non-external, banning "
+                    "dedicated memory");
+                resInfo.banDedicated = true;
+              }
 
               resInfo.memreqs.size = RDCMAX(resInfo.memreqs.size, mrq.size);
               resInfo.memreqs.alignment = RDCMAX(resInfo.memreqs.alignment, mrq.alignment);

@@ -995,6 +995,11 @@ struct ResourceInfo
   // METADATA) we put them in the array.
   Sparse::PageTable sparseTable;
   rdcarray<AspectSparseTable> altSparseAspects;
+
+  // for external images if we query both external and non-external and the sizes are different, we
+  // can't allow dedicated memory as it is required to precisely match in size.
+  bool banDedicated = false;
+
   VkImageAspectFlags sparseAspect;
 
   ResourceId dedicatedMemory;
