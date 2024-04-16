@@ -957,6 +957,8 @@ public:
     return WrappedDeviceChild12::IsResident();
   }
 
+  WrappedID3D12Heap *GetHeap() { return m_Heap; }
+
   ID3D12Pageable *UnwrappedResidencyPageable()
   {
     if(m_Heap)

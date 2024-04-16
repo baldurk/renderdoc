@@ -923,7 +923,6 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
 
     case D3D12Chunk::List_ClearState: ret = m_ReplayList->Serialise_ClearState(ser, NULL); break;
 
-    /*-----AMD TODO------*/
     case D3D12Chunk::List_BuildRaytracingAccelerationStructure:
       ret = m_ReplayList->Serialise_BuildRaytracingAccelerationStructure(ser, NULL, 0, NULL);
       break;
@@ -942,8 +941,6 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
     case D3D12Chunk::List_SetPipelineState1:
       ret = m_ReplayList->Serialise_SetPipelineState1(ser, NULL);
       break;
-
-    /*-----AMD TODO-------*/
 
     // in order to get a warning if we miss a case, we explicitly handle the device creation chunks
     // here. If we actually encounter one it's an error (we shouldn't see these inside the captured

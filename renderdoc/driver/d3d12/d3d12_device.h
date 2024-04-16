@@ -620,6 +620,24 @@ private:
   rdcarray<WrappedID3D12CommandQueue *> m_RefQueues;
   rdcarray<ID3D12Resource *> m_RefBuffers;
 
+  rdcarray<D3D12ResourceRecord *> m_ForcedReferences;
+  Threading::CriticalSection m_ForcedReferencesLock;
+  bool m_HaveSeenASBuild = false;
+
+  int64_t m_QueueCounter = 0;
+
+  rdcarray<D3D12ResourceRecord *> GetForcedReferences()
+  {
+    rdcarray<D3D12ResourceRecord *> ret;
+
+    {
+      SCOPED_LOCK(m_ForcedReferencesLock);
+      ret = m_ForcedReferences;
+    }
+
+    return ret;
+  }
+
   // the queue we use for all internal work, the first DIRECT queue
   WrappedID3D12CommandQueue *m_Queue;
 
@@ -835,6 +853,12 @@ public:
   const D3D12_FEATURE_DATA_D3D12_OPTIONS15 &GetOpts15() { return m_D3D12Opts15; }
   const D3D12_FEATURE_DATA_D3D12_OPTIONS16 &GetOpts16() { return m_D3D12Opts16; }
   void RemoveQueue(WrappedID3D12CommandQueue *queue);
+
+  void AddForcedReference(D3D12ResourceRecord *record)
+  {
+    SCOPED_LOCK(m_ForcedReferencesLock);
+    m_ForcedReferences.push_back(record);
+  }
 
   // only valid on replay
   const std::map<ResourceId, WrappedID3D12Resource *> &GetResourceList() { return *m_ResourceList; }

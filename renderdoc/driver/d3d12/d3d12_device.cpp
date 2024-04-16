@@ -2623,6 +2623,11 @@ void WrappedID3D12Device::StartFrameCapture(DeviceOwnedWindow devWnd)
   }
 
   GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_Read);
+
+  rdcarray<D3D12ResourceRecord *> forced = GetForcedReferences();
+
+  for(auto it = forced.begin(); it != forced.end(); ++it)
+    GetResourceManager()->MarkResourceFrameReferenced((*it)->GetResourceID(), eFrameRef_Read);
 }
 
 bool WrappedID3D12Device::EndFrameCapture(DeviceOwnedWindow devWnd)
@@ -2667,6 +2672,19 @@ bool WrappedID3D12Device::EndFrameCapture(DeviceOwnedWindow devWnd)
     backbuffer = (ID3D12Resource *)swapper->GetBackbuffers()[swapper->GetLastPresentedBuffer()];
 
   rdcarray<WrappedID3D12CommandQueue *> queues;
+
+  // There is no easy way to mark resource referenced in the AS input and the dispatch tables.
+  // We could be more selective and only force-reference acceleration structure buffers - resources
+  // in the AS state - but this would not include scratch buffers (which could be done by hand) and
+  // build input buffers (which can't).
+  // we don't do this with the forced reference system as we want this to be retroactive - only
+  // after seeing an AS build do we mark all buffers referenced but buffers could be created before
+  // an AS is built.
+  CaptureOptions opts = RenderDoc::Inst().GetCaptureOptions();
+  if(!opts.refAllResources && m_HaveSeenASBuild)
+  {
+    WrappedID3D12Resource::MarkAllBufferResourceFrameReferenced(GetResourceManager());
+  }
 
   // transition back to IDLE and readback initial states atomically
   {
@@ -3189,6 +3207,11 @@ void WrappedID3D12Device::ReleaseResource(ID3D12DeviceChild *res)
   }
 
   {
+    SCOPED_LOCK(m_ForcedReferencesLock);
+    m_ForcedReferences.removeOne(GetRecord(res));
+  }
+
+  {
     SCOPED_LOCK(m_SparseLock);
     m_SparseResources.erase(id);
     m_SparseHeaps.erase(id);
@@ -3668,6 +3691,8 @@ void WrappedID3D12Device::CreateAS(ID3D12Resource *pResource, UINT64 resourceOff
   if(IsCaptureMode(m_State))
   {
     D3D12ResourceRecord *record = as->GetResourceRecord();
+
+    m_HaveSeenASBuild = true;
 
     {
       WriteSerialiser &ser = GetThreadSerialiser();

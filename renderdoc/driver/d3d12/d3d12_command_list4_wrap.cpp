@@ -1005,7 +1005,6 @@ void WrappedID3D12GraphicsCommandList::BuildRaytracingAccelerationStructure(
       m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     }
 
-    D3D12ResourceManager *resManager = m_pDevice->GetResourceManager();
     ResourceId asbWrappedResourceId;
     D3D12BufferOffset asbWrappedResourceBufferOffset;
 
@@ -1015,10 +1014,12 @@ void WrappedID3D12GraphicsCommandList::BuildRaytracingAccelerationStructure(
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO preBldInfo;
     m_pDevice->GetRaytracingAccelerationStructurePrebuildInfo(&pDesc->Inputs, &preBldInfo);
 
-    auto PostBldExecute = [resManager, asbWrappedResourceId, asbWrappedResourceBufferOffset,
+    auto PostBldExecute = [this, asbWrappedResourceId, asbWrappedResourceBufferOffset,
                            preBldInfo]() -> bool {
       bool success = false;
       D3D12AccelerationStructure *accStructAtOffset = NULL;
+
+      D3D12ResourceManager *resManager = m_pDevice->GetResourceManager();
 
       WrappedID3D12Resource *asbWrappedResource =
           resManager->GetCurrentAs<WrappedID3D12Resource>(asbWrappedResourceId);
@@ -1067,6 +1068,8 @@ void WrappedID3D12GraphicsCommandList::BuildRaytracingAccelerationStructure(
           // register this AS so its resource can be created during replay
           m_pDevice->CreateAS(asbWrappedResource, asbWrappedResourceBufferOffset, preBldInfo,
                               accStructAtOffset);
+
+          m_pDevice->AddForcedReference(record);
         }
         else
         {
