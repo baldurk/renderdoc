@@ -996,8 +996,14 @@ void WrappedID3D12GraphicsCommandList::BuildRaytracingAccelerationStructure(
     // invalidating occupying previous acceleration structure(s) in order of command list execution.
     // It can also be updated but there are many update constraints around it.
 
-    CACHE_THREAD_SERIALISER();
-    SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_BuildRaytracingAccelerationStructure);
+    {
+      CACHE_THREAD_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_BuildRaytracingAccelerationStructure);
+      Serialise_BuildRaytracingAccelerationStructure(ser, pDesc, NumPostbuildInfoDescs,
+                                                     pPostbuildInfoDescs);
+
+      m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
+    }
 
     D3D12ResourceManager *resManager = m_pDevice->GetResourceManager();
     ResourceId asbWrappedResourceId;
