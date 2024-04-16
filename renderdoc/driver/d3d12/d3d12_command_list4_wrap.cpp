@@ -1036,6 +1036,11 @@ void WrappedID3D12GraphicsCommandList::BuildRaytracingAccelerationStructure(
           asbWrappedResource->DeleteAccStructAtOffset(asbWrappedResourceBufferOffset);
           createAccStruct = true;
         }
+        else
+        {
+          // if the AS is being rebuilt in place, that's also successful
+          success = true;
+        }
       }
       else
       {
