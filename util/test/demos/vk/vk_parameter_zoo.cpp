@@ -581,8 +581,13 @@ void main()
 
     VkDescriptorSet asm_descset = allocateDescriptorSet(asm_setlayout);
 
+    VkDescriptorSetLayout empty_setlayout =
+        createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({}));
+
+    VkDescriptorSet empty_descset = allocateDescriptorSet(empty_setlayout);
+
     VkPipelineLayout asm_layout = createPipelineLayout(vkh::PipelineLayoutCreateInfo(
-        {asm_setlayout}, {vkh::PushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, 0, 4)}));
+        {asm_setlayout, empty_setlayout}, {vkh::PushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, 0, 4)}));
 
     vkh::RenderPassCreator renderPassCreateInfo;
 
@@ -1755,6 +1760,8 @@ void main()
         vkCmdPushConstants(cmd, asm_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, 4, &idx);
         vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, asm_layout, 0,
                                    {asm_descset}, {});
+        vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, asm_layout, 1,
+                                   {empty_descset}, {});
 
         setMarker(cmd, "ASM Draw");
         vkCmdDraw(cmd, 4, 1, 0, 0);

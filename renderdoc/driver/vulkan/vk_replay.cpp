@@ -2044,7 +2044,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
         const WrappedVulkan::DescriptorSetInfo &descSetState =
             m_pDriver->m_DescriptorSetState[sourceSet];
-        const DescriptorSetSlot *first = descSetState.data.binds[0];
+        const DescriptorSetSlot *first =
+            descSetState.data.binds.empty() ? NULL : descSetState.data.binds[0];
         for(size_t b = 0; b < descSetState.data.binds.size(); b++)
         {
           const DescSetLayout::Binding &layoutBind =
@@ -2435,7 +2436,7 @@ rdcarray<Descriptor> VulkanReplay::GetDescriptors(ResourceId descriptorStore,
   size_t dst = 0;
   for(const DescriptorRange &r : ranges)
   {
-    const DescriptorSetSlot *desc = set.data.binds[0];
+    const DescriptorSetSlot *desc = set.data.binds.empty() ? NULL : set.data.binds[0];
     const DescriptorSetSlot *end = desc + set.data.totalDescriptorCount();
 
     desc += (r.offset - set.data.inlineBytes.size());
@@ -2508,7 +2509,7 @@ rdcarray<SamplerDescriptor> VulkanReplay::GetSamplerDescriptors(ResourceId descr
   size_t dst = 0;
   for(const DescriptorRange &r : ranges)
   {
-    const DescriptorSetSlot *desc = set.data.binds[0];
+    const DescriptorSetSlot *desc = set.data.binds.empty() ? NULL : set.data.binds[0];
     const DescriptorSetSlot *end = desc + set.data.totalDescriptorCount();
 
     desc += r.offset;

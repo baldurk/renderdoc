@@ -209,7 +209,7 @@ public:
 
           const BindingStorage &bindStorage =
               m_pDriver->GetCurrentDescSetBindingStorage(srcData.descSet);
-          const DescriptorSetSlot *first = bindStorage.binds[0];
+          const DescriptorSetSlot *first = bindStorage.binds.empty() ? NULL : bindStorage.binds[0];
           for(size_t b = 0; b < bindStorage.binds.size(); b++)
           {
             const DescSetLayout::Binding &layoutBind =
