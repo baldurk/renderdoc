@@ -56,6 +56,8 @@ D3D12ResourceType IdentifyTypeByPtr(ID3D12Object *ptr)
     return Resource_GraphicsCommandList;
   if(WrappedID3D12CommandQueue::IsAlloc(ptr))
     return Resource_CommandQueue;
+  if(D3D12AccelerationStructure::IsAlloc(ptr))
+    return Resource_AccelerationStructure;
 
   RDCERR("Unknown type for ptr 0x%p", ptr);
 

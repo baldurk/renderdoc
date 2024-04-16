@@ -639,6 +639,16 @@ struct D3D12GpuBuffer
   uint64_t Alignment() const { return m_alignment; }
   bool Release();
   D3D12GpuBufferHeapMemoryFlag HeapMemory() const { return m_heapMemory; }
+
+  void *Map(D3D12_RANGE *pReadRange = NULL)
+  {
+    byte *ret = NULL;
+    if(FAILED(m_resource->Map(0, pReadRange, (void **)&ret)))
+      return NULL;
+    ret += m_offset;
+    return ret;
+  }
+  void Unmap(D3D12_RANGE *pWrittenRange = NULL) { m_resource->Unmap(0, pWrittenRange); }
 private:
   D3D12_GPU_VIRTUAL_ADDRESS m_alignedAddress;
   uint64_t m_offset;
@@ -1059,6 +1069,14 @@ public:
 
   void InitInternalResources();
 
+  void ResizeSerialisationBuffer(UINT64 size);
+
+  // buffer in UAV state for emitting AS queries to, CPU accessible/mappable
+  D3D12GpuBuffer ASQueryBuffer;
+
+  // temp buffer for AS serialise copies
+  D3D12GpuBuffer ASSerialiseBuffer;
+
 private:
   void InitReplayBlasPatchingResources();
   WrappedID3D12Device *m_wrappedDevice;
@@ -1086,8 +1104,8 @@ public:
   D3D12ResourceManager(CaptureState &state, WrappedID3D12Device *dev)
       : ResourceManager(state), m_Device(dev)
   {
-    m_raytracingResourceManager = new D3D12RaytracingResourceAndUtilHandler(m_Device);
     D3D12GpuBufferAllocator::Initialize(dev);
+    m_raytracingResourceManager = new D3D12RaytracingResourceAndUtilHandler(m_Device);
   }
 
   ~D3D12ResourceManager()

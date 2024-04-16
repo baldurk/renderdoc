@@ -737,6 +737,10 @@ D3D12RaytracingResourceAndUtilHandler::D3D12RaytracingResourceAndUtilHandler(Wra
 
       m_gpuSyncHandle = ::CreateEvent(NULL, FALSE, FALSE, NULL);
     }
+
+    D3D12GpuBufferAllocator::Inst()->Alloc(D3D12GpuBufferHeapType::CustomHeapWithUavCpuAccess,
+                                           D3D12GpuBufferHeapMemoryFlag::Default, 16, 256,
+                                           ASQueryBuffer);
   }
 }
 
@@ -760,6 +764,18 @@ void D3D12RaytracingResourceAndUtilHandler::InitInternalResources()
   if(IsReplayMode(m_wrappedDevice->GetState()))
   {
     InitReplayBlasPatchingResources();
+  }
+}
+
+void D3D12RaytracingResourceAndUtilHandler::ResizeSerialisationBuffer(UINT64 size)
+{
+  if(size > ASSerialiseBuffer.Size())
+  {
+    ASSerialiseBuffer.Release();
+
+    D3D12GpuBufferAllocator::Inst()->Alloc(D3D12GpuBufferHeapType::DefaultHeapWithUav,
+                                           D3D12GpuBufferHeapMemoryFlag::Default, size, 256,
+                                           ASSerialiseBuffer);
   }
 }
 

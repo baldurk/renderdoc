@@ -1309,6 +1309,10 @@ public:
 
   uint64_t Size() const { return m_preBldInfo.ResultDataMaxSizeInBytes; }
   ResourceId GetBackingBufferResourceId() const { return m_asbWrappedResource->GetResourceID(); }
+  D3D12_GPU_VIRTUAL_ADDRESS GetVirtualAddress() const
+  {
+    return m_asbWrappedResource->GetGPUVirtualAddress() + m_asbWrappedResourceBufferOffset;
+  }
 
 private:
   WrappedID3D12Resource *m_asbWrappedResource;

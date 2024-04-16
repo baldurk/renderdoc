@@ -109,8 +109,8 @@ D3D12_DRIVER_MATCHING_IDENTIFIER_STATUS WrappedID3D12Device::CheckDriverMatching
     _In_ D3D12_SERIALIZED_DATA_TYPE SerializedDataType,
     _In_ const D3D12_SERIALIZED_DATA_DRIVER_MATCHING_IDENTIFIER *pIdentifierToCheck)
 {
-  // AMD TODO: Investigate if this needs additional handling
-  return m_pDevice5->CheckDriverMatchingIdentifier(SerializedDataType, pIdentifierToCheck);
+  // never allow the application to use serialised data
+  return D3D12_DRIVER_MATCHING_IDENTIFIER_INCOMPATIBLE_VERSION;
 }
 
 INSTANTIATE_FUNCTION_SERIALISED(HRESULT, WrappedID3D12Device, CreateStateObject,
