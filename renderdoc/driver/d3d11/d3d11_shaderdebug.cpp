@@ -1466,7 +1466,7 @@ ShaderDebugTrace *D3D11Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
   if(!dxbc)
     return new ShaderDebugTrace;
 
-  dxbc->GetDisassembly(true);
+  dxbc->GetDisassembly(false);
 
   D3D11RenderState *rs = m_pImmediateContext->GetCurrentPipelineState();
 
@@ -1857,7 +1857,7 @@ ShaderDebugTrace *D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t
   if(!dxbc)
     return new ShaderDebugTrace;
 
-  dxbc->GetDisassembly(true);
+  dxbc->GetDisassembly(false);
 
   DXBC::DXBCContainer *prevdxbc = NULL;
 
@@ -2599,7 +2599,7 @@ ShaderDebugTrace *D3D11Replay::DebugThread(uint32_t eventId,
   if(!dxbc)
     return new ShaderDebugTrace;
 
-  dxbc->GetDisassembly(true);
+  dxbc->GetDisassembly(false);
 
   D3D11RenderState *rs = m_pImmediateContext->GetCurrentPipelineState();
 

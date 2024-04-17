@@ -339,7 +339,7 @@ rdcstr D3D11Replay::DisassembleShader(ResourceId pipeline, const ShaderReflectio
   DXBC::DXBCContainer *dxbc = it->second->GetDXBC();
 
   if(target == DXBCDisassemblyTarget || target.empty())
-    return dxbc->GetDisassembly(true);
+    return dxbc->GetDisassembly(false);
 
   return StringFormat::Fmt("; Invalid disassembly target %s", target.c_str());
 }

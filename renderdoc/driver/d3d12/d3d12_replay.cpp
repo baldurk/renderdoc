@@ -56,6 +56,7 @@ static const char *LiveDriverDisassemblyTarget = "Live driver disassembly";
 ID3DDevice *GetD3D12DeviceIfAlloc(IUnknown *dev);
 
 static const char *DXBCDXILDisassemblyTarget = "DXBC/DXIL";
+static const char *DXCDXILDisassemblyTarget = "DXC DXIL";
 
 D3D12Replay::D3D12Replay(WrappedID3D12Device *d)
 {
@@ -539,6 +540,8 @@ rdcarray<rdcstr> D3D12Replay::GetDisassemblyTargets(bool withPipeline)
 
   // DXBC/DXIL is always first
   ret.push_back(DXBCDXILDisassemblyTarget);
+  // DXC DXIL
+  ret.push_back(DXCDXILDisassemblyTarget);
 
   if(!m_ISAChecked && m_TexRender.BlendPipe)
   {
@@ -581,6 +584,9 @@ rdcstr D3D12Replay::DisassembleShader(ResourceId pipeline, const ShaderReflectio
   DXBC::DXBCContainer *dxbc = sh->GetDXBC();
 
   if(target == DXBCDXILDisassemblyTarget || target.empty())
+    return dxbc->GetDisassembly(false);
+
+  if(target == DXCDXILDisassemblyTarget)
     return dxbc->GetDisassembly(true);
 
   if(target == LiveDriverDisassemblyTarget)

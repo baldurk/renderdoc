@@ -972,7 +972,7 @@ void D3D12Replay::PatchQuadWritePS(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &pi
   if(!D3D12_Debug_OverlayDumpDirPath().empty())
     FileIO::WriteAll(D3D12_Debug_OverlayDumpDirPath() + "/after_quadps.dxbc", patchedPs);
 
-  DXBC::DXBCContainer(patchedPs, rdcstr(), GraphicsAPI::D3D12, ~0U, ~0U).GetDisassembly(true);
+  DXBC::DXBCContainer(patchedPs, rdcstr(), GraphicsAPI::D3D12, ~0U, ~0U).GetDisassembly(false);
 
   pipeDesc.PS.pShaderBytecode = patchedPs.data();
   pipeDesc.PS.BytecodeLength = patchedPs.size();

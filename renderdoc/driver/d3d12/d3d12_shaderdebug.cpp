@@ -1519,7 +1519,7 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
     return new ShaderDebugTrace;
   }
 
-  dxbc->GetDisassembly(true);
+  dxbc->GetDisassembly(false);
 
   const ActionDescription *action = m_pDevice->GetAction(eventId);
 
@@ -1901,7 +1901,7 @@ ShaderDebugTrace *D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t
     return new ShaderDebugTrace;
   }
 
-  dxbc->GetDisassembly(true);
+  dxbc->GetDisassembly(false);
 
   // Fetch the previous stage's disassembly, to match outputs to PS inputs
   DXBCContainer *prevDxbc = NULL;
@@ -2725,7 +2725,7 @@ ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId,
     return new ShaderDebugTrace;
   }
 
-  dxbc->GetDisassembly(true);
+  dxbc->GetDisassembly(false);
 
   InterpretDebugger *interpreter = new InterpretDebugger;
   interpreter->eventId = eventId;
