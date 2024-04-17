@@ -146,6 +146,12 @@
     <ClCompile Include="spirv_debug_setup.cpp" />
     <ClCompile Include="spirv_debug.cpp" />
     <ClCompile Include="spirv_debug_glsl450.cpp" />
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\SpirvIntrinsics.cpp">
+      <Filter>3rdparty\glslang</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\ResourceLimits\ResourceLimits.cpp">
+      <Filter>3rdparty\glslang</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\3rdparty\glslang\OGLCompilersDLL\InitializeDll.h">
@@ -300,5 +306,20 @@
     <ClInclude Include="spirv_processor.h" />
     <ClInclude Include="spirv_debug.h" />
     <ClInclude Include="var_dispatch_helpers.h" />
+    <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\GLSL.ext.ARM.h">
+      <Filter>3rdparty\glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\NonSemanticDebugPrintf.h">
+      <Filter>3rdparty\glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\NonSemanticShaderDebugInfo100.h">
+      <Filter>3rdparty\glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Include\SpirvIntrinsics.h">
+      <Filter>3rdparty\glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Public\ResourceLimits.h">
+      <Filter>3rdparty\glslang</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
