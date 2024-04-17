@@ -276,7 +276,7 @@ bool WrappedID3D12Device::Serialise_CreateResource(
     type = ResourceType::Buffer;
     if(InitialLayout.ToStates() == D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE)
     {
-      prefix = "Acceleration Structure";
+      prefix = "AS Buffer";
       ((WrappedID3D12Resource *)ret)->MarkAsAccelerationStructureResource();
     }
     else

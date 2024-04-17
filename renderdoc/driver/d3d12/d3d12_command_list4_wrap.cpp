@@ -1063,6 +1063,10 @@ void WrappedID3D12GraphicsCommandList::BuildRaytracingAccelerationStructure(
 
           record->AddParent(
               resManager->GetResourceRecord(accStructAtOffset->GetBackingBufferResourceId()));
+
+          // register this AS so its resource can be created during replay
+          m_pDevice->CreateAS(asbWrappedResource, asbWrappedResourceBufferOffset, preBldInfo,
+                              accStructAtOffset);
         }
         else
         {

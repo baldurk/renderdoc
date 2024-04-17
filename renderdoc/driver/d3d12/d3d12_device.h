@@ -81,6 +81,7 @@ struct QueueReadbackData
 class WrappedID3D12Device;
 class WrappedID3D12Resource;
 class WrappedID3D12PipelineState;
+class D3D12AccelerationStructure;
 
 class D3D12Replay;
 class D3D12TextRenderer;
@@ -1250,6 +1251,11 @@ public:
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(void, SetName, ID3D12DeviceChild *pResource, const char *Name);
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(HRESULT, SetShaderDebugPath, ID3D12DeviceChild *pResource,
                                        const char *Path);
+
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(
+      void, CreateAS, ID3D12Resource *pResource, UINT64 resourceOffset,
+      const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO &preBldInfo,
+      D3D12AccelerationStructure *as);
 
   // IHV APIs
   IMPLEMENT_FUNCTION_SERIALISED(void, SetShaderExtUAV, GPUVendor vendor, uint32_t reg,

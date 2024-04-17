@@ -3617,6 +3617,68 @@ void WrappedID3D12Device::SetName(ID3D12DeviceChild *pResource, const char *Name
 }
 
 template <typename SerialiserType>
+bool WrappedID3D12Device::Serialise_CreateAS(
+    SerialiserType &ser, ID3D12Resource *pResource, UINT64 resourceOffset,
+    const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO &preBldInfo,
+    D3D12AccelerationStructure *as)
+{
+  SERIALISE_ELEMENT(pResource);
+  SERIALISE_ELEMENT(resourceOffset);
+  SERIALISE_ELEMENT(preBldInfo);
+  SERIALISE_ELEMENT_LOCAL(asId, as->GetResourceID());
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading() && pResource)
+  {
+    WrappedID3D12Resource *asbWrappedResource = (WrappedID3D12Resource *)pResource;
+    D3D12AccelerationStructure *accStructAtOffset = NULL;
+    if(asbWrappedResource->CreateAccStruct(resourceOffset, preBldInfo, &accStructAtOffset))
+    {
+      GetResourceManager()->AddLiveResource(asId, accStructAtOffset);
+
+      AddResource(asId, ResourceType::AccelerationStructure, "Acceleration Structure");
+      // ignored if there's no heap
+      DerivedResource(pResource, asId);
+    }
+    else
+    {
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Couldn't recreate acceleration structure object");
+      return false;
+    }
+  }
+
+  return true;
+}
+
+template bool WrappedID3D12Device::Serialise_CreateAS(
+    ReadSerialiser &ser, ID3D12Resource *pResource, UINT64 resourceOffset,
+    const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO &preBldInfo,
+    D3D12AccelerationStructure *as);
+template bool WrappedID3D12Device::Serialise_CreateAS(
+    WriteSerialiser &ser, ID3D12Resource *pResource, UINT64 resourceOffset,
+    const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO &preBldInfo,
+    D3D12AccelerationStructure *as);
+
+void WrappedID3D12Device::CreateAS(ID3D12Resource *pResource, UINT64 resourceOffset,
+                                   const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO &preBldInfo,
+                                   D3D12AccelerationStructure *as)
+{
+  if(IsCaptureMode(m_State))
+  {
+    D3D12ResourceRecord *record = as->GetResourceRecord();
+
+    {
+      WriteSerialiser &ser = GetThreadSerialiser();
+      SCOPED_SERIALISE_CHUNK(D3D12Chunk::CreateAS);
+      Serialise_CreateAS(ser, pResource, resourceOffset, preBldInfo, as);
+      record->AddChunk(scope.Get());
+    }
+  }
+}
+
+template <typename SerialiserType>
 bool WrappedID3D12Device::Serialise_SetShaderExtUAV(SerialiserType &ser, GPUVendor vendor,
                                                     uint32_t reg, uint32_t space, bool global)
 {
@@ -4346,6 +4408,7 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
       return Serialise_CreateStateObject(ser, NULL, IID(), NULL);
     case D3D12Chunk::Device_AddToStateObject:
       return Serialise_AddToStateObject(ser, NULL, NULL, IID(), NULL);
+    case D3D12Chunk::CreateAS: return Serialise_CreateAS(ser, NULL, 0, {}, NULL);
 
     // in order to get a warning if we miss a case, we explicitly handle the list/queue chunks here.
     // If we actually encounter one it's an error (we should hit CaptureBegin first and switch to
