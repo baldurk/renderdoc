@@ -1115,12 +1115,7 @@ public:
   uint32_t GetMajorVersion() const { return m_Major; }
   uint32_t GetMinorVersion() const { return m_Minor; }
   D3D_PRIMITIVE_TOPOLOGY GetOutputTopology();
-  const rdcstr &GetDisassembly()
-  {
-    if(m_Disassembly.empty())
-      MakeDisassemblyString();
-    return m_Disassembly;
-  }
+  const rdcstr &GetDisassembly(bool dxcStyle);
 
   // IDebugInfo interface
 
@@ -1138,7 +1133,8 @@ public:
   const Metadata *GetMetadataByName(const rdcstr &name) const;
   uint32_t GetDirectHeapAcessCount() const { return m_directHeapAccessCount; }
 protected:
-  void MakeDisassemblyString();
+  void MakeDXCDisassemblyString();
+  void MakeRDDisassemblyString();
 
   void ParseConstant(ValueList &values, const LLVMBC::BlockOrRecord &constant);
   bool ParseDebugMetaRecord(MetadataList &metadata, const LLVMBC::BlockOrRecord &metaRecord,
@@ -1200,6 +1196,7 @@ protected:
   rdcarray<DebugLocation> m_DebugLocations;
 
   bool m_Uselists = false;
+  bool m_DXCStyle = false;
 
   rdcstr m_Triple, m_Datalayout;
 

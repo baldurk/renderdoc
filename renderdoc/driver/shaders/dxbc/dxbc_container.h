@@ -184,7 +184,7 @@ public:
   const Reflection *GetReflection() const { return m_Reflection; }
   D3D_PRIMITIVE_TOPOLOGY GetOutputTopology();
 
-  const rdcstr &GetDisassembly();
+  const rdcstr &GetDisassembly(bool dxcStyle);
   void FillTraceLineInfo(ShaderDebugTrace &trace) const;
 
   static void StripChunk(bytebuf &ByteCode, uint32_t fourcc);
@@ -227,6 +227,7 @@ private:
   bytebuf m_ShaderBlob;
 
   rdcstr m_Disassembly;
+  bool m_DXCStyle = false;
 
   D3D_PRIMITIVE_TOPOLOGY m_OutputTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 

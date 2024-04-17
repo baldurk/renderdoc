@@ -511,10 +511,11 @@ D3D_PRIMITIVE_TOPOLOGY DXBCContainer::GetOutputTopology(const void *ByteCode, si
   return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 }
 
-const rdcstr &DXBCContainer::GetDisassembly()
+const rdcstr &DXBCContainer::GetDisassembly(bool dxcStyle)
 {
-  if(m_Disassembly.empty())
+  if(m_Disassembly.empty() || (dxcStyle != m_DXCStyle))
   {
+    m_DXCStyle = dxcStyle;
     rdcstr globalFlagsString;
 
     const rdcstr commentString = m_DXBCByteCode ? "//" : ";";
@@ -609,7 +610,7 @@ const rdcstr &DXBCContainer::GetDisassembly()
       m_Disassembly += "\n\n";
 #endif
 
-      m_Disassembly += m_DXILByteCode->GetDisassembly();
+      m_Disassembly += m_DXILByteCode->GetDisassembly(dxcStyle);
     }
   }
 

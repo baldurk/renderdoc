@@ -72,7 +72,21 @@ rdcstr escapeStringIfNeeded(const rdcstr &name)
   return needsEscaping(name) ? escapeString(name) : name;
 }
 
-void Program::MakeDisassemblyString()
+const rdcstr &Program::GetDisassembly(bool dxcStyle)
+{
+  if(m_Disassembly.empty() || (dxcStyle != m_DXCStyle))
+  {
+    m_DXCStyle = dxcStyle;
+
+    if(dxcStyle)
+      MakeDXCDisassemblyString();
+    else
+      MakeRDDisassemblyString();
+  }
+  return m_Disassembly;
+}
+
+void Program::MakeDXCDisassemblyString()
 {
   const char *shaderName[] = {
       "Pixel",      "Vertex",  "Geometry",      "Hull",         "Domain",
@@ -1513,6 +1527,13 @@ void Program::MakeDisassemblyString()
       RDCERR("Couldn't find meta ID %u", i);
     }
   }
+
+  m_Disassembly += "\n";
+}
+
+void Program::MakeRDDisassemblyString()
+{
+  m_Disassembly.clear();
 
   m_Disassembly += "\n";
 }

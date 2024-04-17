@@ -524,7 +524,7 @@ rdcarray<rdcstr> D3D12Replay::GetDisassemblyTargets(bool withPipeline)
 {
   rdcarray<rdcstr> ret;
 
-  // DXBC is always first
+  // DXBC/DXIL is always first
   ret.push_back(DXBCDXILDisassemblyTarget);
 
   if(!m_ISAChecked && m_TexRender.BlendPipe)
@@ -568,7 +568,7 @@ rdcstr D3D12Replay::DisassembleShader(ResourceId pipeline, const ShaderReflectio
   DXBC::DXBCContainer *dxbc = sh->GetDXBC();
 
   if(target == DXBCDXILDisassemblyTarget || target.empty())
-    return dxbc->GetDisassembly();
+    return dxbc->GetDisassembly(true);
 
   if(target == LiveDriverDisassemblyTarget)
   {
