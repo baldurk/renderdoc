@@ -3122,6 +3122,8 @@ void WrappedID3D12Device::UploadBLASBufferAddresses()
     }
   }
 
+  m_blasAddressCount = (uint32_t)blasAddressPair.size();
+
   uint64_t requiredSize = blasAddressPair.size() * sizeof(BlasAddressPair);
 
   D3D12_RESOURCE_DESC addressBufferResDesc;

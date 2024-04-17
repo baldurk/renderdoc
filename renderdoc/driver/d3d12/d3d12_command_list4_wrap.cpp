@@ -847,8 +847,7 @@ bool WrappedID3D12GraphicsCommandList::PatchAccStructBlasAddress(
     ID3D12Resource *addressPairRes = m_pDevice->GetBLASAddressBufferResource();
     D3D12_GPU_VIRTUAL_ADDRESS addressPairResAddress = addressPairRes->GetGPUVirtualAddress();
 
-    // TODO: Update to gather the right count.
-    uint64_t addressCount = 0;
+    uint64_t addressCount = m_pDevice->GetBLASAddressCount();
 
     dxrCmd->SetPipelineState(patchInfo.m_pipeline);
     dxrCmd->SetComputeRootSignature(patchInfo.m_rootSignature);
@@ -930,7 +929,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BuildRaytracingAccelerationStru
           }
         }
 
-        // AMD TODO: Find out do we need pre callback before build Acc struct call
         dxrCmd->BuildRaytracingAccelerationStructure(&AccStructDesc, NumPostbuildInfoDescs,
                                                      pPostbuildInfoDescs);
       }

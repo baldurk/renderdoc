@@ -992,6 +992,12 @@ public:
   // pending at once then they will be split up and issued in multiple calls.
   static const UINT executeListsMaxSize = 50;
 
+  // GPU side pair-struct for remapping BLAS addresses just in time before builds
+  uint32_t m_blasAddressCount = 0;
+  ID3D12Resource *m_blasAddressBufferResource = NULL;
+  ID3D12Resource *m_blasAddressBufferUploadResource = NULL;
+  bool m_addressBufferUploaded = false;
+
   ID3D12GraphicsCommandListX *GetNewList();
   ID3D12GraphicsCommandListX *GetInitialStateList();
 
@@ -1260,9 +1266,7 @@ public:
 
   void UploadBLASBufferAddresses();
   ID3D12Resource *GetBLASAddressBufferResource() const { return m_blasAddressBufferResource; }
-  ID3D12Resource *m_blasAddressBufferResource = NULL;
-  ID3D12Resource *m_blasAddressBufferUploadResource = NULL;
-  bool m_addressBufferUploaded = false;
+  uint32_t GetBLASAddressCount() const { return m_blasAddressCount; }
 
   void ReleaseResource(ID3D12DeviceChild *pResource);
 
