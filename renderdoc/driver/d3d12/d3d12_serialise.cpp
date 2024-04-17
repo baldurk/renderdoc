@@ -1073,6 +1073,12 @@ void DoSerialise(SerialiserType &ser, D3D12_TEXCUBE_ARRAY_SRV &el)
 }
 
 template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_SRV &el)
+{
+  SERIALISE_MEMBER_TYPED(D3D12BufferLocation, Location);
+}
+
+template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_SHADER_RESOURCE_VIEW_DESC &el)
 {
   SERIALISE_MEMBER(Format).Important();
@@ -1986,12 +1992,6 @@ void DoSerialise(SerialiserType &ser,
 {
   SERIALISE_MEMBER(SerializedSizeInBytes);
   SERIALISE_MEMBER(NumBottomLevelAccelerationStructurePointers);
-}
-
-template <class SerialiserType>
-void DoSerialise(SerialiserType &ser, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_SRV &el)
-{
-  SERIALISE_MEMBER_TYPED(D3D12BufferLocation, Location);
 }
 
 template <class SerialiserType>

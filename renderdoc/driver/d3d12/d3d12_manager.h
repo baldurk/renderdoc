@@ -137,6 +137,7 @@ struct D3D12_SHADER_RESOURCE_VIEW_DESC_SQUEEZED
   union
   {
     D3D12_BUFFER_SRV Buffer;
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_SRV AS;
     D3D12_TEX1D_SRV Texture1D;
     D3D12_TEX1D_ARRAY_SRV Texture1DArray;
     D3D12_TEX2D_SRV Texture2D;
@@ -157,6 +158,8 @@ struct D3D12_SHADER_RESOURCE_VIEW_DESC_SQUEEZED
     // D3D12_TEX2D_ARRAY_SRV should be the largest component, so we can copy it and ensure we've
     // copied the rest.
     RDCCOMPILE_ASSERT(sizeof(Buffer) <= sizeof(Texture2DArray),
+                      "Texture2DArray isn't largest union member!");
+    RDCCOMPILE_ASSERT(sizeof(AS) <= sizeof(Texture2DArray),
                       "Texture2DArray isn't largest union member!");
     RDCCOMPILE_ASSERT(sizeof(Texture1D) <= sizeof(Texture2DArray),
                       "Texture2DArray isn't largest union member!");

@@ -219,7 +219,7 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
           return;
         }
       }
-      else if(!res)
+      else if(!res && desc->ViewDimension != D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE)
       {
         // if we don't have a resource (which is possible if the descriptor is unused or invalidated
         // by referring to a resource that was deleted), use a default descriptor

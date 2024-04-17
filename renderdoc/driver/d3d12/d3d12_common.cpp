@@ -481,6 +481,7 @@ TextureType MakeTextureDim(D3D12_SRV_DIMENSION dim)
   {
     case D3D12_SRV_DIMENSION_UNKNOWN: return TextureType::Unknown;
     case D3D12_SRV_DIMENSION_BUFFER: return TextureType::Buffer;
+    case D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE: return TextureType::Buffer;
     case D3D12_SRV_DIMENSION_TEXTURE1D: return TextureType::Texture1D;
     case D3D12_SRV_DIMENSION_TEXTURE1DARRAY: return TextureType::Texture1DArray;
     case D3D12_SRV_DIMENSION_TEXTURE2D: return TextureType::Texture2D;

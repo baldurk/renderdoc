@@ -724,15 +724,21 @@ void D3D12Replay::FillDescriptor(Descriptor &dst, const D3D12Descriptor *src)
 
   if(dst.resource == ResourceId())
   {
-    src->GetHeap()->GetFromDescriptorCache(src->GetHeapIndex(), dst);
-    return;
+    // TLASs annoyingly don't have a resource
+    if(src->GetType() != D3D12DescriptorType::SRV ||
+       src->GetSRV().ViewDimension != D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE)
+    {
+      src->GetHeap()->GetFromDescriptorCache(src->GetHeapIndex(), dst);
+      return;
+    }
   }
 
-  D3D12_RESOURCE_DESC res;
+  D3D12_RESOURCE_DESC res = {};
 
   {
     ID3D12Resource *r = rm->GetCurrentAs<ID3D12Resource>(src->GetResResourceId());
-    res = r->GetDesc();
+    if(r)
+      res = r->GetDesc();
   }
 
   {
@@ -777,6 +783,15 @@ void D3D12Replay::FillDescriptor(Descriptor &dst, const D3D12Descriptor *src)
           dst.elementByteSize = srv.Buffer.StructureByteStride;
           dst.type = DescriptorType::Buffer;
         }
+      }
+      else if(srv.ViewDimension == D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE)
+      {
+        dst.type = DescriptorType::Buffer;
+
+        ResourceId asID;
+        WrappedID3D12Resource::GetResIDFromAddr(srv.RaytracingAccelerationStructure.Location, asID,
+                                                dst.byteOffset);
+        dst.resource = rm->GetOriginalID(asID);
       }
       else if(srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE1D)
       {
