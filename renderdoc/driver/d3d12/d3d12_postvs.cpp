@@ -2150,6 +2150,7 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
   // same event is selected again
   {
     ret.meshout.buf = NULL;
+    ret.meshout.bufSize = ~0ULL;
     ret.meshout.instStride = 0;
     ret.meshout.vertStride = 0;
     ret.meshout.nearPlane = 0.0f;
@@ -2157,6 +2158,7 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
     ret.meshout.useIndices = false;
     ret.meshout.hasPosOut = false;
     ret.meshout.idxBuf = NULL;
+    ret.meshout.idxBufSize = ~0ULL;
 
     ret.meshout.topo = pipe->MS()->GetDetails().outputTopology;
     ret.ampout = ret.meshout;
@@ -2695,6 +2697,7 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
   else if(layout.indexCountPerPrim == 1)
     ret.meshout.topo = Topology::PointList;
 
+  uint64_t meshBufSize = ~0ULL;
   if(totalNumMeshlets > 0)
   {
     D3D12_RESOURCE_DESC desc = {};
@@ -2708,7 +2711,8 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
     desc.MipLevels = 1;
     desc.SampleDesc.Count = 1;
     desc.SampleDesc.Quality = 0;
-    desc.Width = AlignUp16(compactedVertices.byteSize()) + rebasedIndices.byteSize();
+    meshBufSize = AlignUp16(compactedVertices.byteSize()) + rebasedIndices.byteSize();
+    desc.Width = meshBufSize;
 
     D3D12_HEAP_PROPERTIES heapProps;
     heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
@@ -2750,6 +2754,7 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
   }
 
   ret.ampout.buf = ampBuffer;
+  ret.ampout.bufSize = ampBufSize;
 
   if(pipeDesc.AS.BytecodeLength == 0)
     ret.ampout.status = "No amplification shader bound";
@@ -2768,6 +2773,7 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
   ret.ampout.instStride = 0;
 
   ret.ampout.idxBuf = NULL;
+  ret.ampout.idxBufSize = ~0ULL;
   ret.ampout.idxOffset = 0;
   ret.ampout.idxFmt = DXGI_FORMAT_UNKNOWN;
 
@@ -2776,6 +2782,7 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
   ret.ampout.dispatchSize = dispatchSize;
 
   ret.meshout.buf = meshBuffer;
+  ret.meshout.bufSize = meshBufSize;
 
   ret.meshout.vertStride = layout.vertStride;
   ret.meshout.nearPlane = nearp;
@@ -2793,6 +2800,7 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
   ret.meshout.instStride = 0;
 
   ret.meshout.idxBuf = meshBuffer;
+  ret.meshout.idxBufSize = meshBufSize;
   ret.meshout.idxOffset = AlignUp16(compactedVertices.byteSize());
   ret.meshout.idxFmt = DXGI_FORMAT_R32_UINT;
 
@@ -3037,6 +3045,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     }
 
     ID3D12Resource *idxBuf = NULL;
+    uint64_t idxBufSize = ~0ULL;
 
     bool recreate = false;
     // we add 64 to account for the stream-out data counter
@@ -3255,6 +3264,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
         SetObjName(idxBuf, StringFormat::Fmt("PostVS idxBuf for %u", eventId));
 
         GetDebugManager()->FillBuffer(idxBuf, 0, &idxdata[0], idxdata.size());
+        idxBufSize = idxdata.size();
       }
     }
 
@@ -3389,6 +3399,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     ret.vsout.vertStride = stride;
     ret.vsout.nearPlane = nearp;
     ret.vsout.farPlane = farp;
+    ret.vsout.bufSize = numBytesWritten;
 
     ret.vsout.useIndices = bool(action->flags & ActionFlags::Indexed);
     ret.vsout.numVerts = action->numIndices;
@@ -3402,6 +3413,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     {
       ret.vsout.idxBuf = idxBuf;
       ret.vsout.idxFmt = rs.ibuffer.bytewidth == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
+      ret.vsout.idxBufSize = idxBufSize;
     }
 
     ret.vsout.hasPosOut = posidx >= 0;
@@ -3412,6 +3424,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
   {
     // empty vertex output signature
     ret.vsout.buf = NULL;
+    ret.vsout.bufSize = ~0ULL;
     ret.vsout.instStride = 0;
     ret.vsout.vertStride = 0;
     ret.vsout.nearPlane = 0.0f;
@@ -3419,6 +3432,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     ret.vsout.useIndices = false;
     ret.vsout.hasPosOut = false;
     ret.vsout.idxBuf = NULL;
+    ret.vsout.idxBufSize = ~0ULL;
 
     ret.vsout.topo = MakePrimitiveTopology(topo);
   }
@@ -3941,6 +3955,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     m_SOStagingBuffer->Unmap(0, &range);
 
     ret.gsout.buf = gsoutBuffer;
+    ret.gsout.bufSize = numBytesWritten;
     ret.gsout.instStride = 0;
     if(action->flags & ActionFlags::Instanced)
       ret.gsout.instStride = uint32_t(numBytesWritten / RDCMAX(1U, action->numInstances));
@@ -3950,6 +3965,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     ret.gsout.useIndices = false;
     ret.gsout.hasPosOut = posidx >= 0;
     ret.gsout.idxBuf = NULL;
+    ret.gsout.idxBufSize = ~0ULL;
 
     topo = lastShader->GetOutputTopology();
 
@@ -4052,7 +4068,7 @@ MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint
   {
     ret.indexResourceId = GetResID(s.idxBuf);
     ret.indexByteStride = s.idxFmt == DXGI_FORMAT_R16_UINT ? 2 : 4;
-    ret.indexByteSize = ~0ULL;
+    ret.indexByteSize = s.idxBufSize;
   }
   else if(s.useIndices)
   {
@@ -4070,7 +4086,7 @@ MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventId, uint32_t instID, uint
   if(s.buf != NULL)
   {
     ret.vertexResourceId = GetResID(s.buf);
-    ret.vertexByteSize = ~0ULL;
+    ret.vertexByteSize = s.bufSize;
   }
   else
   {

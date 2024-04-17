@@ -371,7 +371,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
         D3D12_VERTEX_BUFFER_VIEW view;
         view.BufferLocation = vb->GetGPUVirtualAddress() + offs;
         view.StrideInBytes = fmt.vertexByteStride;
-        view.SizeInBytes = (UINT)fmt.vertexByteSize;
+        view.SizeInBytes = (UINT)(fmt.vertexByteSize - offs);
         list->IASetVertexBuffers(0, 1, &view);
 
         // set it to the secondary buffer too just as dummy info
@@ -391,7 +391,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
           {
             D3D12_INDEX_BUFFER_VIEW iview;
             iview.BufferLocation = ib->GetGPUVirtualAddress() + fmt.indexByteOffset;
-            iview.SizeInBytes = (UINT)fmt.indexByteSize;
+            iview.SizeInBytes = (UINT)(fmt.indexByteSize - fmt.indexByteOffset);
             iview.Format = fmt.indexByteStride == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
             list->IASetIndexBuffer(&iview);
           }
@@ -429,7 +429,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
     D3D12_VERTEX_BUFFER_VIEW view;
     view.BufferLocation = vb->GetGPUVirtualAddress() + offs;
     view.StrideInBytes = cfg.position.vertexByteStride;
-    view.SizeInBytes = (UINT)cfg.position.vertexByteSize;
+    view.SizeInBytes = (UINT)(cfg.position.vertexByteSize - offs);
     list->IASetVertexBuffers(0, 1, &view);
 
     // set it to the secondary buffer too just as dummy info
@@ -464,7 +464,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
     D3D12_VERTEX_BUFFER_VIEW view;
     view.BufferLocation = vb->GetGPUVirtualAddress() + offs;
     view.StrideInBytes = cfg.second.vertexByteStride;
-    view.SizeInBytes = (UINT)cfg.second.vertexByteSize;
+    view.SizeInBytes = (UINT)(cfg.second.vertexByteSize - offs);
 
     list->IASetVertexBuffers(1, 1, &view);
   }
@@ -542,7 +542,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
       {
         D3D12_INDEX_BUFFER_VIEW view;
         view.BufferLocation = ib->GetGPUVirtualAddress() + cfg.position.indexByteOffset;
-        view.SizeInBytes = (UINT)cfg.position.indexByteSize;
+        view.SizeInBytes = (UINT)(cfg.position.indexByteSize - cfg.position.indexByteOffset);
         view.Format = cfg.position.indexByteStride == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
         list->IASetIndexBuffer(&view);
       }
@@ -592,7 +592,7 @@ void D3D12Replay::RenderMesh(uint32_t eventId, const rdcarray<MeshFormat> &secon
       {
         D3D12_INDEX_BUFFER_VIEW view;
         view.BufferLocation = ib->GetGPUVirtualAddress() + cfg.position.indexByteOffset;
-        view.SizeInBytes = (UINT)cfg.position.indexByteSize;
+        view.SizeInBytes = (UINT)(cfg.position.indexByteSize - cfg.position.indexByteOffset);
         view.Format = cfg.position.indexByteStride == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
         list->IASetIndexBuffer(&view);
       }

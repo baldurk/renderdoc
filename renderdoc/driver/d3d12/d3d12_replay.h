@@ -334,6 +334,7 @@ private:
     struct StageData
     {
       ID3D12Resource *buf = NULL;
+      uint64_t bufSize = ~0ULL;
       Topology topo = Topology::Unknown;
 
       uint32_t vertStride = 0;
@@ -351,6 +352,7 @@ private:
 
       bool useIndices = false;
       ID3D12Resource *idxBuf = NULL;
+      uint64_t idxBufSize = ~0ULL;
       uint64_t idxOffset = 0;
       DXGI_FORMAT idxFmt = DXGI_FORMAT_UNKNOWN;
 
