@@ -245,6 +245,110 @@ struct TypeInfo
   }
 };
 
+EntryPoint::Signature::Signature(const Metadata *signature)
+{
+  /*
+  static const unsigned kDxilSignatureElementID = 0;             // Unique element ID.
+  static const unsigned kDxilSignatureElementName = 1;           // Element name.
+  static const unsigned kDxilSignatureElementType = 2;           // Element type.
+  static const unsigned kDxilSignatureElementSystemValue = 3;    // Effective system value.
+  static const unsigned kDxilSignatureElementIndexVector = 4;    // Semantic index vector.
+  static const unsigned kDxilSignatureElementInterpMode = 5;     // Interpolation mode.
+  static const unsigned kDxilSignatureElementRows = 6;           // Number of rows.
+  static const unsigned kDxilSignatureElementCols = 7;           // Number of columns.
+  static const unsigned kDxilSignatureElementStartRow = 8;       // Element packing start row.
+  static const unsigned kDxilSignatureElementStartCol = 9;       // Element packing start column.
+  static const unsigned kDxilSignatureElementNameValueList = 10;    // Name-value list for extended
+properties.
+
+  // Extended properties
+  static const unsigned kDxilSignatureElementOutputStreamTag = 0;
+  static const unsigned kHLSignatureElementGlobalSymbolTag = 1;
+  static const unsigned kDxilSignatureElementDynIdxCompMaskTag = 2;
+  static const unsigned kDxilSignatureElementUsageCompMaskTag = 3;
+  */
+
+  name = signature->children[1]->str;
+  type = getival<ComponentType>(signature->children[2]);
+  interpolation = getival<D3D_INTERPOLATION_MODE>(signature->children[5]);
+  rows = getival<uint32_t>(signature->children[6]);
+  cols = getival<uint8_t>(signature->children[7]);
+  startRow = getival<int32_t>(signature->children[8]);
+  startCol = getival<int8_t>(signature->children[9]);
+}
+
+EntryPoint::EntryPoint(const Metadata *entryPoint)
+{
+  function = entryPoint->children[0]->type;
+  name = entryPoint->children[1]->str;
+
+  const Metadata *signatures = entryPoint->children[2];
+  {
+    const Metadata *ins = signatures->children[0];
+    if(ins)
+    {
+      for(size_t i = 0; i < ins->children.size(); ++i)
+        inputs.push_back(ins->children[i]);
+    }
+    const Metadata *outs = signatures->children[1];
+    if(outs)
+    {
+      for(size_t i = 0; i < outs->children.size(); ++i)
+        outputs.push_back(outs->children[i]);
+    }
+    const Metadata *patchCons = signatures->children[2];
+    if(patchCons)
+    {
+      for(size_t i = 0; i < patchCons->children.size(); ++i)
+        patchConstants.push_back(patchCons->children[i]);
+    }
+  }
+
+  // SRVs, UAVs, CBs, Samplers
+  // const Metadata *resources = entryPoint->children[3];
+  /*
+  static const unsigned kDxilShaderFlagsTag = 0;
+  static const unsigned kDxilGSStateTag = 1;
+  static const unsigned kDxilDSStateTag = 2;
+  static const unsigned kDxilHSStateTag = 3;
+  static const unsigned kDxilNumThreadsTag = 4;
+  static const unsigned kDxilAutoBindingSpaceTag = 5;
+  static const unsigned kDxilRayPayloadSizeTag = 6;
+  static const unsigned kDxilRayAttribSizeTag = 7;
+  static const unsigned kDxilShaderKindTag = 8;
+  static const unsigned kDxilMSStateTag = 9;
+  static const unsigned kDxilASStateTag = 10;
+  static const unsigned kDxilWaveSizeTag = 11;
+  static const unsigned kDxilEntryRootSigTag = 12;
+  static const unsigned kDxilNodeLaunchTypeTag = 13;
+  static const unsigned kDxilNodeIsProgramEntryTag = 14;
+  static const unsigned kDxilNodeIdTag = 15;
+  static const unsigned kDxilNodeLocalRootArgumentsTableIndexTag = 16;
+  static const unsigned kDxilShareInputOfTag = 17;
+  static const unsigned kDxilNodeDispatchGridTag = 18;
+  static const unsigned kDxilNodeMaxRecursionDepthTag = 19;
+  static const unsigned kDxilNodeInputsTag = 20;
+  static const unsigned kDxilNodeOutputsTag = 21;
+  static const unsigned kDxilNodeMaxDispatchGridTag = 22;
+  static const unsigned kDxilRangedWaveSizeTag = 23;
+  */
+  // const Metadata *properties = entryPoint->children[4];
+}
+
+struct EntryPointsInfo
+{
+  EntryPointsInfo(const Metadata *entryPoints)
+  {
+    if(!entryPoints)
+      return;
+
+    for(size_t c = 0; c < entryPoints->children.size(); ++c)
+      entryPointsData.emplace_back(entryPoints->children[c]);
+  }
+
+  rdcarray<EntryPoint> entryPointsData;
+};
+
 static DXBC::CBufferVariableType MakePayloadType(const TypeInfo &typeInfo, const Type *t)
 {
   using namespace DXBC;
@@ -329,6 +433,14 @@ static DXBC::CBufferVariableType MakePayloadType(const TypeInfo &typeInfo, const
     RDCERR("Unexpected type %u iterating cbuffer variable type %s", t->type, t->name.c_str());
   }
   return ret;
+}
+
+void Program::FetchEntryPoints(rdcarray<EntryPoint> &entryPoints)
+{
+  DXMeta dx(m_NamedMeta);
+
+  EntryPointsInfo entryPointsInfo(dx.entryPoints);
+  entryPoints = entryPointsInfo.entryPointsData;
 }
 
 void Program::FetchComputeProperties(DXBC::Reflection *reflection)

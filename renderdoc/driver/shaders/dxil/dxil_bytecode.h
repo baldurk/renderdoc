@@ -31,6 +31,7 @@
 #include "common/common.h"
 #include "driver/dx/official/d3dcommon.h"
 #include "driver/shaders/dxbc/dxbc_common.h"
+#include "driver/shaders/dxil/dxil_common.h"
 
 #define DXC_COMPATIBLE_DISASM OPTION_OFF
 
@@ -1142,6 +1143,29 @@ private:
   void assignTypeId(const Constant *c);
 };
 
+struct EntryPoint
+{
+  EntryPoint(const Metadata *entryPoint);
+
+  struct Signature
+  {
+    Signature(const Metadata *signature);
+    rdcstr name;
+    ComponentType type;
+    D3D_INTERPOLATION_MODE interpolation;
+    uint32_t rows;
+    uint32_t cols;
+    int32_t startRow;
+    int32_t startCol;
+  };
+
+  rdcstr name;
+  const Type *function;
+  rdcarray<Signature> inputs;
+  rdcarray<Signature> outputs;
+  rdcarray<Signature> patchConstants;
+};
+
 class Program : public DXBC::IDebugInfo
 {
 public:
@@ -1196,6 +1220,7 @@ protected:
   uint32_t GetMetaSlot(const DebugLocation *l) const;
   void AssignMetaSlot(rdcarray<Metadata *> &metaSlots, uint32_t &nextMetaSlot, DebugLocation &l);
 
+  void FetchEntryPoints(rdcarray<EntryPoint> &entryPoints);
   const Metadata *FindMetadata(uint32_t slot) const;
   rdcstr ArgToString(const Value *v, bool withTypes, const rdcstr &attrString = "") const;
   rdcstr DisassembleComDats(int &instructionLine) const;
