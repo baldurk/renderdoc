@@ -1883,14 +1883,9 @@ void DoSerialise(SerialiserType &ser, D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCT
   SERIALISE_MEMBER_TYPED(D3D12BufferLocation, DestAccelerationStructureData).Important();
   SERIALISE_MEMBER(Inputs);
 
+  SERIALISE_MEMBER_TYPED(D3D12BufferLocation, SourceAccelerationStructureData);
   if(el.SourceAccelerationStructureData)
-  {
-    SERIALISE_MEMBER_TYPED(D3D12BufferLocation, SourceAccelerationStructureData).Important();
-  }
-  else
-  {
-    SERIALISE_MEMBER_TYPED(D3D12BufferLocation, SourceAccelerationStructureData);
-  }
+    ser.Important();
 
   SERIALISE_MEMBER_TYPED(D3D12BufferLocation, ScratchAccelerationStructureData).Important();
 }

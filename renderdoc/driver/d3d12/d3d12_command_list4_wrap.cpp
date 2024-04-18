@@ -897,7 +897,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BuildRaytracingAccelerationStru
 {
   ID3D12GraphicsCommandList4 *pCommandList = this;
   SERIALISE_ELEMENT(pCommandList);
-  SERIALISE_ELEMENT_LOCAL(AccStructDesc, *pDesc).TypedAs("AccStructDesc"_lit).Important();
+  SERIALISE_ELEMENT_LOCAL(AccStructDesc, *pDesc)
+      .TypedAs("D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC"_lit)
+      .Important();
   SERIALISE_ELEMENT(NumPostbuildInfoDescs);
   SERIALISE_ELEMENT_ARRAY(pPostbuildInfoDescs, NumPostbuildInfoDescs);
 
