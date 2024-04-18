@@ -1538,7 +1538,7 @@ void Program::MakeRDDisassemblyString()
   m_Disassembly += "\n";
 }
 
-rdcstr Type::toString() const
+rdcstr Type::toString(bool dxcStyle) const
 {
   if(!name.empty())
   {
@@ -1563,7 +1563,13 @@ rdcstr Type::toString() const
           }
       }
     }
-    case Vector: return StringFormat::Fmt("<%u x %s>", elemCount, inner->toString().c_str());
+    case Vector:
+    {
+      if(dxcStyle)
+        return StringFormat::Fmt("<%u x %s>", elemCount, inner->toString().c_str());
+      else
+        return StringFormat::Fmt("%s%u", inner->toString().c_str(), elemCount);
+    }
     case Pointer:
     {
       if(inner->type == Type::Function)
@@ -1578,7 +1584,13 @@ rdcstr Type::toString() const
       else
         return StringFormat::Fmt("%s addrspace(%d)*", inner->toString().c_str(), addrSpace);
     }
-    case Array: return StringFormat::Fmt("[%u x %s]", elemCount, inner->toString().c_str());
+    case Array:
+    {
+      if(dxcStyle)
+        return StringFormat::Fmt("[%u x %s]", elemCount, inner->toString().c_str());
+      else
+        return StringFormat::Fmt("%s[%u]", inner->toString().c_str(), elemCount);
+    }
     case Function: return declFunction(rdcstr(), {}, NULL) + "*";
     case Struct:
     {
