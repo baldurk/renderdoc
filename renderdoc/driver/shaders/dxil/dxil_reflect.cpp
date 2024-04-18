@@ -46,6 +46,10 @@ enum class StructMemberAnnotation
   CompType = 7,
   Precise = 8,
   CBUsed = 9,
+  // ResourceProperties = 10,
+  // BitFields = 11,
+  FieldWidth = 12,
+  VectorSize = 13,
 };
 
 template <typename T>
@@ -124,7 +128,10 @@ struct TypeInfo
     uint8_t rows = 0, cols = 0;
     uint32_t offset;
     rdcstr name;
+    rdcstr semantic;
     ComponentType type;
+    uint32_t fieldWidth;
+    uint32_t vectorSize;
   };
 
   struct StructData
@@ -202,7 +209,9 @@ struct TypeInfo
             case StructMemberAnnotation::CBufferOffset:
               memberOut.offset = getival<uint32_t>(memberIn->children[tag + 1]);
               break;
-            case StructMemberAnnotation::SemanticString: break;
+            case StructMemberAnnotation::SemanticString:
+              memberOut.semantic = memberIn->children[tag + 1]->str;
+              break;
             case StructMemberAnnotation::InterpolationMode: break;
             case StructMemberAnnotation::FieldName:
               memberOut.name = memberIn->children[tag + 1]->str;
@@ -222,6 +231,12 @@ struct TypeInfo
                 memberOut.flags = MemberData::Flags(memberOut.flags | MemberData::CBUsed);
               break;
             }
+            case StructMemberAnnotation::FieldWidth:
+              memberOut.fieldWidth = getival<uint32_t>(memberIn->children[tag + 1]);
+              break;
+            case StructMemberAnnotation::VectorSize:
+              memberOut.vectorSize = getival<uint32_t>(memberIn->children[tag + 1]);
+              break;
             default: RDCWARN("Unexpected field tag %u", fieldTag); break;
           }
         }
