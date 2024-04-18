@@ -112,7 +112,7 @@ struct Type
   static void *operator new(size_t count, BumpAllocator &b) { return b.alloc(count); }
   static void operator delete(void *ptr, BumpAllocator &b) {}
   bool isVoid() const { return type == Scalar && scalarType == Void; }
-  rdcstr toString(bool dxcStyle = true) const;
+  rdcstr toString() const;
   rdcstr declFunction(rdcstr funcName, const rdcarray<Instruction *> &args,
                       const AttributeSet *attrs) const;
 

@@ -38,6 +38,8 @@
 
 namespace DXIL
 {
+static bool dxcStyleFormatting = true;
+
 bool needsEscaping(const rdcstr &name)
 {
   return name.find_first_not_of(
@@ -854,6 +856,7 @@ const rdcstr &Program::GetDisassembly(bool dxcStyle)
 
 void Program::MakeDXCDisassemblyString()
 {
+  DXIL::dxcStyleFormatting = true;
   m_Disassembly.clear();
 #if DISABLED(DXC_COMPATIBLE_DISASM)
   m_Disassembly += StringFormat::Fmt("; %s Shader, compiled under SM%u.%u\n\n",
@@ -1781,12 +1784,13 @@ void Program::MakeDXCDisassemblyString()
 
 void Program::MakeRDDisassemblyString()
 {
+  DXIL::dxcStyleFormatting = false;
   m_Disassembly.clear();
 
   m_Disassembly += "\n";
 }
 
-rdcstr Type::toString(bool dxcStyle) const
+rdcstr Type::toString() const
 {
   if(!name.empty())
   {
@@ -1813,7 +1817,7 @@ rdcstr Type::toString(bool dxcStyle) const
     }
     case Vector:
     {
-      if(dxcStyle)
+      if(DXIL::dxcStyleFormatting)
         return StringFormat::Fmt("<%u x %s>", elemCount, inner->toString().c_str());
       else
         return StringFormat::Fmt("%s%u", inner->toString().c_str(), elemCount);
@@ -1834,7 +1838,7 @@ rdcstr Type::toString(bool dxcStyle) const
     }
     case Array:
     {
-      if(dxcStyle)
+      if(DXIL::dxcStyleFormatting)
         return StringFormat::Fmt("[%u x %s]", elemCount, inner->toString().c_str());
       else
         return StringFormat::Fmt("%s[%u]", inner->toString().c_str(), elemCount);
@@ -2035,37 +2039,51 @@ rdcstr Metadata::valString() const
 
 static void floatAppendToString(const Type *t, const ShaderValue &val, uint32_t i, rdcstr &ret)
 {
-#if ENABLED(DXC_COMPATIBLE_DISASM)
-  // dxc/llvm always prints half floats as their 16-bit hex representation.
-  if(t->bitWidth == 16)
+  if(DXIL::dxcStyleFormatting)
   {
-    ret += StringFormat::Fmt("0xH%04X", val.u32v[i]);
-    return;
-  }
+#if ENABLED(DXC_COMPATIBLE_DISASM)
+    // dxc/llvm always prints half floats as their 16-bit hex representation.
+    if(t->bitWidth == 16)
+    {
+      ret += StringFormat::Fmt("0xH%04X", val.u32v[i]);
+      return;
+    }
 #endif
+  }
 
   double d = t->bitWidth == 64 ? val.f64v[i] : val.f32v[i];
 
   // NaNs/infs are printed as hex to ensure we don't lose bits
   if(RDCISFINITE(d))
   {
-    // check we can reparse precisely a float-formatted string. Otherwise we print as hex
-    rdcstr flt = StringFormat::Fmt("%.6le", d);
+    if(DXIL::dxcStyleFormatting)
+    {
+      // check we can reparse precisely a float-formatted string. Otherwise we print as hex
+      rdcstr flt = StringFormat::Fmt("%.6le", d);
 
 #if ENABLED(DXC_COMPATIBLE_DISASM)
-    // dxc/llvm only prints floats as floats if they roundtrip, but our disassembly doesn't need to
-    // roundtrip so it's better to display the value in all cases
-    double reparse = strtod(flt.begin(), NULL);
+      // dxc/llvm only prints floats as floats if they roundtrip, but our disassembly doesn't need
+      // to roundtrip so it's better to display the value in all cases
+      double reparse = strtod(flt.begin(), NULL);
 
-    if(d == reparse)
-    {
+      if(d == reparse)
+      {
+        ret += flt;
+        return;
+      }
+#else
       ret += flt;
       return;
-    }
-#else
-    ret += flt;
-    return;
 #endif
+    }
+    else
+    {
+      if(t->bitWidth == 64)
+        ret += StringFormat::Fmt("%#g", val.f64v[i]);
+      else
+        ret += StringFormat::Fmt("%#g", val.f32v[i]);
+      return;
+    }
   }
 
   ret += StringFormat::Fmt("0x%llX", d);
