@@ -2238,11 +2238,16 @@ void Program::SetValueSymtabString(Value *v, const rdcstr &s)
     a->name = s;
 }
 
-uint32_t Program::GetOrAssignMetaSlot(rdcarray<Metadata *> &metaSlots, uint32_t &nextMetaSlot,
-                                      Metadata *m)
+uint32_t Program::GetMetaSlot(const Metadata *m) const
+{
+  RDCASSERTNOTEQUAL(m->slot, ~0U);
+  return m->slot;
+}
+
+void Program::AssignMetaSlot(rdcarray<Metadata *> &metaSlots, uint32_t &nextMetaSlot, Metadata *m)
 {
   if(m->slot != ~0U)
-    return m->slot;
+    return;
 
   m->slot = nextMetaSlot++;
   metaSlots.push_back(m);
@@ -2253,26 +2258,28 @@ uint32_t Program::GetOrAssignMetaSlot(rdcarray<Metadata *> &metaSlots, uint32_t 
     if(!c || c->isConstant)
       continue;
 
-    GetOrAssignMetaSlot(metaSlots, nextMetaSlot, c);
+    AssignMetaSlot(metaSlots, nextMetaSlot, c);
   }
-
-  return m->slot;
 }
 
-uint32_t Program::GetOrAssignMetaSlot(rdcarray<Metadata *> &metaSlots, uint32_t &nextMetaSlot,
-                                      DebugLocation &l)
+uint32_t Program::GetMetaSlot(const DebugLocation *l) const
+{
+  RDCASSERTNOTEQUAL(l->slot, ~0U);
+  return l->slot;
+}
+
+void Program::AssignMetaSlot(rdcarray<Metadata *> &metaSlots, uint32_t &nextMetaSlot,
+                             DebugLocation &l)
 {
   if(l.slot != ~0U)
-    return l.slot;
+    return;
 
   l.slot = nextMetaSlot++;
 
   if(l.scope)
-    GetOrAssignMetaSlot(metaSlots, nextMetaSlot, l.scope);
+    AssignMetaSlot(metaSlots, nextMetaSlot, l.scope);
   if(l.inlinedAt)
-    GetOrAssignMetaSlot(metaSlots, nextMetaSlot, l.inlinedAt);
-
-  return l.slot;
+    AssignMetaSlot(metaSlots, nextMetaSlot, l.inlinedAt);
 }
 
 const Type *Program::GetPointerType(const Type *type, Type::PointerAddrSpace addrSpace)
@@ -2551,7 +2558,7 @@ void LLVMOrderAccumulator::processGlobals(Program *prog, bool doLiveChecking)
   }
 }
 
-void LLVMOrderAccumulator::processFunction(Function *f)
+void LLVMOrderAccumulator::processFunction(const Function *f)
 {
   const Function &func = *f;
 

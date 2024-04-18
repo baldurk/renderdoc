@@ -1097,6 +1097,51 @@ struct Function : public Value
   AttachedMetadata attachedMeta;
 };
 
+class LLVMOrderAccumulator
+{
+public:
+  // types in id order
+  rdcarray<const Type *> types;
+  // types in disassembly print order
+  rdcarray<const Type *> printOrderTypes;
+  // values in id order
+  rdcarray<const Value *> values;
+  // metadata in id order
+  rdcarray<const Metadata *> metadata;
+
+  size_t firstConst;
+  size_t numConsts;
+
+  void processGlobals(Program *p, bool doLiveChecking);
+
+  size_t firstFuncConst;
+  size_t numFuncConsts;
+
+  void processFunction(const Function *f);
+  void exitFunction();
+
+private:
+  size_t functionWaterMark;
+  bool sortConsts = true;
+  bool liveChecking = false;
+
+  void reset(GlobalVar *g);
+  void reset(Alias *a);
+  void reset(Constant *c);
+  void reset(Metadata *m);
+  void reset(Function *f);
+  void reset(Block *b);
+  void reset(Instruction *i);
+  void reset(Value *v);
+
+  void accumulate(const Value *v);
+  void accumulate(const Metadata *m);
+  void accumulateTypePrintOrder(const Type *t);
+  void accumulateTypePrintOrder(rdcarray<const Metadata *> &visited, const Metadata *m);
+  void assignTypeId(const Type *t);
+  void assignTypeId(const Constant *c);
+};
+
 class Program : public DXBC::IDebugInfo
 {
 public:
@@ -1133,6 +1178,7 @@ public:
   const Metadata *GetMetadataByName(const rdcstr &name) const;
   uint32_t GetDirectHeapAcessCount() const { return m_directHeapAccessCount; }
 protected:
+  void SettleIDs();
   void MakeDXCDisassemblyString();
   void MakeRDDisassemblyString();
 
@@ -1145,9 +1191,19 @@ protected:
   rdcstr GetValueSymtabString(Value *v);
   void SetValueSymtabString(Value *v, const rdcstr &s);
 
-  uint32_t GetOrAssignMetaSlot(rdcarray<Metadata *> &metaSlots, uint32_t &nextMetaSlot, Metadata *m);
-  uint32_t GetOrAssignMetaSlot(rdcarray<Metadata *> &metaSlots, uint32_t &nextMetaSlot,
-                               DebugLocation &l);
+  uint32_t GetMetaSlot(const Metadata *m) const;
+  void AssignMetaSlot(rdcarray<Metadata *> &metaSlots, uint32_t &nextMetaSlot, Metadata *m);
+  uint32_t GetMetaSlot(const DebugLocation *l) const;
+  void AssignMetaSlot(rdcarray<Metadata *> &metaSlots, uint32_t &nextMetaSlot, DebugLocation &l);
+
+  const Metadata *FindMetadata(uint32_t slot) const;
+  rdcstr ArgToString(const Value *v, bool withTypes, const rdcstr &attrString = "") const;
+  rdcstr DisassembleComDats(int &instructionLine) const;
+  rdcstr DisassembleTypes(int &instructionLine) const;
+  rdcstr DisassembleGlobalVars(int &instructionLine) const;
+  rdcstr DisassembleNamedMeta() const;
+  rdcstr DisassembleFuncAttrGroups() const;
+  rdcstr DisassembleMeta() const;
 
   const Type *GetVoidType() { return m_VoidType; }
   const Type *GetBoolType() { return m_BoolType; }
@@ -1195,8 +1251,14 @@ protected:
 
   rdcarray<DebugLocation> m_DebugLocations;
 
+  LLVMOrderAccumulator m_Accum;
+  rdcarray<Metadata *> m_MetaSlots;
+  rdcarray<const AttributeGroup *> m_FuncAttrGroups;
+  uint32_t m_NextMetaSlot = 0;
+
   bool m_Uselists = false;
   bool m_DXCStyle = false;
+  bool m_SettledIDs = false;
 
   rdcstr m_Triple, m_Datalayout;
 
@@ -1209,51 +1271,6 @@ protected:
 bool needsEscaping(const rdcstr &name);
 rdcstr escapeString(const rdcstr &str);
 rdcstr escapeStringIfNeeded(const rdcstr &name);
-
-class LLVMOrderAccumulator
-{
-public:
-  // types in id order
-  rdcarray<const Type *> types;
-  // types in disassembly print order
-  rdcarray<const Type *> printOrderTypes;
-  // values in id order
-  rdcarray<const Value *> values;
-  // metadata in id order
-  rdcarray<const Metadata *> metadata;
-
-  size_t firstConst;
-  size_t numConsts;
-
-  void processGlobals(Program *p, bool doLiveChecking);
-
-  size_t firstFuncConst;
-  size_t numFuncConsts;
-
-  void processFunction(Function *f);
-  void exitFunction();
-
-private:
-  size_t functionWaterMark;
-  bool sortConsts = true;
-  bool liveChecking = false;
-
-  void reset(GlobalVar *g);
-  void reset(Alias *a);
-  void reset(Constant *c);
-  void reset(Metadata *m);
-  void reset(Function *f);
-  void reset(Block *b);
-  void reset(Instruction *i);
-  void reset(Value *v);
-
-  void accumulate(const Value *v);
-  void accumulate(const Metadata *m);
-  void accumulateTypePrintOrder(const Type *t);
-  void accumulateTypePrintOrder(rdcarray<const Metadata *> &visited, const Metadata *m);
-  void assignTypeId(const Type *t);
-  void assignTypeId(const Constant *c);
-};
 
 };    // namespace DXIL
 
