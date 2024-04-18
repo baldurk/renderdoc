@@ -816,6 +816,12 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
         RDCASSERT(!isSampler);
         RDCASSERT(!isUav);
       }
+      else if(resKind == ResourceKind::RTAccelerationStructure)
+      {
+        descriptorType = DescriptorType::AccelerationStructure;
+        RDCASSERT(!isSampler);
+        RDCASSERT(!isUav);
+      }
       else if(isUav)
       {
         descriptorType = DescriptorType::ReadWriteImage;

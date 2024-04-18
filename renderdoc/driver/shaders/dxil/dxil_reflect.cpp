@@ -996,7 +996,9 @@ static void AddResourceBind(DXBC::Reflection *refl, const TypeInfo &typeInfo, co
       defName = srv ? "SRV" : "UAV";
       break;
     case ResourceKind::RTAccelerationStructure:
-      RDCWARN("CS or PS with RT use, not reflected");
+      bind.type = ShaderInputBind::TYPE_RTAS;
+      defName = "RaytracingAccelerationStructure";
+      bind.dimension = ShaderInputBind::DIM_RTAS;
       break;
     case ResourceKind::Texture1D:
       bind.type = srv ? ShaderInputBind::TYPE_TEXTURE : ShaderInputBind::TYPE_UAV_RWTYPED;

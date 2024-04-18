@@ -2269,7 +2269,7 @@ void VulkanReplay::FillDescriptor(Descriptor &dstel, const DescriptorSetSlot &sr
       dstel.type = DescriptorType::ReadWriteBuffer;
       break;
     case DescriptorSlotType::AccelerationStructure:
-      dstel.type = DescriptorType::ReadWriteBuffer;
+      dstel.type = DescriptorType::AccelerationStructure;
       break;
     case DescriptorSlotType::InputAttachment: dstel.type = DescriptorType::Image; break;
     case DescriptorSlotType::InlineBlock: dstel.type = DescriptorType::ConstantBuffer; break;

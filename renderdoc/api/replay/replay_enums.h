@@ -890,6 +890,10 @@ DOCUMENT(R"(The type of a descriptor.
 .. data:: ReadWriteBuffer
 
   A buffer that can be read from and written to arbitrarily.
+
+.. data:: AccelerationStructure
+
+  A ray-tracing acceleration structure, read-only in the shader.
 )");
 enum class DescriptorType : uint8_t
 {
@@ -903,6 +907,7 @@ enum class DescriptorType : uint8_t
   ReadWriteImage,
   ReadWriteTypedBuffer,
   ReadWriteBuffer,
+  AccelerationStructure,
 };
 
 DECLARE_REFLECTION_ENUM(DescriptorType);
@@ -953,7 +958,8 @@ constexpr DescriptorCategory CategoryForDescriptorType(DescriptorType type)
          : type == DescriptorType::Sampler ? DescriptorCategory::Sampler
 
          : (type == DescriptorType::ImageSampler || type == DescriptorType::Image ||
-            type == DescriptorType::TypedBuffer || type == DescriptorType::Buffer)
+            type == DescriptorType::TypedBuffer || type == DescriptorType::Buffer ||
+            type == DescriptorType::AccelerationStructure)
              ? DescriptorCategory::ReadOnlyResource
 
          : (type == DescriptorType::ReadWriteBuffer || type == DescriptorType::ReadWriteImage ||

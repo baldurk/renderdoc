@@ -155,7 +155,8 @@ static void MakeResourceList(bool srv, DXBC::DXBCContainer *dxbc,
                       r.type == DXBC::ShaderInputBind::TYPE_UAV_RWTYPED) &&
                      r.dimension != DXBC::ShaderInputBind::DIM_UNKNOWN &&
                      r.dimension != DXBC::ShaderInputBind::DIM_BUFFER &&
-                     r.dimension != DXBC::ShaderInputBind::DIM_BUFFEREX);
+                     r.dimension != DXBC::ShaderInputBind::DIM_BUFFEREX &&
+                     r.dimension != DXBC::ShaderInputBind::DIM_RTAS);
     res.isReadOnly = srv;
 
     switch(r.dimension)
@@ -163,7 +164,8 @@ static void MakeResourceList(bool srv, DXBC::DXBCContainer *dxbc,
       default:
       case DXBC::ShaderInputBind::DIM_UNKNOWN: res.textureType = TextureType::Unknown; break;
       case DXBC::ShaderInputBind::DIM_BUFFER:
-      case DXBC::ShaderInputBind::DIM_BUFFEREX: res.textureType = TextureType::Buffer; break;
+      case DXBC::ShaderInputBind::DIM_BUFFEREX:
+      case DXBC::ShaderInputBind::DIM_RTAS: res.textureType = TextureType::Buffer; break;
       case DXBC::ShaderInputBind::DIM_TEXTURE1D: res.textureType = TextureType::Texture1D; break;
       case DXBC::ShaderInputBind::DIM_TEXTURE1DARRAY:
         res.textureType = TextureType::Texture1DArray;
@@ -187,8 +189,15 @@ static void MakeResourceList(bool srv, DXBC::DXBCContainer *dxbc,
         break;
     }
 
-    if(r.type == DXBC::ShaderInputBind::TYPE_BYTEADDRESS ||
-       r.type == DXBC::ShaderInputBind::TYPE_UAV_RWBYTEADDRESS)
+    if(r.type == DXBC::ShaderInputBind::TYPE_RTAS)
+    {
+      res.variableType.rows = res.variableType.columns = 1;
+      res.variableType.elements = 1;
+      res.variableType.baseType = VarType::Unknown;
+      res.variableType.name = "RaytracingAccelerationStructure";
+    }
+    else if(r.type == DXBC::ShaderInputBind::TYPE_BYTEADDRESS ||
+            r.type == DXBC::ShaderInputBind::TYPE_UAV_RWBYTEADDRESS)
     {
       res.variableType.rows = res.variableType.columns = 1;
       res.variableType.elements = 1;
@@ -258,7 +267,11 @@ static void MakeResourceList(bool srv, DXBC::DXBCContainer *dxbc,
     res.fixedBindSetOrSpace = r.space;
     res.bindArraySize = r.bindCount == 0 ? ~0U : r.bindCount;
 
-    if(res.isReadOnly)
+    if(r.type == DXBC::ShaderInputBind::TYPE_RTAS)
+    {
+      res.descriptorType = DescriptorType::AccelerationStructure;
+    }
+    else if(res.isReadOnly)
     {
       res.descriptorType = DescriptorType::Image;
       if(!res.isTexture)

@@ -1362,6 +1362,22 @@ void VulkanPipelineStateViewer::addResourceRow(const ShaderResource *shaderRes,
       if(!filledSlot)
         setEmptyRow(node);
     }
+    else if(used.access.type == DescriptorType::AccelerationStructure)
+    {
+      node = new RDTreeWidgetItem({
+          slotname,
+          bindType,
+          descriptor.resource,
+          QString(),
+          QFormatStr("%1 bytes").arg(Formatter::HumanFormat(descriptor.byteSize, Formatter::OffsetSize)),
+          QString(),
+      });
+
+      node->setTag(tag);
+
+      if(!filledSlot)
+        setEmptyRow(node);
+    }
     else if(used.access.type == DescriptorType::Sampler)
     {
       if(samplerDescriptor.object == ResourceId())

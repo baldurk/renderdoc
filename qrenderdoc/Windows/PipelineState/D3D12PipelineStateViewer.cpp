@@ -875,6 +875,16 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
       }
     }
 
+    if(descriptor.type == DescriptorType::AccelerationStructure)
+    {
+      typeName = tr("Acceleration Structure");
+      w = descriptor.byteSize;
+      h = 0;
+      d = 0;
+      a = 0;
+      format = QString();
+    }
+
     RDTreeWidgetItem *node = NULL;
 
     if(view.type == D3D12ViewTag::OMTarget)

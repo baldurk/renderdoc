@@ -481,6 +481,12 @@ public:
           ret += 3;
         break;
       }
+      case DescriptorType::AccelerationStructure:
+      {
+        // type, resource, size
+        ret = 3;
+        break;
+      }
       case DescriptorType::Image:
       case DescriptorType::ImageSampler:
       case DescriptorType::ReadWriteImage:
@@ -529,6 +535,7 @@ public:
           case DescriptorType::ReadWriteBuffer: return lit("Storage Buffer");
           case DescriptorType::TypedBuffer: return lit("Texel Buffer");
           case DescriptorType::ReadWriteTypedBuffer: return lit("Storage Texel Buffer");
+          case DescriptorType::AccelerationStructure: return lit("Acceleration Structure");
           case DescriptorType::Image: return lit("Sampled Image");
           case DescriptorType::ImageSampler: return lit("Combined Image/Sampler");
           case DescriptorType::ReadWriteImage: return lit("Storage Image");
@@ -544,7 +551,8 @@ public:
           case DescriptorType::ImageSampler:    // no such type on D3D12
           case DescriptorType::Buffer:
           case DescriptorType::Image:
-          case DescriptorType::TypedBuffer: return lit("Shader Resource View");
+          case DescriptorType::TypedBuffer:
+          case DescriptorType::AccelerationStructure: return lit("Shader Resource View");
           case DescriptorType::ReadWriteBuffer:
           case DescriptorType::ReadWriteTypedBuffer:
           case DescriptorType::ReadWriteImage: return lit("Unordered Resource View");
@@ -618,6 +626,17 @@ public:
 
         if(row == 0)
           return col == 0 ? lit("Show Contents") : QVariant::fromValue(ButtonTag(true, desc));
+
+        break;
+      }
+      case DescriptorType::AccelerationStructure:
+      {
+        if(row == 1)
+          return col == 0 ? lit("Acceleration Structure") : QVariant::fromValue(desc.resource);
+
+        if(row == 2)
+          return col == 0 ? lit("Byte Size")
+                          : Formatter::HumanFormat(desc.byteSize, Formatter::OffsetSize);
 
         break;
       }

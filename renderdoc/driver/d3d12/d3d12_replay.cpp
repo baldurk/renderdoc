@@ -786,12 +786,28 @@ void D3D12Replay::FillDescriptor(Descriptor &dst, const D3D12Descriptor *src)
       }
       else if(srv.ViewDimension == D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE)
       {
-        dst.type = DescriptorType::Buffer;
+        dst.type = DescriptorType::AccelerationStructure;
 
         ResourceId asID;
         WrappedID3D12Resource::GetResIDFromAddr(srv.RaytracingAccelerationStructure.Location, asID,
                                                 dst.byteOffset);
-        dst.resource = rm->GetOriginalID(asID);
+
+        WrappedID3D12Resource *asRes = rm->GetCurrentAs<WrappedID3D12Resource>(asID);
+
+        // we *should* get an AS here
+        D3D12AccelerationStructure *as = NULL;
+        asRes->GetAccStructIfExist(dst.byteOffset, &as);
+
+        if(as)
+        {
+          dst.resource = rm->GetOriginalID(as->GetResourceID());
+          dst.byteOffset = 0;
+          dst.byteSize = as->Size();
+        }
+        else
+        {
+          dst.resource = rm->GetOriginalID(asID);
+        }
       }
       else if(srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE1D)
       {
