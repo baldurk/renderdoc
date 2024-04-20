@@ -39,6 +39,7 @@
 namespace DXIL
 {
 static bool dxcStyleFormatting = true;
+static char dxilIdentifier = '%';
 
 bool needsEscaping(const rdcstr &name)
 {
@@ -617,9 +618,10 @@ rdcstr Program::ArgToString(const Value *v, bool withTypes, const rdcstr &attrSt
       ret = inst->type->toString() + " ";
     ret += attrString;
     if(inst->getName().empty())
-      ret += StringFormat::Fmt("%%%u", inst->slot);
+      ret += StringFormat::Fmt("%c%u", DXIL::dxilIdentifier, inst->slot);
     else
-      ret += StringFormat::Fmt("%%%s", escapeStringIfNeeded(inst->getName()).c_str());
+      ret += StringFormat::Fmt("%c%s", DXIL::dxilIdentifier,
+                               escapeStringIfNeeded(inst->getName()).c_str());
   }
   else if(const Block *block = cast<Block>(v))
   {
@@ -627,9 +629,10 @@ rdcstr Program::ArgToString(const Value *v, bool withTypes, const rdcstr &attrSt
       ret = "label ";
     ret += attrString;
     if(block->name.empty())
-      ret += StringFormat::Fmt("%%%u", block->slot);
+      ret += StringFormat::Fmt("%c%u", DXIL::dxilIdentifier, block->slot);
     else
-      ret += StringFormat::Fmt("%%%s", escapeStringIfNeeded(block->name).c_str());
+      ret +=
+          StringFormat::Fmt("%c%s", DXIL::dxilIdentifier, escapeStringIfNeeded(block->name).c_str());
   }
   else
   {
@@ -857,6 +860,8 @@ const rdcstr &Program::GetDisassembly(bool dxcStyle)
 void Program::MakeDXCDisassemblyString()
 {
   DXIL::dxcStyleFormatting = true;
+  DXIL::dxilIdentifier = '%';
+
   m_Disassembly.clear();
 #if DISABLED(DXC_COMPATIBLE_DISASM)
   m_Disassembly += StringFormat::Fmt("; %s Shader, compiled under SM%u.%u\n\n",
@@ -925,9 +930,10 @@ void Program::MakeDXCDisassemblyString()
         inst.disassemblyLine = instructionLine;
         m_Disassembly += "  ";
         if(!inst.getName().empty())
-          m_Disassembly += "%" + escapeStringIfNeeded(inst.getName()) + " = ";
+          m_Disassembly += StringFormat::Fmt("%c%s = ", DXIL::dxilIdentifier,
+                                             escapeStringIfNeeded(inst.getName()).c_str());
         else if(inst.slot != ~0U)
-          m_Disassembly += StringFormat::Fmt("%%%u = ", inst.slot);
+          m_Disassembly += StringFormat::Fmt("%c%u = ", DXIL::dxilIdentifier, inst.slot);
 
         bool debugCall = false;
 
@@ -1752,9 +1758,10 @@ void Program::MakeDXCDisassemblyString()
               labelName += ", ";
             first = false;
             if(pred->name.empty())
-              labelName += StringFormat::Fmt("%%%u", pred->slot);
+              labelName += StringFormat::Fmt("%c%u", DXIL::dxilIdentifier, pred->slot);
             else
-              labelName += "%" + escapeStringIfNeeded(pred->name);
+              labelName += StringFormat::Fmt("%c%s", DXIL::dxilIdentifier,
+                                             escapeStringIfNeeded(pred->name).c_str());
           }
 #endif
 
@@ -1785,6 +1792,8 @@ void Program::MakeDXCDisassemblyString()
 void Program::MakeRDDisassemblyString()
 {
   DXIL::dxcStyleFormatting = false;
+  DXIL::dxilIdentifier = '_';
+
   m_Disassembly.clear();
 
   m_Disassembly += "\n";
@@ -1794,7 +1803,7 @@ rdcstr Type::toString() const
 {
   if(!name.empty())
   {
-    return "%" + escapeStringIfNeeded(name);
+    return StringFormat::Fmt("%c%s", DXIL::dxilIdentifier, escapeStringIfNeeded(name).c_str());
   }
 
   switch(type)
@@ -2001,9 +2010,10 @@ rdcstr Metadata::valString() const
       if(i)
       {
         if(i->getName().empty())
-          return StringFormat::Fmt("%s %%%u", i->type->toString().c_str(), i->slot);
+          return StringFormat::Fmt("%s %c%u", i->type->toString().c_str(), DXIL::dxilIdentifier,
+                                   i->slot);
         else
-          return StringFormat::Fmt("%s %%%s", i->type->toString().c_str(),
+          return StringFormat::Fmt("%s %c%s", i->type->toString().c_str(), DXIL::dxilIdentifier,
                                    escapeStringIfNeeded(i->getName()).c_str());
       }
       else if(value)
