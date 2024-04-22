@@ -1652,6 +1652,23 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
     }
   }
 
+  // DXIL can have three(!) different programs in different chunks.
+  // ILDB is the best, it contains everything
+  // STAT is better for reflection only
+  // DXIL is the executable code and most stripped version
+  //
+  // Since decoding DXIL is expensive we want to do it as few times as possible. If we can get ILDB
+  // we do and don't get anything else. Otherwise we grab both STAT (for reflection) and DXIL (for disassembly)
+
+  // only one of these will be allocated
+  DXIL::Program *dxilILDBProgram = NULL;
+  DXIL::Program *dxilDXILProgram = NULL;
+
+  // this will be allocated if DXIL is, and will be deleted below after reflection is fetched from it
+  DXIL::Program *dxilSTATProgram = NULL;
+
+  DXIL::Program *dxilReflectProgram = NULL;
+
   if(m_DXBCByteCode == NULL)
   {
     // prefer ILDB if present
@@ -1664,13 +1681,13 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
 
       if(*fourcc == FOURCC_ILDB)
       {
-        m_DXILByteCode = new DXIL::Program((const byte *)chunkContents, *chunkSize);
+        dxilILDBProgram = new DXIL::Program((const byte *)chunkContents, *chunkSize);
       }
     }
 
     // next search the debug file if it exists
     for(uint32_t chunkIdx = 0;
-        debugHeader && m_DXILByteCode == NULL && chunkIdx < debugHeader->numChunks; chunkIdx++)
+        debugHeader && dxilILDBProgram == NULL && chunkIdx < debugHeader->numChunks; chunkIdx++)
     {
       uint32_t *fourcc = (uint32_t *)(debugData + debugChunkOffsets[chunkIdx]);
       uint32_t *chunkSize = (uint32_t *)(debugData + debugChunkOffsets[chunkIdx] + sizeof(uint32_t));
@@ -1678,13 +1695,15 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
       char *chunkContents = (char *)(debugData + debugChunkOffsets[chunkIdx] + sizeof(uint32_t) * 2);
 
       if(*fourcc == FOURCC_ILDB)
-        m_DXILByteCode = new DXIL::Program((const byte *)chunkContents, *chunkSize);
+      {
+        dxilILDBProgram = new DXIL::Program((const byte *)chunkContents, *chunkSize);
+      }
     }
 
     // if we didn't find ILDB then we have to get the bytecode from DXIL. However we look for the
     // STAT chunk and if we find it get reflection from there, since it will have better
     // information. What a mess.
-    if(m_DXILByteCode == NULL)
+    if(dxilILDBProgram == NULL)
     {
       for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
       {
@@ -1696,18 +1715,45 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
 
         if(*fourcc == FOURCC_DXIL)
         {
-          m_DXILByteCode = new DXIL::Program(chunkContents, *chunkSize);
+          dxilDXILProgram = new DXIL::Program(chunkContents, *chunkSize);
         }
         else if(*fourcc == FOURCC_STAT)
         {
-          if(DXIL::Program::Valid(chunkContents, *chunkSize))
-          {
-            // unfortunate that we have to parse the whole blob just to get reflection as well as
-            // parsing the DXIL bytecode.
-            m_Reflection = DXIL::Program(chunkContents, *chunkSize).GetReflection();
-          }
+          dxilSTATProgram = new DXIL::Program((const byte *)chunkContents, *chunkSize);
         }
       }
+
+      // if there's a debug file we'd have expected to find an ILDB but just in case look for a STAT
+      // if we didn't get it
+      for(uint32_t chunkIdx = 0;
+          debugHeader && dxilSTATProgram == NULL && chunkIdx < debugHeader->numChunks; chunkIdx++)
+      {
+        uint32_t *fourcc = (uint32_t *)(debugData + debugChunkOffsets[chunkIdx]);
+        uint32_t *chunkSize =
+            (uint32_t *)(debugData + debugChunkOffsets[chunkIdx] + sizeof(uint32_t));
+
+        char *chunkContents =
+            (char *)(debugData + debugChunkOffsets[chunkIdx] + sizeof(uint32_t) * 2);
+
+        if(*fourcc == FOURCC_STAT)
+        {
+          dxilSTATProgram = new DXIL::Program((const byte *)chunkContents, *chunkSize);
+        }
+      }
+    }
+
+    // if we got the full debug program we don't need the stat program
+    if(dxilILDBProgram)
+    {
+      SAFE_DELETE(dxilSTATProgram);
+      SAFE_DELETE(dxilDXILProgram);
+      dxilReflectProgram = m_DXILByteCode = dxilILDBProgram;
+    }
+    else if(dxilDXILProgram)
+    {
+      // prefer STAT for reflection, but otherwise use DXIL
+      dxilReflectProgram = dxilSTATProgram ? dxilSTATProgram : dxilDXILProgram;
+      m_DXILByteCode = dxilDXILProgram;
     }
   }
 
@@ -1727,18 +1773,20 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
     m_Version.Minor = m_DXILByteCode->GetMinorVersion();
   }
 
-  // if reflection information was stripped, attempt to reverse engineer basic info from
-  // declarations
+  // if reflection information was stripped (or never emitted with DXIL), attempt to reverse
+  // engineer basic info from declarations or read it from the DXIL
   if(m_Reflection == NULL)
   {
     // need to disassemble now to guess resources
     if(m_DXBCByteCode)
       m_Reflection = m_DXBCByteCode->GuessReflection();
-    else if(m_DXILByteCode)
-      m_Reflection = m_DXILByteCode->GetReflection();
+    else if(dxilReflectProgram)
+      m_Reflection = dxilReflectProgram->GetReflection();
     else
       m_Reflection = new Reflection;
   }
+
+  SAFE_DELETE(dxilSTATProgram);
 
   for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
   {
