@@ -184,6 +184,8 @@ public:
   const Reflection *GetReflection() const { return m_Reflection; }
   D3D_PRIMITIVE_TOPOLOGY GetOutputTopology();
 
+  rdcarray<ShaderEntryPoint> GetEntryPoints() const { return m_EntryPoints; }
+
   const rdcstr &GetDisassembly(bool dxcStyle);
   void FillTraceLineInfo(ShaderDebugTrace &trace) const;
 
@@ -249,6 +251,7 @@ private:
   DXIL::Program *m_DXILByteCode = NULL;
   IDebugInfo *m_DebugInfo = NULL;
   Reflection *m_Reflection = NULL;
+  rdcarray<ShaderEntryPoint> m_EntryPoints;
 };
 
 };    // namespace DXBC

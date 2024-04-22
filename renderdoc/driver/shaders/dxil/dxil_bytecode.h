@@ -1229,6 +1229,7 @@ public:
   const bytebuf &GetBytes() const { return m_Bytes; }
   void FetchComputeProperties(DXBC::Reflection *reflection);
   DXBC::Reflection *GetReflection();
+  rdcarray<ShaderEntryPoint> GetEntryPoints();
 
   DXBC::ShaderType GetShaderType() const { return m_Type; }
   uint32_t GetMajorVersion() const { return m_Major; }

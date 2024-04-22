@@ -1792,6 +1792,20 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
       m_Reflection = new Reflection;
   }
 
+  if(dxilReflectProgram)
+  {
+    m_EntryPoints = dxilReflectProgram->GetEntryPoints();
+  }
+  else if(m_EntryPoints.empty())
+  {
+    rdcstr entry;
+    if(GetDebugInfo())
+      entry = GetDebugInfo()->GetEntryFunction();
+    if(entry.empty())
+      entry = "main";
+    m_EntryPoints = {ShaderEntryPoint(entry, GetShaderStage(m_Type))};
+  }
+
   SAFE_DELETE(dxilSTATProgram);
 
   for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)

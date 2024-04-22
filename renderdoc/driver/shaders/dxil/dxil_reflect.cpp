@@ -1242,6 +1242,42 @@ static void AddResourceBind(DXBC::Reflection *refl, const TypeInfo &typeInfo, co
     refl->UAVs.push_back(bind);
 }
 
+rdcarray<ShaderEntryPoint> Program::GetEntryPoints()
+{
+  rdcarray<ShaderEntryPoint> ret;
+
+  DXMeta dx(m_NamedMeta);
+
+  if(dx.entryPoints)
+  {
+    for(Metadata *entry : dx.entryPoints->children)
+    {
+      if(entry->children.size() > 2 && entry->children[0] != NULL)
+      {
+        ShaderEntryPoint entryPoint;
+        entryPoint.name = entry->children[1]->str;
+
+        Metadata *tags = entry->children[4];
+
+        for(size_t i = 0; i < tags->children.size(); i += 2)
+        {
+          // 8 is the type tag
+          if(getival<uint32_t>(tags->children[i]) == 8U)
+          {
+            entryPoint.stage =
+                GetShaderStage((DXBC::ShaderType)getival<uint32_t>(tags->children[i + 1]));
+            break;
+          }
+        }
+
+        ret.push_back(entryPoint);
+      }
+    }
+  }
+
+  return ret;
+}
+
 DXBC::Reflection *Program::GetReflection()
 {
   using namespace DXBC;
