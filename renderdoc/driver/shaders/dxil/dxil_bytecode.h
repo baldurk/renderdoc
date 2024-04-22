@@ -1229,6 +1229,7 @@ protected:
   rdcstr DisassembleNamedMeta() const;
   rdcstr DisassembleFuncAttrGroups() const;
   rdcstr DisassembleMeta() const;
+  void DisassemblyAddNewLine(int countLines = 1);
 
   const Type *GetVoidType() { return m_VoidType; }
   const Type *GetBoolType() { return m_BoolType; }
@@ -1288,6 +1289,7 @@ protected:
   rdcstr m_Triple, m_Datalayout;
 
   rdcstr m_Disassembly;
+  int m_DisassemblyInstructionLine;
 
   friend struct OpReader;
   friend class LLVMOrderAccumulator;

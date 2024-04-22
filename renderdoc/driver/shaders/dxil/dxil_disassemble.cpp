@@ -874,6 +874,14 @@ rdcstr Program::DisassembleMeta() const
   return ret;
 }
 
+void Program::DisassemblyAddNewLine(int countLines)
+{
+  for(int i = 0; i < countLines; ++i)
+    m_Disassembly += "\n";
+
+  m_DisassemblyInstructionLine += countLines;
+}
+
 const rdcstr &Program::GetDisassembly(bool dxcStyle)
 {
   if(m_Disassembly.empty() || (dxcStyle != m_DXCStyle))
@@ -902,11 +910,11 @@ void Program::MakeDXCDisassemblyString()
   m_Disassembly += StringFormat::Fmt("target datalayout = \"%s\"\n", m_Datalayout.c_str());
   m_Disassembly += StringFormat::Fmt("target triple = \"%s\"\n\n", m_Triple.c_str());
 
-  int instructionLine = 6;
+  m_DisassemblyInstructionLine = 6;
 
-  m_Disassembly += DisassembleComDats(instructionLine);
-  m_Disassembly += DisassembleTypes(instructionLine);
-  m_Disassembly += DisassembleGlobalVars(instructionLine);
+  m_Disassembly += DisassembleComDats(m_DisassemblyInstructionLine);
+  m_Disassembly += DisassembleTypes(m_DisassemblyInstructionLine);
+  m_Disassembly += DisassembleGlobalVars(m_DisassemblyInstructionLine);
 
   for(size_t i = 0; i < m_Functions.size(); i++)
   {
@@ -919,8 +927,8 @@ void Program::MakeDXCDisassemblyString()
       rdcstr funcAttrs = func.attrs->functionSlot->toString(false).c_str();
       if(!funcAttrs.empty())
       {
-        m_Disassembly += StringFormat::Fmt("; Function Attrs: %s\n", funcAttrs.c_str());
-        instructionLine++;
+        m_Disassembly += StringFormat::Fmt("; Function Attrs: %s", funcAttrs.c_str());
+        DisassemblyAddNewLine();
       }
     }
 
@@ -942,8 +950,8 @@ void Program::MakeDXCDisassemblyString()
 
     if(!func.external)
     {
-      m_Disassembly += " {\n";
-      instructionLine++;
+      m_Disassembly += " {";
+      DisassemblyAddNewLine();
 
       size_t curBlock = 0;
 
@@ -951,15 +959,15 @@ void Program::MakeDXCDisassemblyString()
       if(!func.blocks[curBlock]->name.empty())
       {
         m_Disassembly +=
-            StringFormat::Fmt("%s:\n", escapeStringIfNeeded(func.blocks[curBlock]->name).c_str());
-        instructionLine++;
+            StringFormat::Fmt("%s:", escapeStringIfNeeded(func.blocks[curBlock]->name).c_str());
+        DisassemblyAddNewLine();
       }
 
       for(size_t funcIdx = 0; funcIdx < func.instructions.size(); funcIdx++)
       {
         Instruction &inst = *func.instructions[funcIdx];
 
-        inst.disassemblyLine = instructionLine;
+        inst.disassemblyLine = m_DisassemblyInstructionLine;
         m_Disassembly += "  ";
         if(!inst.getName().empty())
           m_Disassembly += StringFormat::Fmt("%c%s = ", DXIL::dxilIdentifier,
@@ -1362,14 +1370,13 @@ void Program::MakeDXCDisassemblyString()
             m_Disassembly += ", ";
             m_Disassembly += ArgToString(inst.args[1], true);
             m_Disassembly += " [";
-            m_Disassembly += "\n";
-            instructionLine++;
+            DisassemblyAddNewLine();
             for(size_t a = 2; a < inst.args.size(); a += 2)
             {
               m_Disassembly +=
-                  StringFormat::Fmt("    %s, %s\n", ArgToString(inst.args[a], true).c_str(),
+                  StringFormat::Fmt("    %s, %s", ArgToString(inst.args[a], true).c_str(),
                                     ArgToString(inst.args[a + 1], true).c_str());
-              instructionLine++;
+              DisassemblyAddNewLine();
             }
             m_Disassembly += "  ]";
             break;
@@ -1749,8 +1756,7 @@ void Program::MakeDXCDisassemblyString()
           }
         }
 
-        m_Disassembly += "\n";
-        instructionLine++;
+        DisassemblyAddNewLine();
 
         // if this is the last instruction don't print the next block's label
         if(funcIdx == func.instructions.size() - 1)
@@ -1759,8 +1765,7 @@ void Program::MakeDXCDisassemblyString()
         if(inst.op == Operation::Branch || inst.op == Operation::Unreachable ||
            inst.op == Operation::Switch || inst.op == Operation::Ret)
         {
-          m_Disassembly += "\n";
-          instructionLine++;
+          DisassemblyAddNewLine();
 
           curBlock++;
 
@@ -1798,17 +1803,15 @@ void Program::MakeDXCDisassemblyString()
 #endif
 
           m_Disassembly += labelName;
-          m_Disassembly += "\n";
-          instructionLine++;
+          DisassemblyAddNewLine();
         }
       }
-      m_Disassembly += "}\n\n";
-      instructionLine += 2;
+      m_Disassembly += "}";
+      DisassemblyAddNewLine(2);
     }
     else
     {
-      m_Disassembly += "\n\n";
-      instructionLine += 2;
+      DisassemblyAddNewLine(2);
     }
 
     m_Accum.exitFunction();
