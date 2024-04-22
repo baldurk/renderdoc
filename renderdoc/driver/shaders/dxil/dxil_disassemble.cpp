@@ -2124,16 +2124,6 @@ void Program::MakeRDDisassemblyString()
               default: break;
             }
 
-            rdcstr opFlagsStr = ToStr(inst.opFlags());
-            {
-              int offs = opFlagsStr.indexOf('|');
-              while(offs >= 0)
-              {
-                opFlagsStr.erase((size_t)offs, 2);
-                offs = opFlagsStr.indexOf('|');
-              }
-            }
-            m_Disassembly += opFlagsStr;
             if(inst.opFlags() != InstructionFlags::NoFlags)
               m_Disassembly += " ";
 
@@ -2234,16 +2224,6 @@ void Program::MakeRDDisassemblyString()
           case Operation::FOrdTrue:
           {
             m_Disassembly += "fcmp ";
-            rdcstr opFlagsStr = ToStr(inst.opFlags());
-            {
-              int offs = opFlagsStr.indexOf('|');
-              while(offs >= 0)
-              {
-                opFlagsStr.erase((size_t)offs, 2);
-                offs = opFlagsStr.indexOf('|');
-              }
-            }
-            m_Disassembly += opFlagsStr;
             if(inst.opFlags() != InstructionFlags::NoFlags)
               m_Disassembly += " ";
             switch(inst.op)
