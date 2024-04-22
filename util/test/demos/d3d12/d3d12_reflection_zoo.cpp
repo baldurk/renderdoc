@@ -282,6 +282,299 @@ float4 main(float4 pos : SV_Position) : SV_Target0
       dxil = creator.VS(vs6blob).PS(dxilBlob);
     }
 
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    D3D12_SHADER_RESOURCE_VIEW_DESC defaultSrvDesc = {};
+    defaultSrvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    defaultSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+    // make valid NULL descriptors
+    D3D12_CPU_DESCRIPTOR_HANDLE start = m_CBVUAVSRV->GetCPUDescriptorHandleForHeapStart();
+    UINT increment = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    D3D12_CPU_DESCRIPTOR_HANDLE cur;
+
+    // t0...
+    cur.ptr = start.ptr + (100 + 0) * increment;
+    srvDesc = defaultSrvDesc;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
+    srvDesc.Texture1D.MipLevels = 1;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 1) * increment;
+    srvDesc = defaultSrvDesc;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srvDesc.Texture2D.MipLevels = 1;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 2) * increment;
+    srvDesc = defaultSrvDesc;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+    srvDesc.Texture3D.MipLevels = 1;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 3) * increment;
+    srvDesc = defaultSrvDesc;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
+    srvDesc.Texture1DArray.MipLevels = 1;
+    srvDesc.Texture1DArray.ArraySize = 1;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 4) * increment;
+    srvDesc = defaultSrvDesc;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+    srvDesc.Texture2DArray.MipLevels = 1;
+    srvDesc.Texture2DArray.ArraySize = 1;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 5) * increment;
+    srvDesc = defaultSrvDesc;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+    srvDesc.TextureCube.MipLevels = 1;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 6) * increment;
+    srvDesc = defaultSrvDesc;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
+    srvDesc.TextureCubeArray.MipLevels = 1;
+    srvDesc.TextureCubeArray.NumCubes = 1;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 7) * increment;
+    srvDesc = defaultSrvDesc;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 8) * increment;
+    srvDesc = defaultSrvDesc;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY;
+    srvDesc.Texture2DMSArray.ArraySize = 1;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 10) * increment;
+    srvDesc = defaultSrvDesc;
+    srvDesc.Format = DXGI_FORMAT_R8_UNORM;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srvDesc.Texture2D.MipLevels = 1;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 11) * increment;
+    srvDesc.Format = DXGI_FORMAT_R8G8_UNORM;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 12) * increment;
+    srvDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 13) * increment;
+    srvDesc.Format = DXGI_FORMAT_R8G8_UINT;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 14) * increment;
+    srvDesc.Format = DXGI_FORMAT_R32G32B32_UINT;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 15) * increment;
+    srvDesc.Format = DXGI_FORMAT_R8G8_SINT;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 16) * increment;
+    srvDesc.Format = DXGI_FORMAT_R32G32B32_SINT;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 17) * increment;
+    srvDesc = defaultSrvDesc;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 18) * increment;
+    srvDesc = defaultSrvDesc;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 19) * increment;
+    srvDesc = defaultSrvDesc;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 20) * increment;
+    srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+    srvDesc.Buffer.NumElements = 1;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 21) * increment;
+    srvDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 22) * increment;
+    srvDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 23) * increment;
+    srvDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 24) * increment;
+    srvDesc.Format = DXGI_FORMAT_R32G32_UINT;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 25) * increment;
+    srvDesc.Format = DXGI_FORMAT_R32G32B32_SINT;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 30) * increment;
+    srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+    srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 40) * increment;
+    srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+    srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+    srvDesc.Buffer.StructureByteStride = 16;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 41) * increment;
+    srvDesc.Buffer.StructureByteStride = 8;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    cur.ptr = start.ptr + (100 + 50) * increment;
+    srvDesc = defaultSrvDesc;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+    srvDesc.Texture2DArray.MipLevels = 1;
+    srvDesc.Texture2DArray.ArraySize = 1;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+    cur.ptr += increment;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+    cur.ptr += increment;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+    cur.ptr += increment;
+    dev->CreateShaderResourceView(NULL, &srvDesc, cur);
+
+    D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+    D3D12_UNORDERED_ACCESS_VIEW_DESC defaultUavDesc = {};
+    defaultUavDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+    // u0...
+    cur.ptr = start.ptr + (200 + 0) * increment;
+    uavDesc = defaultUavDesc;
+    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 1) * increment;
+    uavDesc = defaultUavDesc;
+    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 2) * increment;
+    uavDesc = defaultUavDesc;
+    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 3) * increment;
+    uavDesc = defaultUavDesc;
+    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
+    uavDesc.Texture1DArray.ArraySize = 1;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 4) * increment;
+    uavDesc = defaultUavDesc;
+    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+    uavDesc.Texture2DArray.ArraySize = 1;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 10) * increment;
+    uavDesc = defaultUavDesc;
+    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+    uavDesc.Format = DXGI_FORMAT_R8_UNORM;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 11) * increment;
+    uavDesc.Format = DXGI_FORMAT_R8G8_UNORM;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 12) * increment;
+    uavDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 13) * increment;
+    uavDesc.Format = DXGI_FORMAT_R32G32_UINT;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 14) * increment;
+    uavDesc.Format = DXGI_FORMAT_R32G32B32A32_UINT;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 15) * increment;
+    uavDesc.Format = DXGI_FORMAT_R32G32_SINT;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 16) * increment;
+    uavDesc.Format = DXGI_FORMAT_R32G32B32A32_SINT;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 20) * increment;
+    uavDesc = defaultUavDesc;
+    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+    uavDesc.Buffer.NumElements = 1;
+    uavDesc.Format = DXGI_FORMAT_R32_FLOAT;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 21) * increment;
+    uavDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 22) * increment;
+    uavDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 23) * increment;
+    uavDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 24) * increment;
+    uavDesc.Format = DXGI_FORMAT_R32G32_UINT;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 25) * increment;
+    uavDesc.Format = DXGI_FORMAT_R32G32B32A32_SINT;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 30) * increment;
+    uavDesc = defaultUavDesc;
+    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+    uavDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 40) * increment;
+    uavDesc = defaultUavDesc;
+    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+    uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+    uavDesc.Buffer.NumElements = 1;
+    uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 50) * increment;
+    uavDesc = defaultUavDesc;
+    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+    uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+    uavDesc.Buffer.NumElements = 1;
+    uavDesc.Buffer.StructureByteStride = 16;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    // NULL resources don't have to do anything special for the counter
+
+    cur.ptr = start.ptr + (200 + 51) * increment;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 52) * increment;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 53) * increment;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
+    cur.ptr = start.ptr + (200 + 54) * increment;
+    uavDesc.Buffer.StructureByteStride = 8;
+    dev->CreateUnorderedAccessView(NULL, NULL, &uavDesc, cur);
+
     while(Running())
     {
       ID3D12GraphicsCommandListPtr cmd = GetCommandBuffer();
