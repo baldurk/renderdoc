@@ -2971,8 +2971,11 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
 
   // use the load RP if an RP is specified
   if(pipeCreateInfo.renderPass != VK_NULL_HANDLE)
+  {
     pipeCreateInfo.renderPass =
         creationInfo.m_RenderPass[GetResID(pipeCreateInfo.renderPass)].loadRPs[pipeCreateInfo.subpass];
+    pipeCreateInfo.subpass = 0;
+  }
 
   const VkMemoryAllocateFlagsInfo memFlags = {
       VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
