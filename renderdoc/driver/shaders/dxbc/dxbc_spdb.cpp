@@ -1850,6 +1850,8 @@ void SPDBChunk::GetLocals(const DXBC::DXBCContainer *dxbc, size_t, uintptr_t off
         }
 
         locals.push_back(a);
+
+        a.offset += VarTypeByteSize(a.type) * RDCMAX(1U, a.columns) * RDCMAX(1U, a.rows);
       }
     }
   }
