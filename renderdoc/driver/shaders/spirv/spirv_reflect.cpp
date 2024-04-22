@@ -1146,6 +1146,15 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
     usedIds.clear();
     usedIds.insert(entry->usedIds.begin(), entry->usedIds.end());
   }
+  else
+  {
+    // before that, still consider all entry interface used just not exclusively
+    usedIds.insert(entry->usedIds.begin(), entry->usedIds.end());
+  }
+
+  patchData.usedIds.reserve(usedIds.size());
+  for(Id id : usedIds)
+    patchData.usedIds.push_back(id);
 
   // arrays of elements, which can be appended to in any order and then sorted
   rdcarray<SigParameter> inputs;

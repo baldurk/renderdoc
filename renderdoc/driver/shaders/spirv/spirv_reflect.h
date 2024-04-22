@@ -68,6 +68,9 @@ struct SPIRVPatchData
   rdcarray<rdcspv::Id> rwInterface;
   rdcarray<rdcspv::Id> samplerInterface;
 
+  // set of used IDs
+  rdcarray<rdcspv::Id> usedIds;
+
   // the spec IDs in order - these are the order of constants encountered while parsing, and are
   // used for byte offsets into the resulting data blob (each constant takes 64-bits).
   // The shader constants reported already have the write offset, but this allows looking up the

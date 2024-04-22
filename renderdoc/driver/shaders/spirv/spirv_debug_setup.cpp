@@ -1076,6 +1076,9 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
     else if(v.storage == StorageClass::Uniform || v.storage == StorageClass::StorageBuffer ||
             v.storage == StorageClass::PushConstant)
     {
+      if(!patchData.usedIds.contains(v.id))
+        continue;
+
       ShaderVariable var;
       var.name = GetRawName(v.id);
 
@@ -1261,6 +1264,9 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
     }
     else if(v.storage == StorageClass::UniformConstant)
     {
+      if(!patchData.usedIds.contains(v.id))
+        continue;
+
       // only images/samplers are allowed to be in UniformConstant
       ShaderVariable var;
       var.rows = 1;
