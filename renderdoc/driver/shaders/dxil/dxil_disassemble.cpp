@@ -709,12 +709,12 @@ rdcstr Program::DisassembleTypes(int &instructionLine) const
     if(typ->type == Type::Struct && !typ->name.empty())
     {
       rdcstr name = typ->toString();
-      ret += StringFormat::Fmt("%s = type {", name.c_str());
+      ret += StringFormat::Fmt("%s = type { ", name.c_str());
       bool first = true;
       for(const Type *t : typ->members)
       {
         if(!first)
-          ret += ",";
+          ret += ", ";
         first = false;
         ret += StringFormat::Fmt("%s", t->toString().c_str());
       }
@@ -1821,7 +1821,8 @@ void Program::MakeDXCDisassemblyString()
   m_Disassembly += DisassembleNamedMeta();
   m_Disassembly += DisassembleMeta();
 
-  m_Disassembly += "\n";
+  if(m_Disassembly.back() != '\n')
+    m_Disassembly += "\n";
 }
 
 void Program::MakeRDDisassemblyString()
