@@ -283,6 +283,7 @@ EntryPoint::EntryPoint(const Metadata *entryPoint)
   name = entryPoint->children[1]->str;
 
   const Metadata *signatures = entryPoint->children[2];
+  if(signatures)
   {
     const Metadata *ins = signatures->children[0];
     if(ins)
