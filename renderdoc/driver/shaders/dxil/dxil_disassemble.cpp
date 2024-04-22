@@ -1831,6 +1831,1019 @@ void Program::MakeRDDisassemblyString()
   DXIL::dxilIdentifier = '_';
 
   m_Disassembly.clear();
+  m_DisassemblyInstructionLine = 1;
+
+  m_Disassembly += StringFormat::Fmt("; %s Shader, compiled under SM%u.%u",
+                                     shaderNames[int(m_Type)], m_Major, m_Minor);
+  DisassemblyAddNewLine(2);
+
+  // TODO: output structs using named meta data if it exists
+  m_Disassembly += DisassembleTypes(m_DisassemblyInstructionLine);
+  m_Disassembly += DisassembleGlobalVars(m_DisassemblyInstructionLine);
+
+  struct InputOutput
+  {
+    rdcstr name;
+  };
+
+  rdcarray<InputOutput> inputs;
+  rdcarray<InputOutput> outputs;
+
+  // Decode entry points
+  // TODO: handle resources: SRVs, UAVs, CBs, Samplers
+  rdcarray<EntryPoint> entryPoints;
+  FetchEntryPoints(entryPoints);
+  for(size_t e = 0; e < entryPoints.size(); ++e)
+  {
+    const EntryPoint &entryPoint = entryPoints[e];
+    m_Disassembly += entryPoint.name + "()";
+    DisassemblyAddNewLine();
+    m_Disassembly += "{";
+    DisassemblyAddNewLine();
+
+    for(size_t i = 0; i < entryPoint.inputs.size(); ++i)
+    {
+      const EntryPoint::Signature &sig = entryPoint.inputs[i];
+      VarType varType = VarTypeForComponentType(sig.type);
+      m_Disassembly += "  Input[" + ToStr(i) + "] " + ToStr(varType).c_str();
+
+      if(sig.rows > 1)
+        m_Disassembly += ToStr(sig.rows) + "x";
+      if(sig.cols > 1)
+        m_Disassembly += ToStr(sig.cols);
+
+      m_Disassembly += " " + sig.name + ";";
+      DisassemblyAddNewLine();
+
+      InputOutput input;
+      input.name = sig.name;
+      inputs.push_back(input);
+    }
+    if(!entryPoint.inputs.empty())
+      DisassemblyAddNewLine();
+
+    for(size_t i = 0; i < entryPoint.outputs.size(); ++i)
+    {
+      const EntryPoint::Signature &sig = entryPoint.outputs[i];
+      VarType varType = VarTypeForComponentType(sig.type);
+      m_Disassembly += "  Output[" + ToStr(i) + "] " + ToStr(varType).c_str();
+
+      if(sig.rows > 1)
+        m_Disassembly += ToStr(sig.rows) + "x";
+      if(sig.cols > 1)
+        m_Disassembly += ToStr(sig.cols);
+
+      m_Disassembly += " " + sig.name + ";";
+      DisassemblyAddNewLine();
+
+      InputOutput output;
+      output.name = sig.name;
+      outputs.push_back(output);
+    }
+    m_Disassembly += "}";
+    DisassemblyAddNewLine();
+  }
+
+  const char *swizzle = "xyzw";
+
+  DisassemblyAddNewLine();
+
+  for(size_t i = 0; i < m_Functions.size(); i++)
+  {
+    const Function &func = *m_Functions[i];
+
+    m_Accum.processFunction(m_Functions[i]);
+
+    if(func.external)
+      continue;
+
+    m_Disassembly += (func.external ? "declare " : "define ");
+    if(func.internalLinkage)
+      m_Disassembly += "internal ";
+    m_Disassembly +=
+        func.type->declFunction("@" + escapeStringIfNeeded(func.name), func.args, func.attrs);
+
+    if(func.comdatIdx < m_Comdats.size())
+      m_Disassembly += StringFormat::Fmt(
+          " comdat($%s)", escapeStringIfNeeded(m_Comdats[func.comdatIdx].second).c_str());
+
+    if(func.align)
+      m_Disassembly += StringFormat::Fmt(" align %u", (1U << func.align) >> 1);
+
+    if(func.attrs && func.attrs->functionSlot)
+      m_Disassembly += StringFormat::Fmt(" #%u", m_FuncAttrGroups.indexOf(func.attrs->functionSlot));
+
+    if(!func.external)
+    {
+      DisassemblyAddNewLine();
+      m_Disassembly += "{";
+      DisassemblyAddNewLine();
+
+      size_t curBlock = 0;
+
+      // if the first block has a name, use it
+      if(!func.blocks[curBlock]->name.empty())
+      {
+        m_Disassembly +=
+            StringFormat::Fmt("%s:", escapeStringIfNeeded(func.blocks[curBlock]->name).c_str());
+        DisassemblyAddNewLine(2);
+      }
+
+      for(size_t funcIdx = 0; funcIdx < func.instructions.size(); funcIdx++)
+      {
+        Instruction &inst = *func.instructions[funcIdx];
+
+        inst.disassemblyLine = m_DisassemblyInstructionLine;
+        m_Disassembly += "  ";
+        if(!inst.type->isVoid())
+        {
+          m_Disassembly += inst.type->toString();
+          m_Disassembly += " ";
+        }
+        if(!inst.getName().empty())
+          m_Disassembly += StringFormat::Fmt("%c%s = ", DXIL::dxilIdentifier,
+                                             escapeStringIfNeeded(inst.getName()).c_str());
+        else if(inst.slot != ~0U)
+          m_Disassembly += StringFormat::Fmt("%c%u = ", DXIL::dxilIdentifier, inst.slot);
+
+        bool debugCall = false;
+        bool showDxFuncSig = true;
+
+        switch(inst.op)
+        {
+          case Operation::NoOp: m_Disassembly += "??? "; break;
+          case Operation::Call:
+          {
+            rdcstr funcCallName = inst.getFuncCall()->name;
+            if(funcCallName.beginsWith("dx.op.loadInput"))
+            {
+              showDxFuncSig = false;
+              uint32_t dxopCode = getival<uint32_t>(inst.args[0]);
+              RDCASSERTEQUAL(dxopCode, 4);
+              uint32_t inputIdx = getival<uint32_t>(inst.args[1]);
+              m_Disassembly += inputs[inputIdx].name;
+              m_Disassembly += ".";
+              // TODO: decode colIndex access
+              uint32_t componentIdx = getival<uint32_t>(inst.args[3]);
+              m_Disassembly += swizzle[componentIdx & 0x3];
+            }
+            else if(funcCallName.beginsWith("dx.op.storeOutput"))
+            {
+              showDxFuncSig = false;
+              uint32_t dxopCode = getival<uint32_t>(inst.args[0]);
+              RDCASSERTEQUAL(dxopCode, 5);
+              uint32_t outputIdx = getival<uint32_t>(inst.args[1]);
+              m_Disassembly += outputs[outputIdx].name;
+              m_Disassembly += ".";
+              // TODO: decode colIndex access
+              uint32_t componentIdx = getival<uint32_t>(inst.args[3]);
+              m_Disassembly += swizzle[componentIdx & 0x3];
+              m_Disassembly += " = " + ArgToString(inst.args[4], false);
+            }
+            else
+            {
+              m_Disassembly += "call " + inst.type->toString();
+              m_Disassembly += " @" + escapeStringIfNeeded(funcCallName);
+              m_Disassembly += "(";
+              bool first = true;
+
+              const AttributeSet *paramAttrs = inst.getParamAttrs();
+              // attribute args start from 1
+              size_t argIdx = 1;
+              for(const Value *s : inst.args)
+              {
+                if(!first)
+                  m_Disassembly += ", ";
+                first = false;
+
+                // see if we have param attrs for this param
+                rdcstr attrString;
+                if(paramAttrs && argIdx < paramAttrs->groupSlots.size() &&
+                   paramAttrs->groupSlots[argIdx])
+                {
+                  attrString = paramAttrs->groupSlots[argIdx]->toString(true) + " ";
+                }
+
+                m_Disassembly += ArgToString(s, true, attrString);
+
+                argIdx++;
+              }
+              m_Disassembly += ")";
+              debugCall = funcCallName.beginsWith("llvm.dbg.");
+
+              if(paramAttrs && paramAttrs->functionSlot)
+                m_Disassembly +=
+                    StringFormat::Fmt(" #%u", m_FuncAttrGroups.indexOf(paramAttrs->functionSlot));
+            }
+            break;
+          }
+          case Operation::Trunc:
+          case Operation::ZExt:
+          case Operation::SExt:
+          case Operation::FToU:
+          case Operation::FToS:
+          case Operation::UToF:
+          case Operation::SToF:
+          case Operation::FPTrunc:
+          case Operation::FPExt:
+          case Operation::PtrToI:
+          case Operation::IToPtr:
+          case Operation::Bitcast:
+          case Operation::AddrSpaceCast:
+          {
+            switch(inst.op)
+            {
+              case Operation::Trunc: m_Disassembly += "trunc "; break;
+              case Operation::ZExt: m_Disassembly += "zext "; break;
+              case Operation::SExt: m_Disassembly += "sext "; break;
+              case Operation::FToU: m_Disassembly += "fptoui "; break;
+              case Operation::FToS: m_Disassembly += "fptosi "; break;
+              case Operation::UToF: m_Disassembly += "uitofp "; break;
+              case Operation::SToF: m_Disassembly += "sitofp "; break;
+              case Operation::FPTrunc: m_Disassembly += "fptrunc "; break;
+              case Operation::FPExt: m_Disassembly += "fpext "; break;
+              case Operation::PtrToI: m_Disassembly += "ptrtoi "; break;
+              case Operation::IToPtr: m_Disassembly += "itoptr "; break;
+              case Operation::Bitcast: m_Disassembly += "bitcast "; break;
+              case Operation::AddrSpaceCast: m_Disassembly += "addrspacecast "; break;
+              default: break;
+            }
+
+            m_Disassembly += ArgToString(inst.args[0], true);
+            m_Disassembly += " to ";
+            m_Disassembly += inst.type->toString();
+            break;
+          }
+          case Operation::ExtractVal:
+          {
+            m_Disassembly += "extractvalue ";
+            m_Disassembly += ArgToString(inst.args[0], true);
+            for(size_t n = 1; n < inst.args.size(); n++)
+              m_Disassembly += StringFormat::Fmt(", %llu", cast<Literal>(inst.args[n])->literal);
+            break;
+          }
+          case Operation::FAdd:
+          case Operation::FSub:
+          case Operation::FMul:
+          case Operation::FDiv:
+          case Operation::FRem:
+          case Operation::Add:
+          case Operation::Sub:
+          case Operation::Mul:
+          case Operation::UDiv:
+          case Operation::SDiv:
+          case Operation::URem:
+          case Operation::SRem:
+          case Operation::ShiftLeft:
+          case Operation::LogicalShiftRight:
+          case Operation::ArithShiftRight:
+          case Operation::And:
+          case Operation::Or:
+          case Operation::Xor:
+          {
+            switch(inst.op)
+            {
+              case Operation::FAdd: m_Disassembly += "fadd "; break;
+              case Operation::FSub: m_Disassembly += "fsub "; break;
+              case Operation::FMul: m_Disassembly += "fmul "; break;
+              case Operation::FDiv: m_Disassembly += "fdiv "; break;
+              case Operation::FRem: m_Disassembly += "frem "; break;
+              case Operation::Add: m_Disassembly += "add "; break;
+              case Operation::Sub: m_Disassembly += "sub "; break;
+              case Operation::Mul: m_Disassembly += "mul "; break;
+              case Operation::UDiv: m_Disassembly += "udiv "; break;
+              case Operation::SDiv: m_Disassembly += "sdiv "; break;
+              case Operation::URem: m_Disassembly += "urem "; break;
+              case Operation::SRem: m_Disassembly += "srem "; break;
+              case Operation::ShiftLeft: m_Disassembly += "shl "; break;
+              case Operation::LogicalShiftRight: m_Disassembly += "lshr "; break;
+              case Operation::ArithShiftRight: m_Disassembly += "ashr "; break;
+              case Operation::And: m_Disassembly += "and "; break;
+              case Operation::Or: m_Disassembly += "or "; break;
+              case Operation::Xor: m_Disassembly += "xor "; break;
+              default: break;
+            }
+
+            rdcstr opFlagsStr = ToStr(inst.opFlags());
+            {
+              int offs = opFlagsStr.indexOf('|');
+              while(offs >= 0)
+              {
+                opFlagsStr.erase((size_t)offs, 2);
+                offs = opFlagsStr.indexOf('|');
+              }
+            }
+            m_Disassembly += opFlagsStr;
+            if(inst.opFlags() != InstructionFlags::NoFlags)
+              m_Disassembly += " ";
+
+            bool first = true;
+            for(const Value *s : inst.args)
+            {
+              if(!first)
+                m_Disassembly += ", ";
+
+              m_Disassembly += ArgToString(s, first);
+              first = false;
+            }
+
+            break;
+          }
+          case Operation::Ret:
+          {
+            if(inst.args.empty())
+              m_Disassembly += "ret " + inst.type->toString();
+            else
+              m_Disassembly += "ret " + ArgToString(inst.args[0], true);
+            break;
+          }
+          case Operation::Unreachable: m_Disassembly += "unreachable"; break;
+          case Operation::Alloca:
+          {
+            m_Disassembly += "alloca ";
+            m_Disassembly += inst.type->inner->toString();
+            if(inst.align > 0)
+              m_Disassembly += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
+            break;
+          }
+          case Operation::GetElementPtr:
+          {
+            m_Disassembly += "getelementptr ";
+            if(inst.opFlags() & InstructionFlags::InBounds)
+              m_Disassembly += "inbounds ";
+            m_Disassembly += inst.args[0]->type->inner->toString();
+            m_Disassembly += ", ";
+            bool first = true;
+            for(const Value *s : inst.args)
+            {
+              if(!first)
+                m_Disassembly += ", ";
+
+              m_Disassembly += ArgToString(s, true);
+              first = false;
+            }
+            break;
+          }
+          case Operation::Load:
+          {
+            m_Disassembly += "load ";
+            if(inst.opFlags() & InstructionFlags::Volatile)
+              m_Disassembly += "volatile ";
+            m_Disassembly += inst.type->toString();
+            m_Disassembly += ", ";
+            bool first = true;
+            for(const Value *s : inst.args)
+            {
+              if(!first)
+                m_Disassembly += ", ";
+
+              m_Disassembly += ArgToString(s, true);
+              first = false;
+            }
+            if(inst.align > 0)
+              m_Disassembly += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
+            break;
+          }
+          case Operation::Store:
+          {
+            m_Disassembly += "store ";
+            if(inst.opFlags() & InstructionFlags::Volatile)
+              m_Disassembly += "volatile ";
+            m_Disassembly += ArgToString(inst.args[1], true);
+            m_Disassembly += ", ";
+            m_Disassembly += ArgToString(inst.args[0], true);
+            if(inst.align > 0)
+              m_Disassembly += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
+            break;
+          }
+          case Operation::FOrdFalse:
+          case Operation::FOrdEqual:
+          case Operation::FOrdGreater:
+          case Operation::FOrdGreaterEqual:
+          case Operation::FOrdLess:
+          case Operation::FOrdLessEqual:
+          case Operation::FOrdNotEqual:
+          case Operation::FOrd:
+          case Operation::FUnord:
+          case Operation::FUnordEqual:
+          case Operation::FUnordGreater:
+          case Operation::FUnordGreaterEqual:
+          case Operation::FUnordLess:
+          case Operation::FUnordLessEqual:
+          case Operation::FUnordNotEqual:
+          case Operation::FOrdTrue:
+          {
+            m_Disassembly += "fcmp ";
+            rdcstr opFlagsStr = ToStr(inst.opFlags());
+            {
+              int offs = opFlagsStr.indexOf('|');
+              while(offs >= 0)
+              {
+                opFlagsStr.erase((size_t)offs, 2);
+                offs = opFlagsStr.indexOf('|');
+              }
+            }
+            m_Disassembly += opFlagsStr;
+            if(inst.opFlags() != InstructionFlags::NoFlags)
+              m_Disassembly += " ";
+            switch(inst.op)
+            {
+              case Operation::FOrdFalse: m_Disassembly += "false "; break;
+              case Operation::FOrdEqual: m_Disassembly += "oeq "; break;
+              case Operation::FOrdGreater: m_Disassembly += "ogt "; break;
+              case Operation::FOrdGreaterEqual: m_Disassembly += "oge "; break;
+              case Operation::FOrdLess: m_Disassembly += "olt "; break;
+              case Operation::FOrdLessEqual: m_Disassembly += "ole "; break;
+              case Operation::FOrdNotEqual: m_Disassembly += "one "; break;
+              case Operation::FOrd: m_Disassembly += "ord "; break;
+              case Operation::FUnord: m_Disassembly += "uno "; break;
+              case Operation::FUnordEqual: m_Disassembly += "ueq "; break;
+              case Operation::FUnordGreater: m_Disassembly += "ugt "; break;
+              case Operation::FUnordGreaterEqual: m_Disassembly += "uge "; break;
+              case Operation::FUnordLess: m_Disassembly += "ult "; break;
+              case Operation::FUnordLessEqual: m_Disassembly += "ule "; break;
+              case Operation::FUnordNotEqual: m_Disassembly += "une "; break;
+              case Operation::FOrdTrue: m_Disassembly += "true "; break;
+              default: break;
+            }
+            m_Disassembly += ArgToString(inst.args[0], true);
+            m_Disassembly += ", ";
+            m_Disassembly += ArgToString(inst.args[1], false);
+            break;
+          }
+          case Operation::IEqual:
+          case Operation::INotEqual:
+          case Operation::UGreater:
+          case Operation::UGreaterEqual:
+          case Operation::ULess:
+          case Operation::ULessEqual:
+          case Operation::SGreater:
+          case Operation::SGreaterEqual:
+          case Operation::SLess:
+          case Operation::SLessEqual:
+          {
+            m_Disassembly += "icmp ";
+            switch(inst.op)
+            {
+              case Operation::IEqual: m_Disassembly += "eq "; break;
+              case Operation::INotEqual: m_Disassembly += "ne "; break;
+              case Operation::UGreater: m_Disassembly += "ugt "; break;
+              case Operation::UGreaterEqual: m_Disassembly += "uge "; break;
+              case Operation::ULess: m_Disassembly += "ult "; break;
+              case Operation::ULessEqual: m_Disassembly += "ule "; break;
+              case Operation::SGreater: m_Disassembly += "sgt "; break;
+              case Operation::SGreaterEqual: m_Disassembly += "sge "; break;
+              case Operation::SLess: m_Disassembly += "slt "; break;
+              case Operation::SLessEqual: m_Disassembly += "sle "; break;
+              default: break;
+            }
+            m_Disassembly += ArgToString(inst.args[0], true);
+            m_Disassembly += ", ";
+            m_Disassembly += ArgToString(inst.args[1], false);
+            break;
+          }
+          case Operation::Select:
+          {
+            m_Disassembly += "select ";
+            m_Disassembly += ArgToString(inst.args[2], true);
+            m_Disassembly += ", ";
+            m_Disassembly += ArgToString(inst.args[0], true);
+            m_Disassembly += ", ";
+            m_Disassembly += ArgToString(inst.args[1], true);
+            break;
+          }
+          case Operation::ExtractElement:
+          {
+            m_Disassembly += "extractelement ";
+            m_Disassembly += ArgToString(inst.args[0], true);
+            m_Disassembly += ", ";
+            m_Disassembly += ArgToString(inst.args[1], true);
+            break;
+          }
+          case Operation::InsertElement:
+          {
+            m_Disassembly += "insertelement ";
+            m_Disassembly += ArgToString(inst.args[0], true);
+            m_Disassembly += ", ";
+            m_Disassembly += ArgToString(inst.args[1], true);
+            m_Disassembly += ", ";
+            m_Disassembly += ArgToString(inst.args[2], true);
+            break;
+          }
+          case Operation::ShuffleVector:
+          {
+            m_Disassembly += "shufflevector ";
+            m_Disassembly += ArgToString(inst.args[0], true);
+            m_Disassembly += ", ";
+            m_Disassembly += ArgToString(inst.args[1], true);
+            m_Disassembly += ", ";
+            m_Disassembly += ArgToString(inst.args[2], true);
+            break;
+          }
+          case Operation::InsertValue:
+          {
+            m_Disassembly += "insertvalue ";
+            m_Disassembly += ArgToString(inst.args[0], true);
+            m_Disassembly += ", ";
+            m_Disassembly += ArgToString(inst.args[1], true);
+            for(size_t a = 2; a < inst.args.size(); a++)
+            {
+              m_Disassembly += ", " + ToStr(cast<Literal>(inst.args[a])->literal);
+            }
+            break;
+          }
+          case Operation::Branch:
+          {
+            m_Disassembly += "br ";
+            if(inst.args.size() > 1)
+            {
+              m_Disassembly += ArgToString(inst.args[2], true);
+              m_Disassembly += StringFormat::Fmt(", %s", ArgToString(inst.args[0], true).c_str());
+              m_Disassembly += StringFormat::Fmt(", %s", ArgToString(inst.args[1], true).c_str());
+            }
+            else
+            {
+              m_Disassembly += ArgToString(inst.args[0], true);
+            }
+            break;
+          }
+          case Operation::Phi:
+          {
+            m_Disassembly += "phi ";
+            m_Disassembly += inst.type->toString();
+            for(size_t a = 0; a < inst.args.size(); a += 2)
+            {
+              if(a == 0)
+                m_Disassembly += " ";
+              else
+                m_Disassembly += ", ";
+              m_Disassembly +=
+                  StringFormat::Fmt("[ %s, %s ]", ArgToString(inst.args[a], false).c_str(),
+                                    ArgToString(inst.args[a + 1], false).c_str());
+            }
+            break;
+          }
+          case Operation::Switch:
+          {
+            m_Disassembly += "switch ";
+            m_Disassembly += ArgToString(inst.args[0], true);
+            m_Disassembly += ", ";
+            m_Disassembly += ArgToString(inst.args[1], true);
+            m_Disassembly += " [";
+            DisassemblyAddNewLine();
+            for(size_t a = 2; a < inst.args.size(); a += 2)
+            {
+              m_Disassembly +=
+                  StringFormat::Fmt("    %s, %s", ArgToString(inst.args[a], true).c_str(),
+                                    ArgToString(inst.args[a + 1], true).c_str());
+              DisassemblyAddNewLine();
+            }
+            m_Disassembly += "  ]";
+            break;
+          }
+          case Operation::Fence:
+          {
+            m_Disassembly += "fence ";
+            if(inst.opFlags() & InstructionFlags::SingleThread)
+              m_Disassembly += "singlethread ";
+            switch((inst.opFlags() & InstructionFlags::SuccessOrderMask))
+            {
+              case InstructionFlags::SuccessUnordered: m_Disassembly += "unordered"; break;
+              case InstructionFlags::SuccessMonotonic: m_Disassembly += "monotonic"; break;
+              case InstructionFlags::SuccessAcquire: m_Disassembly += "acquire"; break;
+              case InstructionFlags::SuccessRelease: m_Disassembly += "release"; break;
+              case InstructionFlags::SuccessAcquireRelease: m_Disassembly += "acq_rel"; break;
+              case InstructionFlags::SuccessSequentiallyConsistent:
+                m_Disassembly += "seq_cst";
+                break;
+              default: break;
+            }
+            break;
+          }
+          case Operation::LoadAtomic:
+          {
+            m_Disassembly += "load atomic ";
+            if(inst.opFlags() & InstructionFlags::Volatile)
+              m_Disassembly += "volatile ";
+            m_Disassembly += inst.type->toString();
+            m_Disassembly += ", ";
+            bool first = true;
+            for(const Value *s : inst.args)
+            {
+              if(!first)
+                m_Disassembly += ", ";
+
+              m_Disassembly += ArgToString(s, true);
+              first = false;
+            }
+            m_Disassembly += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
+            break;
+          }
+          case Operation::StoreAtomic:
+          {
+            m_Disassembly += "store atomic ";
+            if(inst.opFlags() & InstructionFlags::Volatile)
+              m_Disassembly += "volatile ";
+            m_Disassembly += ArgToString(inst.args[1], true);
+            m_Disassembly += ", ";
+            m_Disassembly += ArgToString(inst.args[0], true);
+            m_Disassembly += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
+            break;
+          }
+          case Operation::CompareExchange:
+          {
+            m_Disassembly += "cmpxchg ";
+            if(inst.opFlags() & InstructionFlags::Weak)
+              m_Disassembly += "weak ";
+            if(inst.opFlags() & InstructionFlags::Volatile)
+              m_Disassembly += "volatile ";
+
+            bool first = true;
+            for(const Value *s : inst.args)
+            {
+              if(!first)
+                m_Disassembly += ", ";
+
+              m_Disassembly += ArgToString(s, true);
+              first = false;
+            }
+
+            m_Disassembly += " ";
+            if(inst.opFlags() & InstructionFlags::SingleThread)
+              m_Disassembly += "singlethread ";
+            switch((inst.opFlags() & InstructionFlags::SuccessOrderMask))
+            {
+              case InstructionFlags::SuccessUnordered: m_Disassembly += "unordered"; break;
+              case InstructionFlags::SuccessMonotonic: m_Disassembly += "monotonic"; break;
+              case InstructionFlags::SuccessAcquire: m_Disassembly += "acquire"; break;
+              case InstructionFlags::SuccessRelease: m_Disassembly += "release"; break;
+              case InstructionFlags::SuccessAcquireRelease: m_Disassembly += "acq_rel"; break;
+              case InstructionFlags::SuccessSequentiallyConsistent:
+                m_Disassembly += "seq_cst";
+                break;
+              default: break;
+            }
+            m_Disassembly += " ";
+            switch((inst.opFlags() & InstructionFlags::FailureOrderMask))
+            {
+              case InstructionFlags::FailureUnordered: m_Disassembly += "unordered"; break;
+              case InstructionFlags::FailureMonotonic: m_Disassembly += "monotonic"; break;
+              case InstructionFlags::FailureAcquire: m_Disassembly += "acquire"; break;
+              case InstructionFlags::FailureRelease: m_Disassembly += "release"; break;
+              case InstructionFlags::FailureAcquireRelease: m_Disassembly += "acq_rel"; break;
+              case InstructionFlags::FailureSequentiallyConsistent:
+                m_Disassembly += "seq_cst";
+                break;
+              default: break;
+            }
+            break;
+          }
+          case Operation::AtomicExchange:
+          case Operation::AtomicAdd:
+          case Operation::AtomicSub:
+          case Operation::AtomicAnd:
+          case Operation::AtomicNand:
+          case Operation::AtomicOr:
+          case Operation::AtomicXor:
+          case Operation::AtomicMax:
+          case Operation::AtomicMin:
+          case Operation::AtomicUMax:
+          case Operation::AtomicUMin:
+          {
+            m_Disassembly += "atomicrmw ";
+            if(inst.opFlags() & InstructionFlags::Volatile)
+              m_Disassembly += "volatile ";
+            switch(inst.op)
+            {
+              case Operation::AtomicExchange: m_Disassembly += "xchg "; break;
+              case Operation::AtomicAdd: m_Disassembly += "add "; break;
+              case Operation::AtomicSub: m_Disassembly += "sub "; break;
+              case Operation::AtomicAnd: m_Disassembly += "and "; break;
+              case Operation::AtomicNand: m_Disassembly += "nand "; break;
+              case Operation::AtomicOr: m_Disassembly += "or "; break;
+              case Operation::AtomicXor: m_Disassembly += "xor "; break;
+              case Operation::AtomicMax: m_Disassembly += "max "; break;
+              case Operation::AtomicMin: m_Disassembly += "min "; break;
+              case Operation::AtomicUMax: m_Disassembly += "umax "; break;
+              case Operation::AtomicUMin: m_Disassembly += "umin "; break;
+              default: break;
+            }
+
+            bool first = true;
+            for(const Value *s : inst.args)
+            {
+              if(!first)
+                m_Disassembly += ", ";
+
+              m_Disassembly += ArgToString(s, true);
+              first = false;
+            }
+
+            m_Disassembly += " ";
+            if(inst.opFlags() & InstructionFlags::SingleThread)
+              m_Disassembly += "singlethread ";
+            switch((inst.opFlags() & InstructionFlags::SuccessOrderMask))
+            {
+              case InstructionFlags::SuccessUnordered: m_Disassembly += "unordered"; break;
+              case InstructionFlags::SuccessMonotonic: m_Disassembly += "monotonic"; break;
+              case InstructionFlags::SuccessAcquire: m_Disassembly += "acquire"; break;
+              case InstructionFlags::SuccessRelease: m_Disassembly += "release"; break;
+              case InstructionFlags::SuccessAcquireRelease: m_Disassembly += "acq_rel"; break;
+              case InstructionFlags::SuccessSequentiallyConsistent:
+                m_Disassembly += "seq_cst";
+                break;
+              default: break;
+            }
+            break;
+          }
+        }
+
+        if(inst.debugLoc != ~0U)
+        {
+          DebugLocation &debugLoc = m_DebugLocations[inst.debugLoc];
+          m_Disassembly += StringFormat::Fmt(", !dbg !%u", GetMetaSlot(&debugLoc));
+        }
+
+        const AttachedMetadata &attachedMeta = inst.getAttachedMeta();
+        if(!attachedMeta.empty())
+        {
+          for(size_t m = 0; m < attachedMeta.size(); m++)
+          {
+            m_Disassembly +=
+                StringFormat::Fmt(", !%s !%u", m_Kinds[(size_t)attachedMeta[m].first].c_str(),
+                                  GetMetaSlot(attachedMeta[m].second));
+          }
+        }
+
+        if(inst.debugLoc != ~0U)
+        {
+          DebugLocation &debugLoc = m_DebugLocations[inst.debugLoc];
+
+          if(!debugCall && debugLoc.line > 0)
+          {
+            m_Disassembly += StringFormat::Fmt(" ; line:%llu col:%llu", debugLoc.line, debugLoc.col);
+          }
+        }
+
+        if(debugCall)
+        {
+          size_t varIdx = 0, exprIdx = 0;
+          if(inst.getFuncCall()->name == "llvm.dbg.value")
+          {
+            varIdx = 2;
+            exprIdx = 3;
+          }
+          else if(inst.getFuncCall()->name == "llvm.dbg.declare")
+          {
+            varIdx = 1;
+            exprIdx = 2;
+          }
+
+          if(varIdx > 0)
+          {
+            Metadata *var = cast<Metadata>(inst.args[varIdx]);
+            Metadata *expr = cast<Metadata>(inst.args[exprIdx]);
+            RDCASSERT(var);
+            RDCASSERT(expr);
+            m_Disassembly +=
+                StringFormat::Fmt(" ; var:%s ", escapeString(GetDebugVarName(var->dwarf)).c_str());
+            m_Disassembly += expr->valString();
+
+            rdcstr funcName = GetFunctionScopeName(var->dwarf);
+            if(!funcName.empty())
+              m_Disassembly += StringFormat::Fmt(" func:%s", escapeString(funcName).c_str());
+          }
+        }
+
+        if(showDxFuncSig)
+        {
+          if(inst.getFuncCall() && inst.getFuncCall()->name.beginsWith("dx.op."))
+          {
+            if(Constant *op = cast<Constant>(inst.args[0]))
+            {
+              uint32_t opcode = op->getU32();
+              if(opcode < ARRAY_COUNT(funcSigs))
+              {
+                m_Disassembly += "  ; ";
+                m_Disassembly += funcSigs[opcode];
+              }
+            }
+          }
+
+          if(inst.getFuncCall() && inst.getFuncCall()->name.beginsWith("dx.op.annotateHandle"))
+          {
+            if(const Constant *props = cast<Constant>(inst.args[2]))
+            {
+              const Constant *packed[2];
+              if(props && !props->isNULL() && props->getMembers().size() == 2 &&
+                 (packed[0] = cast<Constant>(props->getMembers()[0])) != NULL &&
+                 (packed[1] = cast<Constant>(props->getMembers()[1])) != NULL)
+              {
+                uint32_t packedProps[2] = {};
+                packedProps[0] = packed[0]->getU32();
+                packedProps[1] = packed[1]->getU32();
+
+                bool uav = (packedProps[0] & (1 << 12)) != 0;
+                bool rov = (packedProps[0] & (1 << 13)) != 0;
+                bool globallyCoherent = (packedProps[0] & (1 << 14)) != 0;
+                bool sampelCmpOrCounter = (packedProps[0] & (1 << 15)) != 0;
+                ResourceKind resKind = (ResourceKind)(packedProps[0] & 0xFF);
+                ResourceClass resClass;
+                if(sampelCmpOrCounter && resKind == ResourceKind::Sampler)
+                  resKind = ResourceKind::SamplerComparison;
+                if(resKind == ResourceKind::Sampler || resKind == ResourceKind::SamplerComparison)
+                  resClass = ResourceClass::Sampler;
+                else if(resKind == ResourceKind::CBuffer)
+                  resClass = ResourceClass::CBuffer;
+                else if(uav)
+                  resClass = ResourceClass::UAV;
+                else
+                  resClass = ResourceClass::SRV;
+
+                m_Disassembly += "  resource: ";
+
+                bool srv = (resClass == ResourceClass::SRV);
+
+                ComponentType compType = ComponentType(packedProps[1] & 0xFF);
+                uint8_t compCount = (packedProps[1] & 0xFF00) >> 8;
+
+                uint8_t feedbackType = packedProps[1] & 0xFF;
+
+                uint32_t structStride = packedProps[1];
+
+                switch(resKind)
+                {
+                  case ResourceKind::Unknown: m_Disassembly += "Unknown"; break;
+                  case ResourceKind::Texture1D:
+                  case ResourceKind::Texture2D:
+                  case ResourceKind::Texture2DMS:
+                  case ResourceKind::Texture3D:
+                  case ResourceKind::TextureCube:
+                  case ResourceKind::Texture1DArray:
+                  case ResourceKind::Texture2DArray:
+                  case ResourceKind::Texture2DMSArray:
+                  case ResourceKind::TextureCubeArray:
+                  case ResourceKind::TypedBuffer:
+                    if(globallyCoherent)
+                      m_Disassembly += "globallycoherent ";
+                    if(!srv && rov)
+                      m_Disassembly += "ROV";
+                    else if(!srv)
+                      m_Disassembly += "RW";
+                    switch(resKind)
+                    {
+                      case ResourceKind::Texture1D: m_Disassembly += "Texture1D"; break;
+                      case ResourceKind::Texture2D: m_Disassembly += "Texture2D"; break;
+                      case ResourceKind::Texture2DMS: m_Disassembly += "Texture2DMS"; break;
+                      case ResourceKind::Texture3D: m_Disassembly += "Texture3D"; break;
+                      case ResourceKind::TextureCube: m_Disassembly += "TextureCube"; break;
+                      case ResourceKind::Texture1DArray: m_Disassembly += "Texture1DArray"; break;
+                      case ResourceKind::Texture2DArray: m_Disassembly += "Texture2DArray"; break;
+                      case ResourceKind::Texture2DMSArray:
+                        m_Disassembly += "Texture2DMSArray";
+                        break;
+                      case ResourceKind::TextureCubeArray:
+                        m_Disassembly += "TextureCubeArray";
+                        break;
+                      case ResourceKind::TypedBuffer: m_Disassembly += "TypedBuffer"; break;
+                      default: break;
+                    }
+                    break;
+                  case ResourceKind::RTAccelerationStructure:
+                    m_Disassembly += "RTAccelerationStructure";
+                    break;
+                  case ResourceKind::FeedbackTexture2D: m_Disassembly += "FeedbackTexture2D"; break;
+                  case ResourceKind::FeedbackTexture2DArray:
+                    m_Disassembly += "FeedbackTexture2DArray";
+                    break;
+                  case ResourceKind::StructuredBuffer:
+                    if(globallyCoherent)
+                      m_Disassembly += "globallycoherent ";
+                    m_Disassembly += srv ? "StructuredBuffer" : "RWStructuredBuffer";
+                    m_Disassembly += StringFormat::Fmt("<stride=%u", structStride);
+                    if(sampelCmpOrCounter)
+                      m_Disassembly += ", counter";
+                    m_Disassembly += ">";
+                    break;
+                  case ResourceKind::StructuredBufferWithCounter:
+                    if(globallyCoherent)
+                      m_Disassembly += "globallycoherent ";
+                    m_Disassembly +=
+                        srv ? "StructuredBufferWithCounter" : "RWStructuredBufferWithCounter";
+                    m_Disassembly += StringFormat::Fmt("<stride=%u>", structStride);
+                    break;
+                  case ResourceKind::RawBuffer:
+                    if(globallyCoherent)
+                      m_Disassembly += "globallycoherent ";
+                    m_Disassembly += srv ? "ByteAddressBuffer" : "RWByteAddressBuffer";
+                    break;
+                  case ResourceKind::CBuffer:
+                    RDCASSERT(resClass == ResourceClass::CBuffer);
+                    m_Disassembly += "CBuffer";
+                    break;
+                  case ResourceKind::Sampler:
+                    RDCASSERT(resClass == ResourceClass::Sampler);
+                    m_Disassembly += "SamplerState";
+                    break;
+                  case ResourceKind::TBuffer:
+                    RDCASSERT(resClass == ResourceClass::SRV);
+                    m_Disassembly += "TBuffer";
+                    break;
+                  case ResourceKind::SamplerComparison:
+                    RDCASSERT(resClass == ResourceClass::Sampler);
+                    m_Disassembly += "SamplerComparisonState";
+                    break;
+                }
+
+                if(resKind == ResourceKind::FeedbackTexture2D ||
+                   resKind == ResourceKind::FeedbackTexture2DArray)
+                {
+                  if(feedbackType == 0)
+                    m_Disassembly += "<MinMip>";
+                  else if(feedbackType == 1)
+                    m_Disassembly += "<MipRegionUsed>";
+                  else
+                    m_Disassembly += "<Invalid>";
+                }
+                else if(resKind == ResourceKind::Texture1D || resKind == ResourceKind::Texture2D ||
+                        resKind == ResourceKind::Texture3D || resKind == ResourceKind::TextureCube ||
+                        resKind == ResourceKind::Texture1DArray ||
+                        resKind == ResourceKind::Texture2DArray ||
+                        resKind == ResourceKind::TextureCubeArray ||
+                        resKind == ResourceKind::TypedBuffer || resKind == ResourceKind::Texture2DMS ||
+                        resKind == ResourceKind::Texture2DMSArray)
+                {
+                  m_Disassembly += "<";
+                  if(compCount > 1)
+                    m_Disassembly += StringFormat::Fmt("%dx", compCount);
+                  m_Disassembly += StringFormat::Fmt("%s>", ToStr(compType).c_str());
+                }
+              }
+            }
+          }
+        }
+        m_Disassembly += ";";
+
+        DisassemblyAddNewLine();
+
+        // if this is the last instruction don't print the next block's label
+        if(funcIdx == func.instructions.size() - 1)
+          break;
+
+        if(inst.op == Operation::Branch || inst.op == Operation::Unreachable ||
+           inst.op == Operation::Switch || inst.op == Operation::Ret)
+        {
+          DisassemblyAddNewLine();
+
+          curBlock++;
+
+          rdcstr labelName;
+
+          if(func.blocks[curBlock]->name.empty())
+            labelName = StringFormat::Fmt("; <label>:%u", func.blocks[curBlock]->slot);
+          else
+            labelName =
+                StringFormat::Fmt("%s: ", escapeStringIfNeeded(func.blocks[curBlock]->name).c_str());
+
+          labelName.reserve(50);
+          while(labelName.size() < 50)
+            labelName.push_back(' ');
+
+          labelName += "; preds = ";
+          bool first = true;
+          for(const Block *pred : func.blocks[curBlock]->preds)
+          {
+            if(!first)
+              labelName += ", ";
+            first = false;
+            if(pred->name.empty())
+              labelName += StringFormat::Fmt("%c%u", DXIL::dxilIdentifier, pred->slot);
+            else
+              labelName += StringFormat::Fmt("%c%s", DXIL::dxilIdentifier,
+                                             escapeStringIfNeeded(pred->name).c_str());
+          }
+
+          m_Disassembly += labelName;
+          DisassemblyAddNewLine();
+        }
+      }
+      m_Disassembly += "}";
+      DisassemblyAddNewLine(2);
+    }
+    else
+    {
+      DisassemblyAddNewLine(2);
+    }
+
+    m_Accum.exitFunction();
+  }
+
+  DisassemblyAddNewLine();
+
+  // TODO: decide how much of this should be output
+  // m_Disassembly += DisassembleFuncAttrGroups();
+  // m_Disassembly += DisassembleNamedMeta();
+  // m_Disassembly += DisassembleMeta();
 
   m_Disassembly += "\n";
 }
