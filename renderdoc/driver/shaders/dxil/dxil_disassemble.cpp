@@ -2862,7 +2862,23 @@ rdcstr Type::toString() const
       switch(scalarType)
       {
         case Void: return "void";
-        case Int: return StringFormat::Fmt("i%u", bitWidth);
+        case Int:
+          if(DXIL::dxcStyleFormatting)
+          {
+            return StringFormat::Fmt("i%u", bitWidth);
+          }
+          else
+          {
+            switch(bitWidth)
+            {
+              case 1: return "bool";
+              case 8: return "int8";
+              case 16: return "short";
+              case 32: return "int";
+              case 64: return "long";
+              default: return StringFormat::Fmt("i%u", bitWidth);
+            }
+          }
         case Float:
           switch(bitWidth)
           {
