@@ -1645,6 +1645,12 @@ QString ToQStr(const ShaderStage stage, const GraphicsAPI apitype)
       case ShaderStage::Compute: return lit("Compute");
       case ShaderStage::Amplification: return lit("Amplif.");
       case ShaderStage::Mesh: return lit("Mesh");
+      case ShaderStage::RayGen: return lit("RayGen");
+      case ShaderStage::Intersection: return lit("Intersection");
+      case ShaderStage::AnyHit: return lit("AnyHit");
+      case ShaderStage::ClosestHit: return lit("ClosestHit");
+      case ShaderStage::Miss: return lit("Miss");
+      case ShaderStage::Callable: return lit("Callable");
       default: break;
     }
   }
@@ -1660,6 +1666,12 @@ QString ToQStr(const ShaderStage stage, const GraphicsAPI apitype)
       case ShaderStage::Compute: return lit("Compute");
       case ShaderStage::Task: return lit("Task");
       case ShaderStage::Mesh: return lit("Mesh");
+      case ShaderStage::RayGen: return lit("RayGen");
+      case ShaderStage::Intersection: return lit("Intersection");
+      case ShaderStage::AnyHit: return lit("AnyHit");
+      case ShaderStage::ClosestHit: return lit("ClosestHit");
+      case ShaderStage::Miss: return lit("Miss");
+      case ShaderStage::Callable: return lit("Callable");
       default: break;
     }
   }

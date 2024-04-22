@@ -302,6 +302,12 @@ ShaderStage GetShaderStage(ShaderType type)
     case DXBC::ShaderType::Compute: return ShaderStage::Compute;
     case DXBC::ShaderType::Amplification: return ShaderStage::Amplification;
     case DXBC::ShaderType::Mesh: return ShaderStage::Mesh;
+    case DXBC::ShaderType::RayGeneration: return ShaderStage::RayGen;
+    case DXBC::ShaderType::Intersection: return ShaderStage::Intersection;
+    case DXBC::ShaderType::AnyHit: return ShaderStage::AnyHit;
+    case DXBC::ShaderType::ClosestHit: return ShaderStage::ClosestHit;
+    case DXBC::ShaderType::Miss: return ShaderStage::Miss;
+    case DXBC::ShaderType::Callable: return ShaderStage::Callable;
     default: RDCERR("Unexpected DXBC shader type %u", type); return ShaderStage::Vertex;
   }
 }

@@ -298,6 +298,12 @@ rdcstr DisassembleSPIRV(ShaderStage stage, const bytebuf &shaderBytes, const rdc
     case ShaderStage::Compute: stageName = "comp"; break;
     case ShaderStage::Task: stageName = "task"; break;
     case ShaderStage::Mesh: stageName = "mesh"; break;
+    case ShaderStage::RayGen: stageName = "rgen"; break;
+    case ShaderStage::Intersection: stageName = "rint"; break;
+    case ShaderStage::AnyHit: stageName = "rahit"; break;
+    case ShaderStage::ClosestHit: stageName = "rchit"; break;
+    case ShaderStage::Miss: stageName = "rmiss"; break;
+    case ShaderStage::Callable: stageName = "rcall"; break;
     case ShaderStage::Count: return "; Cannot identify shader type";
   }
 
@@ -409,6 +415,30 @@ rdcstr DisassembleGLSL(ShaderStage stage, const bytebuf &shaderBytes, const rdcs
     case ShaderStage::Mesh:
       stageIndex = 7;
       stageName = "mesh";
+      break;
+    case ShaderStage::RayGen:
+      stageIndex = 8;
+      stageName = "rgen";
+      break;
+    case ShaderStage::Intersection:
+      stageIndex = 9;
+      stageName = "rint";
+      break;
+    case ShaderStage::AnyHit:
+      stageIndex = 10;
+      stageName = "rahit";
+      break;
+    case ShaderStage::ClosestHit:
+      stageIndex = 11;
+      stageName = "rchit";
+      break;
+    case ShaderStage::Miss:
+      stageIndex = 12;
+      stageName = "rmiss";
+      break;
+    case ShaderStage::Callable:
+      stageIndex = 13;
+      stageName = "rcall";
       break;
     case ShaderStage::Count: return "; Cannot identify shader type";
   }

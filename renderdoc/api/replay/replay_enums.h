@@ -2580,6 +2580,31 @@ DOCUMENT(R"(The stage in a pipeline where a shader runs
 .. data:: Mesh
 
   The mesh shader.
+
+.. data:: RayGen
+
+  A ray generation shader, called from a ray dispatch command to launch initial rays.
+
+.. data:: Intersection
+
+  An intersection shader, used for procedural objects in a BLAS to calculate hits.
+
+.. data:: AnyHit
+
+  An any-hit shader, called in an indeterminate order and number when a ray intersection has been
+  found with an object but may not be the final hit.
+
+.. data:: ClosestHit
+
+  A closest-hit shader, called once the closest hit on a ray has been found.
+
+.. data:: Miss
+
+  A miss shader, called when a ray has no valid closest hit at all.
+
+.. data:: Callable
+
+  A callable shader, called by shader code via index during ray processing.
 )");
 enum class ShaderStage : uint8_t
 {
@@ -2603,6 +2628,13 @@ enum class ShaderStage : uint8_t
   Amplification = Task,
 
   Mesh,
+
+  RayGen,
+  Intersection,
+  AnyHit,
+  ClosestHit,
+  Miss,
+  Callable,
 
   Count,
 };
@@ -4763,7 +4795,14 @@ enum class ShaderStageMask : uint16_t
   Task = 1 << uint32_t(ShaderStage::Task),
   Amplification = Task,
   Mesh = 1 << uint32_t(ShaderStage::Mesh),
-  All = Vertex | Hull | Domain | Geometry | Pixel | Compute | Task | Mesh,
+  RayGen = 1 << uint32_t(ShaderStage::RayGen),
+  Intersection = 1 << uint32_t(ShaderStage::Intersection),
+  AnyHit = 1 << uint32_t(ShaderStage::AnyHit),
+  ClosestHit = 1 << uint32_t(ShaderStage::ClosestHit),
+  Miss = 1 << uint32_t(ShaderStage::Miss),
+  Callable = 1 << uint32_t(ShaderStage::Callable),
+  All = Vertex | Hull | Domain | Geometry | Pixel | Compute | Task | Mesh | RayGen | Intersection |
+        AnyHit | ClosestHit | Miss | Callable,
 };
 
 BITMASK_OPERATORS(ShaderStageMask);
