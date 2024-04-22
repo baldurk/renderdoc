@@ -906,7 +906,7 @@ void Program::MakeDXCDisassemblyString()
 
   m_Disassembly += DisassembleComDats(instructionLine);
   m_Disassembly += DisassembleTypes(instructionLine);
-  m_Disassembly = DisassembleGlobalVars(instructionLine);
+  m_Disassembly += DisassembleGlobalVars(instructionLine);
 
   for(size_t i = 0; i < m_Functions.size(); i++)
   {
