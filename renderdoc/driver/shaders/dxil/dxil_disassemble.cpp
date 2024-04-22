@@ -2024,7 +2024,7 @@ void Program::MakeRDDisassemblyString()
                   attrString = paramAttrs->groupSlots[argIdx]->toString(true) + " ";
                 }
 
-                m_Disassembly += ArgToString(s, true, attrString);
+                m_Disassembly += ArgToString(s, false, attrString);
 
                 argIdx++;
               }
@@ -2069,7 +2069,7 @@ void Program::MakeRDDisassemblyString()
               default: break;
             }
 
-            m_Disassembly += ArgToString(inst.args[0], true);
+            m_Disassembly += ArgToString(inst.args[0], false);
             m_Disassembly += " to ";
             m_Disassembly += inst.type->toString();
             break;
@@ -2077,7 +2077,7 @@ void Program::MakeRDDisassemblyString()
           case Operation::ExtractVal:
           {
             m_Disassembly += "extractvalue ";
-            m_Disassembly += ArgToString(inst.args[0], true);
+            m_Disassembly += ArgToString(inst.args[0], false);
             for(size_t n = 1; n < inst.args.size(); n++)
               m_Disassembly += StringFormat::Fmt(", %llu", cast<Literal>(inst.args[n])->literal);
             break;
@@ -2143,7 +2143,7 @@ void Program::MakeRDDisassemblyString()
               if(!first)
                 m_Disassembly += ", ";
 
-              m_Disassembly += ArgToString(s, first);
+              m_Disassembly += ArgToString(s, false);
               first = false;
             }
 
@@ -2154,7 +2154,7 @@ void Program::MakeRDDisassemblyString()
             if(inst.args.empty())
               m_Disassembly += "ret " + inst.type->toString();
             else
-              m_Disassembly += "ret " + ArgToString(inst.args[0], true);
+              m_Disassembly += "ret " + ArgToString(inst.args[0], false);
             break;
           }
           case Operation::Unreachable: m_Disassembly += "unreachable"; break;
@@ -2179,7 +2179,7 @@ void Program::MakeRDDisassemblyString()
               if(!first)
                 m_Disassembly += ", ";
 
-              m_Disassembly += ArgToString(s, true);
+              m_Disassembly += ArgToString(s, false);
               first = false;
             }
             break;
@@ -2197,7 +2197,7 @@ void Program::MakeRDDisassemblyString()
               if(!first)
                 m_Disassembly += ", ";
 
-              m_Disassembly += ArgToString(s, true);
+              m_Disassembly += ArgToString(s, false);
               first = false;
             }
             if(inst.align > 0)
@@ -2209,9 +2209,9 @@ void Program::MakeRDDisassemblyString()
             m_Disassembly += "store ";
             if(inst.opFlags() & InstructionFlags::Volatile)
               m_Disassembly += "volatile ";
-            m_Disassembly += ArgToString(inst.args[1], true);
+            m_Disassembly += ArgToString(inst.args[1], false);
             m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[0], true);
+            m_Disassembly += ArgToString(inst.args[0], false);
             if(inst.align > 0)
               m_Disassembly += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
             break;
@@ -2266,7 +2266,7 @@ void Program::MakeRDDisassemblyString()
               case Operation::FOrdTrue: m_Disassembly += "true "; break;
               default: break;
             }
-            m_Disassembly += ArgToString(inst.args[0], true);
+            m_Disassembly += ArgToString(inst.args[0], false);
             m_Disassembly += ", ";
             m_Disassembly += ArgToString(inst.args[1], false);
             break;
@@ -2297,7 +2297,7 @@ void Program::MakeRDDisassemblyString()
               case Operation::SLessEqual: m_Disassembly += "sle "; break;
               default: break;
             }
-            m_Disassembly += ArgToString(inst.args[0], true);
+            m_Disassembly += ArgToString(inst.args[0], false);
             m_Disassembly += ", ";
             m_Disassembly += ArgToString(inst.args[1], false);
             break;
@@ -2305,47 +2305,47 @@ void Program::MakeRDDisassemblyString()
           case Operation::Select:
           {
             m_Disassembly += "select ";
-            m_Disassembly += ArgToString(inst.args[2], true);
+            m_Disassembly += ArgToString(inst.args[2], false);
             m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[0], true);
+            m_Disassembly += ArgToString(inst.args[0], false);
             m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[1], true);
+            m_Disassembly += ArgToString(inst.args[1], false);
             break;
           }
           case Operation::ExtractElement:
           {
             m_Disassembly += "extractelement ";
-            m_Disassembly += ArgToString(inst.args[0], true);
+            m_Disassembly += ArgToString(inst.args[0], false);
             m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[1], true);
+            m_Disassembly += ArgToString(inst.args[1], false);
             break;
           }
           case Operation::InsertElement:
           {
             m_Disassembly += "insertelement ";
-            m_Disassembly += ArgToString(inst.args[0], true);
+            m_Disassembly += ArgToString(inst.args[0], false);
             m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[1], true);
+            m_Disassembly += ArgToString(inst.args[1], false);
             m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[2], true);
+            m_Disassembly += ArgToString(inst.args[2], false);
             break;
           }
           case Operation::ShuffleVector:
           {
             m_Disassembly += "shufflevector ";
-            m_Disassembly += ArgToString(inst.args[0], true);
+            m_Disassembly += ArgToString(inst.args[0], false);
             m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[1], true);
+            m_Disassembly += ArgToString(inst.args[1], false);
             m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[2], true);
+            m_Disassembly += ArgToString(inst.args[2], false);
             break;
           }
           case Operation::InsertValue:
           {
             m_Disassembly += "insertvalue ";
-            m_Disassembly += ArgToString(inst.args[0], true);
+            m_Disassembly += ArgToString(inst.args[0], false);
             m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[1], true);
+            m_Disassembly += ArgToString(inst.args[1], false);
             for(size_t a = 2; a < inst.args.size(); a++)
             {
               m_Disassembly += ", " + ToStr(cast<Literal>(inst.args[a])->literal);
@@ -2357,13 +2357,13 @@ void Program::MakeRDDisassemblyString()
             m_Disassembly += "br ";
             if(inst.args.size() > 1)
             {
-              m_Disassembly += ArgToString(inst.args[2], true);
-              m_Disassembly += StringFormat::Fmt(", %s", ArgToString(inst.args[0], true).c_str());
-              m_Disassembly += StringFormat::Fmt(", %s", ArgToString(inst.args[1], true).c_str());
+              m_Disassembly += ArgToString(inst.args[2], false);
+              m_Disassembly += StringFormat::Fmt(", %s", ArgToString(inst.args[0], false).c_str());
+              m_Disassembly += StringFormat::Fmt(", %s", ArgToString(inst.args[1], false).c_str());
             }
             else
             {
-              m_Disassembly += ArgToString(inst.args[0], true);
+              m_Disassembly += ArgToString(inst.args[0], false);
             }
             break;
           }
@@ -2386,16 +2386,16 @@ void Program::MakeRDDisassemblyString()
           case Operation::Switch:
           {
             m_Disassembly += "switch ";
-            m_Disassembly += ArgToString(inst.args[0], true);
+            m_Disassembly += ArgToString(inst.args[0], false);
             m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[1], true);
+            m_Disassembly += ArgToString(inst.args[1], false);
             m_Disassembly += " [";
             DisassemblyAddNewLine();
             for(size_t a = 2; a < inst.args.size(); a += 2)
             {
               m_Disassembly +=
-                  StringFormat::Fmt("    %s, %s", ArgToString(inst.args[a], true).c_str(),
-                                    ArgToString(inst.args[a + 1], true).c_str());
+                  StringFormat::Fmt("    %s, %s", ArgToString(inst.args[a], false).c_str(),
+                                    ArgToString(inst.args[a + 1], false).c_str());
               DisassemblyAddNewLine();
             }
             m_Disassembly += "  ]";
@@ -2433,7 +2433,7 @@ void Program::MakeRDDisassemblyString()
               if(!first)
                 m_Disassembly += ", ";
 
-              m_Disassembly += ArgToString(s, true);
+              m_Disassembly += ArgToString(s, false);
               first = false;
             }
             m_Disassembly += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
@@ -2444,9 +2444,9 @@ void Program::MakeRDDisassemblyString()
             m_Disassembly += "store atomic ";
             if(inst.opFlags() & InstructionFlags::Volatile)
               m_Disassembly += "volatile ";
-            m_Disassembly += ArgToString(inst.args[1], true);
+            m_Disassembly += ArgToString(inst.args[1], false);
             m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[0], true);
+            m_Disassembly += ArgToString(inst.args[0], false);
             m_Disassembly += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
             break;
           }
@@ -2464,7 +2464,7 @@ void Program::MakeRDDisassemblyString()
               if(!first)
                 m_Disassembly += ", ";
 
-              m_Disassembly += ArgToString(s, true);
+              m_Disassembly += ArgToString(s, false);
               first = false;
             }
 
@@ -2535,7 +2535,7 @@ void Program::MakeRDDisassemblyString()
               if(!first)
                 m_Disassembly += ", ";
 
-              m_Disassembly += ArgToString(s, true);
+              m_Disassembly += ArgToString(s, false);
               first = false;
             }
 
