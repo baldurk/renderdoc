@@ -2464,20 +2464,116 @@ void Program::MakeRDDisassemblyString()
           }
           case Operation::GetElementPtr:
           {
-            lineStr += "getelementptr ";
-            if(inst.opFlags() & InstructionFlags::InBounds)
-              lineStr += "inbounds ";
-            lineStr += inst.args[0]->type->inner->toString();
-            lineStr += ", ";
-            bool first = true;
-            for(const Value *s : inst.args)
+            bool fallbackOutput = true;
+            if(!inst.type->isVoid())
             {
-              if(!first)
-                lineStr += ", ";
+              // type "float addrspace(3)*" : addrspace(3) is DXIL specific, see DXIL::Type::PointerAddrSpace
+              rdcstr typeStr = inst.type->toString();
+              int start = typeStr.find(" addrspace(");
+              if(start > 0)
+              {
+                rdcstr scalarType = typeStr.substr(0, start);
+                scalarType.trim();
 
-              lineStr += ArgToString(s, false);
-              first = false;
+                start += 11;
+                int end = typeStr.find(')', start);
+                if(end > start)
+                {
+                  // Example output:
+                  // DXC:
+                  // %3 = getelementptr [6 x float], [6 x float] addrspace(3)* @"\01?s_x@@3@$$A.1dim", i32 0, i32 %9
+
+                  // RD: GroupShared float* _3 = s_x[0] + _9;
+                  fallbackOutput = false;
+
+                  rdcstr addrspaceStr(typeStr.substr(start, end - start));
+                  int32_t value = atoi(addrspaceStr.c_str());
+                  DXIL::Type::PointerAddrSpace addrspace = (DXIL::Type::PointerAddrSpace)value;
+
+                  switch(addrspace)
+                  {
+                    case DXIL::Type::PointerAddrSpace::Default: lineStr = ""; break;
+                    case DXIL::Type::PointerAddrSpace::DeviceMemory:
+                      lineStr = "DeviceMemory";
+                      break;
+                    case DXIL::Type::PointerAddrSpace::CBuffer: lineStr = "CBuffer"; break;
+                    case DXIL::Type::PointerAddrSpace::GroupShared: lineStr = "GroupShared"; break;
+                    case DXIL::Type::PointerAddrSpace::GenericPointer: lineStr = ""; break;
+                    case DXIL::Type::PointerAddrSpace::ImmediateCBuffer:
+                      lineStr = "ImmediateCBuffer";
+                      break;
+                  };
+
+                  lineStr += " ";
+                  lineStr += scalarType;
+                  lineStr += "* ";
+
+                  if(!inst.getName().empty())
+                    lineStr += StringFormat::Fmt("%c%s = ", DXIL::dxilIdentifier,
+                                                 escapeStringIfNeeded(inst.getName()).c_str());
+                  else if(inst.slot != ~0U)
+                    lineStr += StringFormat::Fmt("%c%u = ", DXIL::dxilIdentifier, inst.slot);
+
+                  // arg[0] : ptr
+                  rdcstr ptrStr = ArgToString(inst.args[0], false);
+                  // Try to de-mangle the pointer name
+                  // @"\01?shared_pos@@3PAY0BC@$$CAMA.1dim" -> shared_pos
+                  // Take the string between first alphabetical character and last alphanumeric character or "_"
+                  start = 0;
+                  int strEnd = (int)ptrStr.size();
+                  while(start < strEnd)
+                  {
+                    if(isalpha(ptrStr[start]))
+                      break;
+                    ++start;
+                  }
+                  if(start < strEnd)
+                  {
+                    end = start + 1;
+                    while(end < strEnd)
+                    {
+                      char c = ptrStr[end];
+                      if(!isalnum(c) && c != '_')
+                        break;
+                      ++end;
+                    }
+                  }
+                  if(end > start)
+                    ptrStr = ptrStr.substr(start, end - start);
+
+                  lineStr += ptrStr;
+                  // arg[1] : index 0
+                  if(inst.args.size() > 1)
+                  {
+                    lineStr += "[";
+                    lineStr += ArgToString(inst.args[1], false);
+                    lineStr += "]";
+                  }
+
+                  // arg[2..] : index 1...N
+                  for(size_t a = 2; a < inst.args.size(); ++a)
+                  {
+                    lineStr += " + ";
+                    lineStr += ArgToString(inst.args[a], false);
+                  }
+                }
+              }
             }
+            if(fallbackOutput)
+            {
+              lineStr += "getelementptr ";
+              bool first = true;
+              for(const Value *s : inst.args)
+              {
+                if(!first)
+                  lineStr += ", ";
+
+                lineStr += ArgToString(s, false);
+                first = false;
+              }
+            }
+            if(inst.opFlags() & InstructionFlags::InBounds)
+              commentStr += "inbounds ";
             break;
           }
           case Operation::LoadAtomic: commentStr += "atomic ";
