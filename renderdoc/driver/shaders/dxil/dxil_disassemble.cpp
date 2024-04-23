@@ -2628,11 +2628,10 @@ void Program::MakeRDDisassemblyString()
           }
           case Operation::Select:
           {
-            lineStr += "select ";
             lineStr += ArgToString(inst.args[2], false);
-            lineStr += ", ";
+            lineStr += " ? ";
             lineStr += ArgToString(inst.args[0], false);
-            lineStr += ", ";
+            lineStr += " : ";
             lineStr += ArgToString(inst.args[1], false);
             break;
           }
