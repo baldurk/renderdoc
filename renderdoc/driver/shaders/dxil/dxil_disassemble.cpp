@@ -2677,15 +2677,18 @@ void Program::MakeRDDisassemblyString()
           }
           case Operation::Branch:
           {
-            lineStr += "br ";
             if(inst.args.size() > 1)
             {
+              lineStr += "if (";
               lineStr += ArgToString(inst.args[2], false);
-              lineStr += StringFormat::Fmt(", %s", ArgToString(inst.args[0], false).c_str());
-              lineStr += StringFormat::Fmt(", %s", ArgToString(inst.args[1], false).c_str());
+              lineStr += ") goto ";
+              lineStr += StringFormat::Fmt("%s", ArgToString(inst.args[0], false).c_str());
+              lineStr += " else goto ";
+              lineStr += StringFormat::Fmt("%s", ArgToString(inst.args[1], false).c_str());
             }
             else
             {
+              lineStr += "goto ";
               lineStr += ArgToString(inst.args[0], false);
             }
             break;
