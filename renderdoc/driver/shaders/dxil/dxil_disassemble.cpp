@@ -2512,36 +2512,28 @@ void Program::MakeRDDisassemblyString()
               lineStr += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
             break;
           }
-          case Operation::FOrdFalse:
           case Operation::FOrdEqual:
           case Operation::FOrdGreater:
           case Operation::FOrdGreaterEqual:
           case Operation::FOrdLess:
           case Operation::FOrdLessEqual:
           case Operation::FOrdNotEqual:
-          case Operation::FOrd:
-          case Operation::FUnord:
           case Operation::FUnordEqual:
           case Operation::FUnordGreater:
           case Operation::FUnordGreaterEqual:
           case Operation::FUnordLess:
           case Operation::FUnordLessEqual:
           case Operation::FUnordNotEqual:
-          case Operation::FOrdTrue:
           {
             rdcstr opStr;
             switch(inst.op)
             {
-              case Operation::FOrdFalse: opStr = " false "; break;
-              case Operation::FOrdTrue: opStr = " true "; break;
               case Operation::FOrdEqual: opStr = " = "; break;
               case Operation::FOrdGreater: opStr = " > "; break;
               case Operation::FOrdGreaterEqual: opStr = " >= "; break;
               case Operation::FOrdLess: opStr = " < "; break;
               case Operation::FOrdLessEqual: opStr = " <= "; break;
               case Operation::FOrdNotEqual: opStr = " != "; break;
-              case Operation::FOrd: opStr = "ord "; break;
-              case Operation::FUnord: opStr = "uno "; break;
               case Operation::FUnordEqual: opStr = " = ";
               case Operation::FUnordGreater: opStr = " > "; break;
               case Operation::FUnordGreaterEqual: opStr = " >= "; break;
@@ -2567,6 +2559,32 @@ void Program::MakeRDDisassemblyString()
             lineStr += ")";
             break;
           }
+          case Operation::FOrd:
+          {
+            // ord: yields true if both operands are not a QNAN.
+            lineStr += "!isqnan(";
+            lineStr += ArgToString(inst.args[0], false);
+            lineStr += ")";
+            lineStr += " && ";
+            lineStr += "!isqnan(";
+            lineStr += ArgToString(inst.args[1], false);
+            lineStr += ")";
+            break;
+          }
+          case Operation::FUnord:
+          {
+            // uno: yields true if either operand is a QNAN.
+            lineStr += "isqnan(";
+            lineStr += ArgToString(inst.args[0], false);
+            lineStr += ")";
+            lineStr += " || ";
+            lineStr += "isqnan(";
+            lineStr += ArgToString(inst.args[1], false);
+            lineStr += ")";
+            break;
+          }
+          case Operation::FOrdFalse: lineStr += "false"; break;
+          case Operation::FOrdTrue: lineStr += "true"; break;
           case Operation::IEqual:
           case Operation::INotEqual:
           case Operation::UGreater:
