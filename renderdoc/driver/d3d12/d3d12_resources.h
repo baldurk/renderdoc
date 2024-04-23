@@ -913,6 +913,68 @@ public:
 
 typedef WrappedID3D12PipelineState::ShaderEntry WrappedID3D12Shader;
 
+class WrappedID3D12StateObject : public WrappedDeviceChild12<ID3D12StateObject>,
+                                 public ID3D12StateObjectProperties
+{
+  ID3D12StateObjectProperties *properties;
+
+
+public:
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12StateObject);
+
+  enum
+  {
+    TypeEnum = Resource_StateObject,
+  };
+
+  WrappedID3D12StateObject(ID3D12StateObject *real, WrappedID3D12Device *device)
+      : WrappedDeviceChild12(real, device)
+  {
+    real->QueryInterface(__uuidof(ID3D12StateObjectProperties), (void **)&properties);
+  }
+  virtual ~WrappedID3D12StateObject()
+  {
+    SAFE_RELEASE(properties);
+    Shutdown();
+  }
+
+  ULONG STDMETHODCALLTYPE AddRef() { return WrappedDeviceChild12::AddRef(); }
+  ULONG STDMETHODCALLTYPE Release() { return WrappedDeviceChild12::Release(); }
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
+  {
+    if(riid == __uuidof(ID3D12StateObjectProperties))
+    {
+      *ppvObject = (ID3D12StateObjectProperties *)this;
+      AddRef();
+      return S_OK;
+    }
+    return WrappedDeviceChild12::QueryInterface(riid, ppvObject);
+  }
+
+  //////////////////////////////
+  // implement ID3D12StateObject
+
+  //////////////////////////////
+  // implement ID3D12StateObjectProperties
+
+  virtual void *STDMETHODCALLTYPE GetShaderIdentifier(LPCWSTR pExportName)
+  {
+    return properties->GetShaderIdentifier(pExportName);
+  }
+  virtual UINT64 STDMETHODCALLTYPE GetShaderStackSize(LPCWSTR pExportName)
+  {
+    return properties->GetShaderStackSize(pExportName);
+  }
+  virtual UINT64 STDMETHODCALLTYPE GetPipelineStackSize()
+  {
+    return properties->GetPipelineStackSize();
+  }
+  virtual void STDMETHODCALLTYPE SetPipelineStackSize(UINT64 PipelineStackSizeInBytes)
+  {
+    properties->SetPipelineStackSize(PipelineStackSizeInBytes);
+  }
+};
+
 class WrappedID3D12QueryHeap : public WrappedDeviceChild12<ID3D12QueryHeap>
 {
 public:
@@ -1334,7 +1396,8 @@ private:
   D3D12_TYPE_MACRO(ID3D12RootSignature);            \
   D3D12_TYPE_MACRO(ID3D12PipelineLibrary);          \
   D3D12_TYPE_MACRO(ID3D12ProtectedResourceSession); \
-  D3D12_TYPE_MACRO(ID3D12ShaderCacheSession);
+  D3D12_TYPE_MACRO(ID3D12ShaderCacheSession);       \
+  D3D12_TYPE_MACRO(ID3D12StateObject);
 
 // template magic voodoo to unwrap types
 template <typename inner>

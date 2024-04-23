@@ -2197,15 +2197,19 @@ void Deserialise(const D3D12_DXIL_LIBRARY_DESC &el)
 template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_EXISTING_COLLECTION_DESC &el)
 {
-  // AMD TODO
-  RDCERR("D3D12_EXISTING_COLLECTION_DESC serialization is not handled");
+  SERIALISE_MEMBER(pExistingCollection);
+  SERIALISE_MEMBER(NumExports);
+  SERIALISE_MEMBER_ARRAY(pExports, NumExports);
 }
 
 template <>
 void Deserialise(const D3D12_EXISTING_COLLECTION_DESC &el)
 {
-  // AMD TODO
-  RDCERR("D3D12_EXISTING_COLLECTION_DESC de-serialization is not handled");
+  for(size_t i = 0; i < el.NumExports; i++)
+  {
+    Deserialise(el.pExports[i]);
+  }
+  delete[] el.pExports;
 }
 
 template <class SerialiserType>

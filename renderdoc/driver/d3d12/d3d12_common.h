@@ -522,7 +522,8 @@ struct D3D12CommandSignature
   SERIALISE_INTERFACE(ID3D12DescriptorHeap);       \
   SERIALISE_INTERFACE(ID3D12CommandSignature);     \
   SERIALISE_INTERFACE(ID3D12CommandQueue);         \
-  SERIALISE_INTERFACE(ID3D12CommandAllocator);
+  SERIALISE_INTERFACE(ID3D12CommandAllocator);     \
+  SERIALISE_INTERFACE(ID3D12StateObject);
 
 #define SERIALISE_INTERFACE(iface) DECLARE_REFLECTION_STRUCT(iface *)
 
