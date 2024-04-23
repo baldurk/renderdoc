@@ -93,7 +93,7 @@ void WrappedShader::ShaderEntry::BuildReflection()
       D3Dx_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT == D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT,
       "Mismatched vertex input count");
 
-  MakeShaderReflection(m_DXBCFile, m_Details);
+  MakeShaderReflection(m_DXBCFile, {}, m_Details);
   m_Details->resourceId = m_ID;
 
   DescriptorAccess access;

@@ -1021,8 +1021,8 @@ IShaderViewer *PipelineStateViewer::EditDecompiledSource(const ShaderProcessingT
     if(flag.name == "@spirver")
       flags.flags.push_back(flag);
 
-  IShaderViewer *sv = EditShader(id, shaderDetails->stage, shaderDetails->entryPoint, flags,
-                                 KnownShaderTool::Unknown, tool.output, files);
+  IShaderViewer *sv = EditShader(id, shaderDetails->stage, shaderDetails->debugInfo.entrySourceName,
+                                 flags, KnownShaderTool::Unknown, tool.output, files);
 
   sv->ShowErrors(out.log);
 

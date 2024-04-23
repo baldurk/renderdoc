@@ -703,6 +703,175 @@ void Program::FetchComputeProperties(DXBC::Reflection *reflection)
   reflection->DispatchThreadsDimension[2] = 1;
 }
 
+void Program::FillRayPayloads(
+    Program *executable,
+    rdcflatmap<ShaderEntryPoint, rdcpair<DXBC::CBufferVariableType, DXBC::CBufferVariableType>> &rayPayloads)
+{
+  if(m_Type != DXBC::ShaderType::Library)
+    return;
+
+  DXMeta dx(m_NamedMeta);
+
+  TypeInfo typeInfo(dx.typeAnnotations);
+
+  if(dx.entryPoints)
+  {
+    for(Metadata *entry : dx.entryPoints->children)
+    {
+      if(entry->children.size() > 2 && entry->children[0] != NULL)
+      {
+        ShaderEntryPoint entryPoint;
+        entryPoint.name = entry->children[1]->str;
+
+        Metadata *tags = entry->children[4];
+
+        for(size_t i = 0; i < tags->children.size(); i += 2)
+        {
+          // 8 is the type tag
+          if(getival<uint32_t>(tags->children[i]) == 8U)
+          {
+            entryPoint.stage =
+                GetShaderStage((DXBC::ShaderType)getival<uint32_t>(tags->children[i + 1]));
+            break;
+          }
+        }
+
+        Function *ownFunc = cast<Function>(entry->children[0]->value);
+        Function *executableFunc = NULL;
+
+        // locate the function in the executable program so we can iterate instructions.
+        for(Function *f : executable->m_Functions)
+        {
+          // assume names will match
+          if(f->name == ownFunc->name)
+          {
+            executableFunc = f;
+            break;
+          }
+        }
+
+        // intersection shaders only report attributes, they do not access the ray payload
+        if(entryPoint.stage == ShaderStage::Intersection)
+        {
+          // find the reportHit and grab the type from that
+          for(const Instruction *in : executableFunc->instructions)
+          {
+            const Instruction &inst = *in;
+
+            if(inst.op == Operation::Call && inst.getFuncCall()->name.beginsWith("dx.op.reportHit"))
+            {
+              if(inst.args.size() != 4)
+              {
+                RDCERR("Unexpected number of arguments to reportHit");
+                continue;
+              }
+              const Type *executableAttrType = inst.args[3]->type;
+              if(!executableAttrType)
+              {
+                RDCERR("Unexpected untyped payload argument to reportHit");
+                continue;
+              }
+
+              RDCASSERT(executableAttrType->type == Type::Pointer);
+              executableAttrType = (Type *)executableAttrType->inner;
+
+              Type *ownAttrType = NULL;
+
+              // we have the executable type but we can't use that to look up our type info. Try to
+              // go back by name
+              for(Type *t : m_Types)
+              {
+                if(t->type == executableAttrType->type && t->name == executableAttrType->name)
+                {
+                  ownAttrType = t;
+                  break;
+                }
+              }
+
+              if(ownAttrType)
+                rayPayloads[entryPoint].second = MakePayloadType(typeInfo, ownAttrType);
+              else
+                RDCERR("Couldn't find matching attribute type for '%s' by name",
+                       executableAttrType->name);
+              break;
+            }
+          }
+        }
+        // raygen shaders only use the ray payload, not attributes
+        else if(entryPoint.stage == ShaderStage::RayGen)
+        {
+          // find the reportHit and grab the type from that
+          for(const Instruction *in : executableFunc->instructions)
+          {
+            const Instruction &inst = *in;
+
+            if(inst.op == Operation::Call && inst.getFuncCall()->name.beginsWith("dx.op.traceRay"))
+            {
+              if(inst.args.size() != 16)
+              {
+                RDCERR("Unexpected number of arguments to traceRay");
+                continue;
+              }
+              const Type *executablePayloadType = inst.args[15]->type;
+              if(!executablePayloadType)
+              {
+                RDCERR("Unexpected untyped payload argument to traceRay");
+                continue;
+              }
+
+              RDCASSERT(executablePayloadType->type == Type::Pointer);
+              executablePayloadType = (Type *)executablePayloadType->inner;
+
+              Type *ownPayloadType = NULL;
+
+              // we have the executable type but we can't use that to look up our type info. Try to
+              // go back by name
+              for(Type *t : m_Types)
+              {
+                if(t->type == executablePayloadType->type && t->name == executablePayloadType->name)
+                {
+                  ownPayloadType = t;
+                  break;
+                }
+              }
+
+              if(ownPayloadType)
+                rayPayloads[entryPoint].first = MakePayloadType(typeInfo, ownPayloadType);
+              else
+                RDCERR("Couldn't find matching payload type for '%s' by name",
+                       executablePayloadType->name);
+
+              break;
+            }
+          }
+        }
+        else if(entryPoint.stage == ShaderStage::Miss || entryPoint.stage == ShaderStage::AnyHit ||
+                entryPoint.stage == ShaderStage::ClosestHit)
+        {
+          const Type *payloadType = ownFunc->type->members[0];
+          RDCASSERT(payloadType->type == Type::Pointer);
+          payloadType = (Type *)payloadType->inner;
+
+          rdcpair<DXBC::CBufferVariableType, DXBC::CBufferVariableType> &dst =
+              rayPayloads[entryPoint];
+
+          // miss shaders only use the payload, any-hit and closest-hit use both. The first
+          // parameter is the payload, the second is the attributes
+          dst.first = MakePayloadType(typeInfo, payloadType);
+          if(entryPoint.stage != ShaderStage::Miss)
+          {
+            const Type *attrType = ownFunc->type->members[1];
+            RDCASSERT(attrType->type == Type::Pointer);
+            attrType = (Type *)attrType->inner;
+
+            dst.second = MakePayloadType(typeInfo, attrType);
+          }
+        }
+      }
+    }
+  }
+}
+
 D3D_PRIMITIVE_TOPOLOGY Program::GetOutputTopology()
 {
   if(m_Type != DXBC::ShaderType::Geometry && m_Type != DXBC::ShaderType::Domain &&

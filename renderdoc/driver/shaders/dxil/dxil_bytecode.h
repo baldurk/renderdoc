@@ -27,6 +27,7 @@
 #include <stdint.h>
 
 #include "api/replay/apidefs.h"
+#include "api/replay/rdcflatmap.h"
 #include "api/replay/rdcstr.h"
 #include "common/common.h"
 #include "driver/dx/official/d3dcommon.h"
@@ -1230,6 +1231,10 @@ public:
   void FetchComputeProperties(DXBC::Reflection *reflection);
   DXBC::Reflection *GetReflection();
   rdcarray<ShaderEntryPoint> GetEntryPoints();
+  void FillRayPayloads(
+      Program *executable,
+      rdcflatmap<ShaderEntryPoint, rdcpair<DXBC::CBufferVariableType, DXBC::CBufferVariableType>>
+          &rayPayloads);
 
   DXBC::ShaderType GetShaderType() const { return m_Type; }
   uint32_t GetMajorVersion() const { return m_Major; }

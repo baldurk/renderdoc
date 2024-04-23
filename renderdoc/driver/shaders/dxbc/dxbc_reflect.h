@@ -30,7 +30,9 @@ class DXBCContainer;
 }
 
 struct ShaderReflection;
+struct ShaderEntryPoint;
 
 #define D3Dx_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT 32
 
-void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl);
+void MakeShaderReflection(DXBC::DXBCContainer *dxbc, const ShaderEntryPoint &entry,
+                          ShaderReflection *refl);

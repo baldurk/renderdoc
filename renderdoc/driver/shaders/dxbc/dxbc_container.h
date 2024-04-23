@@ -27,6 +27,7 @@
 
 #include <map>
 #include "api/replay/rdcarray.h"
+#include "api/replay/rdcflatmap.h"
 #include "api/replay/rdcpair.h"
 #include "api/replay/rdcstr.h"
 #include "common/common.h"
@@ -184,6 +185,19 @@ public:
   const Reflection *GetReflection() const { return m_Reflection; }
   D3D_PRIMITIVE_TOPOLOGY GetOutputTopology();
 
+  CBufferVariableType GetRayPayload(const ShaderEntryPoint &entry)
+  {
+    if(m_RayPayloads.empty())
+      return {};
+    return m_RayPayloads[entry].first;
+  }
+  CBufferVariableType GetRayAttributes(const ShaderEntryPoint &entry)
+  {
+    if(m_RayPayloads.empty())
+      return {};
+    return m_RayPayloads[entry].second;
+  }
+
   rdcarray<ShaderEntryPoint> GetEntryPoints() const { return m_EntryPoints; }
 
   const rdcstr &GetDisassembly(bool dxcStyle);
@@ -245,6 +259,8 @@ private:
 
   size_t m_NonDebugDXILByteCodeOffset = 0;
   size_t m_NonDebugDXILByteCodeSize = 0;
+
+  rdcflatmap<ShaderEntryPoint, rdcpair<CBufferVariableType, CBufferVariableType>> m_RayPayloads;
 
   ShaderStatistics m_ShaderStats;
   DXBCBytecode::Program *m_DXBCByteCode = NULL;

@@ -293,7 +293,8 @@ static void MakeResourceList(bool srv, DXBC::DXBCContainer *dxbc,
   }
 }
 
-void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl)
+void MakeShaderReflection(DXBC::DXBCContainer *dxbc, const ShaderEntryPoint &entry,
+                          ShaderReflection *refl)
 {
   if(dxbc == NULL || !RenderDoc::Inst().IsReplayApp())
     return;
@@ -308,6 +309,7 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl)
     case DXBC::ShaderType::Compute: refl->stage = ShaderStage::Compute; break;
     case DXBC::ShaderType::Amplification: refl->stage = ShaderStage::Amplification; break;
     case DXBC::ShaderType::Mesh: refl->stage = ShaderStage::Mesh; break;
+    case DXBC::ShaderType::Library: refl->stage = entry.stage; break;
     default:
       RDCERR("Unexpected DXBC shader type %u", dxbc->m_Type);
       refl->stage = ShaderStage::Vertex;
@@ -318,8 +320,6 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl)
 
   if(dxbc->GetDebugInfo())
   {
-    refl->debugInfo.entrySourceName = refl->entryPoint = dxbc->GetDebugInfo()->GetEntryFunction();
-
     refl->debugInfo.encoding = ShaderEncoding::HLSL;
 
     refl->debugInfo.sourceDebugInformation = true;
@@ -330,9 +330,22 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl)
 
     dxbc->GetDebugInfo()->GetLineInfo(~0U, ~0U, refl->debugInfo.entryLocation);
 
-    rdcstr entry = dxbc->GetDebugInfo()->GetEntryFunction();
-    if(entry.empty())
-      entry = "main";
+    rdcstr entryFunc = entry.name;
+    if(entryFunc.empty())
+      entryFunc = dxbc->GetDebugInfo()->GetEntryFunction();
+    if(entryFunc.empty())
+      entryFunc = "main";
+
+    refl->debugInfo.entrySourceName = refl->entryPoint = entryFunc;
+
+    // demangle DXIL source names for display
+    if(refl->debugInfo.entrySourceName.size() > 2 && refl->debugInfo.entrySourceName[0] == '\x1' &&
+       refl->debugInfo.entrySourceName[1] == '?')
+    {
+      int idx = refl->debugInfo.entrySourceName.indexOf('@');
+      if(idx > 2)
+        refl->debugInfo.entrySourceName = refl->debugInfo.entrySourceName.substr(2, idx - 2);
+    }
 
     // assume the debug info put the file with the entry point at the start. SDBG seems to do this
     // by default, and SPDB has an extra sorting step that probably maybe possibly does this.
@@ -349,6 +362,7 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl)
       case DXBC::ShaderType::Hull: profile = "hs"; break;
       case DXBC::ShaderType::Domain: profile = "ds"; break;
       case DXBC::ShaderType::Compute: profile = "cs"; break;
+      case DXBC::ShaderType::Library: profile = "lib"; break;
       default: profile = "xx"; break;
     }
     profile += StringFormat::Fmt("_%u_%u", dxbc->m_Version.Major, dxbc->m_Version.Minor);
@@ -468,5 +482,25 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, ShaderReflection *refl)
   {
     refl->taskPayload.variables.push_back(
         MakeConstantBufferVariable(false, dxbcRefl->TaskPayload.members[v]));
+  }
+
+  DXBC::CBufferVariableType RayPayload = dxbc->GetRayPayload(entry);
+  DXBC::CBufferVariableType RayAttributes = dxbc->GetRayAttributes(entry);
+
+  refl->rayPayload.bufferBacked = false;
+  refl->rayPayload.name = RayPayload.name;
+  refl->rayPayload.variables.reserve(RayPayload.members.size());
+  for(size_t v = 0; v < RayPayload.members.size(); v++)
+  {
+    refl->rayPayload.variables.push_back(MakeConstantBufferVariable(false, RayPayload.members[v]));
+  }
+
+  refl->rayAttributes.bufferBacked = false;
+  refl->rayAttributes.name = RayAttributes.name;
+  refl->rayAttributes.variables.reserve(RayAttributes.members.size());
+  for(size_t v = 0; v < RayAttributes.members.size(); v++)
+  {
+    refl->rayAttributes.variables.push_back(
+        MakeConstantBufferVariable(false, RayAttributes.members[v]));
   }
 }

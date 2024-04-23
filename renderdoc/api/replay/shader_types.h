@@ -1753,6 +1753,26 @@ input payload (for mesh shaders)
 :type: ConstantBlock
 )");
   ConstantBlock taskPayload;
+
+  DOCUMENT(R"(The block layout of the ray payload.
+
+Only relevant for raytracing shaders, this gives the payload accessible for read and write by ray
+evaluation during the processing of the ray
+
+:type: ConstantBlock
+)");
+  ConstantBlock rayPayload;
+
+  DOCUMENT(R"(The block layout of the ray attributes structure.
+
+Only relevant for intersection shaders and closest/any hit shaders, this gives
+the attributes structure produced by a custom intersection shader which is available by hit shaders,
+or else the built-in structure if no intersection shader was used and a triangle intersection is
+reported.
+
+:type: ConstantBlock
+)");
+  ConstantBlock rayAttributes;
 };
 
 DECLARE_REFLECTION_STRUCT(ShaderReflection);

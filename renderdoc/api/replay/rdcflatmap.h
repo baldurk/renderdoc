@@ -125,7 +125,7 @@ struct rdcflatmap
 
     size_t idx = lower_bound_idx(val.first);
     bool inserted = false;
-    if(idx >= size() || storage.at(idx).first != val.first)
+    if(idx >= size() || !(storage.at(idx).first == val.first))
     {
       storage.insert(idx, val);
       inserted = true;
@@ -141,7 +141,7 @@ struct rdcflatmap
 
     size_t idx = lower_bound_idx(val.first);
     bool inserted = false;
-    if(idx >= size() || storage.at(idx).first != val.first)
+    if(idx >= size() || !(storage.at(idx).first == val.first))
     {
       storage.insert(idx, std::move(val));
       inserted = true;
@@ -203,7 +203,7 @@ private:
   iterator sorted_find(const Key &id)
   {
     size_t idx = lower_bound_idx(id);
-    if(idx >= size() || storage.at(idx).first != id)
+    if(idx >= size() || !(storage.at(idx).first == id))
       return end();
 
     return begin() + idx;
@@ -212,7 +212,7 @@ private:
   const_iterator sorted_find(const Key &id) const
   {
     size_t idx = lower_bound_idx(id);
-    if(idx >= size() || storage.at(idx).first != id)
+    if(idx >= size() || !(storage.at(idx).first == id))
       return end();
 
     return begin() + idx;
@@ -228,7 +228,7 @@ private:
   Value &sorted_at(const Key &id)
   {
     size_t idx = lower_bound_idx(id);
-    if(idx >= size() || storage.at(idx).first != id)
+    if(idx >= size() || !(storage.at(idx).first == id))
     {
       storage.insert(idx, {id, Value()});
     }

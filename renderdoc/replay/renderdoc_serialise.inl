@@ -295,8 +295,10 @@ void DoSerialise(SerialiserType &ser, ShaderReflection &el)
   SERIALISE_MEMBER(pointerTypes);
 
   SERIALISE_MEMBER(taskPayload);
+  SERIALISE_MEMBER(rayPayload);
+  SERIALISE_MEMBER(rayAttributes);
 
-  SIZE_CHECK(488);
+  SIZE_CHECK(632);
 }
 
 template <typename SerialiserType>
