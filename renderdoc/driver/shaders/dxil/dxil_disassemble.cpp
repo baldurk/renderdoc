@@ -2089,6 +2089,11 @@ void Program::MakeDXCDisassemblyString()
     m_Disassembly += "\n";
 }
 
+struct InputOutput
+{
+  rdcstr name;
+};
+
 void Program::MakeRDDisassemblyString()
 {
   DXIL::dxcStyleFormatting = false;
@@ -2104,11 +2109,6 @@ void Program::MakeRDDisassemblyString()
   // TODO: output structs using named meta data if it exists
   m_Disassembly += DisassembleTypes(m_DisassemblyInstructionLine);
   m_Disassembly += DisassembleGlobalVars(m_DisassemblyInstructionLine);
-
-  struct InputOutput
-  {
-    rdcstr name;
-  };
 
   rdcarray<InputOutput> inputs;
   rdcarray<InputOutput> outputs;
@@ -2181,7 +2181,7 @@ void Program::MakeRDDisassemblyString()
     if(func.external)
       continue;
 
-    m_Disassembly += (func.external ? "declare " : "define ");
+    m_Disassembly += (func.external ? "declare " : "");
     if(func.internalLinkage)
       m_Disassembly += "internal ";
     m_Disassembly +=
@@ -2218,24 +2218,24 @@ void Program::MakeRDDisassemblyString()
         Instruction &inst = *func.instructions[funcIdx];
 
         inst.disassemblyLine = m_DisassemblyInstructionLine;
-        m_Disassembly += "  ";
+        rdcstr lineStr;
         if(!inst.type->isVoid())
         {
-          m_Disassembly += inst.type->toString();
-          m_Disassembly += " ";
+          lineStr += inst.type->toString();
+          lineStr += " ";
         }
         if(!inst.getName().empty())
-          m_Disassembly += StringFormat::Fmt("%c%s = ", DXIL::dxilIdentifier,
-                                             escapeStringIfNeeded(inst.getName()).c_str());
+          lineStr += StringFormat::Fmt("%c%s = ", DXIL::dxilIdentifier,
+                                       escapeStringIfNeeded(inst.getName()).c_str());
         else if(inst.slot != ~0U)
-          m_Disassembly += StringFormat::Fmt("%c%u = ", DXIL::dxilIdentifier, inst.slot);
+          lineStr += StringFormat::Fmt("%c%u = ", DXIL::dxilIdentifier, inst.slot);
 
-        bool debugCall = false;
         bool showDxFuncName = false;
+        rdcstr commentStr;
 
         switch(inst.op)
         {
-          case Operation::NoOp: m_Disassembly += "??? "; break;
+          case Operation::NoOp: lineStr += "??? "; break;
           case Operation::Call:
           {
             rdcstr funcCallName = inst.getFuncCall()->name;
@@ -2246,11 +2246,11 @@ void Program::MakeRDDisassemblyString()
               uint32_t dxopCode = getival<uint32_t>(inst.args[0]);
               RDCASSERTEQUAL(dxopCode, 4);
               uint32_t inputIdx = getival<uint32_t>(inst.args[1]);
-              m_Disassembly += inputs[inputIdx].name;
-              m_Disassembly += ".";
+              lineStr += inputs[inputIdx].name;
+              lineStr += ".";
               // TODO: decode colIndex access
               uint32_t componentIdx = getival<uint32_t>(inst.args[3]);
-              m_Disassembly += swizzle[componentIdx & 0x3];
+              lineStr += swizzle[componentIdx & 0x3];
             }
             else if(funcCallName.beginsWith("dx.op.storeOutput"))
             {
@@ -2258,19 +2258,21 @@ void Program::MakeRDDisassemblyString()
               uint32_t dxopCode = getival<uint32_t>(inst.args[0]);
               RDCASSERTEQUAL(dxopCode, 5);
               uint32_t outputIdx = getival<uint32_t>(inst.args[1]);
-              m_Disassembly += outputs[outputIdx].name;
-              m_Disassembly += ".";
+              lineStr += outputs[outputIdx].name;
+              lineStr += ".";
               // TODO: decode colIndex access
               uint32_t componentIdx = getival<uint32_t>(inst.args[3]);
-              m_Disassembly += swizzle[componentIdx & 0x3];
-              m_Disassembly += " = " + ArgToString(inst.args[4], false);
+              lineStr += swizzle[componentIdx & 0x3];
+              lineStr += " = " + ArgToString(inst.args[4], false);
+            }
+            else if(funcCallName.beginsWith("llvm.dbg."))
+            {
             }
             else
             {
               if(!showDxFuncName)
               {
-                m_Disassembly += "call " + inst.type->toString();
-                m_Disassembly += " @" + escapeStringIfNeeded(funcCallName);
+                lineStr += escapeStringIfNeeded(funcCallName);
               }
               else
               {
@@ -2278,12 +2280,12 @@ void Program::MakeRDDisassemblyString()
                 {
                   uint32_t opcode = op->getU32();
                   if(opcode < ARRAY_COUNT(funcNames))
-                    m_Disassembly += funcNames[opcode];
+                    lineStr += funcNames[opcode];
                   else
-                    m_Disassembly += escapeStringIfNeeded(funcCallName);
+                    lineStr += escapeStringIfNeeded(funcCallName);
                 }
               }
-              m_Disassembly += "(";
+              lineStr += "(";
               bool first = true;
 
               const AttributeSet *paramAttrs = inst.getParamAttrs();
@@ -2292,7 +2294,7 @@ void Program::MakeRDDisassemblyString()
               for(const Value *s : inst.args)
               {
                 if(!first)
-                  m_Disassembly += ", ";
+                  lineStr += ", ";
 
                 // see if we have param attrs for this param
                 rdcstr attrString;
@@ -2304,17 +2306,16 @@ void Program::MakeRDDisassemblyString()
 
                 if(!showDxFuncName || argIdx > 1)
                 {
-                  m_Disassembly += ArgToString(s, false, attrString);
+                  lineStr += ArgToString(s, false, attrString);
                   first = false;
                 }
 
                 argIdx++;
               }
-              m_Disassembly += ")";
-              debugCall = funcCallName.beginsWith("llvm.dbg.");
+              lineStr += ")";
 
               if(paramAttrs && paramAttrs->functionSlot)
-                m_Disassembly +=
+                lineStr +=
                     StringFormat::Fmt(" #%u", m_FuncAttrGroups.indexOf(paramAttrs->functionSlot));
             }
             break;
@@ -2335,33 +2336,48 @@ void Program::MakeRDDisassemblyString()
           {
             switch(inst.op)
             {
-              case Operation::Trunc: m_Disassembly += "trunc "; break;
-              case Operation::ZExt: m_Disassembly += "zext "; break;
-              case Operation::SExt: m_Disassembly += "sext "; break;
-              case Operation::FToU: m_Disassembly += "fptoui "; break;
-              case Operation::FToS: m_Disassembly += "fptosi "; break;
-              case Operation::UToF: m_Disassembly += "uitofp "; break;
-              case Operation::SToF: m_Disassembly += "sitofp "; break;
-              case Operation::FPTrunc: m_Disassembly += "fptrunc "; break;
-              case Operation::FPExt: m_Disassembly += "fpext "; break;
-              case Operation::PtrToI: m_Disassembly += "ptrtoi "; break;
-              case Operation::IToPtr: m_Disassembly += "itoptr "; break;
-              case Operation::Bitcast: m_Disassembly += "bitcast "; break;
-              case Operation::AddrSpaceCast: m_Disassembly += "addrspacecast "; break;
+              case Operation::Trunc:
+              case Operation::ZExt:
+              case Operation::SExt:
+              case Operation::UToF:
+              case Operation::FPTrunc:
+              case Operation::FPExt:
+              case Operation::Bitcast:
+              case Operation::FToU:
+              case Operation::FToS:
+              case Operation::PtrToI:
+              case Operation::SToF: lineStr += "(" + inst.type->toString() + ")"; break;
+              case Operation::IToPtr: lineStr += "(void *)"; break;
+              case Operation::AddrSpaceCast: lineStr += "addrspacecast"; break;
+              default: break;
+            }
+            switch(inst.op)
+            {
+              case Operation::Trunc: commentStr = "truncate ";
+              case Operation::ZExt: commentStr += "zero extend "; break;
+              case Operation::SExt: commentStr += "signed extend "; break;
+              case Operation::UToF: commentStr += "unsigned "; break;
+              case Operation::FPTrunc: commentStr += "fp truncate "; break;
+              case Operation::FPExt: commentStr += "fp extend"; break;
+              case Operation::Bitcast: commentStr += "bitcast "; break;
+              case Operation::FToU: commentStr += "unsigned "; break;
+              case Operation::FToS: commentStr += "signed "; break;
+              case Operation::PtrToI: commentStr += "ptrtoi "; break;
+              case Operation::IToPtr: commentStr += "itoptr "; break;
               default: break;
             }
 
-            m_Disassembly += ArgToString(inst.args[0], false);
-            m_Disassembly += " to ";
-            m_Disassembly += inst.type->toString();
+            lineStr += "(";
+            lineStr += ArgToString(inst.args[0], false);
+            lineStr += ")";
             break;
           }
           case Operation::ExtractVal:
           {
-            m_Disassembly += "extractvalue ";
-            m_Disassembly += ArgToString(inst.args[0], false);
+            lineStr += "extractvalue ";
+            lineStr += ArgToString(inst.args[0], false);
             for(size_t n = 1; n < inst.args.size(); n++)
-              m_Disassembly += StringFormat::Fmt(", %llu", cast<Literal>(inst.args[n])->literal);
+              lineStr += StringFormat::Fmt(", %llu", cast<Literal>(inst.args[n])->literal);
             break;
           }
           case Operation::FAdd:
@@ -2383,109 +2399,117 @@ void Program::MakeRDDisassemblyString()
           case Operation::Or:
           case Operation::Xor:
           {
+            rdcstr opStr;
             switch(inst.op)
             {
-              case Operation::FAdd: m_Disassembly += "fadd "; break;
-              case Operation::FSub: m_Disassembly += "fsub "; break;
-              case Operation::FMul: m_Disassembly += "fmul "; break;
-              case Operation::FDiv: m_Disassembly += "fdiv "; break;
-              case Operation::FRem: m_Disassembly += "frem "; break;
-              case Operation::Add: m_Disassembly += "add "; break;
-              case Operation::Sub: m_Disassembly += "sub "; break;
-              case Operation::Mul: m_Disassembly += "mul "; break;
-              case Operation::UDiv: m_Disassembly += "udiv "; break;
-              case Operation::SDiv: m_Disassembly += "sdiv "; break;
-              case Operation::URem: m_Disassembly += "urem "; break;
-              case Operation::SRem: m_Disassembly += "srem "; break;
-              case Operation::ShiftLeft: m_Disassembly += "shl "; break;
-              case Operation::LogicalShiftRight: m_Disassembly += "lshr "; break;
-              case Operation::ArithShiftRight: m_Disassembly += "ashr "; break;
-              case Operation::And: m_Disassembly += "and "; break;
-              case Operation::Or: m_Disassembly += "or "; break;
-              case Operation::Xor: m_Disassembly += "xor "; break;
+              case Operation::FAdd: opStr = " + "; break;
+              case Operation::FSub: opStr = " - "; break;
+              case Operation::FMul: opStr = " * "; break;
+              case Operation::FDiv: opStr = " / "; break;
+              case Operation::FRem: opStr = " % "; break;
+              case Operation::Add: opStr = " + "; break;
+              case Operation::Sub: opStr = " - "; break;
+              case Operation::Mul: opStr = " * "; break;
+              case Operation::UDiv: opStr = " / "; break;
+              case Operation::SDiv: opStr = " / "; break;
+              case Operation::URem: opStr = " % "; break;
+              case Operation::ShiftLeft: opStr = " << "; break;
+              case Operation::LogicalShiftRight: opStr = " >> "; break;
+              case Operation::ArithShiftRight: opStr = " >> "; break;
+              case Operation::And: opStr = " & "; break;
+              case Operation::Or: opStr = " | "; break;
+              case Operation::Xor: opStr = " ^ "; break;
               default: break;
             }
-
-            if(inst.opFlags() != InstructionFlags::NoFlags)
-              m_Disassembly += " ";
+            switch(inst.op)
+            {
+              case Operation::FRem: commentStr += "float "; break;
+              case Operation::UDiv:
+              case Operation::URem: commentStr += "unsigned "; break;
+              case Operation::SDiv:
+              case Operation::SRem: commentStr += "signed "; break;
+              case Operation::LogicalShiftRight: commentStr += "logical "; break;
+              case Operation::ArithShiftRight: commentStr += "arithmetic "; break;
+              default: break;
+            }
 
             bool first = true;
             for(const Value *s : inst.args)
             {
-              if(!first)
-                m_Disassembly += ", ";
-
-              m_Disassembly += ArgToString(s, false);
-              first = false;
+              lineStr += ArgToString(s, false);
+              if(first)
+              {
+                lineStr += opStr;
+                first = false;
+              }
             }
 
             break;
           }
           case Operation::Ret:
           {
-            if(inst.args.empty())
-              m_Disassembly += "ret " + inst.type->toString();
-            else
-              m_Disassembly += "ret " + ArgToString(inst.args[0], false);
+            lineStr += "return";
+            if(!inst.args.empty())
+              lineStr += " " + ArgToString(inst.args[0], false);
             break;
           }
-          case Operation::Unreachable: m_Disassembly += "unreachable"; break;
+          case Operation::Unreachable: lineStr += "unreachable"; break;
           case Operation::Alloca:
           {
-            m_Disassembly += "alloca ";
-            m_Disassembly += inst.type->inner->toString();
+            lineStr += "alloca ";
+            lineStr += inst.type->inner->toString();
             if(inst.align > 0)
-              m_Disassembly += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
+              lineStr += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
             break;
           }
           case Operation::GetElementPtr:
           {
-            m_Disassembly += "getelementptr ";
+            lineStr += "getelementptr ";
             if(inst.opFlags() & InstructionFlags::InBounds)
-              m_Disassembly += "inbounds ";
-            m_Disassembly += inst.args[0]->type->inner->toString();
-            m_Disassembly += ", ";
+              lineStr += "inbounds ";
+            lineStr += inst.args[0]->type->inner->toString();
+            lineStr += ", ";
             bool first = true;
             for(const Value *s : inst.args)
             {
               if(!first)
-                m_Disassembly += ", ";
+                lineStr += ", ";
 
-              m_Disassembly += ArgToString(s, false);
+              lineStr += ArgToString(s, false);
               first = false;
             }
             break;
           }
           case Operation::Load:
           {
-            m_Disassembly += "load ";
+            lineStr += "load ";
             if(inst.opFlags() & InstructionFlags::Volatile)
-              m_Disassembly += "volatile ";
-            m_Disassembly += inst.type->toString();
-            m_Disassembly += ", ";
+              lineStr += "volatile ";
+            lineStr += inst.type->toString();
+            lineStr += ", ";
             bool first = true;
             for(const Value *s : inst.args)
             {
               if(!first)
-                m_Disassembly += ", ";
+                lineStr += ", ";
 
-              m_Disassembly += ArgToString(s, false);
+              lineStr += ArgToString(s, false);
               first = false;
             }
             if(inst.align > 0)
-              m_Disassembly += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
+              lineStr += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
             break;
           }
           case Operation::Store:
           {
-            m_Disassembly += "store ";
+            lineStr += "store ";
             if(inst.opFlags() & InstructionFlags::Volatile)
-              m_Disassembly += "volatile ";
-            m_Disassembly += ArgToString(inst.args[1], false);
-            m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[0], false);
+              lineStr += "volatile ";
+            lineStr += ArgToString(inst.args[1], false);
+            lineStr += ", ";
+            lineStr += ArgToString(inst.args[0], false);
             if(inst.align > 0)
-              m_Disassembly += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
+              lineStr += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
             break;
           }
           case Operation::FOrdFalse:
@@ -2505,32 +2529,42 @@ void Program::MakeRDDisassemblyString()
           case Operation::FUnordNotEqual:
           case Operation::FOrdTrue:
           {
-            m_Disassembly += "fcmp ";
-            if(inst.opFlags() != InstructionFlags::NoFlags)
-              m_Disassembly += " ";
+            rdcstr opStr;
             switch(inst.op)
             {
-              case Operation::FOrdFalse: m_Disassembly += "false "; break;
-              case Operation::FOrdEqual: m_Disassembly += "oeq "; break;
-              case Operation::FOrdGreater: m_Disassembly += "ogt "; break;
-              case Operation::FOrdGreaterEqual: m_Disassembly += "oge "; break;
-              case Operation::FOrdLess: m_Disassembly += "olt "; break;
-              case Operation::FOrdLessEqual: m_Disassembly += "ole "; break;
-              case Operation::FOrdNotEqual: m_Disassembly += "one "; break;
-              case Operation::FOrd: m_Disassembly += "ord "; break;
-              case Operation::FUnord: m_Disassembly += "uno "; break;
-              case Operation::FUnordEqual: m_Disassembly += "ueq "; break;
-              case Operation::FUnordGreater: m_Disassembly += "ugt "; break;
-              case Operation::FUnordGreaterEqual: m_Disassembly += "uge "; break;
-              case Operation::FUnordLess: m_Disassembly += "ult "; break;
-              case Operation::FUnordLessEqual: m_Disassembly += "ule "; break;
-              case Operation::FUnordNotEqual: m_Disassembly += "une "; break;
-              case Operation::FOrdTrue: m_Disassembly += "true "; break;
+              case Operation::FOrdFalse: opStr = " false "; break;
+              case Operation::FOrdTrue: opStr = " true "; break;
+              case Operation::FOrdEqual: opStr = " = "; break;
+              case Operation::FOrdGreater: opStr = " > "; break;
+              case Operation::FOrdGreaterEqual: opStr = " >= "; break;
+              case Operation::FOrdLess: opStr = " < "; break;
+              case Operation::FOrdLessEqual: opStr = " <= "; break;
+              case Operation::FOrdNotEqual: opStr = " != "; break;
+              case Operation::FOrd: opStr = "ord "; break;
+              case Operation::FUnord: opStr = "uno "; break;
+              case Operation::FUnordEqual: opStr = " = ";
+              case Operation::FUnordGreater: opStr = " > "; break;
+              case Operation::FUnordGreaterEqual: opStr = " >= "; break;
+              case Operation::FUnordLess: opStr = " < "; break;
+              case Operation::FUnordLessEqual: opStr = " <= "; break;
+              case Operation::FUnordNotEqual: opStr = " != "; break;
               default: break;
             }
-            m_Disassembly += ArgToString(inst.args[0], false);
-            m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[1], false);
+            switch(inst.op)
+            {
+              case Operation::FUnord:
+              case Operation::FUnordEqual:
+              case Operation::FUnordGreater:
+              case Operation::FUnordGreaterEqual:
+              case Operation::FUnordLess:
+              case Operation::FUnordLessEqual: commentStr += "unordered ";
+              default: break;
+            }
+            lineStr += "(";
+            lineStr += ArgToString(inst.args[0], false);
+            lineStr += opStr;
+            lineStr += ArgToString(inst.args[1], false);
+            lineStr += ")";
             break;
           }
           case Operation::IEqual:
@@ -2544,218 +2578,222 @@ void Program::MakeRDDisassemblyString()
           case Operation::SLess:
           case Operation::SLessEqual:
           {
-            m_Disassembly += "icmp ";
+            rdcstr opStr;
             switch(inst.op)
             {
-              case Operation::IEqual: m_Disassembly += "eq "; break;
-              case Operation::INotEqual: m_Disassembly += "ne "; break;
-              case Operation::UGreater: m_Disassembly += "ugt "; break;
-              case Operation::UGreaterEqual: m_Disassembly += "uge "; break;
-              case Operation::ULess: m_Disassembly += "ult "; break;
-              case Operation::ULessEqual: m_Disassembly += "ule "; break;
-              case Operation::SGreater: m_Disassembly += "sgt "; break;
-              case Operation::SGreaterEqual: m_Disassembly += "sge "; break;
-              case Operation::SLess: m_Disassembly += "slt "; break;
-              case Operation::SLessEqual: m_Disassembly += "sle "; break;
+              case Operation::IEqual: opStr += " = "; break;
+              case Operation::INotEqual: opStr += " != "; break;
+              case Operation::UGreater: opStr += " > "; break;
+              case Operation::UGreaterEqual: opStr += " >= "; break;
+              case Operation::ULess: opStr += " < "; break;
+              case Operation::ULessEqual: opStr += " <= "; break;
+              case Operation::SGreater: opStr += " > "; break;
+              case Operation::SGreaterEqual: opStr += " >= "; break;
+              case Operation::SLess: opStr += " < "; break;
+              case Operation::SLessEqual: opStr += " <= "; break;
               default: break;
             }
-            m_Disassembly += ArgToString(inst.args[0], false);
-            m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[1], false);
+            switch(inst.op)
+            {
+              case Operation::SGreater:
+              case Operation::SGreaterEqual:
+              case Operation::SLess:
+              case Operation::SLessEqual: commentStr = "signed ";
+              default: break;
+            }
+            lineStr += "(";
+            lineStr += ArgToString(inst.args[0], false);
+            lineStr += opStr;
+            lineStr += ArgToString(inst.args[1], false);
+            lineStr += ")";
             break;
           }
           case Operation::Select:
           {
-            m_Disassembly += "select ";
-            m_Disassembly += ArgToString(inst.args[2], false);
-            m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[0], false);
-            m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[1], false);
+            lineStr += "select ";
+            lineStr += ArgToString(inst.args[2], false);
+            lineStr += ", ";
+            lineStr += ArgToString(inst.args[0], false);
+            lineStr += ", ";
+            lineStr += ArgToString(inst.args[1], false);
             break;
           }
           case Operation::ExtractElement:
           {
-            m_Disassembly += "extractelement ";
-            m_Disassembly += ArgToString(inst.args[0], false);
-            m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[1], false);
+            lineStr += "extractelement ";
+            lineStr += ArgToString(inst.args[0], false);
+            lineStr += ", ";
+            lineStr += ArgToString(inst.args[1], false);
             break;
           }
           case Operation::InsertElement:
           {
-            m_Disassembly += "insertelement ";
-            m_Disassembly += ArgToString(inst.args[0], false);
-            m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[1], false);
-            m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[2], false);
+            lineStr += "insertelement ";
+            lineStr += ArgToString(inst.args[0], false);
+            lineStr += ", ";
+            lineStr += ArgToString(inst.args[1], false);
+            lineStr += ", ";
+            lineStr += ArgToString(inst.args[2], false);
             break;
           }
           case Operation::ShuffleVector:
           {
-            m_Disassembly += "shufflevector ";
-            m_Disassembly += ArgToString(inst.args[0], false);
-            m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[1], false);
-            m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[2], false);
+            lineStr += "shufflevector ";
+            lineStr += ArgToString(inst.args[0], false);
+            lineStr += ", ";
+            lineStr += ArgToString(inst.args[1], false);
+            lineStr += ", ";
+            lineStr += ArgToString(inst.args[2], false);
             break;
           }
           case Operation::InsertValue:
           {
-            m_Disassembly += "insertvalue ";
-            m_Disassembly += ArgToString(inst.args[0], false);
-            m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[1], false);
+            lineStr += "insertvalue ";
+            lineStr += ArgToString(inst.args[0], false);
+            lineStr += ", ";
+            lineStr += ArgToString(inst.args[1], false);
             for(size_t a = 2; a < inst.args.size(); a++)
             {
-              m_Disassembly += ", " + ToStr(cast<Literal>(inst.args[a])->literal);
+              lineStr += ", " + ToStr(cast<Literal>(inst.args[a])->literal);
             }
             break;
           }
           case Operation::Branch:
           {
-            m_Disassembly += "br ";
+            lineStr += "br ";
             if(inst.args.size() > 1)
             {
-              m_Disassembly += ArgToString(inst.args[2], false);
-              m_Disassembly += StringFormat::Fmt(", %s", ArgToString(inst.args[0], false).c_str());
-              m_Disassembly += StringFormat::Fmt(", %s", ArgToString(inst.args[1], false).c_str());
+              lineStr += ArgToString(inst.args[2], false);
+              lineStr += StringFormat::Fmt(", %s", ArgToString(inst.args[0], false).c_str());
+              lineStr += StringFormat::Fmt(", %s", ArgToString(inst.args[1], false).c_str());
             }
             else
             {
-              m_Disassembly += ArgToString(inst.args[0], false);
+              lineStr += ArgToString(inst.args[0], false);
             }
             break;
           }
           case Operation::Phi:
           {
-            m_Disassembly += "phi ";
-            m_Disassembly += inst.type->toString();
+            lineStr += "phi ";
+            lineStr += inst.type->toString();
             for(size_t a = 0; a < inst.args.size(); a += 2)
             {
               if(a == 0)
-                m_Disassembly += " ";
+                lineStr += " ";
               else
-                m_Disassembly += ", ";
-              m_Disassembly +=
-                  StringFormat::Fmt("[ %s, %s ]", ArgToString(inst.args[a], false).c_str(),
-                                    ArgToString(inst.args[a + 1], false).c_str());
+                lineStr += ", ";
+              lineStr += StringFormat::Fmt("[ %s, %s ]", ArgToString(inst.args[a], false).c_str(),
+                                           ArgToString(inst.args[a + 1], false).c_str());
             }
             break;
           }
           case Operation::Switch:
           {
-            m_Disassembly += "switch ";
-            m_Disassembly += ArgToString(inst.args[0], false);
-            m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[1], false);
-            m_Disassembly += " [";
-            DisassemblyAddNewLine();
+            lineStr += "switch ";
+            lineStr += ArgToString(inst.args[0], false);
+            lineStr += ", ";
+            lineStr += ArgToString(inst.args[1], false);
+            lineStr += " [";
+            lineStr += "\n";
+            m_DisassemblyInstructionLine++;
             for(size_t a = 2; a < inst.args.size(); a += 2)
             {
-              m_Disassembly +=
-                  StringFormat::Fmt("    %s, %s", ArgToString(inst.args[a], false).c_str(),
-                                    ArgToString(inst.args[a + 1], false).c_str());
-              DisassemblyAddNewLine();
+              lineStr += StringFormat::Fmt("    %s, %s", ArgToString(inst.args[a], false).c_str(),
+                                           ArgToString(inst.args[a + 1], false).c_str());
+              lineStr += "\n";
+              m_DisassemblyInstructionLine++;
             }
-            m_Disassembly += "  ]";
+            lineStr += "  ]";
             break;
           }
           case Operation::Fence:
           {
-            m_Disassembly += "fence ";
+            lineStr += "fence ";
             if(inst.opFlags() & InstructionFlags::SingleThread)
-              m_Disassembly += "singlethread ";
+              lineStr += "singlethread ";
             switch((inst.opFlags() & InstructionFlags::SuccessOrderMask))
             {
-              case InstructionFlags::SuccessUnordered: m_Disassembly += "unordered"; break;
-              case InstructionFlags::SuccessMonotonic: m_Disassembly += "monotonic"; break;
-              case InstructionFlags::SuccessAcquire: m_Disassembly += "acquire"; break;
-              case InstructionFlags::SuccessRelease: m_Disassembly += "release"; break;
-              case InstructionFlags::SuccessAcquireRelease: m_Disassembly += "acq_rel"; break;
-              case InstructionFlags::SuccessSequentiallyConsistent:
-                m_Disassembly += "seq_cst";
-                break;
+              case InstructionFlags::SuccessUnordered: lineStr += "unordered"; break;
+              case InstructionFlags::SuccessMonotonic: lineStr += "monotonic"; break;
+              case InstructionFlags::SuccessAcquire: lineStr += "acquire"; break;
+              case InstructionFlags::SuccessRelease: lineStr += "release"; break;
+              case InstructionFlags::SuccessAcquireRelease: lineStr += "acq_rel"; break;
+              case InstructionFlags::SuccessSequentiallyConsistent: lineStr += "seq_cst"; break;
               default: break;
             }
             break;
           }
           case Operation::LoadAtomic:
           {
-            m_Disassembly += "load atomic ";
+            lineStr += "load atomic ";
             if(inst.opFlags() & InstructionFlags::Volatile)
-              m_Disassembly += "volatile ";
-            m_Disassembly += inst.type->toString();
-            m_Disassembly += ", ";
+              lineStr += "volatile ";
+            lineStr += inst.type->toString();
+            lineStr += ", ";
             bool first = true;
             for(const Value *s : inst.args)
             {
               if(!first)
-                m_Disassembly += ", ";
+                lineStr += ", ";
 
-              m_Disassembly += ArgToString(s, false);
+              lineStr += ArgToString(s, false);
               first = false;
             }
-            m_Disassembly += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
+            lineStr += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
             break;
           }
           case Operation::StoreAtomic:
           {
-            m_Disassembly += "store atomic ";
+            lineStr += "store atomic ";
             if(inst.opFlags() & InstructionFlags::Volatile)
-              m_Disassembly += "volatile ";
-            m_Disassembly += ArgToString(inst.args[1], false);
-            m_Disassembly += ", ";
-            m_Disassembly += ArgToString(inst.args[0], false);
-            m_Disassembly += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
+              lineStr += "volatile ";
+            lineStr += ArgToString(inst.args[1], false);
+            lineStr += ", ";
+            lineStr += ArgToString(inst.args[0], false);
+            lineStr += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
             break;
           }
           case Operation::CompareExchange:
           {
-            m_Disassembly += "cmpxchg ";
+            lineStr += "cmpxchg ";
             if(inst.opFlags() & InstructionFlags::Weak)
-              m_Disassembly += "weak ";
+              lineStr += "weak ";
             if(inst.opFlags() & InstructionFlags::Volatile)
-              m_Disassembly += "volatile ";
+              lineStr += "volatile ";
 
             bool first = true;
             for(const Value *s : inst.args)
             {
               if(!first)
-                m_Disassembly += ", ";
+                lineStr += ", ";
 
-              m_Disassembly += ArgToString(s, false);
+              lineStr += ArgToString(s, false);
               first = false;
             }
 
-            m_Disassembly += " ";
+            lineStr += " ";
             if(inst.opFlags() & InstructionFlags::SingleThread)
-              m_Disassembly += "singlethread ";
+              lineStr += "singlethread ";
             switch((inst.opFlags() & InstructionFlags::SuccessOrderMask))
             {
-              case InstructionFlags::SuccessUnordered: m_Disassembly += "unordered"; break;
-              case InstructionFlags::SuccessMonotonic: m_Disassembly += "monotonic"; break;
-              case InstructionFlags::SuccessAcquire: m_Disassembly += "acquire"; break;
-              case InstructionFlags::SuccessRelease: m_Disassembly += "release"; break;
-              case InstructionFlags::SuccessAcquireRelease: m_Disassembly += "acq_rel"; break;
-              case InstructionFlags::SuccessSequentiallyConsistent:
-                m_Disassembly += "seq_cst";
-                break;
+              case InstructionFlags::SuccessUnordered: lineStr += "unordered"; break;
+              case InstructionFlags::SuccessMonotonic: lineStr += "monotonic"; break;
+              case InstructionFlags::SuccessAcquire: lineStr += "acquire"; break;
+              case InstructionFlags::SuccessRelease: lineStr += "release"; break;
+              case InstructionFlags::SuccessAcquireRelease: lineStr += "acq_rel"; break;
+              case InstructionFlags::SuccessSequentiallyConsistent: lineStr += "seq_cst"; break;
               default: break;
             }
-            m_Disassembly += " ";
+            lineStr += " ";
             switch((inst.opFlags() & InstructionFlags::FailureOrderMask))
             {
-              case InstructionFlags::FailureUnordered: m_Disassembly += "unordered"; break;
-              case InstructionFlags::FailureMonotonic: m_Disassembly += "monotonic"; break;
-              case InstructionFlags::FailureAcquire: m_Disassembly += "acquire"; break;
-              case InstructionFlags::FailureRelease: m_Disassembly += "release"; break;
-              case InstructionFlags::FailureAcquireRelease: m_Disassembly += "acq_rel"; break;
-              case InstructionFlags::FailureSequentiallyConsistent:
-                m_Disassembly += "seq_cst";
-                break;
+              case InstructionFlags::FailureUnordered: lineStr += "unordered"; break;
+              case InstructionFlags::FailureMonotonic: lineStr += "monotonic"; break;
+              case InstructionFlags::FailureAcquire: lineStr += "acquire"; break;
+              case InstructionFlags::FailureRelease: lineStr += "release"; break;
+              case InstructionFlags::FailureAcquireRelease: lineStr += "acq_rel"; break;
+              case InstructionFlags::FailureSequentiallyConsistent: lineStr += "seq_cst"; break;
               default: break;
             }
             break;
@@ -2772,22 +2810,22 @@ void Program::MakeRDDisassemblyString()
           case Operation::AtomicUMax:
           case Operation::AtomicUMin:
           {
-            m_Disassembly += "atomicrmw ";
+            lineStr += "atomicrmw ";
             if(inst.opFlags() & InstructionFlags::Volatile)
-              m_Disassembly += "volatile ";
+              lineStr += "volatile ";
             switch(inst.op)
             {
-              case Operation::AtomicExchange: m_Disassembly += "xchg "; break;
-              case Operation::AtomicAdd: m_Disassembly += "add "; break;
-              case Operation::AtomicSub: m_Disassembly += "sub "; break;
-              case Operation::AtomicAnd: m_Disassembly += "and "; break;
-              case Operation::AtomicNand: m_Disassembly += "nand "; break;
-              case Operation::AtomicOr: m_Disassembly += "or "; break;
-              case Operation::AtomicXor: m_Disassembly += "xor "; break;
-              case Operation::AtomicMax: m_Disassembly += "max "; break;
-              case Operation::AtomicMin: m_Disassembly += "min "; break;
-              case Operation::AtomicUMax: m_Disassembly += "umax "; break;
-              case Operation::AtomicUMin: m_Disassembly += "umin "; break;
+              case Operation::AtomicExchange: lineStr += "xchg "; break;
+              case Operation::AtomicAdd: lineStr += "add "; break;
+              case Operation::AtomicSub: lineStr += "sub "; break;
+              case Operation::AtomicAnd: lineStr += "and "; break;
+              case Operation::AtomicNand: lineStr += "nand "; break;
+              case Operation::AtomicOr: lineStr += "or "; break;
+              case Operation::AtomicXor: lineStr += "xor "; break;
+              case Operation::AtomicMax: lineStr += "max "; break;
+              case Operation::AtomicMin: lineStr += "min "; break;
+              case Operation::AtomicUMax: lineStr += "umax "; break;
+              case Operation::AtomicUMin: lineStr += "umin "; break;
               default: break;
             }
 
@@ -2795,85 +2833,26 @@ void Program::MakeRDDisassemblyString()
             for(const Value *s : inst.args)
             {
               if(!first)
-                m_Disassembly += ", ";
+                lineStr += ", ";
 
-              m_Disassembly += ArgToString(s, false);
+              lineStr += ArgToString(s, false);
               first = false;
             }
 
-            m_Disassembly += " ";
+            lineStr += " ";
             if(inst.opFlags() & InstructionFlags::SingleThread)
-              m_Disassembly += "singlethread ";
+              lineStr += "singlethread ";
             switch((inst.opFlags() & InstructionFlags::SuccessOrderMask))
             {
-              case InstructionFlags::SuccessUnordered: m_Disassembly += "unordered"; break;
-              case InstructionFlags::SuccessMonotonic: m_Disassembly += "monotonic"; break;
-              case InstructionFlags::SuccessAcquire: m_Disassembly += "acquire"; break;
-              case InstructionFlags::SuccessRelease: m_Disassembly += "release"; break;
-              case InstructionFlags::SuccessAcquireRelease: m_Disassembly += "acq_rel"; break;
-              case InstructionFlags::SuccessSequentiallyConsistent:
-                m_Disassembly += "seq_cst";
-                break;
+              case InstructionFlags::SuccessUnordered: lineStr += "unordered"; break;
+              case InstructionFlags::SuccessMonotonic: lineStr += "monotonic"; break;
+              case InstructionFlags::SuccessAcquire: lineStr += "acquire"; break;
+              case InstructionFlags::SuccessRelease: lineStr += "release"; break;
+              case InstructionFlags::SuccessAcquireRelease: lineStr += "acq_rel"; break;
+              case InstructionFlags::SuccessSequentiallyConsistent: lineStr += "seq_cst"; break;
               default: break;
             }
             break;
-          }
-        }
-
-        if(inst.debugLoc != ~0U)
-        {
-          DebugLocation &debugLoc = m_DebugLocations[inst.debugLoc];
-          m_Disassembly += StringFormat::Fmt(", !dbg !%u", GetMetaSlot(&debugLoc));
-        }
-
-        const AttachedMetadata &attachedMeta = inst.getAttachedMeta();
-        if(!attachedMeta.empty())
-        {
-          for(size_t m = 0; m < attachedMeta.size(); m++)
-          {
-            m_Disassembly +=
-                StringFormat::Fmt(", !%s !%u", m_Kinds[(size_t)attachedMeta[m].first].c_str(),
-                                  GetMetaSlot(attachedMeta[m].second));
-          }
-        }
-
-        if(inst.debugLoc != ~0U)
-        {
-          DebugLocation &debugLoc = m_DebugLocations[inst.debugLoc];
-
-          if(!debugCall && debugLoc.line > 0)
-          {
-            m_Disassembly += StringFormat::Fmt(" ; line:%llu col:%llu", debugLoc.line, debugLoc.col);
-          }
-        }
-
-        if(debugCall)
-        {
-          size_t varIdx = 0, exprIdx = 0;
-          if(inst.getFuncCall()->name == "llvm.dbg.value")
-          {
-            varIdx = 2;
-            exprIdx = 3;
-          }
-          else if(inst.getFuncCall()->name == "llvm.dbg.declare")
-          {
-            varIdx = 1;
-            exprIdx = 2;
-          }
-
-          if(varIdx > 0)
-          {
-            Metadata *var = cast<Metadata>(inst.args[varIdx]);
-            Metadata *expr = cast<Metadata>(inst.args[exprIdx]);
-            RDCASSERT(var);
-            RDCASSERT(expr);
-            m_Disassembly +=
-                StringFormat::Fmt(" ; var:%s ", escapeString(GetDebugVarName(var->dwarf)).c_str());
-            m_Disassembly += expr->valString();
-
-            rdcstr funcName = GetFunctionScopeName(var->dwarf);
-            if(!funcName.empty())
-              m_Disassembly += StringFormat::Fmt(" func:%s", escapeString(funcName).c_str());
           }
         }
 
@@ -2909,7 +2888,7 @@ void Program::MakeRDDisassemblyString()
                 else
                   resClass = ResourceClass::SRV;
 
-                m_Disassembly += "  resource: ";
+                lineStr += "  resource: ";
 
                 bool srv = (resClass == ResourceClass::SRV);
 
@@ -2922,7 +2901,7 @@ void Program::MakeRDDisassemblyString()
 
                 switch(resKind)
                 {
-                  case ResourceKind::Unknown: m_Disassembly += "Unknown"; break;
+                  case ResourceKind::Unknown: lineStr += "Unknown"; break;
                   case ResourceKind::Texture1D:
                   case ResourceKind::Texture2D:
                   case ResourceKind::Texture2DMS:
@@ -2934,73 +2913,68 @@ void Program::MakeRDDisassemblyString()
                   case ResourceKind::TextureCubeArray:
                   case ResourceKind::TypedBuffer:
                     if(globallyCoherent)
-                      m_Disassembly += "globallycoherent ";
+                      lineStr += "globallycoherent ";
                     if(!srv && rov)
-                      m_Disassembly += "ROV";
+                      lineStr += "ROV";
                     else if(!srv)
-                      m_Disassembly += "RW";
+                      lineStr += "RW";
                     switch(resKind)
                     {
-                      case ResourceKind::Texture1D: m_Disassembly += "Texture1D"; break;
-                      case ResourceKind::Texture2D: m_Disassembly += "Texture2D"; break;
-                      case ResourceKind::Texture2DMS: m_Disassembly += "Texture2DMS"; break;
-                      case ResourceKind::Texture3D: m_Disassembly += "Texture3D"; break;
-                      case ResourceKind::TextureCube: m_Disassembly += "TextureCube"; break;
-                      case ResourceKind::Texture1DArray: m_Disassembly += "Texture1DArray"; break;
-                      case ResourceKind::Texture2DArray: m_Disassembly += "Texture2DArray"; break;
-                      case ResourceKind::Texture2DMSArray:
-                        m_Disassembly += "Texture2DMSArray";
-                        break;
-                      case ResourceKind::TextureCubeArray:
-                        m_Disassembly += "TextureCubeArray";
-                        break;
-                      case ResourceKind::TypedBuffer: m_Disassembly += "TypedBuffer"; break;
+                      case ResourceKind::Texture1D: lineStr += "Texture1D"; break;
+                      case ResourceKind::Texture2D: lineStr += "Texture2D"; break;
+                      case ResourceKind::Texture2DMS: lineStr += "Texture2DMS"; break;
+                      case ResourceKind::Texture3D: lineStr += "Texture3D"; break;
+                      case ResourceKind::TextureCube: lineStr += "TextureCube"; break;
+                      case ResourceKind::Texture1DArray: lineStr += "Texture1DArray"; break;
+                      case ResourceKind::Texture2DArray: lineStr += "Texture2DArray"; break;
+                      case ResourceKind::Texture2DMSArray: lineStr += "Texture2DMSArray"; break;
+                      case ResourceKind::TextureCubeArray: lineStr += "TextureCubeArray"; break;
+                      case ResourceKind::TypedBuffer: lineStr += "TypedBuffer"; break;
                       default: break;
                     }
                     break;
                   case ResourceKind::RTAccelerationStructure:
-                    m_Disassembly += "RTAccelerationStructure";
+                    lineStr += "RTAccelerationStructure";
                     break;
-                  case ResourceKind::FeedbackTexture2D: m_Disassembly += "FeedbackTexture2D"; break;
+                  case ResourceKind::FeedbackTexture2D: lineStr += "FeedbackTexture2D"; break;
                   case ResourceKind::FeedbackTexture2DArray:
-                    m_Disassembly += "FeedbackTexture2DArray";
+                    lineStr += "FeedbackTexture2DArray";
                     break;
                   case ResourceKind::StructuredBuffer:
                     if(globallyCoherent)
-                      m_Disassembly += "globallycoherent ";
-                    m_Disassembly += srv ? "StructuredBuffer" : "RWStructuredBuffer";
-                    m_Disassembly += StringFormat::Fmt("<stride=%u", structStride);
+                      lineStr += "globallycoherent ";
+                    lineStr += srv ? "StructuredBuffer" : "RWStructuredBuffer";
+                    lineStr += StringFormat::Fmt("<stride=%u", structStride);
                     if(sampelCmpOrCounter)
-                      m_Disassembly += ", counter";
-                    m_Disassembly += ">";
+                      lineStr += ", counter";
+                    lineStr += ">";
                     break;
                   case ResourceKind::StructuredBufferWithCounter:
                     if(globallyCoherent)
-                      m_Disassembly += "globallycoherent ";
-                    m_Disassembly +=
-                        srv ? "StructuredBufferWithCounter" : "RWStructuredBufferWithCounter";
-                    m_Disassembly += StringFormat::Fmt("<stride=%u>", structStride);
+                      lineStr += "globallycoherent ";
+                    lineStr += srv ? "StructuredBufferWithCounter" : "RWStructuredBufferWithCounter";
+                    lineStr += StringFormat::Fmt("<stride=%u>", structStride);
                     break;
                   case ResourceKind::RawBuffer:
                     if(globallyCoherent)
-                      m_Disassembly += "globallycoherent ";
-                    m_Disassembly += srv ? "ByteAddressBuffer" : "RWByteAddressBuffer";
+                      lineStr += "globallycoherent ";
+                    lineStr += srv ? "ByteAddressBuffer" : "RWByteAddressBuffer";
                     break;
                   case ResourceKind::CBuffer:
                     RDCASSERT(resClass == ResourceClass::CBuffer);
-                    m_Disassembly += "CBuffer";
+                    lineStr += "CBuffer";
                     break;
                   case ResourceKind::Sampler:
                     RDCASSERT(resClass == ResourceClass::Sampler);
-                    m_Disassembly += "SamplerState";
+                    lineStr += "SamplerState";
                     break;
                   case ResourceKind::TBuffer:
                     RDCASSERT(resClass == ResourceClass::SRV);
-                    m_Disassembly += "TBuffer";
+                    lineStr += "TBuffer";
                     break;
                   case ResourceKind::SamplerComparison:
                     RDCASSERT(resClass == ResourceClass::Sampler);
-                    m_Disassembly += "SamplerComparisonState";
+                    lineStr += "SamplerComparisonState";
                     break;
                 }
 
@@ -3008,11 +2982,11 @@ void Program::MakeRDDisassemblyString()
                    resKind == ResourceKind::FeedbackTexture2DArray)
                 {
                   if(feedbackType == 0)
-                    m_Disassembly += "<MinMip>";
+                    lineStr += "<MinMip>";
                   else if(feedbackType == 1)
-                    m_Disassembly += "<MipRegionUsed>";
+                    lineStr += "<MipRegionUsed>";
                   else
-                    m_Disassembly += "<Invalid>";
+                    lineStr += "<Invalid>";
                 }
                 else if(resKind == ResourceKind::Texture1D || resKind == ResourceKind::Texture2D ||
                         resKind == ResourceKind::Texture3D || resKind == ResourceKind::TextureCube ||
@@ -3022,18 +2996,24 @@ void Program::MakeRDDisassemblyString()
                         resKind == ResourceKind::TypedBuffer || resKind == ResourceKind::Texture2DMS ||
                         resKind == ResourceKind::Texture2DMSArray)
                 {
-                  m_Disassembly += "<";
+                  lineStr += "<";
                   if(compCount > 1)
-                    m_Disassembly += StringFormat::Fmt("%dx", compCount);
-                  m_Disassembly += StringFormat::Fmt("%s>", ToStr(compType).c_str());
+                    lineStr += StringFormat::Fmt("%dx", compCount);
+                  lineStr += StringFormat::Fmt("%s>", ToStr(compType).c_str());
                 }
               }
             }
           }
         }
-        m_Disassembly += ";";
+        if(!lineStr.empty())
+        {
+          lineStr += ";";
+          if(!commentStr.empty())
+            lineStr += " // " + commentStr;
 
-        DisassemblyAddNewLine();
+          m_Disassembly += "  " + lineStr;
+          DisassemblyAddNewLine();
+        }
 
         // if this is the last instruction don't print the next block's label
         if(funcIdx == func.instructions.size() - 1)
