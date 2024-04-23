@@ -2480,13 +2480,12 @@ void Program::MakeRDDisassemblyString()
             }
             break;
           }
+          case Operation::LoadAtomic: commentStr += "atomic ";
           case Operation::Load:
           {
-            lineStr += "load ";
+            lineStr += "*";
             if(inst.opFlags() & InstructionFlags::Volatile)
-              lineStr += "volatile ";
-            lineStr += inst.type->toString();
-            lineStr += ", ";
+              commentStr += "volatile ";
             bool first = true;
             for(const Value *s : inst.args)
             {
@@ -2497,19 +2496,20 @@ void Program::MakeRDDisassemblyString()
               first = false;
             }
             if(inst.align > 0)
-              lineStr += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
+              commentStr += StringFormat::Fmt("align %u ", (1U << inst.align) >> 1);
             break;
           }
+          case Operation::StoreAtomic: commentStr += "atomic ";
           case Operation::Store:
           {
-            lineStr += "store ";
             if(inst.opFlags() & InstructionFlags::Volatile)
-              lineStr += "volatile ";
-            lineStr += ArgToString(inst.args[1], false);
-            lineStr += ", ";
+              commentStr += "volatile ";
+            lineStr = "*";
             lineStr += ArgToString(inst.args[0], false);
+            lineStr += " = ";
+            lineStr += ArgToString(inst.args[1], false);
             if(inst.align > 0)
-              lineStr += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
+              commentStr += StringFormat::Fmt("align %u ", (1U << inst.align) >> 1);
             break;
           }
           case Operation::FOrdEqual:
@@ -2739,36 +2739,6 @@ void Program::MakeRDDisassemblyString()
               case InstructionFlags::SuccessSequentiallyConsistent: lineStr += "seq_cst"; break;
               default: break;
             }
-            break;
-          }
-          case Operation::LoadAtomic:
-          {
-            lineStr += "load atomic ";
-            if(inst.opFlags() & InstructionFlags::Volatile)
-              lineStr += "volatile ";
-            lineStr += inst.type->toString();
-            lineStr += ", ";
-            bool first = true;
-            for(const Value *s : inst.args)
-            {
-              if(!first)
-                lineStr += ", ";
-
-              lineStr += ArgToString(s, false);
-              first = false;
-            }
-            lineStr += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
-            break;
-          }
-          case Operation::StoreAtomic:
-          {
-            lineStr += "store atomic ";
-            if(inst.opFlags() & InstructionFlags::Volatile)
-              lineStr += "volatile ";
-            lineStr += ArgToString(inst.args[1], false);
-            lineStr += ", ";
-            lineStr += ArgToString(inst.args[0], false);
-            lineStr += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
             break;
           }
           case Operation::CompareExchange:
