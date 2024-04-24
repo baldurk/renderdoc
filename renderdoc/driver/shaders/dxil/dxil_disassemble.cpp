@@ -2307,8 +2307,9 @@ void Program::MakeRDDisassemblyString()
                     {
                       rdcstr dxParamName = dxFuncSig.substr(paramStart, paramEnd - paramStart);
                       paramStart = paramEnd + 1;
+                      lineStr += "/*";
                       lineStr += dxParamName;
-                      lineStr += " ";
+                      lineStr += "*/ ";
                     }
                   }
                   lineStr += ArgToString(inst.args[a], false);
