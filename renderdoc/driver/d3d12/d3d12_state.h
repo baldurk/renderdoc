@@ -181,6 +181,7 @@ struct D3D12RenderState
   } compute, graphics;
 
   ResourceId pipe;
+  ResourceId stateobj;
 
   UINT viewInstMask = 0;
 

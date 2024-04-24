@@ -1329,6 +1329,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetPipelineState(SerialiserType
     {
       D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
       state.pipe = GetResID(pPipelineState);
+      state.stateobj = ResourceId();
 
       if(pPipelineState)
       {

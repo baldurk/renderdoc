@@ -1133,28 +1133,170 @@ template <typename SerialiserType>
 bool WrappedID3D12GraphicsCommandList::Serialise_SetPipelineState1(SerialiserType &ser,
                                                                    _In_ ID3D12StateObject *pStateObject)
 {
-  // TODO AMD
-  return false;
+  ID3D12GraphicsCommandList4 *pCommandList = this;
+  SERIALISE_ELEMENT(pCommandList);
+  SERIALISE_ELEMENT(pStateObject).Important();
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    if(GetWrapped(pCommandList)->GetReal4() == NULL)
+    {
+      SET_ERROR_RESULT(m_Cmd->m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ID3D12GraphicsCommandList4 which isn't available");
+      return false;
+    }
+
+    if(m_pDevice->GetOpts5().RaytracingTier == D3D12_RAYTRACING_TIER_NOT_SUPPORTED)
+    {
+      SET_ERROR_RESULT(m_Cmd->m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ray tracing support which isn't available");
+      return false;
+    }
+
+    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
+
+    bool stateUpdate = false;
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
+      {
+        Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->SetPipelineState1(Unwrap(pStateObject));
+
+        stateUpdate = true;
+      }
+      else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
+      {
+        stateUpdate = true;
+      }
+    }
+    else
+    {
+      Unwrap4(pCommandList)->SetPipelineState1(Unwrap(pStateObject));
+
+      stateUpdate = true;
+    }
+
+    if(stateUpdate)
+    {
+      D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
+      state.pipe = ResourceId();
+      state.stateobj = GetResID(pStateObject);
+    }
+  }
+
+  return true;
 }
 
 void WrappedID3D12GraphicsCommandList::SetPipelineState1(_In_ ID3D12StateObject *pStateObject)
 {
-  // TODO AMD
-  RDCERR("SetPipelineState1 called but raytracing is not supported!");
+  SERIALISE_TIME_CALL(m_pList4->SetPipelineState1(Unwrap(pStateObject)));
+
+  if(IsCaptureMode(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_SetPipelineState1);
+    Serialise_SetPipelineState1(ser, pStateObject);
+
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pStateObject), eFrameRef_Read);
+  }
 }
 
 template <typename SerialiserType>
 bool WrappedID3D12GraphicsCommandList::Serialise_DispatchRays(SerialiserType &ser,
                                                               _In_ const D3D12_DISPATCH_RAYS_DESC *pDesc)
 {
-  // TODO AMD
-  return false;
+  ID3D12GraphicsCommandList4 *pCommandList = this;
+  SERIALISE_ELEMENT(pCommandList);
+  SERIALISE_ELEMENT_LOCAL(Desc, *pDesc).Named("pDesc").Important();
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    if(GetWrapped(pCommandList)->GetReal4() == NULL)
+    {
+      SET_ERROR_RESULT(m_Cmd->m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ID3D12GraphicsCommandList4 which isn't available");
+      return false;
+    }
+
+    if(m_pDevice->GetOpts5().RaytracingTier == D3D12_RAYTRACING_TIER_NOT_SUPPORTED)
+    {
+      SET_ERROR_RESULT(m_Cmd->m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ray tracing support which isn't available");
+      return false;
+    }
+
+    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
+      {
+        ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+
+        uint32_t eventId = m_Cmd->HandlePreCallback(list, ActionFlags::DispatchRay);
+        // this can't work yet as the shader records have not been patched
+        // Unwrap4(list)->DispatchRays(&Desc);
+        if(eventId && m_Cmd->m_ActionCallback->PostDraw(eventId, list))
+        {
+          // Unwrap4(list)->DispatchRays(&Desc);
+          m_Cmd->m_ActionCallback->PostRedraw(eventId, list);
+        }
+      }
+    }
+    else
+    {
+      Unwrap4(pCommandList)->DispatchRays(&Desc);
+
+      m_Cmd->AddEvent();
+
+      ActionDescription action;
+      action.dispatchDimension[0] = Desc.Width;
+      action.dispatchDimension[1] = Desc.Height;
+      action.dispatchDimension[2] = Desc.Depth;
+
+      action.flags |= ActionFlags::DispatchRay;
+
+      m_Cmd->AddAction(action);
+    }
+  }
+
+  return true;
 }
 
 void WrappedID3D12GraphicsCommandList::DispatchRays(_In_ const D3D12_DISPATCH_RAYS_DESC *pDesc)
 {
-  // TODO AMD
-  RDCERR("DispatchRays called but raytracing is not supported!");
+  SERIALISE_TIME_CALL(m_pList4->DispatchRays(pDesc));
+
+  if(IsCaptureMode(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+    ser.SetActionChunk();
+    SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_DispatchRays);
+    Serialise_DispatchRays(ser, pDesc);
+
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
+    if(pDesc->CallableShaderTable.SizeInBytes > 0)
+      m_ListRecord->MarkResourceFrameReferenced(
+          WrappedID3D12Resource::GetResIDFromAddr(pDesc->CallableShaderTable.StartAddress),
+          eFrameRef_Read);
+    if(pDesc->RayGenerationShaderRecord.SizeInBytes > 0)
+      m_ListRecord->MarkResourceFrameReferenced(
+          WrappedID3D12Resource::GetResIDFromAddr(pDesc->RayGenerationShaderRecord.StartAddress),
+          eFrameRef_Read);
+    if(pDesc->MissShaderTable.SizeInBytes > 0)
+      m_ListRecord->MarkResourceFrameReferenced(
+          WrappedID3D12Resource::GetResIDFromAddr(pDesc->MissShaderTable.StartAddress),
+          eFrameRef_Read);
+    if(pDesc->HitGroupTable.SizeInBytes > 0)
+      m_ListRecord->MarkResourceFrameReferenced(
+          WrappedID3D12Resource::GetResIDFromAddr(pDesc->HitGroupTable.StartAddress), eFrameRef_Read);
+  }
 }
 
 INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12GraphicsCommandList, BeginRenderPass,
