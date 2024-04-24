@@ -610,7 +610,7 @@ const rdcstr &DXBCContainer::GetDisassembly(bool dxcStyle)
       m_Disassembly += "\n\n";
 #endif
 
-      m_Disassembly += m_DXILByteCode->GetDisassembly(dxcStyle);
+      m_Disassembly += m_DXILByteCode->GetDisassembly(dxcStyle, m_Reflection);
     }
   }
 

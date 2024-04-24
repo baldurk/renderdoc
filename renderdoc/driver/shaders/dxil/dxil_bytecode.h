@@ -1159,11 +1159,61 @@ struct EntryPoint
     int32_t startCol;
   };
 
+  struct ResourceBase
+  {
+    ResourceBase(const Metadata *resourceBase);
+    uint32_t id;
+    const Type *type;
+    rdcstr name;
+    uint32_t space;
+    uint32_t regBase;
+    uint32_t regCount;
+  };
+
+  struct SRV : ResourceBase
+  {
+    SRV(const Metadata *srv);
+    ResourceKind shape;
+    uint32_t sampleCount;
+    ComponentType compType;
+    uint32_t elementStride;
+  };
+
+  struct UAV : ResourceBase
+  {
+    UAV(const Metadata *uav);
+    ResourceKind shape;
+    bool globallCoherent;
+    bool hasCounter;
+    bool rasterizerOrderedView;
+    ComponentType compType;
+    uint32_t elementStride;
+    SamplerFeedbackType samplerFeedback;
+    bool atomic64Use;
+  };
+
+  struct CBuffer : ResourceBase
+  {
+    CBuffer(const Metadata *cbuffer);
+    uint32_t sizeInBytes;
+    bool isTBuffer;
+  };
+
+  struct Sampler : ResourceBase
+  {
+    Sampler(const Metadata *sampler);
+    SamplerKind samplerType;
+  };
+
   rdcstr name;
   const Type *function;
   rdcarray<Signature> inputs;
   rdcarray<Signature> outputs;
   rdcarray<Signature> patchConstants;
+  rdcarray<SRV> srvs;
+  rdcarray<UAV> uavs;
+  rdcarray<CBuffer> cbuffers;
+  rdcarray<Sampler> samplers;
 };
 
 class Program : public DXBC::IDebugInfo
@@ -1184,7 +1234,7 @@ public:
   uint32_t GetMajorVersion() const { return m_Major; }
   uint32_t GetMinorVersion() const { return m_Minor; }
   D3D_PRIMITIVE_TOPOLOGY GetOutputTopology();
-  const rdcstr &GetDisassembly(bool dxcStyle);
+  const rdcstr &GetDisassembly(bool dxcStyle, const DXBC::Reflection *reflection);
 
   // IDebugInfo interface
 
@@ -1204,7 +1254,7 @@ public:
 protected:
   void SettleIDs();
   void MakeDXCDisassemblyString();
-  void MakeRDDisassemblyString();
+  void MakeRDDisassemblyString(const DXBC::Reflection *reflection);
 
   void ParseConstant(ValueList &values, const LLVMBC::BlockOrRecord &constant);
   bool ParseDebugMetaRecord(MetadataList &metadata, const LLVMBC::BlockOrRecord &metaRecord,

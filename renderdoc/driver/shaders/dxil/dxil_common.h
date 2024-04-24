@@ -83,6 +83,14 @@ enum class ResourceKind
   SamplerComparison,
 };
 
+enum class SamplerKind
+{
+  Default = 0,
+  Comparison,
+  Mono,
+  Invalid,
+};
+
 enum class ShaderEntryTag
 {
   ShaderFlags = 0,

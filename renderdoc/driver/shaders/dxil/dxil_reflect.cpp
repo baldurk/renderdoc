@@ -28,10 +28,18 @@
 
 namespace DXIL
 {
-enum class SRVUAVTag
+enum class ResourcesTag
 {
+  // SRV & UAV
   ElementType = 0,
   StructStride = 1,
+  // UAV
+  SamplerFeedbackKind = 2,
+  Atomic64Use = 3,
+
+  // CBuffer
+  IsTBufferTag = 0,
+  // Sampler
 };
 
 namespace SignatureElement
@@ -279,6 +287,86 @@ EntryPoint::Signature::Signature(const Metadata *signature)
   startCol = getival<int8_t>(signature->children[SignatureElement::StartCol]);
 }
 
+EntryPoint ::ResourceBase::ResourceBase(const Metadata *resourceBase)
+{
+  id = getival<uint32_t>(resourceBase->children[(size_t)ResField::ID]);
+  type = resourceBase->children[(size_t)ResField::VarDecl]->type;
+  name = resourceBase->children[(size_t)ResField::Name]->str;
+  space = getival<uint32_t>(resourceBase->children[(size_t)ResField::Space]);
+  regBase = getival<uint32_t>(resourceBase->children[(size_t)ResField::RegBase]);
+  regCount = getival<uint32_t>(resourceBase->children[(size_t)ResField::RegCount]);
+}
+
+EntryPoint::SRV::SRV(const Metadata *srv) : ResourceBase(srv)
+{
+  shape = getival<ResourceKind>(srv->children[(size_t)ResField::SRVShape]);
+  sampleCount = getival<uint32_t>(srv->children[(size_t)ResField::SRVSampleCount]);
+  const Metadata *tags = srv->children[(size_t)ResField::SRVTags];
+  for(size_t t = 0; tags && t < tags->children.size(); t += 2)
+  {
+    RDCASSERT(tags->children[t]->isConstant);
+    ResourcesTag tag = getival<ResourcesTag>(tags->children[t]);
+    switch(tag)
+    {
+      case ResourcesTag::ElementType:
+        compType = getival<ComponentType>(tags->children[t + 1]);
+        break;
+      case ResourcesTag::StructStride:
+        elementStride = getival<uint32_t>(tags->children[t + 1]);
+        break;
+      default: break;
+    }
+  }
+}
+
+EntryPoint::UAV::UAV(const Metadata *uav) : ResourceBase(uav)
+{
+  shape = getival<ResourceKind>(uav->children[(size_t)ResField::UAVShape]);
+  globallCoherent = (getival<uint32_t>(uav->children[(size_t)ResField::UAVGloballyCoherent]) == 1);
+  hasCounter = (getival<uint32_t>(uav->children[(size_t)ResField::UAVHiddenCounter]) == 1);
+  rasterizerOrderedView = (getival<uint32_t>(uav->children[(size_t)ResField::UAVRasterOrder]) == 1);
+  const Metadata *tags = uav->children[(size_t)ResField::UAVTags];
+  for(size_t t = 0; tags && t < tags->children.size(); t += 2)
+  {
+    RDCASSERT(tags->children[t]->isConstant);
+    ResourcesTag tag = getival<ResourcesTag>(tags->children[t]);
+    switch(tag)
+    {
+      case ResourcesTag::ElementType:
+        compType = getival<ComponentType>(tags->children[t + 1]);
+        break;
+      case ResourcesTag::StructStride:
+        elementStride = getival<uint32_t>(tags->children[t + 1]);
+        break;
+      case ResourcesTag::SamplerFeedbackKind:
+        samplerFeedback = getival<SamplerFeedbackType>(tags->children[t + 1]);
+        break;
+      case ResourcesTag::Atomic64Use:
+        atomic64Use = (getival<uint32_t>(tags->children[t + 1]) == 1);
+        break;
+      default: break;
+    }
+  }
+}
+
+EntryPoint::CBuffer::CBuffer(const Metadata *cbuffer) : ResourceBase(cbuffer)
+{
+  sizeInBytes = getival<uint32_t>(cbuffer->children[(size_t)ResField::CBufferByteSize]);
+  const Metadata *tags = cbuffer->children[(size_t)ResField::CBufferTags];
+  for(size_t t = 0; tags && t < tags->children.size(); t += 2)
+  {
+    RDCASSERT(tags->children[t]->isConstant);
+    ResourcesTag tag = getival<ResourcesTag>(tags->children[t]);
+    if(tag == ResourcesTag::IsTBufferTag)
+      isTBuffer = (getival<uint32_t>(tags->children[t + 1]) == 1);
+  }
+}
+
+EntryPoint::Sampler::Sampler(const Metadata *sampler) : ResourceBase(sampler)
+{
+  samplerType = getival<SamplerKind>(sampler->children[(size_t)ResField::SamplerType]);
+}
+
 EntryPoint::EntryPoint(const Metadata *entryPoint)
 {
   function = entryPoint->children[0]->type;
@@ -308,7 +396,35 @@ EntryPoint::EntryPoint(const Metadata *entryPoint)
   }
 
   // SRVs, UAVs, CBs, Samplers
-  // const Metadata *resources = entryPoint->children[3];
+  const Metadata *resources = entryPoint->children[3];
+  if(resources)
+  {
+    const Metadata *srvsMeta = resources->children[0];
+    if(srvsMeta)
+    {
+      for(size_t i = 0; i < srvsMeta->children.size(); ++i)
+        srvs.push_back(srvsMeta->children[i]);
+    }
+
+    const Metadata *uavsMeta = resources->children[1];
+    if(uavsMeta)
+    {
+      for(size_t i = 0; i < uavsMeta->children.size(); ++i)
+        uavs.push_back(uavsMeta->children[i]);
+    }
+    const Metadata *cbuffersMeta = resources->children[2];
+    if(cbuffersMeta)
+    {
+      for(size_t i = 0; i < cbuffersMeta->children.size(); ++i)
+        cbuffers.push_back(cbuffersMeta->children[i]);
+    }
+    const Metadata *samplersMeta = resources->children[3];
+    if(samplersMeta)
+    {
+      for(size_t i = 0; i < samplersMeta->children.size(); ++i)
+        samplers.push_back(samplersMeta->children[i]);
+    }
+  }
   /*
   static const unsigned kDxilShaderFlagsTag = 0;
   static const unsigned kDxilGSStateTag = 1;
@@ -335,7 +451,10 @@ EntryPoint::EntryPoint(const Metadata *entryPoint)
   static const unsigned kDxilNodeMaxDispatchGridTag = 22;
   static const unsigned kDxilRangedWaveSizeTag = 23;
   */
-  // const Metadata *properties = entryPoint->children[4];
+  const Metadata *properties = entryPoint->children[4];
+  if(properties)
+  {
+  }
 }
 
 struct EntryPointsInfo
@@ -954,11 +1073,11 @@ static void AddResourceBind(DXBC::Reflection *refl, const TypeInfo &typeInfo, co
   for(size_t t = 0; tags && t < tags->children.size(); t += 2)
   {
     RDCASSERT(tags->children[t]->isConstant);
-    if(getival<SRVUAVTag>(tags->children[t]) == SRVUAVTag::StructStride)
+    if(getival<ResourcesTag>(tags->children[t]) == ResourcesTag::StructStride)
     {
       structStride = getival<uint32_t>(tags->children[t + 1]);
     }
-    else if(getival<SRVUAVTag>(tags->children[t]) == SRVUAVTag::ElementType)
+    else if(getival<ResourcesTag>(tags->children[t]) == ResourcesTag::ElementType)
     {
       switch(getival<ComponentType>(tags->children[t + 1]))
       {
