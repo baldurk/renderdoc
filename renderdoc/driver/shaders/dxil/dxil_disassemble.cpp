@@ -614,6 +614,9 @@ static const char *funcSigs[] = {
 };
 // clang-format on
 
+RDCCOMPILE_ASSERT(ARRAY_COUNT(funcNames) == ARRAY_COUNT(funcSigs),
+                  "funcNames not same size as funcSigs");
+
 void Program::SettleIDs()
 {
   if(m_SettledIDs)
@@ -2240,7 +2243,7 @@ void Program::MakeRDDisassemblyString()
           {
             rdcstr funcCallName = inst.getFuncCall()->name;
             showDxFuncName = funcCallName.beginsWith("dx.op");
-            if(funcCallName.beginsWith("dx.op.loadInput"))
+            if(showDxFuncName && funcCallName.beginsWith("dx.op.loadInput"))
             {
               showDxFuncName = false;
               uint32_t dxopCode = getival<uint32_t>(inst.args[0]);
@@ -2252,7 +2255,7 @@ void Program::MakeRDDisassemblyString()
               uint32_t componentIdx = getival<uint32_t>(inst.args[3]);
               lineStr += swizzle[componentIdx & 0x3];
             }
-            else if(funcCallName.beginsWith("dx.op.storeOutput"))
+            else if(showDxFuncName && funcCallName.beginsWith("dx.op.storeOutput"))
             {
               showDxFuncName = false;
               uint32_t dxopCode = getival<uint32_t>(inst.args[0]);
@@ -2270,56 +2273,85 @@ void Program::MakeRDDisassemblyString()
             }
             else
             {
-              if(!showDxFuncName)
+              if(showDxFuncName)
               {
-                lineStr += escapeStringIfNeeded(funcCallName);
-              }
-              else
-              {
+                rdcstr dxFuncSig;
                 if(Constant *op = cast<Constant>(inst.args[0]))
                 {
                   uint32_t opcode = op->getU32();
                   if(opcode < ARRAY_COUNT(funcNames))
+                  {
                     lineStr += funcNames[opcode];
+                    dxFuncSig = funcSigs[opcode];
+                  }
                   else
+                  {
                     lineStr += escapeStringIfNeeded(funcCallName);
+                  }
                 }
-              }
-              lineStr += "(";
-              bool first = true;
-
-              const AttributeSet *paramAttrs = inst.getParamAttrs();
-              // attribute args start from 1
-              size_t argIdx = 1;
-              for(const Value *s : inst.args)
-              {
-                if(!first)
-                  lineStr += ", ";
-
-                // see if we have param attrs for this param
-                rdcstr attrString;
-                if(paramAttrs && argIdx < paramAttrs->groupSlots.size() &&
-                   paramAttrs->groupSlots[argIdx])
+                lineStr += "(";
+                bool first = true;
+                int paramStart = 0;
+                int paramStrCount = (int)dxFuncSig.size();
+                for(size_t a = 1; a < inst.args.size(); ++a)
                 {
-                  attrString = paramAttrs->groupSlots[argIdx]->toString(true) + " ";
-                }
+                  if(!first)
+                    lineStr += ", ";
 
-                if(!showDxFuncName || argIdx > 1)
-                {
-                  lineStr += ArgToString(s, false, attrString);
+                  if(paramStart < paramStrCount)
+                  {
+                    int paramEnd = dxFuncSig.find(',', paramStart);
+                    if(paramEnd == -1)
+                      paramEnd = paramStrCount;
+                    if(paramEnd > paramStart)
+                    {
+                      rdcstr dxParamName = dxFuncSig.substr(paramStart, paramEnd - paramStart);
+                      paramStart = paramEnd + 1;
+                      lineStr += dxParamName;
+                      lineStr += " ";
+                    }
+                  }
+                  lineStr += ArgToString(inst.args[a], false);
                   first = false;
                 }
-
-                argIdx++;
+                lineStr += ")";
               }
-              lineStr += ")";
+              else
+              {
+                lineStr += escapeStringIfNeeded(funcCallName);
+                lineStr += "(";
+                bool first = true;
 
-              if(paramAttrs && paramAttrs->functionSlot)
-                lineStr +=
-                    StringFormat::Fmt(" #%u", m_FuncAttrGroups.indexOf(paramAttrs->functionSlot));
+                const AttributeSet *paramAttrs = inst.getParamAttrs();
+                // attribute args start from 1
+                size_t argIdx = 1;
+                for(const Value *s : inst.args)
+                {
+                  if(!first)
+                    lineStr += ", ";
+
+                  // see if we have param attrs for this param
+                  rdcstr attrString;
+                  if(paramAttrs && argIdx < paramAttrs->groupSlots.size() &&
+                     paramAttrs->groupSlots[argIdx])
+                  {
+                    attrString = paramAttrs->groupSlots[argIdx]->toString(true) + " ";
+                  }
+
+                  lineStr += ArgToString(s, false, attrString);
+                  first = false;
+
+                  argIdx++;
+                }
+                lineStr += ")";
+
+                if(paramAttrs && paramAttrs->functionSlot)
+                  lineStr +=
+                      StringFormat::Fmt(" #%u", m_FuncAttrGroups.indexOf(paramAttrs->functionSlot));
+              }
             }
-            break;
           }
+          break;
           case Operation::Trunc:
           case Operation::ZExt:
           case Operation::SExt:
