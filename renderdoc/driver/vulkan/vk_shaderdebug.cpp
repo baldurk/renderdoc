@@ -3917,12 +3917,6 @@ static void CreatePSInputFetcher(rdcarray<uint32_t> &fragspv, uint32_t &structSt
 ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, uint32_t instid,
                                             uint32_t idx, uint32_t view)
 {
-  if(!GetAPIProperties().shaderDebugging)
-  {
-    RDCUNIMPLEMENTED("Vertex debugging not yet implemented for Vulkan");
-    return new ShaderDebugTrace;
-  }
-
   const VulkanRenderState &state = m_pDriver->GetRenderState();
   VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
 
@@ -4162,12 +4156,6 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
 ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t y,
                                            const DebugPixelInputs &inputs)
 {
-  if(!GetAPIProperties().shaderDebugging)
-  {
-    RDCUNIMPLEMENTED("Pixel debugging not yet implemented for Vulkan");
-    return new ShaderDebugTrace;
-  }
-
   if(!m_pDriver->GetDeviceEnabledFeatures().fragmentStoresAndAtomics)
   {
     RDCWARN("Pixel debugging is not supported without fragment stores");
@@ -4929,12 +4917,6 @@ ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId,
                                             const rdcfixedarray<uint32_t, 3> &groupid,
                                             const rdcfixedarray<uint32_t, 3> &threadid)
 {
-  if(!GetAPIProperties().shaderDebugging)
-  {
-    RDCUNIMPLEMENTED("Compute debugging not yet implemented for Vulkan");
-    return new ShaderDebugTrace;
-  }
-
   const VulkanRenderState &state = m_pDriver->GetRenderState();
   VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
 
