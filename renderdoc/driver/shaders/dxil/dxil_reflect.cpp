@@ -34,6 +34,21 @@ enum class SRVUAVTag
   StructStride = 1,
 };
 
+namespace SignatureElement
+{
+const uint32_t ID = 0;
+const uint32_t Name = 1;
+const uint32_t Type = 2;
+const uint32_t SystemValue = 3;
+const uint32_t IndexVector = 4;
+const uint32_t InterpMode = 5;
+const uint32_t Rows = 6;
+const uint32_t Cols = 7;
+const uint32_t StartRow = 8;
+const uint32_t StartCol = 9;
+const uint32_t NameValueList = 10;
+};
+
 enum class StructMemberAnnotation
 {
   SNorm = 0,
@@ -248,19 +263,6 @@ struct TypeInfo
 EntryPoint::Signature::Signature(const Metadata *signature)
 {
   /*
-  static const unsigned kDxilSignatureElementID = 0;             // Unique element ID.
-  static const unsigned kDxilSignatureElementName = 1;           // Element name.
-  static const unsigned kDxilSignatureElementType = 2;           // Element type.
-  static const unsigned kDxilSignatureElementSystemValue = 3;    // Effective system value.
-  static const unsigned kDxilSignatureElementIndexVector = 4;    // Semantic index vector.
-  static const unsigned kDxilSignatureElementInterpMode = 5;     // Interpolation mode.
-  static const unsigned kDxilSignatureElementRows = 6;           // Number of rows.
-  static const unsigned kDxilSignatureElementCols = 7;           // Number of columns.
-  static const unsigned kDxilSignatureElementStartRow = 8;       // Element packing start row.
-  static const unsigned kDxilSignatureElementStartCol = 9;       // Element packing start column.
-  static const unsigned kDxilSignatureElementNameValueList = 10;    // Name-value list for extended
-properties.
-
   // Extended properties
   static const unsigned kDxilSignatureElementOutputStreamTag = 0;
   static const unsigned kHLSignatureElementGlobalSymbolTag = 1;
@@ -268,13 +270,13 @@ properties.
   static const unsigned kDxilSignatureElementUsageCompMaskTag = 3;
   */
 
-  name = signature->children[1]->str;
-  type = getival<ComponentType>(signature->children[2]);
-  interpolation = getival<D3D_INTERPOLATION_MODE>(signature->children[5]);
-  rows = getival<uint32_t>(signature->children[6]);
-  cols = getival<uint8_t>(signature->children[7]);
-  startRow = getival<int32_t>(signature->children[8]);
-  startCol = getival<int8_t>(signature->children[9]);
+  name = signature->children[SignatureElement::Name]->str;
+  type = getival<ComponentType>(signature->children[SignatureElement::Type]);
+  interpolation = getival<D3D_INTERPOLATION_MODE>(signature->children[SignatureElement::InterpMode]);
+  rows = getival<uint32_t>(signature->children[SignatureElement::Rows]);
+  cols = getival<uint8_t>(signature->children[SignatureElement::Cols]);
+  startRow = getival<int32_t>(signature->children[SignatureElement::StartRow]);
+  startCol = getival<int8_t>(signature->children[SignatureElement::StartCol]);
 }
 
 EntryPoint::EntryPoint(const Metadata *entryPoint)
