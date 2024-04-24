@@ -76,7 +76,7 @@ void main()
     bufout->SetName(L"bufout");
 
     ID3D12ResourcePtr tex = MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, 8, 8)
-                                .InitialState(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)
+                                .InitialState(D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
                                 .UAV();
 
     tex->SetName(L"tex");
@@ -84,6 +84,8 @@ void main()
     {
       ID3D12GraphicsCommandListPtr cmd = GetCommandBuffer();
       Reset(cmd);
+
+      cmd->SetDescriptorHeaps(1, &m_CBVUAVSRV.GetInterfacePtr());
 
       float col[] = {0.25f, 0.5f, 0.75f, 1.0f};
 
@@ -104,6 +106,8 @@ void main()
       ID3D12GraphicsCommandListPtr cmd = GetCommandBuffer();
       Reset(cmd);
 
+      cmd->SetDescriptorHeaps(1, &m_CBVUAVSRV.GetInterfacePtr());
+
       uint32_t a[4] = {111, 111, 111, 111};
       uint32_t b[4] = {222, 222, 222, 222};
 
@@ -122,7 +126,6 @@ void main()
 
       cmd->SetComputeRootSignature(sig);
       cmd->SetPipelineState(pso);
-      cmd->SetDescriptorHeaps(1, &m_CBVUAVSRV.GetInterfacePtr());
       cmd->SetComputeRootUnorderedAccessView(0, bufin->GetGPUVirtualAddress());
       cmd->SetComputeRootUnorderedAccessView(1, bufout->GetGPUVirtualAddress());
       cmd->SetComputeRoot32BitConstant(2, 5, 0);
