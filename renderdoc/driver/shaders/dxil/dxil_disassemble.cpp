@@ -2786,18 +2786,33 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
                   lineStr += ptrStr;
                   // arg[1] : index 0
+                  bool first = true;
                   if(inst.args.size() > 1)
                   {
-                    lineStr += "[";
-                    lineStr += ArgToString(inst.args[1], false);
-                    lineStr += "]";
+                    if(getival<uint32_t>(inst.args[1]) > 0)
+                    {
+                      lineStr += "[";
+                      lineStr += ArgToString(inst.args[1], false);
+                      lineStr += "]";
+                      first = false;
+                    }
                   }
 
                   // arg[2..] : index 1...N
                   for(size_t a = 2; a < inst.args.size(); ++a)
                   {
-                    lineStr += " + ";
+                    if(first)
+                      lineStr += "[";
+                    else
+                      lineStr += " + ";
+
                     lineStr += ArgToString(inst.args[a], false);
+
+                    if(first)
+                    {
+                      lineStr += "]";
+                      first = false;
+                    }
                   }
                 }
               }
