@@ -792,7 +792,7 @@ void Program::FillRayPayloads(
                 rayPayloads[entryPoint].second = MakePayloadType(typeInfo, ownAttrType);
               else
                 RDCERR("Couldn't find matching attribute type for '%s' by name",
-                       executableAttrType->name);
+                       executableAttrType->name.c_str());
               break;
             }
           }
@@ -839,7 +839,7 @@ void Program::FillRayPayloads(
                 rayPayloads[entryPoint].first = MakePayloadType(typeInfo, ownPayloadType);
               else
                 RDCERR("Couldn't find matching payload type for '%s' by name",
-                       executablePayloadType->name);
+                       executablePayloadType->name.c_str());
 
               break;
             }
