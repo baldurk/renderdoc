@@ -3668,11 +3668,11 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::ImageSampleFootprintNV:
     case Op::GroupNonUniformPartitionNV:
     case Op::WritePackedPrimitiveIndices4x8NV:
-    case Op::ReportIntersectionNV:
+    case Op::ReportIntersectionKHR:
     case Op::IgnoreIntersectionNV:
     case Op::TerminateRayNV:
     case Op::TraceNV:
-    case Op::TypeAccelerationStructureNV:
+    case Op::TypeAccelerationStructureKHR:
     case Op::ExecuteCallableNV:
     case Op::TypeCooperativeMatrixNV:
     case Op::CooperativeMatrixLoadNV:
