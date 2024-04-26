@@ -4776,6 +4776,30 @@ DOCUMENT(R"(A set of flags for ``ShaderStage`` stages
 
   The flag for :data:`ShaderStage.Mesh`.
 
+.. data:: RayGen
+
+  The flag for :data:`ShaderStage.RayGen`.
+
+.. data:: Intersection
+
+  The flag for :data:`ShaderStage.Intersection`.
+
+.. data:: AnyHit
+
+  The flag for :data:`ShaderStage.AnyHit`.
+
+.. data:: ClosestHit
+
+  The flag for :data:`ShaderStage.ClosestHit`.
+
+.. data:: Miss
+
+  The flag for :data:`ShaderStage.Miss`.
+
+.. data:: Callable
+
+  The flag for :data:`ShaderStage.Callable`.
+
 .. data:: All
 
   A shorthand version with flags set for all stages together.
