@@ -2410,6 +2410,8 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
       m_Disassembly += "{";
       DisassemblyAddNewLine();
 
+      std::map<rdcstr, rdcstr> handleNames;
+
       size_t curBlock = 0;
 
       // if the first block has a name, use it
@@ -2431,11 +2433,13 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
           lineStr += inst.type->toString();
           lineStr += " ";
         }
+        rdcstr resultIdStr;
         if(!inst.getName().empty())
-          lineStr += StringFormat::Fmt("%c%s = ", DXIL::dxilIdentifier,
-                                       escapeStringIfNeeded(inst.getName()).c_str());
+          resultIdStr = escapeStringIfNeeded(inst.getName());
         else if(inst.slot != ~0U)
-          lineStr += StringFormat::Fmt("%c%u = ", DXIL::dxilIdentifier, inst.slot);
+          resultIdStr = ToStr(inst.slot);
+
+        lineStr += StringFormat::Fmt("%c%s = ", DXIL::dxilIdentifier, resultIdStr.c_str());
 
         bool showDxFuncName = false;
         rdcstr commentStr;
@@ -2475,6 +2479,30 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               uint32_t componentIdx = getival<uint32_t>(inst.args[3]);
               lineStr += swizzle[componentIdx & 0x3];
               lineStr += " = " + ArgToString(inst.args[4], false);
+            }
+            else if(showDxFuncName && funcCallName.beginsWith("dx.op.createHandle"))
+            {
+              showDxFuncName = false;
+              ResourceClass resClass = getival<ResourceClass>(inst.args[1]);
+              uint32_t resIndex = getival<uint32_t>(inst.args[2]);
+              uint32_t resLowerBound = getival<uint32_t>(inst.args[3]);
+              bool nonUniformIndex = (getival<uint32_t>(inst.args[4]) == 1);
+              rdcstr resName = "";
+              switch(resClass)
+              {
+                case ResourceClass::SRV: resName = entryPoint.srvs[resIndex].name; break;
+                case ResourceClass::UAV: resName = entryPoint.uavs[resIndex].name; break;
+                case ResourceClass::CBuffer: resName = entryPoint.cbuffers[resIndex].name; break;
+                case ResourceClass::Sampler: resName = entryPoint.samplers[resIndex].name; break;
+                default: resName = "INVALID RESOURCE CLASS"; break;
+              };
+              handleNames[resultIdStr] = resName;
+              lineStr += resName;
+              lineStr += ";";
+              if(resLowerBound != resIndex)
+                commentStr += " lowerBound = " + ToStr(resLowerBound);
+              if(nonUniformIndex)
+                commentStr += " nonUniformIndex = " + ToStr(nonUniformIndex);
             }
             else if(funcCallName.beginsWith("llvm.dbg."))
             {
