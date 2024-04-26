@@ -2503,9 +2503,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 int paramStrCount = (int)dxFuncSig.size();
                 for(size_t a = 1; a < inst.args.size(); ++a)
                 {
-                  if(!first)
-                    lineStr += ", ";
-
+                  rdcstr paramNameStr;
                   if(paramStart < paramStrCount)
                   {
                     int paramEnd = dxFuncSig.find(',', paramStart);
@@ -2515,13 +2513,24 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                     {
                       rdcstr dxParamName = dxFuncSig.substr(paramStart, paramEnd - paramStart);
                       paramStart = paramEnd + 1;
-                      lineStr += "/*";
-                      lineStr += dxParamName;
-                      lineStr += "*/ ";
+                      paramNameStr = "/*";
+                      paramNameStr += dxParamName;
+                      paramNameStr += "*/ ";
                     }
                   }
-                  lineStr += ArgToString(inst.args[a], false);
-                  first = false;
+                  // Don't show "undef" parameters
+                  bool isUndef = false;
+                  if(const Constant *c = cast<Constant>(inst.args[a]))
+                    isUndef = c->isUndef();
+                  if(!isUndef)
+                  {
+                    if(!first)
+                      lineStr += ", ";
+
+                    lineStr += paramNameStr;
+                    lineStr += ArgToString(inst.args[a], false);
+                    first = false;
+                  }
                 }
                 lineStr += ")";
               }
