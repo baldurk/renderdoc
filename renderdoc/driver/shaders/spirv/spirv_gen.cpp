@@ -1869,14 +1869,14 @@ rdcstr DoStringise(const rdcspv::Op &el)
     STRINGISE_ENUM_CLASS(WritePackedPrimitiveIndices4x8NV);
     STRINGISE_ENUM_CLASS(FetchMicroTriangleVertexPositionNV);
     STRINGISE_ENUM_CLASS(FetchMicroTriangleVertexBarycentricNV);
-    STRINGISE_ENUM_CLASS(ReportIntersectionNV);
+    STRINGISE_ENUM_CLASS(ReportIntersectionKHR);
     STRINGISE_ENUM_CLASS(IgnoreIntersectionNV);
     STRINGISE_ENUM_CLASS(TerminateRayNV);
     STRINGISE_ENUM_CLASS(TraceNV);
     STRINGISE_ENUM_CLASS(TraceMotionNV);
     STRINGISE_ENUM_CLASS(TraceRayMotionNV);
     STRINGISE_ENUM_CLASS(RayQueryGetIntersectionTriangleVertexPositionsKHR);
-    STRINGISE_ENUM_CLASS(TypeAccelerationStructureNV);
+    STRINGISE_ENUM_CLASS(TypeAccelerationStructureKHR);
     STRINGISE_ENUM_CLASS(ExecuteCallableNV);
     STRINGISE_ENUM_CLASS(TypeCooperativeMatrixNV);
     STRINGISE_ENUM_CLASS(CooperativeMatrixLoadNV);
@@ -4867,7 +4867,7 @@ void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)
       callback(Id::fromWord(it.word(6)), false);
       callback(Id::fromWord(it.word(7)), false);
       break;
-    case rdcspv::Op::ReportIntersectionNV:
+    case rdcspv::Op::ReportIntersectionKHR:
       callback(Id::fromWord(it.word(1)), false);
       callback(Id::fromWord(it.word(2)), true);
       callback(Id::fromWord(it.word(3)), false);
@@ -4924,7 +4924,7 @@ void OpDecoder::ForEachID(const ConstIter &it, const std::function<void(Id,bool)
       callback(Id::fromWord(it.word(3)), false);
       callback(Id::fromWord(it.word(4)), false);
       break;
-    case rdcspv::Op::TypeAccelerationStructureNV:
+    case rdcspv::Op::TypeAccelerationStructureKHR:
       callback(Id::fromWord(it.word(1)), true);
       break;
     case rdcspv::Op::ExecuteCallableNV:
@@ -10541,11 +10541,11 @@ rdcstr OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id
            + ")";
       break;
     }
-    case rdcspv::Op::ReportIntersectionNV:
+    case rdcspv::Op::ReportIntersectionKHR:
     {
-      OpReportIntersectionNV decoded(it);
+      OpReportIntersectionKHR decoded(it);
       ret += declName(decoded.resultType, decoded.result) + " = ";
-      ret += rdcstr("ReportIntersectionNV("_lit)
+      ret += rdcstr("ReportIntersectionKHR("_lit)
            + ParamToStr(idName, decoded.hit)
            + ", "
            + ParamToStr(idName, decoded.hitKind)
@@ -10665,11 +10665,11 @@ rdcstr OpDecoder::Disassemble(const ConstIter &it, const std::function<rdcstr(Id
            + ")";
       break;
     }
-    case rdcspv::Op::TypeAccelerationStructureNV:
+    case rdcspv::Op::TypeAccelerationStructureKHR:
     {
-      OpTypeAccelerationStructureNV decoded(it);
+      OpTypeAccelerationStructureKHR decoded(it);
       ret += idName(decoded.result) + " = ";
-      ret += rdcstr("TypeAccelerationStructureNV("_lit)
+      ret += rdcstr("TypeAccelerationStructureKHR("_lit)
            + ")";
       break;
     }
@@ -12085,14 +12085,14 @@ OpDecoder::OpDecoder(const ConstIter &it)
     case rdcspv::Op::WritePackedPrimitiveIndices4x8NV: result = Id(); resultType = Id(); break;
     case rdcspv::Op::FetchMicroTriangleVertexPositionNV: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::FetchMicroTriangleVertexBarycentricNV: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
-    case rdcspv::Op::ReportIntersectionNV: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
+    case rdcspv::Op::ReportIntersectionKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
     case rdcspv::Op::IgnoreIntersectionNV: result = Id(); resultType = Id(); break;
     case rdcspv::Op::TerminateRayNV: result = Id(); resultType = Id(); break;
     case rdcspv::Op::TraceNV: result = Id(); resultType = Id(); break;
     case rdcspv::Op::TraceMotionNV: result = Id(); resultType = Id(); break;
     case rdcspv::Op::TraceRayMotionNV: result = Id(); resultType = Id(); break;
     case rdcspv::Op::RayQueryGetIntersectionTriangleVertexPositionsKHR: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;
-    case rdcspv::Op::TypeAccelerationStructureNV: result = Id::fromWord(it.word(1)); resultType = Id(); break;
+    case rdcspv::Op::TypeAccelerationStructureKHR: result = Id::fromWord(it.word(1)); resultType = Id(); break;
     case rdcspv::Op::ExecuteCallableNV: result = Id(); resultType = Id(); break;
     case rdcspv::Op::TypeCooperativeMatrixNV: result = Id::fromWord(it.word(1)); resultType = Id(); break;
     case rdcspv::Op::CooperativeMatrixLoadNV: result = Id::fromWord(it.word(2)); resultType = Id::fromWord(it.word(1)); break;

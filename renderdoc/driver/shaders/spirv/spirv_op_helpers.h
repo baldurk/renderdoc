@@ -16076,14 +16076,14 @@ struct OpFetchMicroTriangleVertexBarycentricNV
   Id barycentric;
 };
 
-struct OpReportIntersectionNV
+struct OpReportIntersectionKHR
 {
-  OpReportIntersectionNV(const ConstIter &it)
+  OpReportIntersectionKHR(const ConstIter &it)
   {
     memcpy(this, it.words(), sizeof(*this));
   }
-  OpReportIntersectionNV(IdResultType resultType, IdResult result, Id hit, Id hitKind)
-      : op(Op::ReportIntersectionNV)
+  OpReportIntersectionKHR(IdResultType resultType, IdResult result, Id hit, Id hitKind)
+      : op(Op::ReportIntersectionKHR)
       , wordCount(FixedWordSize)
   {
     this->resultType = resultType;
@@ -16092,7 +16092,7 @@ struct OpReportIntersectionNV
     this->hitKind = hitKind;
   }
 
-  static constexpr Op OpCode = Op::ReportIntersectionNV;
+  static constexpr Op OpCode = Op::ReportIntersectionKHR;
   static constexpr uint16_t FixedWordSize = 5U;
   Op op;
   uint16_t wordCount;
@@ -16292,20 +16292,20 @@ struct OpRayQueryGetIntersectionTriangleVertexPositionsKHR
   Id intersection;
 };
 
-struct OpTypeAccelerationStructureNV
+struct OpTypeAccelerationStructureKHR
 {
-  OpTypeAccelerationStructureNV(const ConstIter &it)
+  OpTypeAccelerationStructureKHR(const ConstIter &it)
   {
     memcpy(this, it.words(), sizeof(*this));
   }
-  OpTypeAccelerationStructureNV(IdResult result)
-      : op(Op::TypeAccelerationStructureNV)
+  OpTypeAccelerationStructureKHR(IdResult result)
+      : op(Op::TypeAccelerationStructureKHR)
       , wordCount(FixedWordSize)
   {
     this->result = result;
   }
 
-  static constexpr Op OpCode = Op::TypeAccelerationStructureNV;
+  static constexpr Op OpCode = Op::TypeAccelerationStructureKHR;
   static constexpr uint16_t FixedWordSize = 2U;
   Op op;
   uint16_t wordCount;

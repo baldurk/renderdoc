@@ -895,6 +895,19 @@ disassemble = ''
 for inst in spirv['instructions']:
     if inst['class'] == '@exclude':
         continue
+    
+    wait_for_official = False
+    for off in official_suffixes:
+        for vend in vendor_suffixes:
+            if inst['opname'][-len(vend):] == vend:
+                off_name = inst['opname'][:-len(vend)] + off
+
+                for search in spirv['instructions']:
+                    if search['opname'] == off_name and inst['opcode'] == search['opcode']:
+                        wait_for_official = True
+
+    if wait_for_official:
+        continue
 
     decl += '  {} = {},\n'.format(inst['opname'][2:], inst['opcode'])
 
