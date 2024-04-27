@@ -1293,6 +1293,8 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
           innerName = "sampledImage";
         else if(innertype->type == DataType::ImageType)
           innerName = "image";
+        else if(innertype->type == DataType::AccelerationStructureType)
+          innerName = "accelerationStructure";
         sourceName = StringFormat::Fmt("_%s_set%u_bind%u", innerName.c_str(), decorations[v.id].set,
                                        decorations[v.id].binding);
       }
@@ -1376,6 +1378,14 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
           global.readOnlyResources.push_back(var);
           pointerIDs.push_back(GLOBAL_POINTER(v.id, readOnlyResources));
         }
+      }
+      else if(innertype->type == DataType::AccelerationStructureType)
+      {
+        var.type = VarType::ReadOnlyResource;
+        debugType = DebugVariableType::ReadOnlyResource;
+
+        global.readOnlyResources.push_back(var);
+        pointerIDs.push_back(GLOBAL_POINTER(v.id, readOnlyResources));
       }
       else
       {
@@ -3500,6 +3510,8 @@ uint32_t Debugger::WalkVariable(
     case DataType::ImageType:
     case DataType::SamplerType:
     case DataType::SampledImageType:
+    case DataType::RayQueryType:
+    case DataType::AccelerationStructureType:
     case DataType::UnknownType:
     {
       RDCERR("Unexpected variable type %d", type.type);

@@ -318,6 +318,8 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
   dynamicCount = 0;
   inlineCount = 0;
   inlineByteSize = 0;
+  accelerationStructureCount = 0;
+  accelerationStructureWriteCount = 0;
 
   const VkMutableDescriptorTypeCreateInfoEXT *mutableInfo =
       (const VkMutableDescriptorTypeCreateInfoEXT *)FindNextStruct(
@@ -382,6 +384,11 @@ void DescSetLayout::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo 
     {
       inlineCount++;
       inlineByteSize = AlignUp4(inlineByteSize + bindings[b].descriptorCount);
+    }
+    else if(type == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+    {
+      accelerationStructureWriteCount++;
+      accelerationStructureCount += bindings[b].descriptorCount;
     }
 
     if((type == VK_DESCRIPTOR_TYPE_SAMPLER || type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) &&
@@ -510,50 +517,31 @@ void DescSetLayout::UpdateBindingsArray(const DescSetLayout &prevLayout,
     // resize to the new size, discarding any excess we don't need anymore
     bindingStorage.binds.resize(bindings.size());
 
-    if(inlineByteSize == 0)
+    uint32_t inlineOffset = 0;
+    for(size_t i = 0; i < bindings.size(); i++)
     {
-      for(size_t i = 0; i < bindings.size(); i++)
-      {
-        DescriptorSetSlot *newSlots = newElems.data() + bindings[i].elemOffset;
+      DescriptorSetSlot *newSlots = newElems.data() + bindings[i].elemOffset;
 
+      if(bindings[i].layoutDescType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
+      {
+        bindingStorage.binds[i]->type = DescriptorSlotType::InlineBlock;
+        bindingStorage.binds[i]->offset = inlineOffset;
+        bindingStorage.binds[i]->range = bindings[i].descriptorCount;
+        inlineOffset = AlignUp4(inlineOffset + bindings[i].descriptorCount);
+      }
+      else
+      {
         // copy over any previous bindings that overlapped
         if(i < prevLayout.bindings.size())
           memcpy(newSlots, bindingStorage.binds[i],
                  sizeof(DescriptorSetSlot) *
                      RDCMIN(prevLayout.bindings[i].descriptorCount, bindings[i].descriptorCount));
-
-        bindingStorage.binds[i] = newSlots;
-      }
-    }
-    else
-    {
-      uint32_t inlineOffset = 0;
-      for(size_t i = 0; i < bindings.size(); i++)
-      {
-        DescriptorSetSlot *newSlots = newElems.data() + bindings[i].elemOffset;
-
-        if(bindings[i].layoutDescType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
-        {
-          bindingStorage.binds[i]->type = DescriptorSlotType::InlineBlock;
-          bindingStorage.binds[i]->offset = inlineOffset;
-          bindingStorage.binds[i]->range = bindings[i].descriptorCount;
-          inlineOffset = AlignUp4(inlineOffset + bindings[i].descriptorCount);
-        }
-        else
-        {
-          // copy over any previous bindings that overlapped
-          if(i < prevLayout.bindings.size())
-            memcpy(newSlots, bindingStorage.binds[i],
-                   sizeof(DescriptorSetSlot) *
-                       RDCMIN(prevLayout.bindings[i].descriptorCount, bindings[i].descriptorCount));
-        }
-
-        bindingStorage.binds[i] = newSlots;
       }
 
-      bindingStorage.inlineBytes.resize(inlineByteSize);
+      bindingStorage.binds[i] = newSlots;
     }
 
+    bindingStorage.inlineBytes.resize(inlineByteSize);
     bindingStorage.elems.swap(newElems);
   }
 }
@@ -631,6 +619,17 @@ bool IsValid(bool allowNULLDescriptors, const VkWriteDescriptorSet &write, uint3
       return false;
 
     return true;
+  }
+
+  if(write.descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+  {
+    if(allowNULLDescriptors)
+      return true;
+
+    const VkWriteDescriptorSetAccelerationStructureKHR *asDesc =
+        (const VkWriteDescriptorSetAccelerationStructureKHR *)FindNextStruct(
+            &write, VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR);
+    return asDesc != VK_NULL_HANDLE;
   }
 
   RDCERR("Encountered VkWriteDescriptorSet with no data!");
@@ -2622,6 +2621,9 @@ void DescUpdateTemplate::Init(VulkanResourceManager *resourceMan, VulkanCreation
   texelBufferViewCount = 0;
   bufferInfoCount = 0;
   imageInfoCount = 0;
+  inlineInfoCount = 0;
+  inlineByteSize = 0;
+  accelerationStructureCount = 0;
 
   for(const VkDescriptorUpdateTemplateEntry &entry : updates)
   {
@@ -2658,6 +2660,13 @@ void DescUpdateTemplate::Init(VulkanResourceManager *resourceMan, VulkanCreation
       inlineInfoCount++;
       inlineByteSize += entry.descriptorCount;
       inlineByteSize = AlignUp4(inlineByteSize);
+    }
+    else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+    {
+      entrySize = sizeof(VkAccelerationStructureKHR);
+
+      accelerationStructureWriteCount++;
+      accelerationStructureCount += entry.descriptorCount;
     }
     else
     {
@@ -2704,6 +2713,8 @@ void DescUpdateTemplate::Apply(const void *pData, DescUpdateTemplateApplication 
   application.imgInfo.reserve(imageInfoCount);
   application.inlineData.resize(inlineByteSize);
   application.inlineUniform.reserve(inlineInfoCount);
+  application.accelerationStructureWrite.reserve(accelerationStructureWriteCount);
+  application.accelerationStructure.reserve(accelerationStructureCount);
 
   uint32_t inlineOffset = 0;
   for(const VkDescriptorUpdateTemplateEntry &entry : updates)
@@ -2766,6 +2777,28 @@ void DescUpdateTemplate::Apply(const void *pData, DescUpdateTemplateApplication 
       inlineWrite.pData = dst;
 
       write.pNext = &inlineWrite;
+      write.descriptorCount = entry.descriptorCount;
+    }
+    else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+    {
+      application.accelerationStructureWrite.push_back({});
+
+      VkWriteDescriptorSetAccelerationStructureKHR &asWrite =
+          application.accelerationStructureWrite.back();
+      asWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+      asWrite.pNext = NULL;
+      asWrite.accelerationStructureCount = entry.descriptorCount;
+
+      const size_t idx = application.accelerationStructure.size();
+      application.accelerationStructure.resize(idx + entry.descriptorCount);
+      for(uint32_t d = 0; d < entry.descriptorCount; d++)
+      {
+        memcpy(&application.accelerationStructure[idx + d], src, sizeof(VkAccelerationStructureKHR));
+        src += entry.stride;
+      }
+      asWrite.pAccelerationStructures = &application.accelerationStructure[idx];
+
+      write.pNext = &asWrite;
       write.descriptorCount = entry.descriptorCount;
     }
     else

@@ -1088,7 +1088,8 @@ private:
                                    rdcarray<VkResourceRecord *> &cmdsWithReferences,
                                    std::unordered_set<ResourceId> &refdIDs);
   void AddRecordsForSecondaries(VkResourceRecord *record);
-  void UpdateImageStatesForSecondaries(VkResourceRecord *record);
+  void UpdateImageStatesForSecondaries(VkResourceRecord *record,
+                                       rdcarray<VkResourceRecord *> &accelerationStructures);
   void CaptureQueueSubmit(VkQueue queue, const rdcarray<VkCommandBuffer> &commandBuffers,
                           VkFence fence);
 

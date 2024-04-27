@@ -53,7 +53,7 @@ public:
   void Apply(ResourceId id, const VkInitialContents &initial);
 
 private:
-  VkDeviceSize SerialisedASSize(VkAccelerationStructureKHR as);
+  VkDeviceSize SerialisedASSize(VkAccelerationStructureKHR unwrappedAs);
 
   WrappedVulkan *m_pDriver;
 };

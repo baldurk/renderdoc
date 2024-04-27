@@ -949,6 +949,7 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
     rdcarray<VkDescriptorBufferInfo *> allocBufWrites;
     rdcarray<VkBufferView *> allocBufViewWrites;
     rdcarray<VkWriteDescriptorSetInlineUniformBlock *> allocInlineWrites;
+    rdcarray<VkWriteDescriptorSetAccelerationStructureKHR *> allocASWrites;
 
     const WrappedVulkan::DescriptorSetInfo &setInfo = vk->GetDebugManager()->GetDescSetInfo(descSet);
 
@@ -1021,6 +1022,24 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
         // skip validity checks
         continue;
       }
+      else if(push.descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+      {
+        VkAccelerationStructureKHR *dst = new VkAccelerationStructureKHR[push.descriptorCount];
+        for(uint32_t a = 0; a < push.descriptorCount; a++)
+          dst[a] = Unwrap(rm->GetCurrentHandle<VkAccelerationStructureKHR>(slots[a].resource));
+
+        allocASWrites.push_back(new VkWriteDescriptorSetAccelerationStructureKHR);
+        VkWriteDescriptorSetAccelerationStructureKHR *asWrite = allocASWrites.back();
+
+        asWrite->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+        asWrite->pNext = NULL;
+        asWrite->accelerationStructureCount = layoutBind.descriptorCount;
+        asWrite->pAccelerationStructures = dst;
+
+        push.pNext = asWrite;
+        push.descriptorCount = layoutBind.descriptorCount;
+        writes.push_back(push);
+      }
       else
       {
         VkDescriptorBufferInfo *dst = new VkDescriptorBufferInfo[push.descriptorCount];
@@ -1090,6 +1109,11 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
       delete[] a;
     for(VkWriteDescriptorSetInlineUniformBlock *a : allocInlineWrites)
       delete a;
+    for(VkWriteDescriptorSetAccelerationStructureKHR *d : allocASWrites)
+    {
+      delete[] d->pAccelerationStructures;
+      delete d;
+    }
   }
 }
 

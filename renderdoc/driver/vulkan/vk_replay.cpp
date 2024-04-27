@@ -2353,8 +2353,7 @@ void VulkanReplay::FillDescriptor(Descriptor &dstel, const DescriptorSetSlot &sr
   else if(descriptorType == DescriptorSlotType::StorageBuffer ||
           descriptorType == DescriptorSlotType::StorageBufferDynamic ||
           descriptorType == DescriptorSlotType::UniformBuffer ||
-          descriptorType == DescriptorSlotType::UniformBufferDynamic ||
-          descriptorType == DescriptorSlotType::AccelerationStructure)
+          descriptorType == DescriptorSlotType::UniformBufferDynamic)
   {
     dstel.view = ResourceId();
 
@@ -2363,6 +2362,16 @@ void VulkanReplay::FillDescriptor(Descriptor &dstel, const DescriptorSetSlot &sr
 
     dstel.byteOffset = srcel.offset;
     dstel.byteSize = srcel.GetRange();
+  }
+  else if(descriptorType == DescriptorSlotType::AccelerationStructure)
+  {
+    dstel.view = ResourceId();
+
+    if(srcel.resource != ResourceId())
+    {
+      dstel.resource = rm->GetOriginalID(srcel.resource);
+      dstel.byteSize = c.m_AccelerationStructure[srcel.resource].size;
+    }
   }
 }
 
