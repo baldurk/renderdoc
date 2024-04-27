@@ -5379,6 +5379,26 @@ void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineBindPoint pipelineBindPo
                                  layoutBinding->immutableSampler == NULL);
       }
     }
+    else if(writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+    {
+      VkWriteDescriptorSetAccelerationStructureKHR *asWrite =
+          (VkWriteDescriptorSetAccelerationStructureKHR *)FindNextStruct(
+              &writeDesc, VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR);
+      for(uint32_t d = 0; d < writeDesc.descriptorCount; d++, curIdx++)
+      {
+        // allow consecutive descriptor bind updates. See vkUpdateDescriptorSets for more
+        // explanation
+        if(curIdx >= layoutBinding->descriptorCount)
+        {
+          layoutBinding++;
+          bind++;
+          curIdx = 0;
+        }
+
+        (*bind)[curIdx].SetAccelerationStructure(writeDesc.descriptorType,
+                                                 asWrite->pAccelerationStructures[d]);
+      }
+    }
     else if(writeDesc.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
     {
       VkWriteDescriptorSetInlineUniformBlock *inlineWrite =
@@ -7699,6 +7719,9 @@ void WrappedVulkan::vkCmdBuildAccelerationStructuresIndirectKHR(
 
       GetResourceManager()->MarkResourceFrameReferenced(GetResID(geomInfo.dstAccelerationStructure),
                                                         eFrameRef_CompleteWrite);
+
+      // Add to the command buffer metadata, so we can know when it has been submitted
+      record->cmdInfo->accelerationStructures.push_back(GetRecord(geomInfo.dstAccelerationStructure));
     }
   }
 }
@@ -7809,6 +7832,9 @@ void WrappedVulkan::vkCmdBuildAccelerationStructuresKHR(
 
       GetResourceManager()->MarkResourceFrameReferenced(GetResID(geomInfo.dstAccelerationStructure),
                                                         eFrameRef_CompleteWrite);
+
+      // Add to the command buffer metadata, so we can know when it has been submitted
+      record->cmdInfo->accelerationStructures.push_back(GetRecord(geomInfo.dstAccelerationStructure));
     }
   }
 }
@@ -7857,6 +7883,9 @@ void WrappedVulkan::vkCmdCopyAccelerationStructureKHR(VkCommandBuffer commandBuf
 
     GetResourceManager()->MarkResourceFrameReferenced(GetResID(pInfo->src), eFrameRef_Read);
     GetResourceManager()->MarkResourceFrameReferenced(GetResID(pInfo->dst), eFrameRef_CompleteWrite);
+
+    // Add to the command buffer metadata, so we can know when it has been submitted
+    record->cmdInfo->accelerationStructures.push_back(GetRecord(pInfo->dst));
   }
 }
 

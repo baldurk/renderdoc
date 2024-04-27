@@ -946,15 +946,18 @@ void WrappedVulkan::AddRecordsForSecondaries(VkResourceRecord *record)
   }
 }
 
-void WrappedVulkan::UpdateImageStatesForSecondaries(VkResourceRecord *record)
+void WrappedVulkan::UpdateImageStatesForSecondaries(VkResourceRecord *record,
+                                                    rdcarray<VkResourceRecord *> &accelerationStructures)
 {
   const rdcarray<VkResourceRecord *> &subcmds = record->bakedCommands->cmdInfo->subcmds;
 
   for(VkResourceRecord *subcmd : subcmds)
   {
+    accelerationStructures.append(subcmd->bakedCommands->cmdInfo->accelerationStructures);
+
     subcmd->bakedCommands->AddResourceReferences(GetResourceManager());
     UpdateImageStates(subcmd->bakedCommands->cmdInfo->imageStates);
-    UpdateImageStatesForSecondaries(subcmd);
+    UpdateImageStatesForSecondaries(subcmd, accelerationStructures);
   }
 }
 
@@ -969,6 +972,7 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
   std::set<rdcpair<ResourceId, VkResourceRecord *>> capDescriptors;
   std::set<rdcpair<ResourceId, VkResourceRecord *>> descriptorSets;
   rdcarray<VkResourceRecord *> cmdsWithReferences;
+  rdcarray<VkResourceRecord *> accelerationStructures;
 
   // pull in any copy sources, conservatively
   if(capframe)
@@ -1061,9 +1065,11 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
     {
       VkResourceRecord *record = GetRecord(commandBuffers[i]);
 
+      accelerationStructures.append(record->bakedCommands->cmdInfo->accelerationStructures);
+
       record->bakedCommands->AddResourceReferences(GetResourceManager());
       UpdateImageStates(record->bakedCommands->cmdInfo->imageStates);
-      UpdateImageStatesForSecondaries(record);
+      UpdateImageStatesForSecondaries(record, accelerationStructures);
     }
 
     // every 20 submits clean background references, in case the application isn't presenting.
@@ -1328,6 +1334,11 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
   for(const rdcpair<ResourceId, VkResourceRecord *> &it : capDescriptors)
     it.second->Delete(GetResourceManager());
   capDescriptors.clear();
+
+  for(VkResourceRecord *asRecord : accelerationStructures)
+  {
+    asRecord->accelerationStructureBuilt = true;
+  }
 }
 
 template <typename SerialiserType>

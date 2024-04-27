@@ -104,6 +104,8 @@ struct VkInitialContents
     SAFE_DELETE_ARRAY(descriptorWrites);
     SAFE_DELETE_ARRAY(descriptorInfo);
     SAFE_DELETE_ARRAY(inlineInfo);
+    SAFE_DELETE_ARRAY(accelerationStructureWrites);
+    SAFE_DELETE_ARRAY(accelerationStructures);
     FreeAlignedBuffer(inlineData);
 
     rm->ResourceTypeRelease(GetWrapped(buf));
@@ -111,7 +113,7 @@ struct VkInitialContents
     SAFE_DELETE(sparseTables);
     SAFE_DELETE(sparseBind);
 
-    // MemoryAllocation is not free'd here
+    // MemoryAllocation and serialised ASes are not free'd here
   }
 
   // for descriptor heaps, when capturing we save the slots, when replaying we store direct writes
@@ -121,6 +123,9 @@ struct VkInitialContents
   VkWriteDescriptorSetInlineUniformBlock *inlineInfo;
   byte *inlineData;
   size_t inlineByteSize;
+  VkWriteDescriptorSetAccelerationStructureKHR *accelerationStructureWrites;
+  VkAccelerationStructureKHR *accelerationStructures;
+  size_t numAccelerationStructures;
   uint32_t numDescriptors;
 
   // for plain resources, we store the resource type and memory allocation details of the contents

@@ -852,6 +852,14 @@ void Reflector::PostParse()
         type.name = StringFormat::Fmt("Sampled%s",
                                       dataTypes[sampledImageTypes[type.id].baseId].name.c_str());
       }
+      else if(type.type == DataType::RayQueryType)
+      {
+        type.name = StringFormat::Fmt("rayQuery%u", type.id.value());
+      }
+      else if(type.type == DataType::AccelerationStructureType)
+      {
+        type.name = StringFormat::Fmt("accelerationStructure%u", type.id.value());
+      }
     }
   }
 
@@ -1446,6 +1454,15 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
           samp.bindArraySize = arraySize;
 
           samplers.push_back(sortedsamp(global.id, samp));
+        }
+        else if(varType->type == DataType::AccelerationStructureType)
+        {
+          res.descriptorType = DescriptorType::AccelerationStructure;
+          res.variableType.baseType = VarType::ReadOnlyResource;
+          res.isTexture = false;
+          res.isReadOnly = true;
+
+          roresources.push_back(sortedres(global.id, res));
         }
         else
         {

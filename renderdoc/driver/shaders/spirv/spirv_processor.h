@@ -334,6 +334,8 @@ struct DataType
     ImageType,
     SamplerType,
     SampledImageType,
+    RayQueryType,
+    AccelerationStructureType,
   };
 
   struct Child
@@ -372,7 +374,26 @@ struct DataType
   Id InnerType() const { return pointerType.baseId; }
   bool IsOpaqueType() const
   {
-    return type == ImageType || type == SamplerType || type == SampledImageType;
+    switch(type)
+    {
+      case Type::ScalarType:
+      case Type::VectorType:
+      case Type::MatrixType:
+      case Type::StructType:
+      case Type::PointerType:
+      case Type::ArrayType: return false;
+      case Type::ImageType:
+      case Type::SamplerType:
+      case Type::SampledImageType:
+      case Type::RayQueryType:
+      case Type::AccelerationStructureType: return true;
+      default:
+      {
+        RDCWARN("Unknown SPIR-V type!");
+        break;
+      }
+    }
+    return false;
   }
   Id id;
   rdcstr name;

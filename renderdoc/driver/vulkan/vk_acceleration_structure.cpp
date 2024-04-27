@@ -355,7 +355,7 @@ void VulkanAccelerationStructureManager::Apply(ResourceId id, const VkInitialCon
   }
 }
 
-VkDeviceSize VulkanAccelerationStructureManager::SerialisedASSize(VkAccelerationStructureKHR as)
+VkDeviceSize VulkanAccelerationStructureManager::SerialisedASSize(VkAccelerationStructureKHR unwrappedAs)
 {
   VkDevice d = m_pDriver->GetDev();
 
@@ -374,7 +374,8 @@ VkDeviceSize VulkanAccelerationStructureManager::SerialisedASSize(VkAcceleration
 
   // Get the size
   ObjDisp(d)->CmdWriteAccelerationStructuresPropertiesKHR(
-      Unwrap(cmd), 1, &as, VK_QUERY_TYPE_ACCELERATION_STRUCTURE_SERIALIZATION_SIZE_KHR, pool, 0);
+      Unwrap(cmd), 1, &unwrappedAs, VK_QUERY_TYPE_ACCELERATION_STRUCTURE_SERIALIZATION_SIZE_KHR,
+      pool, 0);
 
   m_pDriver->CloseInitStateCmd();
   m_pDriver->SubmitCmds();
@@ -382,7 +383,8 @@ VkDeviceSize VulkanAccelerationStructureManager::SerialisedASSize(VkAcceleration
 
   VkDeviceSize size = 0;
   vkr = ObjDisp(d)->GetQueryPoolResults(Unwrap(d), pool, 0, 1, sizeof(VkDeviceSize), &size,
-                                        sizeof(VkDeviceSize), VK_QUERY_RESULT_WAIT_BIT);
+                                        sizeof(VkDeviceSize),
+                                        VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
   m_pDriver->CheckVkResult(vkr);
 
   // Clean up

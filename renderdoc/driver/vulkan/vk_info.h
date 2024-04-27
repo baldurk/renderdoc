@@ -129,6 +129,9 @@ struct DescSetLayout
   uint32_t inlineCount;
   uint32_t inlineByteSize;
 
+  uint32_t accelerationStructureWriteCount;
+  uint32_t accelerationStructureCount;
+
   // the cummulative stageFlags for all bindings in this layout
   VkShaderStageFlags anyStageFlags;
 
@@ -149,6 +152,9 @@ struct DescUpdateTemplateApplication
   rdcarray<VkBufferView> bufView;
   rdcarray<VkWriteDescriptorSetInlineUniformBlock> inlineUniform;
   bytebuf inlineData;
+
+  rdcarray<VkWriteDescriptorSetAccelerationStructureKHR> accelerationStructureWrite;
+  rdcarray<VkAccelerationStructureKHR> accelerationStructure;
 
   rdcarray<VkWriteDescriptorSet> writes;
 };
@@ -171,6 +177,8 @@ struct DescUpdateTemplate
   uint32_t imageInfoCount;
   uint32_t inlineInfoCount;
   uint32_t inlineByteSize;
+  uint32_t accelerationStructureWriteCount;
+  uint32_t accelerationStructureCount;
 
   rdcarray<VkDescriptorUpdateTemplateEntry> updates;
 };

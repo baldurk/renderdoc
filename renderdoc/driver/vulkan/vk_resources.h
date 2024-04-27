@@ -1111,6 +1111,9 @@ struct CmdBufferRecordingInfo
 
   std::unordered_map<ResourceId, MemRefs> memFrameRefs;
 
+  // A list of acceleration structures that this command buffer will build or copy
+  rdcarray<VkResourceRecord *> accelerationStructures;
+
   // AdvanceFrame/Present should be called after this buffer is submitted
   bool present;
   // BeginFrameCapture should be called *before* this buffer is submitted.
@@ -2212,6 +2215,7 @@ public:
     RDCASSERT(bakedCommands->cmdInfo->imageStates.empty());
     cmdInfo->imageStates.swap(bakedCommands->cmdInfo->imageStates);
     cmdInfo->memFrameRefs.swap(bakedCommands->cmdInfo->memFrameRefs);
+    cmdInfo->accelerationStructures.swap(bakedCommands->cmdInfo->accelerationStructures);
   }
 
   // we have a lot of 'cold' data in the resource record, as it can be accessed
@@ -2268,6 +2272,7 @@ public:
     DescPoolInfo *descPoolInfo;              // only for descriptor pools
     CmdPoolInfo *cmdPoolInfo;                // only for command pools
     uint32_t queueFamilyIndex;               // only for queues
+    bool accelerationStructureBuilt;         // only for acceleration structures
   };
 
   VkResourceRecord *bakedCommands;

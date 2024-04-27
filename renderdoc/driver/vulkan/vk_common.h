@@ -577,7 +577,9 @@ constexpr DescriptorSlotType convert(VkDescriptorType type)
              ? DescriptorSlotType::StorageBufferDynamic
          : type == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT     ? DescriptorSlotType::InputAttachment
          : type == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK ? DescriptorSlotType::InlineBlock
-                                                           : DescriptorSlotType::Unwritten;
+         : type == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR
+             ? DescriptorSlotType::AccelerationStructure
+             : DescriptorSlotType::Unwritten;
 }
 
 enum class DescriptorSlotImageLayout : EnumBaseType
