@@ -792,6 +792,251 @@ void WrappedID3D12PipelineState::ProcessDescriptorAccess()
   }
 }
 
+D3D12ShaderExportDatabase::D3D12ShaderExportDatabase(ResourceId id,
+                                                     D3D12RaytracingResourceAndUtilHandler *rayManager,
+                                                     ID3D12StateObjectProperties *obj)
+    : RefCounter12(NULL), objectOriginalId(id), m_RayManager(rayManager), m_StateObjectProps(obj)
+{
+  m_RayManager->RegisterExportDatabase(this);
+}
+
+D3D12ShaderExportDatabase::~D3D12ShaderExportDatabase()
+{
+  for(D3D12ShaderExportDatabase *parent : parents)
+  {
+    SAFE_RELEASE(parent);
+  }
+
+  m_RayManager->UnregisterExportDatabase(this);
+}
+
+void D3D12ShaderExportDatabase::AddExport(const rdcstr &exportName)
+{
+  void *identifier = NULL;
+  if(m_StateObjectProps)
+    identifier = m_StateObjectProps->GetShaderIdentifier(StringFormat::UTF82Wide(exportName).c_str());
+  const bool complete = identifier != NULL;
+
+  {
+    // store the wrapped identifier here in this database, ready to return to the application in
+    // this object or any child objects.
+    wrappedIdentifiers.push_back({objectOriginalId, (uint32_t)ownExports.size()});
+
+    // store the unwrapping information to go into the giant lookup table
+    ownExports.push_back({});
+    // if there's a real identifier then store it. But we track this regardless so that we can
+    // know the root signature for hitgroup-component shaders. If this export is inherited then it
+    // will be detected as incomplete and copied and patched in the child
+    if(identifier)
+      memcpy(ownExports.back().real, identifier, sizeof(ShaderIdentifier));
+    // a local root signature may never get specified, so default to none
+    ownExports.back().rootSigPrio = SubObjectPriority::NotYetDefined;
+    ownExports.back().localRootSigIndex = 0xffff;
+  }
+
+  if(exportName.size() > 2 && exportName[0] == '\x1' && exportName[1] == '?')
+  {
+    int idx = exportName.indexOf('@');
+    if(idx > 2)
+    {
+      exportLookups.emplace_back(exportName, exportName.substr(2, idx - 2), complete);
+      return;
+    }
+  }
+  exportLookups.emplace_back(exportName, rdcstr(), complete);
+}
+
+void D3D12ShaderExportDatabase::InheritCollectionExport(D3D12ShaderExportDatabase *existing,
+                                                        const rdcstr &nameToExport,
+                                                        const rdcstr &nameInExisting)
+{
+  if(!parents.contains(existing))
+  {
+    parents.push_back(existing);
+    existing->AddRef();
+  }
+
+  for(size_t i = 0; i < existing->exportLookups.size(); i++)
+  {
+    if(existing->exportLookups[i].name == nameInExisting ||
+       existing->exportLookups[i].altName == nameInExisting)
+    {
+      InheritExport(nameInExisting, existing, i);
+
+      // if we renamed, now that we found the right export in the existing collection use the
+      // desired name going forward. This may still find the existing identifier as that hasn't
+      // necessarily changed
+      if(nameToExport != nameInExisting)
+      {
+        exportLookups.back().name = nameToExport;
+        exportLookups.back().altName.clear();
+
+        if(exportLookups.back().hitgroup)
+          hitGroups.back().first = nameToExport;
+      }
+    }
+  }
+}
+
+void D3D12ShaderExportDatabase::InheritExport(const rdcstr &exportName,
+                                              D3D12ShaderExportDatabase *existing, size_t i)
+{
+  void *identifier = NULL;
+  if(m_StateObjectProps)
+    identifier = m_StateObjectProps->GetShaderIdentifier(StringFormat::UTF82Wide(exportName).c_str());
+
+  wrappedIdentifiers.push_back(existing->wrappedIdentifiers[i]);
+  exportLookups.push_back(existing->exportLookups[i]);
+
+  // if this export wasn't previously complete, consider it exported in this object
+  // note that identifier may be NULL if this is a shader that can't be used on its own like any
+  // hit, but we want to keep it in our export list so we can track its root signature to update
+  // the hit group's root signature. Since there is only one level of collection => RT PSO this
+  // won't cause too much wasted exports
+  // we don't inherit non-complete identifiers when doing AddToStateObject so this doesn't apply
+  if(!exportLookups.back().complete)
+  {
+    ownExports.push_back({});
+
+    // we expect this identifier to have come from the object we're inheriting
+    RDCASSERTEQUAL(wrappedIdentifiers.back().id, existing->objectOriginalId);
+    // which means we can copy any root signature it had associated even if it wasn't complete
+    ownExports.back() = existing->ownExports[wrappedIdentifiers.back().index];
+
+    // now set the identifier, if we got one
+    if(identifier)
+      memcpy(ownExports.back().real, identifier, sizeof(ShaderIdentifier));
+
+    // and re-point this to point to ourselves when queried as we have the best data for it.
+    wrappedIdentifiers.back() = {objectOriginalId, (uint32_t)ownExports.size()};
+
+    // if this is an incomplete hitgroup, also grab the hitgroup component data
+    if(exportLookups.back().hitgroup)
+    {
+      for(size_t h = 0; h < existing->hitGroups.size(); h++)
+      {
+        if(existing->hitGroups[h].first == exportName)
+        {
+          hitGroups.push_back(existing->hitGroups[h]);
+          break;
+        }
+      }
+    }
+  }
+}
+
+void D3D12ShaderExportDatabase::ApplyRoot(SubObjectPriority priority, const rdcstr &exportName,
+                                          uint32_t localRootSigIndex)
+{
+  for(size_t i = 0; i < exportLookups.size(); i++)
+  {
+    if(exportLookups[i].name == exportName || exportLookups[i].altName == exportName)
+    {
+      ApplyRoot(wrappedIdentifiers[i], priority, localRootSigIndex);
+      break;
+    }
+  }
+}
+
+void D3D12ShaderExportDatabase::ApplyRoot(const ShaderIdentifier &identifier,
+                                          SubObjectPriority priority, uint32_t localRootSigIndex)
+{
+  if(identifier.id == objectOriginalId)
+  {
+    // set this anywhere we have a looser/lower priority association already (including the most
+    // common case presumably where one isn't set at all)
+    ExportedIdentifier &exported = ownExports[identifier.index];
+    if(exported.rootSigPrio < priority)
+    {
+      exported.rootSigPrio = priority;
+      exported.localRootSigIndex = (uint16_t)localRootSigIndex;
+    }
+  }
+}
+
+void D3D12ShaderExportDatabase::AddLastHitGroupShaders(rdcarray<rdcstr> &&shaders)
+{
+  exportLookups.back().hitgroup = true;
+  hitGroups.emplace_back(exportLookups.back().name, shaders);
+}
+
+void D3D12ShaderExportDatabase::UpdateHitGroupAssociations()
+{
+  // for each hit group
+  for(size_t h = 0; h < hitGroups.size(); h++)
+  {
+    // find it in the exports, as it could have been dangling before
+    for(size_t e = 0; e < exportLookups.size(); e++)
+    {
+      if(hitGroups[h].first == exportLookups[e].name)
+      {
+        // if the export is our own (ie. not complete and finished in a parent), we might need to
+        // update its root sig
+        if(wrappedIdentifiers[e].id == objectOriginalId)
+        {
+          // if the hit group got a code association already we assume it must match, but a DXIL
+          // association or a default association could be overridden since it's unclear if a
+          // hitgroup is a 'candidate' for default
+          if(ownExports[wrappedIdentifiers[e].index].rootSigPrio !=
+             SubObjectPriority::CodeExplicitAssociation)
+          {
+            // for each export, find it and try to update the root signature
+            for(const rdcstr &shaderExport : hitGroups[h].second)
+            {
+              for(size_t e2 = 0; e2 < exportLookups.size(); e2++)
+              {
+                if(shaderExport == exportLookups[e2].name || shaderExport == exportLookups[e2].altName)
+                {
+                  RDCASSERTEQUAL(wrappedIdentifiers[e2].id, objectOriginalId);
+                  uint32_t idx = wrappedIdentifiers[e2].index;
+                  ApplyRoot(wrappedIdentifiers[e], ownExports[idx].rootSigPrio,
+                            ownExports[idx].localRootSigIndex);
+
+                  // don't keep looking at exports, we found this shader
+                  break;
+                }
+              }
+
+              // if we've inherited an explicit code association from a component shader, that
+              // also must match so we can stop looking. Otherwise we keep looking to try and find
+              // a 'better' association that can't be overridden
+              if(ownExports[wrappedIdentifiers[e].index].rootSigPrio ==
+                 SubObjectPriority::CodeExplicitAssociation)
+                break;
+            }
+          }
+        }
+
+        // found this hit group, don't keep looking
+        break;
+      }
+    }
+  }
+}
+
+void D3D12ShaderExportDatabase::InheritAllCollectionExports(D3D12ShaderExportDatabase *existing)
+{
+  if(!parents.contains(existing))
+  {
+    parents.push_back(existing);
+    existing->AddRef();
+  }
+
+  wrappedIdentifiers.reserve(wrappedIdentifiers.size() + existing->wrappedIdentifiers.size());
+  exportLookups.reserve(exportLookups.size() + existing->exportLookups.size());
+  for(size_t i = 0; i < existing->exportLookups.size(); i++)
+  {
+    InheritExport(existing->exportLookups[i].name, existing, i);
+  }
+}
+
+void D3D12ShaderExportDatabase::ApplyDefaultRoot(SubObjectPriority priority,
+                                                 uint32_t localRootSigIndex)
+{
+  for(size_t i = 0; i < wrappedIdentifiers.size(); i++)
+    ApplyRoot(wrappedIdentifiers[i], priority, localRootSigIndex);
+}
+
 UINT GetPlaneForSubresource(ID3D12Resource *res, int Subresource)
 {
   D3D12_RESOURCE_DESC desc = res->GetDesc();

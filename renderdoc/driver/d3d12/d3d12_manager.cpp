@@ -861,6 +861,54 @@ void D3D12RaytracingResourceAndUtilHandler::InitReplayBlasPatchingResources()
   }
 }
 
+uint32_t D3D12RaytracingResourceAndUtilHandler::RegisterLocalRootSig(const D3D12RootSignature &sig)
+{
+  rdcarray<uint32_t> tableOffsets;
+  uint32_t offset = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+  for(uint32_t i = 0; i < sig.Parameters.size(); i++)
+  {
+    // constants are 4-byte aligned, everything else is 8-byte
+    if(sig.Parameters[i].ParameterType != D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
+      offset = AlignUp(offset, 8U);
+
+    if(sig.Parameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+      tableOffsets.push_back(offset);
+
+    if(sig.Parameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
+      offset += sig.Parameters[i].Constants.Num32BitValues * sizeof(uint32_t);
+    else
+      offset += sizeof(uint64_t);
+  }
+
+  // no patching needed if no tables
+  if(tableOffsets.empty())
+    return ~0U;
+
+  int idx = m_UniqueLocalRootSigs.indexOf(tableOffsets);
+  if(idx < 0)
+  {
+    idx = m_UniqueLocalRootSigs.count();
+    m_UniqueLocalRootSigs.push_back(tableOffsets);
+  }
+
+  m_LookupBufferDirty = true;
+
+  return idx;
+}
+
+void D3D12RaytracingResourceAndUtilHandler::RegisterExportDatabase(D3D12ShaderExportDatabase *db)
+{
+  m_ExportDatabases.push_back(db);
+  m_LookupBufferDirty = true;
+}
+
+void D3D12RaytracingResourceAndUtilHandler::UnregisterExportDatabase(D3D12ShaderExportDatabase *db)
+{
+  m_ExportDatabases.push_back(db);
+  // don't dirty the lookup buffer here, there's not much value in recreating it just to reduce
+  // memory use - next time we need to add data we'll reclaim that.
+}
+
 D3D12GpuBufferAllocator *D3D12GpuBufferAllocator::m_bufferAllocator = NULL;
 
 bool D3D12GpuBufferAllocator::CopyBufferRegion(WrappedID3D12GraphicsCommandList *wrappedCmd,

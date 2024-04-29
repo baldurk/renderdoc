@@ -1072,6 +1072,11 @@ public:
 
   void InitInternalResources();
 
+  uint32_t RegisterLocalRootSig(const D3D12RootSignature &sig);
+
+  void RegisterExportDatabase(D3D12ShaderExportDatabase *db);
+  void UnregisterExportDatabase(D3D12ShaderExportDatabase *db);
+
   void ResizeSerialisationBuffer(UINT64 size);
 
   // buffer in UAV state for emitting AS queries to, CPU accessible/mappable
@@ -1091,6 +1096,17 @@ private:
   HANDLE m_gpuSyncHandle;
   UINT64 m_gpuSyncCounter;
   D3D12AccStructPatchInfo m_accStructPatchInfo;
+
+  // each unique set of descriptor table offsets are stored here, so any root signatures which only
+  // vary in ways that don't affect which tables are contained within them (and so don't need
+  // patching) will have a single entry in here
+  rdcarray<rdcarray<uint32_t>> m_UniqueLocalRootSigs;
+
+  // export databases that are alive
+  rdcarray<D3D12ShaderExportDatabase *> m_ExportDatabases;
+
+  // is the lookup buffer dirty and needs to be recreated with the latest data?
+  bool m_LookupBufferDirty = true;
 };
 
 struct D3D12ResourceManagerConfiguration

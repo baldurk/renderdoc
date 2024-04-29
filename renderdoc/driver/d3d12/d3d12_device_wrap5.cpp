@@ -250,6 +250,264 @@ HRESULT WrappedID3D12Device::CreateStateObject(const D3D12_STATE_OBJECT_DESC *pD
       SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_CreateStateObject);
       Serialise_CreateStateObject(ser, pDesc, riid, (void **)&wrapped);
 
+      D3D12ShaderExportDatabase *exports = wrapped->exports;
+
+      // store the default local root signature - if we only find one in the whole state object then it becomes default
+      ID3D12RootSignature *defaultRoot = NULL;
+      bool unassocDefaultValid = false;
+      bool explicitDefault = false;
+      bool unassocDXILDefaultValid = false;
+      uint32_t dxilDefaultRoot = ~0U;
+
+      rdcarray<rdcpair<rdcstr, uint32_t>> explicitRootSigAssocs;
+      rdcarray<rdcstr> explicitDefaultDxilAssocs;
+      rdcarray<rdcpair<rdcstr, rdcstr>> explicitDxilAssocs;
+      rdcflatmap<rdcstr, uint32_t> dxilLocalRootSigs;
+
+      rdcarray<rdcpair<rdcstr, uint32_t>> inheritedRootSigAssocs;
+      rdcarray<rdcpair<rdcstr, rdcstr>> inheritedDXILRootSigAssocs;
+      rdcflatmap<rdcstr, uint32_t> inheritedDXILLocalRootSigs;
+
+      // fill shader exports list as well as local root signature lookups.
+      // shader exports that can be queried come from two sources:
+      // - hit groups
+      // - exports from a DXIL library
+      // - exports from a collection
+      for(size_t i = 0; i < subobjects.size(); i++)
+      {
+        if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP)
+        {
+          D3D12_HIT_GROUP_DESC *desc = (D3D12_HIT_GROUP_DESC *)subobjects[i].pDesc;
+          exports->AddExport(StringFormat::Wide2UTF8(desc->HitGroupExport));
+
+          rdcarray<rdcstr> shaders;
+          if(desc->IntersectionShaderImport)
+            shaders.push_back(StringFormat::Wide2UTF8(desc->IntersectionShaderImport));
+          if(desc->AnyHitShaderImport)
+            shaders.push_back(StringFormat::Wide2UTF8(desc->AnyHitShaderImport));
+          if(desc->ClosestHitShaderImport)
+            shaders.push_back(StringFormat::Wide2UTF8(desc->ClosestHitShaderImport));
+
+          // register the hit group so that if we get associations with the individual shaders we
+          // can apply that up to the hit group
+          exports->AddLastHitGroupShaders(std::move(shaders));
+        }
+        else if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY)
+        {
+          D3D12_DXIL_LIBRARY_DESC *dxil = (D3D12_DXIL_LIBRARY_DESC *)subobjects[i].pDesc;
+
+          if(dxil->NumExports > 0)
+          {
+            for(UINT e = 0; e < dxil->NumExports; e++)
+            {
+              // Name is always the name used for exports - if renaming then the renamed-from name
+              // is only used to lookup in the dxil library and not for any associations-by-name
+              exports->AddExport(StringFormat::Wide2UTF8(dxil->pExports[e].Name));
+            }
+          }
+          else
+          {
+            // hard part, we need to parse the DXIL to get the entry points
+            DXBC::DXBCContainer container(
+                bytebuf((byte *)dxil->DXILLibrary.pShaderBytecode, dxil->DXILLibrary.BytecodeLength),
+                rdcstr(), GraphicsAPI::D3D12, ~0U, ~0U);
+
+            rdcarray<ShaderEntryPoint> entries = container.GetEntryPoints();
+
+            for(const ShaderEntryPoint &e : entries)
+              exports->AddExport(e.name);
+          }
+
+          // TODO: register local root signature subobjects into dxilLocalRootSigs. Override
+          // anything in there, unlike the import from a collection below.
+        }
+        else if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION)
+        {
+          D3D12_EXISTING_COLLECTION_DESC *coll =
+              (D3D12_EXISTING_COLLECTION_DESC *)subobjects[i].pDesc;
+
+          WrappedID3D12StateObject *stateObj = (WrappedID3D12StateObject *)coll->pExistingCollection;
+
+          if(coll->NumExports > 0)
+          {
+            for(UINT e = 0; e < coll->NumExports; e++)
+              exports->InheritCollectionExport(
+                  stateObj->exports, StringFormat::Wide2UTF8(coll->pExports[e].Name),
+                  StringFormat::Wide2UTF8(coll->pExports[e].ExportToRename
+                                              ? coll->pExports[e].ExportToRename
+                                              : coll->pExports[e].Name));
+          }
+          else
+          {
+            exports->InheritAllCollectionExports(stateObj->exports);
+          }
+
+          // inherit explicit associations from the collection as lowest priority
+          inheritedRootSigAssocs.append(stateObj->exports->danglingRootSigAssocs);
+          inheritedDXILRootSigAssocs.append(stateObj->exports->danglingDXILRootSigAssocs);
+
+          for(auto it = stateObj->exports->danglingDXILLocalRootSigs.begin();
+              it != stateObj->exports->danglingDXILLocalRootSigs.end(); ++it)
+          {
+            // don't override any local root signatures with the same name we already have. Not sure
+            // how this conflict should be resolved properly?
+            if(dxilLocalRootSigs.find(it->first) == dxilLocalRootSigs.end())
+              dxilLocalRootSigs[it->first] = it->second;
+          }
+        }
+        else if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE)
+        {
+          // ignore these if an explicit default association has been made
+          if(!explicitDefault)
+          {
+            // if multiple root signatures are defined, then there can't be an unspecified default
+            unassocDefaultValid = defaultRoot != NULL;
+            defaultRoot = ((D3D12_LOCAL_ROOT_SIGNATURE *)subobjects[i].pDesc)->pLocalRootSignature;
+          }
+        }
+        else if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION)
+        {
+          D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION *assoc =
+              (D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION *)subobjects[i].pDesc;
+
+          const D3D12_STATE_SUBOBJECT *other = assoc->pSubobjectToAssociate;
+
+          // only care about associating local root signatures
+          if(other->Type == D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE)
+          {
+            ID3D12RootSignature *root =
+                ((D3D12_LOCAL_ROOT_SIGNATURE *)other->pDesc)->pLocalRootSignature;
+
+            WrappedID3D12RootSignature *wrappedRoot = (WrappedID3D12RootSignature *)root;
+
+            // if there are no exports this is an explicit default association. We assume this
+            // matches and doesn't conflict
+            if(assoc->NumExports == NULL)
+            {
+              explicitDefault = true;
+              defaultRoot = root;
+            }
+            else
+            {
+              // otherwise record the explicit associations - these may refer to exports that
+              // haven't been seen yet so we record them locally
+              for(UINT e = 0; e < assoc->NumExports; e++)
+                explicitRootSigAssocs.push_back(
+                    {StringFormat::Wide2UTF8(assoc->pExports[e]), wrappedRoot->localRootSigIdx});
+            }
+          }
+        }
+        else if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_DXIL_SUBOBJECT_TO_EXPORTS_ASSOCIATION)
+        {
+          D3D12_DXIL_SUBOBJECT_TO_EXPORTS_ASSOCIATION *assoc =
+              (D3D12_DXIL_SUBOBJECT_TO_EXPORTS_ASSOCIATION *)subobjects[i].pDesc;
+
+          rdcstr other = StringFormat::Wide2UTF8(assoc->SubobjectToAssociate);
+
+          // we can't tell yet if this is a local root signature or not so we have to store it regardless
+          {
+            // if there are no exports this is an explicit default association, but we don't know if
+            // it's for a local root signature...
+            if(assoc->NumExports == NULL)
+            {
+              explicitDefaultDxilAssocs.push_back(other);
+            }
+            else
+            {
+              // otherwise record the explicit associations - these may refer to exports that
+              // haven't been seen yet so we record them locally
+              for(UINT e = 0; e < assoc->NumExports; e++)
+                explicitDxilAssocs.push_back({StringFormat::Wide2UTF8(assoc->pExports[e]), other});
+            }
+          }
+        }
+      }
+
+      // now that we have all exports registered, apply all associations we have in order of
+      // priority to get the right
+
+      for(size_t i = 0; i < explicitRootSigAssocs.size(); i++)
+      {
+        exports->ApplyRoot(SubObjectPriority::CodeExplicitAssociation,
+                           explicitRootSigAssocs[i].first, explicitRootSigAssocs[i].second);
+      }
+
+      if(explicitDefault)
+      {
+        WrappedID3D12RootSignature *wrappedRoot = (WrappedID3D12RootSignature *)defaultRoot;
+
+        exports->ApplyDefaultRoot(SubObjectPriority::CodeExplicitDefault,
+                                  wrappedRoot->localRootSigIdx);
+      }
+      // shouldn't be possible to have both explicit and implicit defaults?
+      else if(unassocDefaultValid)
+      {
+        WrappedID3D12RootSignature *wrappedRoot = (WrappedID3D12RootSignature *)defaultRoot;
+
+        exports->ApplyDefaultRoot(SubObjectPriority::CodeImplicitDefault,
+                                  wrappedRoot->localRootSigIdx);
+      }
+
+      for(size_t i = 0; i < explicitDxilAssocs.size(); i++)
+      {
+        auto it = dxilLocalRootSigs.find(explicitDxilAssocs[i].second);
+
+        if(it == dxilLocalRootSigs.end())
+          continue;
+
+        uint32_t localRootSigIdx = it->second;
+
+        exports->ApplyRoot(SubObjectPriority::DXILExplicitAssociation, explicitDxilAssocs[i].first,
+                           localRootSigIdx);
+      }
+
+      for(size_t i = 0; i < explicitDefaultDxilAssocs.size(); i++)
+      {
+        auto it = dxilLocalRootSigs.find(explicitDefaultDxilAssocs[i]);
+
+        if(it == dxilLocalRootSigs.end())
+          continue;
+
+        uint32_t localRootSigIdx = it->second;
+
+        exports->ApplyDefaultRoot(SubObjectPriority::DXILExplicitDefault, localRootSigIdx);
+
+        // only expect one local root signature - the array is because we can't tell the type of the
+        // default subobject when we encounter it
+        break;
+      }
+
+      if(unassocDXILDefaultValid)
+      {
+        exports->ApplyDefaultRoot(SubObjectPriority::DXILImplicitDefault, dxilDefaultRoot);
+      }
+
+      // we assume it's not possible to inherit two different explicit associations for a single export
+
+      for(size_t i = 0; i < inheritedRootSigAssocs.size(); i++)
+      {
+        exports->ApplyRoot(SubObjectPriority::CollectionExplicitAssociation,
+                           inheritedRootSigAssocs[i].first, inheritedRootSigAssocs[i].second);
+      }
+      for(size_t i = 0; i < inheritedDXILRootSigAssocs.size(); i++)
+      {
+        auto it = dxilLocalRootSigs.find(inheritedDXILRootSigAssocs[i].second);
+
+        if(it == dxilLocalRootSigs.end())
+          continue;
+
+        uint32_t localRootSigIdx = it->second;
+
+        exports->ApplyRoot(SubObjectPriority::CollectionExplicitAssociation,
+                           inheritedDXILRootSigAssocs[i].first, localRootSigIdx);
+      }
+
+      exports->danglingRootSigAssocs.swap(inheritedRootSigAssocs);
+      exports->danglingDXILRootSigAssocs.swap(inheritedDXILRootSigAssocs);
+      exports->danglingDXILLocalRootSigs.swap(dxilLocalRootSigs);
+
+      exports->UpdateHitGroupAssociations();
+
       D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
       record->type = Resource_PipelineState;
       record->Length = 0;
