@@ -47,9 +47,11 @@ struct D3D12RenderState
   D3D12RenderState &operator=(const D3D12RenderState &o) = default;
 
   void ApplyState(WrappedID3D12Device *dev, ID3D12GraphicsCommandListX *list) const;
-  void ApplyDescriptorHeaps(ID3D12GraphicsCommandListX *list) const;
-  void ApplyComputeRootElements(ID3D12GraphicsCommandListX *cmd) const;
-  void ApplyGraphicsRootElements(ID3D12GraphicsCommandListX *cmd) const;
+  void ApplyDescriptorHeaps(ID3D12GraphicsCommandList *list) const;
+  void ApplyComputeRootElements(ID3D12GraphicsCommandList *cmd) const;
+  void ApplyGraphicsRootElements(ID3D12GraphicsCommandList *cmd) const;
+  void ApplyComputeRootElementsUnwrapped(ID3D12GraphicsCommandList *cmd) const;
+  void ApplyGraphicsRootElementsUnwrapped(ID3D12GraphicsCommandList *cmd) const;
 
   rdcarray<D3D12_VIEWPORT> views;
   rdcarray<D3D12_RECT> scissors;
@@ -93,7 +95,8 @@ struct D3D12RenderState
       memcpy(&constants[offs], vals, numVals * sizeof(UINT));
     }
 
-    void SetToGraphics(D3D12ResourceManager *rm, ID3D12GraphicsCommandList *cmd, UINT slot) const
+    void SetToGraphics(D3D12ResourceManager *rm, ID3D12GraphicsCommandList *cmd, UINT slot,
+                       bool unwrapped) const
     {
       if(type == eRootConst)
       {
@@ -104,7 +107,10 @@ struct D3D12RenderState
         D3D12_GPU_DESCRIPTOR_HANDLE handle =
             rm->GetCurrentAs<ID3D12DescriptorHeap>(id)->GetGPUDescriptorHandleForHeapStart();
         handle.ptr += sizeof(D3D12Descriptor) * offset;
-        cmd->SetGraphicsRootDescriptorTable(slot, handle);
+        if(unwrapped)
+          cmd->SetGraphicsRootDescriptorTable(slot, Unwrap(handle));
+        else
+          cmd->SetGraphicsRootDescriptorTable(slot, handle);
       }
       else if(type == eRootCBV)
       {
@@ -123,7 +129,8 @@ struct D3D12RenderState
       }
     }
 
-    void SetToCompute(D3D12ResourceManager *rm, ID3D12GraphicsCommandList *cmd, UINT slot) const
+    void SetToCompute(D3D12ResourceManager *rm, ID3D12GraphicsCommandList *cmd, UINT slot,
+                      bool unwrapped) const
     {
       if(type == eRootConst)
       {
@@ -134,7 +141,10 @@ struct D3D12RenderState
         D3D12_GPU_DESCRIPTOR_HANDLE handle =
             rm->GetCurrentAs<ID3D12DescriptorHeap>(id)->GetGPUDescriptorHandleForHeapStart();
         handle.ptr += sizeof(D3D12Descriptor) * offset;
-        cmd->SetComputeRootDescriptorTable(slot, handle);
+        if(unwrapped)
+          cmd->SetComputeRootDescriptorTable(slot, Unwrap(handle));
+        else
+          cmd->SetComputeRootDescriptorTable(slot, handle);
       }
       else if(type == eRootCBV)
       {

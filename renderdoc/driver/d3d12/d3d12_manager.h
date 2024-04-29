@@ -1045,6 +1045,29 @@ struct D3D12AccStructPatchInfo
   ID3D12PipelineState *m_pipeline;
 };
 
+struct PatchedRayDispatch
+{
+  struct Resources
+  {
+    // the lookup buffer
+    D3D12GpuBuffer *lookupBuffer;
+    // the scratch buffer used for patching's fence.
+    D3D12GpuBuffer *patchScratchBuffer;
+
+    // for convenience, when these resources are referenced in a queue they get a fence value to
+    // indicate when they're safe to release. This values are unset when returned from patching or
+    // referenced in the list and is set in each queue's copy of the references.
+    UINT64 fenceValue = 0;
+  };
+
+  Resources resources;
+
+  // the patched dispatch descriptor
+  D3D12_DISPATCH_RAYS_DESC desc = {};
+};
+
+struct D3D12ShaderExportDatabase;
+
 class D3D12RaytracingResourceAndUtilHandler
 {
 public:
@@ -1073,6 +1096,9 @@ public:
 
   void RegisterExportDatabase(D3D12ShaderExportDatabase *db);
   void UnregisterExportDatabase(D3D12ShaderExportDatabase *db);
+
+  PatchedRayDispatch PatchRayDispatch(ID3D12GraphicsCommandList4 *unwrappedCmd,
+                                      const D3D12_DISPATCH_RAYS_DESC &desc);
 
   void ResizeSerialisationBuffer(UINT64 size);
 

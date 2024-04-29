@@ -779,6 +779,12 @@ void D3D12RaytracingResourceAndUtilHandler::ResizeSerialisationBuffer(UINT64 siz
   }
 }
 
+PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
+    ID3D12GraphicsCommandList4 *unwrappedCmd, const D3D12_DISPATCH_RAYS_DESC &desc)
+{
+  return {};
+}
+
 void D3D12RaytracingResourceAndUtilHandler::InitReplayBlasPatchingResources()
 {
   // Root Signature

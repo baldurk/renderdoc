@@ -929,6 +929,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BuildRaytracingAccelerationStru
             RDCERR("TLAS Buffer isn't patched");
             return false;
           }
+
+          // Switch back to previous state
+          bakedCmdInfo.state.ApplyState(m_pDevice, (ID3D12GraphicsCommandListX *)pCommandList);
         }
 
         dxrCmd->BuildRaytracingAccelerationStructure(&AccStructDesc, NumPostbuildInfoDescs,
@@ -1202,6 +1205,8 @@ void WrappedID3D12GraphicsCommandList::SetPipelineState1(_In_ ID3D12StateObject 
 
     m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pStateObject), eFrameRef_Read);
+
+    m_CaptureComputeState.stateobj = GetResID(pStateObject);
   }
 }
 
@@ -1271,7 +1276,20 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DispatchRays(SerialiserType &se
 
 void WrappedID3D12GraphicsCommandList::DispatchRays(_In_ const D3D12_DISPATCH_RAYS_DESC *pDesc)
 {
-  SERIALISE_TIME_CALL(m_pList4->DispatchRays(pDesc));
+  // this call will copy the specified buffers containing shader records and patch them. We get a
+  // reference to the lookup buffer used as well as a reference to the scratch buffer containing the
+  // patched shader records.
+  PatchedRayDispatch patchedDispatch =
+      GetResourceManager()->GetRaytracingResourceAndUtilHandler()->PatchRayDispatch(m_pList4, *pDesc);
+
+  // restore state that would have been mutated by the patching process
+  m_pList4->SetComputeRootSignature(Unwrap(GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(
+      m_CaptureComputeState.compute.rootsig)));
+  m_pList4->SetPipelineState1(
+      Unwrap(GetResourceManager()->GetCurrentAs<ID3D12StateObject>(m_CaptureComputeState.stateobj)));
+  m_CaptureComputeState.ApplyComputeRootElementsUnwrapped(m_pList);
+
+  SERIALISE_TIME_CALL(m_pList4->DispatchRays(&patchedDispatch.desc));
 
   if(IsCaptureMode(m_State))
   {
@@ -1296,6 +1314,10 @@ void WrappedID3D12GraphicsCommandList::DispatchRays(_In_ const D3D12_DISPATCH_RA
     if(pDesc->HitGroupTable.SizeInBytes > 0)
       m_ListRecord->MarkResourceFrameReferenced(
           WrappedID3D12Resource::GetResIDFromAddr(pDesc->HitGroupTable.StartAddress), eFrameRef_Read);
+
+    // during capture track the ray dispatches so the memory can be freed dynamically. On replay we
+    // free all the memory at the end of each replay
+    m_RayDispatches.push_back(patchedDispatch.resources);
   }
 }
 

@@ -525,6 +525,8 @@ WrappedID3D12CommandQueue::~WrappedID3D12CommandQueue()
 {
   SAFE_DELETE(m_FrameReader);
 
+  SAFE_RELEASE(m_RayFence);
+
   if(m_CreationRecord)
     m_CreationRecord->Delete(m_pDevice->GetResourceManager());
 
@@ -627,6 +629,25 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::QueryInterface(REFIID riid,
   }
 
   return RefCounter12::QueryInterface("ID3D12CommandQueue", riid, ppvObject);
+}
+
+void WrappedID3D12CommandQueue::CheckAndFreeRayDispatches()
+{
+  UINT64 signalled = 0;
+  if(m_RayFence)
+    signalled = m_RayFence->GetCompletedValue();
+
+  for(PatchedRayDispatch::Resources &ray : m_RayDispatchesPending)
+  {
+    if(signalled >= ray.fenceValue)
+    {
+      SAFE_RELEASE(ray.patchScratchBuffer);
+      SAFE_RELEASE(ray.lookupBuffer);
+    }
+  }
+
+  m_RayDispatchesPending.removeIf(
+      [](const PatchedRayDispatch::Resources &ray) { return ray.lookupBuffer == NULL; });
 }
 
 void WrappedID3D12CommandQueue::ClearAfterCapture()
@@ -1405,6 +1426,17 @@ bool WrappedID3D12GraphicsCommandList::ValidateRootGPUVA(D3D12_GPU_VIRTUAL_ADDRE
 WriteSerialiser &WrappedID3D12GraphicsCommandList::GetThreadSerialiser()
 {
   return m_pDevice->GetThreadSerialiser();
+}
+
+void WrappedID3D12GraphicsCommandList::AddRayDispatches(rdcarray<PatchedRayDispatch::Resources> &dispatches)
+{
+  dispatches.reserve(dispatches.size() + m_RayDispatches.size());
+  for(const PatchedRayDispatch::Resources &r : m_RayDispatches)
+  {
+    dispatches.push_back(r);
+    r.lookupBuffer->AddRef();
+    r.patchScratchBuffer->AddRef();
+  }
 }
 
 rdcstr WrappedID3D12GraphicsCommandList::GetChunkName(uint32_t idx)

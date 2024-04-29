@@ -386,6 +386,18 @@ HRESULT WrappedID3D12GraphicsCommandList::ResetInternal(ID3D12CommandAllocator *
     m_ListRecord->DeleteChunks();
     m_ListRecord->ContainsExecuteIndirect = false;
 
+    // release the 'persistent' reference on all these buffers immediately. If this list was never
+    // submitted, this immediately frees the buffer. If it was submitted those submissions will be
+    // holding references until their fences are appropriately signalled.
+    for(PatchedRayDispatch::Resources &r : m_RayDispatches)
+    {
+      r.lookupBuffer->Release();
+      r.patchScratchBuffer->Release();
+    }
+    m_RayDispatches.clear();
+
+    m_CaptureComputeState.m_ResourceManager = GetResourceManager();
+
     // free any baked commands.
     if(m_ListRecord->bakedCommands)
       m_ListRecord->bakedCommands->Delete(GetResourceManager());
@@ -1651,6 +1663,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootSignature(ID3D12RootSignatu
 
     // store this so we can look up how many descriptors a given slot references, etc
     m_CurCompRootSig = GetWrapped(pRootSignature);
+    m_CaptureComputeState.compute.rootsig = GetResID(pRootSignature);
   }
 }
 
@@ -1721,6 +1734,14 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootDescriptorTable(
     m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(GetWrapped(BaseDescriptor)->GetHeapResourceId(),
                                               eFrameRef_Read);
+
+    {
+      m_CaptureComputeState.compute.sigelems.resize_for_index(RootParameterIndex);
+      m_CaptureComputeState.compute.sigelems[RootParameterIndex] =
+          D3D12RenderState::SignatureElement(eRootTable,
+                                             GetWrapped(BaseDescriptor)->GetHeapResourceId(),
+                                             (UINT64)GetWrapped(BaseDescriptor)->GetHeapIndex());
+    }
 
     rdcarray<D3D12_DESCRIPTOR_RANGE1> &ranges =
         GetWrapped(m_CurCompRootSig)->sig.Parameters[RootParameterIndex].ranges;
@@ -1826,6 +1847,12 @@ void WrappedID3D12GraphicsCommandList::SetComputeRoot32BitConstant(UINT RootPara
     Serialise_SetComputeRoot32BitConstant(ser, RootParameterIndex, SrcData, DestOffsetIn32BitValues);
 
     m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
+
+    {
+      m_CaptureComputeState.compute.sigelems.resize_for_index(RootParameterIndex);
+      m_CaptureComputeState.compute.sigelems[RootParameterIndex].SetConstant(
+          DestOffsetIn32BitValues, SrcData);
+    }
   }
 }
 
@@ -1909,6 +1936,12 @@ void WrappedID3D12GraphicsCommandList::SetComputeRoot32BitConstants(UINT RootPar
                                            DestOffsetIn32BitValues);
 
     m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
+
+    {
+      m_CaptureComputeState.compute.sigelems.resize_for_index(RootParameterIndex);
+      m_CaptureComputeState.compute.sigelems[RootParameterIndex].SetConstants(
+          Num32BitValuesToSet, pValidSrcData, DestOffsetIn32BitValues);
+    }
   }
 }
 
@@ -1988,6 +2021,12 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootConstantBufferView(
 
     m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(id, eFrameRef_Read);
+
+    {
+      m_CaptureComputeState.compute.sigelems.resize_for_index(RootParameterIndex);
+      m_CaptureComputeState.compute.sigelems[RootParameterIndex] =
+          D3D12RenderState::SignatureElement(eRootCBV, id, offs);
+    }
   }
 }
 
@@ -2067,6 +2106,12 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootShaderResourceView(
 
     m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(id, eFrameRef_Read);
+
+    {
+      m_CaptureComputeState.compute.sigelems.resize_for_index(RootParameterIndex);
+      m_CaptureComputeState.compute.sigelems[RootParameterIndex] =
+          D3D12RenderState::SignatureElement(eRootSRV, id, offs);
+    }
   }
 }
 
@@ -2146,6 +2191,12 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootUnorderedAccessView(
 
     m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(id, eFrameRef_Read);
+
+    {
+      m_CaptureComputeState.compute.sigelems.resize_for_index(RootParameterIndex);
+      m_CaptureComputeState.compute.sigelems[RootParameterIndex] =
+          D3D12RenderState::SignatureElement(eRootUAV, id, offs);
+    }
   }
 }
 

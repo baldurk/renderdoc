@@ -171,6 +171,11 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
 
   CaptureState &m_State;
 
+  // tracking ray dispatches that are pending during capture, to free them once the execution is finished
+  ID3D12Fence *m_RayFence = NULL;
+  UINT64 m_RayFenceValue = 1;
+  rdcarray<PatchedRayDispatch::Resources> m_RayDispatchesPending;
+
   bool m_MarkedActive = false;
 
   WrappedID3D12DebugCommandQueue m_WrappedDebug;
@@ -225,6 +230,8 @@ public:
   {
     return m_SparseBindResources.find(id) != m_SparseBindResources.end();
   }
+
+  void CheckAndFreeRayDispatches();
 
   RDResult ReplayLog(CaptureState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
   void SetFrameReader(StreamReader *reader) { m_FrameReader = reader; }

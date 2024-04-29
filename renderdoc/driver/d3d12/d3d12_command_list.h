@@ -176,6 +176,14 @@ private:
   D3D12ResourceRecord *m_ListRecord;
   D3D12ResourceRecord *m_CreationRecord;
 
+  // for ray dispatching we need to patch the tables on the GPU which requires pushing & popping
+  // compute pipeline and root signature, so we track it here during capture
+  D3D12RenderState m_CaptureComputeState;
+
+  // the ray dispatches which have happened on this list, this keeps a reference on the buffers until
+  // the list is reset, and each time the list is submitted the queue takes an additional reference
+  rdcarray<PatchedRayDispatch::Resources> m_RayDispatches;
+
   CaptureState &m_State;
 
   WrappedID3D12DebugCommandList m_WrappedDebug;
@@ -225,6 +233,8 @@ public:
                                            ID3D12CommandSignature *pCommandSignature,
                                            ID3D12Resource *pArgumentBuffer,
                                            UINT64 ArgumentBufferOffset, uint32_t argumentsReplayed);
+
+  void AddRayDispatches(rdcarray<PatchedRayDispatch::Resources> &dispatches);
 
   void SetAMDMarkerInterface(IAmdExtD3DCommandListMarker *marker) { m_AMDMarkers = marker; }
   void SetCommandData(D3D12CommandData *cmd) { m_Cmd = cmd; }

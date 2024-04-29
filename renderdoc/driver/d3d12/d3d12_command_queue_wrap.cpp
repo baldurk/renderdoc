@@ -753,6 +753,8 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
 
   if(IsCaptureMode(m_State))
   {
+    rdcarray<PatchedRayDispatch::Resources> rayDispatches;
+
     if(!InFrameCaptureBoundary)
       m_pDevice->GetCapTransitionLock().ReadLock();
 
@@ -771,6 +773,8 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
         m_QueueRecord->ContainsExecuteIndirect = true;
 
       m_pDevice->ApplyBarriers(record->bakedCommands->cmdInfo->barriers);
+
+      wrapped->AddRayDispatches(rayDispatches);
 
       // need to lock the whole section of code, not just the check on
       // m_State, as we also need to make sure we don't check the state,
@@ -880,6 +884,27 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
       }
 
       record->cmdInfo->dirtied.clear();
+    }
+
+    if(!rayDispatches.empty())
+    {
+      // if we don't have a fence for this queue tracking, create it now
+      if(!m_RayFence)
+      {
+        // create this unwrapped so that it doesn't get recorded into captures
+        m_pDevice->GetReal()->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence),
+                                          (void **)&m_RayFence);
+        m_RayFence->SetName(L"Queue Ray Fence");
+      }
+
+      for(PatchedRayDispatch::Resources &ray : rayDispatches)
+        ray.fenceValue = m_RayFenceValue;
+
+      m_RayDispatchesPending.append(rayDispatches);
+
+      HRESULT hr = m_pReal->Signal(m_RayFence, m_RayFenceValue++);
+      m_pDevice->CheckHRESULT(hr);
+      RDCASSERTEQUAL(hr, S_OK);
     }
 
     if(capframe)
