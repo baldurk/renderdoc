@@ -784,7 +784,7 @@ bool WrappedID3D12GraphicsCommandList::PatchAccStructBlasAddress(
         resBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
         resBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
         resBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        resBarrier.Transition.pResource = patchRaytracing->m_patchedInstanceBuffer.Resource();
+        resBarrier.Transition.pResource = patchRaytracing->m_patchedInstanceBuffer->Resource();
         resBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
         resBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
         resBarriers.push_back(resBarrier);
@@ -793,8 +793,8 @@ bool WrappedID3D12GraphicsCommandList::PatchAccStructBlasAddress(
       dxrCmd->ResourceBarrier((UINT)resBarriers.size(), resBarriers.data());
     }
 
-    dxrCmd->CopyBufferRegion(patchRaytracing->m_patchedInstanceBuffer.Resource(),
-                             patchRaytracing->m_patchedInstanceBuffer.Offset(), instanceResource,
+    dxrCmd->CopyBufferRegion(patchRaytracing->m_patchedInstanceBuffer->Resource(),
+                             patchRaytracing->m_patchedInstanceBuffer->Offset(), instanceResource,
                              instanceResOffset, totalInstancesSize);
 
     D3D12AccStructPatchInfo patchInfo = rtHandler->GetAccStructPatchInfo();
@@ -806,7 +806,7 @@ bool WrappedID3D12GraphicsCommandList::PatchAccStructBlasAddress(
         resBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
         resBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
         resBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        resBarrier.Transition.pResource = patchRaytracing->m_patchedInstanceBuffer.Resource();
+        resBarrier.Transition.pResource = patchRaytracing->m_patchedInstanceBuffer->Resource();
         resBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
         resBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
         resBarriers.push_back(resBarrier);
@@ -840,7 +840,7 @@ bool WrappedID3D12GraphicsCommandList::PatchAccStructBlasAddress(
       D3D12_RESOURCE_BARRIER resBarrier;
       resBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
       resBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-      resBarrier.UAV.pResource = patchRaytracing->m_patchedInstanceBuffer.Resource();
+      resBarrier.UAV.pResource = patchRaytracing->m_patchedInstanceBuffer->Resource();
       dxrCmd->ResourceBarrier(1, &resBarrier);
     }
 
@@ -857,14 +857,14 @@ bool WrappedID3D12GraphicsCommandList::PatchAccStructBlasAddress(
         (UINT)D3D12PatchAccStructRootParamIndices::RootAddressPairSrv, addressPairResAddress);
     dxrCmd->SetComputeRootUnorderedAccessView(
         (UINT)D3D12PatchAccStructRootParamIndices::RootPatchedAddressUav,
-        patchRaytracing->m_patchedInstanceBuffer.Address());
+        patchRaytracing->m_patchedInstanceBuffer->Address());
     dxrCmd->Dispatch(accStructInput->Inputs.NumDescs, 1, 1);
 
     {
       D3D12_RESOURCE_BARRIER resBarrier;
       resBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
       resBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-      resBarrier.UAV.pResource = patchRaytracing->m_patchedInstanceBuffer.Resource();
+      resBarrier.UAV.pResource = patchRaytracing->m_patchedInstanceBuffer->Resource();
       dxrCmd->ResourceBarrier(1, &resBarrier);
     }
 
@@ -873,7 +873,7 @@ bool WrappedID3D12GraphicsCommandList::PatchAccStructBlasAddress(
       resBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
       resBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
       resBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-      resBarrier.Transition.pResource = patchRaytracing->m_patchedInstanceBuffer.Resource();
+      resBarrier.Transition.pResource = patchRaytracing->m_patchedInstanceBuffer->Resource();
       resBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
       resBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
       dxrCmd->ResourceBarrier(1, &resBarrier);
@@ -922,7 +922,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BuildRaytracingAccelerationStru
           PatchAccStructBlasAddress(&AccStructDesc, dxrCmd, &patchInfo);
           if(patchInfo.m_patched)
           {
-            AccStructDesc.Inputs.InstanceDescs = patchInfo.m_patchedInstanceBuffer.Address();
+            AccStructDesc.Inputs.InstanceDescs = patchInfo.m_patchedInstanceBuffer->Address();
           }
           else
           {
@@ -948,13 +948,13 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BuildRaytracingAccelerationStru
         if(D3D12GpuBufferAllocator::Inst()->Alloc(
                D3D12GpuBufferHeapType::DefaultHeapWithUav, D3D12GpuBufferHeapMemoryFlag::Default,
                totalInstancesSize, D3D12_RAYTRACING_INSTANCE_DESCS_BYTE_ALIGNMENT,
-               patchInfo.m_patchedInstanceBuffer))
+               &patchInfo.m_patchedInstanceBuffer))
         {
           PatchAccStructBlasAddress(&AccStructDesc, dxrCmd, &patchInfo);
 
           if(patchInfo.m_patched)
           {
-            AccStructDesc.Inputs.InstanceDescs = patchInfo.m_patchedInstanceBuffer.Address();
+            AccStructDesc.Inputs.InstanceDescs = patchInfo.m_patchedInstanceBuffer->Address();
           }
 
           // Switch back to previous state

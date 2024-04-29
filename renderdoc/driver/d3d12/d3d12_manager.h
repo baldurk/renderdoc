@@ -576,17 +576,6 @@ class D3D12GpuBufferAllocator;
 
 struct D3D12GpuBuffer
 {
-  D3D12GpuBuffer()
-      : m_alignedAddress(0),
-        m_offset(0),
-        m_alignment(0),
-        m_addressContentSize(0),
-        m_heapType(D3D12GpuBufferHeapType::UnInitialized),
-        m_heapMemory(D3D12GpuBufferHeapMemoryFlag::UnInitialized),
-        m_resource(NULL)
-  {
-  }
-
   D3D12GpuBuffer(D3D12GpuBufferHeapType heapType, D3D12GpuBufferHeapMemoryFlag heapMemory,
                  uint64_t size, uint64_t alignment, D3D12_GPU_VIRTUAL_ADDRESS alignedAddress,
                  ID3D12Resource *resource)
@@ -598,11 +587,17 @@ struct D3D12GpuBuffer
         m_heapMemory(heapMemory),
         m_resource(resource)
   {
+    m_RefCount = 1;
     if(m_resource)
     {
       m_offset = alignedAddress - m_resource->GetGPUVirtualAddress();
     }
   }
+
+  // disable copying, these should be passed via pointer so the refcounting works as expected
+  D3D12GpuBuffer(const D3D12GpuBuffer &) = delete;
+  D3D12GpuBuffer(D3D12GpuBuffer &&) = delete;
+  D3D12GpuBuffer &operator=(const D3D12GpuBuffer &) = delete;
 
   D3D12GpuBufferHeapType HeapType() const { return m_heapType; }
   D3D12_HEAP_TYPE GetD3D12HeapType() const
@@ -640,7 +635,8 @@ struct D3D12GpuBuffer
   uint64_t Size() const { return m_addressContentSize; }
   D3D12_GPU_VIRTUAL_ADDRESS Address() const { return m_alignedAddress; }
   uint64_t Alignment() const { return m_alignment; }
-  bool Release();
+  void AddRef();
+  void Release();
   D3D12GpuBufferHeapMemoryFlag HeapMemory() const { return m_heapMemory; }
 
   void *Map(D3D12_RANGE *pReadRange = NULL)
@@ -653,6 +649,7 @@ struct D3D12GpuBuffer
   }
   void Unmap(D3D12_RANGE *pWrittenRange = NULL) { m_resource->Unmap(0, pWrittenRange); }
 private:
+  unsigned int m_RefCount;
   D3D12_GPU_VIRTUAL_ADDRESS m_alignedAddress;
   uint64_t m_offset;
   uint64_t m_alignment;
@@ -869,15 +866,15 @@ public:
                                uint64_t dataSize);
 
   bool Alloc(D3D12GpuBufferHeapType heapType, D3D12GpuBufferHeapMemoryFlag heapMem, uint64_t size,
-             D3D12GpuBuffer &gpuBuffer)
+             D3D12GpuBuffer **gpuBuffer)
   {
     return Alloc(heapType, heapMem, size, 0, gpuBuffer);
   }
 
   bool Alloc(D3D12GpuBufferHeapType heapType, D3D12GpuBufferHeapMemoryFlag heapMem, uint64_t size,
-             uint64_t alignment, D3D12GpuBuffer &gpuBuffer);
+             uint64_t alignment, D3D12GpuBuffer **gpuBuffer);
 
-  bool Release(const D3D12GpuBuffer &gpuBuffer);
+  void Release(const D3D12GpuBuffer &gpuBuffer);
 
   uint64_t GetAllocatedMemorySize() const { return m_totalAllocatedMemoryInUse; }
   ~D3D12GpuBufferAllocator()
@@ -1005,9 +1002,9 @@ private:
     }
 
     bool Alloc(WrappedID3D12Device *wrappedDevice, D3D12GpuBufferHeapMemoryFlag heapMem,
-               uint64_t size, uint64_t alignment, D3D12GpuBuffer &gpuBuffer);
+               uint64_t size, uint64_t alignment, D3D12GpuBuffer **gpuBuffer);
 
-    bool Free(const D3D12GpuBuffer &gpuBuffer);
+    void Free(const D3D12GpuBuffer &gpuBuffer);
 
     static constexpr uint64_t kDefaultWithUavSizeBufferInitSize = 1000ull * 8u;
     static constexpr uint64_t kAccStructBufferPoolInitSize = 1000ull * 256u;
@@ -1080,10 +1077,10 @@ public:
   void ResizeSerialisationBuffer(UINT64 size);
 
   // buffer in UAV state for emitting AS queries to, CPU accessible/mappable
-  D3D12GpuBuffer ASQueryBuffer;
+  D3D12GpuBuffer *ASQueryBuffer = NULL;
 
   // temp buffer for AS serialise copies
-  D3D12GpuBuffer ASSerialiseBuffer;
+  D3D12GpuBuffer *ASSerialiseBuffer = NULL;
 
 private:
   void InitReplayBlasPatchingResources();

@@ -740,7 +740,7 @@ D3D12RaytracingResourceAndUtilHandler::D3D12RaytracingResourceAndUtilHandler(Wra
 
     D3D12GpuBufferAllocator::Inst()->Alloc(D3D12GpuBufferHeapType::CustomHeapWithUavCpuAccess,
                                            D3D12GpuBufferHeapMemoryFlag::Default, 16, 256,
-                                           ASQueryBuffer);
+                                           &ASQueryBuffer);
   }
 }
 
@@ -769,13 +769,13 @@ void D3D12RaytracingResourceAndUtilHandler::InitInternalResources()
 
 void D3D12RaytracingResourceAndUtilHandler::ResizeSerialisationBuffer(UINT64 size)
 {
-  if(size > ASSerialiseBuffer.Size())
+  if(!ASSerialiseBuffer || size > ASSerialiseBuffer->Size())
   {
-    ASSerialiseBuffer.Release();
+    SAFE_RELEASE(ASSerialiseBuffer);
 
     D3D12GpuBufferAllocator::Inst()->Alloc(D3D12GpuBufferHeapType::DefaultHeapWithUav,
                                            D3D12GpuBufferHeapMemoryFlag::Default, size, 256,
-                                           ASSerialiseBuffer);
+                                           &ASSerialiseBuffer);
   }
 }
 
@@ -911,126 +911,6 @@ void D3D12RaytracingResourceAndUtilHandler::UnregisterExportDatabase(D3D12Shader
 
 D3D12GpuBufferAllocator *D3D12GpuBufferAllocator::m_bufferAllocator = NULL;
 
-bool D3D12GpuBufferAllocator::CopyBufferRegion(WrappedID3D12GraphicsCommandList *wrappedCmd,
-                                               const D3D12GpuBuffer &destBuffer,
-                                               D3D12_GPU_VIRTUAL_ADDRESS srcAddress,
-                                               uint64_t dataSize)
-{
-  if(D3D12GpuBuffer() != destBuffer && dataSize > 0)
-  {
-    ResourceId srcResourceId;
-    D3D12BufferOffset srcResourceOffset;
-
-    rdcarray<D3D12_RESOURCE_BARRIER> resBarriers;
-    rdcarray<D3D12_RESOURCE_BARRIER> finalBarriers;
-
-    {
-      D3D12_RESOURCE_BARRIER resBarrier;
-      resBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-      resBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-      resBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
-      resBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
-      resBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-      resBarrier.Transition.pResource = destBuffer.Resource();
-      resBarriers.push_back(resBarrier);
-
-      resBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-      resBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COMMON;
-      finalBarriers.push_back(resBarrier);
-    }
-
-    WrappedID3D12Resource::GetResIDFromAddr(srcAddress, srcResourceId, srcResourceOffset);
-
-    if(srcResourceId != ResourceId())
-    {
-      D3D12_RESOURCE_STATES srResourceState =
-          wrappedCmd->GetWrappedDevice()->GetSubresourceStates(srcResourceId)[0].ToStates();
-
-      ID3D12Resource *srcResource = NULL;
-      srcResource = wrappedCmd->GetWrappedDevice()
-                        ->GetResourceManager()
-                        ->GetCurrentAs<WrappedID3D12Resource>(srcResourceId)
-                        ->GetReal();
-
-      if(!(srResourceState & D3D12_RESOURCE_STATE_COPY_SOURCE))
-      {
-        D3D12_RESOURCE_BARRIER resBarrier;
-        resBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-        resBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        resBarrier.Transition.StateBefore = srResourceState;
-        resBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
-        resBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        resBarrier.Transition.pResource = srcResource;
-        resBarriers.push_back(resBarrier);
-
-        resBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
-        resBarrier.Transition.StateAfter = srResourceState;
-        finalBarriers.push_back(resBarrier);
-      }
-
-      wrappedCmd->GetReal()->ResourceBarrier((UINT)resBarriers.size(), resBarriers.data());
-      wrappedCmd->GetReal()->CopyBufferRegion(destBuffer.Resource(), destBuffer.Offset(),
-                                              srcResource, srcResourceOffset, dataSize);
-      wrappedCmd->GetReal()->ResourceBarrier((UINT)finalBarriers.size(), finalBarriers.data());
-
-      return true;
-    }
-  }
-
-  return false;
-}
-
-bool D3D12GpuBufferAllocator::CopyBufferRegion(WrappedID3D12GraphicsCommandList *wrappedCmd,
-                                               const D3D12GpuBuffer &destBuffer,
-                                               const D3D12GpuBuffer &sourceBuffer, uint64_t dataSize)
-{
-  // This will only handle if both are on default heap
-  if(destBuffer.GetD3D12HeapType() != D3D12_HEAP_TYPE_DEFAULT ||
-     sourceBuffer.GetD3D12HeapType() != D3D12_HEAP_TYPE_DEFAULT)
-  {
-    return false;
-  }
-
-  rdcarray<D3D12_RESOURCE_BARRIER> initBarriers;
-  rdcarray<D3D12_RESOURCE_BARRIER> finalBarriers;
-
-  {
-    D3D12_RESOURCE_BARRIER resBarrier;
-    resBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    resBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    resBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
-    resBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
-    resBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    resBarrier.Transition.pResource = sourceBuffer.Resource();
-    initBarriers.push_back(resBarrier);
-
-    resBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
-    resBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COMMON;
-    finalBarriers.push_back(resBarrier);
-  }
-
-  {
-    D3D12_RESOURCE_BARRIER resBarrier;
-    resBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    resBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    resBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
-    resBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
-    resBarrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    resBarrier.Transition.pResource = destBuffer.Resource();
-    initBarriers.push_back(resBarrier);
-
-    resBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-    resBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COMMON;
-    finalBarriers.push_back(resBarrier);
-  }
-
-  wrappedCmd->GetReal()->ResourceBarrier((UINT)initBarriers.size(), initBarriers.data());
-  wrappedCmd->GetReal()->CopyBufferRegion(destBuffer.Resource(), destBuffer.Offset(),
-                                          sourceBuffer.Resource(), sourceBuffer.Offset(), dataSize);
-  wrappedCmd->GetReal()->ResourceBarrier((UINT)finalBarriers.size(), finalBarriers.data());
-  return true;
-}
-
 bool D3D12GpuBufferAllocator::D3D12GpuBufferResource::CreateCommittedResourceBuffer(
     ID3D12Device *device, const D3D12_HEAP_PROPERTIES &heapProperty, D3D12_RESOURCE_STATES initState,
     uint64_t size, bool allowUav, D3D12GpuBufferResource **bufferResource)
@@ -1102,7 +982,7 @@ D3D12GpuBufferAllocator::D3D12GpuBufferResource::D3D12GpuBufferResource(ID3D12Re
 bool D3D12GpuBufferAllocator::D3D12GpuBufferPool::Alloc(WrappedID3D12Device *wrappedDevice,
                                                         D3D12GpuBufferHeapMemoryFlag heapMem,
                                                         uint64_t size, uint64_t alignment,
-                                                        D3D12GpuBuffer &gpuBuffer)
+                                                        D3D12GpuBuffer **gpuBuffer)
 {
   if(heapMem == D3D12GpuBufferHeapMemoryFlag::Default)
   {
@@ -1116,8 +996,8 @@ bool D3D12GpuBufferAllocator::D3D12GpuBufferPool::Alloc(WrappedID3D12Device *wra
     {
       if(bufferRes->SubAlloc(size, alignment, gpuAddress))
       {
-        gpuBuffer = D3D12GpuBuffer(m_bufferPoolHeapType, D3D12GpuBufferHeapMemoryFlag::Default,
-                                   size, alignment, gpuAddress, bufferRes->Resource());
+        *gpuBuffer = new D3D12GpuBuffer(m_bufferPoolHeapType, D3D12GpuBufferHeapMemoryFlag::Default,
+                                        size, alignment, gpuAddress, bufferRes->Resource());
         return true;
       }
     }
@@ -1129,8 +1009,8 @@ bool D3D12GpuBufferAllocator::D3D12GpuBufferPool::Alloc(WrappedID3D12Device *wra
       m_bufferResourceList.push_back(newBufferResource);
       if(newBufferResource->SubAlloc(size, alignment, gpuAddress))
       {
-        gpuBuffer = D3D12GpuBuffer(m_bufferPoolHeapType, D3D12GpuBufferHeapMemoryFlag::Default,
-                                   size, alignment, gpuAddress, newBufferResource->Resource());
+        *gpuBuffer = new D3D12GpuBuffer(m_bufferPoolHeapType, D3D12GpuBufferHeapMemoryFlag::Default,
+                                        size, alignment, gpuAddress, newBufferResource->Resource());
         return true;
       }
     }
@@ -1142,10 +1022,10 @@ bool D3D12GpuBufferAllocator::D3D12GpuBufferPool::Alloc(WrappedID3D12Device *wra
                             &newBufferResource))
     {
       m_bufferResourceList.push_back(newBufferResource);
-      gpuBuffer = D3D12GpuBuffer(m_bufferPoolHeapType, D3D12GpuBufferHeapMemoryFlag::Dedicated,
-                                 size, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
-                                 newBufferResource->Resource()->GetGPUVirtualAddress(),
-                                 newBufferResource->Resource());
+      *gpuBuffer = new D3D12GpuBuffer(m_bufferPoolHeapType, D3D12GpuBufferHeapMemoryFlag::Dedicated,
+                                      size, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
+                                      newBufferResource->Resource()->GetGPUVirtualAddress(),
+                                      newBufferResource->Resource());
       return true;
     }
   }
@@ -1154,40 +1034,45 @@ bool D3D12GpuBufferAllocator::D3D12GpuBufferPool::Alloc(WrappedID3D12Device *wra
   return false;
 }
 
-bool D3D12GpuBufferAllocator::D3D12GpuBufferPool::Free(const D3D12GpuBuffer &gpuBuffer)
+void D3D12GpuBufferAllocator::D3D12GpuBufferPool::Free(const D3D12GpuBuffer &gpuBuffer)
 {
-  if(gpuBuffer != D3D12GpuBuffer())
+  if(gpuBuffer.Resource() == NULL)
   {
-    for(D3D12GpuBufferResource *bufferRes : m_bufferResourceList)
+    RDCERR("Freeing invalid GPU buffer");
+    return;
+  }
+
+  for(D3D12GpuBufferResource *bufferRes : m_bufferResourceList)
+  {
+    if(bufferRes->Resource() == gpuBuffer.Resource())
     {
-      if(bufferRes->Resource() == gpuBuffer.Resource())
+      D3D12GpuBufferHeapMemoryFlag heapMem = gpuBuffer.HeapMemory();
+      if(heapMem == D3D12GpuBufferHeapMemoryFlag::Default)
       {
-        D3D12GpuBufferHeapMemoryFlag heapMem = gpuBuffer.HeapMemory();
-        if(heapMem == D3D12GpuBufferHeapMemoryFlag::Default)
+        if(bufferRes->SubAllocationInRange(gpuBuffer.Address()))
         {
-          if(bufferRes->SubAllocationInRange(gpuBuffer.Address()))
+          if(!bufferRes->Free(gpuBuffer.Address()))
           {
-            return bufferRes->Free(gpuBuffer.Address());
+            RDCERR("Invalid address when freeing buffer");
           }
+          return;
         }
-        else if(heapMem == D3D12GpuBufferHeapMemoryFlag::Dedicated)
+      }
+      else if(heapMem == D3D12GpuBufferHeapMemoryFlag::Dedicated)
+      {
+        if(D3D12GpuBufferResource::ReleaseGpuBufferResource(bufferRes))
         {
-          if(D3D12GpuBufferResource::ReleaseGpuBufferResource(bufferRes))
-          {
-            m_bufferResourceList.removeOne(bufferRes);
-            return true;
-          }
+          m_bufferResourceList.removeOne(bufferRes);
+          return;
         }
       }
     }
   }
-
-  return false;
 }
 
 bool D3D12GpuBufferAllocator::Alloc(D3D12GpuBufferHeapType heapType,
                                     D3D12GpuBufferHeapMemoryFlag heapMem, uint64_t size,
-                                    uint64_t alignment, D3D12GpuBuffer &gpuBuffer)
+                                    uint64_t alignment, D3D12GpuBuffer **gpuBuffer)
 {
   SCOPED_LOCK(m_bufferAllocLock);
   bool success = false;
@@ -1219,16 +1104,17 @@ bool D3D12GpuBufferAllocator::Alloc(D3D12GpuBufferHeapType heapType,
   return success;
 }
 
-bool D3D12GpuBufferAllocator::Release(const D3D12GpuBuffer &gpuBuffer)
+void D3D12GpuBufferAllocator::Release(const D3D12GpuBuffer &gpuBuffer)
 {
   SCOPED_LOCK(m_bufferAllocLock);
   size_t heap = (size_t)gpuBuffer.HeapType();
   if(gpuBuffer.HeapType() < D3D12GpuBufferHeapType::Count && m_bufferPoolList[heap] != NULL)
   {
-    return m_bufferPoolList[heap]->Free(gpuBuffer);
+    m_bufferPoolList[heap]->Free(gpuBuffer);
+    return;
   }
 
-  return false;
+  RDCERR("Couldn't identify buffer heap type %zu", heap);
 }
 
 bool D3D12GpuBufferAllocator::CreateBufferResource(WrappedID3D12Device *wrappedDevice,
@@ -1718,14 +1604,18 @@ void GPUAddressRangeTracker::GetResIDFromAddrAllowOutOfBounds(D3D12_GPU_VIRTUAL_
   offs = addr - range.start;
 }
 
-bool D3D12GpuBuffer::Release()
+void D3D12GpuBuffer::AddRef()
 {
-  bool success = D3D12GpuBufferAllocator::Inst()->Release(*this);
+  InterlockedIncrement(&m_RefCount);
+}
 
-  if(success)
+void D3D12GpuBuffer::Release()
+{
+  unsigned int ret = InterlockedDecrement(&m_RefCount);
+  if(ret == 0)
   {
-    *this = {};
-  }
+    D3D12GpuBufferAllocator::Inst()->Release(*this);
 
-  return success;
+    delete this;
+  }
 }

@@ -409,12 +409,12 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
     // get the size
     {
-      D3D12GpuBuffer ASQueryBuffer = GetRaytracingResourceAndUtilHandler()->ASQueryBuffer;
+      D3D12GpuBuffer *ASQueryBuffer = GetRaytracingResourceAndUtilHandler()->ASQueryBuffer;
 
       list4 = Unwrap4(m_Device->GetInitialStateList());
 
       D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC emitDesc = {};
-      emitDesc.DestBuffer = ASQueryBuffer.Address();
+      emitDesc.DestBuffer = ASQueryBuffer->Address();
       emitDesc.InfoType = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_SERIALIZATION;
 
       list4->EmitRaytracingAccelerationStructurePostbuildInfo(&emitDesc, 1, &asAddress);
@@ -426,7 +426,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
       D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_SERIALIZATION_DESC *serSize =
           (D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_SERIALIZATION_DESC *)
-              ASQueryBuffer.Map();
+              ASQueryBuffer->Map();
 
       if(!serSize)
       {
@@ -437,7 +437,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       desc.Width = serSize->SerializedSizeInBytes;
       blasCount = serSize->NumBottomLevelAccelerationStructurePointers;
 
-      ASQueryBuffer.Unmap();
+      ASQueryBuffer->Unmap();
 
       // no other copies are in flight because of the above sync so we can resize this
       GetRaytracingResourceAndUtilHandler()->ResizeSerialisationBuffer(desc.Width);
@@ -456,22 +456,22 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
     if(SUCCEEDED(hr))
     {
-      D3D12GpuBuffer ASSerialiseBuffer = GetRaytracingResourceAndUtilHandler()->ASSerialiseBuffer;
+      D3D12GpuBuffer *ASSerialiseBuffer = GetRaytracingResourceAndUtilHandler()->ASSerialiseBuffer;
 
       list4->CopyRaytracingAccelerationStructure(
-          ASSerialiseBuffer.Address(), r->GetVirtualAddress(),
+          ASSerialiseBuffer->Address(), r->GetVirtualAddress(),
           D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_SERIALIZE);
 
       D3D12_RESOURCE_BARRIER b = {};
-      b.Transition.pResource = ASSerialiseBuffer.Resource();
+      b.Transition.pResource = ASSerialiseBuffer->Resource();
       b.Transition.Subresource = 0;
       b.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
       b.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
 
       list4->ResourceBarrier(1, &b);
 
-      list4->CopyBufferRegion(copyDst, 0, ASSerialiseBuffer.Resource(), ASSerialiseBuffer.Offset(),
-                              desc.Width);
+      list4->CopyBufferRegion(copyDst, 0, ASSerialiseBuffer->Resource(),
+                              ASSerialiseBuffer->Offset(), desc.Width);
     }
     else
     {
