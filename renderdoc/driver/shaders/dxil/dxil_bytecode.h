@@ -1198,6 +1198,7 @@ struct EntryPointInterface
     CBuffer(const Metadata *cbuffer);
     uint32_t sizeInBytes;
     bool isTBuffer;
+    const DXBC::CBuffer *cbufferRefl;
   };
 
   struct Sampler : ResourceBase

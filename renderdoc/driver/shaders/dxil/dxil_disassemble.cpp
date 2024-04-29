@@ -78,9 +78,15 @@ rdcstr escapeStringIfNeeded(const rdcstr &name)
 template <typename T>
 T getival(const Value *v)
 {
-  const Constant *c = cast<Constant>(v);
-  if(c && c->isLiteral())
-    return T(c->getU32());
+  if(const Constant *c = cast<Constant>(v))
+  {
+    if(c->isLiteral())
+      return T(c->getU64());
+  }
+  else if(const Literal *lit = cast<Literal>(v))
+  {
+    return T(lit->literal);
+  }
   return T();
 }
 
@@ -2176,6 +2182,94 @@ void Program::MakeDXCDisassemblyString()
     m_Disassembly += "\n";
 }
 
+static const DXBC::CBufferVariable *FindCBufferVar(const uint32_t minOffset, const uint32_t maxOffset,
+                                                   const rdcarray<DXBC::CBufferVariable> &variables,
+                                                   uint32_t &byteOffset, rdcstr &prefix)
+{
+  for(const DXBC::CBufferVariable &v : variables)
+  {
+    // absolute byte offset of this variable in the cbuffer
+    const uint32_t voffs = byteOffset + v.offset;
+
+    // does minOffset-maxOffset reside in this variable? We don't handle the case where the range
+    // crosses a variable (and I don't think FXC emits that anyway).
+    if(voffs <= minOffset && voffs + v.type.bytesize > maxOffset)
+    {
+      byteOffset = voffs;
+
+      // if it is a struct with members, recurse to find a closer match
+      if(!v.type.members.empty())
+      {
+        prefix += v.name + ".";
+        return FindCBufferVar(minOffset, maxOffset, v.type.members, byteOffset, prefix);
+      }
+
+      // otherwise return this variable.
+      return &v;
+    }
+  }
+
+  return NULL;
+}
+
+static rdcstr MakeCBufferRegisterStr(uint32_t reg, DXIL::EntryPointInterface::CBuffer cbuffer)
+{
+  rdcstr ret = "{";
+  uint32_t offset = 0;
+  uint32_t regOffset = reg * 16;
+  while(offset < 16)
+  {
+    if(offset > 0)
+      ret += ", ";
+
+    uint32_t baseOffset = 0;
+    uint32_t minOffset = regOffset + offset;
+    uint32_t maxOffset = minOffset + 1;
+    rdcstr prefix;
+    const DXBC::CBufferVariable *var =
+        FindCBufferVar(minOffset, maxOffset, cbuffer.cbufferRefl->variables, baseOffset, prefix);
+    if(var)
+    {
+      ret += cbuffer.name + "." + prefix + var->name;
+      uint32_t varOffset = regOffset - baseOffset;
+
+      // if it's an array, add the index based on the relative index to the base offset
+      if(var->type.elements > 1)
+      {
+        uint32_t byteSize = var->type.bytesize;
+
+        // round up the byte size to a the nearest vec4 in case it's not quite a multiple
+        byteSize = AlignUp16(byteSize);
+
+        const uint32_t elementSize = byteSize / var->type.elements;
+        const uint32_t elementIndex = varOffset / elementSize;
+
+        ret += StringFormat::Fmt("[%u]", elementIndex);
+
+        // subtract off so that if there's any further offset, it can be processed
+        varOffset -= elementIndex;
+      }
+
+      // or if it's a matrix
+      if((var->type.varClass == DXBC::CLASS_MATRIX_ROWS && var->type.cols > 1) ||
+         (var->type.varClass == DXBC::CLASS_MATRIX_COLUMNS && var->type.rows > 1))
+      {
+        ret += StringFormat::Fmt("[%u]", varOffset / 16);
+      }
+
+      offset = var->offset + var->type.bytesize;
+      offset -= regOffset;
+    }
+    else
+    {
+      ret += "<padding>";
+      offset += 4;
+    }
+  }
+  ret += "}";
+  return ret;
+}
+
 void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 {
   DXIL::dxcStyleFormatting = false;
@@ -2310,7 +2404,6 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
     for(size_t i = 0; i < entryPoint.cbuffers.size(); ++i)
     {
       EntryPointInterface::CBuffer &cbuffer = entryPoint.cbuffers[i];
-      const DXBC::CBuffer *cbufferRefl = NULL;
       if(reflection)
       {
         for(size_t cbIdx = 0; cbIdx < reflection->CBuffers.size(); ++cbIdx)
@@ -2321,7 +2414,8 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
           {
             if(cbuffer.name.empty())
               cbuffer.name = cb.name;
-            cbufferRefl = &reflection->CBuffers[cbIdx];
+            if(!cbuffer.cbufferRefl)
+              cbuffer.cbufferRefl = &reflection->CBuffers[cbIdx];
           }
         }
       }
@@ -2330,28 +2424,29 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
       m_Disassembly += " Space: " + ToStr(cbuffer.space);
       m_Disassembly += " Reg: " + ToStr(cbuffer.regBase);
       m_Disassembly += " Count: " + ToStr(cbuffer.regCount);
-      if(cbufferRefl)
+      if(cbuffer.cbufferRefl)
       {
-        if(!cbufferRefl->variables.empty())
+        if(!cbuffer.cbufferRefl->variables.empty())
         {
           DisassemblyAddNewLine();
           m_Disassembly += "  {";
           DisassemblyAddNewLine();
-          for(size_t m = 0; m < cbufferRefl->variables.size(); ++m)
+
+          for(const DXBC::CBufferVariable &cbVar : cbuffer.cbufferRefl->variables)
           {
-            const DXBC::CBufferVariableType &cbType = cbufferRefl->variables[m].type;
+            const DXBC::CBufferVariableType &cbType = cbVar.type;
             m_Disassembly += "    ";
             m_Disassembly += cbType.name;
+            m_Disassembly += " " + cbVar.name;
             if(cbType.elements > 1)
               m_Disassembly += "[" + ToStr(cbType.elements) + "]";
-            m_Disassembly += " " + cbufferRefl->variables[m].name;
             m_Disassembly += ";";
             DisassemblyAddNewLine();
           }
-          m_Disassembly += "  }";
+          m_Disassembly += "  };";
+          DisassemblyAddNewLine();
         }
       }
-      m_Disassembly += ";";
       DisassemblyAddNewLine();
     }
 
@@ -2426,7 +2521,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
       m_Disassembly += "{";
       DisassemblyAddNewLine();
 
-      std::map<rdcstr, rdcstr> handleNames;
+      std::map<rdcstr, rdcpair<ResourceClass, uint32_t>> resHandles;
 
       size_t curBlock = 0;
 
@@ -2451,11 +2546,13 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
         }
         rdcstr resultIdStr;
         if(!inst.getName().empty())
-          resultIdStr = escapeStringIfNeeded(inst.getName());
+          resultIdStr = StringFormat::Fmt("%c%s", DXIL::dxilIdentifier,
+                                          escapeStringIfNeeded(inst.getName()).c_str());
         else if(inst.slot != ~0U)
-          resultIdStr = ToStr(inst.slot);
+          resultIdStr = StringFormat::Fmt("%c%s", DXIL::dxilIdentifier, ToStr(inst.slot).c_str());
 
-        lineStr += StringFormat::Fmt("%c%s = ", DXIL::dxilIdentifier, resultIdStr.c_str());
+        if(!resultIdStr.empty())
+          lineStr += resultIdStr + " = ";
 
         bool showDxFuncName = false;
         rdcstr commentStr;
@@ -2516,13 +2613,33 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 case ResourceClass::Sampler: resName = entryPoint.samplers[resIndex].name; break;
                 default: resName = "INVALID RESOURCE CLASS"; break;
               };
-              handleNames[resultIdStr] = resName;
+              resHandles[resName] = make_rdcpair<ResourceClass, uint32_t>(resClass, resIndex);
               lineStr += resName;
-              lineStr += ";";
-              if(resLowerBound != resIndex)
-                commentStr += " lowerBound = " + ToStr(resLowerBound);
+              if(index != resIndex)
+                commentStr += " index = " + ToStr(index);
               if(nonUniformIndex)
                 commentStr += " nonUniformIndex = " + ToStr(nonUniformIndex);
+            }
+            else if(showDxFuncName && funcCallName.beginsWith("dx.op.cbufferLoad"))
+            {
+              showDxFuncName = false;
+              uint32_t dxopCode = getival<uint32_t>(inst.args[0]);
+              RDCASSERTEQUAL(dxopCode, 59);
+              rdcstr handleStr = ArgToString(inst.args[1], false);
+              rdcpair<ResourceClass, uint32_t> resInfo = resHandles[handleStr];
+              uint32_t regIndex;
+              if(funcCallName.beginsWith("dx.op.cbufferLoadLegacy"))
+              {
+                regIndex = getival<uint32_t>(inst.args[2]);
+              }
+              else
+              {
+                // TODO: handle non 16-byte aligned offsets
+                uint32_t byteOffset = getival<uint32_t>(inst.args[2]);
+                regIndex = byteOffset / 16;
+                // uint32_t alignment = getival<uint32_t>(inst.args[3]);
+              }
+              lineStr += MakeCBufferRegisterStr(regIndex, entryPoint.cbuffers[resInfo.second]);
             }
             else if(funcCallName.beginsWith("llvm.dbg."))
             {

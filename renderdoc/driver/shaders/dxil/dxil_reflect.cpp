@@ -360,6 +360,7 @@ EntryPointInterface::CBuffer::CBuffer(const Metadata *cbuffer) : ResourceBase(cb
     if(tag == ResourcesTag::IsTBufferTag)
       isTBuffer = (getival<uint32_t>(tags->children[t + 1]) == 1);
   }
+  cbufferRefl = NULL;
 }
 
 EntryPointInterface::Sampler::Sampler(const Metadata *sampler) : ResourceBase(sampler)
