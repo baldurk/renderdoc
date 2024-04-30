@@ -177,6 +177,7 @@ HRESULT WrappedID3D12Device::CreateStateObject(const D3D12_STATE_OBJECT_DESC *pD
 
   rdcarray<ID3D12RootSignature *> rootsigs;
   rdcarray<ID3D12StateObject *> collections;
+  size_t numAssocs = 0;
   for(size_t i = 0; i < subobjects.size(); i++)
   {
     subobjects[i] = pDesc->pSubobjects[i];
@@ -192,12 +193,18 @@ HRESULT WrappedID3D12Device::CreateStateObject(const D3D12_STATE_OBJECT_DESC *pD
       D3D12_EXISTING_COLLECTION_DESC *coll = (D3D12_EXISTING_COLLECTION_DESC *)subobjects[i].pDesc;
       collections.push_back(coll->pExistingCollection);
     }
+    else if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION)
+    {
+      numAssocs++;
+    }
   }
 
-  rdcarray<D3D12_GLOBAL_ROOT_SIGNATURE> rootsigObjs;
+  rdcarray<D3D12_GLOBAL_ROOT_SIGNATURE> unwrappedRootsigObjs;
+  rdcarray<D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION> rebasedAssocs;
   rdcarray<D3D12_EXISTING_COLLECTION_DESC> collObjs;
-  rootsigObjs.resize(rootsigs.size());
+  unwrappedRootsigObjs.resize(rootsigs.size());
   collObjs.resize(collections.size());
+  rebasedAssocs.reserve(numAssocs);
 
   for(size_t i = 0, r = 0, c = 0; i < subobjects.size(); i++)
   {
@@ -205,14 +212,24 @@ HRESULT WrappedID3D12Device::CreateStateObject(const D3D12_STATE_OBJECT_DESC *pD
        subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE)
     {
       D3D12_GLOBAL_ROOT_SIGNATURE *rootsig = (D3D12_GLOBAL_ROOT_SIGNATURE *)subobjects[i].pDesc;
-      rootsigObjs[r].pGlobalRootSignature = Unwrap(rootsig->pGlobalRootSignature);
-      subobjects[i].pDesc = &rootsigObjs[r++];
+      unwrappedRootsigObjs[r].pGlobalRootSignature = Unwrap(rootsig->pGlobalRootSignature);
+      subobjects[i].pDesc = &unwrappedRootsigObjs[r++];
     }
     else if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION)
     {
       D3D12_EXISTING_COLLECTION_DESC *coll = (D3D12_EXISTING_COLLECTION_DESC *)subobjects[i].pDesc;
       collObjs[c] = *coll;
       collObjs[c].pExistingCollection = Unwrap(collObjs[c].pExistingCollection);
+    }
+    else if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION)
+    {
+      D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION assoc =
+          *(D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION *)subobjects[i].pDesc;
+
+      size_t idx = assoc.pSubobjectToAssociate - pDesc->pSubobjects;
+      assoc.pSubobjectToAssociate = subobjects.data() + idx;
+      rebasedAssocs.push_back(assoc);
+      subobjects[i].pDesc = &rebasedAssocs.back();
     }
   }
 
