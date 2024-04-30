@@ -1820,6 +1820,7 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo)
                     usage->children[x].offset = x;
                   }
                 }
+                RDCASSERTEQUAL(usage->children.size(), rows);
                 // if the whole node was displayed : display the sub-elements
                 if(usage->emitSourceVar)
                 {
@@ -1887,6 +1888,7 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo)
                   usage->children[x].columns = memberColumns;
                 }
               }
+              RDCASSERTEQUAL(usage->children.size(), rows);
               // if the whole node was displayed : display the sub-elements
               if(usage->emitSourceVar)
               {
@@ -1894,8 +1896,6 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo)
                   usage->children[x].emitSourceVar = true;
                 usage->emitSourceVar = false;
               }
-
-              RDCASSERTEQUAL(usage->children.size(), rows);
 
               usage = &usage->children[idx];
               usage->type = childType->type;
@@ -1962,6 +1962,7 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo)
                   }
                 }
               }
+              RDCASSERTEQUAL(usage->children.size(), rows);
 
               // two remaining indices selects a scalar within the matrix
               if(countRemainingIndexes == 2)
@@ -1981,6 +1982,7 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo)
                 RDCASSERT(row < rows, row, rows);
                 RDCASSERT(col < columns, col, columns);
 
+                RDCASSERTEQUAL(usage->children[row].children.size(), columns);
                 usage->children[row].children[col].emitSourceVar =
                     !usage->children[row].emitSourceVar;
                 usage->children[row].children[col].debugVar = mapping.debugVar;
@@ -2014,6 +2016,7 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo)
                   // source vars are displayed as row-major, need <rows> mappings
                   for(uint32_t r = 0; r < rows; ++r)
                   {
+                    RDCASSERTEQUAL(usage->children[r].children.size(), columns);
                     usage->children[r].children[col].emitSourceVar =
                         !usage->children[r].emitSourceVar;
                     usage->children[r].children[col].debugVar = mapping.debugVar;
@@ -2024,6 +2027,8 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo)
                 {
                   uint32_t row = indexes[0];
                   RDCASSERT(row < rows, row, rows);
+                  RDCASSERTEQUAL(usage->children.size(), rows);
+                  RDCASSERTEQUAL(usage->children[row].children.size(), columns);
                   // one remaining index selects a row within the matrix.
                   // source vars are displayed as row-major, need <rows> mappings
                   for(uint32_t c = 0; c < columns; ++c)
@@ -2041,6 +2046,7 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo)
                 if(!usage->children[r].emitSourceVar)
                 {
                   bool collapseVector = true;
+                  RDCASSERTEQUAL(usage->children[r].children.size(), columns);
                   for(uint32_t c = 0; c < columns; ++c)
                   {
                     collapseVector = usage->children[r].children[c].emitSourceVar;
@@ -2099,6 +2105,7 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo)
               }
               uint32_t col = indexes[0];
               RDCASSERT(col < columns, col, columns);
+              RDCASSERTEQUAL(usage->children.size(), columns);
               usage->children[col].debugVar = mapping.debugVar;
               usage->children[col].debugVarComponent = 0;
               usage->children[col].emitSourceVar = true;
