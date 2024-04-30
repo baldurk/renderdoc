@@ -1110,6 +1110,7 @@ public:
   void UnregisterExportDatabase(D3D12ShaderExportDatabase *db);
 
   PatchedRayDispatch PatchRayDispatch(ID3D12GraphicsCommandList4 *unwrappedCmd,
+                                      rdcarray<ResourceId> heaps,
                                       const D3D12_DISPATCH_RAYS_DESC &desc);
 
   void ResizeSerialisationBuffer(UINT64 size);

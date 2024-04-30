@@ -89,6 +89,16 @@ struct WrappedRecord
 
 RWByteAddressBuffer bufferToPatch : register(u0);
 
+struct DescriptorHeapData
+{
+  GPUAddress wrapped_base;
+  GPUAddress wrapped_end;
+
+  GPUAddress unwrapped_base;
+
+  uint unwrapped_stride;
+};
+
 void PatchTable(uint byteOffset)
 {
   // load our wrapped record from the start of the table
@@ -130,9 +140,43 @@ void PatchTable(uint byteOffset)
   {
     RootSig sig = rootsigs[recordData.rootSigIndex];
 
-    for(int i = 0; i < sig.numHandles; i++)
+    DescriptorHeapData heaps[2];
+
+    heaps[0].wrapped_base = wrapped_sampHeapBase;
+    heaps[1].wrapped_base = wrapped_srvHeapBase;
+
+    heaps[0].wrapped_end = add(wrapped_sampHeapBase, GPUAddress(wrapped_sampHeapSize, 0));
+    heaps[1].wrapped_end = add(wrapped_srvHeapBase, GPUAddress(wrapped_srvHeapSize, 0));
+
+    heaps[0].unwrapped_stride = unwrapped_heapStrides & 0xffff;
+    heaps[1].unwrapped_stride = unwrapped_heapStrides >> 16;
+
+    heaps[0].unwrapped_base = unwrapped_sampHeapBase;
+    heaps[1].unwrapped_base = unwrapped_srvHeapBase;
+
+    for(uint i = 0; i < sig.numHandles; i++)
     {
-      // TODO: patch descriptor handle at offset sig.handleOffsets[i]
+      GPUAddress wrappedHandlePtr = bufferToPatch.Load2(sig.handleOffsets[i]);
+
+      bool patched = false;
+      for(int h = 0; h < 2; h++)
+      {
+        if(lessEqual(heaps[h].wrapped_base, wrappedHandlePtr) &&
+           lessThan(wrappedHandlePtr, heaps[h].wrapped_end))
+        {
+          // assume the byte offsets will all fit into the LSB 32-bits
+          uint index = sub(wrappedHandlePtr, wrapped_sampHeapBase).x / WRAPPED_DESCRIPTOR_STRIDE;
+          GPUAddress handleOffset = GPUAddress(index * heaps[h].unwrapped_stride, 0);
+          bufferToPatch.Store2(sig.handleOffsets[i], add(heaps[h].unwrapped_base, handleOffset));
+          patched = true;
+        }
+      }
+
+      if(!patched)
+      {
+        // won't work but is our best effort
+        bufferToPatch.Store2(sig.handleOffsets[i], GPUAddress(0, 0));
+      }
     }
   }
 }

@@ -455,6 +455,8 @@ public:
     handle.ptr += idx * increment;
     return handle;
   }
+
+  uint32_t GetUnwrappedIncrement() const { return increment; }
 };
 
 class WrappedID3D12Fence : public WrappedDeviceChild12<ID3D12Fence, ID3D12Fence1>

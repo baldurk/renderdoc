@@ -783,7 +783,8 @@ void D3D12RaytracingResourceAndUtilHandler::ResizeSerialisationBuffer(UINT64 siz
 }
 
 PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
-    ID3D12GraphicsCommandList4 *unwrappedCmd, const D3D12_DISPATCH_RAYS_DESC &desc)
+    ID3D12GraphicsCommandList4 *unwrappedCmd, rdcarray<ResourceId> heaps,
+    const D3D12_DISPATCH_RAYS_DESC &desc)
 {
   PatchedRayDispatch ret = {};
 
@@ -1000,6 +1001,31 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
     cbufferData.raydispatch_callcount =
         uint32_t(desc.CallableShaderTable.SizeInBytes / desc.CallableShaderTable.StrideInBytes);
 
+  RDCCOMPILE_ASSERT(WRAPPED_DESCRIPTOR_STRIDE == sizeof(D3D12Descriptor),
+                    "Shader descriptor stride is wrong");
+
+  for(ResourceId heapId : heaps)
+  {
+    WrappedID3D12DescriptorHeap *heap =
+        (WrappedID3D12DescriptorHeap *)m_wrappedDevice->GetResourceManager()
+            ->GetCurrentAs<ID3D12DescriptorHeap>(heapId);
+
+    if(heap->GetDescriptors()->GetType() == D3D12DescriptorType::Sampler)
+    {
+      cbufferData.wrapped_sampHeapBase = heap->GetCPUDescriptorHandleForHeapStart().ptr;
+      cbufferData.unwrapped_sampHeapBase = heap->GetGPU(0).ptr;
+      cbufferData.wrapped_sampHeapSize = heap->GetNumDescriptors() * sizeof(D3D12Descriptor);
+      cbufferData.unwrapped_heapStrides |= uint16_t(heap->GetUnwrappedIncrement());
+    }
+    else
+    {
+      cbufferData.wrapped_srvHeapBase = heap->GetCPUDescriptorHandleForHeapStart().ptr;
+      cbufferData.unwrapped_srvHeapBase = heap->GetGPU(0).ptr;
+      cbufferData.wrapped_srvHeapSize = heap->GetNumDescriptors() * sizeof(D3D12Descriptor);
+      cbufferData.unwrapped_heapStrides |= uint32_t(heap->GetUnwrappedIncrement()) << 16;
+    }
+  }
+
   unwrappedCmd->SetPipelineState(m_RayPatchingData.pipe);
   unwrappedCmd->SetComputeRootSignature(m_RayPatchingData.rootSig);
   unwrappedCmd->SetComputeRoot32BitConstants((UINT)D3D12PatchRayDispatchParam::RootConstantBuffer,
@@ -1030,6 +1056,11 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
 
 void D3D12RaytracingResourceAndUtilHandler::InitRayDispatchPatchingResources()
 {
+  // need 4x 2-DWORD root buffers, the rest we can have for constants.
+  // this could be made another buffer to track but it fits in push constants so we'll use them
+  RDCCOMPILE_ASSERT((sizeof(RayDispatchPatchCB) / sizeof(uint32_t)) + 4 * 2 < 64,
+                    "Root signature constnats are too large");
+
   // Root Signature
   rdcarray<D3D12_ROOT_PARAMETER1> rootParameters;
   rootParameters.reserve((uint16_t)D3D12PatchRayDispatchParam::Count);

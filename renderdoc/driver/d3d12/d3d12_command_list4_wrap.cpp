@@ -1279,7 +1279,8 @@ void WrappedID3D12GraphicsCommandList::DispatchRays(_In_ const D3D12_DISPATCH_RA
   // reference to the lookup buffer used as well as a reference to the scratch buffer containing the
   // patched shader records.
   PatchedRayDispatch patchedDispatch =
-      GetResourceManager()->GetRaytracingResourceAndUtilHandler()->PatchRayDispatch(m_pList4, *pDesc);
+      GetResourceManager()->GetRaytracingResourceAndUtilHandler()->PatchRayDispatch(
+          m_pList4, m_CaptureComputeState.heaps, *pDesc);
 
   // restore state that would have been mutated by the patching process
   m_pList4->SetComputeRootSignature(Unwrap(GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(

@@ -299,9 +299,20 @@ cbuffer RayDispatchPatchCB REG(b0)
   uint raydispatch_calloffs;
   uint raydispatch_callstride;
   uint raydispatch_callcount;
+
+  GPUAddress wrapped_sampHeapBase;
+  GPUAddress wrapped_srvHeapBase;
+
+  GPUAddress unwrapped_sampHeapBase;
+  GPUAddress unwrapped_srvHeapBase;
+
+  uint wrapped_sampHeapSize;
+  uint wrapped_srvHeapSize;
+  uint unwrapped_heapStrides;    // LSB = sampler, MSB = srv
 };
 
 #define MAX_LOCALSIG_HANDLES 31
+#define WRAPPED_DESCRIPTOR_STRIDE 64
 
 cbuffer DebugSampleOperation REG(b0)
 {

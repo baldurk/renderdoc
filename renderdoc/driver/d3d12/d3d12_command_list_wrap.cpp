@@ -1060,6 +1060,10 @@ void WrappedID3D12GraphicsCommandList::SetDescriptorHeaps(UINT NumDescriptorHeap
     m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     for(UINT i = 0; i < NumDescriptorHeaps; i++)
       m_ListRecord->MarkResourceFrameReferenced(GetResID(ppDescriptorHeaps[i]), eFrameRef_Read);
+
+    m_CaptureComputeState.heaps.resize(NumDescriptorHeaps);
+    for(size_t i = 0; i < m_CaptureComputeState.heaps.size(); i++)
+      m_CaptureComputeState.heaps[i] = GetResID(ppDescriptorHeaps[i]);
   }
 }
 
