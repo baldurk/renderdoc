@@ -283,11 +283,11 @@ typedef struct
 {
   CGU_INT ep_d[4][256];
 #ifdef USE_BC7_SP_ERR_IDX
-  CGU_UINT8 sp_err[3 * 4 * 256 * 2 * 2 * 16];
-  CGU_INT sp_idx[3 * 4 * 256 * 2 * 2 * 16 * 2];
+  CGU_UINT8 *sp_err; // [3 * 4 * 256 * 2 * 2 * 16];
+  CGU_INT *sp_idx; // [3 * 4 * 256 * 2 * 2 * 16 * 2];
 #endif
 #ifdef USE_BC7_RAMP
-  CGU_FLOAT ramp[3 * 4 * 256 * 256 * 16];
+  CGU_FLOAT *ramp; // [3 * 4 * 256 * 256 * 16];
 #endif
   CGU_BOOL ramp_init;
 }

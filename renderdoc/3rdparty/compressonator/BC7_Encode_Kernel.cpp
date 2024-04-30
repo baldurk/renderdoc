@@ -132,6 +132,9 @@ CMP_EXPORT void init_BC7ramps()
     if (g_rampsInitialized == TRUE) return;
     g_rampsInitialized = TRUE;
     BC7EncodeRamps.ramp_init = TRUE;
+    BC7EncodeRamps.sp_err = new CGU_UINT8[3 * 4 * 256 * 2 * 2 * 16];
+    BC7EncodeRamps.sp_idx = new CGU_INT[3 * 4 * 256 * 2 * 2 * 16 * 2];
+    BC7EncodeRamps.ramp = new CGU_FLOAT[3 * 4 * 256 * 256 * 16];
 
     //bc7_isa(); ASPM_PRINT((" INIT Ramps\n"));
 
