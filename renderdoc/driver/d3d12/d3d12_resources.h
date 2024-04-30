@@ -947,22 +947,7 @@ public:
 
   ResourceId GetResourceId() { return objectOriginalId; }
 
-  // register our own newly created export
-  void AddExport(const rdcstr &exportName);
-
-  // import some or all of a collection's exports
-  void InheritCollectionExport(D3D12ShaderExportDatabase *existing, const rdcstr &nameToExport,
-                               const rdcstr &nameInExisting);
-  void InheritAllCollectionExports(D3D12ShaderExportDatabase *existing);
-
-  // we only apply root signature associations to our own exports. Anything that was considered exported
-  // in a parent object was already final and either had a local root signature, or didn't need one at all.
-  void ApplyDefaultRoot(SubObjectPriority priority, uint32_t localRootSigIndex);
-  void ApplyRoot(SubObjectPriority priority, const rdcstr &exportName, uint32_t localRootSigIndex);
-
-  // register a hit group for local root sig inheritance
-  void AddLastHitGroupShaders(rdcarray<rdcstr> &&shaders);
-  void UpdateHitGroupAssociations();
+  void PopulateDatabase(size_t NumSubobjects, const D3D12_STATE_SUBOBJECT *subobjects);
 
   void *GetShaderIdentifier(const rdcstr &exportName)
   {
@@ -974,18 +959,6 @@ public:
         return exportLookups[i].complete ? &wrappedIdentifiers[i] : NULL;
     return NULL;
   }
-
-  // these are not technically part of the 'exports' interface but they are very helpful to keep
-  // around at the same time. These are explicit associations which might yet apply to future
-  // exports in child state objects
-  rdcarray<rdcpair<rdcstr, uint32_t>> danglingRootSigAssocs;
-  rdcarray<rdcpair<rdcstr, rdcstr>> danglingDXILRootSigAssocs;
-  rdcflatmap<rdcstr, uint32_t> danglingDXILLocalRootSigs;
-
-  // list of hitgroups, with the name of the hit group export and the names of each shader export
-  // we can't precalculate the indices in this list because they could be dangling references that
-  // get inherited, so we have to do string lookups every time
-  rdcarray<rdcpair<rdcstr, rdcarray<rdcstr>>> hitGroups;
 
   struct ExportedIdentifier
   {
@@ -1053,10 +1026,39 @@ private:
   // in-line with wrappedIdentifiers because we want that to be a tight array of actual identifiers
   rdcarray<ExportLookup> exportLookups;
 
+  // these are not technically part of the 'exports' interface but they are very helpful to keep
+  // around at the same time. These are explicit associations which might yet apply to future
+  // exports in child state objects
+  rdcarray<rdcpair<rdcstr, uint32_t>> danglingRootSigAssocs;
+  rdcarray<rdcpair<rdcstr, rdcstr>> danglingDXILRootSigAssocs;
+  rdcflatmap<rdcstr, uint32_t> danglingDXILLocalRootSigs;
+
+  // list of hitgroups, with the name of the hit group export and the names of each shader export
+  // we can't precalculate the indices in this list because they could be dangling references that
+  // get inherited, so we have to do string lookups every time
+  rdcarray<rdcpair<rdcstr, rdcarray<rdcstr>>> hitGroups;
+
   void InheritExport(const rdcstr &exportName, D3D12ShaderExportDatabase *existing, size_t i);
 
   void ApplyRoot(const ShaderIdentifier &identifier, SubObjectPriority priority,
                  uint32_t localRootSigIndex);
+
+  // register our own newly created export
+  void AddExport(const rdcstr &exportName);
+
+  // import some or all of a collection's exports
+  void InheritCollectionExport(D3D12ShaderExportDatabase *existing, const rdcstr &nameToExport,
+                               const rdcstr &nameInExisting);
+  void InheritAllCollectionExports(D3D12ShaderExportDatabase *existing);
+
+  // we only apply root signature associations to our own exports. Anything that was considered exported
+  // in a parent object was already final and either had a local root signature, or didn't need one at all.
+  void ApplyDefaultRoot(SubObjectPriority priority, uint32_t localRootSigIndex);
+  void ApplyRoot(SubObjectPriority priority, const rdcstr &exportName, uint32_t localRootSigIndex);
+
+  // register a hit group for local root sig inheritance
+  void AddLastHitGroupShaders(rdcarray<rdcstr> &&shaders);
+  void UpdateHitGroupAssociations();
 };
 
 class WrappedID3D12StateObject : public WrappedDeviceChild12<ID3D12StateObject>,
@@ -1078,9 +1080,6 @@ public:
       : WrappedDeviceChild12(real, device)
   {
     real->QueryInterface(__uuidof(ID3D12StateObjectProperties), (void **)&properties);
-    exports = new D3D12ShaderExportDatabase(
-        GetResourceID(), m_pDevice->GetResourceManager()->GetRaytracingResourceAndUtilHandler(),
-        properties);
   }
   virtual ~WrappedID3D12StateObject()
   {
@@ -1101,6 +1100,8 @@ public:
     }
     return WrappedDeviceChild12::QueryInterface(riid, ppvObject);
   }
+
+  ID3D12StateObjectProperties *GetProperties() const { return properties; }
 
   //////////////////////////////
   // implement ID3D12StateObject

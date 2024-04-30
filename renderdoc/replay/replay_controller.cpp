@@ -249,6 +249,10 @@ bool ReplayController::PassEquivalent(const ActionDescription &a, const ActionDe
   if((a.flags & ActionFlags::Dispatch) != (b.flags & ActionFlags::Dispatch))
     return false;
 
+  // don't group anything with raytracing either
+  if((a.flags & ActionFlags::DispatchRay) != (b.flags & ActionFlags::DispatchRay))
+    return false;
+
   // don't group present with anything
   if((a.flags & ActionFlags::Present) != (b.flags & ActionFlags::Present))
     return false;
@@ -400,6 +404,8 @@ void ReplayController::AddFakeMarkers()
       mark.customName = StringFormat::Fmt("Copy/Clear Pass #%d", copypassID++);
     else if(actions[refaction].flags & ActionFlags::Dispatch)
       mark.customName = StringFormat::Fmt("Compute Pass #%d", computepassID++);
+    else if(actions[refaction].flags & ActionFlags::DispatchRay)
+      mark.customName = StringFormat::Fmt("Raytracing Pass #%d", computepassID++);
     else if(maxOutCount == 0)
       mark.customName = StringFormat::Fmt("Depth-only Pass #%d", depthpassID++);
     else if(minOutCount == maxOutCount)

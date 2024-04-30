@@ -4939,6 +4939,16 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
     ExecuteLists();
     FlushLists(true);
 
+    // clear any previous ray dispatch references
+    D3D12CommandData &cmd = *m_Queue->GetCommandData();
+
+    for(PatchedRayDispatch::Resources &r : cmd.m_RayDispatches)
+    {
+      r.lookupBuffer->Release();
+      r.patchScratchBuffer->Release();
+    }
+    cmd.m_RayDispatches.clear();
+
     if(HasFatalError())
       return;
   }

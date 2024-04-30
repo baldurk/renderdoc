@@ -1237,25 +1237,61 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DispatchRays(SerialiserType &se
 
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
 
+    const D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
+
     if(IsActiveReplaying(m_State))
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
         ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
 
+        // this call will copy the specified buffers containing shader records and patch them. We get
+        // a reference to the lookup buffer used as well as a reference to the scratch buffer
+        // containing the patched shader records.
+        PatchedRayDispatch patchedDispatch =
+            GetResourceManager()->GetRaytracingResourceAndUtilHandler()->PatchRayDispatch(
+                Unwrap4(list), state.heaps, Desc);
+
+        // restore state that would have been mutated by the patching process
+        Unwrap4(list)->SetComputeRootSignature(
+            Unwrap(GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(state.compute.rootsig)));
+        Unwrap4(list)->SetPipelineState1(
+            Unwrap(GetResourceManager()->GetCurrentAs<ID3D12StateObject>(state.stateobj)));
+        state.ApplyComputeRootElementsUnwrapped(Unwrap4(list));
+
+        m_Cmd->m_RayDispatches.push_back(patchedDispatch.resources);
+
         uint32_t eventId = m_Cmd->HandlePreCallback(list, ActionFlags::DispatchRay);
         // this can't work yet as the shader records have not been patched
-        // Unwrap4(list)->DispatchRays(&Desc);
+        Unwrap4(list)->DispatchRays(&patchedDispatch.desc);
         if(eventId && m_Cmd->m_ActionCallback->PostDraw(eventId, list))
         {
-          // Unwrap4(list)->DispatchRays(&Desc);
+          Unwrap4(list)->DispatchRays(&patchedDispatch.desc);
           m_Cmd->m_ActionCallback->PostRedraw(eventId, list);
         }
       }
     }
     else
     {
-      Unwrap4(pCommandList)->DispatchRays(&Desc);
+      // this call will copy the specified buffers containing shader records and patch them. We get
+      // a reference to the lookup buffer used as well as a reference to the scratch buffer
+      // containing the patched shader records.
+      PatchedRayDispatch patchedDispatch =
+          GetResourceManager()->GetRaytracingResourceAndUtilHandler()->PatchRayDispatch(
+              Unwrap4(pCommandList), state.heaps, Desc);
+
+      // restore state that would have been mutated by the patching process
+      Unwrap4(pCommandList)
+          ->SetComputeRootSignature(Unwrap(
+              GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(state.compute.rootsig)));
+      Unwrap4(pCommandList)
+          ->SetPipelineState1(
+              Unwrap(GetResourceManager()->GetCurrentAs<ID3D12StateObject>(state.stateobj)));
+      state.ApplyComputeRootElementsUnwrapped(Unwrap4(pCommandList));
+
+      m_Cmd->m_RayDispatches.push_back(patchedDispatch.resources);
+
+      Unwrap4(pCommandList)->DispatchRays(&patchedDispatch.desc);
 
       m_Cmd->AddEvent();
 

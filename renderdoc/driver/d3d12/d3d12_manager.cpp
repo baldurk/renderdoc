@@ -790,6 +790,8 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
 
   ret.desc = desc;
 
+  D3D12MarkerRegion region(unwrappedCmd, "PatchRayDispatch");
+
   {
     SCOPED_LOCK(m_LookupBufferLock);
     if(m_LookupBufferDirty)
@@ -968,7 +970,7 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
 
   barrier.Transition.pResource = scratchBuffer->Resource();
   barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-  barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+  barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
   unwrappedCmd->ResourceBarrier(1, &barrier);
 
   // put the resources into common. This should be implicitly promotable to
@@ -1041,6 +1043,11 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
   unwrappedCmd->Dispatch(1 + cbufferData.raydispatch_misscount + cbufferData.raydispatch_hitcount +
                              cbufferData.raydispatch_callcount,
                          1, 1);
+
+  barrier.Transition.pResource = scratchBuffer->Resource();
+  barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+  barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+  unwrappedCmd->ResourceBarrier(1, &barrier);
 
   // we have our own ref, the patch data has its ref too that will be held while the list is
   // submittable. Each submission will also get a ref to keep this referenced lookup buffer alive until then
