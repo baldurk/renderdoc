@@ -2274,7 +2274,10 @@ void VulkanPipelineStateViewer::setState()
   for(const ShaderMessage &msg : state.shaderMessages)
     numMessages[(uint32_t)msg.stage]++;
 
-  for(uint32_t i = 0; i < ARRAY_COUNT(numMessages); i++)
+  static_assert(ARRAY_COUNT(messageButtons) <= ARRAY_COUNT(numMessages),
+                "More buttons than shader stages");
+
+  for(uint32_t i = 0; i < ARRAY_COUNT(messageButtons); i++)
   {
     messageButtons[i]->setVisible(numMessages[i] > 0);
     messageButtons[i]->setText(tr("%n Message(s)", "", numMessages[i]));
