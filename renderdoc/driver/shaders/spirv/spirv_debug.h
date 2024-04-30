@@ -266,6 +266,7 @@ struct TypeData
   Id baseType;
   rdcarray<uint32_t> arrayDimensions;
   rdcarray<rdcpair<rdcstr, Id>> structMembers;
+  rdcarray<uint32_t> memberOffsets;
 };
 
 struct LocalMapping

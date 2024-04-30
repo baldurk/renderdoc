@@ -1768,6 +1768,7 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo)
               uint32_t childRows = 1U;
               uint32_t childColumns = 1U;
               VarType elementType = childType->type;
+              uint32_t elementSize = 1;
               if(childType->matSize != 0)
               {
                 const TypeData &vec = m_DebugInfo.types[childType->baseType];
@@ -1795,6 +1796,11 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo)
                 childRows = 1U;
                 childColumns = vecColumns;
               }
+              else if(!childType->structMembers.empty())
+              {
+                elementSize += childType->memberOffsets[childType->memberOffsets.count() - 1];
+              }
+              elementSize *= childRows * childColumns;
               const uint32_t countDims = RDCMIN(arrayDimension, numIdxs);
               // handle N dimensional arrays
               for(uint32_t d = 0; d < countDims; ++d)
@@ -1817,7 +1823,7 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo)
                     usage->children[x].type = elementType;
                     usage->children[x].rows = childRows;
                     usage->children[x].columns = childColumns;
-                    usage->children[x].offset = x;
+                    usage->children[x].offset = usage->offset + x * elementSize;
                   }
                 }
                 RDCASSERTEQUAL(usage->children.size(), rows);
@@ -1851,7 +1857,7 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo)
                   usage->children[x].debugVar = usage->debugVar;
                   usage->children[x].debugVarSuffix = usage->debugVarSuffix + suffix;
                   usage->children[x].name = usage->name + suffix;
-                  usage->children[x].offset = x;
+                  usage->children[x].offset = usage->offset + typeWalk->memberOffsets[x];
                   uint32_t memberRows = 1U;
                   uint32_t memberColumns = 1U;
                   const TypeData *memberType = &m_DebugInfo.types[typeWalk->structMembers[x].second];
@@ -1946,7 +1952,7 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo)
                   usage->children[r].debugVarComponent = 0;
                   usage->children[r].rows = 1U;
                   usage->children[r].columns = columns;
-                  usage->children[r].offset = r;
+                  usage->children[r].offset = usage->offset + r * rows;
                   usage->children[r].children.resize(columns);
                   for(uint32_t c = 0; c < columns; ++c)
                   {
@@ -1958,7 +1964,7 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo)
                     usage->children[r].children[c].debugVarComponent = r;
                     usage->children[r].children[c].rows = 1U;
                     usage->children[r].children[c].columns = 1U;
-                    usage->children[r].children[c].offset = c;
+                    usage->children[r].children[c].offset = usage->children[r].offset + c;
                   }
                 }
               }
@@ -2099,7 +2105,7 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo)
                   usage->children[x].debugVarComponent = x;
                   usage->children[x].rows = 1U;
                   usage->children[x].columns = 1U;
-                  usage->children[x].offset = x;
+                  usage->children[x].offset = usage->offset + x;
                 }
                 usage->emitSourceVar = false;
               }
@@ -3982,6 +3988,14 @@ void Debugger::RegisterOp(Iter it)
 
           break;
         }
+        case ShaderDbg::TypeMember:
+        {
+          rdcstr name = strings[dbg.arg<Id>(0)];
+          Id type = dbg.arg<Id>(1);
+          uint32_t offset = EvaluateConstant(dbg.arg<Id>(4), {}).value.u32v[0];
+          (void)offset;
+          break;
+        }
         case ShaderDbg::TypeComposite:
         {
           rdcstr name = strings[dbg.arg<Id>(0)];
@@ -4004,8 +4018,26 @@ void Debugger::RegisterOp(Iter it)
           {
             OpShaderDbg member(GetID(dbg.arg<Id>(i)));
 
-            m_DebugInfo.types[dbg.result].structMembers.push_back(
-                {strings[member.arg<Id>(0)], member.arg<Id>(1)});
+            rdcstr memberName;
+            Id memberType;
+            uint32_t memberOffset = 0;
+            switch(member.inst)
+            {
+              case ShaderDbg::TypeMember:
+                memberName = strings[member.arg<Id>(0)];
+                memberType = member.arg<Id>(1);
+                memberOffset = EvaluateConstant(member.arg<Id>(5), {}).value.u32v[0];
+                break;
+              case ShaderDbg::TypeFunction:
+                memberName = strings[member.arg<Id>(0)];
+                memberType = member.arg<Id>(1);
+                break;
+              case ShaderDbg::TypeInheritance: memberName = "Inheritence"; break;
+              default: RDCERR("Unhandled DebugTypeComposite entry %u", member.inst);
+            }
+
+            m_DebugInfo.types[dbg.result].structMembers.push_back({memberName, memberType});
+            m_DebugInfo.types[dbg.result].memberOffsets.push_back(memberOffset);
           }
 
           name = tagString[tag % 3] + name;
