@@ -851,13 +851,12 @@ bool WrappedID3D12GraphicsCommandList::PatchAccStructBlasAddress(
 
     dxrCmd->SetPipelineState(patchInfo.m_pipeline);
     dxrCmd->SetComputeRootSignature(patchInfo.m_rootSignature);
-    dxrCmd->SetComputeRoot32BitConstant(
-        (UINT)D3D12PatchAccStructRootParamIndices::RootConstantBuffer, (UINT)addressCount, 0);
-    dxrCmd->SetComputeRootShaderResourceView(
-        (UINT)D3D12PatchAccStructRootParamIndices::RootAddressPairSrv, addressPairResAddress);
-    dxrCmd->SetComputeRootUnorderedAccessView(
-        (UINT)D3D12PatchAccStructRootParamIndices::RootPatchedAddressUav,
-        patchRaytracing->m_patchedInstanceBuffer->Address());
+    dxrCmd->SetComputeRoot32BitConstant((UINT)D3D12PatchTLASBuildParam::RootConstantBuffer,
+                                        (UINT)addressCount, 0);
+    dxrCmd->SetComputeRootShaderResourceView((UINT)D3D12PatchTLASBuildParam::RootAddressPairSrv,
+                                             addressPairResAddress);
+    dxrCmd->SetComputeRootUnorderedAccessView((UINT)D3D12PatchTLASBuildParam::RootPatchedAddressUav,
+                                              patchRaytracing->m_patchedInstanceBuffer->Address());
     dxrCmd->Dispatch(accStructInput->Inputs.NumDescs, 1, 1);
 
     {

@@ -1030,12 +1030,22 @@ private:
   uint64_t m_totalAllocatedMemoryInUse;
 };
 
-enum class D3D12PatchAccStructRootParamIndices
+enum class D3D12PatchTLASBuildParam
 {
   RootConstantBuffer,
   RootAddressPairSrv,
   RootPatchedAddressUav,
   Count
+};
+
+enum class D3D12PatchRayDispatchParam
+{
+  RootConstantBuffer,
+  DestBuffer,
+  StateObjectData,
+  RecordData,
+  RootSigData,
+  Count,
 };
 
 struct D3D12AccStructPatchInfo
@@ -1088,6 +1098,8 @@ public:
     SAFE_RELEASE(m_gpuFence);
     SAFE_RELEASE(m_accStructPatchInfo.m_rootSignature);
     SAFE_RELEASE(m_accStructPatchInfo.m_pipeline);
+    SAFE_RELEASE(m_RayPatchingData.rootSig);
+    SAFE_RELEASE(m_RayPatchingData.pipe);
   }
 
   void InitInternalResources();
@@ -1109,7 +1121,9 @@ public:
   D3D12GpuBuffer *ASSerialiseBuffer = NULL;
 
 private:
+  void InitRayDispatchPatchingResources();
   void InitReplayBlasPatchingResources();
+
   WrappedID3D12Device *m_wrappedDevice;
 
   ID3D12GraphicsCommandListX *m_cmdList;
@@ -1120,9 +1134,14 @@ private:
   UINT64 m_gpuSyncCounter;
   D3D12AccStructPatchInfo m_accStructPatchInfo;
 
-  // each unique set of descriptor table offsets are stored here, so any root signatures which only
-  // vary in ways that don't affect which tables are contained within them (and so don't need
-  // patching) will have a single entry in here
+  Threading::CriticalSection m_LookupBufferLock;
+
+  D3D12GpuBuffer *m_LookupBuffer = NULL;
+  D3D12_GPU_VIRTUAL_ADDRESS m_LookupAddrs[3] = {};
+
+  // each unique set of descriptor table offsets are stored here, so any root signatures which
+  // only vary in ways that don't affect which tables are contained within them (and so don't
+  // need patching) will have a single entry in here
   rdcarray<rdcarray<uint32_t>> m_UniqueLocalRootSigs;
 
   // export databases that are alive
@@ -1130,6 +1149,13 @@ private:
 
   // is the lookup buffer dirty and needs to be recreated with the latest data?
   bool m_LookupBufferDirty = true;
+
+  // pipeline data for patching ray dispatches
+  struct
+  {
+    ID3D12RootSignature *rootSig = NULL;
+    ID3D12PipelineState *pipe = NULL;
+  } m_RayPatchingData;
 };
 
 struct D3D12ResourceManagerConfiguration

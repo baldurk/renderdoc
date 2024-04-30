@@ -286,6 +286,23 @@ struct InstanceDesc
   GPUAddress blasAddress;
 };
 
+cbuffer RayDispatchPatchCB REG(b0)
+{
+  uint raydispatch_missoffs;
+  uint raydispatch_missstride;
+  uint raydispatch_misscount;
+
+  uint raydispatch_hitoffs;
+  uint raydispatch_hitstride;
+  uint raydispatch_hitcount;
+
+  uint raydispatch_calloffs;
+  uint raydispatch_callstride;
+  uint raydispatch_callcount;
+};
+
+#define MAX_LOCALSIG_HANDLES 31
+
 cbuffer DebugSampleOperation REG(b0)
 {
   float4 debugSampleUV;

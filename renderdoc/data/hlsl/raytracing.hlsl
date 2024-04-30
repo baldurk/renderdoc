@@ -56,3 +56,119 @@ bool InRange(BlasAddressRange addressRange, GPUAddress address)
   // This  might cause device hang but at least we won't access incorrect addresses
   instanceDescs[dispatchGroup.x].blasAddress = 0;
 }
+
+struct StateObjectLookup
+{
+  uint2 id;    // ResourceId
+  uint offset;
+};
+
+StructuredBuffer<StateObjectLookup> stateObjects : register(t0);
+
+struct RecordData
+{
+  uint4 identifier[2];    // 32-byte real identifier
+  uint rootSigIndex;      // only lower 16-bits are valid
+};
+
+StructuredBuffer<RecordData> records : register(t1);
+
+struct RootSig
+{
+  uint numHandles;
+  uint handleOffsets[MAX_LOCALSIG_HANDLES];
+};
+
+StructuredBuffer<RootSig> rootsigs : register(t2);
+
+struct WrappedRecord
+{
+  uint2 id;    // ResourceId
+  uint index;
+};
+
+RWByteAddressBuffer bufferToPatch : register(u0);
+
+void PatchTable(uint byteOffset)
+{
+  // load our wrapped record from the start of the table
+  WrappedRecord wrappedRecord;
+  wrappedRecord.id = bufferToPatch.Load2(byteOffset);
+  wrappedRecord.index = bufferToPatch.Load(byteOffset + 8);
+
+  // find the state object it came from
+  int i = 0;
+  StateObjectLookup objectLookup;
+  do
+  {
+    objectLookup = stateObjects[i];
+
+    if(objectLookup.id.x == wrappedRecord.id.x && objectLookup.id.y == wrappedRecord.id.y)
+      break;
+
+    // terminate when the lookup is empty, we're out of state objects
+  } while(objectLookup.id.x != 0 || objectLookup.id.y != 0);
+
+  // if didn't find a match, set a NULL shader identifier. This will fail if it's raygen but others
+  // will in theory not crash.
+  if(objectLookup.id.x == 0 && objectLookup.id.y == 0)
+  {
+    bufferToPatch.Store4(byteOffset, uint4(0, 0, 0, 0));
+    bufferToPatch.Store4(byteOffset + 16, uint4(0, 0, 0, 0));
+    return;
+  }
+
+  // the exports from this state object are contiguous starting from the given index, look up this
+  // identifier's export
+  RecordData recordData = records[objectLookup.offset + wrappedRecord.index];
+
+  // store the unwrapped shader identifier
+  bufferToPatch.Store4(byteOffset, recordData.identifier[0]);
+  bufferToPatch.Store4(byteOffset + 16, recordData.identifier[1]);
+
+  if(recordData.rootSigIndex & 0xffff != 0xffff)
+  {
+    RootSig sig = rootsigs[recordData.rootSigIndex];
+
+    for(int i = 0; i < sig.numHandles; i++)
+    {
+      // TODO: patch descriptor handle at offset sig.handleOffsets[i]
+    }
+  }
+}
+
+// Each SV_GroupId corresponds to one shader record to patch
+[numthreads(1, 1, 1)] void RENDERDOC_PatchRayDispatchCS(uint3 dispatchGroup
+                                                        : SV_GroupId) {
+  uint group = dispatchGroup.x;
+
+  if(group == 0)
+  {
+    PatchTable(0);
+    return;
+  }
+
+  group--;
+
+  if(group < raydispatch_misscount)
+  {
+    PatchTable(raydispatch_missoffs + raydispatch_missstride * group);
+    return;
+  }
+
+  group -= raydispatch_misscount;
+
+  if(group < raydispatch_hitcount)
+  {
+    PatchTable(raydispatch_hitoffs + raydispatch_hitstride * group);
+    return;
+  }
+
+  group -= raydispatch_hitcount;
+
+  if(group < raydispatch_callcount)
+  {
+    PatchTable(raydispatch_calloffs + raydispatch_callstride * group);
+    return;
+  }
+}
