@@ -34,6 +34,7 @@
 #define float2 Vec2f
 #define float3 Vec3f
 #define uint4 Vec4u
+#define uint2 Vec2u
 #define int4 Vec4i
 #define float4 Vec4f
 #define float4x4 Matrix4f
@@ -195,8 +196,76 @@ cbuffer AccStructPatchInfo REG(b0)
   uint addressCount;
 };
 
-#if defined(SHADER_MODEL_MIN_6_0_REQUIRED) || defined(__cplusplus)
+  // INCLUDE_GPUADDRESS_HELPERS should only be set for unit tests to check these functions below,
+  // otherwise it pollutes the interface
+
+#if defined(__cplusplus) && !defined(INCLUDE_GPUADDRESS_HELPERS)
+// on the GPU this will be uint2 {.x = LSB, .y = MSB} to match uint64 order
 typedef uint64_t GPUAddress;
+#else
+typedef uint2 GPUAddress;
+#endif
+
+// don't define the helpers in C++ by default, unless we're using them for unit tests
+#if !defined(__cplusplus) || defined(INCLUDE_GPUADDRESS_HELPERS)
+
+#if defined(__cplusplus)
+#define max RDCMAX
+#define min RDCMIN
+#endif
+
+bool lessThan(GPUAddress a, GPUAddress b)
+{
+  // either MSB is less, or MSB is equal and LSB is less-equal
+  return a.y < b.y || (a.y == b.y && a.x < b.x);
+}
+
+bool lessEqual(GPUAddress a, GPUAddress b)
+{
+  return lessThan(a, b) || (a.y == b.y && a.x == b.x);
+}
+
+GPUAddress add(GPUAddress a, GPUAddress b)
+{
+  uint msb = 0, lsb = 0;
+  if(b.x > 0 && a.x > 0xffffffff - b.x)
+  {
+    uint x = max(a.x, b.x) - 0x80000000;
+    uint y = min(a.x, b.x);
+
+    uint sum = x + y;
+
+    msb = a.y + b.y + 1;
+    lsb = sum - 0x80000000;
+  }
+  else
+  {
+    msb = a.y + b.y;
+    lsb = a.x + b.x;
+  }
+
+  return GPUAddress(lsb, msb);
+}
+
+GPUAddress sub(GPUAddress a, GPUAddress b)
+{
+  uint msb = 0, lsb = 0;
+  if(a.x < b.x)
+  {
+    uint diff = b.x - a.x;
+
+    msb = a.y - b.y - 1;
+    lsb = 0xffffffff - (diff - 1);
+  }
+  else
+  {
+    msb = a.y - b.y;
+    lsb = a.x - b.x;
+  }
+
+  return GPUAddress(lsb, msb);
+}
+#endif
 
 struct BlasAddressRange
 {
@@ -213,10 +282,9 @@ struct BlasAddressPair
 // This corresponds to D3D12_RAYTRACING_INSTANCE_DESC structure
 struct InstanceDesc
 {
-  uint64_t padding[7];
+  uint2 padding[7];
   GPUAddress blasAddress;
 };
-#endif
 
 cbuffer DebugSampleOperation REG(b0)
 {

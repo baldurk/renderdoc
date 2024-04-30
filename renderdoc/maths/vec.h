@@ -167,6 +167,23 @@ inline Vec4f operator+=(Vec4f &a, const Vec4f &b)
   return a;
 }
 
+struct Vec2u
+{
+  Vec2u(uint32_t X = 0, uint32_t Y = 0)
+  {
+    x = X;
+    y = Y;
+  }
+  union
+  {
+    struct
+    {
+      uint32_t x, y;
+    };
+    uint32_t uv[2];
+  };
+};
+
 struct Vec4u
 {
   Vec4u(uint32_t X = 0, uint32_t Y = 0, uint32_t Z = 0, uint32_t W = 0)

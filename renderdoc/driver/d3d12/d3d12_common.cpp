@@ -1814,3 +1814,107 @@ D3D12_PACKED_PIPELINE_STATE_STREAM_DESC &D3D12_PACKED_PIPELINE_STATE_STREAM_DESC
 
   return *this;
 }
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+#include "catch/catch.hpp"
+
+#define INCLUDE_GPUADDRESS_HELPERS
+
+#include "data/hlsl/hlsl_cbuffers.h"
+
+GPUAddress toaddr(uint64_t addr)
+{
+  GPUAddress ret;
+  RDCCOMPILE_ASSERT(sizeof(ret) == sizeof(addr), "GPU address isn't 64-bit");
+  memcpy(&ret, &addr, sizeof(ret));
+  return ret;
+}
+
+uint64_t fromaddr(GPUAddress addr)
+{
+  uint64_t ret;
+  RDCCOMPILE_ASSERT(sizeof(ret) == sizeof(addr), "GPU address isn't 64-bit");
+  memcpy(&ret, &addr, sizeof(ret));
+  return ret;
+}
+
+TEST_CASE("HLSL uint64 helpers", "[d3d]")
+{
+  rdcarray<uint64_t> testValues = {
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      100,
+      128,
+      1000,
+
+      0xfffffffa,
+      0xfffffffb,
+      0xfffffffc,
+      0xfffffffd,
+      0xfffffffe,
+      0xffffffff,
+
+      0x100000000ULL,
+      0x100000001ULL,
+      0x100000002ULL,
+      0x100000003ULL,
+      0x100000004ULL,
+      0x100000005ULL,
+      0x100000006ULL,
+
+      0x1000000000001000ULL,
+      0x100000000fffffffULL,
+      0x1000000010000000ULL,
+      0x1000000010000001ULL,
+      0x1000000010000002ULL,
+      0x1000000010000002ULL,
+
+      0x4000000000001000ULL,
+      0x400000000fffffffULL,
+      0x4000000010000000ULL,
+      0x4000000010000001ULL,
+      0x4000000010000002ULL,
+      0x4000000010000002ULL,
+      // don't test anything that could overflow if summed together for simplicity
+  };
+
+  for(uint64_t first : testValues)
+  {
+    for(uint64_t second : testValues)
+    {
+      GPUAddress a, b;
+      a = toaddr(first);
+      b = toaddr(second);
+
+      // sanity check
+      CHECK(fromaddr(a) == first);
+      CHECK(fromaddr(b) == second);
+
+      CHECK(lessThan(a, b) == (first < second));
+      CHECK(lessEqual(a, b) == (first <= second));
+
+      CHECK(lessThan(b, a) == (second < first));
+      CHECK(lessEqual(b, a) == (second <= first));
+
+      CHECK(fromaddr(add(a, b)) == (first + second));
+      CHECK(fromaddr(add(b, a)) == (first + second));
+
+      if(first >= second)
+        CHECK(fromaddr(sub(a, b)) == (first - second));
+      else
+        CHECK(fromaddr(sub(b, a)) == (second - first));
+    }
+  }
+};
+
+#endif    // ENABLED(ENABLE_UNIT_TESTS)

@@ -840,7 +840,7 @@ void D3D12RaytracingResourceAndUtilHandler::InitReplayBlasPatchingResources()
       ID3DBlob *shader = NULL;
       rdcstr hlsl = GetEmbeddedResource(raytracing_hlsl);
       shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_PatchAccStructAddressCS",
-                                 D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_6_0", &shader);
+                                 D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0", &shader);
 
       if(shader)
       {

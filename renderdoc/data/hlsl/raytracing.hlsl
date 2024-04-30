@@ -22,17 +22,14 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#ifndef SHADER_MODEL_MIN_6_0_REQUIRED
-#define SHADER_MODEL_MIN_6_0_REQUIRED
-#endif
 #include "hlsl_cbuffers.h"
 
-RWStructuredBuffer<InstanceDesc> instanceDescs : register(u0, space0);
-StructuredBuffer<BlasAddressPair> oldNewAddressesPair : register(t0, space0);
+RWStructuredBuffer<InstanceDesc> instanceDescs : register(u0);
+StructuredBuffer<BlasAddressPair> oldNewAddressesPair : register(t0);
 
 bool InRange(BlasAddressRange addressRange, GPUAddress address)
 {
-  if(addressRange.start <= address && address <= addressRange.end)
+  if(lessEqual(addressRange.start, address) && lessThan(address, addressRange.end))
   {
     return true;
   }
@@ -49,8 +46,9 @@ bool InRange(BlasAddressRange addressRange, GPUAddress address)
   {
     if(InRange(oldNewAddressesPair[i].oldAddress, instanceBlasAddress))
     {
-      uint64_t offset = instanceBlasAddress - oldNewAddressesPair[i].oldAddress.start;
-      instanceDescs[dispatchGroup.x].blasAddress = oldNewAddressesPair[i].newAddress.start + offset;
+      GPUAddress offset = sub(instanceBlasAddress, oldNewAddressesPair[i].oldAddress.start);
+      instanceDescs[dispatchGroup.x].blasAddress =
+          add(oldNewAddressesPair[i].newAddress.start, offset);
       return;
     }
   }

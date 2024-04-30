@@ -154,77 +154,24 @@ cbuffer countbuffer : register(b2)
 
 struct buffermapping
 {
-  // {.x = LSB, .y = MSB} to match uint64 order
-  uint2 origBase;
-  uint2 origEnd;
-  uint2 newBase;
-  uint2 pad;
+  GPUAddress origBase;
+  GPUAddress origEnd;
+  GPUAddress newBase;
+  GPUAddress pad;
 };
 
 StructuredBuffer<buffermapping> buffers : register(t0);
 RWByteAddressBuffer arguments : register(u0);
 
-bool uint64LessThan(uint2 a, uint2 b)
-{
-  // either MSB is less, or MSB is equal and LSB is less-equal
-  return a.y < b.y || (a.y == b.y && a.x < b.x);
-}
-
-bool uint64LessEqual(uint2 a, uint2 b)
-{
-  return uint64LessThan(a, b) || (a.y == b.y && a.x == b.x);
-}
-
-uint2 uint64Add(uint2 a, uint2 b)
-{
-  uint msb = 0, lsb = 0;
-  if(b.x > 0 && a.x > 0xffffffff - b.x)
-  {
-    uint x = max(a.x, b.x) - 0x80000000;
-    uint y = min(a.x, b.x);
-
-    uint sum = x + y;
-
-    msb = a.y + b.y + 1;
-    lsb = sum - 0x80000000;
-  }
-  else
-  {
-    msb = a.y + b.y;
-    lsb = a.x + b.x;
-  }
-
-  return uint2(lsb, msb);
-}
-
-uint2 uint64Sub(uint2 a, uint2 b)
-{
-  uint msb = 0, lsb = 0;
-  if(a.x < b.x)
-  {
-    uint diff = b.x - a.x;
-
-    msb = a.y - b.y - 1;
-    lsb = 0xffffffff - (diff - 1);
-  }
-  else
-  {
-    msb = a.y - b.y;
-    lsb = a.x - b.x;
-  }
-
-  return uint2(lsb, msb);
-}
-
-uint2 PatchAddress(uint2 addr)
+GPUAddress PatchAddress(GPUAddress addr)
 {
   for(uint i = 0; i < bufCount; i++)
   {
     buffermapping b = buffers[i];
 
-    if(uint64LessEqual(b.origBase, addr) && uint64LessThan(addr, b.origEnd))
+    if(lessEqual(b.origBase, addr) && lessThan(addr, b.origEnd))
     {
-      return uint64Add(b.newBase, uint64Sub(addr, b.origBase));
+      return add(b.newBase, sub(addr, b.origBase));
     }
   }
 
