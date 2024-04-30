@@ -4917,10 +4917,9 @@ bool WrappedVulkan::ShouldUpdateRenderpassActive(ResourceId cmdId, bool dynamicR
   if(m_OutsideCmdBuffer != VK_NULL_HANDLE)
     return true;
 
-  // If we're opening or closing a dynamic renderpass, we only want to track the state if
-  // we are in the most deeply nested command buffer
+  // If we're opening or closing a dynamic renderpass, this can happen in any command buffer primary or secondary
   if(dynamicRendering)
-    return IsCommandBufferDeepestPartial(cmdId);
+    return IsCommandBufferPartial(cmdId);
 
   // Otherwise we are in a non-dynamic renderpass and state should only be tracked for the primary
   return IsCommandBufferPartialPrimary(cmdId);
