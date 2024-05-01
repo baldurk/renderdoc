@@ -454,6 +454,10 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkPhysicalDeviceShaderIntegerDotProductFeatures);                                      \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_INTEGER_DOT_PRODUCT_PROPERTIES,               \
               VkPhysicalDeviceShaderIntegerDotProductProperties);                                    \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT,                          \
+              VkPhysicalDeviceShaderObjectFeaturesEXT);                                              \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_PROPERTIES_EXT,                        \
+              VkPhysicalDeviceShaderObjectPropertiesEXT);                                            \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SUBGROUP_EXTENDED_TYPES_FEATURES,             \
               VkPhysicalDeviceShaderSubgroupExtendedTypesFeatures)                                   \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SUBGROUP_UNIFORM_CONTROL_FLOW_FEATURES_KHR,   \
@@ -1063,8 +1067,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_MAXIMAL_RECONVERGENCE_FEATURES_KHR:         \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_MODULE_IDENTIFIER_FEATURES_EXT:             \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_MODULE_IDENTIFIER_PROPERTIES_EXT:           \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT:                        \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_PROPERTIES_EXT:                      \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_QUAD_CONTROL_FEATURES_KHR:                  \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SM_BUILTINS_FEATURES_NV:                    \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SM_BUILTINS_PROPERTIES_NV:                  \
@@ -1134,7 +1136,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_SEMAPHORE_GET_ZIRCON_HANDLE_INFO_FUCHSIA:                          \
   case VK_STRUCTURE_TYPE_SET_DESCRIPTOR_BUFFER_OFFSETS_INFO_EXT:                            \
   case VK_STRUCTURE_TYPE_SET_LATENCY_MARKER_INFO_NV:                                        \
-  case VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT:                                            \
   case VK_STRUCTURE_TYPE_SHADER_MODULE_IDENTIFIER_EXT:                                      \
   case VK_STRUCTURE_TYPE_SUBPASS_SHADING_PIPELINE_CREATE_INFO_HUAWEI:                       \
   case VK_STRUCTURE_TYPE_SUBRESOURCE_HOST_MEMCPY_SIZE_EXT:                                  \
@@ -1559,6 +1560,14 @@ size_t GetNextPatchSize(const void *pNext)
 
         VkSemaphoreWaitInfo *info = (VkSemaphoreWaitInfo *)next;
         memSize += info->semaphoreCount * sizeof(VkSemaphore);
+        break;
+      }
+      case VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT:
+      {
+        memSize += sizeof(VkShaderCreateInfoEXT);
+
+        VkShaderCreateInfoEXT *info = (VkShaderCreateInfoEXT *)next;
+        memSize += info->setLayoutCount * sizeof(VkDescriptorSetLayout);
         break;
       }
       case VK_STRUCTURE_TYPE_SUBMIT_INFO:
@@ -2647,6 +2656,26 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
 
         break;
       }
+      case VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT:
+      {
+        const VkShaderCreateInfoEXT *in = (const VkShaderCreateInfoEXT *)nextInput;
+        VkShaderCreateInfoEXT *out = (VkShaderCreateInfoEXT *)tempMem;
+
+        // append immediately so tempMem is incremented
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
+
+        // allocate unwrapped array
+        VkDescriptorSetLayout *outLayouts = (VkDescriptorSetLayout *)tempMem;
+        tempMem += sizeof(VkDescriptorSetLayout) * in->setLayoutCount;
+
+        *out = *in;
+
+        out->pSetLayouts = outLayouts;
+        for(uint32_t i = 0; i < in->setLayoutCount; i++)
+          outLayouts[i] = Unwrap(in->pSetLayouts[i]);
+
+        break;
+      }
       case VK_STRUCTURE_TYPE_SUBMIT_INFO:
       {
         const VkSubmitInfo *in = (const VkSubmitInfo *)nextInput;
@@ -3137,6 +3166,9 @@ void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInSt
         break;
       case VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO:
         CopyNextChainedStruct(sizeof(VkSemaphoreWaitInfo), tempMem, nextInput, nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT:
+        CopyNextChainedStruct(sizeof(VkShaderCreateInfoEXT), tempMem, nextInput, nextChainTail);
         break;
       case VK_STRUCTURE_TYPE_SUBMIT_INFO:
         CopyNextChainedStruct(sizeof(VkSubmitInfo), tempMem, nextInput, nextChainTail);
