@@ -171,6 +171,7 @@ DECL_VKFLAG_EXT(VkAccelerationStructureCreate, KHR);
 DECL_VKFLAG_EXT(VkBuildAccelerationStructure, KHR);
 DECL_VKFLAG_EXT(VkGeometry, KHR);
 DECL_VKFLAG_EXT(VkGeometryInstance, KHR);
+DECL_VKFLAG_EXT(VkShaderCreate, EXT);
 
 // serialise a member as flags - cast to the Bits enum for serialisation so the stringification
 // picks up the bitfield and doesn't treat it as uint32_t. Then we rename the type back to the base
@@ -1348,6 +1349,13 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_INTEGER_DOT_PRODUCT_PROPERTIES,                \
                VkPhysicalDeviceShaderIntegerDotProductProperties)                                      \
                                                                                                        \
+  /* VK_EXT_shader_object*/                                                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT, VkShaderCreateInfoEXT)                        \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT,                           \
+               VkPhysicalDeviceShaderObjectFeaturesEXT)                                                \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_PROPERTIES_EXT,                         \
+               VkPhysicalDeviceShaderObjectPropertiesEXT)                                              \
+                                                                                                       \
   /* VK_KHR_shader_subgroup_extended_types */                                                          \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SUBGROUP_EXTENDED_TYPES_FEATURES,              \
                VkPhysicalDeviceShaderSubgroupExtendedTypesFeatures)                                    \
@@ -1658,11 +1666,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_MODULE_IDENTIFIER_PROPERTIES_EXT)         \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_MODULE_IDENTIFIER_CREATE_INFO_EXT)         \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SHADER_MODULE_IDENTIFIER_EXT)                                    \
-                                                                                                       \
-  /* VK_EXT_shader_object */                                                                           \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT)                      \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_PROPERTIES_EXT)                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT)                                          \
                                                                                                        \
   /* VK_EXT_shader_tile_image */                                                                       \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_TILE_IMAGE_FEATURES_EXT)                  \
@@ -6563,6 +6566,81 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceExtendedDynamicState3Prope
 
 template <>
 void Deserialise(const VkPhysicalDeviceExtendedDynamicState3PropertiesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkShaderCreateInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_VKFLAGS(VkShaderCreateFlagsEXT, flags);
+  SERIALISE_MEMBER(stage).Important();
+  SERIALISE_MEMBER_VKFLAGS(VkShaderStageFlags, nextStage);
+  SERIALISE_MEMBER(codeType);
+
+  // don't serialise size_t, otherwise capture/replay between different bit-ness won't work
+  {
+    uint64_t codeSize = el.codeSize;
+    ser.Serialise("codeSize"_lit, codeSize);
+    if(ser.IsReading())
+      el.codeSize = (size_t)codeSize;
+  }
+
+  // serialise as void* so it goes through as a buffer, not an actual array of integers.
+  {
+    const void *pCode = el.pCode;
+    ser.Serialise("pCode"_lit, pCode, el.codeSize, SerialiserFlags::AllocateMemory);
+    if(ser.IsReading())
+      el.pCode = (uint32_t *)pCode;
+  }
+
+  SERIALISE_MEMBER(pName).Important();
+  SERIALISE_MEMBER(setLayoutCount);
+  SERIALISE_MEMBER_ARRAY(pSetLayouts, setLayoutCount).Important();
+  SERIALISE_MEMBER(pushConstantRangeCount).Important();
+  SERIALISE_MEMBER_ARRAY(pPushConstantRanges, pushConstantRangeCount);
+  SERIALISE_MEMBER_OPT(pSpecializationInfo);
+}
+
+template <>
+void Deserialise(const VkShaderCreateInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+  FreeAlignedBuffer((byte *)el.pCode);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceShaderObjectFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(shaderObject);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceShaderObjectFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceShaderObjectPropertiesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_PROPERTIES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(shaderBinaryUUID);
+  SERIALISE_MEMBER(shaderBinaryVersion);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceShaderObjectPropertiesEXT &el)
 {
   DeserialiseNext(el.pNext);
 }
@@ -12425,6 +12503,8 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderImageFootprintFeaturesNV);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderIntegerDotProductFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderIntegerDotProductProperties);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderObjectFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderObjectPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderSubgroupExtendedTypesFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderTerminateInvocationFeatures);
@@ -12533,6 +12613,7 @@ INSTANTIATE_SERIALISE_TYPE(VkSemaphoreSignalInfo);
 INSTANTIATE_SERIALISE_TYPE(VkSemaphoreSubmitInfo);
 INSTANTIATE_SERIALISE_TYPE(VkSemaphoreTypeCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkSemaphoreWaitInfo);
+INSTANTIATE_SERIALISE_TYPE(VkShaderCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkShaderModuleCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkShaderModuleValidationCacheCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkSharedPresentSurfaceCapabilitiesKHR);
