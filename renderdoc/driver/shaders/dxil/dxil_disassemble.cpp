@@ -2283,7 +2283,14 @@ struct ResourceHandle
 {
   rdcstr name;
   ResourceClass resourceClass;
-  uint32_t resourceIndex;
+  uint32_t resourceIndex = 0;
+  union
+  {
+    const DXIL::EntryPointInterface::UAV *uav;
+    const DXIL::EntryPointInterface::SRV *srv;
+    const DXIL::EntryPointInterface::CBuffer *cbuffer;
+    const DXIL::EntryPointInterface::Sampler *sampler;
+  };
 };
 
 void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
@@ -2676,19 +2683,39 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               {
                 if(hasResIndex)
                 {
+                  ResourceHandle resHandle;
+                  bool validRes = true;
                   switch(resClass)
                   {
-                    case ResourceClass::SRV: resName = entryPoint.srvs[resIndex].name; break;
-                    case ResourceClass::UAV: resName = entryPoint.uavs[resIndex].name; break;
+                    case ResourceClass::SRV:
+                      resName = entryPoint.srvs[resIndex].name;
+                      resHandle.srv = &entryPoint.srvs[resIndex];
+                      break;
+                    case ResourceClass::UAV:
+                      resName = entryPoint.uavs[resIndex].name;
+                      resHandle.uav = &entryPoint.uavs[resIndex];
+                      break;
                     case ResourceClass::CBuffer:
                       resName = entryPoint.cbuffers[resIndex].name;
+                      resHandle.cbuffer = &entryPoint.cbuffers[resIndex];
                       break;
                     case ResourceClass::Sampler:
                       resName = entryPoint.samplers[resIndex].name;
+                      resHandle.sampler = &entryPoint.samplers[resIndex];
                       break;
-                    default: resName = "INVALID RESOURCE CLASS"; break;
+                    default:
+                      validRes = false;
+                      resName = "INVALID RESOURCE CLASS";
+                      break;
                   };
-                  resHandles[handleStr] = {resName, resClass, resIndex};
+
+                  if(validRes)
+                  {
+                    resHandle.name = resName;
+                    resHandle.resourceClass = resClass;
+                    resHandle.resourceIndex = resIndex;
+                    resHandles[handleStr] = resHandle;
+                  }
                   uint32_t index;
                   if(getival<uint32_t>(inst.args[3], index))
                   {
@@ -2873,6 +2900,78 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                   }
                 }
                 lineStr += "}";
+              }
+              else
+              {
+                showDxFuncName = true;
+              }
+            }
+            else if(showDxFuncName && funcCallName.beginsWith("dx.op.textureLoad"))
+            {
+              // srv,mipLevelOrSampleCount,coord0,coord1,coord2,offset0,offset1,offset2
+              showDxFuncName = false;
+              uint32_t dxopCode;
+              RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
+              RDCASSERTEQUAL(dxopCode, 66);
+              rdcstr handleStr = ArgToString(inst.args[1], false);
+              if(resHandles.count(handleStr) > 0)
+              {
+                lineStr += resHandles[handleStr].name;
+                lineStr += ".Load(";
+                bool needComma = false;
+                const EntryPointInterface::SRV *texture = resHandles[handleStr].srv;
+                for(uint32_t a = 3; a < 6; ++a)
+                {
+                  if(!isUndef(inst.args[a]))
+                  {
+                    if(needComma)
+                      lineStr += ", ";
+                    lineStr += ArgToString(inst.args[a], false);
+                    needComma = true;
+                  }
+                }
+                bool needText = true;
+                if(!isUndef(inst.args[2]))
+                {
+                  rdcstr prefix;
+                  bool showArg = true;
+                  if(needText)
+                  {
+                    if(texture && texture->sampleCount > 1)
+                    {
+                      prefix = "SampleIndex = ";
+                    }
+                    else
+                    {
+                      prefix = "MipSlice = ";
+                      uint32_t mipSlice;
+                      if(getival<uint32_t>(inst.args[2], mipSlice))
+                        showArg = mipSlice > 0;
+                    }
+                  }
+                  if(showArg)
+                  {
+                    needText = false;
+                    lineStr += ", ";
+                    lineStr += prefix;
+                    lineStr += ArgToString(inst.args[2], false);
+                  }
+                }
+                needText = true;
+                for(uint32_t a = 6; a < 9; ++a)
+                {
+                  if(!isUndef(inst.args[a]))
+                  {
+                    lineStr += ", ";
+                    if(needText)
+                    {
+                      lineStr += "Offset = ";
+                      needText = false;
+                    }
+                    lineStr += ArgToString(inst.args[a], false);
+                  }
+                }
+                lineStr += ")";
               }
               else
               {
