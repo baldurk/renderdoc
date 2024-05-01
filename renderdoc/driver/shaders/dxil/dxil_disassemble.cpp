@@ -2209,12 +2209,21 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
       VarType varType = VarTypeForComponentType(sig.type);
       m_Disassembly += "  Input[" + ToStr(i) + "] " + ToStr(varType).c_str();
 
-      if(sig.rows > 1)
-        m_Disassembly += ToStr(sig.rows) + "x";
       if(sig.cols > 1)
         m_Disassembly += ToStr(sig.cols);
 
-      m_Disassembly += " " + sig.name + ";";
+      if(reflection && sig.rows == 1)
+      {
+        const SigParameter &sigParam = reflection->InputSig[i];
+        if(sigParam.semanticName == sig.name)
+        {
+          sig.name = sigParam.semanticIdxName;
+        }
+      }
+      m_Disassembly += " " + sig.name;
+      if(sig.rows > 1)
+        m_Disassembly += "[" + ToStr(sig.rows) + "]";
+      m_Disassembly += ";";
       DisassemblyAddNewLine();
     }
     if(!entryPoint.outputs.empty())
@@ -2226,12 +2235,19 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
       VarType varType = VarTypeForComponentType(sig.type);
       m_Disassembly += "  Output[" + ToStr(i) + "] " + ToStr(varType).c_str();
 
-      if(sig.rows > 1)
-        m_Disassembly += ToStr(sig.rows) + "x";
       if(sig.cols > 1)
         m_Disassembly += ToStr(sig.cols);
 
-      m_Disassembly += " " + sig.name + ";";
+      if(reflection && sig.rows == 1)
+      {
+        const SigParameter &sigParam = reflection->OutputSig[i];
+        if(sigParam.semanticName == sig.name)
+          sig.name = sigParam.semanticIdxName;
+      }
+      m_Disassembly += " " + sig.name;
+      if(sig.rows > 1)
+        m_Disassembly += "[" + ToStr(sig.rows) + "]";
+      m_Disassembly += ";";
       DisassemblyAddNewLine();
     }
 
@@ -2457,10 +2473,11 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               uint32_t dxopCode = getival<uint32_t>(inst.args[0]);
               RDCASSERTEQUAL(dxopCode, 4);
               uint32_t inputIdx = getival<uint32_t>(inst.args[1]);
+              lineStr += "<IN>.";
               lineStr += entryPoint.inputs[inputIdx].name;
-              uint32_t colIdx = getival<uint32_t>(inst.args[2]);
+              uint32_t rowIdx = getival<uint32_t>(inst.args[2]);
               if(entryPoint.inputs[inputIdx].rows > 1)
-                lineStr += "[" + ToStr(colIdx) + "]";
+                lineStr += "[" + ToStr(rowIdx) + "]";
               lineStr += ".";
               uint32_t componentIdx = getival<uint32_t>(inst.args[3]);
               lineStr += swizzle[componentIdx & 0x3];
@@ -2471,11 +2488,12 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               uint32_t dxopCode = getival<uint32_t>(inst.args[0]);
               RDCASSERTEQUAL(dxopCode, 5);
               uint32_t outputIdx = getival<uint32_t>(inst.args[1]);
+              lineStr += "<OUT>.";
               lineStr += entryPoint.outputs[outputIdx].name;
               lineStr += ".";
-              uint32_t colIdx = getival<uint32_t>(inst.args[2]);
+              uint32_t rowIdx = getival<uint32_t>(inst.args[2]);
               if(entryPoint.outputs[outputIdx].rows > 1)
-                lineStr += "[" + ToStr(colIdx) + "]";
+                lineStr += "[" + ToStr(rowIdx) + "]";
               uint32_t componentIdx = getival<uint32_t>(inst.args[3]);
               lineStr += swizzle[componentIdx & 0x3];
               lineStr += " = " + ArgToString(inst.args[4], false);
@@ -2483,10 +2501,12 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
             else if(showDxFuncName && funcCallName.beginsWith("dx.op.createHandle"))
             {
               showDxFuncName = false;
+              uint32_t dxopCode = getival<uint32_t>(inst.args[0]);
+              RDCASSERTEQUAL(dxopCode, 57);
               ResourceClass resClass = getival<ResourceClass>(inst.args[1]);
               uint32_t resIndex = getival<uint32_t>(inst.args[2]);
               uint32_t resLowerBound = getival<uint32_t>(inst.args[3]);
-              bool nonUniformIndex = (getival<uint32_t>(inst.args[4]) == 1);
+              bool nonUniformIndex = (getival<uint32_t>(inst.args[4]) != 0);
               rdcstr resName = "";
               switch(resClass)
               {
