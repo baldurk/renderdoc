@@ -76,18 +76,20 @@ rdcstr escapeStringIfNeeded(const rdcstr &name)
 }
 
 template <typename T>
-T getival(const Value *v)
+bool getival(const Value *v, T &out)
 {
   if(const Constant *c = cast<Constant>(v))
   {
-    if(c->isLiteral())
-      return T(c->getU64());
+    out = T(c->getU64());
+    return true;
   }
   else if(const Literal *lit = cast<Literal>(v))
   {
-    return T(lit->literal);
+    out = T(c->getU64());
+    return true;
   }
-  return T();
+  out = T();
+  return false;
 }
 
 static const char *shaderNames[] = {
@@ -2567,79 +2569,175 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
             if(showDxFuncName && funcCallName.beginsWith("dx.op.loadInput"))
             {
               showDxFuncName = false;
-              uint32_t dxopCode = getival<uint32_t>(inst.args[0]);
+              uint32_t dxopCode;
+              RDCASSERTEQUAL(getival<uint32_t>(inst.args[0], dxopCode), true);
               RDCASSERTEQUAL(dxopCode, 4);
-              uint32_t inputIdx = getival<uint32_t>(inst.args[1]);
-              lineStr += "<IN>.";
-              lineStr += entryPoint.inputs[inputIdx].name;
-              uint32_t rowIdx = getival<uint32_t>(inst.args[2]);
-              if(entryPoint.inputs[inputIdx].rows > 1)
-                lineStr += "[" + ToStr(rowIdx) + "]";
-              lineStr += ".";
-              uint32_t componentIdx = getival<uint32_t>(inst.args[3]);
-              lineStr += swizzle[componentIdx & 0x3];
+              rdcstr name;
+              rdcstr rowStr;
+              rdcstr componentStr;
+              uint32_t inputIdx;
+              uint32_t rowIdx;
+              bool hasRowIdx = getival<uint32_t>(inst.args[2], rowIdx);
+              if(getival<uint32_t>(inst.args[1], inputIdx))
+              {
+                EntryPointInterface::Signature &sig = entryPoint.inputs[inputIdx];
+                name = sig.name;
+                if(hasRowIdx)
+                {
+                  if(sig.rows > 1)
+                    rowStr = "[" + ToStr(rowIdx) + "]";
+                }
+              }
+              else
+              {
+                name = ArgToString(inst.args[1], false);
+                rowStr = "[";
+                if(hasRowIdx)
+                  rowStr += ToStr(rowIdx);
+                else
+                  rowStr += ArgToString(inst.args[2], false);
+                rowStr += +"]";
+              }
+              uint32_t componentIdx;
+              if(getival<uint32_t>(inst.args[3], componentIdx))
+                componentStr = StringFormat::Fmt("%c", swizzle[componentIdx & 0x3]);
+              else
+                componentStr = ArgToString(inst.args[3], false);
+
+              lineStr += "<IN>." + name + rowStr + "." + componentStr;
             }
             else if(showDxFuncName && funcCallName.beginsWith("dx.op.storeOutput"))
             {
               showDxFuncName = false;
-              uint32_t dxopCode = getival<uint32_t>(inst.args[0]);
+              uint32_t dxopCode;
+              RDCASSERTEQUAL(getival<uint32_t>(inst.args[0], dxopCode), true);
               RDCASSERTEQUAL(dxopCode, 5);
-              uint32_t outputIdx = getival<uint32_t>(inst.args[1]);
-              lineStr += "<OUT>.";
-              lineStr += entryPoint.outputs[outputIdx].name;
-              lineStr += ".";
-              uint32_t rowIdx = getival<uint32_t>(inst.args[2]);
-              if(entryPoint.outputs[outputIdx].rows > 1)
-                lineStr += "[" + ToStr(rowIdx) + "]";
-              uint32_t componentIdx = getival<uint32_t>(inst.args[3]);
-              lineStr += swizzle[componentIdx & 0x3];
+              rdcstr name;
+              rdcstr rowStr;
+              rdcstr componentStr;
+              uint32_t outputIdx;
+              uint32_t rowIdx;
+              bool hasRowIdx = getival<uint32_t>(inst.args[2], rowIdx);
+              if(getival<uint32_t>(inst.args[1], outputIdx))
+              {
+                EntryPointInterface::Signature &sig = entryPoint.outputs[outputIdx];
+                name = sig.name;
+                if(hasRowIdx)
+                {
+                  if(sig.rows > 1)
+                    rowStr = "[" + ToStr(rowIdx) + "]";
+                }
+              }
+              else
+              {
+                name = ArgToString(inst.args[1], false);
+                rowStr = "[";
+                if(hasRowIdx)
+                  rowStr += ToStr(rowIdx);
+                else
+                  rowStr += ArgToString(inst.args[2], false);
+                rowStr += +"]";
+              }
+              uint32_t componentIdx;
+              if(getival<uint32_t>(inst.args[3], componentIdx))
+                componentStr = StringFormat::Fmt("%c", swizzle[componentIdx & 0x3]);
+              else
+                componentStr = ArgToString(inst.args[3], false);
+
+              lineStr += "<OUT>." + name + rowStr + "." + componentStr;
               lineStr += " = " + ArgToString(inst.args[4], false);
             }
             else if(showDxFuncName && funcCallName.beginsWith("dx.op.createHandle"))
             {
               showDxFuncName = false;
-              uint32_t dxopCode = getival<uint32_t>(inst.args[0]);
+              uint32_t dxopCode;
+              RDCASSERTEQUAL(getival<uint32_t>(inst.args[0], dxopCode), true);
               RDCASSERTEQUAL(dxopCode, 57);
-              ResourceClass resClass = getival<ResourceClass>(inst.args[1]);
-              uint32_t resIndex = getival<uint32_t>(inst.args[2]);
-              uint32_t resLowerBound = getival<uint32_t>(inst.args[3]);
-              bool nonUniformIndex = (getival<uint32_t>(inst.args[4]) != 0);
-              rdcstr resName = "";
-              switch(resClass)
+              rdcstr handleStr = resultIdStr;
+              ResourceClass resClass;
+              rdcstr resName;
+              uint32_t resIndex;
+              bool hasResIndex = getival<uint32_t>(inst.args[2], resIndex);
+              if(getival<ResourceClass>(inst.args[1], resClass))
               {
-                case ResourceClass::SRV: resName = entryPoint.srvs[resIndex].name; break;
-                case ResourceClass::UAV: resName = entryPoint.uavs[resIndex].name; break;
-                case ResourceClass::CBuffer: resName = entryPoint.cbuffers[resIndex].name; break;
-                case ResourceClass::Sampler: resName = entryPoint.samplers[resIndex].name; break;
-                default: resName = "INVALID RESOURCE CLASS"; break;
-              };
-              resHandles[resName] = make_rdcpair<ResourceClass, uint32_t>(resClass, resIndex);
+                if(hasResIndex)
+                {
+                  switch(resClass)
+                  {
+                    case ResourceClass::SRV: resName = entryPoint.srvs[resIndex].name; break;
+                    case ResourceClass::UAV: resName = entryPoint.uavs[resIndex].name; break;
+                    case ResourceClass::CBuffer:
+                      resName = entryPoint.cbuffers[resIndex].name;
+                      break;
+                    case ResourceClass::Sampler:
+                      resName = entryPoint.samplers[resIndex].name;
+                      break;
+                    default: resName = "INVALID RESOURCE CLASS"; break;
+                  };
+                  resHandles[handleStr] = make_rdcpair<ResourceClass, uint32_t>(resClass, resIndex);
+                  uint32_t index;
+                  if(getival<uint32_t>(inst.args[3], index))
+                  {
+                    if(index != resIndex)
+                      commentStr += " index = " + ToStr(index);
+                  }
+                }
+                else
+                {
+                  switch(resClass)
+                  {
+                    case ResourceClass::SRV: resName = "SRV"; break;
+                    case ResourceClass::UAV: resName = "UAV"; break;
+                    case ResourceClass::CBuffer: resName = "CBuffer"; break;
+                    case ResourceClass::Sampler: resName = "Sampler"; break;
+                    default: resName = "INVALID RESOURCE CLASS"; break;
+                  };
+                }
+              }
+              else
+              {
+                resName = "ResourceClass:" + ArgToString(inst.args[1], false);
+              }
+              if(!hasResIndex)
+              {
+                resName += "[" + ArgToString(inst.args[2], false) + "]";
+                commentStr += " index = " + ArgToString(inst.args[3], false);
+              }
+              uint32_t value;
+              if(getival<uint32_t>(inst.args[4], value))
+              {
+                if(value != 0)
+                  commentStr += " nonUniformIndex = true";
+              }
               lineStr += resName;
-              if(index != resIndex)
-                commentStr += " index = " + ToStr(index);
-              if(nonUniformIndex)
-                commentStr += " nonUniformIndex = " + ToStr(nonUniformIndex);
             }
             else if(showDxFuncName && funcCallName.beginsWith("dx.op.cbufferLoad"))
             {
               showDxFuncName = false;
-              uint32_t dxopCode = getival<uint32_t>(inst.args[0]);
+              uint32_t dxopCode;
+              RDCASSERTEQUAL(getival<uint32_t>(inst.args[0], dxopCode), true);
               RDCASSERTEQUAL(dxopCode, 59);
               rdcstr handleStr = ArgToString(inst.args[1], false);
-              rdcpair<ResourceClass, uint32_t> resInfo = resHandles[handleStr];
-              uint32_t regIndex;
-              if(funcCallName.beginsWith("dx.op.cbufferLoadLegacy"))
+              if(resHandles.count(handleStr) > 0)
               {
-                regIndex = getival<uint32_t>(inst.args[2]);
+                uint32_t regIndex;
+                if(getival<uint32_t>(inst.args[2], regIndex))
+                {
+                  if(!funcCallName.beginsWith("dx.op.cbufferLoadLegacy"))
+                  {
+                    // TODO: handle non 16-byte aligned offsets
+                    // Convert byte offset to a register index
+                    regIndex = regIndex / 16;
+                    // uint32_t alignment = getival<uint32_t>(inst.args[3]);
+                  }
+                  uint32_t resourceIndex = resHandles[handleStr].second;
+                  lineStr += MakeCBufferRegisterStr(regIndex, entryPoint.cbuffers[resourceIndex]);
+                }
               }
               else
               {
-                // TODO: handle non 16-byte aligned offsets
-                uint32_t byteOffset = getival<uint32_t>(inst.args[2]);
-                regIndex = byteOffset / 16;
-                // uint32_t alignment = getival<uint32_t>(inst.args[3]);
+                showDxFuncName = true;
               }
-              lineStr += MakeCBufferRegisterStr(regIndex, entryPoint.cbuffers[resInfo.second]);
             }
             else if(funcCallName.beginsWith("llvm.dbg."))
             {
@@ -2963,7 +3061,8 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                   bool first = true;
                   if(inst.args.size() > 1)
                   {
-                    if(getival<uint32_t>(inst.args[1]) > 0)
+                    uint32_t v = 0;
+                    if(!getival<uint32_t>(inst.args[1], v) || (v > 0))
                     {
                       lineStr += "[";
                       lineStr += ArgToString(inst.args[1], false);
