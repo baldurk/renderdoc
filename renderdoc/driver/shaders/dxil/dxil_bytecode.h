@@ -1144,9 +1144,9 @@ private:
   void assignTypeId(const Constant *c);
 };
 
-struct EntryPoint
+struct EntryPointInterface
 {
-  EntryPoint(const Metadata *entryPoint);
+  EntryPointInterface(const Metadata *entryPoint);
 
   struct Signature
   {
@@ -1276,7 +1276,7 @@ protected:
   uint32_t GetMetaSlot(const DebugLocation *l) const;
   void AssignMetaSlot(rdcarray<Metadata *> &metaSlots, uint32_t &nextMetaSlot, DebugLocation &l);
 
-  void FetchEntryPoints(rdcarray<EntryPoint> &entryPoints);
+  void FetchEntryPointInterfaces(rdcarray<EntryPointInterface> &entryPointInterfaces);
   const Metadata *FindMetadata(uint32_t slot) const;
   rdcstr ArgToString(const Value *v, bool withTypes, const rdcstr &attrString = "") const;
   rdcstr DisassembleComDats(int &instructionLine) const;

@@ -2193,11 +2193,11 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
   m_Disassembly += DisassembleGlobalVars(m_DisassemblyInstructionLine);
 
   // Decode entry points
-  rdcarray<EntryPoint> entryPoints;
-  FetchEntryPoints(entryPoints);
+  rdcarray<EntryPointInterface> entryPoints;
+  FetchEntryPointInterfaces(entryPoints);
   for(size_t e = 0; e < entryPoints.size(); ++e)
   {
-    EntryPoint &entryPoint = entryPoints[e];
+    EntryPointInterface &entryPoint = entryPoints[e];
     m_Disassembly += entryPoint.name + "()";
     DisassemblyAddNewLine();
     m_Disassembly += "{";
@@ -2205,7 +2205,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
     for(size_t i = 0; i < entryPoint.inputs.size(); ++i)
     {
-      EntryPoint::Signature &sig = entryPoint.inputs[i];
+      EntryPointInterface::Signature &sig = entryPoint.inputs[i];
       VarType varType = VarTypeForComponentType(sig.type);
       m_Disassembly += "  Input[" + ToStr(i) + "] " + ToStr(varType).c_str();
 
@@ -2222,7 +2222,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
     for(size_t i = 0; i < entryPoint.outputs.size(); ++i)
     {
-      EntryPoint::Signature &sig = entryPoint.outputs[i];
+      EntryPointInterface::Signature &sig = entryPoint.outputs[i];
       VarType varType = VarTypeForComponentType(sig.type);
       m_Disassembly += "  Output[" + ToStr(i) + "] " + ToStr(varType).c_str();
 
@@ -2240,7 +2240,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
     for(size_t i = 0; i < entryPoint.srvs.size(); ++i)
     {
-      EntryPoint::SRV &srv = entryPoint.srvs[i];
+      EntryPointInterface::SRV &srv = entryPoint.srvs[i];
       if(srv.name.empty() && reflection)
       {
         for(DXBC::ShaderInputBind bind : reflection->SRVs)
@@ -2267,7 +2267,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
     for(size_t i = 0; i < entryPoint.uavs.size(); ++i)
     {
-      EntryPoint::UAV &uav = entryPoint.uavs[i];
+      EntryPointInterface::UAV &uav = entryPoint.uavs[i];
       if(uav.name.empty() && reflection)
       {
         for(DXBC::ShaderInputBind bind : reflection->UAVs)
@@ -2293,7 +2293,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
     for(size_t i = 0; i < entryPoint.cbuffers.size(); ++i)
     {
-      EntryPoint::CBuffer &cbuffer = entryPoint.cbuffers[i];
+      EntryPointInterface::CBuffer &cbuffer = entryPoint.cbuffers[i];
       const DXBC::CBuffer *cbufferRefl = NULL;
       if(reflection)
       {
@@ -2344,7 +2344,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
     for(size_t i = 0; i < entryPoint.samplers.size(); ++i)
     {
-      EntryPoint::Sampler &sampler = entryPoint.samplers[i];
+      EntryPointInterface::Sampler &sampler = entryPoint.samplers[i];
       if(sampler.name.empty() && reflection)
       {
         for(DXBC::ShaderInputBind s : reflection->Samplers)
@@ -2371,7 +2371,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
   DisassemblyAddNewLine();
 
-  EntryPoint &entryPoint = entryPoints[0];
+  EntryPointInterface &entryPoint = entryPoints[0];
   for(size_t i = 0; i < m_Functions.size(); i++)
   {
     const Function &func = *m_Functions[i];
@@ -2381,7 +2381,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
     if(func.external)
       continue;
 
-    for(EntryPoint &ep : entryPoints)
+    for(EntryPointInterface &ep : entryPoints)
     {
       if(func.name == ep.name)
       {
