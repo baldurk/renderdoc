@@ -75,6 +75,13 @@ rdcstr escapeStringIfNeeded(const rdcstr &name)
   return needsEscaping(name) ? escapeString(name) : name;
 }
 
+bool isUndef(const Value *v)
+{
+  if(const Constant *c = cast<Constant>(v))
+    return c->isUndef();
+  return false;
+}
+
 template <typename T>
 bool getival(const Value *v, T &out)
 {
@@ -2272,6 +2279,13 @@ static rdcstr MakeCBufferRegisterStr(uint32_t reg, DXIL::EntryPointInterface::CB
   return ret;
 }
 
+struct ResourceHandle
+{
+  rdcstr name;
+  ResourceClass resourceClass;
+  uint32_t resourceIndex;
+};
+
 void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 {
   DXIL::dxcStyleFormatting = false;
@@ -2523,7 +2537,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
       m_Disassembly += "{";
       DisassemblyAddNewLine();
 
-      std::map<rdcstr, rdcpair<ResourceClass, uint32_t>> resHandles;
+      std::map<rdcstr, ResourceHandle> resHandles;
 
       size_t curBlock = 0;
 
@@ -2570,7 +2584,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
             {
               showDxFuncName = false;
               uint32_t dxopCode;
-              RDCASSERTEQUAL(getival<uint32_t>(inst.args[0], dxopCode), true);
+              RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
               RDCASSERTEQUAL(dxopCode, 4);
               rdcstr name;
               rdcstr rowStr;
@@ -2610,7 +2624,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
             {
               showDxFuncName = false;
               uint32_t dxopCode;
-              RDCASSERTEQUAL(getival<uint32_t>(inst.args[0], dxopCode), true);
+              RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
               RDCASSERTEQUAL(dxopCode, 5);
               rdcstr name;
               rdcstr rowStr;
@@ -2651,7 +2665,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
             {
               showDxFuncName = false;
               uint32_t dxopCode;
-              RDCASSERTEQUAL(getival<uint32_t>(inst.args[0], dxopCode), true);
+              RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
               RDCASSERTEQUAL(dxopCode, 57);
               rdcstr handleStr = resultIdStr;
               ResourceClass resClass;
@@ -2674,7 +2688,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                       break;
                     default: resName = "INVALID RESOURCE CLASS"; break;
                   };
-                  resHandles[handleStr] = make_rdcpair<ResourceClass, uint32_t>(resClass, resIndex);
+                  resHandles[handleStr] = {resName, resClass, resIndex};
                   uint32_t index;
                   if(getival<uint32_t>(inst.args[3], index))
                   {
@@ -2715,7 +2729,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
             {
               showDxFuncName = false;
               uint32_t dxopCode;
-              RDCASSERTEQUAL(getival<uint32_t>(inst.args[0], dxopCode), true);
+              RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
               RDCASSERTEQUAL(dxopCode, 59);
               rdcstr handleStr = ArgToString(inst.args[1], false);
               if(resHandles.count(handleStr) > 0)
@@ -2730,8 +2744,64 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                     regIndex = regIndex / 16;
                     // uint32_t alignment = getival<uint32_t>(inst.args[3]);
                   }
-                  uint32_t resourceIndex = resHandles[handleStr].second;
+                  uint32_t resourceIndex = resHandles[handleStr].resourceIndex;
                   lineStr += MakeCBufferRegisterStr(regIndex, entryPoint.cbuffers[resourceIndex]);
+                }
+              }
+              else
+              {
+                showDxFuncName = true;
+              }
+            }
+            else if(showDxFuncName && funcCallName.beginsWith("dx.op.bufferLoad"))
+            {
+              // handle, index, wot (unused)
+              showDxFuncName = false;
+              uint32_t dxopCode;
+              RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
+              RDCASSERTEQUAL(dxopCode, 68);
+              rdcstr handleStr = ArgToString(inst.args[1], false);
+              if(resHandles.count(handleStr) > 0)
+              {
+                lineStr += resHandles[handleStr].name;
+                lineStr += "[" + ArgToString(inst.args[2], false) + "]";
+              }
+              else
+              {
+                showDxFuncName = true;
+              }
+            }
+            else if(showDxFuncName && funcCallName.beginsWith("dx.op.rawBufferLoad"))
+            {
+              // handle, index, elementOffset, mask, alignment
+              showDxFuncName = false;
+              uint32_t dxopCode;
+              RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
+              RDCASSERTEQUAL(dxopCode, 139);
+              rdcstr handleStr = ArgToString(inst.args[1], false);
+              if(resHandles.count(handleStr) > 0)
+              {
+                lineStr += resHandles[handleStr].name;
+                if(!isUndef(inst.args[2]))
+                {
+                  lineStr += "[" + ArgToString(inst.args[2], false) + "]";
+                  if(!isUndef(inst.args[3]))
+                  {
+                    uint32_t elementOffset;
+                    if(getival<uint32_t>(inst.args[3], elementOffset))
+                    {
+                      if(elementOffset > 0)
+                        lineStr += " + " + ToStr(elementOffset) + " bytes";
+                    }
+                    else
+                    {
+                      lineStr += " + " + ArgToString(inst.args[3], false) + " bytes";
+                    }
+                  }
+                }
+                else
+                {
+                  lineStr += "[" + ArgToString(inst.args[3], false) + "]";
                 }
               }
               else
@@ -2782,10 +2852,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                     }
                   }
                   // Don't show "undef" parameters
-                  bool isUndef = false;
-                  if(const Constant *c = cast<Constant>(inst.args[a]))
-                    isUndef = c->isUndef();
-                  if(!isUndef)
+                  if(!isUndef(inst.args[a]))
                   {
                     if(!first)
                       lineStr += ", ";
@@ -2997,7 +3064,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                   // %3 = getelementptr [6 x float], [6 x float] addrspace(3)*
                   // @"\01?s_x@@3@$$A.1dim", i32 0, i32 %9
 
-                  // RD: GroupShared float* _3 = s_x[0] + _9;
+                  // RD: GroupShared float* _3 = s_x[_9];
                   fallbackOutput = false;
 
                   rdcstr addrspaceStr(typeStr.substr(start, end - start));
