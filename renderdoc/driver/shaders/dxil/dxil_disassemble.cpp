@@ -2809,6 +2809,76 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 showDxFuncName = true;
               }
             }
+            else if(showDxFuncName && funcCallName.beginsWith("dx.op.bufferStore") ||
+                    funcCallName.beginsWith("dx.op.rawBufferStore"))
+            {
+              if(funcCallName.beginsWith("dx.op.bufferStore"))
+              {
+                // uav,coord0,coord1,value0,value1,value2,value3,mask
+                showDxFuncName = false;
+                uint32_t dxopCode;
+                RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
+                RDCASSERTEQUAL(dxopCode, 69);
+              }
+              else
+              {
+                // uav, index, elementOffset, value0, value1, value2, value3, mask, alignment
+                showDxFuncName = false;
+                uint32_t dxopCode;
+                RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
+                RDCASSERTEQUAL(dxopCode, 140);
+              }
+
+              rdcstr handleStr = ArgToString(inst.args[1], false);
+              if(resHandles.count(handleStr) > 0)
+              {
+                uint32_t offset = 0;
+                bool validElementOffset = !isUndef(inst.args[3]);
+                bool constantElementOffset = validElementOffset && getival(inst.args[3], offset);
+
+                lineStr += resHandles[handleStr].name;
+                uint32_t index;
+                if(getival(inst.args[2], index))
+                {
+                  if((offset == 0) || (index > 0))
+                    lineStr += "[" + ToStr(index) + "]";
+                }
+                else
+                {
+                  lineStr += "[" + ArgToString(inst.args[2], false) + "]";
+                }
+                if(validElementOffset)
+                {
+                  if(constantElementOffset)
+                  {
+                    if(offset > 0)
+                      lineStr += " + " + ToStr(offset) + " bytes";
+                  }
+                  else
+                  {
+                    lineStr += " + " + ArgToString(inst.args[3], false) + " bytes";
+                  }
+                }
+                lineStr += " = ";
+                lineStr += "{";
+                bool needComma = false;
+                for(uint32_t a = 4; a < 8; ++a)
+                {
+                  if(!isUndef(inst.args[a]))
+                  {
+                    if(needComma)
+                      lineStr += ", ";
+                    lineStr += ArgToString(inst.args[a], false);
+                    needComma = true;
+                  }
+                }
+                lineStr += "}";
+              }
+              else
+              {
+                showDxFuncName = true;
+              }
+            }
             else if(funcCallName.beginsWith("llvm.dbg."))
             {
             }
