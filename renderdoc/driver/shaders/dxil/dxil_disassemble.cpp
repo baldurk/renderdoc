@@ -2978,6 +2978,50 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 showDxFuncName = true;
               }
             }
+            else if(showDxFuncName && funcCallName.beginsWith("dx.op.textureStore"))
+            {
+              // srv,coord0,coord1,coord2,value0,value1,value2,value3,mask
+              showDxFuncName = false;
+              uint32_t dxopCode;
+              RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
+              RDCASSERTEQUAL(dxopCode, 67);
+              rdcstr handleStr = ArgToString(inst.args[1], false);
+              if(resHandles.count(handleStr) > 0)
+              {
+                lineStr += resHandles[handleStr].name;
+                lineStr += "[";
+                bool needComma = false;
+                for(uint32_t a = 2; a < 5; ++a)
+                {
+                  if(!isUndef(inst.args[a]))
+                  {
+                    if(needComma)
+                      lineStr += ", ";
+                    lineStr += ArgToString(inst.args[a], false);
+                    needComma = true;
+                  }
+                }
+                lineStr += "]";
+                lineStr += " = ";
+                lineStr += "{";
+                needComma = false;
+                for(uint32_t a = 5; a < 9; ++a)
+                {
+                  if(!isUndef(inst.args[a]))
+                  {
+                    if(needComma)
+                      lineStr += ", ";
+                    lineStr += ArgToString(inst.args[a], false);
+                    needComma = true;
+                  }
+                }
+                lineStr += "}";
+              }
+              else
+              {
+                showDxFuncName = true;
+              }
+            }
             else if(funcCallName.beginsWith("llvm.dbg."))
             {
             }
