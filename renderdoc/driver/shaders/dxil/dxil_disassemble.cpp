@@ -2876,6 +2876,48 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 showDxFuncName = true;
               }
             }
+            else if(showDxFuncName && funcCallName.beginsWith("dx.op.atomicBinOp"))
+            {
+              // AtomicBinOp(handle, atomicOp, offset0, offset1, offset2, newValue)
+              showDxFuncName = false;
+              uint32_t dxopCode;
+              RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
+              RDCASSERTEQUAL(dxopCode, (uint32_t)DXOp::atomicBinOp);
+              rdcstr handleStr = ArgToString(inst.args[1], false);
+              AtomicBinOpCode atomicBinOpCode;
+              if((resHandles.count(handleStr) > 0) &&
+                 getival<AtomicBinOpCode>(inst.args[2], atomicBinOpCode))
+              {
+                lineStr += resHandles[handleStr].name;
+                lineStr += ".";
+                lineStr += "Interlocked";
+                lineStr += ToStr(atomicBinOpCode);
+                lineStr += "(";
+                lineStr += "{";
+                bool needComma = false;
+                for(uint32_t a = 3; a < 6; ++a)
+                {
+                  if(!isUndef(inst.args[a]))
+                  {
+                    if(needComma)
+                      lineStr += ", ";
+                    lineStr += ArgToString(inst.args[a], false);
+                    needComma = true;
+                  }
+                }
+                lineStr += "}";
+                if(!isUndef(inst.args[6]))
+                {
+                  lineStr += ", ";
+                  lineStr += ArgToString(inst.args[6], false);
+                }
+                lineStr += ")";
+              }
+              else
+              {
+                showDxFuncName = true;
+              }
+            }
             else if(funcCallName.beginsWith("llvm.dbg."))
             {
             }
