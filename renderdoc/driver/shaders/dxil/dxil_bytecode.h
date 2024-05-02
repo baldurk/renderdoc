@@ -348,6 +348,20 @@ enum class DXOp : uint32_t
   sampleCmpBias = 255,
 };
 
+enum class AtomicBinOpCode : uint32_t
+{
+  Add,
+  And,
+  Or,
+  Xor,
+  IMin,
+  IMax,
+  UMin,
+  UMax,
+  Exchange,
+  Invalid    // Must be last.
+};
+
 inline Operation DecodeBinOp(const Type *type, uint64_t opcode)
 {
   bool isFloatOp = (type->scalarType == Type::Float);
@@ -1377,3 +1391,4 @@ rdcstr escapeStringIfNeeded(const rdcstr &name);
 
 DECLARE_REFLECTION_ENUM(DXIL::Attribute);
 DECLARE_STRINGISE_TYPE(DXIL::InstructionFlags);
+DECLARE_STRINGISE_TYPE(DXIL::AtomicBinOpCode);

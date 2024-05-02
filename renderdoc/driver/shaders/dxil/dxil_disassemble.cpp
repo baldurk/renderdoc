@@ -4565,3 +4565,22 @@ rdcstr DoStringise(const DXIL::Attribute &el)
   }
   END_BITFIELD_STRINGISE();
 }
+
+template <>
+rdcstr DoStringise(const DXIL::AtomicBinOpCode &el)
+{
+  BEGIN_ENUM_STRINGISE(DXIL::AtomicBinOpCode)
+  {
+    STRINGISE_ENUM_CLASS_NAMED(Add, "Add")
+    STRINGISE_ENUM_CLASS_NAMED(And, "And")
+    STRINGISE_ENUM_CLASS_NAMED(Or, "Or")
+    STRINGISE_ENUM_CLASS_NAMED(Xor, "Xor")
+    STRINGISE_ENUM_CLASS_NAMED(IMin, "IMin")
+    STRINGISE_ENUM_CLASS_NAMED(IMax, "IMax")
+    STRINGISE_ENUM_CLASS_NAMED(UMin, "UMin")
+    STRINGISE_ENUM_CLASS_NAMED(UMax, "UMax")
+    STRINGISE_ENUM_CLASS_NAMED(Exchange, "Exchange")
+    STRINGISE_ENUM_CLASS_NAMED(Invalid, "Invalid")
+  }
+  END_ENUM_STRINGISE();
+}
