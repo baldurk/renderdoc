@@ -80,7 +80,7 @@ void D3D12Replay::Shutdown()
     SAFE_RELEASE(m_DevConfig->devfactory);
 
     m_DevConfig->sdkconfig->FreeUnusedSDKs();
-    SAFE_DELETE(m_DevConfig->sdkconfig);
+    SAFE_RELEASE(m_DevConfig->sdkconfig);
     SAFE_DELETE(m_DevConfig);
   }
 
