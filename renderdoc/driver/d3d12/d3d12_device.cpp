@@ -65,6 +65,13 @@ rdcstr WrappedID3D12Device::GetChunkName(uint32_t idx)
   return ToStr((D3D12Chunk)idx);
 }
 
+D3D12ShaderCache *WrappedID3D12Device::GetShaderCache()
+{
+  if(m_ShaderCache == NULL)
+    m_ShaderCache = new D3D12ShaderCache(this);
+  return m_ShaderCache;
+}
+
 D3D12DebugManager *WrappedID3D12Device::GetDebugManager()
 {
   return m_Replay->GetDebugManager();
@@ -504,6 +511,7 @@ BOOL STDMETHODCALLTYPE WrappedAGS12::ExtensionsSupported()
 WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitParams params,
                                          bool enabledDebugLayer)
     : m_RefCounter(realDevice, false),
+      m_DevConfig(realDevice, this),
       m_SoftRefCounter(NULL, false),
       m_pDevice(realDevice),
       m_debugLayerEnabled(enabledDebugLayer),
@@ -1221,6 +1229,17 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
     {
       return E_NOINTERFACE;
     }
+  }
+  else if(riid == __uuidof(ID3D12DeviceConfiguration))
+  {
+    if(m_DevConfig.IsValid())
+    {
+      *ppvObject = (ID3D12DeviceConfiguration *)&m_DevConfig;
+      AddRef();
+      return S_OK;
+    }
+
+    return E_NOINTERFACE;
   }
   else if(riid == __uuidof(ID3D12DeviceDownlevel))
   {
@@ -4116,8 +4135,7 @@ void WrappedID3D12Device::CreateInternalResources()
 
   m_GPUSyncCounter = 0;
 
-  if(m_ShaderCache == NULL)
-    m_ShaderCache = new D3D12ShaderCache(this);
+  GetShaderCache()->SetDevConfiguration(m_Replay->GetDevConfiguration());
 
   if(m_TextRenderer == NULL)
     m_TextRenderer = new D3D12TextRenderer(this);

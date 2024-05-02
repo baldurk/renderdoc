@@ -73,6 +73,18 @@ void D3D12Replay::Shutdown()
 
   SAFE_DELETE(m_RGP);
 
+  if(m_DevConfig)
+  {
+    SAFE_RELEASE(m_DevConfig->debug);
+    SAFE_RELEASE(m_DevConfig->devconfig);
+    SAFE_RELEASE(m_DevConfig->devfactory);
+
+    m_DevConfig->sdkconfig->FreeUnusedSDKs();
+    SAFE_DELETE(m_DevConfig->sdkconfig);
+    SAFE_DELETE(m_DevConfig);
+  }
+
+  // this destroys the replay object
   m_pDevice->Release();
 
   // the this pointer is free'd after this point
@@ -90,9 +102,10 @@ void D3D12Replay::Shutdown()
   }
 }
 
-void D3D12Replay::Initialise(IDXGIFactory1 *factory)
+void D3D12Replay::Initialise(IDXGIFactory1 *factory, D3D12DevConfiguration *config)
 {
   m_pFactory = factory;
+  m_DevConfig = config;
 
   RDCEraseEl(m_DriverInfo);
 
@@ -4557,8 +4570,8 @@ RDResult D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IRepl
   if(initParams.MinimumFeatureLevel < D3D_FEATURE_LEVEL_11_0)
     initParams.MinimumFeatureLevel = D3D_FEATURE_LEVEL_11_0;
 
-  D3D12_PrepareReplaySDKVersion(rdc && rdc->IsUntrusted(), initParams.SDKVersion, D3D12Core,
-                                D3D12SDKLayers, D3D12Lib);
+  D3D12DevConfiguration *config = D3D12_PrepareReplaySDKVersion(
+      rdc && rdc->IsUntrusted(), initParams.SDKVersion, D3D12Core, D3D12SDKLayers, D3D12Lib);
 
   const bool isProxy = (rdc == NULL);
 
@@ -4648,7 +4661,7 @@ RDResult D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IRepl
 
   if(shouldEnableDebugLayer)
   {
-    debugLayerEnabled = EnableD3D12DebugLayer();
+    debugLayerEnabled = EnableD3D12DebugLayer(config, NULL);
 
     if(!debugLayerEnabled && !isProxy)
     {
@@ -4659,7 +4672,11 @@ RDResult D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IRepl
   }
 
   ID3D12Device *dev = NULL;
-  hr = createDevice(adapter, initParams.MinimumFeatureLevel, __uuidof(ID3D12Device), (void **)&dev);
+  if(config)
+    hr = config->devfactory->CreateDevice(adapter, initParams.MinimumFeatureLevel,
+                                          __uuidof(ID3D12Device), (void **)&dev);
+  else
+    hr = createDevice(adapter, initParams.MinimumFeatureLevel, __uuidof(ID3D12Device), (void **)&dev);
 
   if((FAILED(hr) || !dev) && adapter)
   {
@@ -4668,7 +4685,12 @@ RDResult D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IRepl
     RDCWARN("Couldn't replay on selected adapter, falling back to default adapter");
 
     SAFE_RELEASE(adapter);
-    hr = createDevice(adapter, initParams.MinimumFeatureLevel, __uuidof(ID3D12Device), (void **)&dev);
+    if(config)
+      hr = config->devfactory->CreateDevice(adapter, initParams.MinimumFeatureLevel,
+                                            __uuidof(ID3D12Device), (void **)&dev);
+    else
+      hr = createDevice(adapter, initParams.MinimumFeatureLevel, __uuidof(ID3D12Device),
+                        (void **)&dev);
   }
 
   SAFE_RELEASE(adapter);
@@ -4723,7 +4745,7 @@ RDResult D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IRepl
   replay->SetProxy(isProxy);
   replay->SetRGP(rgp);
 
-  replay->Initialise(factory);
+  replay->Initialise(factory, config);
 
   *driver = (IReplayDriver *)replay;
   return ResultCode::Succeeded;

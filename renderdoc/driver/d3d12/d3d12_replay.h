@@ -94,12 +94,14 @@ class D3D12Replay : public IReplayDriver
 public:
   D3D12Replay(WrappedID3D12Device *d);
 
+  D3D12DevConfiguration *GetDevConfiguration() { return m_DevConfig; }
+
   D3D12DebugManager *GetDebugManager() { return m_DebugManager; }
   void SetRGP(AMDRGPControl *rgp) { m_RGP = rgp; }
   void Set12On7(bool d3d12on7) { m_D3D12On7 = d3d12on7; }
   void SetProxy(bool proxy) { m_Proxy = proxy; }
   bool IsRemoteProxy() { return m_Proxy; }
-  void Initialise(IDXGIFactory1 *factory);
+  void Initialise(IDXGIFactory1 *factory, D3D12DevConfiguration *config);
   void Shutdown();
 
   RDResult FatalErrorCheck();
@@ -560,6 +562,8 @@ private:
   WrappedID3D12Device *m_pDevice = NULL;
 
   D3D12DebugManager *m_DebugManager = NULL;
+
+  D3D12DevConfiguration *m_DevConfig = NULL;
 
   IDXGIFactory1 *m_pFactory = NULL;
   HMODULE m_D3D12Lib = NULL;

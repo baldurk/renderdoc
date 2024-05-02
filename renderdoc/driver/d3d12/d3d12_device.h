@@ -606,6 +606,8 @@ private:
   ID3D12Device12 *m_pDevice12;
   ID3D12DeviceDownlevel *m_pDownlevel;
 
+  WrappedID3D12DeviceConfiguration m_DevConfig;
+
   // list of all queues being captured
   rdcarray<WrappedID3D12CommandQueue *> m_Queues;
   rdcarray<ID3D12Fence *> m_QueueFences;
@@ -886,7 +888,7 @@ public:
   ID3D12Device9 *GetReal9() const { return m_pDevice9; }
   static rdcstr GetChunkName(uint32_t idx);
   D3D12ResourceManager *GetResourceManager() { return m_ResourceManager; }
-  D3D12ShaderCache *GetShaderCache() { return m_ShaderCache; }
+  D3D12ShaderCache *GetShaderCache();
   D3D12DebugManager *GetDebugManager();
   ResourceId GetResourceID() { return m_ResourceID; }
   Threading::RWLock &GetCapTransitionLock() { return m_CapTransitionLock; }

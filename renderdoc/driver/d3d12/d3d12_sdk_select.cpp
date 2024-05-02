@@ -314,11 +314,14 @@ bool IsSignedByMicrosoft(const rdcstr &filename, rdcstr &signer)
   return IsSignatureValid;
 }
 
-void D3D12_PrepareReplaySDKVersion(bool untrustedCapture, UINT SDKVersion, bytebuf d3d12core_file,
-                                   bytebuf d3d12sdklayers_file, HMODULE d3d12lib)
+D3D12DevConfiguration *D3D12_PrepareReplaySDKVersion(bool untrustedCapture, UINT SDKVersion,
+                                                     bytebuf d3d12core_file,
+                                                     bytebuf d3d12sdklayers_file, HMODULE d3d12lib)
 {
-  // D3D12Core shouldn't be loaded at this point, but it might be due to bugs. If it is, we can't do
-  // anything to change it anymore so we have to just handle what we have
+  // D3D12Core shouldn't be loaded at this point, but it might be due to bugs. If it is, we don't do
+  // anything to change it anymore so we have to just handle what we have.
+  // In theory it might be possible to load multiple d3d12cores using the new dll selection API, but
+  // that's probably not stable/reliable so we don't use it.
   HMODULE D3D12Core = GetModuleHandleA("D3D12Core.dll");
   if(D3D12Core != NULL)
   {
@@ -326,7 +329,7 @@ void D3D12_PrepareReplaySDKVersion(bool untrustedCapture, UINT SDKVersion, byteb
 
     // if the core that's loaded is sufficient, don't show any warnings
     if(ver_ptr && SDKVersion <= *ver_ptr)
-      return;
+      return NULL;
 
     RDCWARN(
         "D3D12Core.dll was already loaded before replay started. This may be caused by a D3D12 "
@@ -339,7 +342,7 @@ void D3D12_PrepareReplaySDKVersion(bool untrustedCapture, UINT SDKVersion, byteb
       RDCWARN("The existing D3D12Core.dll had an unknown version, this capture requires version %u",
               SDKVersion);
 
-    return;
+    return NULL;
   }
 
   static bool core_fetched = false, hooks_applied = false;
@@ -389,7 +392,7 @@ void D3D12_PrepareReplaySDKVersion(bool untrustedCapture, UINT SDKVersion, byteb
   // if the system doesn't have a core DLL we can't intercept and point to our own runtime, so just
   // abort here before doing anything potentially dangerous below.
   if(SystemCoreVersion == 0)
-    return;
+    return NULL;
 
   // similarly, if the system version is enough then the user didn't use a new runtime (or they used
   // what was at the time a new runtime but is now available in the system...), so also abort.
@@ -397,30 +400,12 @@ void D3D12_PrepareReplaySDKVersion(bool untrustedCapture, UINT SDKVersion, byteb
   // The only exception is if the user has configured a force override, in which case we always use
   // it.
   if(SDKVersion <= SystemCoreVersion && D3D12_D3D12CoreDirPath().empty())
-    return;
-
-  // finally we're at a point where we will hook to force the library we want.
-
-  if(!hooks_applied)
-  {
-    hooks_applied = true;
-
-    Win32_RegisterManualModuleHooking();
-
-    D3D12GetInterface_Core_hook.Register("d3d12core.dll", "D3D12GetInterface",
-                                         Hooked_Core_D3D12GetInterface);
-    D3D12GetInterface_SDKLayers_hook.Register("d3d12sdklayers.dll", "D3D12GetInterface",
-                                              Hooked_SDKLayers_D3D12GetInterface);
-
-    Win32_InterceptLibraryLoads(Hooked_D3D12LoadLibrary);
-  }
-
-  // we do this always, even if the hooks are already applied, because this module has possibly been
-  // reloaded and needs to be re-hooked each time
-  Win32_ManualHookModule("d3d12.dll", d3d12lib);
+    return NULL;
 
   // *always* use the user's path if it exists
   D3D12Core_Override_Path = D3D12_D3D12CoreDirPath();
+
+  DWORD OverrideDllVersion = 0;
 
   if(D3D12Core_Override_Path.empty() || !FileIO::exists(D3D12Core_Override_Path.c_str()))
   {
@@ -430,7 +415,7 @@ void D3D12_PrepareReplaySDKVersion(bool untrustedCapture, UINT SDKVersion, byteb
           "No D3D12Core.dll embedded in capture but we need a newer one (version %u) to properly "
           "replay this capture",
           SDKVersion);
-      return;
+      return NULL;
     }
 
     // find an appropriate spot to write this file. Other instances of RenderDoc might be running so
@@ -557,6 +542,118 @@ void D3D12_PrepareReplaySDKVersion(bool untrustedCapture, UINT SDKVersion, byteb
       FreeLibrary(ret);
     }
   }
+
+  if(FileIO::exists(D3D12Core_Override_Path.c_str()))
+  {
+    UINT prevErrorMode = GetErrorMode();
+    SetErrorMode(prevErrorMode | SEM_FAILCRITICALERRORS);
+    HMODULE ret =
+        LoadLibraryW(StringFormat::UTF82Wide(D3D12Core_Override_Path + "/d3d12core.dll").c_str());
+
+    SetErrorMode(prevErrorMode);
+
+    DWORD *ver_ptr = (DWORD *)GetProcAddress(ret, "D3D12SDKVersion");
+
+    if(ver_ptr)
+      OverrideDllVersion = *ver_ptr;
+
+    FreeLibrary(ret);
+  }
+
+  RDCLOG("Loading D3D12 runtime from %s which is version %u", D3D12Core_Override_Path.c_str(),
+         OverrideDllVersion);
+
+  // see if we can use the new proper D3D12 dll selection API
+  {
+    HMODULE d3d12Lib = GetModuleHandleA("d3d12.dll");
+    PFN_D3D12_GET_INTERFACE getD3D12Interface = NULL;
+
+    if(d3d12Lib)
+      getD3D12Interface = (PFN_D3D12_GET_INTERFACE)GetProcAddress(d3d12Lib, "D3D12GetInterface");
+
+    if(getD3D12Interface)
+    {
+      ID3D12SDKConfiguration *config = NULL;
+      HRESULT hr = getD3D12Interface(CLSID_D3D12SDKConfiguration, __uuidof(ID3D12SDKConfiguration),
+                                     (void **)&config);
+
+      if(SUCCEEDED(hr) && config)
+      {
+        ID3D12SDKConfiguration1 *config1 = NULL;
+        ID3D12DeviceFactory *devfactory = NULL;
+        hr = config->QueryInterface(__uuidof(ID3D12SDKConfiguration1), (void **)&config1);
+        if(SUCCEEDED(hr) && config1)
+        {
+          config1->CreateDeviceFactory(OverrideDllVersion, D3D12Core_Override_Path.c_str(),
+                                       __uuidof(ID3D12DeviceFactory), (void **)&devfactory);
+        }
+        SAFE_RELEASE(config);
+
+        if(devfactory)
+        {
+          ID3D12Debug *debug = NULL;
+          hr = devfactory->GetConfigurationInterface(CLSID_D3D12Debug, __uuidof(ID3D12Debug),
+                                                     (void **)&debug);
+          if(FAILED(hr))
+            SAFE_RELEASE(debug);
+          ID3D12DeviceConfiguration *devConfig = NULL;
+          hr = devfactory->QueryInterface(__uuidof(ID3D12DeviceConfiguration), (void **)&devConfig);
+          if(FAILED(hr))
+            SAFE_RELEASE(devConfig);
+
+          // we got what we need, return the interfaces to use
+          D3D12DevConfiguration *ret = new D3D12DevConfiguration;
+          ret->devfactory = devfactory;
+          ret->sdkconfig = config1;
+          ret->debug = debug;
+          ret->devconfig = devConfig;
+
+          RDCLOG("Accessing D3D12 dll via SDK configuration API");
+
+          return ret;
+        }
+        else
+        {
+          RDCLOG("Couldn't get device factory");
+        }
+
+        SAFE_RELEASE(config1);
+      }
+      else
+      {
+        RDCLOG("Couldn't get SDK configuration interface");
+      }
+      SAFE_RELEASE(config);
+    }
+    else
+    {
+      RDCLOG("Couldn't get D3D12 interface query");
+    }
+  }
+
+  RDCLOG("Accessing D3D12 dll via hooks");
+
+  // finally we're at a point where we will hook to force the library we want.
+
+  if(!hooks_applied)
+  {
+    hooks_applied = true;
+
+    Win32_RegisterManualModuleHooking();
+
+    D3D12GetInterface_Core_hook.Register("d3d12core.dll", "D3D12GetInterface",
+                                         Hooked_Core_D3D12GetInterface);
+    D3D12GetInterface_SDKLayers_hook.Register("d3d12sdklayers.dll", "D3D12GetInterface",
+                                              Hooked_SDKLayers_D3D12GetInterface);
+
+    Win32_InterceptLibraryLoads(Hooked_D3D12LoadLibrary);
+  }
+
+  // we do this always, even if the hooks are already applied, because this module has possibly been
+  // reloaded and needs to be re-hooked each time
+  Win32_ManualHookModule("d3d12.dll", d3d12lib);
+
+  return NULL;
 }
 
 void D3D12_CleanupReplaySDK()

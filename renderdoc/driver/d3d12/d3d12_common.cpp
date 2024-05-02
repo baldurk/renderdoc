@@ -256,22 +256,46 @@ void BarrierSet::Unapply(ID3D12GraphicsCommandListX *list)
   RDCASSERT(newToOldBarriers.empty());
 }
 
-bool EnableD3D12DebugLayer(PFN_D3D12_GET_DEBUG_INTERFACE getDebugInterface)
+bool EnableD3D12DebugLayer(D3D12DevConfiguration *devConfig,
+                           PFN_D3D12_GET_DEBUG_INTERFACE getDebugInterface)
 {
-  if(!getDebugInterface)
-    getDebugInterface = (PFN_D3D12_GET_DEBUG_INTERFACE)GetProcAddress(GetModuleHandleA("d3d12.dll"),
-                                                                      "D3D12GetDebugInterface");
-
-  if(!getDebugInterface)
+  ID3D12Debug *debug = NULL;
+  if(devConfig)
   {
-    RDCERR("Couldn't find D3D12GetDebugInterface!");
-    return false;
+    if(devConfig->debug)
+    {
+      debug = devConfig->debug;
+      debug->AddRef();
+    }
+  }
+  else
+  {
+    if(!getDebugInterface)
+      getDebugInterface = (PFN_D3D12_GET_DEBUG_INTERFACE)GetProcAddress(
+          GetModuleHandleA("d3d12.dll"), "D3D12GetDebugInterface");
+
+    if(!getDebugInterface)
+    {
+      RDCERR("Couldn't find D3D12GetDebugInterface!");
+      return false;
+    }
+
+    HRESULT hr = getDebugInterface(__uuidof(ID3D12Debug), (void **)&debug);
+
+    if(FAILED(hr))
+      SAFE_RELEASE(debug);
+
+    if(hr == DXGI_ERROR_SDK_COMPONENT_MISSING)
+    {
+      RDCWARN("Debug layer not available: DXGI_ERROR_SDK_COMPONENT_MISSING");
+    }
+    else if(FAILED(hr))
+    {
+      RDCERR("Couldn't enable debug layer: %x", hr);
+    }
   }
 
-  ID3D12Debug *debug = NULL;
-  HRESULT hr = getDebugInterface(__uuidof(ID3D12Debug), (void **)&debug);
-
-  if(SUCCEEDED(hr) && debug)
+  if(debug)
   {
     debug->EnableDebugLayer();
 
@@ -297,14 +321,6 @@ bool EnableD3D12DebugLayer(PFN_D3D12_GET_DEBUG_INTERFACE getDebugInterface)
     SAFE_RELEASE(debug);
 
     return true;
-  }
-  else if(hr == DXGI_ERROR_SDK_COMPONENT_MISSING)
-  {
-    RDCWARN("Debug layer not available: DXGI_ERROR_SDK_COMPONENT_MISSING");
-  }
-  else
-  {
-    RDCERR("Couldn't enable debug layer: %x", hr);
   }
 
   return false;

@@ -767,8 +767,14 @@ D3D12RootSignature D3D12ShaderCache::GetRootSig(const void *data, size_t dataSiz
   }
 
   ID3D12VersionedRootSignatureDeserializer *deser = NULL;
-  HRESULT hr = deserializeRootSig(
-      data, dataSize, __uuidof(ID3D12VersionedRootSignatureDeserializer), (void **)&deser);
+  HRESULT hr;
+
+  if(m_DevConfig)
+    hr = m_DevConfig->devconfig->CreateVersionedRootSignatureDeserializer(
+        data, dataSize, __uuidof(ID3D12VersionedRootSignatureDeserializer), (void **)&deser);
+  else
+    hr = deserializeRootSig(data, dataSize, __uuidof(ID3D12VersionedRootSignatureDeserializer),
+                            (void **)&deser);
 
   if(FAILED(hr))
   {
@@ -966,7 +972,12 @@ ID3DBlob *D3D12ShaderCache::MakeRootSig(const rdcarray<D3D12_ROOT_PARAMETER1> &p
 
   ID3DBlob *ret = NULL;
   ID3DBlob *errBlob = NULL;
-  HRESULT hr = serializeRootSig(&verdesc, &ret, &errBlob);
+  HRESULT hr;
+
+  if(m_DevConfig && m_DevConfig->devconfig)
+    hr = m_DevConfig->devconfig->SerializeVersionedRootSignature(&verdesc, &ret, &errBlob);
+  else
+    hr = serializeRootSig(&verdesc, &ret, &errBlob);
   SAFE_RELEASE(errBlob);
 
   if(SUCCEEDED(hr))
@@ -981,7 +992,10 @@ ID3DBlob *D3D12ShaderCache::MakeRootSig(const rdcarray<D3D12_ROOT_PARAMETER1> &p
     oldSamplers[i] = Downconvert(StaticSamplers[i]);
   desc11.pStaticSamplers = oldSamplers.data();
 
-  hr = serializeRootSig(&verdesc, &ret, &errBlob);
+  if(m_DevConfig && m_DevConfig->devconfig)
+    hr = m_DevConfig->devconfig->SerializeVersionedRootSignature(&verdesc, &ret, &errBlob);
+  else
+    hr = serializeRootSig(&verdesc, &ret, &errBlob);
 
   if(FAILED(hr))
   {

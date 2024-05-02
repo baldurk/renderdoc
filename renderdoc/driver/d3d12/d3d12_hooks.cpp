@@ -192,6 +192,297 @@ public:
   virtual void STDMETHODCALLTYPE SetForceLegacyBarrierValidation(BOOL Enable) {}
 };
 
+class WrappedID3D12Tools : public RefCounter12<ID3D12Tools>, public ID3D12Tools
+{
+  BOOL m_Instrumentation = FALSE;
+public:
+  WrappedID3D12Tools() : RefCounter12(NULL) {}
+  virtual ~WrappedID3D12Tools() {}
+  //////////////////////////////
+  // Implement IUnknown
+  ULONG STDMETHODCALLTYPE AddRef() { return RefCounter12::AddRef(); }
+  ULONG STDMETHODCALLTYPE Release() { return RefCounter12::Release(); }
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
+  {
+    if(riid == __uuidof(IUnknown))
+    {
+      *ppvObject = (IUnknown *)this;
+      AddRef();
+      return S_OK;
+    }
+    if(riid == __uuidof(ID3D12Tools))
+    {
+      *ppvObject = (ID3D12Tools *)this;
+      AddRef();
+      return S_OK;
+    }
+
+    return E_NOINTERFACE;
+  }
+
+  //////////////////////////////
+  // Implement ID3D12Tools
+  virtual void STDMETHODCALLTYPE EnableShaderInstrumentation(BOOL bEnable)
+  {
+    m_Instrumentation = bEnable;
+  }
+
+  virtual BOOL STDMETHODCALLTYPE ShaderInstrumentationEnabled(void) { return m_Instrumentation; }
+};
+
+class WrappedID3D12DeviceRemovedExtendedData : public RefCounter12<ID3D12DeviceRemovedExtendedData1>,
+                                               public ID3D12DeviceRemovedExtendedData1
+{
+public:
+  WrappedID3D12DeviceRemovedExtendedData() : RefCounter12(NULL) {}
+  virtual ~WrappedID3D12DeviceRemovedExtendedData() {}
+  //////////////////////////////
+  // Implement IUnknown
+  ULONG STDMETHODCALLTYPE AddRef() { return RefCounter12::AddRef(); }
+  ULONG STDMETHODCALLTYPE Release() { return RefCounter12::Release(); }
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
+  {
+    if(riid == __uuidof(IUnknown))
+    {
+      *ppvObject = (IUnknown *)this;
+      AddRef();
+      return S_OK;
+    }
+    if(riid == __uuidof(ID3D12DeviceRemovedExtendedData))
+    {
+      *ppvObject = (ID3D12DeviceRemovedExtendedData *)this;
+      AddRef();
+      return S_OK;
+    }
+    if(riid == __uuidof(ID3D12DeviceRemovedExtendedData1))
+    {
+      *ppvObject = (ID3D12DeviceRemovedExtendedData1 *)this;
+      AddRef();
+      return S_OK;
+    }
+
+    return E_NOINTERFACE;
+  }
+
+  //////////////////////////////
+  // Implement ID3D12DeviceRemovedExtendedData
+  virtual HRESULT STDMETHODCALLTYPE
+  GetAutoBreadcrumbsOutput(_Out_ D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT *pOutput)
+  {
+    return DXGI_ERROR_NOT_CURRENTLY_AVAILABLE;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE
+  GetPageFaultAllocationOutput(_Out_ D3D12_DRED_PAGE_FAULT_OUTPUT *pOutput)
+  {
+    return DXGI_ERROR_NOT_CURRENTLY_AVAILABLE;
+  }
+
+  //////////////////////////////
+  // Implement ID3D12DeviceRemovedExtendedData1
+  virtual HRESULT STDMETHODCALLTYPE
+  GetAutoBreadcrumbsOutput1(_Out_ D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT1 *pOutput)
+  {
+    return DXGI_ERROR_NOT_CURRENTLY_AVAILABLE;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE
+  GetPageFaultAllocationOutput1(_Out_ D3D12_DRED_PAGE_FAULT_OUTPUT1 *pOutput)
+  {
+    return DXGI_ERROR_NOT_CURRENTLY_AVAILABLE;
+  }
+};
+
+class WrappedID3D12DeviceFactory : public RefCounter12<ID3D12DeviceFactory>, public ID3D12DeviceFactory
+{
+  WrappedID3D12DeviceConfiguration config;
+public:
+  WrappedID3D12DeviceFactory(ID3D12DeviceFactory *real) : RefCounter12(real), config(real, this) {}
+
+  virtual ~WrappedID3D12DeviceFactory() {}
+  //////////////////////////////
+  // Implement IUnknown
+  ULONG STDMETHODCALLTYPE AddRef() { return RefCounter12::AddRef(); }
+  ULONG STDMETHODCALLTYPE Release() { return RefCounter12::Release(); }
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
+  {
+    if(riid == __uuidof(IUnknown))
+    {
+      *ppvObject = (IUnknown *)(ID3D12DeviceFactory *)this;
+      AddRef();
+      return S_OK;
+    }
+    if(riid == __uuidof(ID3D12DeviceFactory))
+    {
+      *ppvObject = (ID3D12DeviceFactory *)this;
+      AddRef();
+      return S_OK;
+    }
+    if(riid == __uuidof(ID3D12DeviceConfiguration) && config.IsValid())
+    {
+      *ppvObject = (ID3D12DeviceConfiguration *)&config;
+      AddRef();
+      return S_OK;
+    }
+
+    return E_NOINTERFACE;
+  }
+
+  //////////////////////////////
+  // Implement ID3D12DeviceFactory
+
+  virtual HRESULT STDMETHODCALLTYPE InitializeFromGlobalState(void)
+  {
+    return m_pReal->InitializeFromGlobalState();
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE ApplyToGlobalState(void)
+  {
+    return m_pReal->ApplyToGlobalState();
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE SetFlags(D3D12_DEVICE_FACTORY_FLAGS flags)
+  {
+    return m_pReal->SetFlags(flags);
+  }
+
+  virtual D3D12_DEVICE_FACTORY_FLAGS STDMETHODCALLTYPE GetFlags(void)
+  {
+    return m_pReal->GetFlags();
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE GetConfigurationInterface(REFCLSID clsid, REFIID iid,
+                                                              _COM_Outptr_ void **ppv);
+
+  virtual HRESULT STDMETHODCALLTYPE
+  EnableExperimentalFeatures(UINT NumFeatures, _In_reads_(NumFeatures) const IID *pIIDs,
+                             _In_reads_opt_(NumFeatures) void *pConfigurationStructs,
+                             _In_reads_opt_(NumFeatures) UINT *pConfigurationStructSizes)
+  {
+    rdcarray<IID> allowedIIDs;
+
+    // allow enabling unsigned DXIL.
+    for(UINT i = 0; i < NumFeatures; i++)
+    {
+      if(pIIDs[i] == D3D12ExperimentalShaderModels)
+        allowedIIDs.push_back(D3D12ExperimentalShaderModels);
+    }
+
+    // there's no "partially successful" error code, so we just lie to the application and pretend
+    // that any filtered IIDs also succeeded
+    if(!allowedIIDs.empty())
+      return m_pReal->EnableExperimentalFeatures((UINT)allowedIIDs.size(), allowedIIDs.data(), NULL,
+                                                 NULL);
+
+    // header says "The call returns E_NOINTERFACE if an unrecognized feature is passed in or
+    // Windows Developer mode is not on." so this is the most appropriate error for if no IIDs are
+    // allowed.
+    return E_NOINTERFACE;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE CreateDevice(_In_opt_ IUnknown *adapter,
+                                                 D3D_FEATURE_LEVEL FeatureLevel, REFIID riid,
+                                                 _COM_Outptr_opt_ void **ppvDevice)
+  {
+    if(RenderDoc::Inst().GetCaptureOptions().apiValidation)
+    {
+      D3D12DevConfiguration tmpConfig = {};
+      HRESULT hr = m_pReal->GetConfigurationInterface(CLSID_D3D12Debug, __uuidof(ID3D12Debug),
+                                                      (void **)&tmpConfig.debug);
+      if(SUCCEEDED(hr))
+      {
+        EnableD3D12DebugLayer(&tmpConfig, NULL);
+        SAFE_RELEASE(tmpConfig.debug);
+      }
+    }
+
+    return CreateD3D12_Internal(
+        [this](IUnknown *pAdapter, D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid,
+               void **ppDevice) {
+          return m_pReal->CreateDevice(pAdapter, MinimumFeatureLevel, riid, ppDevice);
+        },
+        adapter, FeatureLevel, riid, ppvDevice);
+  }
+};
+
+class WrappedID3D12SDKConfiguration : public RefCounter12<ID3D12SDKConfiguration>,
+                                      public ID3D12SDKConfiguration1
+{
+  ID3D12SDKConfiguration1 *m_pReal1 = NULL;
+public:
+  WrappedID3D12SDKConfiguration(ID3D12SDKConfiguration *real, ID3D12SDKConfiguration1 *real1)
+      : RefCounter12(real)
+  {
+    if(!real1)
+      real->QueryInterface(__uuidof(ID3D12SDKConfiguration1), (void **)&real1);
+    m_pReal1 = real1;
+  }
+  virtual ~WrappedID3D12SDKConfiguration()
+  {
+    SAFE_RELEASE(m_pReal);
+    SAFE_RELEASE(m_pReal1);
+  }
+  //////////////////////////////
+  // Implement IUnknown
+  ULONG STDMETHODCALLTYPE AddRef() { return RefCounter12::AddRef(); }
+  ULONG STDMETHODCALLTYPE Release() { return RefCounter12::Release(); }
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
+  {
+    if(riid == __uuidof(IUnknown))
+    {
+      *ppvObject = (IUnknown *)this;
+      AddRef();
+      return S_OK;
+    }
+    if(riid == __uuidof(ID3D12SDKConfiguration))
+    {
+      *ppvObject = (ID3D12SDKConfiguration *)this;
+      AddRef();
+      return S_OK;
+    }
+    if(riid == __uuidof(ID3D12SDKConfiguration1))
+    {
+      *ppvObject = (ID3D12SDKConfiguration1 *)this;
+      AddRef();
+      return S_OK;
+    }
+
+    return E_NOINTERFACE;
+  }
+
+  //////////////////////////////
+  // Implement ID3D12SDKConfiguration
+  virtual HRESULT STDMETHODCALLTYPE SetSDKVersion(UINT SDKVersion, _In_z_ LPCSTR SDKPath)
+  {
+    return m_pReal->SetSDKVersion(SDKVersion, SDKPath);
+  }
+
+  //////////////////////////////
+  // Implement ID3D12SDKConfiguration1
+  virtual HRESULT STDMETHODCALLTYPE CreateDeviceFactory(UINT SDKVersion, _In_ LPCSTR SDKPath,
+                                                        REFIID riid, _COM_Outptr_ void **ppvFactory)
+  {
+    if(riid != __uuidof(ID3D12DeviceFactory))
+    {
+      RDCERR("Unexpected uuid to CreateDeviceFactory: %s", ToStr(riid).c_str());
+      return E_NOINTERFACE;
+    }
+
+    ID3D12DeviceFactory *realFactory = NULL;
+    HRESULT hr = m_pReal1->CreateDeviceFactory(SDKVersion, SDKPath, riid, (void **)&realFactory);
+    if(SUCCEEDED(hr))
+    {
+      RDCASSERT(realFactory);
+      *ppvFactory = (ID3D12DeviceFactory *)(new WrappedID3D12DeviceFactory(realFactory));
+      return hr;
+    }
+    SAFE_RELEASE(realFactory);
+    return hr;
+  }
+
+  virtual void STDMETHODCALLTYPE FreeUnusedSDKs(void) { return m_pReal1->FreeUnusedSDKs(); }
+};
+
 class D3D12Hook : LibraryHook
 {
 public:
@@ -212,6 +503,7 @@ public:
 
     CreateDevice.Register("d3d12.dll", "D3D12CreateDevice", D3D12CreateDevice_hook);
     GetDebugInterface.Register("d3d12.dll", "D3D12GetDebugInterface", D3D12GetDebugInterface_hook);
+    GetInterface.Register("d3d12.dll", "D3D12GetInterface", D3D12GetInterface_hook);
     EnableExperimentalFeatures.Register("d3d12.dll", "D3D12EnableExperimentalFeatures",
                                         D3D12EnableExperimentalFeatures_hook);
     GetD3D11On12On7.Register("d3d11on12.dll", "GetD3D11On12On7Interface",
@@ -221,10 +513,99 @@ public:
     Threading::SetTLSValue(m_RecurseSlot, NULL);
   }
 
+  static HRESULT GetWrappedInterface(IUnknown *realUnk, REFIID riid, void **ppvInterface)
+  {
+    if(riid == __uuidof(ID3D12Debug))
+    {
+      *ppvInterface = (ID3D12Debug *)(new WrappedID3D12Debug());
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12Debug1))
+    {
+      *ppvInterface = (ID3D12Debug1 *)(new WrappedID3D12Debug());
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12Debug2))
+    {
+      *ppvInterface = (ID3D12Debug2 *)(new WrappedID3D12Debug());
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12Debug3))
+    {
+      *ppvInterface = (ID3D12Debug3 *)(new WrappedID3D12Debug());
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12Debug4))
+    {
+      *ppvInterface = (ID3D12Debug4 *)(new WrappedID3D12Debug());
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12Debug5))
+    {
+      *ppvInterface = (ID3D12Debug5 *)(new WrappedID3D12Debug());
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12Debug6))
+    {
+      *ppvInterface = (ID3D12Debug6 *)(new WrappedID3D12Debug());
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12Tools))
+    {
+      *ppvInterface = (ID3D12Tools *)(new WrappedID3D12Tools());
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12DeviceRemovedExtendedData))
+    {
+      *ppvInterface =
+          (ID3D12DeviceRemovedExtendedData *)(new WrappedID3D12DeviceRemovedExtendedData());
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12DeviceRemovedExtendedData1))
+    {
+      *ppvInterface =
+          (ID3D12DeviceRemovedExtendedData1 *)(new WrappedID3D12DeviceRemovedExtendedData());
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12DeviceRemovedExtendedData2))
+    {
+      *ppvInterface =
+          (ID3D12DeviceRemovedExtendedData2 *)(new WrappedID3D12DeviceRemovedExtendedData());
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12SDKConfiguration))
+    {
+      ID3D12SDKConfiguration *real = (ID3D12SDKConfiguration *)realUnk;
+      if(real)
+      {
+        // take a reference ourselves, realUnk is a transient pointer and will be released after this function returns
+        real->AddRef();
+        *ppvInterface = (ID3D12SDKConfiguration *)(new WrappedID3D12SDKConfiguration(real, NULL));
+        return S_OK;
+      }
+    }
+    else if(riid == __uuidof(ID3D12SDKConfiguration1))
+    {
+      ID3D12SDKConfiguration1 *real1 = (ID3D12SDKConfiguration1 *)realUnk;
+      if(real1)
+      {
+        // take a reference ourselves, realUnk is a transient pointer and will be released after this function returns
+        real1->AddRef();
+        ID3D12SDKConfiguration *real = NULL;
+        real1->QueryInterface(__uuidof(ID3D12SDKConfiguration), (void **)&real);
+        *ppvInterface = (ID3D12SDKConfiguration1 *)(new WrappedID3D12SDKConfiguration(real, real1));
+        return S_OK;
+      }
+    }
+
+    return E_NOINTERFACE;
+  }
+
 private:
   static D3D12Hook d3d12hooks;
 
   HookedFunction<PFN_D3D12_GET_DEBUG_INTERFACE> GetDebugInterface;
+  HookedFunction<PFN_D3D12_GET_INTERFACE> GetInterface;
   HookedFunction<PFN_D3D12_CREATE_DEVICE> CreateDevice;
   HookedFunction<PFN_D3D12_ENABLE_EXPERIMENTAL_FEATURES> EnableExperimentalFeatures;
   HookedFunction<PFNGetD3D11On12On7Interface> GetD3D11On12On7;
@@ -276,7 +657,7 @@ private:
     bool EnableDebugLayer = false;
 
     if(RenderDoc::Inst().GetCaptureOptions().apiValidation)
-      EnableDebugLayer = EnableD3D12DebugLayer(GetDebugInterface());
+      EnableDebugLayer = EnableD3D12DebugLayer(NULL, GetDebugInterface());
 
     RDCDEBUG("Calling real createdevice...");
 
@@ -460,54 +841,40 @@ private:
 
   static HRESULT WINAPI D3D12GetDebugInterface_hook(REFIID riid, void **ppvDebug)
   {
-    if(riid == __uuidof(ID3D12Debug))
-    {
-      *ppvDebug = (ID3D12Debug *)(new WrappedID3D12Debug());
-      return S_OK;
-    }
-    else if(riid == __uuidof(ID3D12Debug1))
-    {
-      *ppvDebug = (ID3D12Debug1 *)(new WrappedID3D12Debug());
-      return S_OK;
-    }
-    else if(riid == __uuidof(ID3D12Debug2))
-    {
-      *ppvDebug = (ID3D12Debug2 *)(new WrappedID3D12Debug());
-      return S_OK;
-    }
-    else if(riid == __uuidof(ID3D12Debug3))
-    {
-      *ppvDebug = (ID3D12Debug3 *)(new WrappedID3D12Debug());
-      return S_OK;
-    }
-    else if(riid == __uuidof(ID3D12Debug4))
-    {
-      *ppvDebug = (ID3D12Debug4 *)(new WrappedID3D12Debug());
-      return S_OK;
-    }
-    else if(riid == __uuidof(ID3D12Debug5))
-    {
-      *ppvDebug = (ID3D12Debug5 *)(new WrappedID3D12Debug());
-      return S_OK;
-    }
-    else if(riid == __uuidof(ID3D12Debug6))
-    {
-      *ppvDebug = (ID3D12Debug6 *)(new WrappedID3D12Debug());
-      return S_OK;
-    }
-    else
-    {
-      IUnknown *releaseme = NULL;
-      HRESULT real = d3d12hooks.GetDebugInterface()(riid, (void **)&releaseme);
+    IUnknown *realUnk = NULL;
+    HRESULT real = d3d12hooks.GetDebugInterface()(riid, (void **)&realUnk);
 
-      if(releaseme)
-        releaseme->Release();
+    HRESULT hr = GetWrappedInterface(realUnk, riid, ppvDebug);
 
-      RDCWARN("Unknown UUID passed to D3D12GetDebugInterface: %s. Real call %s succeed (%x).",
-              ToStr(riid).c_str(), SUCCEEDED(real) ? "did" : "did not", real);
+    if(realUnk)
+      realUnk->Release();
 
-      return E_NOINTERFACE;
-    }
+    if(SUCCEEDED(hr))
+      return hr;
+
+    RDCWARN("Unknown UUID passed to D3D12GetDebugInterface: %s. Real call %s succeed (%x).",
+            ToStr(riid).c_str(), SUCCEEDED(real) ? "did" : "did not", real);
+
+    return E_NOINTERFACE;
+  }
+
+  static HRESULT WINAPI D3D12GetInterface_hook(REFCLSID rclsid, REFIID riid, void **ppvDebug)
+  {
+    IUnknown *realUnk = NULL;
+    HRESULT real = d3d12hooks.GetInterface()(rclsid, riid, (void **)&realUnk);
+
+    HRESULT hr = GetWrappedInterface(realUnk, riid, ppvDebug);
+
+    if(realUnk)
+      realUnk->Release();
+
+    if(SUCCEEDED(hr))
+      return hr;
+
+    RDCWARN("Unknown UUID passed to D3D12GetInterface: %s (clsid %s). Real call %s succeed (%x).",
+            ToStr(riid).c_str(), ToStr(rclsid).c_str(), SUCCEEDED(real) ? "did" : "did not", real);
+
+    return E_NOINTERFACE;
   }
 };
 
@@ -517,4 +884,24 @@ HRESULT CreateD3D12_Internal(RealD3D12CreateFunction real, IUnknown *pAdapter,
                              D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid, void **ppDevice)
 {
   return D3D12Hook::d3d12hooks.Create_Internal(real, pAdapter, MinimumFeatureLevel, riid, ppDevice);
+}
+
+HRESULT STDMETHODCALLTYPE WrappedID3D12DeviceFactory::GetConfigurationInterface(
+    REFCLSID clsid, REFIID iid, _COM_Outptr_ void **ppv)
+{
+  IUnknown *realUnk = NULL;
+  HRESULT real = m_pReal->GetConfigurationInterface(clsid, iid, (void **)&realUnk);
+
+  HRESULT hr = D3D12Hook::GetWrappedInterface(realUnk, iid, ppv);
+
+  if(realUnk)
+    realUnk->Release();
+
+  if(SUCCEEDED(hr))
+    return hr;
+
+  RDCWARN("Unknown UUID passed to D3D12GetDebugInterface: %s. Real call %s succeed (%x).",
+          ToStr(iid).c_str(), SUCCEEDED(real) ? "did" : "did not", real);
+
+  return E_NOINTERFACE;
 }
