@@ -312,8 +312,22 @@ enum class Operation : uint8_t
 // added as needed, since names in docs/LLVM don't match neatly so there's no pre-made list
 enum class DXOp : uint32_t
 {
+  loadInput = 4,
+  storeInput = 5,
   UMin = 40,
   createHandle = 57,
+  cbufferLoad = 59,
+  cbufferLoadLegacy = 59,
+  sample = 60,
+  sampleBias = 61,
+  sampleLevel = 62,
+  sampleGrad = 63,
+  sampleCmp = 64,
+  sampleCmpLevelZero = 65,
+  textureLoad = 66,
+  textureStore = 67,
+  bufferLoad = 68,
+  bufferStore = 69,
   atomicBinOp = 78,
   barrier = 80,
   groupId = 94,
@@ -329,6 +343,9 @@ enum class DXOp : uint32_t
   dispatchMesh = 173,
   annotateHandle = 216,
   createHandleFromBinding = 217,
+  sampleCmpLevel = 224,
+  sampleCmpGrad = 254,
+  sampleCmpBias = 255,
 };
 
 inline Operation DecodeBinOp(const Type *type, uint64_t opcode)

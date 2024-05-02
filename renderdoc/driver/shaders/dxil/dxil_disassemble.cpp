@@ -2327,7 +2327,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               showDxFuncName = false;
               uint32_t dxopCode;
               RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
-              RDCASSERTEQUAL(dxopCode, 4);
+              RDCASSERTEQUAL(dxopCode, (uint32_t)DXOp::loadInput);
               rdcstr name;
               rdcstr rowStr;
               rdcstr componentStr;
@@ -2368,7 +2368,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               showDxFuncName = false;
               uint32_t dxopCode;
               RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
-              RDCASSERTEQUAL(dxopCode, 5);
+              RDCASSERTEQUAL(dxopCode, (uint32_t)DXOp::storeInput);
               rdcstr name;
               rdcstr rowStr;
               rdcstr componentStr;
@@ -2410,7 +2410,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               showDxFuncName = false;
               uint32_t dxopCode;
               RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
-              RDCASSERTEQUAL(dxopCode, 57);
+              RDCASSERTEQUAL(dxopCode, (uint32_t)DXOp::createHandle);
               rdcstr handleStr = resultIdStr;
               ResourceClass resClass;
               rdcstr resName;
@@ -2497,14 +2497,18 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               showDxFuncName = false;
               uint32_t dxopCode;
               RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
-              RDCASSERTEQUAL(dxopCode, 59);
+              bool loadLegacy = funcCallName.beginsWith("dx.op.cbufferLoadLegacy");
+              if(loadLegacy)
+                RDCASSERTEQUAL(dxopCode, (uint32_t)DXOp::cbufferLoadLegacy);
+              else
+                RDCASSERTEQUAL(dxopCode, (uint32_t)DXOp::cbufferLoad);
               rdcstr handleStr = ArgToString(inst.args[1], false);
               if(resHandles.count(handleStr) > 0)
               {
                 uint32_t regIndex;
                 if(getival<uint32_t>(inst.args[2], regIndex))
                 {
-                  if(!funcCallName.beginsWith("dx.op.cbufferLoadLegacy"))
+                  if(!loadLegacy)
                   {
                     // TODO: handle non 16-byte aligned offsets
                     // Convert byte offset to a register index
@@ -2527,7 +2531,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               showDxFuncName = false;
               uint32_t dxopCode;
               RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
-              RDCASSERTEQUAL(dxopCode, 68);
+              RDCASSERTEQUAL(dxopCode, (uint32_t)DXOp::bufferLoad);
               rdcstr handleStr = ArgToString(inst.args[1], false);
               if(resHandles.count(handleStr) > 0)
               {
@@ -2545,7 +2549,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               showDxFuncName = false;
               uint32_t dxopCode;
               RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
-              RDCASSERTEQUAL(dxopCode, 139);
+              RDCASSERTEQUAL(dxopCode, (uint32_t)DXOp::rawBufferLoad);
               rdcstr handleStr = ArgToString(inst.args[1], false);
               if(resHandles.count(handleStr) > 0)
               {
@@ -2586,7 +2590,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 showDxFuncName = false;
                 uint32_t dxopCode;
                 RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
-                RDCASSERTEQUAL(dxopCode, 69);
+                RDCASSERTEQUAL(dxopCode, (uint32_t)DXOp::bufferStore);
               }
               else
               {
@@ -2594,7 +2598,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 showDxFuncName = false;
                 uint32_t dxopCode;
                 RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
-                RDCASSERTEQUAL(dxopCode, 140);
+                RDCASSERTEQUAL(dxopCode, (uint32_t)DXOp::rawBufferStore);
               }
 
               rdcstr handleStr = ArgToString(inst.args[1], false);
@@ -2653,7 +2657,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               showDxFuncName = false;
               uint32_t dxopCode;
               RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
-              RDCASSERTEQUAL(dxopCode, 66);
+              RDCASSERTEQUAL(dxopCode, (uint32_t)DXOp::textureLoad);
               rdcstr handleStr = ArgToString(inst.args[1], false);
               if(resHandles.count(handleStr) > 0)
               {
@@ -2725,7 +2729,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               showDxFuncName = false;
               uint32_t dxopCode;
               RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
-              RDCASSERTEQUAL(dxopCode, 67);
+              RDCASSERTEQUAL(dxopCode, (uint32_t)DXOp::textureStore);
               rdcstr handleStr = ArgToString(inst.args[1], false);
               if(resHandles.count(handleStr) > 0)
               {
@@ -2775,12 +2779,21 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               // SampleCmpLevel(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,lod)
               // SampleCmpGrad(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,ddx0,ddx1,ddx2,ddy0,ddy1,ddy2,clamp)
               // SampleCmpBias(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,bias,clamp)
+              uint32_t dxopCode;
+              RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
+              RDCASSERT((dxopCode == (uint32_t)DXOp::sample) ||
+                        (dxopCode == (uint32_t)DXOp::sampleBias) ||
+                        (dxopCode == (uint32_t)DXOp::sampleLevel) ||
+                        (dxopCode == (uint32_t)DXOp::sampleGrad) ||
+                        (dxopCode == (uint32_t)DXOp::sampleCmp) ||
+                        (dxopCode == (uint32_t)DXOp::sampleCmpLevelZero) ||
+                        (dxopCode == (uint32_t)DXOp::sampleCmpLevel) ||
+                        (dxopCode == (uint32_t)DXOp::sampleCmpGrad) ||
+                        (dxopCode == (uint32_t)DXOp::sampleCmpBias));
               showDxFuncName = false;
               rdcstr handleStr = ArgToString(inst.args[1], false);
               if(resHandles.count(handleStr) > 0)
               {
-                uint32_t dxopCode;
-                RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
                 lineStr += resHandles[handleStr].name;
                 lineStr += ".";
                 rdcstr dxFuncSig = funcNameSigs[dxopCode];
