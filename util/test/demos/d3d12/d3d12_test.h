@@ -214,11 +214,16 @@ struct D3D12GraphicsTest : public GraphicsTest
 
   D3D_FEATURE_LEVEL minFeatureLevel = D3D_FEATURE_LEVEL_11_0;
 
+  std::string d3d12path;
+
   bool gpuva = false, m_12On7 = false, m_DXILSupport = false;
   IDXGIFactory1Ptr m_Factory;
 
   ID3D12DebugPtr d3d12Debug;
   ID3D12InfoQueuePtr infoqueue;
+
+  ID3D12DeviceFactoryPtr devFactory;
+  ID3D12DeviceConfigurationPtr devConfig;
 
   ID3D12DevicePtr dev;
   ID3D12Device1Ptr dev1;

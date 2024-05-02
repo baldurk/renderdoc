@@ -57,6 +57,149 @@ PFN_D3D12_CREATE_DEVICE dyn_D3D12CreateDevice = NULL;
 
 PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE dyn_serializeRootSig;
 PFN_D3D12_SERIALIZE_ROOT_SIGNATURE dyn_serializeRootSigOld;
+
+struct DevicePointers
+{
+  ID3D12DebugPtr debug;
+  ID3D12DeviceFactoryPtr factory;
+  ID3D12DeviceConfigurationPtr config;
+};
+
+DevicePointers PrepareCreateDeviceFromDLL(const std::string &d3d12path, bool debug, bool gpuValidation)
+{
+  DevicePointers ret;
+
+  HRESULT hr = S_OK;
+
+  ID3D12DeviceFactoryPtr devfactory = NULL;
+  if(!d3d12path.empty())
+  {
+#ifdef WIN64
+#define BITNESS_SUFFIX "/x64"
+#else
+#define BITNESS_SUFFIX "/win32"
+#endif
+
+    PFN_D3D12_GET_INTERFACE getD3D12Interface =
+        (PFN_D3D12_GET_INTERFACE)GetProcAddress(d3d12, "D3D12GetInterface");
+
+    ID3D12SDKConfigurationPtr config = NULL;
+    hr = getD3D12Interface(CLSID_D3D12SDKConfiguration, __uuidof(ID3D12SDKConfiguration),
+                           (void **)&config);
+
+    ID3D12SDKConfiguration1Ptr config1 = NULL;
+    if(config)
+      config1 = config;
+
+    if(config1)
+    {
+      std::string path = d3d12path;
+
+      // try to load d3d12core.dll - starting with if the argument is directly to the dll, otherwise
+      // try increasing suffixes
+      HMODULE mod = NULL;
+      mod = LoadLibraryA(path.c_str());
+
+      if(mod)
+      {
+        size_t trim = path.find_last_of("/\\");
+        path[trim] = '\0';
+      }
+      else
+      {
+        mod = LoadLibraryA((path + "/d3d12core.dll").c_str());
+        if(mod)
+        {
+          // path is the folder as needed
+        }
+        else
+        {
+          path = d3d12path + BITNESS_SUFFIX;
+          mod = LoadLibraryA((path + "/d3d12core.dll").c_str());
+          if(mod)
+          {
+          }
+          else
+          {
+            path = d3d12path + "/bin" BITNESS_SUFFIX;
+            mod = LoadLibraryA((path + "/d3d12core.dll").c_str());
+
+            if(!mod)
+            {
+              TEST_LOG("Couldn't find D3D12 dll under path %s", d3d12path.c_str());
+            }
+          }
+        }
+      }
+
+      if(mod)
+      {
+        DWORD *version = (DWORD *)GetProcAddress(mod, "D3D12SDKVersion");
+
+        if(version)
+        {
+          hr = config1->CreateDeviceFactory(*version, path.c_str(), __uuidof(ID3D12DeviceFactory),
+                                            (void **)&devfactory);
+
+          if(FAILED(hr))
+            devfactory = NULL;
+        }
+      }
+    }
+
+    if(!devfactory)
+    {
+      TEST_LOG("Tried to enable dynamic D3D12 SDK, but failed to get interface");
+    }
+
+    ret.factory = devfactory;
+    ret.config = devfactory;
+  }
+
+  if(debug)
+  {
+    if(devfactory)
+    {
+      hr = devfactory->GetConfigurationInterface(CLSID_D3D12Debug, __uuidof(ID3D12Debug),
+                                                 (void **)&ret.debug);
+
+      if(FAILED(hr))
+        ret.debug = NULL;
+    }
+    else
+    {
+      PFN_D3D12_GET_DEBUG_INTERFACE getD3D12DebugInterface =
+          (PFN_D3D12_GET_DEBUG_INTERFACE)GetProcAddress(d3d12, "D3D12GetDebugInterface");
+
+      if(!getD3D12DebugInterface)
+      {
+        TEST_ERROR("Couldn't find D3D12GetDebugInterface!");
+        return {};
+      }
+
+      hr = getD3D12DebugInterface(__uuidof(ID3D12Debug), (void **)&ret.debug);
+
+      if(FAILED(hr))
+        ret.debug = NULL;
+    }
+
+    if(ret.debug)
+    {
+      ret.debug->EnableDebugLayer();
+
+      if(gpuValidation)
+      {
+        ID3D12Debug1Ptr debug1 = ret.debug;
+
+        if(debug1)
+          debug1->SetEnableGPUBasedValidation(true);
+      }
+    }
+  }
+
+  return ret;
+}
+
 };    // namespace
 
 void D3D12GraphicsTest::Prepare(int argc, char **argv)
@@ -166,13 +309,32 @@ void D3D12GraphicsTest::Prepare(int argc, char **argv)
     {
       gpuva = true;
     }
+    if(i + 1 < argc &&
+       (!strcmp(argv[i], "--d3d12") || !strcmp(argv[i], "--sdk") || !strcmp(argv[i], "--d3d12core")))
+    {
+      d3d12path = argv[i + 1];
+    }
+  }
+
+  if(d3d12path.empty())
+  {
+    d3d12path = GetCWD() + "/D3D12/d3d12core.dll";
+    FILE *f = fopen(d3d12path.c_str(), "r");
+    if(!f)
+      d3d12path.clear();
+    else
+      fclose(f);
   }
 
   m_Factory = factory;
 
   if(Avail.empty())
   {
+    devFactory = PrepareCreateDeviceFromDLL(d3d12path, debugDevice, gpuva).factory;
+
     ID3D12DevicePtr tmpdev = CreateDevice(adapters, minFeatureLevel);
+
+    devFactory = NULL;
 
     if(tmpdev)
     {
@@ -207,32 +369,11 @@ bool D3D12GraphicsTest::Init()
     TEST_WARN("Can't get D3D12SerializeVersionedRootSignature - old version of windows?");
   }
 
-  if(debugDevice)
-  {
-    PFN_D3D12_GET_DEBUG_INTERFACE getD3D12DebugInterface =
-        (PFN_D3D12_GET_DEBUG_INTERFACE)GetProcAddress(d3d12, "D3D12GetDebugInterface");
+  DevicePointers devPtrs = PrepareCreateDeviceFromDLL(d3d12path, debugDevice, gpuva);
 
-    if(!getD3D12DebugInterface)
-    {
-      TEST_ERROR("Couldn't find D3D12GetDebugInterface!");
-      return false;
-    }
-
-    HRESULT hr = getD3D12DebugInterface(__uuidof(ID3D12Debug), (void **)&d3d12Debug);
-
-    if(SUCCEEDED(hr) && d3d12Debug)
-    {
-      d3d12Debug->EnableDebugLayer();
-
-      if(gpuva)
-      {
-        ID3D12Debug1Ptr debug1 = d3d12Debug;
-
-        if(debug1)
-          debug1->SetEnableGPUBasedValidation(true);
-      }
-    }
-  }
+  devFactory = devPtrs.factory;
+  devConfig = devPtrs.config;
+  d3d12Debug = devPtrs.debug;
 
   dev = CreateDevice(adapters, minFeatureLevel);
   if(!dev)
@@ -534,17 +675,23 @@ ID3D12DevicePtr D3D12GraphicsTest::CreateDevice(const std::vector<IDXGIAdapterPt
                                                 D3D_FEATURE_LEVEL features)
 {
   HRESULT hr = S_OK;
-  ID3D12DevicePtr ret;
   for(size_t i = 0; i < adaptersToTry.size(); ++i)
   {
-    hr = dyn_D3D12CreateDevice(adaptersToTry[i], features, __uuidof(ID3D12Device), (void **)&ret);
+    ID3D12DevicePtr device;
+
+    if(devFactory)
+      hr = devFactory->CreateDevice(adaptersToTry[i], features, __uuidof(ID3D12Device),
+                                    (void **)&device);
+    else
+      hr = dyn_D3D12CreateDevice(adaptersToTry[i], features, __uuidof(ID3D12Device),
+                                 (void **)&device);
 
     if(SUCCEEDED(hr))
-      return ret;
+      return device;
   }
 
   TEST_ERROR("D3D12CreateDevice failed: %x", hr);
-  return ret;
+  return NULL;
 }
 
 GraphicsWindow *D3D12GraphicsTest::MakeWindow(int width, int height, const char *title)
@@ -580,6 +727,7 @@ void D3D12GraphicsTest::Shutdown()
 
   queue = NULL;
   dev = NULL;
+  devConfig = NULL;
 }
 
 bool D3D12GraphicsTest::Running()
@@ -1495,7 +1643,11 @@ ID3D12RootSignaturePtr D3D12GraphicsTest::MakeSig(const std::vector<D3D12_ROOT_P
     desc.pParameters = &params[0];
 
     ID3DBlobPtr errBlob = NULL;
-    HRESULT hr = dyn_serializeRootSig(&verdesc, &blob, &errBlob);
+    HRESULT hr;
+    if(devConfig)
+      hr = devConfig->SerializeVersionedRootSignature(&verdesc, &blob, &errBlob);
+    else
+      hr = dyn_serializeRootSig(&verdesc, &blob, &errBlob);
 
     if(FAILED(hr))
     {

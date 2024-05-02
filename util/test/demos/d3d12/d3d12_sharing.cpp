@@ -87,14 +87,16 @@ RD_TEST(D3D12_Sharing, D3D12GraphicsTest)
     ID3D12RootSignaturePtr sig = MakeSig({});
 
     // swap dev with devB, to force pso to be created on the 'second' device (should be identical to
-    // the first). This may be completely redundant as we might have two identical pointers, but
-    // that's not guaranteed.
-    std::swap(dev, devB);
+    // the first if not using dynamic DLLs). This may be completely redundant as we might have two
+    // identical pointers, but that's not guaranteed.
+    if(!devFactory)
+      std::swap(dev, devB);
 
     ID3D12PipelineStatePtr pso = MakePSO().RootSig(sig).InputLayout().VS(vsblob).PS(psblob);
 
     // set them back
-    std::swap(dev, devB);
+    if(!devFactory)
+      std::swap(dev, devB);
 
     ResourceBarrier(d3d12vb, D3D12_RESOURCE_STATE_COMMON,
                     D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
