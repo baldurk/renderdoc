@@ -2278,6 +2278,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
       DisassemblyAddNewLine();
 
       std::map<rdcstr, ResourceHandle> resHandles;
+      std::map<rdcstr, rdcstr> ssaAliases;
 
       size_t curBlock = 0;
 
@@ -2451,6 +2452,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                     resHandle.resourceClass = resClass;
                     resHandle.resourceIndex = resIndex;
                     resHandles[handleStr] = resHandle;
+                    ssaAliases[handleStr] = resName;
                   }
                   uint32_t index;
                   if(getival<uint32_t>(inst.args[3], index))
@@ -2913,7 +2915,11 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                       lineStr += ", ";
 
                     lineStr += paramNameStr;
-                    lineStr += ArgToString(inst.args[a], false);
+                    rdcstr ssaStr = ArgToString(inst.args[a], false);
+                    if(ssaAliases.count(ssaStr) == 0)
+                      lineStr += ssaStr;
+                    else
+                      lineStr += ssaAliases[ssaStr];
                     first = false;
                   }
                 }
