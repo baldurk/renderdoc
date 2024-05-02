@@ -2761,6 +2761,106 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 showDxFuncName = true;
               }
             }
+            else if(showDxFuncName && funcCallName.beginsWith("dx.op.sample") &&
+                    !funcCallName.beginsWith("dx.op.sampleIndex"))
+            {
+              // Sample(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,clamp)
+              // SampleBias(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,bias,clamp)
+              // SampleLevel(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,LOD)
+              // SampleGrad(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,ddx0,ddx1,ddx2,ddy0,ddy1,ddy2,clamp)
+              // SampleCmp(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,clamp)
+              // SampleCmpLevelZero(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue)
+              // SampleCmpLevel(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,lod)
+              // SampleCmpGrad(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,ddx0,ddx1,ddx2,ddy0,ddy1,ddy2,clamp)
+              // SampleCmpBias(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,bias,clamp)
+              showDxFuncName = false;
+              rdcstr handleStr = ArgToString(inst.args[1], false);
+              if(resHandles.count(handleStr) > 0)
+              {
+                uint32_t dxopCode;
+                RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
+                lineStr += resHandles[handleStr].name;
+                lineStr += ".";
+                rdcstr dxFuncSig = funcNameSigs[dxopCode];
+                int paramStart = dxFuncSig.find('(') + 1;
+                if(paramStart > 0)
+                  lineStr += dxFuncSig.substr(0, paramStart);
+                else
+                  lineStr += "UNKNOWN DX FUNCTION";
+
+                // sampler is 2
+                rdcstr samplerStr = ArgToString(inst.args[2], false);
+                if(resHandles.count(samplerStr) > 0)
+                  samplerStr = resHandles[samplerStr].name;
+                lineStr += samplerStr;
+
+                for(uint32_t a = 3; a < 7; ++a)
+                {
+                  if(!isUndef(inst.args[a]))
+                  {
+                    lineStr += ", ";
+                    lineStr += ArgToString(inst.args[a], false);
+                  }
+                }
+                bool needText = true;
+                for(uint32_t a = 7; a < 10; ++a)
+                {
+                  if(!isUndef(inst.args[a]))
+                  {
+                    lineStr += ", ";
+                    if(needText)
+                    {
+                      lineStr += "Offset = {";
+                      needText = false;
+                    }
+                    lineStr += ArgToString(inst.args[a], false);
+                  }
+                }
+                if(!needText)
+                  lineStr += "}";
+
+                int paramStrCount = (int)dxFuncSig.size();
+                for(size_t a = 1; a < 10; ++a)
+                {
+                  if(paramStart < paramStrCount)
+                  {
+                    int paramEnd = dxFuncSig.find(',', paramStart);
+                    if(paramEnd == -1)
+                      paramEnd = paramStrCount;
+                    paramStart = paramEnd + 1;
+                  }
+                }
+                for(uint32_t a = 10; a < inst.args.size(); ++a)
+                {
+                  rdcstr paramNameStr;
+                  if(paramStart < paramStrCount)
+                  {
+                    int paramEnd = dxFuncSig.find(',', paramStart);
+                    if(paramEnd == -1)
+                      paramEnd = paramStrCount - 1;
+                    if(paramEnd > paramStart)
+                    {
+                      rdcstr dxParamName = dxFuncSig.substr(paramStart, paramEnd - paramStart);
+                      paramStart = paramEnd + 1;
+                      paramNameStr = "/*";
+                      paramNameStr += dxParamName;
+                      paramNameStr += "*/ ";
+                    }
+                  }
+                  if(!isUndef(inst.args[a]))
+                  {
+                    lineStr += ", ";
+                    lineStr += paramNameStr;
+                    lineStr += ArgToString(inst.args[a], false);
+                  }
+                }
+                lineStr += ")";
+              }
+              else
+              {
+                showDxFuncName = true;
+              }
+            }
             else if(funcCallName.beginsWith("llvm.dbg."))
             {
             }
@@ -2796,7 +2896,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                   {
                     int paramEnd = dxFuncSig.find(',', paramStart);
                     if(paramEnd == -1)
-                      paramEnd = paramStrCount;
+                      paramEnd = paramStrCount - 1;
                     if(paramEnd > paramStart)
                     {
                       rdcstr dxParamName = dxFuncSig.substr(paramStart, paramEnd - paramStart);
@@ -3054,8 +3154,8 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                   rdcstr ptrStr = ArgToString(inst.args[0], false);
                   // Try to de-mangle the pointer name
                   // @"\01?shared_pos@@3PAY0BC@$$CAMA.1dim" -> shared_pos
-                  // Take the string between first alphabetical character and last alphanumeric
-                  // character or "_"
+                  // Take the string between first alphabetical character and last
+                  // alphanumeric character or "_"
                   start = 0;
                   int strEnd = (int)ptrStr.size();
                   while(start < strEnd)
