@@ -558,7 +558,8 @@
   DeclExt(KHR_deferred_host_operations);               \
   DeclExt(KHR_acceleration_structure);                 \
   DeclExt(KHR_ray_query);                              \
-  DeclExt(EXT_nested_command_buffer);
+  DeclExt(EXT_nested_command_buffer);                  \
+  DeclExt(EXT_shader_object);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -687,7 +688,8 @@
   CheckExt(KHR_calibrated_timestamps, VKXX);                  \
   CheckExt(KHR_deferred_host_operations, VKXX);               \
   CheckExt(KHR_acceleration_structure, VKXX);                 \
-  CheckExt(KHR_ray_query, VKXX);
+  CheckExt(KHR_ray_query, VKXX);                              \
+  CheckExt(EXT_shader_object, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
@@ -810,211 +812,244 @@
   HookInitExtension_Instance_Android();                                                              \
   HookInitExtension_Instance_Mac();
 
-#define HookInitVulkanDeviceExts()                                                                 \
-  HookInitExtension(EXT_debug_marker, DebugMarkerSetObjectTagEXT);                                 \
-  HookInitExtension(EXT_debug_marker, DebugMarkerSetObjectNameEXT);                                \
-  HookInitExtension(EXT_debug_marker, CmdDebugMarkerBeginEXT);                                     \
-  HookInitExtension(EXT_debug_marker, CmdDebugMarkerEndEXT);                                       \
-  HookInitExtension(EXT_debug_marker, CmdDebugMarkerInsertEXT);                                    \
-  HookInitExtension(KHR_swapchain, CreateSwapchainKHR);                                            \
-  HookInitExtension(KHR_swapchain, DestroySwapchainKHR);                                           \
-  HookInitExtension(KHR_swapchain, GetSwapchainImagesKHR);                                         \
-  HookInitExtension(KHR_swapchain, AcquireNextImageKHR);                                           \
-  HookInitExtension(KHR_swapchain, QueuePresentKHR);                                               \
-  HookInitExtension(KHR_display_swapchain, CreateSharedSwapchainsKHR);                             \
-  HookInitPromotedExtension(KHR_maintenance1, TrimCommandPool, KHR);                               \
-  HookInitExtension(EXT_display_control, DisplayPowerControlEXT);                                  \
-  HookInitExtension(EXT_display_control, RegisterDeviceEventEXT);                                  \
-  HookInitExtension(EXT_display_control, RegisterDisplayEventEXT);                                 \
-  HookInitExtension(EXT_display_control, GetSwapchainCounterEXT);                                  \
-  HookInitExtension(KHR_external_memory_fd, GetMemoryFdKHR);                                       \
-  HookInitExtension(KHR_external_memory_fd, GetMemoryFdPropertiesKHR);                             \
-  HookInitExtension(KHR_external_semaphore_fd, ImportSemaphoreFdKHR);                              \
-  HookInitExtension(KHR_external_semaphore_fd, GetSemaphoreFdKHR);                                 \
-  HookInitExtension(KHR_external_fence_fd, ImportFenceFdKHR);                                      \
-  HookInitExtension(KHR_external_fence_fd, GetFenceFdKHR);                                         \
-  HookInitPromotedExtension(KHR_get_memory_requirements2, GetBufferMemoryRequirements2, KHR);      \
-  HookInitPromotedExtension(KHR_get_memory_requirements2, GetImageMemoryRequirements2, KHR);       \
-  HookInitPromotedExtension(KHR_get_memory_requirements2, GetImageSparseMemoryRequirements2, KHR); \
-  HookInitExtension(AMD_shader_info, GetShaderInfoAMD);                                            \
-  HookInitExtension(KHR_push_descriptor, CmdPushDescriptorSetKHR);                                 \
-  HookInitPromotedExtension(KHR_descriptor_update_template, CreateDescriptorUpdateTemplate, KHR);  \
-  HookInitPromotedExtension(KHR_descriptor_update_template, DestroyDescriptorUpdateTemplate, KHR); \
-  HookInitPromotedExtension(KHR_descriptor_update_template, UpdateDescriptorSetWithTemplate, KHR); \
-  HookInitExtension(KHR_push_descriptor &&KHR_descriptor_update_template,                          \
-                    CmdPushDescriptorSetWithTemplateKHR);                                          \
-  HookInitPromotedExtension(KHR_bind_memory2, BindBufferMemory2, KHR);                             \
-  HookInitPromotedExtension(KHR_bind_memory2, BindImageMemory2, KHR);                              \
-  HookInitPromotedExtension(KHR_maintenance3, GetDescriptorSetLayoutSupport, KHR);                 \
-  HookInitExtension(AMD_buffer_marker, CmdWriteBufferMarkerAMD);                                   \
-  HookInitExtension(EXT_debug_utils, SetDebugUtilsObjectNameEXT);                                  \
-  HookInitExtension(EXT_debug_utils, SetDebugUtilsObjectTagEXT);                                   \
-  HookInitExtension(EXT_debug_utils, QueueBeginDebugUtilsLabelEXT);                                \
-  HookInitExtension(EXT_debug_utils, QueueEndDebugUtilsLabelEXT);                                  \
-  HookInitExtension(EXT_debug_utils, QueueInsertDebugUtilsLabelEXT);                               \
-  HookInitExtension(EXT_debug_utils, CmdBeginDebugUtilsLabelEXT);                                  \
-  HookInitExtension(EXT_debug_utils, CmdEndDebugUtilsLabelEXT);                                    \
-  HookInitExtension(EXT_debug_utils, CmdInsertDebugUtilsLabelEXT);                                 \
-  HookInitPromotedExtension(KHR_sampler_ycbcr_conversion, CreateSamplerYcbcrConversion, KHR);      \
-  HookInitPromotedExtension(KHR_sampler_ycbcr_conversion, DestroySamplerYcbcrConversion, KHR);     \
-  HookInitPromotedExtension(KHR_device_group, GetDeviceGroupPeerMemoryFeatures, KHR);              \
-  HookInitPromotedExtension(KHR_device_group, CmdSetDeviceMask, KHR);                              \
-  HookInitPromotedExtension(KHR_device_group, CmdDispatchBase, KHR);                               \
-  HookInitExtension(KHR_device_group &&KHR_surface, GetDeviceGroupPresentCapabilitiesKHR);         \
-  HookInitExtension(KHR_device_group &&KHR_surface, GetDeviceGroupSurfacePresentModesKHR);         \
-  HookInitExtension(KHR_device_group &&KHR_swapchain, AcquireNextImage2KHR);                       \
-  HookInitExtension(protected_memory, GetDeviceQueue2);                                            \
-  HookInitPromotedExtension(KHR_draw_indirect_count, CmdDrawIndirectCount, KHR);                   \
-  HookInitPromotedExtension(KHR_draw_indirect_count, CmdDrawIndexedIndirectCount, KHR);            \
-  HookInitExtension(EXT_validation_cache, CreateValidationCacheEXT);                               \
-  HookInitExtension(EXT_validation_cache, DestroyValidationCacheEXT);                              \
-  HookInitExtension(EXT_validation_cache, MergeValidationCachesEXT);                               \
-  HookInitExtension(EXT_validation_cache, GetValidationCacheDataEXT);                              \
-  HookInitExtension(KHR_shared_presentable_image, GetSwapchainStatusKHR);                          \
-  HookInitPromotedExtension(KHR_create_renderpass2, CreateRenderPass2, KHR);                       \
-  HookInitPromotedExtension(KHR_create_renderpass2, CmdBeginRenderPass2, KHR);                     \
-  HookInitPromotedExtension(KHR_create_renderpass2, CmdNextSubpass2, KHR);                         \
-  HookInitPromotedExtension(KHR_create_renderpass2, CmdEndRenderPass2, KHR);                       \
-  HookInitExtension(EXT_transform_feedback, CmdBindTransformFeedbackBuffersEXT);                   \
-  HookInitExtension(EXT_transform_feedback, CmdBeginTransformFeedbackEXT);                         \
-  HookInitExtension(EXT_transform_feedback, CmdEndTransformFeedbackEXT);                           \
-  HookInitExtension(EXT_transform_feedback, CmdBeginQueryIndexedEXT);                              \
-  HookInitExtension(EXT_transform_feedback, CmdEndQueryIndexedEXT);                                \
-  HookInitExtension(EXT_transform_feedback, CmdDrawIndirectByteCountEXT);                          \
-  HookInitExtension(EXT_conditional_rendering, CmdBeginConditionalRenderingEXT);                   \
-  HookInitExtension(EXT_conditional_rendering, CmdEndConditionalRenderingEXT);                     \
-  HookInitExtension(EXT_sample_locations, CmdSetSampleLocationsEXT);                               \
-  HookInitExtension(EXT_discard_rectangles, CmdSetDiscardRectangleEXT);                            \
-  HookInitExtension(EXT_calibrated_timestamps, GetCalibratedTimestampsEXT);                        \
-  HookInitPromotedExtension(EXT_host_query_reset, ResetQueryPool, EXT);                            \
-  HookInitExtension(EXT_buffer_device_address, GetBufferDeviceAddressEXT);                         \
-  HookInitExtension(EXT_hdr_metadata, SetHdrMetadataEXT);                                          \
-  HookInitExtension(AMD_display_native_hdr, SetLocalDimmingAMD);                                   \
-  HookInitExtension(KHR_pipeline_executable_properties, GetPipelineExecutablePropertiesKHR);       \
-  HookInitExtension(KHR_pipeline_executable_properties, GetPipelineExecutableStatisticsKHR);       \
-  HookInitExtension(KHR_pipeline_executable_properties,                                            \
-                    GetPipelineExecutableInternalRepresentationsKHR);                              \
-  HookInitExtension(EXT_line_rasterization, CmdSetLineStippleEXT);                                 \
-  HookInitExtension(GOOGLE_display_timing, GetRefreshCycleDurationGOOGLE);                         \
-  HookInitExtension(GOOGLE_display_timing, GetPastPresentationTimingGOOGLE);                       \
-  HookInitPromotedExtension(KHR_timeline_semaphore, GetSemaphoreCounterValue, KHR);                \
-  HookInitPromotedExtension(KHR_timeline_semaphore, WaitSemaphores, KHR);                          \
-  HookInitPromotedExtension(KHR_timeline_semaphore, SignalSemaphore, KHR);                         \
-  HookInitExtension(KHR_performance_query, AcquireProfilingLockKHR);                               \
-  HookInitExtension(KHR_performance_query, ReleaseProfilingLockKHR);                               \
-  HookInitPromotedExtension(KHR_buffer_device_address, GetBufferDeviceAddress, KHR);               \
-  HookInitPromotedExtension(KHR_buffer_device_address, GetBufferOpaqueCaptureAddress, KHR);        \
-  HookInitPromotedExtension(KHR_buffer_device_address, GetDeviceMemoryOpaqueCaptureAddress, KHR);  \
-  HookInitPromotedExtension(EXT_private_data, CreatePrivateDataSlot, EXT);                         \
-  HookInitPromotedExtension(EXT_private_data, DestroyPrivateDataSlot, EXT);                        \
-  HookInitPromotedExtension(EXT_private_data, SetPrivateData, EXT);                                \
-  HookInitPromotedExtension(EXT_private_data, GetPrivateData, EXT);                                \
-  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdSetCullMode, EXT);                      \
-  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdSetFrontFace, EXT);                     \
-  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdSetPrimitiveTopology, EXT);             \
-  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdSetViewportWithCount, EXT);             \
-  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdSetScissorWithCount, EXT);              \
-  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdBindVertexBuffers2, EXT);               \
-  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdSetDepthTestEnable, EXT);               \
-  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdSetDepthWriteEnable, EXT);              \
-  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdSetDepthCompareOp, EXT);                \
-  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdSetDepthBoundsTestEnable, EXT);         \
-  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdSetStencilTestEnable, EXT);             \
-  HookInitPromotedExtension(EXT_extended_dynamic_state, CmdSetStencilOp, EXT);                     \
-  HookInitPromotedExtension(KHR_copy_commands2, CmdCopyBuffer2, KHR);                              \
-  HookInitPromotedExtension(KHR_copy_commands2, CmdCopyImage2, KHR);                               \
-  HookInitPromotedExtension(KHR_copy_commands2, CmdCopyBufferToImage2, KHR);                       \
-  HookInitPromotedExtension(KHR_copy_commands2, CmdCopyImageToBuffer2, KHR);                       \
-  HookInitPromotedExtension(KHR_copy_commands2, CmdBlitImage2, KHR);                               \
-  HookInitPromotedExtension(KHR_copy_commands2, CmdResolveImage2, KHR);                            \
-  HookInitPromotedExtension(KHR_synchronization2, CmdSetEvent2, KHR);                              \
-  HookInitPromotedExtension(KHR_synchronization2, CmdResetEvent2, KHR);                            \
-  HookInitPromotedExtension(KHR_synchronization2, CmdWaitEvents2, KHR);                            \
-  HookInitPromotedExtension(KHR_synchronization2, CmdPipelineBarrier2, KHR);                       \
-  HookInitPromotedExtension(KHR_synchronization2, CmdWriteTimestamp2, KHR);                        \
-  HookInitPromotedExtension(KHR_synchronization2, QueueSubmit2, KHR);                              \
-  HookInitExtension(KHR_synchronization2 &&AMD_buffer_marker, CmdWriteBufferMarker2AMD);           \
-  /* No GetQueueCheckpointData2NV without VK_NV_device_diagnostic_checkpoints */                   \
-  HookInitExtension(KHR_present_wait, WaitForPresentKHR);                                          \
-  HookInitPromotedExtension(KHR_maintenance4, GetDeviceBufferMemoryRequirements, KHR);             \
-  HookInitPromotedExtension(KHR_maintenance4, GetDeviceImageMemoryRequirements, KHR);              \
-  HookInitPromotedExtension(KHR_maintenance4, GetDeviceImageSparseMemoryRequirements, KHR);        \
-  HookInitExtension(EXT_color_write_enable, CmdSetColorWriteEnableEXT);                            \
-  HookInitPromotedExtension(EXT_extended_dynamic_state2, CmdSetDepthBiasEnable, EXT);              \
-  HookInitExtension(EXT_extended_dynamic_state2, CmdSetLogicOpEXT);                                \
-  HookInitExtension(EXT_extended_dynamic_state2, CmdSetPatchControlPointsEXT);                     \
-  HookInitPromotedExtension(EXT_extended_dynamic_state2, CmdSetPrimitiveRestartEnable, EXT);       \
-  HookInitPromotedExtension(EXT_extended_dynamic_state2, CmdSetRasterizerDiscardEnable, EXT);      \
-  HookInitExtension(EXT_vertex_input_dynamic_state, CmdSetVertexInputEXT);                         \
-  HookInitPromotedExtension(KHR_dynamic_rendering, CmdBeginRendering, KHR);                        \
-  HookInitPromotedExtension(KHR_dynamic_rendering, CmdEndRendering, KHR);                          \
-  HookInitExtension(KHR_fragment_shading_rate, CmdSetFragmentShadingRateKHR);                      \
-  HookInitExtension(EXT_pageable_device_local_memory, SetDeviceMemoryPriorityEXT);                 \
-  HookInitExtension(EXT_swapchain_maintenance1, ReleaseSwapchainImagesEXT);                        \
-  HookInitExtension(EXT_attachment_feedback_loop_dynamic_state,                                    \
-                    CmdSetAttachmentFeedbackLoopEnableEXT);                                        \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetAlphaToCoverageEnableEXT);                  \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetAlphaToOneEnableEXT);                       \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetColorBlendAdvancedEXT);                     \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetColorBlendEnableEXT);                       \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetColorBlendEquationEXT);                     \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetColorWriteMaskEXT);                         \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetConservativeRasterizationModeEXT);          \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetCoverageModulationModeNV);                  \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetCoverageModulationTableEnableNV);           \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetCoverageModulationTableNV);                 \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetCoverageReductionModeNV);                   \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetCoverageToColorEnableNV);                   \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetCoverageToColorLocationNV);                 \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetDepthClampEnableEXT);                       \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetDepthClipEnableEXT);                        \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetDepthClipNegativeOneToOneEXT);              \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetExtraPrimitiveOverestimationSizeEXT);       \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetLineRasterizationModeEXT);                  \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetLineStippleEnableEXT);                      \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetLogicOpEnableEXT);                          \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetPolygonModeEXT);                            \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetProvokingVertexModeEXT);                    \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetRasterizationSamplesEXT);                   \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetRasterizationStreamEXT);                    \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetRepresentativeFragmentTestEnableNV);        \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetSampleLocationsEnableEXT);                  \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetSampleMaskEXT);                             \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetShadingRateImageEnableNV);                  \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetTessellationDomainOriginEXT);               \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetViewportSwizzleNV);                         \
-  HookInitExtension(EXT_extended_dynamic_state3, CmdSetViewportWScalingEnableNV);                  \
-  HookInitExtension(EXT_mesh_shader, CmdDrawMeshTasksEXT);                                         \
-  HookInitExtension(EXT_mesh_shader, CmdDrawMeshTasksIndirectEXT);                                 \
-  HookInitExtension(EXT_mesh_shader, CmdDrawMeshTasksIndirectCountEXT);                            \
-  HookInitExtension(KHR_calibrated_timestamps, GetCalibratedTimestampsKHR);                        \
-  HookInitExtension(KHR_line_rasterization, CmdSetLineStippleKHR);                                 \
-  HookInitExtensionEXTtoKHR(CmdSetLineStipple);                                                    \
-  HookInitExtension(KHR_deferred_host_operations, CreateDeferredOperationKHR);                     \
-  HookInitExtension(KHR_deferred_host_operations, DeferredOperationJoinKHR);                       \
-  HookInitExtension(KHR_deferred_host_operations, DestroyDeferredOperationKHR);                    \
-  HookInitExtension(KHR_deferred_host_operations, GetDeferredOperationMaxConcurrencyKHR);          \
-  HookInitExtension(KHR_deferred_host_operations, GetDeferredOperationResultKHR);                  \
-  HookInitExtension(KHR_acceleration_structure, BuildAccelerationStructuresKHR);                   \
-  HookInitExtension(KHR_acceleration_structure, CmdBuildAccelerationStructuresIndirectKHR);        \
-  HookInitExtension(KHR_acceleration_structure, CmdBuildAccelerationStructuresKHR);                \
-  HookInitExtension(KHR_acceleration_structure, CmdCopyAccelerationStructureKHR);                  \
-  HookInitExtension(KHR_acceleration_structure, CmdCopyAccelerationStructureToMemoryKHR);          \
-  HookInitExtension(KHR_acceleration_structure, CmdCopyMemoryToAccelerationStructureKHR);          \
-  HookInitExtension(KHR_acceleration_structure, CmdWriteAccelerationStructuresPropertiesKHR);      \
-  HookInitExtension(KHR_acceleration_structure, CopyAccelerationStructureKHR);                     \
-  HookInitExtension(KHR_acceleration_structure, CopyAccelerationStructureToMemoryKHR);             \
-  HookInitExtension(KHR_acceleration_structure, CopyMemoryToAccelerationStructureKHR);             \
-  HookInitExtension(KHR_acceleration_structure, CreateAccelerationStructureKHR);                   \
-  HookInitExtension(KHR_acceleration_structure, DestroyAccelerationStructureKHR);                  \
-  HookInitExtension(KHR_acceleration_structure, GetAccelerationStructureBuildSizesKHR);            \
-  HookInitExtension(KHR_acceleration_structure, GetAccelerationStructureDeviceAddressKHR);         \
-  HookInitExtension(KHR_acceleration_structure, GetDeviceAccelerationStructureCompatibilityKHR);   \
-  HookInitExtension(KHR_acceleration_structure, WriteAccelerationStructuresPropertiesKHR);         \
-  HookInitExtension_Device_Win32();                                                                \
-  HookInitExtension_Device_Linux();                                                                \
-  HookInitExtension_Device_GGP();                                                                  \
-  HookInitExtension_Device_Android();                                                              \
+#define HookInitVulkanDeviceExts()                                                                   \
+  HookInitExtension(EXT_debug_marker, DebugMarkerSetObjectTagEXT);                                   \
+  HookInitExtension(EXT_debug_marker, DebugMarkerSetObjectNameEXT);                                  \
+  HookInitExtension(EXT_debug_marker, CmdDebugMarkerBeginEXT);                                       \
+  HookInitExtension(EXT_debug_marker, CmdDebugMarkerEndEXT);                                         \
+  HookInitExtension(EXT_debug_marker, CmdDebugMarkerInsertEXT);                                      \
+  HookInitExtension(KHR_swapchain, CreateSwapchainKHR);                                              \
+  HookInitExtension(KHR_swapchain, DestroySwapchainKHR);                                             \
+  HookInitExtension(KHR_swapchain, GetSwapchainImagesKHR);                                           \
+  HookInitExtension(KHR_swapchain, AcquireNextImageKHR);                                             \
+  HookInitExtension(KHR_swapchain, QueuePresentKHR);                                                 \
+  HookInitExtension(KHR_display_swapchain, CreateSharedSwapchainsKHR);                               \
+  HookInitPromotedExtension(KHR_maintenance1, TrimCommandPool, KHR);                                 \
+  HookInitExtension(EXT_display_control, DisplayPowerControlEXT);                                    \
+  HookInitExtension(EXT_display_control, RegisterDeviceEventEXT);                                    \
+  HookInitExtension(EXT_display_control, RegisterDisplayEventEXT);                                   \
+  HookInitExtension(EXT_display_control, GetSwapchainCounterEXT);                                    \
+  HookInitExtension(KHR_external_memory_fd, GetMemoryFdKHR);                                         \
+  HookInitExtension(KHR_external_memory_fd, GetMemoryFdPropertiesKHR);                               \
+  HookInitExtension(KHR_external_semaphore_fd, ImportSemaphoreFdKHR);                                \
+  HookInitExtension(KHR_external_semaphore_fd, GetSemaphoreFdKHR);                                   \
+  HookInitExtension(KHR_external_fence_fd, ImportFenceFdKHR);                                        \
+  HookInitExtension(KHR_external_fence_fd, GetFenceFdKHR);                                           \
+  HookInitPromotedExtension(KHR_get_memory_requirements2, GetBufferMemoryRequirements2, KHR);        \
+  HookInitPromotedExtension(KHR_get_memory_requirements2, GetImageMemoryRequirements2, KHR);         \
+  HookInitPromotedExtension(KHR_get_memory_requirements2, GetImageSparseMemoryRequirements2, KHR);   \
+  HookInitExtension(AMD_shader_info, GetShaderInfoAMD);                                              \
+  HookInitExtension(KHR_push_descriptor, CmdPushDescriptorSetKHR);                                   \
+  HookInitPromotedExtension(KHR_descriptor_update_template, CreateDescriptorUpdateTemplate, KHR);    \
+  HookInitPromotedExtension(KHR_descriptor_update_template, DestroyDescriptorUpdateTemplate, KHR);   \
+  HookInitPromotedExtension(KHR_descriptor_update_template, UpdateDescriptorSetWithTemplate, KHR);   \
+  HookInitExtension(KHR_push_descriptor &&KHR_descriptor_update_template,                            \
+                    CmdPushDescriptorSetWithTemplateKHR);                                            \
+  HookInitPromotedExtension(KHR_bind_memory2, BindBufferMemory2, KHR);                               \
+  HookInitPromotedExtension(KHR_bind_memory2, BindImageMemory2, KHR);                                \
+  HookInitPromotedExtension(KHR_maintenance3, GetDescriptorSetLayoutSupport, KHR);                   \
+  HookInitExtension(AMD_buffer_marker, CmdWriteBufferMarkerAMD);                                     \
+  HookInitExtension(EXT_debug_utils, SetDebugUtilsObjectNameEXT);                                    \
+  HookInitExtension(EXT_debug_utils, SetDebugUtilsObjectTagEXT);                                     \
+  HookInitExtension(EXT_debug_utils, QueueBeginDebugUtilsLabelEXT);                                  \
+  HookInitExtension(EXT_debug_utils, QueueEndDebugUtilsLabelEXT);                                    \
+  HookInitExtension(EXT_debug_utils, QueueInsertDebugUtilsLabelEXT);                                 \
+  HookInitExtension(EXT_debug_utils, CmdBeginDebugUtilsLabelEXT);                                    \
+  HookInitExtension(EXT_debug_utils, CmdEndDebugUtilsLabelEXT);                                      \
+  HookInitExtension(EXT_debug_utils, CmdInsertDebugUtilsLabelEXT);                                   \
+  HookInitPromotedExtension(KHR_sampler_ycbcr_conversion, CreateSamplerYcbcrConversion, KHR);        \
+  HookInitPromotedExtension(KHR_sampler_ycbcr_conversion, DestroySamplerYcbcrConversion, KHR);       \
+  HookInitPromotedExtension(KHR_device_group, GetDeviceGroupPeerMemoryFeatures, KHR);                \
+  HookInitPromotedExtension(KHR_device_group, CmdSetDeviceMask, KHR);                                \
+  HookInitPromotedExtension(KHR_device_group, CmdDispatchBase, KHR);                                 \
+  HookInitExtension(KHR_device_group &&KHR_surface, GetDeviceGroupPresentCapabilitiesKHR);           \
+  HookInitExtension(KHR_device_group &&KHR_surface, GetDeviceGroupSurfacePresentModesKHR);           \
+  HookInitExtension(KHR_device_group &&KHR_swapchain, AcquireNextImage2KHR);                         \
+  HookInitExtension(protected_memory, GetDeviceQueue2);                                              \
+  HookInitPromotedExtension(KHR_draw_indirect_count, CmdDrawIndirectCount, KHR);                     \
+  HookInitPromotedExtension(KHR_draw_indirect_count, CmdDrawIndexedIndirectCount, KHR);              \
+  HookInitExtension(EXT_validation_cache, CreateValidationCacheEXT);                                 \
+  HookInitExtension(EXT_validation_cache, DestroyValidationCacheEXT);                                \
+  HookInitExtension(EXT_validation_cache, MergeValidationCachesEXT);                                 \
+  HookInitExtension(EXT_validation_cache, GetValidationCacheDataEXT);                                \
+  HookInitExtension(KHR_shared_presentable_image, GetSwapchainStatusKHR);                            \
+  HookInitPromotedExtension(KHR_create_renderpass2, CreateRenderPass2, KHR);                         \
+  HookInitPromotedExtension(KHR_create_renderpass2, CmdBeginRenderPass2, KHR);                       \
+  HookInitPromotedExtension(KHR_create_renderpass2, CmdNextSubpass2, KHR);                           \
+  HookInitPromotedExtension(KHR_create_renderpass2, CmdEndRenderPass2, KHR);                         \
+  HookInitExtension(EXT_transform_feedback, CmdBindTransformFeedbackBuffersEXT);                     \
+  HookInitExtension(EXT_transform_feedback, CmdBeginTransformFeedbackEXT);                           \
+  HookInitExtension(EXT_transform_feedback, CmdEndTransformFeedbackEXT);                             \
+  HookInitExtension(EXT_transform_feedback, CmdBeginQueryIndexedEXT);                                \
+  HookInitExtension(EXT_transform_feedback, CmdEndQueryIndexedEXT);                                  \
+  HookInitExtension(EXT_transform_feedback, CmdDrawIndirectByteCountEXT);                            \
+  HookInitExtension(EXT_conditional_rendering, CmdBeginConditionalRenderingEXT);                     \
+  HookInitExtension(EXT_conditional_rendering, CmdEndConditionalRenderingEXT);                       \
+  HookInitExtension(EXT_sample_locations, CmdSetSampleLocationsEXT);                                 \
+  HookInitExtension(EXT_discard_rectangles, CmdSetDiscardRectangleEXT);                              \
+  HookInitExtension(EXT_calibrated_timestamps, GetCalibratedTimestampsEXT);                          \
+  HookInitPromotedExtension(EXT_host_query_reset, ResetQueryPool, EXT);                              \
+  HookInitExtension(EXT_buffer_device_address, GetBufferDeviceAddressEXT);                           \
+  HookInitExtension(EXT_hdr_metadata, SetHdrMetadataEXT);                                            \
+  HookInitExtension(AMD_display_native_hdr, SetLocalDimmingAMD);                                     \
+  HookInitExtension(KHR_pipeline_executable_properties, GetPipelineExecutablePropertiesKHR);         \
+  HookInitExtension(KHR_pipeline_executable_properties, GetPipelineExecutableStatisticsKHR);         \
+  HookInitExtension(KHR_pipeline_executable_properties,                                              \
+                    GetPipelineExecutableInternalRepresentationsKHR);                                \
+  HookInitExtension(EXT_line_rasterization, CmdSetLineStippleEXT);                                   \
+  HookInitExtension(GOOGLE_display_timing, GetRefreshCycleDurationGOOGLE);                           \
+  HookInitExtension(GOOGLE_display_timing, GetPastPresentationTimingGOOGLE);                         \
+  HookInitPromotedExtension(KHR_timeline_semaphore, GetSemaphoreCounterValue, KHR);                  \
+  HookInitPromotedExtension(KHR_timeline_semaphore, WaitSemaphores, KHR);                            \
+  HookInitPromotedExtension(KHR_timeline_semaphore, SignalSemaphore, KHR);                           \
+  HookInitExtension(KHR_performance_query, AcquireProfilingLockKHR);                                 \
+  HookInitExtension(KHR_performance_query, ReleaseProfilingLockKHR);                                 \
+  HookInitPromotedExtension(KHR_buffer_device_address, GetBufferDeviceAddress, KHR);                 \
+  HookInitPromotedExtension(KHR_buffer_device_address, GetBufferOpaqueCaptureAddress, KHR);          \
+  HookInitPromotedExtension(KHR_buffer_device_address, GetDeviceMemoryOpaqueCaptureAddress, KHR);    \
+  HookInitPromotedExtension(EXT_private_data, CreatePrivateDataSlot, EXT);                           \
+  HookInitPromotedExtension(EXT_private_data, DestroyPrivateDataSlot, EXT);                          \
+  HookInitPromotedExtension(EXT_private_data, SetPrivateData, EXT);                                  \
+  HookInitPromotedExtension(EXT_private_data, GetPrivateData, EXT);                                  \
+  HookInitPromotedExtension(EXT_extended_dynamic_state || EXT_shader_object, CmdSetCullMode, EXT);   \
+  HookInitPromotedExtension(EXT_extended_dynamic_state || EXT_shader_object, CmdSetFrontFace, EXT);  \
+  HookInitPromotedExtension(EXT_extended_dynamic_state || EXT_shader_object,                         \
+                            CmdSetPrimitiveTopology, EXT);                                           \
+  HookInitPromotedExtension(EXT_extended_dynamic_state || EXT_shader_object,                         \
+                            CmdSetViewportWithCount, EXT);                                           \
+  HookInitPromotedExtension(EXT_extended_dynamic_state || EXT_shader_object,                         \
+                            CmdSetScissorWithCount, EXT);                                            \
+  HookInitPromotedExtension(EXT_extended_dynamic_state || EXT_shader_object,                         \
+                            CmdBindVertexBuffers2, EXT);                                             \
+  HookInitPromotedExtension(EXT_extended_dynamic_state || EXT_shader_object,                         \
+                            CmdSetDepthTestEnable, EXT);                                             \
+  HookInitPromotedExtension(EXT_extended_dynamic_state || EXT_shader_object,                         \
+                            CmdSetDepthWriteEnable, EXT);                                            \
+  HookInitPromotedExtension(EXT_extended_dynamic_state || EXT_shader_object, CmdSetDepthCompareOp,   \
+                            EXT);                                                                    \
+  HookInitPromotedExtension(EXT_extended_dynamic_state || EXT_shader_object,                         \
+                            CmdSetDepthBoundsTestEnable, EXT);                                       \
+  HookInitPromotedExtension(EXT_extended_dynamic_state || EXT_shader_object,                         \
+                            CmdSetStencilTestEnable, EXT);                                           \
+  HookInitPromotedExtension(EXT_extended_dynamic_state || EXT_shader_object, CmdSetStencilOp, EXT);  \
+  HookInitPromotedExtension(KHR_copy_commands2, CmdCopyBuffer2, KHR);                                \
+  HookInitPromotedExtension(KHR_copy_commands2, CmdCopyImage2, KHR);                                 \
+  HookInitPromotedExtension(KHR_copy_commands2, CmdCopyBufferToImage2, KHR);                         \
+  HookInitPromotedExtension(KHR_copy_commands2, CmdCopyImageToBuffer2, KHR);                         \
+  HookInitPromotedExtension(KHR_copy_commands2, CmdBlitImage2, KHR);                                 \
+  HookInitPromotedExtension(KHR_copy_commands2, CmdResolveImage2, KHR);                              \
+  HookInitPromotedExtension(KHR_synchronization2, CmdSetEvent2, KHR);                                \
+  HookInitPromotedExtension(KHR_synchronization2, CmdResetEvent2, KHR);                              \
+  HookInitPromotedExtension(KHR_synchronization2, CmdWaitEvents2, KHR);                              \
+  HookInitPromotedExtension(KHR_synchronization2, CmdPipelineBarrier2, KHR);                         \
+  HookInitPromotedExtension(KHR_synchronization2, CmdWriteTimestamp2, KHR);                          \
+  HookInitPromotedExtension(KHR_synchronization2, QueueSubmit2, KHR);                                \
+  HookInitExtension(KHR_synchronization2 &&AMD_buffer_marker, CmdWriteBufferMarker2AMD);             \
+  /* No GetQueueCheckpointData2NV without VK_NV_device_diagnostic_checkpoints */                     \
+  HookInitExtension(KHR_present_wait, WaitForPresentKHR);                                            \
+  HookInitPromotedExtension(KHR_maintenance4, GetDeviceBufferMemoryRequirements, KHR);               \
+  HookInitPromotedExtension(KHR_maintenance4, GetDeviceImageMemoryRequirements, KHR);                \
+  HookInitPromotedExtension(KHR_maintenance4, GetDeviceImageSparseMemoryRequirements, KHR);          \
+  HookInitExtension(EXT_color_write_enable, CmdSetColorWriteEnableEXT);                              \
+  HookInitPromotedExtension(EXT_extended_dynamic_state2 || EXT_shader_object,                        \
+                            CmdSetDepthBiasEnable, EXT);                                             \
+  HookInitExtension(EXT_extended_dynamic_state2 || EXT_shader_object, CmdSetLogicOpEXT);             \
+  HookInitExtension(EXT_extended_dynamic_state2 || EXT_shader_object, CmdSetPatchControlPointsEXT);  \
+  HookInitPromotedExtension(EXT_extended_dynamic_state2 || EXT_shader_object,                        \
+                            CmdSetPrimitiveRestartEnable, EXT);                                      \
+  HookInitPromotedExtension(EXT_extended_dynamic_state2 || EXT_shader_object,                        \
+                            CmdSetRasterizerDiscardEnable, EXT);                                     \
+  HookInitExtension(EXT_vertex_input_dynamic_state || EXT_shader_object, CmdSetVertexInputEXT);      \
+  HookInitPromotedExtension(KHR_dynamic_rendering, CmdBeginRendering, KHR);                          \
+  HookInitPromotedExtension(KHR_dynamic_rendering, CmdEndRendering, KHR);                            \
+  HookInitExtension(KHR_fragment_shading_rate, CmdSetFragmentShadingRateKHR);                        \
+  HookInitExtension(EXT_pageable_device_local_memory, SetDeviceMemoryPriorityEXT);                   \
+  HookInitExtension(EXT_swapchain_maintenance1, ReleaseSwapchainImagesEXT);                          \
+  HookInitExtension(EXT_attachment_feedback_loop_dynamic_state,                                      \
+                    CmdSetAttachmentFeedbackLoopEnableEXT);                                          \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object,                                \
+                    CmdSetAlphaToCoverageEnableEXT);                                                 \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object, CmdSetAlphaToOneEnableEXT);    \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object, CmdSetColorBlendAdvancedEXT);  \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object, CmdSetColorBlendEnableEXT);    \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object, CmdSetColorBlendEquationEXT);  \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object, CmdSetColorWriteMaskEXT);      \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object,                                \
+                    CmdSetConservativeRasterizationModeEXT);                                         \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object,                                \
+                    CmdSetCoverageModulationModeNV);                                                 \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object,                                \
+                    CmdSetCoverageModulationTableEnableNV);                                          \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object,                                \
+                    CmdSetCoverageModulationTableNV);                                                \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object,                                \
+                    CmdSetCoverageReductionModeNV);                                                  \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object,                                \
+                    CmdSetCoverageToColorEnableNV);                                                  \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object,                                \
+                    CmdSetCoverageToColorLocationNV);                                                \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object, CmdSetDepthClampEnableEXT);    \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object, CmdSetDepthClipEnableEXT);     \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object,                                \
+                    CmdSetDepthClipNegativeOneToOneEXT);                                             \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object,                                \
+                    CmdSetExtraPrimitiveOverestimationSizeEXT);                                      \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object,                                \
+                    CmdSetLineRasterizationModeEXT);                                                 \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object, CmdSetLineStippleEnableEXT);   \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object, CmdSetLogicOpEnableEXT);       \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object, CmdSetPolygonModeEXT);         \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object, CmdSetProvokingVertexModeEXT); \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object,                                \
+                    CmdSetRasterizationSamplesEXT);                                                  \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object, CmdSetRasterizationStreamEXT); \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object,                                \
+                    CmdSetRepresentativeFragmentTestEnableNV);                                       \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object,                                \
+                    CmdSetSampleLocationsEnableEXT);                                                 \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object, CmdSetSampleMaskEXT);          \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object,                                \
+                    CmdSetShadingRateImageEnableNV);                                                 \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object,                                \
+                    CmdSetTessellationDomainOriginEXT);                                              \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object, CmdSetViewportSwizzleNV);      \
+  HookInitExtension(EXT_extended_dynamic_state3 || EXT_shader_object,                                \
+                    CmdSetViewportWScalingEnableNV);                                                 \
+  HookInitExtension(EXT_mesh_shader, CmdDrawMeshTasksEXT);                                           \
+  HookInitExtension(EXT_mesh_shader, CmdDrawMeshTasksIndirectEXT);                                   \
+  HookInitExtension(EXT_mesh_shader, CmdDrawMeshTasksIndirectCountEXT);                              \
+  HookInitExtension(KHR_calibrated_timestamps, GetCalibratedTimestampsKHR);                          \
+  HookInitExtension(KHR_line_rasterization, CmdSetLineStippleKHR);                                   \
+  HookInitExtensionEXTtoKHR(CmdSetLineStipple);                                                      \
+  HookInitExtension(KHR_deferred_host_operations, CreateDeferredOperationKHR);                       \
+  HookInitExtension(KHR_deferred_host_operations, DeferredOperationJoinKHR);                         \
+  HookInitExtension(KHR_deferred_host_operations, DestroyDeferredOperationKHR);                      \
+  HookInitExtension(KHR_deferred_host_operations, GetDeferredOperationMaxConcurrencyKHR);            \
+  HookInitExtension(KHR_deferred_host_operations, GetDeferredOperationResultKHR);                    \
+  HookInitExtension(KHR_acceleration_structure, BuildAccelerationStructuresKHR);                     \
+  HookInitExtension(KHR_acceleration_structure, CmdBuildAccelerationStructuresIndirectKHR);          \
+  HookInitExtension(KHR_acceleration_structure, CmdBuildAccelerationStructuresKHR);                  \
+  HookInitExtension(KHR_acceleration_structure, CmdCopyAccelerationStructureKHR);                    \
+  HookInitExtension(KHR_acceleration_structure, CmdCopyAccelerationStructureToMemoryKHR);            \
+  HookInitExtension(KHR_acceleration_structure, CmdCopyMemoryToAccelerationStructureKHR);            \
+  HookInitExtension(KHR_acceleration_structure, CmdWriteAccelerationStructuresPropertiesKHR);        \
+  HookInitExtension(KHR_acceleration_structure, CopyAccelerationStructureKHR);                       \
+  HookInitExtension(KHR_acceleration_structure, CopyAccelerationStructureToMemoryKHR);               \
+  HookInitExtension(KHR_acceleration_structure, CopyMemoryToAccelerationStructureKHR);               \
+  HookInitExtension(KHR_acceleration_structure, CreateAccelerationStructureKHR);                     \
+  HookInitExtension(KHR_acceleration_structure, DestroyAccelerationStructureKHR);                    \
+  HookInitExtension(KHR_acceleration_structure, GetAccelerationStructureBuildSizesKHR);              \
+  HookInitExtension(KHR_acceleration_structure, GetAccelerationStructureDeviceAddressKHR);           \
+  HookInitExtension(KHR_acceleration_structure, GetDeviceAccelerationStructureCompatibilityKHR);     \
+  HookInitExtension(KHR_acceleration_structure, WriteAccelerationStructuresPropertiesKHR);           \
+  HookInitExtension(EXT_shader_object, CmdBindShadersEXT);                                           \
+  HookInitExtension(EXT_shader_object, CreateShadersEXT);                                            \
+  HookInitExtension(EXT_shader_object, DestroyShaderEXT);                                            \
+  HookInitExtension(EXT_shader_object, GetShaderBinaryDataEXT);                                      \
+  HookInitExtension_Device_Win32();                                                                  \
+  HookInitExtension_Device_Linux();                                                                  \
+  HookInitExtension_Device_GGP();                                                                    \
+  HookInitExtension_Device_Android();                                                                \
   HookInitExtension_Device_Mac();
 
 #define DefineHooks()                                                                                \
@@ -1878,6 +1913,15 @@
               accelerationStructureCount, const VkAccelerationStructureKHR *,                        \
               pAccelerationStructures, VkQueryType, queryType, size_t, dataSize, void *, pData,      \
               size_t, stride);                                                                       \
+  HookDefine4(void, vkCmdBindShadersEXT, VkCommandBuffer, commandBuffer, uint32_t, stageCount,       \
+              const VkShaderStageFlagBits *, pStages, const VkShaderEXT *, pShaders);                \
+  HookDefine5(VkResult, vkCreateShadersEXT, VkDevice, device, uint32_t, createInfoCount,             \
+              const VkShaderCreateInfoEXT *, pCreateInfos, const VkAllocationCallbacks *,            \
+              pAllocator, VkShaderEXT *, pShaders);                                                  \
+  HookDefine3(void, vkDestroyShaderEXT, VkDevice, device, VkShaderEXT, shader,                       \
+              const VkAllocationCallbacks *, pAllocator);                                            \
+  HookDefine4(VkResult, vkGetShaderBinaryDataEXT, VkDevice, device, VkShaderEXT, shader, size_t *,   \
+              pDataSize, void *, pData);                                                             \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
   HookDefine_GGP();                                                                                  \

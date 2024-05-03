@@ -4057,6 +4057,11 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     case VulkanChunk::vkCreateAccelerationStructureKHR:
       return Serialise_vkCreateAccelerationStructureKHR(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
 
+    case VulkanChunk::vkCmdBindShadersEXT:
+      return Serialise_vkCmdBindShadersEXT(ser, VK_NULL_HANDLE, 0, NULL, NULL);
+    case VulkanChunk::vkCreateShadersEXT:
+      return Serialise_vkCreateShadersEXT(ser, VK_NULL_HANDLE, 0, NULL, NULL, NULL);
+
     // chunks that are reserved but not yet serialised
     case VulkanChunk::vkResetCommandPool:
     case VulkanChunk::vkCreateDepthTargetView:

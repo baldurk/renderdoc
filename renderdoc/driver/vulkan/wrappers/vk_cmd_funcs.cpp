@@ -8013,6 +8013,115 @@ VkResult WrappedVulkan::vkCopyMemoryToAccelerationStructureKHR(
   return VK_ERROR_UNKNOWN;
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdBindShadersEXT(SerialiserType &ser,
+                                                  VkCommandBuffer commandBuffer, uint32_t stageCount,
+                                                  const VkShaderStageFlagBits *pStages,
+                                                  const VkShaderEXT *pShaders)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(stageCount);
+  SERIALISE_ELEMENT_ARRAY(pStages, stageCount);
+  SERIALISE_ELEMENT_ARRAY(pShaders, stageCount).Important();
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+
+          for(uint32_t i = 0; i < stageCount; i++)
+          {
+            int stageIndex = StageIndex(pStages[i]);
+
+            // calling vkCmdBindShadersEXT disturbs the corresponding pipeline bind points
+            // such that any pipelines previously bound to those points are no longer bound
+            if(stageIndex == (int)ShaderStage::Compute)
+            {
+              renderstate.compute.pipeline = ResourceId();
+            }
+            else
+            {
+              renderstate.graphics.pipeline = ResourceId();
+            }
+          }
+        }
+      }
+      else
+      {
+        commandBuffer = VK_NULL_HANDLE;
+      }
+    }
+    else
+    {
+      // track while reading since Serialise_vkCmdBindPipeline does as well
+      for(uint32_t i = 0; i < stageCount; i++)
+      {
+        int stageIndex = StageIndex(pStages[i]);
+
+        if(stageIndex == (int)ShaderStage::Compute)
+        {
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.pipeline = ResourceId();
+        }
+        else
+        {
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.pipeline = ResourceId();
+        }
+      }
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+      ObjDisp(commandBuffer)
+          ->CmdBindShadersEXT(Unwrap(commandBuffer), stageCount, pStages,
+                              UnwrapArray(pShaders, stageCount));
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdBindShadersEXT(VkCommandBuffer commandBuffer, uint32_t stageCount,
+                                        const VkShaderStageFlagBits *pStages,
+                                        const VkShaderEXT *pShaders)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdBindShadersEXT(Unwrap(commandBuffer), stageCount, pStages,
+                                              UnwrapArray(pShaders, stageCount)));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdBindShadersEXT);
+    Serialise_vkCmdBindShadersEXT(ser, commandBuffer, stageCount, pStages, pShaders);
+
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
+    if(pShaders)
+    {
+      for(uint32_t i = 0; i < stageCount; i++)
+      {
+        // binding NULL is legal
+        if(pShaders[i] != VK_NULL_HANDLE)
+          record->MarkResourceFrameReferenced(GetResID(pShaders[i]), eFrameRef_Read);
+      }
+    }
+  }
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateCommandPool, VkDevice device,
                                 const VkCommandPoolCreateInfo *pCreateInfo,
                                 const VkAllocationCallbacks *, VkCommandPool *pCommandPool);
@@ -8196,3 +8305,7 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdCopyAccelerationStructureToMemoryKHR,
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdCopyMemoryToAccelerationStructureKHR,
                                 VkCommandBuffer commandBuffer,
                                 const VkCopyMemoryToAccelerationStructureInfoKHR *pInfo)
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBindShadersEXT, VkCommandBuffer commandBuffer,
+                                uint32_t stageCount, const VkShaderStageFlagBits *pStages,
+                                const VkShaderEXT *pShaders);

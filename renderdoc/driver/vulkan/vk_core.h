@@ -481,6 +481,7 @@ private:
   bool m_TaskShaders = false;
   bool m_ListRestart = false;
   bool m_AccelerationStructures = false;
+  bool m_ShaderObject = false;
 
   PFN_vkSetDeviceLoaderData m_SetDeviceLoaderData;
 
@@ -2939,4 +2940,19 @@ public:
       VkDevice device, uint32_t accelerationStructureCount,
       const VkAccelerationStructureKHR *pAccelerationStructures, VkQueryType queryType,
       size_t dataSize, void *pData, size_t stride);
+
+  // VK_EXT_shader_object
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindShadersEXT, VkCommandBuffer commandBuffer,
+                                uint32_t stageCount, const VkShaderStageFlagBits *pStages,
+                                const VkShaderEXT *pShaders);
+
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateShadersEXT, VkDevice device,
+                                uint32_t createInfoCount, const VkShaderCreateInfoEXT *pCreateInfos,
+                                const VkAllocationCallbacks *pAllocator, VkShaderEXT *pShaders);
+
+  void vkDestroyShaderEXT(VkDevice device, VkShaderEXT shader,
+                          const VkAllocationCallbacks *pAllocator);
+
+  VkResult vkGetShaderBinaryDataEXT(VkDevice device, VkShaderEXT shader, size_t *pDataSize,
+                                    void *pData);
 };

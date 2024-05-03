@@ -185,6 +185,7 @@ DESTROY_IMPL(VkQueryPool, DestroyQueryPool)
 DESTROY_IMPL(VkDescriptorUpdateTemplate, DestroyDescriptorUpdateTemplate)
 DESTROY_IMPL(VkSamplerYcbcrConversion, DestroySamplerYcbcrConversion)
 DESTROY_IMPL(VkAccelerationStructureKHR, DestroyAccelerationStructureKHR)
+DESTROY_IMPL(VkShaderEXT, DestroyShaderEXT)
 
 #undef DESTROY_IMPL
 
@@ -571,6 +572,13 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
       VkAccelerationStructureKHR real = nondisp->real.As<VkAccelerationStructureKHR>();
       GetResourceManager()->ReleaseWrappedResource(VkAccelerationStructureKHR(handle));
       vt->DestroyAccelerationStructureKHR(Unwrap(dev), real, NULL);
+      break;
+    }
+    case eResShaderEXT:
+    {
+      VkShaderEXT real = nondisp->real.As<VkShaderEXT>();
+      GetResourceManager()->ReleaseWrappedResource(VkShaderEXT(handle));
+      vt->DestroyShaderEXT(Unwrap(dev), real, NULL);
       break;
     }
   }
@@ -2021,6 +2029,7 @@ static ObjData GetObjData(VkObjectType objType, uint64_t object)
     case VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR:
       ret.record = GetRecord((VkAccelerationStructureKHR)object);
       break;
+    case VK_OBJECT_TYPE_SHADER_EXT: ret.record = GetRecord((VkShaderEXT)object); break;
 
     /////////////////////////////
     // special cases
@@ -2065,7 +2074,6 @@ static ObjData GetObjData(VkObjectType objType, uint64_t object)
     case VK_OBJECT_TYPE_BUFFER_COLLECTION_FUCHSIA:
     case VK_OBJECT_TYPE_MICROMAP_EXT:
     case VK_OBJECT_TYPE_OPTICAL_FLOW_SESSION_NV:
-    case VK_OBJECT_TYPE_SHADER_EXT:
     case VK_OBJECT_TYPE_UNKNOWN:
     case VK_OBJECT_TYPE_VIDEO_SESSION_KHR:
     case VK_OBJECT_TYPE_VIDEO_SESSION_PARAMETERS_KHR:
@@ -2284,6 +2292,9 @@ bool WrappedVulkan::Serialise_vkDebugMarkerSetObjectNameEXT(
         case eResAccelerationStructureKHR:
           type = VK_DEBUG_REPORT_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR_EXT;
           break;
+        case eResShaderEXT:
+          RDCWARN("There is no VkDebugReportObjectTypeEXT for VkShaderEXT");
+          break;
       }
 
       if(ObjDisp(m_Device)->DebugMarkerSetObjectNameEXT &&
@@ -2474,6 +2485,7 @@ bool WrappedVulkan::Serialise_vkSetDebugUtilsObjectNameEXT(
         case eResDescUpdateTemplate: type = VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE; break;
         case eResSamplerConversion: type = VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION; break;
         case eResAccelerationStructureKHR: type = VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR; break;
+        case eResShaderEXT: type = VK_OBJECT_TYPE_SHADER_EXT; break;
       }
 
       if(ObjDisp(m_Device)->SetDebugUtilsObjectNameEXT && type != VK_OBJECT_TYPE_UNKNOWN &&

@@ -3312,6 +3312,15 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         CHECK_PHYS_EXT_FEATURE(nestedCommandBufferSimultaneousUse);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceShaderObjectFeaturesEXT,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(shaderObject);
+
+        m_ShaderObject = ext->shaderObject != VK_FALSE;
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)

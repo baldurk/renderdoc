@@ -90,6 +90,41 @@ VkGraphicsPipelineCreateInfo *WrappedVulkan::UnwrapInfos(CaptureState state,
 }
 
 template <>
+VkShaderCreateInfoEXT *WrappedVulkan::UnwrapInfos(CaptureState state,
+                                                  const VkShaderCreateInfoEXT *info, uint32_t count)
+{
+  // request memory for infos, descriptor set layouts, and next chain
+  size_t memSize = sizeof(VkShaderCreateInfoEXT) * count;
+  for(uint32_t i = 0; i < count; i++)
+  {
+    memSize += sizeof(VkDescriptorSetLayout) * info[i].setLayoutCount;
+    memSize += GetNextPatchSize(info[i].pNext);
+  }
+
+  byte *tempMem = GetTempMemory(memSize);
+
+  // keep shader infos first in the memory, then descriptor set layouts, then next chain
+  VkShaderCreateInfoEXT *unwrappedInfos = (VkShaderCreateInfoEXT *)tempMem;
+  tempMem = (byte *)(unwrappedInfos + count);
+
+  for(uint32_t i = 0; i < count; i++)
+  {
+    VkDescriptorSetLayout *unwrappedLayouts = (VkDescriptorSetLayout *)tempMem;
+    tempMem = (byte *)(unwrappedLayouts + info[i].setLayoutCount);
+    if(info[i].pSetLayouts)
+      for(uint32_t j = 0; j < info[i].setLayoutCount; j++)
+        unwrappedLayouts[j] = Unwrap(info[i].pSetLayouts[j]);
+
+    unwrappedInfos[i] = info[i];
+    unwrappedInfos[i].pSetLayouts = info[i].pSetLayouts ? unwrappedLayouts : NULL;
+
+    UnwrapNextChain(state, "VkShaderCreateInfoEXT", tempMem, (VkBaseInStructure *)&unwrappedInfos[i]);
+  }
+
+  return unwrappedInfos;
+}
+
+template <>
 VkPipelineLayoutCreateInfo WrappedVulkan::UnwrapInfo(const VkPipelineLayoutCreateInfo *info)
 {
   VkPipelineLayoutCreateInfo ret = *info;
@@ -323,6 +358,133 @@ VkResult WrappedVulkan::vkCreateShaderModule(VkDevice device,
       GetResourceManager()->AddLiveResource(id, *pShaderModule);
 
       m_CreationInfo.m_ShaderModule[id].Init(GetResourceManager(), m_CreationInfo, pCreateInfo);
+    }
+  }
+
+  return ret;
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCreateShadersEXT(SerialiserType &ser, VkDevice device,
+                                                 uint32_t createInfoCount,
+                                                 const VkShaderCreateInfoEXT *pCreateInfos,
+                                                 const VkAllocationCallbacks *pAllocator,
+                                                 VkShaderEXT *pShaders)
+{
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT(createInfoCount);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfos).Important();
+  SERIALISE_ELEMENT_OPT(pAllocator);
+  SERIALISE_ELEMENT_LOCAL(Shader, GetResID(*pShaders)).TypedAs("VkShaderEXT"_lit);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    VkShaderEXT sh = VK_NULL_HANDLE;
+
+    // this function is called from a loop in vkCreateShadersEXT, so we only need to unwrap one
+    // then it gets replayed as if each shader was created individually
+    VkShaderCreateInfoEXT *unwrapped = UnwrapInfos(m_State, &CreateInfo, 1);
+
+    VkResult ret = ObjDisp(device)->CreateShadersEXT(Unwrap(device), 1, unwrapped, NULL, &sh);
+
+    AddResource(Shader, ResourceType::Shader, "Shader");
+
+    if(ret != VK_SUCCESS)
+    {
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Failed creating shader object, VkResult: %s", ToStr(ret).c_str());
+      return false;
+    }
+    else
+    {
+      ResourceId live;
+      if(GetResourceManager()->HasWrapper(ToTypedHandle(sh)))
+      {
+        live = GetResourceManager()->GetNonDispWrapper(sh)->id;
+
+        // destroy this instance of the duplicate, as we must have matching create/destroy
+        // calls and there won't be a wrapped resource hanging around to destroy this one.
+        ObjDisp(device)->DestroyShaderEXT(Unwrap(device), sh, NULL);
+
+        // whenever the new ID is requested, return the old ID, via replacements.
+        GetResourceManager()->ReplaceResource(Shader, GetResourceManager()->GetOriginalID(live));
+      }
+      else
+      {
+        live = GetResourceManager()->WrapResource(Unwrap(device), sh);
+        GetResourceManager()->AddLiveResource(Shader, sh);
+      }
+    }
+
+    // document all derived resources
+    DerivedResource(device, Shader);
+    if(CreateInfo.pSetLayouts)
+    {
+      for(uint32_t i = 0; i < CreateInfo.setLayoutCount; i++)
+        DerivedResource(CreateInfo.pSetLayouts[i], Shader);
+    }
+  }
+
+  return true;
+}
+
+VkResult WrappedVulkan::vkCreateShadersEXT(VkDevice device, uint32_t createInfoCount,
+                                           const VkShaderCreateInfoEXT *pCreateInfos,
+                                           const VkAllocationCallbacks *, VkShaderEXT *pShaders)
+{
+  VkShaderCreateInfoEXT *unwrapped = UnwrapInfos(m_State, pCreateInfos, createInfoCount);
+
+  // to be extra sure just in case the driver doesn't, set shader objects to VK_NULL_HANDLE first.
+  for(uint32_t i = 0; i < createInfoCount; i++)
+    pShaders[i] = VK_NULL_HANDLE;
+
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateShadersEXT(Unwrap(device), createInfoCount,
+                                                              unwrapped, NULL, pShaders));
+
+  if(ret == VK_SUCCESS)
+  {
+    for(uint32_t i = 0; i < createInfoCount; i++)
+    {
+      // any shader objects that are VK_NULL_HANDLE, silently ignore as they failed but we might
+      // have successfully created some before then.
+      if(pShaders[i] == VK_NULL_HANDLE)
+        continue;
+
+      ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), pShaders[i]);
+
+      // background or active capture state
+      if(IsCaptureMode(m_State))
+      {
+        Chunk *chunk = NULL;
+
+        {
+          CACHE_THREAD_SERIALISER();
+
+          SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCreateShadersEXT);
+          Serialise_vkCreateShadersEXT(ser, device, 1, &pCreateInfos[i], NULL, &pShaders[i]);
+
+          chunk = scope.Get();
+        }
+
+        VkResourceRecord *record = GetResourceManager()->AddResourceRecord(pShaders[i]);
+        record->AddChunk(chunk);
+
+        if(pCreateInfos[i].pSetLayouts)
+        {
+          for(uint32_t s = 0; s < pCreateInfos[i].setLayoutCount; s++)
+          {
+            VkResourceRecord *layoutrecord = GetRecord(pCreateInfos[i].pSetLayouts[s]);
+            record->AddParent(layoutrecord);
+          }
+        }
+      }
+      else
+      {
+        GetResourceManager()->AddLiveResource(id, pShaders[i]);
+      }
     }
   }
 
@@ -975,3 +1137,7 @@ INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateComputePipelines, VkDevice dev
                                 VkPipelineCache pipelineCache, uint32_t createInfoCount,
                                 const VkComputePipelineCreateInfo *pCreateInfos,
                                 const VkAllocationCallbacks *, VkPipeline *pPipelines);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateShadersEXT, VkDevice device,
+                                uint32_t createInfoCount, const VkShaderCreateInfoEXT *pCreateInfos,
+                                const VkAllocationCallbacks *, VkShaderEXT *pShaders);

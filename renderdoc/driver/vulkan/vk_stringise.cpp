@@ -28,7 +28,7 @@
 template <>
 rdcstr DoStringise(const VulkanChunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1207, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1209, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(VulkanChunk)
   {
@@ -239,6 +239,8 @@ rdcstr DoStringise(const VulkanChunk &el)
     STRINGISE_ENUM_CLASS(vkCmdCopyAccelerationStructureToMemoryKHR)
     STRINGISE_ENUM_CLASS(vkCmdCopyMemoryToAccelerationStructureKHR)
     STRINGISE_ENUM_CLASS(vkCreateAccelerationStructureKHR)
+    STRINGISE_ENUM_CLASS(vkCmdBindShadersEXT)
+    STRINGISE_ENUM_CLASS(vkCreateShadersEXT)
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()
@@ -280,6 +282,7 @@ rdcstr DoStringise(const VkResourceType &el)
     STRINGISE_ENUM(eResDescUpdateTemplate)
     STRINGISE_ENUM(eResSamplerConversion)
     STRINGISE_ENUM(eResAccelerationStructureKHR)
+    STRINGISE_ENUM(eResShaderEXT)
   }
   END_ENUM_STRINGISE();
 }
