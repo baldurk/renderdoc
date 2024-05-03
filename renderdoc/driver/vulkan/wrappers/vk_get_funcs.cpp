@@ -1228,3 +1228,9 @@ void WrappedVulkan::vkGetDeviceAccelerationStructureCompatibilityKHR(
 {
   *pCompatibility = VK_ACCELERATION_STRUCTURE_COMPATIBILITY_INCOMPATIBLE_KHR;
 }
+
+VkResult WrappedVulkan::vkGetShaderBinaryDataEXT(VkDevice device, VkShaderEXT shader,
+                                                 size_t *pDataSize, void *pData)
+{
+  return VK_ERROR_INITIALIZATION_FAILED;
+}

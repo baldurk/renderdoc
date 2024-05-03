@@ -56,6 +56,7 @@ WRAPPED_POOL_INST(WrappedVkSurfaceKHR)
 WRAPPED_POOL_INST(WrappedVkDescriptorUpdateTemplate)
 WRAPPED_POOL_INST(WrappedVkSamplerYcbcrConversion)
 WRAPPED_POOL_INST(WrappedVkAccelerationStructureKHR)
+WRAPPED_POOL_INST(WrappedVkShaderEXT)
 
 byte VkResourceRecord::markerValue[32] = {
     0xaa, 0xbb, 0xcc, 0xdd, 0x88, 0x77, 0x66, 0x55, 0x01, 0x23, 0x45, 0x67, 0x98, 0x76, 0x54, 0x32,
@@ -144,6 +145,8 @@ VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr)
     return eResSamplerConversion;
   if(WrappedVkAccelerationStructureKHR::IsAlloc(ptr))
     return eResAccelerationStructureKHR;
+  if(WrappedVkShaderEXT::IsAlloc(ptr))
+    return eResShaderEXT;
 
   RDCERR("Unknown type for ptr 0x%p", ptr);
 

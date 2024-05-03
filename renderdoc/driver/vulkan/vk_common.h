@@ -1081,6 +1081,8 @@ enum class VulkanChunk : uint32_t
   vkCmdCopyAccelerationStructureToMemoryKHR,
   vkCmdCopyMemoryToAccelerationStructureKHR,
   vkCreateAccelerationStructureKHR,
+  vkCmdBindShadersEXT,
+  vkCreateShadersEXT,
   Max,
 };
 
@@ -1120,7 +1122,8 @@ DECLARE_REFLECTION_ENUM(VulkanChunk);
   SERIALISE_HANDLE(VkSurfaceKHR)               \
   SERIALISE_HANDLE(VkDescriptorUpdateTemplate) \
   SERIALISE_HANDLE(VkSamplerYcbcrConversion)   \
-  SERIALISE_HANDLE(VkAccelerationStructureKHR)
+  SERIALISE_HANDLE(VkAccelerationStructureKHR) \
+  SERIALISE_HANDLE(VkShaderEXT)
 
 #define SERIALISE_HANDLE(type) DECLARE_REFLECTION_STRUCT(type)
 
