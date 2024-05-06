@@ -1418,15 +1418,17 @@ rdcarray<ShaderEntryPoint> Program::GetEntryPoints()
         entryPoint.name = entry->children[1]->str;
 
         Metadata *tags = entry->children[4];
-
-        for(size_t i = 0; i < tags->children.size(); i += 2)
+        if(tags)
         {
-          // 8 is the type tag
-          if(getival<uint32_t>(tags->children[i]) == 8U)
+          for(size_t i = 0; i < tags->children.size(); i += 2)
           {
-            entryPoint.stage =
-                GetShaderStage((DXBC::ShaderType)getival<uint32_t>(tags->children[i + 1]));
-            break;
+            // 8 is the type tag
+            if(getival<uint32_t>(tags->children[i]) == 8U)
+            {
+              entryPoint.stage =
+                  GetShaderStage((DXBC::ShaderType)getival<uint32_t>(tags->children[i + 1]));
+              break;
+            }
           }
         }
 
