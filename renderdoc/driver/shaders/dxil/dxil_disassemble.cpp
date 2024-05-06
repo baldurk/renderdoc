@@ -2042,203 +2042,11 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
   m_Disassembly += DisassembleTypes(m_DisassemblyInstructionLine);
   m_Disassembly += DisassembleGlobalVars(m_DisassemblyInstructionLine);
 
-  // Decode entry points
-  rdcarray<EntryPointInterface> entryPoints;
-  FetchEntryPointInterfaces(entryPoints);
-  for(size_t e = 0; e < entryPoints.size(); ++e)
-  {
-    EntryPointInterface &entryPoint = entryPoints[e];
-    m_Disassembly += entryPoint.name + "()";
-    DisassemblyAddNewLine();
-    m_Disassembly += "{";
-    DisassemblyAddNewLine();
-
-    for(size_t i = 0; i < entryPoint.inputs.size(); ++i)
-    {
-      EntryPointInterface::Signature &sig = entryPoint.inputs[i];
-      VarType varType = VarTypeForComponentType(sig.type);
-      m_Disassembly += "  Input[" + ToStr(i) + "] " + ToStr(varType).c_str();
-
-      if(sig.cols > 1)
-        m_Disassembly += ToStr(sig.cols);
-
-      if(reflection && sig.rows == 1)
-      {
-        const SigParameter &sigParam = reflection->InputSig[i];
-        if(sigParam.semanticName == sig.name)
-        {
-          sig.name = sigParam.semanticIdxName;
-        }
-      }
-      m_Disassembly += " " + sig.name;
-      if(sig.rows > 1)
-        m_Disassembly += "[" + ToStr(sig.rows) + "]";
-      m_Disassembly += ";";
-      DisassemblyAddNewLine();
-    }
-    if(!entryPoint.outputs.empty())
-      DisassemblyAddNewLine();
-
-    for(size_t i = 0; i < entryPoint.outputs.size(); ++i)
-    {
-      EntryPointInterface::Signature &sig = entryPoint.outputs[i];
-      VarType varType = VarTypeForComponentType(sig.type);
-      m_Disassembly += "  Output[" + ToStr(i) + "] " + ToStr(varType).c_str();
-
-      if(sig.cols > 1)
-        m_Disassembly += ToStr(sig.cols);
-
-      if(reflection && sig.rows == 1)
-      {
-        const SigParameter &sigParam = reflection->OutputSig[i];
-        if(sigParam.semanticName == sig.name)
-          sig.name = sigParam.semanticIdxName;
-      }
-      m_Disassembly += " " + sig.name;
-      if(sig.rows > 1)
-        m_Disassembly += "[" + ToStr(sig.rows) + "]";
-      m_Disassembly += ";";
-      DisassemblyAddNewLine();
-    }
-
-    if(!entryPoint.srvs.empty())
-      DisassemblyAddNewLine();
-
-    for(size_t i = 0; i < entryPoint.srvs.size(); ++i)
-    {
-      EntryPointInterface::SRV &srv = entryPoint.srvs[i];
-      if(srv.name.empty() && reflection)
-      {
-        for(DXBC::ShaderInputBind bind : reflection->SRVs)
-        {
-          if((bind.space == srv.space) && (bind.reg == srv.regBase) &&
-             (bind.bindCount == srv.regCount))
-            srv.name = bind.name;
-        }
-      }
-      // SRV[0] StructureBuffer<int> fastCopySource Space : 0 Reg : 0 Count : 1;
-      m_Disassembly += "  SRV[" + ToStr(i) + "]";
-      m_Disassembly += " " + GetResourceShapeName(srv.shape, false);
-      m_Disassembly += "<" + GetResourceTypeName(srv.type) + ">";
-      m_Disassembly += " " + srv.name;
-      m_Disassembly += " Space: " + ToStr(srv.space);
-      m_Disassembly += " Reg: " + ToStr(srv.regBase);
-      m_Disassembly += " Count: " + ToStr(srv.regCount);
-      m_Disassembly += ";";
-      DisassemblyAddNewLine();
-    }
-
-    if(!entryPoint.uavs.empty())
-      DisassemblyAddNewLine();
-
-    for(size_t i = 0; i < entryPoint.uavs.size(); ++i)
-    {
-      EntryPointInterface::UAV &uav = entryPoint.uavs[i];
-      if(uav.name.empty() && reflection)
-      {
-        for(DXBC::ShaderInputBind bind : reflection->UAVs)
-        {
-          if((bind.space == uav.space) && (bind.reg == uav.regBase) &&
-             (bind.bindCount == uav.regCount))
-            uav.name = bind.name;
-        }
-      }
-      m_Disassembly += "  UAV[" + ToStr(i) + "]";
-      m_Disassembly += " " + GetResourceShapeName(uav.shape, true);
-      m_Disassembly += "<" + GetResourceTypeName(uav.type) + ">";
-      m_Disassembly += " " + uav.name;
-      m_Disassembly += " Space: " + ToStr(uav.space);
-      m_Disassembly += " Reg: " + ToStr(uav.regBase);
-      m_Disassembly += " Count: " + ToStr(uav.regCount);
-      m_Disassembly += ";";
-      DisassemblyAddNewLine();
-    }
-
-    if(!entryPoint.cbuffers.empty())
-      DisassemblyAddNewLine();
-
-    for(size_t i = 0; i < entryPoint.cbuffers.size(); ++i)
-    {
-      EntryPointInterface::CBuffer &cbuffer = entryPoint.cbuffers[i];
-      if(reflection)
-      {
-        for(size_t cbIdx = 0; cbIdx < reflection->CBuffers.size(); ++cbIdx)
-        {
-          const DXBC::CBuffer &cb = reflection->CBuffers[cbIdx];
-          if((cb.space == cbuffer.space) && (cb.reg == cbuffer.regBase) &&
-             (cb.bindCount == cbuffer.regCount))
-          {
-            if(cbuffer.name.empty())
-              cbuffer.name = cb.name;
-            if(!cbuffer.cbufferRefl)
-              cbuffer.cbufferRefl = &reflection->CBuffers[cbIdx];
-          }
-        }
-      }
-      m_Disassembly += "  CBuffer[" + ToStr(i) + "] ";
-      m_Disassembly += cbuffer.name;
-      m_Disassembly += " Space: " + ToStr(cbuffer.space);
-      m_Disassembly += " Reg: " + ToStr(cbuffer.regBase);
-      m_Disassembly += " Count: " + ToStr(cbuffer.regCount);
-      if(cbuffer.cbufferRefl)
-      {
-        if(!cbuffer.cbufferRefl->variables.empty())
-        {
-          DisassemblyAddNewLine();
-          m_Disassembly += "  {";
-          DisassemblyAddNewLine();
-
-          for(const DXBC::CBufferVariable &cbVar : cbuffer.cbufferRefl->variables)
-          {
-            const DXBC::CBufferVariableType &cbType = cbVar.type;
-            m_Disassembly += "    ";
-            m_Disassembly += cbType.name;
-            m_Disassembly += " " + cbVar.name;
-            if(cbType.elements > 1)
-              m_Disassembly += "[" + ToStr(cbType.elements) + "]";
-            m_Disassembly += ";";
-            DisassemblyAddNewLine();
-          }
-          m_Disassembly += "  };";
-          DisassemblyAddNewLine();
-        }
-      }
-      DisassemblyAddNewLine();
-    }
-
-    if(!entryPoint.samplers.empty())
-      DisassemblyAddNewLine();
-
-    for(size_t i = 0; i < entryPoint.samplers.size(); ++i)
-    {
-      EntryPointInterface::Sampler &sampler = entryPoint.samplers[i];
-      if(sampler.name.empty() && reflection)
-      {
-        for(DXBC::ShaderInputBind s : reflection->Samplers)
-        {
-          if((s.space == sampler.space) && (s.reg == sampler.regBase) &&
-             (s.bindCount == sampler.regCount))
-            sampler.name = s.name;
-        }
-      }
-      m_Disassembly += "  Sampler[" + ToStr(i) + "]";
-      m_Disassembly += " " + GetResourceTypeName(sampler.type);
-      m_Disassembly += " " + sampler.name;
-      m_Disassembly += " Space: " + ToStr(sampler.space);
-      m_Disassembly += " Reg: " + ToStr(sampler.regBase);
-      m_Disassembly += " Count: " + ToStr(sampler.regCount);
-      m_Disassembly += ";";
-      DisassemblyAddNewLine();
-    }
-    m_Disassembly += "}";
-    DisassemblyAddNewLine();
-  }
-
   const char *swizzle = "xyzw";
 
-  DisassemblyAddNewLine();
+  rdcarray<EntryPointInterface> entryPoints;
+  FetchEntryPointInterfaces(entryPoints);
 
-  EntryPointInterface &entryPoint = entryPoints[0];
   for(size_t i = 0; i < m_Functions.size(); i++)
   {
     const Function &func = *m_Functions[i];
@@ -2248,31 +2056,273 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
     if(func.external)
       continue;
 
-    for(EntryPointInterface &ep : entryPoints)
-    {
-      if(func.name == ep.name)
-      {
-        entryPoint = ep;
-        break;
-      }
-    }
-    if(func.internalLinkage)
-      m_Disassembly += "internal ";
-    m_Disassembly +=
-        func.type->declFunction("@" + escapeStringIfNeeded(func.name), func.args, func.attrs);
-
-    if(func.comdatIdx < m_Comdats.size())
-      m_Disassembly += StringFormat::Fmt(
-          " comdat($%s)", escapeStringIfNeeded(m_Comdats[func.comdatIdx].second).c_str());
-
-    if(func.align)
-      m_Disassembly += StringFormat::Fmt(" align %u", (1U << func.align) >> 1);
-
-    if(func.attrs && func.attrs->functionSlot)
-      m_Disassembly += StringFormat::Fmt(" #%u", m_FuncAttrGroups.indexOf(func.attrs->functionSlot));
-
     if(!func.external)
     {
+      EntryPointInterface *entryPoint = NULL;
+      for(size_t e = 0; e < entryPoints.size(); ++e)
+      {
+        if(func.name == entryPoints[e].name)
+        {
+          entryPoint = &entryPoints[e];
+          break;
+        }
+      }
+
+      // Display inputs/outputs and resource
+      if(entryPoint)
+      {
+        bool needBlankLine = false;
+
+        if(!entryPoint->inputs.empty())
+        {
+          m_Disassembly += "Inputs";
+          DisassemblyAddNewLine();
+          for(size_t j = 0; j < entryPoint->inputs.size(); ++j)
+          {
+            if(needBlankLine)
+              DisassemblyAddNewLine();
+            EntryPointInterface::Signature &sig = entryPoint->inputs[j];
+            VarType varType = VarTypeForComponentType(sig.type);
+            m_Disassembly += "  ";
+            m_Disassembly += ToStr(varType).c_str();
+
+            if(sig.cols > 1)
+              m_Disassembly += ToStr(sig.cols);
+
+            if(reflection && sig.rows == 1)
+            {
+              const SigParameter &sigParam = reflection->InputSig[j];
+              if(sigParam.semanticName == sig.name)
+              {
+                sig.name = sigParam.semanticIdxName;
+              }
+            }
+            m_Disassembly += " " + sig.name;
+            if(sig.rows > 1)
+              m_Disassembly += "[" + ToStr(sig.rows) + "]";
+            m_Disassembly += ";";
+            needBlankLine = true;
+          }
+          DisassemblyAddNewLine();
+        }
+
+        if(!entryPoint->outputs.empty())
+        {
+          if(needBlankLine)
+          {
+            DisassemblyAddNewLine();
+            needBlankLine = false;
+          }
+
+          m_Disassembly += "Outputs";
+          DisassemblyAddNewLine();
+          for(size_t j = 0; j < entryPoint->outputs.size(); ++j)
+          {
+            if(needBlankLine)
+              DisassemblyAddNewLine();
+            EntryPointInterface::Signature &sig = entryPoint->outputs[j];
+            VarType varType = VarTypeForComponentType(sig.type);
+            m_Disassembly += "  ";
+            m_Disassembly += ToStr(varType).c_str();
+
+            if(sig.cols > 1)
+              m_Disassembly += ToStr(sig.cols);
+
+            if(reflection && sig.rows == 1)
+            {
+              const SigParameter &sigParam = reflection->OutputSig[j];
+              if(sigParam.semanticName == sig.name)
+                sig.name = sigParam.semanticIdxName;
+            }
+            m_Disassembly += " " + sig.name;
+            if(sig.rows > 1)
+              m_Disassembly += "[" + ToStr(sig.rows) + "]";
+            m_Disassembly += ";";
+            needBlankLine = true;
+          }
+          DisassemblyAddNewLine();
+        }
+
+        if(!entryPoint->srvs.empty())
+        {
+          for(size_t j = 0; j < entryPoint->srvs.size(); ++j)
+          {
+            if(needBlankLine)
+              DisassemblyAddNewLine();
+            EntryPointInterface::SRV &srv = entryPoint->srvs[j];
+            if(srv.name.empty() && reflection)
+            {
+              for(DXBC::ShaderInputBind bind : reflection->SRVs)
+              {
+                if((bind.space == srv.space) && (bind.reg == srv.regBase) &&
+                   (bind.bindCount == srv.regCount))
+                  srv.name = bind.name;
+              }
+            }
+            m_Disassembly += GetResourceShapeName(srv.shape, false);
+            m_Disassembly += "<" + GetResourceTypeName(srv.type) + ">";
+            m_Disassembly += " " + srv.name;
+            if(srv.regCount > 1)
+            {
+              m_Disassembly += "[";
+              if(srv.regCount != ~0U)
+                m_Disassembly += ToStr(srv.regCount);
+              m_Disassembly += "]";
+            }
+            m_Disassembly +=
+                " : register(t" + ToStr(srv.regBase) + ", space" + ToStr(srv.space) + ")";
+            m_Disassembly += ";";
+            needBlankLine = true;
+          }
+          DisassemblyAddNewLine();
+        }
+
+        if(!entryPoint->uavs.empty())
+        {
+          for(size_t j = 0; j < entryPoint->uavs.size(); ++j)
+          {
+            if(needBlankLine)
+              DisassemblyAddNewLine();
+            EntryPointInterface::UAV &uav = entryPoint->uavs[j];
+            if(uav.name.empty() && reflection)
+            {
+              for(DXBC::ShaderInputBind bind : reflection->UAVs)
+              {
+                if((bind.space == uav.space) && (bind.reg == uav.regBase) &&
+                   (bind.bindCount == uav.regCount))
+                  uav.name = bind.name;
+              }
+            }
+            m_Disassembly += GetResourceShapeName(uav.shape, true);
+            m_Disassembly += "<" + GetResourceTypeName(uav.type) + ">";
+            m_Disassembly += " " + uav.name;
+            if(uav.regCount > 1)
+            {
+              m_Disassembly += "[";
+              if(uav.regCount != ~0U)
+                m_Disassembly += ToStr(uav.regCount);
+              m_Disassembly += "]";
+            }
+            m_Disassembly +=
+                " : register(u" + ToStr(uav.regBase) + ", space" + ToStr(uav.space) + ")";
+            m_Disassembly += ";";
+            needBlankLine = true;
+          }
+          DisassemblyAddNewLine();
+        }
+
+        if(!entryPoint->cbuffers.empty())
+        {
+          for(size_t j = 0; j < entryPoint->cbuffers.size(); ++j)
+          {
+            if(needBlankLine)
+              DisassemblyAddNewLine();
+            EntryPointInterface::CBuffer &cbuffer = entryPoint->cbuffers[j];
+            if(reflection)
+            {
+              for(size_t cbIdx = 0; cbIdx < reflection->CBuffers.size(); ++cbIdx)
+              {
+                const DXBC::CBuffer &cb = reflection->CBuffers[cbIdx];
+                if((cb.space == cbuffer.space) && (cb.reg == cbuffer.regBase) &&
+                   (cb.bindCount == cbuffer.regCount))
+                {
+                  if(cbuffer.name.empty())
+                    cbuffer.name = cb.name;
+                  if(!cbuffer.cbufferRefl)
+                    cbuffer.cbufferRefl = &reflection->CBuffers[cbIdx];
+                }
+              }
+            }
+            m_Disassembly += "cbuffer " + cbuffer.name;
+            if(cbuffer.regCount > 1)
+            {
+              m_Disassembly += "[";
+              if(cbuffer.regCount != ~0U)
+                m_Disassembly += ToStr(cbuffer.regCount);
+              m_Disassembly += "]";
+            }
+            m_Disassembly +=
+                " : register(b" + ToStr(cbuffer.regBase) + ", space" + ToStr(cbuffer.space) + ")";
+            if(cbuffer.cbufferRefl)
+            {
+              if(!cbuffer.cbufferRefl->variables.empty())
+              {
+                DisassemblyAddNewLine();
+                m_Disassembly += "{";
+                DisassemblyAddNewLine();
+
+                for(const DXBC::CBufferVariable &cbVar : cbuffer.cbufferRefl->variables)
+                {
+                  const DXBC::CBufferVariableType &cbType = cbVar.type;
+                  m_Disassembly += "  ";
+                  m_Disassembly += cbType.name;
+                  m_Disassembly += " " + cbVar.name;
+                  if(cbType.elements > 1)
+                    m_Disassembly += "[" + ToStr(cbType.elements) + "]";
+                  m_Disassembly += ";";
+                  DisassemblyAddNewLine();
+                }
+                m_Disassembly += "};";
+                DisassemblyAddNewLine();
+              }
+            }
+            needBlankLine = true;
+          }
+        }
+
+        if(!entryPoint->samplers.empty())
+        {
+          for(size_t j = 0; j < entryPoint->samplers.size(); ++j)
+          {
+            if(needBlankLine)
+              DisassemblyAddNewLine();
+            EntryPointInterface::Sampler &sampler = entryPoint->samplers[j];
+            if(sampler.name.empty() && reflection)
+            {
+              for(DXBC::ShaderInputBind s : reflection->Samplers)
+              {
+                if((s.space == sampler.space) && (s.reg == sampler.regBase) &&
+                   (s.bindCount == sampler.regCount))
+                  sampler.name = s.name;
+              }
+            }
+            m_Disassembly += GetResourceTypeName(sampler.type);
+            m_Disassembly += " " + sampler.name;
+            if(sampler.regCount > 1)
+            {
+              m_Disassembly += "[";
+              if(sampler.regCount != ~0U)
+                m_Disassembly += ToStr(sampler.regCount);
+              m_Disassembly += "]";
+            }
+            m_Disassembly +=
+                " : register(s" + ToStr(sampler.regBase) + ", space" + ToStr(sampler.space) + ")";
+            m_Disassembly += ";";
+            needBlankLine = true;
+          }
+          DisassemblyAddNewLine();
+        }
+
+        if(needBlankLine)
+          DisassemblyAddNewLine();
+      }
+
+      if(func.internalLinkage)
+        m_Disassembly += "internal ";
+      m_Disassembly +=
+          func.type->declFunction("@" + escapeStringIfNeeded(func.name), func.args, func.attrs);
+
+      if(func.comdatIdx < m_Comdats.size())
+        m_Disassembly += StringFormat::Fmt(
+            " comdat($%s)", escapeStringIfNeeded(m_Comdats[func.comdatIdx].second).c_str());
+
+      if(func.align)
+        m_Disassembly += StringFormat::Fmt(" align %u", (1U << func.align) >> 1);
+
+      if(func.attrs && func.attrs->functionSlot)
+        m_Disassembly +=
+            StringFormat::Fmt(" #%u", m_FuncAttrGroups.indexOf(func.attrs->functionSlot));
+
       DisassemblyAddNewLine();
       m_Disassembly += "{";
       DisassemblyAddNewLine();
@@ -2336,7 +2386,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               bool hasRowIdx = getival<uint32_t>(inst.args[2], rowIdx);
               if(getival<uint32_t>(inst.args[1], inputIdx))
               {
-                EntryPointInterface::Signature &sig = entryPoint.inputs[inputIdx];
+                EntryPointInterface::Signature &sig = entryPoint->inputs[inputIdx];
                 name = sig.name;
                 if(hasRowIdx)
                 {
@@ -2377,7 +2427,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               bool hasRowIdx = getival<uint32_t>(inst.args[2], rowIdx);
               if(getival<uint32_t>(inst.args[1], outputIdx))
               {
-                EntryPointInterface::Signature &sig = entryPoint.outputs[outputIdx];
+                EntryPointInterface::Signature &sig = entryPoint->outputs[outputIdx];
                 name = sig.name;
                 if(hasRowIdx)
                 {
@@ -2425,20 +2475,20 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                   switch(resClass)
                   {
                     case ResourceClass::SRV:
-                      resName = entryPoint.srvs[resIndex].name;
-                      resHandle.srv = &entryPoint.srvs[resIndex];
+                      resName = entryPoint->srvs[resIndex].name;
+                      resHandle.srv = &entryPoint->srvs[resIndex];
                       break;
                     case ResourceClass::UAV:
-                      resName = entryPoint.uavs[resIndex].name;
-                      resHandle.uav = &entryPoint.uavs[resIndex];
+                      resName = entryPoint->uavs[resIndex].name;
+                      resHandle.uav = &entryPoint->uavs[resIndex];
                       break;
                     case ResourceClass::CBuffer:
-                      resName = entryPoint.cbuffers[resIndex].name;
-                      resHandle.cbuffer = &entryPoint.cbuffers[resIndex];
+                      resName = entryPoint->cbuffers[resIndex].name;
+                      resHandle.cbuffer = &entryPoint->cbuffers[resIndex];
                       break;
                     case ResourceClass::Sampler:
-                      resName = entryPoint.samplers[resIndex].name;
-                      resHandle.sampler = &entryPoint.samplers[resIndex];
+                      resName = entryPoint->samplers[resIndex].name;
+                      resHandle.sampler = &entryPoint->samplers[resIndex];
                       break;
                     default:
                       validRes = false;
@@ -2516,7 +2566,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                     // uint32_t alignment = getival<uint32_t>(inst.args[3]);
                   }
                   uint32_t resourceIndex = resHandles[handleStr].resourceIndex;
-                  lineStr += MakeCBufferRegisterStr(regIndex, entryPoint.cbuffers[resourceIndex]);
+                  lineStr += MakeCBufferRegisterStr(regIndex, entryPoint->cbuffers[resourceIndex]);
                 }
               }
               else
