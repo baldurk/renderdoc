@@ -2918,6 +2918,63 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 showDxFuncName = true;
               }
             }
+            else if(showDxFuncName && funcCallName.beginsWith("dx.op.dot"))
+            {
+              // Dot4(ax,ay,az,aw,bx,by,bz,bw)
+              // Dot3(ax,ay,az,bx,by,bz)
+              // Dot2(ax,ay,bx,by)
+              showDxFuncName = false;
+              uint32_t dxopCode;
+              RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
+              uint32_t countComponents = 0;
+              if(funcCallName.beginsWith("dx.op.dot4"))
+              {
+                countComponents = 4;
+                RDCASSERTEQUAL(dxopCode, (uint32_t)DXOp::dot4);
+              }
+              else if(funcCallName.beginsWith("dx.op.dot3"))
+              {
+                countComponents = 3;
+                RDCASSERTEQUAL(dxopCode, (uint32_t)DXOp::dot3);
+              }
+              else if(funcCallName.beginsWith("dx.op.dot2"))
+              {
+                countComponents = 2;
+                RDCASSERTEQUAL(dxopCode, (uint32_t)DXOp::dot2);
+              }
+              lineStr += "dot(";
+              lineStr += "{";
+              bool needComma = false;
+              uint32_t aVecStart = 1;
+              uint32_t aVecEnd = 1 + countComponents;
+              for(uint32_t a = aVecStart; a < aVecEnd; ++a)
+              {
+                if(!isUndef(inst.args[a]))
+                {
+                  if(needComma)
+                    lineStr += ", ";
+                  lineStr += ArgToString(inst.args[a], false);
+                  needComma = true;
+                }
+              }
+              lineStr += "}";
+              needComma = false;
+              uint32_t bVecStart = aVecEnd;
+              uint32_t bVecEnd = bVecStart + countComponents;
+              lineStr += ", {";
+              for(uint32_t a = bVecStart; a < bVecEnd; ++a)
+              {
+                if(!isUndef(inst.args[a]))
+                {
+                  if(needComma)
+                    lineStr += ", ";
+                  lineStr += ArgToString(inst.args[a], false);
+                  needComma = true;
+                }
+              }
+              lineStr += "}";
+              lineStr += ")";
+            }
             else if(funcCallName.beginsWith("llvm.dbg."))
             {
             }
