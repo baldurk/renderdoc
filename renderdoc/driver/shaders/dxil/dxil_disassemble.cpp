@@ -3445,13 +3445,13 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
             rdcstr opStr;
             switch(inst.op)
             {
-              case Operation::FOrdEqual: opStr = " = "; break;
+              case Operation::FOrdEqual: opStr = " == "; break;
               case Operation::FOrdGreater: opStr = " > "; break;
               case Operation::FOrdGreaterEqual: opStr = " >= "; break;
               case Operation::FOrdLess: opStr = " < "; break;
               case Operation::FOrdLessEqual: opStr = " <= "; break;
               case Operation::FOrdNotEqual: opStr = " != "; break;
-              case Operation::FUnordEqual: opStr = " = ";
+              case Operation::FUnordEqual: opStr = " == ";
               case Operation::FUnordGreater: opStr = " > "; break;
               case Operation::FUnordGreaterEqual: opStr = " >= "; break;
               case Operation::FUnordLess: opStr = " < "; break;
@@ -3516,7 +3516,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
             rdcstr opStr;
             switch(inst.op)
             {
-              case Operation::IEqual: opStr += " = "; break;
+              case Operation::IEqual: opStr += " == "; break;
               case Operation::INotEqual: opStr += " != "; break;
               case Operation::UGreater: opStr += " > "; break;
               case Operation::UGreaterEqual: opStr += " >= "; break;
