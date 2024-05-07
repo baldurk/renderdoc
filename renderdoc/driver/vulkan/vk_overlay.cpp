@@ -1648,7 +1648,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         if(useDepthWriteStencilPass)
         {
           useDepthWriteStencilPass = false;
-          const VulkanCreationInfo::Pipeline::Shader &ps = pipeInfo.shaders[4];
+          const VulkanCreationInfo::ShaderEntry &ps = pipeInfo.shaders[4];
           if(ps.module != ResourceId())
           {
             ShaderReflection *reflection = ps.refl;

@@ -415,6 +415,9 @@ bool WrappedVulkan::Serialise_vkCreateShadersEXT(SerialiserType &ser, VkDevice d
       {
         live = GetResourceManager()->WrapResource(Unwrap(device), sh);
         GetResourceManager()->AddLiveResource(Shader, sh);
+
+        m_CreationInfo.m_ShaderObject[live].Init(GetResourceManager(), m_CreationInfo, live,
+                                                 &CreateInfo);
       }
     }
 
@@ -491,6 +494,8 @@ VkResult WrappedVulkan::vkCreateShadersEXT(VkDevice device, uint32_t createInfoC
       else
       {
         GetResourceManager()->AddLiveResource(id, pShaders[i]);
+        m_CreationInfo.m_ShaderObject[id].Init(GetResourceManager(), m_CreationInfo, id,
+                                               &pCreateInfos[i]);
       }
     }
   }

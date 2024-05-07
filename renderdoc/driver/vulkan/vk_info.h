@@ -230,6 +230,24 @@ struct VulkanCreationInfo
     void PopulateDisassembly(const rdcspv::Reflector &spirv);
   };
 
+  struct ShaderEntry
+  {
+    ResourceId module;
+    ShaderStage stage = ShaderStage::Count;
+    rdcstr entryPoint;
+    ShaderReflection *refl = NULL;
+    SPIRVPatchData *patchData = NULL;
+
+    rdcarray<SpecConstant> specialization;
+
+    // VkPipelineShaderStageRequiredSubgroupSizeCreateInfo
+    uint32_t requiredSubgroupSize = 0;
+
+    void ProcessStaticDescriptorAccess(ResourceId pushStorage, ResourceId specStorage,
+                                       rdcarray<DescriptorAccess> &staticDescriptorAccess,
+                                       rdcarray<const DescSetLayout *> setLayoutInfos) const;
+  };
+
   struct Pipeline
   {
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, ResourceId id,
@@ -276,24 +294,7 @@ struct VulkanCreationInfo
     VkPipelineCreateFlags flags;
 
     // VkPipelineShaderStageCreateInfo
-    struct Shader
-    {
-      ResourceId module;
-      ShaderStage stage = ShaderStage::Count;
-      rdcstr entryPoint;
-      ShaderReflection *refl = NULL;
-      SPIRVPatchData *patchData = NULL;
-
-      rdcarray<SpecConstant> specialization;
-
-      // VkPipelineShaderStageRequiredSubgroupSizeCreateInfo
-      uint32_t requiredSubgroupSize = 0;
-
-      void ProcessStaticDescriptorAccess(ResourceId pushStorage, ResourceId specStorage,
-                                         rdcarray<DescriptorAccess> &staticDescriptorAccess,
-                                         rdcarray<const DescSetLayout *> setLayoutInfos) const;
-    };
-    Shader shaders[NumShaderStages];
+    ShaderEntry shaders[NumShaderStages];
 
     // this is the total size of the 'virtualised' specialisation data, where all constants are stored
     // 64-bit aligned and with an offset equal to their ID. In other words this is big enough for the max ID
@@ -430,6 +431,30 @@ struct VulkanCreationInfo
     VkProvokingVertexModeEXT provokingVertex;
   };
   std::unordered_map<ResourceId, Pipeline> m_Pipeline;
+
+  struct ShaderObject
+  {
+    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, ResourceId id,
+              const VkShaderCreateInfoEXT *pCreateInfo);
+
+    ShaderEntry shad;
+
+    VkShaderCreateFlagsEXT flags;
+
+    VkShaderStageFlags nextStage;
+
+    VkShaderCodeTypeEXT codeType = VK_SHADER_CODE_TYPE_MAX_ENUM_EXT;
+
+    rdcarray<VkPushConstantRange> pushRanges;
+    rdcarray<ResourceId> descSetLayouts;
+
+    // this is the total size of the 'virtualised' specialisation data, where all constants are stored
+    // 64-bit aligned and with an offset equal to their ID. In other words this is big enough for the max ID
+    uint32_t virtualSpecialisationByteSize = 0;
+
+    rdcarray<DescriptorAccess> staticDescriptorAccess;
+  };
+  std::unordered_map<ResourceId, ShaderObject> m_ShaderObject;
 
   struct PipelineLayout
   {
@@ -772,6 +797,7 @@ struct VulkanCreationInfo
     m_YCbCrSampler.erase(id);
     m_ImageView.erase(id);
     m_ShaderModule.erase(id);
+    m_ShaderObject.erase(id);
     m_DescSetPool.erase(id);
     m_AccelerationStructure.erase(id);
     m_Names.erase(id);

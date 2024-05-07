@@ -2865,7 +2865,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
 
   const VulkanCreationInfo::Pipeline &pipeInfo = creationInfo.m_Pipeline[state.graphics.pipeline];
 
-  const VulkanCreationInfo::Pipeline::Shader &meshShad = pipeInfo.shaders[7];
+  const VulkanCreationInfo::ShaderEntry &meshShad = pipeInfo.shaders[7];
 
   const VulkanCreationInfo::ShaderModule &meshInfo = creationInfo.m_ShaderModule[meshShad.module];
   ShaderReflection *meshrefl = meshShad.refl;
@@ -3007,8 +3007,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
   // worst case buffer size could be massive
   if(pipeInfo.shaders[(size_t)ShaderStage::Task].refl)
   {
-    const VulkanCreationInfo::Pipeline::Shader &taskShad =
-        pipeInfo.shaders[(size_t)ShaderStage::Task];
+    const VulkanCreationInfo::ShaderEntry &taskShad = pipeInfo.shaders[(size_t)ShaderStage::Task];
 
     if(taskShad.patchData->invalidTaskPayload)
     {
@@ -3510,8 +3509,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
 
   if(taskDataAddress != 0)
   {
-    const VulkanCreationInfo::Pipeline::Shader &taskShad =
-        pipeInfo.shaders[(size_t)ShaderStage::Task];
+    const VulkanCreationInfo::ShaderEntry &taskShad = pipeInfo.shaders[(size_t)ShaderStage::Task];
 
     const VulkanCreationInfo::ShaderModule &taskInfo = creationInfo.m_ShaderModule[taskShad.module];
 
