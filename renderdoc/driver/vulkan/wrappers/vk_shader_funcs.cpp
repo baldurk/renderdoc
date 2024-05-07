@@ -438,7 +438,14 @@ VkResult WrappedVulkan::vkCreateShadersEXT(VkDevice device, uint32_t createInfoC
 
   // to be extra sure just in case the driver doesn't, set shader objects to VK_NULL_HANDLE first.
   for(uint32_t i = 0; i < createInfoCount; i++)
-    pShaders[i] = VK_NULL_HANDLE;
+  {
+    // shader binaries aren't supported, and any calls to vkGetShaderBinaryData should return a
+    // valid but incompatible UUID
+    if(pCreateInfos[i].codeType == VK_SHADER_CODE_TYPE_BINARY_EXT)
+      return VK_ERROR_INCOMPATIBLE_SHADER_BINARY_EXT;
+    else
+      pShaders[i] = VK_NULL_HANDLE;
+  }
 
   VkResult ret;
   SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateShadersEXT(Unwrap(device), createInfoCount,

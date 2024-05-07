@@ -875,6 +875,16 @@ void WrappedVulkan::vkGetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevi
   memcpy(pProperties->properties.pipelineCacheUUID, fakeRenderDocUUID, VK_UUID_SIZE);
 
   ClampPhysDevAPIVersion(&pProperties->properties, physicalDevice);
+
+  // internal RenderDoc UUID for shader object binary
+  VkPhysicalDeviceShaderObjectPropertiesEXT *shadObj =
+      (VkPhysicalDeviceShaderObjectPropertiesEXT *)FindNextStruct(
+          pProperties, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_PROPERTIES_EXT);
+
+  if(shadObj)
+  {
+    memcpy(shadObj->shaderBinaryUUID, fakeRenderDocUUID, VK_UUID_SIZE);
+  }
 }
 
 void WrappedVulkan::vkGetPhysicalDeviceQueueFamilyProperties2(
@@ -1232,5 +1242,29 @@ void WrappedVulkan::vkGetDeviceAccelerationStructureCompatibilityKHR(
 VkResult WrappedVulkan::vkGetShaderBinaryDataEXT(VkDevice device, VkShaderEXT shader,
                                                  size_t *pDataSize, void *pData)
 {
-  return VK_ERROR_INITIALIZATION_FAILED;
+  // renderdoc doesn't support shader binaries, but should comply with the spec
+  // so we return four NULL bytes if this function is called and would otherwise
+  // return a valid binary
+  size_t totalSize = 4;
+
+  if(pDataSize && !pData)
+    *pDataSize = totalSize;
+
+  if(pDataSize && pData)
+  {
+    if(*pDataSize < totalSize)
+    {
+      memset(pData, 0, *pDataSize);
+      return VK_INCOMPLETE;
+    }
+
+    // empty bytes
+    memset(pData, 0, 4);
+  }
+
+  // we don't want the application to use shader binaries at all, and especially
+  // don't want to return any data for future use. We thus return a technically
+  // valid but empty shader binary. Our UUID changes every run so in theory the
+  // application should never provide an old binary.
+  return VK_SUCCESS;
 }
