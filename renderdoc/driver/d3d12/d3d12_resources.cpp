@@ -1067,9 +1067,24 @@ void D3D12ShaderExportDatabase::PopulateDatabase(size_t NumSubobjects,
 
 void D3D12ShaderExportDatabase::AddExport(const rdcstr &exportName)
 {
+  bool mangled = false;
+  rdcstr unmangledName;
+
+  if(exportName.size() > 2 && exportName[0] == '\x1' && exportName[1] == '?')
+  {
+    int idx = exportName.indexOf('@');
+    if(idx > 2)
+    {
+      unmangledName = exportName.substr(2, idx - 2);
+      mangled = true;
+    }
+  }
+
   void *identifier = NULL;
+  // shader identifiers seem to be only accessible via unmangled names
   if(m_StateObjectProps)
-    identifier = m_StateObjectProps->GetShaderIdentifier(StringFormat::UTF82Wide(exportName).c_str());
+    identifier = m_StateObjectProps->GetShaderIdentifier(
+        StringFormat::UTF82Wide(mangled ? unmangledName : exportName).c_str());
   const bool complete = identifier != NULL;
 
   {
@@ -1089,16 +1104,7 @@ void D3D12ShaderExportDatabase::AddExport(const rdcstr &exportName)
     ownExports.back().localRootSigIndex = 0xffff;
   }
 
-  if(exportName.size() > 2 && exportName[0] == '\x1' && exportName[1] == '?')
-  {
-    int idx = exportName.indexOf('@');
-    if(idx > 2)
-    {
-      exportLookups.emplace_back(exportName, exportName.substr(2, idx - 2), complete);
-      return;
-    }
-  }
-  exportLookups.emplace_back(exportName, rdcstr(), complete);
+  exportLookups.emplace_back(exportName, unmangledName, complete);
 }
 
 void D3D12ShaderExportDatabase::InheritCollectionExport(D3D12ShaderExportDatabase *existing,
