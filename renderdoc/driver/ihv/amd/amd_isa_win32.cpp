@@ -28,6 +28,7 @@
 #include "core/plugins.h"
 #include "official/RGA/Common/AmdDxGsaCompile.h"
 #include "official/RGA/elf/elf32.h"
+#include "official/RGA/elf/elf64.h"
 #include "amd_isa_devices.h"
 
 #if ENABLED(RDOC_X64)
@@ -67,6 +68,91 @@ HRESULT SafelyCompile(PfnAmdDxGsaCompileShader compileShader, AmdDxGsaCompileSha
     out.shaderBinarySize = 0;
   }
   return ret;
+}
+
+template <typename Elf_Ehdr, typename Elf_Shdr>
+static rdcstr ParseElf(const Elf_Ehdr *elfHeader, bool amdil, const rdcstr &target)
+{
+  rdcstr ret;
+
+  const uint8_t *elf = (const uint8_t *)elfHeader;
+
+  const Elf_Shdr *strtab =
+      (const Elf_Shdr *)(elf + elfHeader->e_shoff + sizeof(Elf_Shdr) * elfHeader->e_shstrndx);
+
+  const uint8_t *strtabData = elf + strtab->sh_offset;
+
+  const AmdDxGsaCompileStats *stats = NULL;
+
+  for(int section = 1; section < elfHeader->e_shnum; section++)
+  {
+    if(section == elfHeader->e_shstrndx)
+      continue;
+
+    const Elf_Shdr *sectHeader =
+        (const Elf_Shdr *)(elf + elfHeader->e_shoff + sizeof(Elf_Shdr) * section);
+
+    const char *name = (const char *)(strtabData + sectHeader->sh_name);
+
+    const uint8_t *data = elf + sectHeader->sh_offset;
+
+    if(!strcmp(name, ".stats"))
+    {
+      stats = (const AmdDxGsaCompileStats *)data;
+    }
+    else if(amdil && !strcmp(name, ".amdil_disassembly"))
+    {
+      ret.insert(0, (const char *)data, (size_t)sectHeader->sh_size);
+      while(ret.back() == '\0')
+        ret.pop_back();
+    }
+    else if(!amdil && !strcmp(name, ".disassembly"))
+    {
+      ret.insert(0, (const char *)data, (size_t)sectHeader->sh_size);
+      while(ret.back() == '\0')
+        ret.pop_back();
+    }
+  }
+
+  if(stats && !amdil)
+  {
+    ret.insert(0, StringFormat::Fmt(
+                      R"(; -------- Statistics ---------------------
+; SGPRs: %u out of %u used
+; VGPRs: %u out of %u used
+; LDS: %u out of %u bytes used
+; %u bytes scratch space used
+; Instructions: %u ALU, %u Control Flow, %u TFETCH
+
+)",
+                      stats->numSgprsUsed, stats->availableSgprs, stats->numVgprsUsed,
+                      stats->availableVgprs, stats->usedLdsBytes, stats->availableLdsBytes,
+                      stats->usedScratchBytes, stats->numAluInst, stats->numControlFlowInst,
+                      stats->numTfetchInst));
+  }
+
+  ret.insert(0, StringFormat::Fmt("; Disassembly for %s\n\n", target.c_str()));
+
+  return ret;
+}
+
+static rdcstr ParseElf(const uint8_t *elf, bool amdil, const rdcstr &target)
+{
+  const Elf32_Ehdr *elf32Header = (const Elf32_Ehdr *)elf;
+
+  // minimal code to extract data from ELF. We assume the ELF we got back is well-formed.
+  if(IS_ELF(*elf32Header))
+  {
+    if(elf32Header->e_ident[EI_CLASS] == ELFCLASS32)
+    {
+      return ParseElf<Elf32_Ehdr, Elf32_Shdr>(elf32Header, amdil, target);
+    }
+    else if(elf32Header->e_ident[EI_CLASS] == ELFCLASS64)
+    {
+      return ParseElf<Elf64_Ehdr, Elf64_Shdr>((const Elf64_Ehdr *)elf, amdil, target);
+    }
+  }
+  return "; Invalid ELF file generated";
 }
 
 rdcstr DisassembleDXBC(const bytebuf &shaderBytes, const rdcstr &target)
@@ -205,75 +291,7 @@ rdcstr DisassembleDXBC(const bytebuf &shaderBytes, const rdcstr &target)
     return "; Failed to disassemble shader";
   }
 
-  const uint8_t *elf = (const uint8_t *)out.pShaderBinary;
-
-  const Elf32_Ehdr *elfHeader = (const Elf32_Ehdr *)elf;
-
-  rdcstr ret;
-
-  // minimal code to extract data from ELF. We assume the ELF we got back is well-formed.
-  if(IS_ELF(*elfHeader) && elfHeader->e_ident[EI_CLASS] == ELFCLASS32)
-  {
-    const Elf32_Shdr *strtab =
-        (const Elf32_Shdr *)(elf + elfHeader->e_shoff + sizeof(Elf32_Shdr) * elfHeader->e_shstrndx);
-
-    const uint8_t *strtabData = elf + strtab->sh_offset;
-
-    const AmdDxGsaCompileStats *stats = NULL;
-
-    for(int section = 1; section < elfHeader->e_shnum; section++)
-    {
-      if(section == elfHeader->e_shstrndx)
-        continue;
-
-      const Elf32_Shdr *sectHeader =
-          (const Elf32_Shdr *)(elf + elfHeader->e_shoff + sizeof(Elf32_Shdr) * section);
-
-      const char *name = (const char *)(strtabData + sectHeader->sh_name);
-
-      const uint8_t *data = elf + sectHeader->sh_offset;
-
-      if(!strcmp(name, ".stats"))
-      {
-        stats = (const AmdDxGsaCompileStats *)data;
-      }
-      else if(amdil && !strcmp(name, ".amdil_disassembly"))
-      {
-        ret.insert(0, (const char *)data, (size_t)sectHeader->sh_size);
-        while(ret.back() == '\0')
-          ret.pop_back();
-      }
-      else if(!amdil && !strcmp(name, ".disassembly"))
-      {
-        ret.insert(0, (const char *)data, (size_t)sectHeader->sh_size);
-        while(ret.back() == '\0')
-          ret.pop_back();
-      }
-    }
-
-    if(stats && !amdil)
-    {
-      ret.insert(0, StringFormat::Fmt(
-                        R"(; -------- Statistics ---------------------
-; SGPRs: %u out of %u used
-; VGPRs: %u out of %u used
-; LDS: %u out of %u bytes used
-; %u bytes scratch space used
-; Instructions: %u ALU, %u Control Flow, %u TFETCH
-
-)",
-                        stats->numSgprsUsed, stats->availableSgprs, stats->numVgprsUsed,
-                        stats->availableVgprs, stats->usedLdsBytes, stats->availableLdsBytes,
-                        stats->usedScratchBytes, stats->numAluInst, stats->numControlFlowInst,
-                        stats->numTfetchInst));
-    }
-
-    ret.insert(0, StringFormat::Fmt("; Disassembly for %s\n\n", target.c_str()));
-  }
-  else
-  {
-    ret = "; Invalid ELF file generated";
-  }
+  const rdcstr ret = ParseElf((const uint8_t *)out.pShaderBinary, amdil, target);
 
   freeShader(out.pShaderBinary);
 
