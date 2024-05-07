@@ -363,6 +363,9 @@ and size into specializationData can be obtained from the reflection info.
 :type: List[int]
 )")
   rdcarray<uint32_t> specializationIds;
+
+  DOCUMENT("Whether the shader is a shader object or shader module.");
+  bool shaderObject = false;
 };
 
 DOCUMENT("Describes the state of the fixed-function tessellator.");

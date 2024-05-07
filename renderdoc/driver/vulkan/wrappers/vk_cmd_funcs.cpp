@@ -3096,10 +3096,23 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
           if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_COMPUTE)
           {
             renderstate.compute.pipeline = liveid;
+            renderstate.compute.shaderObject = false;
+
+            // disturb compute shader bound via vkCmdBindShadersEXT, if any
+            renderstate.shaderObjects[(uint32_t)ShaderStage::Compute] = ResourceId();
           }
           else
           {
             renderstate.graphics.pipeline = liveid;
+            renderstate.graphics.shaderObject = false;
+
+            // disturb graphics shaders bound via vkCmdBindShadersEXT, if any
+            for(uint32_t i = 0; i < (uint32_t)ShaderStage::Count; i++)
+            {
+              if(i == (uint32_t)ShaderStage::Compute)
+                continue;
+              renderstate.shaderObjects[i] = ResourceId();
+            }
 
             const VulkanCreationInfo::Pipeline &pipeInfo = m_CreationInfo.m_Pipeline[liveid];
 
@@ -3416,10 +3429,12 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
       if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_COMPUTE)
       {
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.pipeline = liveid;
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.shaderObject = false;
       }
       else
       {
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.pipeline = liveid;
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.shaderObject = false;
 
         const VulkanCreationInfo::Pipeline &pipeInfo = m_CreationInfo.m_Pipeline[liveid];
 
@@ -8045,14 +8060,19 @@ bool WrappedVulkan::Serialise_vkCmdBindShadersEXT(SerialiserType &ser,
           {
             int stageIndex = StageIndex(pStages[i]);
 
+            renderstate.shaderObjects[stageIndex] =
+                pShaders && (pShaders[i] != VK_NULL_HANDLE) ? GetResID(pShaders[i]) : ResourceId();
+
             // calling vkCmdBindShadersEXT disturbs the corresponding pipeline bind points
             // such that any pipelines previously bound to those points are no longer bound
             if(stageIndex == (int)ShaderStage::Compute)
             {
+              renderstate.compute.shaderObject = true;
               renderstate.compute.pipeline = ResourceId();
             }
             else
             {
+              renderstate.graphics.shaderObject = true;
               renderstate.graphics.pipeline = ResourceId();
             }
           }
@@ -8070,13 +8090,18 @@ bool WrappedVulkan::Serialise_vkCmdBindShadersEXT(SerialiserType &ser,
       {
         int stageIndex = StageIndex(pStages[i]);
 
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.shaderObjects[stageIndex] =
+            pShaders && (pShaders[i] != VK_NULL_HANDLE) ? GetResID(pShaders[i]) : ResourceId();
+
         if(stageIndex == (int)ShaderStage::Compute)
         {
           m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.pipeline = ResourceId();
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.shaderObject = true;
         }
         else
         {
           m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.pipeline = ResourceId();
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.shaderObject = true;
         }
       }
     }

@@ -35,6 +35,9 @@ struct VulkanStatePipeline
 {
   ResourceId pipeline;
 
+  // shader object
+  bool shaderObject = false;
+
   struct DescriptorAndOffsets
   {
     ResourceId pipeLayout;
@@ -63,6 +66,8 @@ struct VulkanRenderState
   void BeginRenderPassAndApplyState(WrappedVulkan *vk, VkCommandBuffer cmd, PipelineBinding binding,
                                     bool obeySuspending);
   void BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd, PipelineBinding binding, bool subpass0);
+  void BindShaderObjects(WrappedVulkan *vk, VkCommandBuffer cmd, PipelineBinding binding);
+  void BindDynamicState(WrappedVulkan *vk, VkCommandBuffer cmd);
 
   void EndRenderPass(VkCommandBuffer cmd);
   void FinishSuspendedRenderPass(VkCommandBuffer cmd);
@@ -283,6 +288,9 @@ struct VulkanRenderState
       VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR,
   };
 
+  // shader objects
+  ResourceId shaderObjects[NumShaderStages];
+
   // attachment feedback loop
   VkImageAspectFlags feedbackAspects = VK_IMAGE_ASPECT_NONE;
 
@@ -297,6 +305,11 @@ private:
   void BindDescriptorSetsWithoutPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
                                          VulkanStatePipeline &pipe, VkPipelineBindPoint bindPoint);
 
+  void BindDescriptorSetsForShaders(WrappedVulkan *vk, VkCommandBuffer cmd,
+                                    VulkanStatePipeline &pipe, VkPipelineBindPoint bindPoint);
+
   void BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout &descLayout, VkCommandBuffer cmd,
                          VkPipelineBindPoint bindPoint, uint32_t setIndex, uint32_t *dynamicOffsets);
+
+  void BindLastPushConstants(WrappedVulkan *vk, VkCommandBuffer cmd);
 };
