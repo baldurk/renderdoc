@@ -1338,7 +1338,7 @@ void D3D12RaytracingResourceAndUtilHandler::RegisterExportDatabase(D3D12ShaderEx
 void D3D12RaytracingResourceAndUtilHandler::UnregisterExportDatabase(D3D12ShaderExportDatabase *db)
 {
   SCOPED_LOCK(m_LookupBufferLock);
-  m_ExportDatabases.push_back(db);
+  m_ExportDatabases.removeOne(db);
   // don't dirty the lookup buffer here, there's not much value in recreating it just to reduce
   // memory use - next time we need to add data we'll reclaim that.
 }
