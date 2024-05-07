@@ -5169,7 +5169,7 @@ void WrappedVulkan::AddUsage(VulkanActionTreeNode &actionNode, rdcarray<DebugMes
   {
     bool compute = (shad == 5);
     ResourceId pipe = (compute ? state.compute.pipeline : state.graphics.pipeline);
-    VulkanCreationInfo::Pipeline::Shader &sh = c.m_Pipeline[pipe].shaders[shad];
+    VulkanCreationInfo::ShaderEntry &sh = c.m_Pipeline[pipe].shaders[shad];
     if(sh.module == ResourceId())
       continue;
 
