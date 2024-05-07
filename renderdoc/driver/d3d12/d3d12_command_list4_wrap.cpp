@@ -727,6 +727,72 @@ void WrappedID3D12GraphicsCommandList::ExecuteMetaCommand(
   RDCERR("ExecuteMetaCommand called but no meta commands reported!");
 }
 
+bool WrappedID3D12GraphicsCommandList::ProcessASBuildAfterSubmission(ResourceId destASBId,
+                                                                     D3D12BufferOffset destASBOffset,
+                                                                     UINT64 byteSize)
+{
+  bool success = false;
+  D3D12ResourceManager *resManager = m_pDevice->GetResourceManager();
+
+  D3D12AccelerationStructure *accStructAtDestOffset = NULL;
+
+  WrappedID3D12Resource *dstASB = resManager->GetCurrentAs<WrappedID3D12Resource>(destASBId);
+
+  // See if acc already exist at the given offset
+  bool accStructExistAtDestOffset =
+      dstASB->GetAccStructIfExist(destASBOffset, &accStructAtDestOffset);
+
+  bool createAccStruct = false;
+
+  if(accStructExistAtDestOffset)
+  {
+    if(accStructAtDestOffset && accStructAtDestOffset->Size() != byteSize)
+    {
+      dstASB->DeleteAccStructAtOffset(destASBOffset);
+      createAccStruct = true;
+    }
+    else
+    {
+      // if the AS is being rebuilt in place, that's also successful
+      success = true;
+    }
+  }
+  else
+  {
+    createAccStruct = true;
+  }
+
+  if(createAccStruct)
+  {
+    // CreateAccStruct also deletes any previous overlapping ASs on the ASB
+    if(dstASB->CreateAccStruct(destASBOffset, byteSize, &accStructAtDestOffset))
+    {
+      success = true;
+      D3D12ResourceRecord *record =
+          resManager->AddResourceRecord(accStructAtDestOffset->GetResourceID());
+      record->type = Resource_AccelerationStructure;
+      record->Length = 0;
+      accStructAtDestOffset->SetResourceRecord(record);
+      resManager->MarkDirtyResource(accStructAtDestOffset->GetResourceID());
+
+      record->AddParent(
+          resManager->GetResourceRecord(accStructAtDestOffset->GetBackingBufferResourceId()));
+
+      // register this AS so its resource can be created during replay
+      m_pDevice->CreateAS(dstASB, destASBOffset, byteSize, accStructAtDestOffset);
+
+      m_pDevice->AddForcedReference(record);
+    }
+    else
+    {
+      RDCERR("Unable to create acceleration structure");
+      success = false;
+    }
+  }
+
+  return success;
+}
+
 bool WrappedID3D12GraphicsCommandList::PatchAccStructBlasAddress(
     const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC *accStructInput,
     ID3D12GraphicsCommandList4 *dxrCmd, BakedCmdListInfo::PatchRaytracing *patchRaytracing)
@@ -1016,74 +1082,13 @@ void WrappedID3D12GraphicsCommandList::BuildRaytracingAccelerationStructure(
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO preBldInfo;
     m_pDevice->GetRaytracingAccelerationStructurePrebuildInfo(&pDesc->Inputs, &preBldInfo);
 
-    auto PostBldExecute = [this, asbWrappedResourceId, asbWrappedResourceBufferOffset,
-                           preBldInfo]() -> bool {
-      bool success = false;
-      D3D12AccelerationStructure *accStructAtOffset = NULL;
+    UINT64 byteSize = preBldInfo.ResultDataMaxSizeInBytes;
 
-      D3D12ResourceManager *resManager = m_pDevice->GetResourceManager();
-
-      WrappedID3D12Resource *asbWrappedResource =
-          resManager->GetCurrentAs<WrappedID3D12Resource>(asbWrappedResourceId);
-
-      // See if acc already exist at the given offset
-      bool accStructExistAtOffset = asbWrappedResource->GetAccStructIfExist(
-          asbWrappedResourceBufferOffset, &accStructAtOffset);
-
-      bool createAccStruct = false;
-
-      if(accStructExistAtOffset)
-      {
-        if(accStructAtOffset && accStructAtOffset->Size() != preBldInfo.ResultDataMaxSizeInBytes)
-        {
-          asbWrappedResource->DeleteAccStructAtOffset(asbWrappedResourceBufferOffset);
-          createAccStruct = true;
-        }
-        else
-        {
-          // if the AS is being rebuilt in place, that's also successful
-          success = true;
-        }
-      }
-      else
-      {
-        createAccStruct = true;
-      }
-
-      if(createAccStruct)
-      {
-        // CreateAccStruct also deletes any previous overlapping ASs on the ASB
-        if(asbWrappedResource->CreateAccStruct(asbWrappedResourceBufferOffset, preBldInfo,
-                                               &accStructAtOffset))
-        {
-          success = true;
-          D3D12ResourceRecord *record =
-              resManager->AddResourceRecord(accStructAtOffset->GetResourceID());
-          record->type = Resource_AccelerationStructure;
-          record->Length = 0;
-          accStructAtOffset->SetResourceRecord(record);
-          resManager->MarkDirtyResource(accStructAtOffset->GetResourceID());
-
-          record->AddParent(
-              resManager->GetResourceRecord(accStructAtOffset->GetBackingBufferResourceId()));
-
-          // register this AS so its resource can be created during replay
-          m_pDevice->CreateAS(asbWrappedResource, asbWrappedResourceBufferOffset, preBldInfo,
-                              accStructAtOffset);
-
-          m_pDevice->AddForcedReference(record);
-        }
-        else
-        {
-          RDCERR("Unable to create acceleration structure");
-          success = false;
-        }
-      }
-
-      return success;
-    };
-
-    EnqueueAccStructPostBuild(PostBldExecute);
+    AddSubmissionASBuildCallback(
+        false, [this, asbWrappedResourceId, asbWrappedResourceBufferOffset, byteSize]() {
+          return ProcessASBuildAfterSubmission(asbWrappedResourceId, asbWrappedResourceBufferOffset,
+                                               byteSize);
+        });
   }
 }
 

@@ -32,14 +32,6 @@ bool WrappedID3D12Device::Serialise_AddToStateObject(SerialiserType &ser,
                                                      REFIID riid,
                                                      _COM_Outptr_ void **ppNewStateObject)
 {
-  // AMD TODO - //Serialize Members
-
-  if(IsReplayingAndReading())
-  {
-    // AMD TODO
-    // Handle reading, and replaying
-  }
-
   return false;
 }
 
@@ -47,8 +39,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Device::AddToStateObject(
     const D3D12_STATE_OBJECT_DESC *pAddition, ID3D12StateObject *pStateObjectToGrowFrom,
     REFIID riid, _COM_Outptr_ void **ppNewStateObject)
 {
-  // TODO AMD
-  RDCERR("AddToStateObject called but raytracing is not supported!");
+  D3D12NOTIMP("AddToStateObject");
   return E_INVALIDARG;
 }
 

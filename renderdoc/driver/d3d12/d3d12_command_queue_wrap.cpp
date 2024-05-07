@@ -744,7 +744,7 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
       WrappedID3D12GraphicsCommandList *wrapped =
           (WrappedID3D12GraphicsCommandList *)(ppCommandLists[i]);
 
-      if(!wrapped->ExecuteAccStructPostBuilds())
+      if(!wrapped->ExecuteImmediateASBuildCallbacks())
       {
         RDCERR("Unable to execute post build for acc struct");
       }
@@ -753,6 +753,8 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
 
   if(IsCaptureMode(m_State))
   {
+    CheckAndFreeRayDispatches();
+
     rdcarray<PatchedRayDispatch::Resources> rayDispatches;
 
     if(!InFrameCaptureBoundary)

@@ -1187,8 +1187,7 @@ public:
     return this->GetResourceID();
   }
 
-  bool CreateAccStruct(D3D12BufferOffset bufferOffset,
-                       const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO &preBldInfo,
+  bool CreateAccStruct(D3D12BufferOffset bufferOffset, UINT64 byteSize,
                        D3D12AccelerationStructure **accStruct);
 
   bool GetAccStructIfExist(D3D12BufferOffset bufferOffset,
@@ -1519,12 +1518,11 @@ public:
   ALLOCATE_WITH_WRAPPED_POOL(D3D12AccelerationStructure);
 
   D3D12AccelerationStructure(WrappedID3D12Device *wrappedDevice, WrappedID3D12Resource *bufferRes,
-                             D3D12BufferOffset bufferOffset,
-                             const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO &preBldInfo);
+                             D3D12BufferOffset bufferOffset, UINT64 byteSize);
 
   ~D3D12AccelerationStructure();
 
-  uint64_t Size() const { return m_preBldInfo.ResultDataMaxSizeInBytes; }
+  uint64_t Size() const { return byteSize; }
   ResourceId GetBackingBufferResourceId() const { return m_asbWrappedResource->GetResourceID(); }
   D3D12_GPU_VIRTUAL_ADDRESS GetVirtualAddress() const
   {
@@ -1534,7 +1532,7 @@ public:
 private:
   WrappedID3D12Resource *m_asbWrappedResource;
   D3D12BufferOffset m_asbWrappedResourceBufferOffset;
-  D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO m_preBldInfo;
+  UINT64 byteSize;
 };
 
 #define ALL_D3D12_TYPES                             \

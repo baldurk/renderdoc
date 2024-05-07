@@ -1284,10 +1284,9 @@ public:
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(HRESULT, SetShaderDebugPath, ID3D12DeviceChild *pResource,
                                        const char *Path);
 
-  IMPLEMENT_FUNCTION_THREAD_SERIALISED(
-      void, CreateAS, ID3D12Resource *pResource, UINT64 resourceOffset,
-      const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO &preBldInfo,
-      D3D12AccelerationStructure *as);
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(void, CreateAS, ID3D12Resource *pResource,
+                                       UINT64 resourceOffset, UINT64 byteSize,
+                                       D3D12AccelerationStructure *as);
 
   // IHV APIs
   IMPLEMENT_FUNCTION_SERIALISED(void, SetShaderExtUAV, GPUVendor vendor, uint32_t reg,
