@@ -709,6 +709,20 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
   return true;
 }
 
+ID3D12Fence *WrappedID3D12CommandQueue::GetRayFence()
+{
+  // if we don't have a fence for this queue tracking, create it now
+  if(!m_RayFence)
+  {
+    // create this unwrapped so that it doesn't get recorded into captures
+    m_pDevice->GetReal()->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence),
+                                      (void **)&m_RayFence);
+    m_RayFence->SetName(L"Queue Ray Fence");
+  }
+
+  return m_RayFence;
+}
+
 void WrappedID3D12CommandQueue::ExecuteCommandLists(UINT NumCommandLists,
                                                     ID3D12CommandList *const *ppCommandLists)
 {
@@ -739,6 +753,8 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
   {
     SERIALISE_TIME_CALL(m_pReal->ExecuteCommandLists(NumCommandLists, unwrapped));
 
+    rdcarray<std::function<bool()>> pendingASBuildCallbacks;
+
     for(UINT i = 0; i < NumCommandLists; i++)
     {
       WrappedID3D12GraphicsCommandList *wrapped =
@@ -748,7 +764,29 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
       {
         RDCERR("Unable to execute post build for acc struct");
       }
+
+      wrapped->TakeWaitingASBuildCallbacks(pendingASBuildCallbacks);
     }
+
+    if(!pendingASBuildCallbacks.empty())
+    {
+      ID3D12Fence *fence = GetRayFence();
+
+      // these callbacks need to be synchronised at every submission to process them as soon as the
+      // results are available, since we could submit a build on one queue and then a dependent
+      // build on another queue later once it's finished without any intermediate submissions on the
+      // first queue. For that reason we pass these to the RT handler to hold onto, and tick it
+      GetResourceManager()->GetRaytracingResourceAndUtilHandler()->AddPendingASBuilds(
+          fence, m_RayFenceValue, pendingASBuildCallbacks);
+
+      // add the signal for those callbacks to wait on
+      HRESULT hr = m_pReal->Signal(fence, m_RayFenceValue++);
+      m_pDevice->CheckHRESULT(hr);
+      RDCASSERTEQUAL(hr, S_OK);
+    }
+
+    // check AS builds now
+    GetResourceManager()->GetRaytracingResourceAndUtilHandler()->CheckPendingASBuilds();
   }
 
   if(IsCaptureMode(m_State))
@@ -890,21 +928,12 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
 
     if(!rayDispatches.empty())
     {
-      // if we don't have a fence for this queue tracking, create it now
-      if(!m_RayFence)
-      {
-        // create this unwrapped so that it doesn't get recorded into captures
-        m_pDevice->GetReal()->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence),
-                                          (void **)&m_RayFence);
-        m_RayFence->SetName(L"Queue Ray Fence");
-      }
-
       for(PatchedRayDispatch::Resources &ray : rayDispatches)
         ray.fenceValue = m_RayFenceValue;
 
       m_RayDispatchesPending.append(rayDispatches);
 
-      HRESULT hr = m_pReal->Signal(m_RayFence, m_RayFenceValue++);
+      HRESULT hr = m_pReal->Signal(GetRayFence(), m_RayFenceValue++);
       m_pDevice->CheckHRESULT(hr);
       RDCASSERTEQUAL(hr, S_OK);
     }

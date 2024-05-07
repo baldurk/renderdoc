@@ -2101,6 +2101,18 @@ struct ScopedDeserialiseArray<SerialiserType, byte *>
   CONCAT(union, __LINE__).o = &obj;        \
   GET_SERIALISER.template Serialise<type>(STRING_LITERAL(#obj), *CONCAT(union, __LINE__).t)
 
+#define SERIALISE_ELEMENT_ARRAY_TYPED(type, arrayObj, countObj)                                  \
+  RDCCOMPILE_ASSERT(sizeof(*arrayObj) == sizeof(type),                                           \
+                    "Array serialised co-erced type must be identically sized");                 \
+  union                                                                                          \
+  {                                                                                              \
+    type **t;                                                                                    \
+    decltype(arrayObj) *o;                                                                       \
+  } CONCAT(union, __LINE__);                                                                     \
+  CONCAT(union, __LINE__).o = &arrayObj;                                                         \
+  GET_SERIALISER.template Serialise<type>(STRING_LITERAL(#arrayObj), *CONCAT(union, __LINE__).t, \
+                                          countObj, SerialiserFlags::AllocateMemory)
+
 #define SERIALISE_ELEMENT_ARRAY(obj, count)                                                       \
   uint64_t CONCAT(dummy_array_count, __LINE__) = 0;                                               \
   (void)CONCAT(dummy_array_count, __LINE__);                                                      \

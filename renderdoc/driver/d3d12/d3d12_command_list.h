@@ -273,7 +273,7 @@ public:
 
   void TakeWaitingASBuildCallbacks(rdcarray<std::function<bool()>> &callbacks)
   {
-    callbacks.append(m_PendingASCallbacks);
+    callbacks.append(std::move(m_PendingASCallbacks));
     m_PendingASCallbacks.clear();
   }
 

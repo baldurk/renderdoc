@@ -176,6 +176,8 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
   UINT64 m_RayFenceValue = 1;
   rdcarray<PatchedRayDispatch::Resources> m_RayDispatchesPending;
 
+  ID3D12Fence *GetRayFence();
+
   bool m_MarkedActive = false;
 
   WrappedID3D12DebugCommandQueue m_WrappedDebug;

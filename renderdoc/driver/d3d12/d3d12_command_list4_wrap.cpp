@@ -1100,10 +1100,72 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EmitRaytracingAccelerationStruc
     _In_reads_(NumSourceAccelerationStructures)
         const D3D12_GPU_VIRTUAL_ADDRESS *pSourceAccelerationStructureData)
 {
-  // TODO AMD
-  RDCERR(
-      "EmitRaytracingAccelerationStructurePostbuildInfo called but raytracing is not supported!");
-  return false;
+  ID3D12GraphicsCommandList4 *pCommandList = this;
+  SERIALISE_ELEMENT(pCommandList);
+  SERIALISE_ELEMENT_LOCAL(Desc, *pDesc).Named("pDesc");
+  SERIALISE_ELEMENT(NumSourceAccelerationStructures).Important();
+  SERIALISE_ELEMENT_ARRAY_TYPED(D3D12BufferLocation, pSourceAccelerationStructureData,
+                                NumSourceAccelerationStructures);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    if(GetWrapped(pCommandList)->GetReal4() == NULL)
+    {
+      SET_ERROR_RESULT(m_Cmd->m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ID3D12GraphicsCommandList4 which isn't available");
+      return false;
+    }
+
+    if(m_pDevice->GetOpts5().RaytracingTier == D3D12_RAYTRACING_TIER_NOT_SUPPORTED)
+    {
+      SET_ERROR_RESULT(m_Cmd->m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                       "Capture requires ray tracing support which isn't available");
+      return false;
+    }
+
+    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
+      {
+        Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
+            ->EmitRaytracingAccelerationStructurePostbuildInfo(
+                pDesc, NumSourceAccelerationStructures, pSourceAccelerationStructureData);
+      }
+    }
+    else
+    {
+      Unwrap4(pCommandList)
+          ->EmitRaytracingAccelerationStructurePostbuildInfo(pDesc, NumSourceAccelerationStructures,
+                                                             pSourceAccelerationStructureData);
+
+      m_Cmd->AddEvent();
+
+      ActionDescription action;
+      action.copyDestination = GetResourceManager()->GetOriginalID(
+          WrappedID3D12Resource::GetResIDFromAddr(pDesc->DestBuffer));
+      action.copyDestinationSubresource = Subresource();
+
+      action.flags |= ActionFlags::Copy;
+
+      m_Cmd->AddAction(action);
+
+      D3D12ActionTreeNode &actionNode = m_Cmd->GetActionStack().back()->children.back();
+
+      actionNode.resourceUsage.push_back(
+          make_rdcpair(WrappedID3D12Resource::GetResIDFromAddr(pDesc->DestBuffer),
+                       EventUsage(actionNode.action.eventId, ResourceUsage::CopyDst)));
+      for(UINT i = 0; i < NumSourceAccelerationStructures; i++)
+        actionNode.resourceUsage.push_back(make_rdcpair(
+            WrappedID3D12Resource::GetResIDFromAddr(pSourceAccelerationStructureData[i]),
+            EventUsage(actionNode.action.eventId, ResourceUsage::CopySrc)));
+    }
+  }
+
+  return true;
 }
 
 void WrappedID3D12GraphicsCommandList::EmitRaytracingAccelerationStructurePostbuildInfo(
@@ -1112,9 +1174,24 @@ void WrappedID3D12GraphicsCommandList::EmitRaytracingAccelerationStructurePostbu
     _In_reads_(NumSourceAccelerationStructures)
         const D3D12_GPU_VIRTUAL_ADDRESS *pSourceAccelerationStructureData)
 {
-  // TODO AMD
-  RDCERR(
-      "EmitRaytracingAccelerationStructurePostbuildInfo called but raytracing is not supported!");
+  SERIALISE_TIME_CALL(m_pList4->EmitRaytracingAccelerationStructurePostbuildInfo(
+      pDesc, NumSourceAccelerationStructures, pSourceAccelerationStructureData));
+
+  if(IsCaptureMode(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+    SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_EmitRaytracingAccelerationStructurePostbuildInfo);
+    Serialise_EmitRaytracingAccelerationStructurePostbuildInfo(
+        ser, pDesc, NumSourceAccelerationStructures, pSourceAccelerationStructureData);
+
+    m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
+    m_ListRecord->MarkResourceFrameReferenced(
+        WrappedID3D12Resource::GetResIDFromAddr(pDesc->DestBuffer), eFrameRef_PartialWrite);
+    for(UINT i = 0; i < NumSourceAccelerationStructures; i++)
+      m_ListRecord->MarkResourceFrameReferenced(
+          WrappedID3D12Resource::GetResIDFromAddr(pSourceAccelerationStructureData[i]),
+          eFrameRef_Read);
+  }
 }
 
 template <typename SerialiserType>
@@ -1123,8 +1200,45 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyRaytracingAccelerationStruc
     _In_ D3D12_GPU_VIRTUAL_ADDRESS SourceAccelerationStructureData,
     _In_ D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE Mode)
 {
-  // TODO AMD
-  return false;
+  ID3D12GraphicsCommandList4 *pCommandList = this;
+  SERIALISE_ELEMENT(pCommandList);
+  SERIALISE_ELEMENT_TYPED(D3D12BufferLocation, DestAccelerationStructureData)
+      .TypedAs("D3D12_GPU_VIRTUAL_ADDRESS"_lit)
+      .Important();
+  SERIALISE_ELEMENT_TYPED(D3D12BufferLocation, SourceAccelerationStructureData)
+      .TypedAs("D3D12_GPU_VIRTUAL_ADDRESS"_lit)
+      .Important();
+  SERIALISE_ELEMENT(Mode);
+
+  ID3D12GraphicsCommandList4 *dxrCmd = Unwrap4(pCommandList);
+
+  if(IsReplayingAndReading())
+  {
+    m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
+      {
+        dxrCmd->CopyRaytracingAccelerationStructure(DestAccelerationStructureData,
+                                                    SourceAccelerationStructureData, Mode);
+      }
+    }
+    else
+    {
+      dxrCmd->CopyRaytracingAccelerationStructure(DestAccelerationStructureData,
+                                                  SourceAccelerationStructureData, Mode);
+
+      m_Cmd->AddEvent();
+
+      ActionDescription actionDesc;
+      actionDesc.flags |= ActionFlags::BuildAccStruct;
+      m_Cmd->AddAction(actionDesc);
+    }
+  }
+
+  SERIALISE_CHECK_READ_ERRORS();
+  return true;
 }
 
 void WrappedID3D12GraphicsCommandList::CopyRaytracingAccelerationStructure(
@@ -1132,8 +1246,115 @@ void WrappedID3D12GraphicsCommandList::CopyRaytracingAccelerationStructure(
     _In_ D3D12_GPU_VIRTUAL_ADDRESS SourceAccelerationStructureData,
     _In_ D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE Mode)
 {
-  // TODO AMD
-  RDCERR("CopyRaytracingAccelerationStructure called but raytracing is not supported!");
+  SERIALISE_TIME_CALL(m_pList4->CopyRaytracingAccelerationStructure(
+      DestAccelerationStructureData, SourceAccelerationStructureData, Mode));
+
+  if(IsCaptureMode(m_State))
+  {
+    // Acceleration structure (AS) are created on buffer created with Acceleration structure init
+    // state which helps them differentiate between non-Acceleration structure buffers (non-ASB).
+
+    // AS creation at recording can happen at any offset, given offset + its size is less than the
+    // resource size. It can also be recorded for overwriting on same or another command list,
+    // invalidating occupying previous acceleration structure(s) in order of command list execution.
+    // It can also be updated but there are many update constraints around it.
+
+    {
+      CACHE_THREAD_SERIALISER();
+      SCOPED_SERIALISE_CHUNK(D3D12Chunk::List_CopyRaytracingAccelerationStructure);
+      Serialise_CopyRaytracingAccelerationStructure(ser, DestAccelerationStructureData,
+                                                    SourceAccelerationStructureData, Mode);
+
+      m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
+    }
+
+    ResourceId destASBId;
+    D3D12BufferOffset destASBOffset;
+
+    WrappedID3D12Resource::GetResIDFromAddr(DestAccelerationStructureData, destASBId, destASBOffset);
+
+    if(Mode != D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_SERIALIZE &&
+       Mode != D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_VISUALIZATION_DECODE_FOR_TOOLS)
+    {
+      // these outputs are not ASs themselves, so we don't need to do any further tracking
+    }
+    else if(Mode == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_DESERIALIZE ||
+            Mode == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_COMPACT)
+    {
+      // this needs special handling because the size of the destination AS is not known in advance
+      // on the CPU.
+      // For serialisation the size is given by the serialisation data - it's stored in
+      // the header of the serialisation data.
+      // For compaction the size is determined by an EmitPostbuildInfo. We could do this earlier,
+      // when the AS is first built but that would still require an asynchronous read and it could
+      // be built in the same command buffer that it's compacted.
+      //
+      // In either case we want to late-read this size. We could grab the size directly from the
+      // serialised data but instead we just do a postbuild info of the current size of the dest
+      // after the copy operation for simplicity.
+
+      D3D12GpuBuffer *sizeBuffer = NULL;
+      D3D12GpuBufferAllocator::Inst()->Alloc(D3D12GpuBufferHeapType::CustomHeapWithUavCpuAccess,
+                                             D3D12GpuBufferHeapMemoryFlag::Default, 8, 8,
+                                             &sizeBuffer);
+
+      D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC desc = {};
+      desc.DestBuffer = sizeBuffer->Address();
+      desc.InfoType = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_CURRENT_SIZE;
+
+      D3D12_RESOURCE_BARRIER barrier = {};
+      barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+
+      // wait for build to finish
+      m_pList4->ResourceBarrier(1, &barrier);
+
+      // query current size
+      m_pList4->EmitRaytracingAccelerationStructurePostbuildInfo(&desc, 1,
+                                                                 &DestAccelerationStructureData);
+
+      auto PostBldExecute = [this, destASBId, destASBOffset, sizeBuffer]() -> bool {
+        UINT64 *size = (UINT64 *)sizeBuffer->Map();
+        UINT64 destSize = *size;
+        sizeBuffer->Unmap();
+        sizeBuffer->Release();
+
+        return ProcessASBuildAfterSubmission(destASBId, destASBOffset, destSize);
+      };
+
+      AddSubmissionASBuildCallback(true, PostBldExecute);
+    }
+    else
+    {
+      ResourceId srcASBId;
+      D3D12BufferOffset srcASBOffset;
+
+      WrappedID3D12Resource::GetResIDFromAddr(SourceAccelerationStructureData, srcASBId,
+                                              srcASBOffset);
+
+      // simple clone - easy case where size is known from the source
+      // this does _not_ strictly need to be marked as pending - we could process it immediately in
+      // almost every case. However if this copy's source comes from a copy itself that is not
+      // directly processed then we need to defer this to wait until the source acceleration
+      // structure is up to date. Deferring this should not cause a problem as we will still have it
+      // up to date before any subsequent work that depends on it like beginning a capture.
+      AddSubmissionASBuildCallback(true, [this, destASBId, destASBOffset, srcASBId, srcASBOffset]() {
+        D3D12ResourceManager *resManager = m_pDevice->GetResourceManager();
+
+        D3D12AccelerationStructure *accStructAtSrcOffset = NULL;
+
+        WrappedID3D12Resource *srcASB = resManager->GetCurrentAs<WrappedID3D12Resource>(srcASBId);
+
+        // get the source AS, we should have this and can't proceed without it to give us the size
+        if(!srcASB->GetAccStructIfExist(srcASBOffset, &accStructAtSrcOffset))
+        {
+          RDCERR("Couldn't find source acceleration structure in AS copy");
+          return false;
+        }
+
+        return ProcessASBuildAfterSubmission(destASBId, destASBOffset, accStructAtSrcOffset->Size());
+      });
+    }
+  }
 }
 
 template <typename SerialiserType>

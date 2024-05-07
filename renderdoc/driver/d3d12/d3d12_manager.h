@@ -1113,6 +1113,10 @@ public:
                                       rdcarray<ResourceId> heaps,
                                       const D3D12_DISPATCH_RAYS_DESC &desc);
 
+  void AddPendingASBuilds(ID3D12Fence *fence, UINT64 waitValue,
+                          const rdcarray<std::function<bool()>> &callbacks);
+  void CheckPendingASBuilds();
+
   void ResizeSerialisationBuffer(UINT64 size);
 
   // buffer in UAV state for emitting AS queries to, CPU accessible/mappable
@@ -1157,6 +1161,15 @@ private:
     ID3D12RootSignature *rootSig = NULL;
     ID3D12PipelineState *pipe = NULL;
   } m_RayPatchingData;
+
+  struct PendingASBuild
+  {
+    ID3D12Fence *fence;
+    UINT64 fenceValue;
+    std::function<bool()> callback;
+  };
+  Threading::CriticalSection m_PendingASBuildsLock;
+  rdcarray<PendingASBuild> m_PendingASBuilds;
 };
 
 struct D3D12ResourceManagerConfiguration

@@ -5026,7 +5026,7 @@ actions.
 
 .. data:: BuildAccStruct
 
-  This action builds the acceleration structure.
+  This action builds or copies to and implicitly fills an acceleration structure.
 
 .. data:: Indexed
 

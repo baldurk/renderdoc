@@ -2591,6 +2591,9 @@ void WrappedID3D12Device::StartFrameCapture(DeviceOwnedWindow devWnd)
 
     GPUSyncAllQueues();
 
+    // wait until we've synced all queues to check for these
+    GetResourceManager()->GetRaytracingResourceAndUtilHandler()->CheckPendingASBuilds();
+
     GetResourceManager()->PrepareInitialContents();
 
     if(initStateCurList)

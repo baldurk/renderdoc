@@ -782,6 +782,43 @@ void D3D12RaytracingResourceAndUtilHandler::ResizeSerialisationBuffer(UINT64 siz
   }
 }
 
+void D3D12RaytracingResourceAndUtilHandler::AddPendingASBuilds(
+    ID3D12Fence *fence, UINT64 waitValue, const rdcarray<std::function<bool()>> &callbacks)
+{
+  SCOPED_LOCK(m_PendingASBuildsLock);
+  for(const std::function<bool()> &cb : callbacks)
+  {
+    fence->AddRef();
+    m_PendingASBuilds.push_back({fence, waitValue, cb});
+  }
+}
+
+void D3D12RaytracingResourceAndUtilHandler::CheckPendingASBuilds()
+{
+  std::map<ID3D12Fence *, UINT64> fenceValues;
+  SCOPED_LOCK(m_PendingASBuildsLock);
+
+  if(m_PendingASBuilds.empty())
+    return;
+
+  for(PendingASBuild &build : m_PendingASBuilds)
+  {
+    // first time we see each fence, get the completed value
+    if(fenceValues[build.fence] == 0)
+      fenceValues[build.fence] = build.fence->GetCompletedValue();
+
+    // if this fence has been satisfied, release our ref (so it will also get removed below) and call the callback
+    if(fenceValues[build.fence] >= build.fenceValue)
+    {
+      SAFE_RELEASE(build.fence);
+      build.callback();
+    }
+  }
+
+  // remove any builds that completed
+  m_PendingASBuilds.removeIf([](const PendingASBuild &build) { return build.fence == NULL; });
+}
+
 PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
     ID3D12GraphicsCommandList4 *unwrappedCmd, rdcarray<ResourceId> heaps,
     const D3D12_DISPATCH_RAYS_DESC &desc)
