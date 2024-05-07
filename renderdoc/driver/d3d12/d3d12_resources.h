@@ -402,6 +402,11 @@ class WrappedID3D12DescriptorHeap : public WrappedDeviceChild12<ID3D12Descriptor
   Descriptor *cachedDescriptors;
   uint64_t *mutableDescriptorBitmask;
 
+  // for GPU handles that sit in GPU memory, this is the base of our descriptors array above during
+  // capture time. When capturing this == descriptors, on replay it is the value that descriptors had
+  // (which applications then queried and passed to the GPU) which is used for GPU-unwrapping handles
+  uint64_t m_OriginalWrappedGPUBase;
+
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12DescriptorHeap);
 
@@ -441,6 +446,9 @@ public:
     handle.ptr = (UINT64)descriptors;
     return handle;
   }
+
+  void SetOriginalGPUBase(uint64_t base) { m_OriginalWrappedGPUBase = base; }
+  uint64_t GetOriginalGPUBase() { return m_OriginalWrappedGPUBase; }
 
   D3D12_CPU_DESCRIPTOR_HANDLE GetCPU(uint32_t idx)
   {

@@ -419,6 +419,10 @@ bool D3D12InitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0x10)
     return true;
 
+  // 0x11 -> 0x12 - Descriptor heaps serialise the original pointer to their descriptor array for GPU unwrapping
+  if(ver == 0x11)
+    return true;
+
   return false;
 }
 

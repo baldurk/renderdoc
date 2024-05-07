@@ -560,6 +560,8 @@ WrappedID3D12DescriptorHeap::WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *r
 
   descriptors = new D3D12Descriptor[desc.NumDescriptors];
 
+  m_OriginalWrappedGPUBase = (uint64_t)descriptors;
+
   RDCEraseMem(descriptors, sizeof(D3D12Descriptor) * desc.NumDescriptors);
   for(UINT i = 0; i < desc.NumDescriptors; i++)
     descriptors[i].Setup(this, i);

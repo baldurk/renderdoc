@@ -912,6 +912,14 @@ bool WrappedID3D12Device::Serialise_CreateDescriptorHeap(
   SERIALISE_ELEMENT_LOCAL(pHeap, ((WrappedID3D12DescriptorHeap *)*ppvHeap)->GetResourceID())
       .TypedAs("ID3D12DescriptorHeap *"_lit);
 
+  uint64_t originalGPUBase = 0;
+  if(ser.IsWriting())
+    originalGPUBase = ((WrappedID3D12DescriptorHeap *)*ppvHeap)->GetOriginalGPUBase();
+  if(ser.VersionAtLeast(0x12))
+  {
+    SERIALISE_ELEMENT(originalGPUBase).Hidden();
+  }
+
   SERIALISE_CHECK_READ_ERRORS();
 
   if(IsReplayingAndReading())
@@ -959,7 +967,12 @@ bool WrappedID3D12Device::Serialise_CreateDescriptorHeap(
     }
     else
     {
-      ret = new WrappedID3D12DescriptorHeap(ret, this, PatchedDesc, Descriptor.NumDescriptors);
+      WrappedID3D12DescriptorHeap *wrapped =
+          new WrappedID3D12DescriptorHeap(ret, this, PatchedDesc, Descriptor.NumDescriptors);
+
+      wrapped->SetOriginalGPUBase(originalGPUBase);
+
+      ret = wrapped;
 
       GetResourceManager()->AddLiveResource(pHeap, ret);
 

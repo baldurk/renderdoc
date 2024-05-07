@@ -1051,14 +1051,14 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
 
     if(heap->GetDescriptors()->GetType() == D3D12DescriptorType::Sampler)
     {
-      cbufferData.wrapped_sampHeapBase = heap->GetCPUDescriptorHandleForHeapStart().ptr;
+      cbufferData.wrapped_sampHeapBase = heap->GetOriginalGPUBase();
       cbufferData.unwrapped_sampHeapBase = heap->GetGPU(0).ptr;
       cbufferData.wrapped_sampHeapSize = heap->GetNumDescriptors() * sizeof(D3D12Descriptor);
       cbufferData.unwrapped_heapStrides |= uint16_t(heap->GetUnwrappedIncrement());
     }
     else
     {
-      cbufferData.wrapped_srvHeapBase = heap->GetCPUDescriptorHandleForHeapStart().ptr;
+      cbufferData.wrapped_srvHeapBase = heap->GetOriginalGPUBase();
       cbufferData.unwrapped_srvHeapBase = heap->GetGPU(0).ptr;
       cbufferData.wrapped_srvHeapSize = heap->GetNumDescriptors() * sizeof(D3D12Descriptor);
       cbufferData.unwrapped_heapStrides |= uint32_t(heap->GetUnwrappedIncrement()) << 16;
