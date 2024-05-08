@@ -137,6 +137,54 @@ ID3D12DeviceChild *Unwrap(ID3D12DeviceChild *ptr)
   return (ID3D12DeviceChild *)Unwrap((ID3D12Object *)ptr);
 }
 
+WRAPPED_POOL_INST(D3D12AccelerationStructure);
+
+D3D12AccelerationStructure::D3D12AccelerationStructure(WrappedID3D12Device *wrappedDevice,
+                                                       WrappedID3D12Resource *bufferRes,
+                                                       D3D12BufferOffset bufferOffset,
+                                                       UINT64 byteSize)
+    : WrappedDeviceChild12(NULL, wrappedDevice),
+      m_asbWrappedResource(bufferRes),
+      m_asbWrappedResourceBufferOffset(bufferOffset),
+      byteSize(byteSize)
+{
+}
+
+D3D12AccelerationStructure::~D3D12AccelerationStructure()
+{
+  RDCLOG("AS %s destroyed", ToStr(GetResourceID()).c_str());
+
+  Shutdown();
+}
+
+bool WrappedID3D12Resource::CreateAccStruct(D3D12BufferOffset bufferOffset, UINT64 byteSize,
+                                            D3D12AccelerationStructure **accStruct)
+{
+  SCOPED_LOCK(m_accStructResourcesCS);
+  if(m_accelerationStructMap.find(bufferOffset) == m_accelerationStructMap.end())
+  {
+    m_accelerationStructMap[bufferOffset] =
+        new D3D12AccelerationStructure(m_pDevice, this, bufferOffset, byteSize);
+
+    if(accStruct)
+    {
+      *accStruct = m_accelerationStructMap[bufferOffset];
+
+      if(IsCaptureMode(m_pDevice->GetState()))
+      {
+        size_t deletedAccStructCount = DeleteOverlappingAccStructsInRangeAtOffset(bufferOffset);
+        RDCDEBUG("Acc structure created after deleting %u overlapping acc structure(s)",
+                 deletedAccStructCount);
+        deletedAccStructCount;
+      }
+    }
+
+    return true;
+  }
+
+  return false;
+}
+
 WrappedID3D12Resource::~WrappedID3D12Resource()
 {
   SAFE_RELEASE(m_Heap);
@@ -160,6 +208,10 @@ WrappedID3D12Resource::~WrappedID3D12Resource()
       }
     }
   }
+
+  // release all ASs
+  for(auto it = m_accelerationStructMap.begin(); it != m_accelerationStructMap.end(); ++it)
+    SAFE_RELEASE(it->second);
 
   if(IsReplayMode(m_pDevice->GetState()))
     m_pDevice->RemoveReplayResource(GetResourceID());
@@ -357,52 +409,6 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Resource::WriteToSubresource(UINT DstSubr
   }
 
   return ret;
-}
-
-WRAPPED_POOL_INST(D3D12AccelerationStructure);
-
-D3D12AccelerationStructure::D3D12AccelerationStructure(WrappedID3D12Device *wrappedDevice,
-                                                       WrappedID3D12Resource *bufferRes,
-                                                       D3D12BufferOffset bufferOffset,
-                                                       UINT64 byteSize)
-    : WrappedDeviceChild12(NULL, wrappedDevice),
-      m_asbWrappedResource(bufferRes),
-      m_asbWrappedResourceBufferOffset(bufferOffset),
-      byteSize(byteSize)
-{
-}
-
-D3D12AccelerationStructure::~D3D12AccelerationStructure()
-{
-  Shutdown();
-}
-
-bool WrappedID3D12Resource::CreateAccStruct(D3D12BufferOffset bufferOffset, UINT64 byteSize,
-                                            D3D12AccelerationStructure **accStruct)
-{
-  SCOPED_LOCK(m_accStructResourcesCS);
-  if(m_accelerationStructMap.find(bufferOffset) == m_accelerationStructMap.end())
-  {
-    m_accelerationStructMap[bufferOffset] =
-        new D3D12AccelerationStructure(m_pDevice, this, bufferOffset, byteSize);
-
-    if(accStruct)
-    {
-      *accStruct = m_accelerationStructMap[bufferOffset];
-
-      if(IsCaptureMode(m_pDevice->GetState()))
-      {
-        size_t deletedAccStructCount = DeleteOverlappingAccStructsInRangeAtOffset(bufferOffset);
-        RDCDEBUG("Acc structure created after deleting %u overlapping acc structure(s)",
-                 deletedAccStructCount);
-        deletedAccStructCount;
-      }
-    }
-
-    return true;
-  }
-
-  return false;
 }
 
 bool WrappedID3D12Resource::GetAccStructIfExist(D3D12BufferOffset bufferOffset,
