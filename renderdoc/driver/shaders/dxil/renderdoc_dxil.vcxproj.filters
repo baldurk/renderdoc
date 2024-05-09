@@ -12,6 +12,7 @@
     <ClCompile Include="dxil_common.cpp" />
     <ClCompile Include="dxil_bytecode_editor.cpp" />
     <ClCompile Include="llvm_encoder.cpp" />
+    <ClCompile Include="dxil_debug.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="precompiled.h">
@@ -26,6 +27,7 @@
     <ClInclude Include="llvm_bitwriter.h" />
     <ClInclude Include="llvm_encoder.h" />
     <ClInclude Include="llvm_common.h" />
+    <ClInclude Include="dxil_debug.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="PCH">

@@ -330,8 +330,9 @@ private:
   rdcarray<ShaderBindIndex> m_accessedUAVs;
 };
 
-struct InterpretDebugger : public ShaderDebugger
+struct InterpretDebugger : public DXBCContainerDebugger
 {
+  InterpretDebugger() : DXBCContainerDebugger(false){};
   ShaderDebugTrace *BeginDebug(const DXBC::DXBCContainer *dxbcContainer,
                                const ShaderReflection &refl, int activeIndex);
 
