@@ -136,9 +136,11 @@ void PatchTable(uint byteOffset)
   bufferToPatch.Store4(byteOffset, recordData.identifier[0]);
   bufferToPatch.Store4(byteOffset + 16, recordData.identifier[1]);
 
-  if(recordData.rootSigIndex & 0xffff != 0xffff)
+  uint rootSigIndex = (recordData.rootSigIndex & 0xffff);
+
+  if(rootSigIndex != 0xffff)
   {
-    RootSig sig = rootsigs[recordData.rootSigIndex];
+    RootSig sig = rootsigs[rootSigIndex];
 
     DescriptorHeapData heaps[2];
 
@@ -156,7 +158,7 @@ void PatchTable(uint byteOffset)
 
     for(uint i = 0; i < sig.numHandles; i++)
     {
-      GPUAddress wrappedHandlePtr = bufferToPatch.Load2(sig.handleOffsets[i]);
+      GPUAddress wrappedHandlePtr = bufferToPatch.Load2(byteOffset + sig.handleOffsets[i]);
 
       bool patched = false;
       for(int h = 0; h < 2; h++)
@@ -165,9 +167,11 @@ void PatchTable(uint byteOffset)
            lessThan(wrappedHandlePtr, heaps[h].wrapped_end))
         {
           // assume the byte offsets will all fit into the LSB 32-bits
-          uint index = sub(wrappedHandlePtr, wrapped_sampHeapBase).x / WRAPPED_DESCRIPTOR_STRIDE;
+          uint index = sub(wrappedHandlePtr, heaps[h].wrapped_base).x / WRAPPED_DESCRIPTOR_STRIDE;
+
           GPUAddress handleOffset = GPUAddress(index * heaps[h].unwrapped_stride, 0);
-          bufferToPatch.Store2(sig.handleOffsets[i], add(heaps[h].unwrapped_base, handleOffset));
+          bufferToPatch.Store2(byteOffset + sig.handleOffsets[i],
+                               add(heaps[h].unwrapped_base, handleOffset));
           patched = true;
         }
       }
@@ -175,7 +179,7 @@ void PatchTable(uint byteOffset)
       if(!patched)
       {
         // won't work but is our best effort
-        bufferToPatch.Store2(sig.handleOffsets[i], GPUAddress(0, 0));
+        bufferToPatch.Store2(byteOffset + sig.handleOffsets[i], GPUAddress(0, 0));
       }
     }
   }

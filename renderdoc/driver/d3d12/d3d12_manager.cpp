@@ -872,6 +872,14 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
         exportIndex += (uint32_t)m_ExportDatabases[i]->ownExports.size();
       }
 
+      for(size_t i = 0; i < m_UniqueLocalRootSigs.size(); i++)
+      {
+        uint32_t *rootSigData = (uint32_t *)(lookupData.data() + RootSigOffset + RootSigStride * i);
+
+        rootSigData[0] = (uint32_t)m_UniqueLocalRootSigs[i].size();
+        memcpy(&rootSigData[1], m_UniqueLocalRootSigs[i].data(), m_UniqueLocalRootSigs[i].byteSize());
+      }
+
       D3D12GpuBufferAllocator::Inst()->Alloc(D3D12GpuBufferHeapType::UploadHeap,
                                              D3D12GpuBufferHeapMemoryFlag::Default,
                                              lookupData.size(), 256, &m_LookupBuffer);
