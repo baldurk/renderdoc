@@ -23,9 +23,13 @@
  ******************************************************************************/
 
 #include "common/formatting.h"
+#include "core/settings.h"
 #include "strings/string_utils.h"
 #include "dxil_bytecode.h"
 #include "dxil_common.h"
+
+RDOC_DEBUG_CONFIG(bool, D3D12_Experimental_EnableDXILShaderDebugging, false,
+                  "Enable support for experimental DXIL shader debugger");
 
 namespace DXIL
 {
@@ -1743,7 +1747,315 @@ DXBC::Reflection *Program::BuildReflection()
 
 rdcstr Program::GetDebugStatus()
 {
-  return "Debugging DXIL is not supported";
+  if(!D3D12_Experimental_EnableDXILShaderDebugging())
+    return "Debugging DXIL is not supported";
+
+  if((m_Type != DXBC::ShaderType::Vertex) && (m_Type != DXBC::ShaderType::Compute) &&
+     (m_Type != DXBC::ShaderType::Pixel))
+    return "Only DXIL Vertex, Pixel and Compute shaders are supported for debugging";
+
+  for(size_t i = 0; i < m_Functions.size(); i++)
+  {
+    const Function &f = *m_Functions[i];
+    // Only support "dx.op" external functions
+    if(f.external)
+    {
+      if(!f.name.beginsWith("dx.op.") && !f.name.beginsWith("llvm.dbg."))
+        return StringFormat::Fmt("Unsupported external function '%s'", f.name.c_str());
+    }
+
+    for(const Instruction *inst : f.instructions)
+    {
+      switch(inst->op)
+      {
+        case Operation::FPTrunc:
+        case Operation::FPExt:
+        case Operation::PtrToI:
+        case Operation::IToPtr:
+        case Operation::AddrSpaceCast:
+        case Operation::FRem:
+        case Operation::UDiv:
+        case Operation::SDiv:
+        case Operation::URem:
+        case Operation::SRem:
+        case Operation::FOrdFalse:
+        case Operation::FOrdGreater:
+        case Operation::FOrdGreaterEqual:
+        case Operation::FOrdLess:
+        case Operation::FOrdLessEqual:
+        case Operation::FOrd:
+        case Operation::FUnord:
+        case Operation::FUnordEqual:
+        case Operation::FUnordGreater:
+        case Operation::FUnordGreaterEqual:
+        case Operation::FUnordLess:
+        case Operation::FUnordLessEqual:
+        case Operation::FUnordNotEqual:
+        case Operation::FOrdTrue:
+        case Operation::UGreater:
+        case Operation::UGreaterEqual:
+        case Operation::ULess:
+        case Operation::ULessEqual:
+        case Operation::SGreater:
+        case Operation::SGreaterEqual:
+        case Operation::SLess:
+        case Operation::SLessEqual:
+        case Operation::ExtractElement:
+        case Operation::InsertElement:
+        case Operation::ShuffleVector:
+        case Operation::InsertValue:
+        case Operation::Switch:
+        case Operation::Fence:
+        case Operation::CompareExchange:
+        case Operation::LoadAtomic:
+        case Operation::StoreAtomic:
+        case Operation::AtomicExchange:
+        case Operation::AtomicAdd:
+        case Operation::AtomicSub:
+        case Operation::AtomicAnd:
+        case Operation::AtomicNand:
+        case Operation::AtomicOr:
+        case Operation::AtomicXor:
+        case Operation::AtomicMax:
+        case Operation::AtomicMin:
+        case Operation::AtomicUMax:
+        case Operation::AtomicUMin:
+          return StringFormat::Fmt("Unsupported instruction '%s'", ToStr(inst->op).c_str());
+        case Operation::Call:
+        {
+          const Function *callFunc = inst->getFuncCall();
+          rdcstr funcCallName = inst->getFuncCall()->name;
+          if(funcCallName.beginsWith("dx.op."))
+          {
+            DXOp dxOpCode = DXOp::NumOpCodes;
+            RDCASSERT(getival<DXOp>(inst->args[0], dxOpCode));
+            RDCASSERT(dxOpCode < DXOp::NumOpCodes, dxOpCode, DXOp::NumOpCodes);
+            switch(dxOpCode)
+            {
+              case DXOp::TempRegLoad:
+              case DXOp::TempRegStore:
+              case DXOp::MinPrecXRegLoad:
+              case DXOp::MinPrecXRegStore:
+              case DXOp::IsNaN:
+              case DXOp::IsInf:
+              case DXOp::IsFinite:
+              case DXOp::IsNormal:
+              case DXOp::Bfrev:
+              case DXOp::Countbits:
+              case DXOp::IMul:
+              case DXOp::UMul:
+              case DXOp::UDiv:
+              case DXOp::UAddc:
+              case DXOp::USubb:
+              case DXOp::Fma:
+              case DXOp::IMad:
+              case DXOp::UMad:
+              case DXOp::Msad:
+              case DXOp::Ibfe:
+              case DXOp::Ubfe:
+              case DXOp::Bfi:
+              case DXOp::CBufferLoad:
+              case DXOp::SampleBias:
+              case DXOp::SampleGrad:
+              case DXOp::SampleCmp:
+              case DXOp::BufferUpdateCounter:
+              case DXOp::CheckAccessFullyMapped:
+              case DXOp::TextureGather:
+              case DXOp::TextureGatherCmp:
+              case DXOp::AtomicBinOp:
+              case DXOp::AtomicCompareExchange:
+              case DXOp::Barrier:
+              case DXOp::CalculateLOD:
+              case DXOp::Discard:
+              case DXOp::DerivFineX:
+              case DXOp::DerivFineY:
+              case DXOp::EvalSnapped:
+              case DXOp::EvalSampleIndex:
+              case DXOp::EvalCentroid:
+              case DXOp::SampleIndex:
+              case DXOp::Coverage:
+              case DXOp::InnerCoverage:
+              case DXOp::EmitStream:
+              case DXOp::CutStream:
+              case DXOp::EmitThenCutStream:
+              case DXOp::GSInstanceID:
+              case DXOp::MakeDouble:
+              case DXOp::SplitDouble:
+              case DXOp::LoadOutputControlPoint:
+              case DXOp::LoadPatchConstant:
+              case DXOp::DomainLocation:
+              case DXOp::StorePatchConstant:
+              case DXOp::OutputControlPointID:
+              case DXOp::PrimitiveID:
+              case DXOp::CycleCounterLegacy:
+              case DXOp::WaveIsFirstLane:
+              case DXOp::WaveGetLaneIndex:
+              case DXOp::WaveGetLaneCount:
+              case DXOp::WaveAnyTrue:
+              case DXOp::WaveAllTrue:
+              case DXOp::WaveActiveAllEqual:
+              case DXOp::WaveActiveBallot:
+              case DXOp::WaveReadLaneAt:
+              case DXOp::WaveReadLaneFirst:
+              case DXOp::WaveActiveOp:
+              case DXOp::WaveActiveBit:
+              case DXOp::WavePrefixOp:
+              case DXOp::QuadReadLaneAt:
+              case DXOp::QuadOp:
+              case DXOp::BitcastI16toF16:
+              case DXOp::BitcastF16toI16:
+              case DXOp::BitcastI32toF32:
+              case DXOp::BitcastF32toI32:
+              case DXOp::BitcastI64toF64:
+              case DXOp::BitcastF64toI64:
+              case DXOp::LegacyF32ToF16:
+              case DXOp::LegacyF16ToF32:
+              case DXOp::LegacyDoubleToFloat:
+              case DXOp::LegacyDoubleToSInt32:
+              case DXOp::LegacyDoubleToUInt32:
+              case DXOp::WaveAllBitCount:
+              case DXOp::WavePrefixBitCount:
+              case DXOp::AttributeAtVertex:
+              case DXOp::ViewID:
+              case DXOp::InstanceID:
+              case DXOp::InstanceIndex:
+              case DXOp::HitKind:
+              case DXOp::RayFlags:
+              case DXOp::DispatchRaysIndex:
+              case DXOp::DispatchRaysDimensions:
+              case DXOp::WorldRayOrigin:
+              case DXOp::WorldRayDirection:
+              case DXOp::ObjectRayOrigin:
+              case DXOp::ObjectRayDirection:
+              case DXOp::ObjectToWorld:
+              case DXOp::WorldToObject:
+              case DXOp::RayTMin:
+              case DXOp::RayTCurrent:
+              case DXOp::IgnoreHit:
+              case DXOp::AcceptHitAndEndSearch:
+              case DXOp::TraceRay:
+              case DXOp::ReportHit:
+              case DXOp::CallShader:
+              case DXOp::CreateHandleForLib:
+              case DXOp::PrimitiveIndex:
+              case DXOp::Dot2AddHalf:
+              case DXOp::Dot4AddI8Packed:
+              case DXOp::Dot4AddU8Packed:
+              case DXOp::WaveMatch:
+              case DXOp::WaveMultiPrefixOp:
+              case DXOp::WaveMultiPrefixBitCount:
+              case DXOp::SetMeshOutputCounts:
+              case DXOp::EmitIndices:
+              case DXOp::GetMeshPayload:
+              case DXOp::StoreVertexOutput:
+              case DXOp::StorePrimitiveOutput:
+              case DXOp::DispatchMesh:
+              case DXOp::WriteSamplerFeedback:
+              case DXOp::WriteSamplerFeedbackBias:
+              case DXOp::WriteSamplerFeedbackLevel:
+              case DXOp::WriteSamplerFeedbackGrad:
+              case DXOp::AllocateRayQuery:
+              case DXOp::RayQuery_TraceRayInline:
+              case DXOp::RayQuery_Proceed:
+              case DXOp::RayQuery_Abort:
+              case DXOp::RayQuery_CommitNonOpaqueTriangleHit:
+              case DXOp::RayQuery_CommitProceduralPrimitiveHit:
+              case DXOp::RayQuery_CommittedStatus:
+              case DXOp::RayQuery_CandidateType:
+              case DXOp::RayQuery_CandidateObjectToWorld3x4:
+              case DXOp::RayQuery_CandidateWorldToObject3x4:
+              case DXOp::RayQuery_CommittedObjectToWorld3x4:
+              case DXOp::RayQuery_CommittedWorldToObject3x4:
+              case DXOp::RayQuery_CandidateProceduralPrimitiveNonOpaque:
+              case DXOp::RayQuery_CandidateTriangleFrontFace:
+              case DXOp::RayQuery_CommittedTriangleFrontFace:
+              case DXOp::RayQuery_CandidateTriangleBarycentrics:
+              case DXOp::RayQuery_CommittedTriangleBarycentrics:
+              case DXOp::RayQuery_RayFlags:
+              case DXOp::RayQuery_WorldRayOrigin:
+              case DXOp::RayQuery_WorldRayDirection:
+              case DXOp::RayQuery_RayTMin:
+              case DXOp::RayQuery_CandidateTriangleRayT:
+              case DXOp::RayQuery_CommittedRayT:
+              case DXOp::RayQuery_CandidateInstanceIndex:
+              case DXOp::RayQuery_CandidateInstanceID:
+              case DXOp::RayQuery_CandidateGeometryIndex:
+              case DXOp::RayQuery_CandidatePrimitiveIndex:
+              case DXOp::RayQuery_CandidateObjectRayOrigin:
+              case DXOp::RayQuery_CandidateObjectRayDirection:
+              case DXOp::RayQuery_CommittedInstanceIndex:
+              case DXOp::RayQuery_CommittedInstanceID:
+              case DXOp::RayQuery_CommittedGeometryIndex:
+              case DXOp::RayQuery_CommittedPrimitiveIndex:
+              case DXOp::RayQuery_CommittedObjectRayOrigin:
+              case DXOp::RayQuery_CommittedObjectRayDirection:
+              case DXOp::GeometryIndex:
+              case DXOp::RayQuery_CandidateInstanceContributionToHitGroupIndex:
+              case DXOp::RayQuery_CommittedInstanceContributionToHitGroupIndex:
+              case DXOp::CreateHandleFromHeap:
+              case DXOp::Unpack4x8:
+              case DXOp::Pack4x8:
+              case DXOp::IsHelperLane:
+              case DXOp::QuadVote:
+              case DXOp::TextureGatherRaw:
+              case DXOp::SampleCmpLevel:
+              case DXOp::TextureStoreSample:
+              case DXOp::WaveMatrix_Annotate:
+              case DXOp::WaveMatrix_Depth:
+              case DXOp::WaveMatrix_Fill:
+              case DXOp::WaveMatrix_LoadRawBuf:
+              case DXOp::WaveMatrix_LoadGroupShared:
+              case DXOp::WaveMatrix_StoreRawBuf:
+              case DXOp::WaveMatrix_StoreGroupShared:
+              case DXOp::WaveMatrix_Multiply:
+              case DXOp::WaveMatrix_MultiplyAccumulate:
+              case DXOp::WaveMatrix_ScalarOp:
+              case DXOp::WaveMatrix_SumAccumulate:
+              case DXOp::WaveMatrix_Add:
+              case DXOp::AllocateNodeOutputRecords:
+              case DXOp::GetNodeRecordPtr:
+              case DXOp::IncrementOutputCount:
+              case DXOp::OutputComplete:
+              case DXOp::GetInputRecordCount:
+              case DXOp::FinishedCrossGroupSharing:
+              case DXOp::BarrierByMemoryType:
+              case DXOp::BarrierByMemoryHandle:
+              case DXOp::BarrierByNodeRecordHandle:
+              case DXOp::CreateNodeOutputHandle:
+              case DXOp::IndexNodeHandle:
+              case DXOp::AnnotateNodeHandle:
+              case DXOp::CreateNodeInputRecordHandle:
+              case DXOp::AnnotateNodeRecordHandle:
+              case DXOp::NodeOutputIsValid:
+              case DXOp::GetRemainingRecursionLevels:
+              case DXOp::SampleCmpGrad:
+              case DXOp::SampleCmpBias:
+              case DXOp::StartVertexLocation:
+              case DXOp::StartInstanceLocation:
+              case DXOp::NumOpCodes:
+                return StringFormat::Fmt("Unsupported dx.op call `%s` %s", callFunc->name.c_str(),
+                                         ToStr(dxOpCode).c_str());
+              default: break;
+            }
+            break;
+          }
+          else if(funcCallName.beginsWith("llvm.dbg."))
+          {
+            break;
+          }
+          else
+          {
+            return StringFormat::Fmt("Unsupported function call '%s'", ToStr(callFunc->name).c_str());
+          }
+          break;
+        }
+        default: break;
+      }
+    }
+  }
+
+  // no unsupported instructions used
+  return rdcstr();
 }
 
 void Program::GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const
