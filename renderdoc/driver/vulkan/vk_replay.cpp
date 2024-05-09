@@ -4850,6 +4850,17 @@ void VulkanReplay::RefreshDerivedReplacements()
     ResourceId pipesrcid = it->first;
     const VulkanCreationInfo::Pipeline &pipeInfo = it->second;
 
+    // don't replace incomplete pipeline libraries (we already pull the full state into the final
+    // pipeline, so these are not used in replay; the libraries contain invalid dummy data for the
+    // non-available parts)
+    if(!(pipeInfo.availStages & VK_GRAPHICS_PIPELINE_LIBRARY_VERTEX_INPUT_INTERFACE_BIT_EXT) ||
+       !(pipeInfo.availStages & VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT) ||
+       !(pipeInfo.availStages & VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT) ||
+       !(pipeInfo.availStages & VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT))
+    {
+      continue;
+    }
+
     ResourceId origsrcid = rm->GetOriginalID(pipesrcid);
 
     // only look at pipelines from the capture, no replay-time programs.

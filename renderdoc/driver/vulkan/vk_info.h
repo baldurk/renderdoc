@@ -240,7 +240,7 @@ struct VulkanCreationInfo
     bool graphicsPipe = false;
 
     //  VkGraphicsPipelineLibraryCreateInfoEXT
-    VkGraphicsPipelineLibraryFlagsEXT libraryFlags;
+    VkGraphicsPipelineLibraryFlagsEXT availStages;
     rdcarray<ResourceId> parentLibraries;
 
     ResourceId compLayout;
