@@ -966,17 +966,16 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
 
   // this is used to e.g. filter specified dynamic states so we only consider the ones valid for
   // this pipeline. If we're not using libraries, all states are valid
-  VkGraphicsPipelineLibraryFlagsEXT availStages =
-      VK_GRAPHICS_PIPELINE_LIBRARY_VERTEX_INPUT_INTERFACE_BIT_EXT |
-      VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT |
-      VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT |
-      VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT;
+  availStages = VK_GRAPHICS_PIPELINE_LIBRARY_VERTEX_INPUT_INTERFACE_BIT_EXT |
+                VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT |
+                VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT |
+                VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT;
 
   const VkGraphicsPipelineLibraryCreateInfoEXT *graphicsLibraryCreate =
       (const VkGraphicsPipelineLibraryCreateInfoEXT *)FindNextStruct(
           pCreateInfo, VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT);
   if(graphicsLibraryCreate)
-    availStages = libraryFlags = graphicsLibraryCreate->flags;
+    availStages = graphicsLibraryCreate->flags;
 
   vertLayout = fragLayout = GetResID(pCreateInfo->layout);
   renderpass = GetResID(pCreateInfo->renderPass);
@@ -1451,7 +1450,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
       for(size_t i = 0; i < VkDynamicCount; i++)
         dynamicStates[i] |= pipeInfo.dynamicStates[i];
 
-      if(pipeInfo.libraryFlags & VK_GRAPHICS_PIPELINE_LIBRARY_VERTEX_INPUT_INTERFACE_BIT_EXT)
+      if(pipeInfo.availStages & VK_GRAPHICS_PIPELINE_LIBRARY_VERTEX_INPUT_INTERFACE_BIT_EXT)
       {
         vertexBindings = pipeInfo.vertexBindings;
         vertexAttrs = pipeInfo.vertexAttrs;
@@ -1460,7 +1459,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
         primitiveRestartEnable = pipeInfo.primitiveRestartEnable;
       }
 
-      if(pipeInfo.libraryFlags & VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT)
+      if(pipeInfo.availStages & VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT)
       {
         renderpass = pipeInfo.renderpass;
         subpass = pipeInfo.subpass;
@@ -1511,7 +1510,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
         flags |= pipeInfo.flags;
       }
 
-      if(pipeInfo.libraryFlags & VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT)
+      if(pipeInfo.availStages & VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT)
       {
         renderpass = pipeInfo.renderpass;
         subpass = pipeInfo.subpass;
@@ -1540,7 +1539,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
         flags |= pipeInfo.flags;
       }
 
-      if(pipeInfo.libraryFlags & VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT)
+      if(pipeInfo.availStages & VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT)
       {
         renderpass = pipeInfo.renderpass;
         subpass = pipeInfo.subpass;
