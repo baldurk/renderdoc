@@ -25,6 +25,7 @@
 #include "driver/dx/official/d3dcompiler.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "driver/shaders/dxbc/dxbc_debug.h"
+#include "driver/shaders/dxil/dxil_debug.h"
 #include "maths/formatpacking.h"
 #include "strings/string_utils.h"
 #include "d3d12_command_queue.h"
@@ -2804,17 +2805,24 @@ ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId,
 
 rdcarray<ShaderDebugState> D3D12Replay::ContinueDebug(ShaderDebugger *debugger)
 {
-  DXBCDebug::InterpretDebugger *interpreter = (DXBCDebug::InterpretDebugger *)debugger;
-
-  if(!interpreter)
+  if(!debugger)
     return {};
 
-  D3D12DebugAPIWrapper apiWrapper(m_pDevice, interpreter->dxbc, interpreter->global,
-                                  interpreter->eventId);
+  if(((DXBCContainerDebugger *)debugger)->isDXIL)
+  {
+    return {};
+  }
+  else
+  {
+    DXBCDebug::InterpretDebugger *interpreter = (DXBCDebug::InterpretDebugger *)debugger;
 
-  D3D12MarkerRegion region(m_pDevice->GetQueue()->GetReal(), "ContinueDebug Simulation Loop");
+    D3D12DebugAPIWrapper apiWrapper(m_pDevice, interpreter->dxbc, interpreter->global,
+                                    interpreter->eventId);
 
-  return interpreter->ContinueDebug(&apiWrapper);
+    D3D12MarkerRegion region(m_pDevice->GetQueue()->GetReal(), "ContinueDebug Simulation Loop");
+
+    return interpreter->ContinueDebug(&apiWrapper);
+  }
 }
 
 void D3D12Replay::FreeDebugger(ShaderDebugger *debugger)

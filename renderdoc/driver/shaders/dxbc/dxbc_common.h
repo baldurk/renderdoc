@@ -30,6 +30,12 @@
 #include "api/replay/rdcstr.h"
 #include "api/replay/shader_types.h"
 
+struct DXBCContainerDebugger : public ShaderDebugger
+{
+  DXBCContainerDebugger(bool dxil) : isDXIL(dxil){};
+  const bool isDXIL;
+};
+
 namespace DXBCBytecode
 {
 class Program;
