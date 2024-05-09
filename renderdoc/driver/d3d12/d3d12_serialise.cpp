@@ -1993,7 +1993,7 @@ template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_STATE_OBJECT_DESC &el)
 {
   SERIALISE_MEMBER(Type);
-  SERIALISE_MEMBER(NumSubobjects);
+  SERIALISE_MEMBER(NumSubobjects).Important();
 
   if(ser.IsReading())
   {

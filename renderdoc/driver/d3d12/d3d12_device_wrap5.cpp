@@ -127,14 +127,14 @@ bool WrappedID3D12Device::Serialise_CreateStateObject(SerialiserType &ser,
     else
     {
       SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
-                       "Capture requires ID3D12Device2 which isn't available");
+                       "Capture requires ID3D12Device5 which isn't available");
       return false;
     }
 
     if(FAILED(hr))
     {
       SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
-                       "Failed creating pipeline state, HRESULT: %s", ToStr(hr).c_str());
+                       "Failed creating state object, HRESULT: %s", ToStr(hr).c_str());
       return false;
     }
     else
@@ -186,75 +186,14 @@ bool WrappedID3D12Device::Serialise_CreateStateObject(SerialiserType &ser,
   return true;
 }
 
-HRESULT WrappedID3D12Device::CreateStateObject(const D3D12_STATE_OBJECT_DESC *pDesc, REFIID riid,
-                                               _COM_Outptr_ void **ppStateObject)
+HRESULT
+WrappedID3D12Device::CreateStateObject(const D3D12_STATE_OBJECT_DESC *pDesc, REFIID riid,
+                                       _COM_Outptr_ void **ppStateObject)
 {
   if(pDesc == NULL)
     return m_pDevice5->CreateStateObject(pDesc, riid, ppStateObject);
 
-  D3D12_STATE_OBJECT_DESC unwrappedDesc = *pDesc;
-  rdcarray<D3D12_STATE_SUBOBJECT> subobjects;
-  subobjects.resize(unwrappedDesc.NumSubobjects);
-
-  rdcarray<ID3D12RootSignature *> rootsigs;
-  rdcarray<ID3D12StateObject *> collections;
-  size_t numAssocs = 0;
-  for(size_t i = 0; i < subobjects.size(); i++)
-  {
-    subobjects[i] = pDesc->pSubobjects[i];
-    if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE ||
-       subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE)
-    {
-      // both structs are the same
-      D3D12_GLOBAL_ROOT_SIGNATURE *rootsig = (D3D12_GLOBAL_ROOT_SIGNATURE *)subobjects[i].pDesc;
-      rootsigs.push_back(rootsig->pGlobalRootSignature);
-    }
-    else if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION)
-    {
-      D3D12_EXISTING_COLLECTION_DESC *coll = (D3D12_EXISTING_COLLECTION_DESC *)subobjects[i].pDesc;
-      collections.push_back(coll->pExistingCollection);
-    }
-    else if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION)
-    {
-      numAssocs++;
-    }
-  }
-
-  rdcarray<D3D12_GLOBAL_ROOT_SIGNATURE> unwrappedRootsigObjs;
-  rdcarray<D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION> rebasedAssocs;
-  rdcarray<D3D12_EXISTING_COLLECTION_DESC> collObjs;
-  unwrappedRootsigObjs.resize(rootsigs.size());
-  collObjs.resize(collections.size());
-  rebasedAssocs.reserve(numAssocs);
-
-  for(size_t i = 0, r = 0, c = 0; i < subobjects.size(); i++)
-  {
-    if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE ||
-       subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE)
-    {
-      D3D12_GLOBAL_ROOT_SIGNATURE *rootsig = (D3D12_GLOBAL_ROOT_SIGNATURE *)subobjects[i].pDesc;
-      unwrappedRootsigObjs[r].pGlobalRootSignature = Unwrap(rootsig->pGlobalRootSignature);
-      subobjects[i].pDesc = &unwrappedRootsigObjs[r++];
-    }
-    else if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION)
-    {
-      D3D12_EXISTING_COLLECTION_DESC *coll = (D3D12_EXISTING_COLLECTION_DESC *)subobjects[i].pDesc;
-      collObjs[c] = *coll;
-      collObjs[c].pExistingCollection = Unwrap(collObjs[c].pExistingCollection);
-    }
-    else if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION)
-    {
-      D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION assoc =
-          *(D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION *)subobjects[i].pDesc;
-
-      size_t idx = assoc.pSubobjectToAssociate - pDesc->pSubobjects;
-      assoc.pSubobjectToAssociate = subobjects.data() + idx;
-      rebasedAssocs.push_back(assoc);
-      subobjects[i].pDesc = &rebasedAssocs.back();
-    }
-  }
-
-  unwrappedDesc.pSubobjects = subobjects.data();
+  D3D12_UNWRAPPED_STATE_OBJECT_DESC unwrappedDesc(*pDesc);
 
   if(ppStateObject == NULL)
     return m_pDevice5->CreateStateObject(&unwrappedDesc, riid, ppStateObject);
@@ -299,10 +238,23 @@ HRESULT WrappedID3D12Device::CreateStateObject(const D3D12_STATE_OBJECT_DESC *pD
       record->Length = 0;
       wrapped->SetResourceRecord(record);
 
-      for(ID3D12RootSignature *sig : rootsigs)
-        record->AddParent(GetRecord(sig));
-      for(ID3D12StateObject *coll : collections)
-        record->AddParent(GetRecord(coll));
+      for(UINT i = 0; i < pDesc->NumSubobjects; i++)
+      {
+        if(pDesc->pSubobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE ||
+           pDesc->pSubobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE)
+        {
+          // both structs are the same
+          D3D12_GLOBAL_ROOT_SIGNATURE *rootsig =
+              (D3D12_GLOBAL_ROOT_SIGNATURE *)pDesc->pSubobjects[i].pDesc;
+          record->AddParent(GetRecord(rootsig->pGlobalRootSignature));
+        }
+        else if(pDesc->pSubobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION)
+        {
+          D3D12_EXISTING_COLLECTION_DESC *coll =
+              (D3D12_EXISTING_COLLECTION_DESC *)pDesc->pSubobjects[i].pDesc;
+          record->AddParent(GetRecord(coll->pExistingCollection));
+        }
+      }
 
       if(vendorChunk)
         record->AddChunk(vendorChunk);

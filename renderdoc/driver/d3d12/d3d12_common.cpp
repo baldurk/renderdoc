@@ -1204,6 +1204,67 @@ D3D12_RASTERIZER_DESC2 Upconvert(const D3D12_RASTERIZER_DESC &desc)
   return RasterizerState;
 }
 
+D3D12_UNWRAPPED_STATE_OBJECT_DESC::D3D12_UNWRAPPED_STATE_OBJECT_DESC(
+    const D3D12_STATE_OBJECT_DESC &wrappedDesc)
+{
+  Type = wrappedDesc.Type;
+  NumSubobjects = wrappedDesc.NumSubobjects;
+
+  size_t numRoots = 0, numColls = 0, numAssocs = 0;
+
+  subobjects.resize(NumSubobjects);
+  for(size_t i = 0; i < subobjects.size(); i++)
+  {
+    subobjects[i] = wrappedDesc.pSubobjects[i];
+    if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE ||
+       subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE)
+    {
+      numRoots++;
+    }
+    else if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION)
+    {
+      numColls++;
+    }
+    else if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION)
+    {
+      numAssocs++;
+    }
+  }
+
+  unwrappedRootsigObjs.resize(numRoots);
+  collObjs.resize(numColls);
+  rebasedAssocs.reserve(numAssocs);
+
+  for(size_t i = 0, r = 0, c = 0; i < subobjects.size(); i++)
+  {
+    if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE ||
+       subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE)
+    {
+      D3D12_GLOBAL_ROOT_SIGNATURE *rootsig = (D3D12_GLOBAL_ROOT_SIGNATURE *)subobjects[i].pDesc;
+      unwrappedRootsigObjs[r].pGlobalRootSignature = Unwrap(rootsig->pGlobalRootSignature);
+      subobjects[i].pDesc = &unwrappedRootsigObjs[r++];
+    }
+    else if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION)
+    {
+      D3D12_EXISTING_COLLECTION_DESC *coll = (D3D12_EXISTING_COLLECTION_DESC *)subobjects[i].pDesc;
+      collObjs[c] = *coll;
+      collObjs[c].pExistingCollection = Unwrap(collObjs[c].pExistingCollection);
+    }
+    else if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION)
+    {
+      D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION assoc =
+          *(D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION *)subobjects[i].pDesc;
+
+      size_t idx = assoc.pSubobjectToAssociate - wrappedDesc.pSubobjects;
+      assoc.pSubobjectToAssociate = subobjects.data() + idx;
+      rebasedAssocs.push_back(assoc);
+      subobjects[i].pDesc = &rebasedAssocs.back();
+    }
+  }
+
+  pSubobjects = subobjects.data();
+}
+
 D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(
     const D3D12_GRAPHICS_PIPELINE_STATE_DESC &graphics)
 {

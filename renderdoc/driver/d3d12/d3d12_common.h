@@ -639,6 +639,17 @@ inline bool operator==(const D3D12_CPU_DESCRIPTOR_HANDLE &l, const D3D12_CPU_DES
   return l.ptr == r.ptr;
 }
 
+struct D3D12_UNWRAPPED_STATE_OBJECT_DESC : public D3D12_STATE_OBJECT_DESC
+{
+  D3D12_UNWRAPPED_STATE_OBJECT_DESC(const D3D12_STATE_OBJECT_DESC &wrappedDesc);
+
+private:
+  rdcarray<D3D12_STATE_SUBOBJECT> subobjects;
+  rdcarray<D3D12_GLOBAL_ROOT_SIGNATURE> unwrappedRootsigObjs;
+  rdcarray<D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION> rebasedAssocs;
+  rdcarray<D3D12_EXISTING_COLLECTION_DESC> collObjs;
+};
+
 // expanded version of D3D12_GRAPHICS_PIPELINE_STATE_DESC / D3D12_COMPUTE_PIPELINE_STATE_DESC with
 // all subobjects. No enums suitable to make this a stream though.
 struct D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC

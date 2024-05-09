@@ -955,6 +955,7 @@ public:
 
   ResourceId GetResourceId() { return objectOriginalId; }
 
+  void GrowFrom(D3D12ShaderExportDatabase *existing) { InheritAllCollectionExports(existing); }
   void PopulateDatabase(size_t NumSubobjects, const D3D12_STATE_SUBOBJECT *subobjects);
 
   void *GetShaderIdentifier(const rdcstr &exportName)
