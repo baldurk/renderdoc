@@ -657,6 +657,10 @@ void DXBCContainer::FillTraceLineInfo(ShaderDebugTrace &trace) const
         m_DebugInfo->GetLocals(this, i, op.offset, trace.instInfo[i].sourceVars);
     }
   }
+  else if(m_DXILByteCode)
+  {
+    RDCERR("DXIL FillTraceLineInfo not implemented");
+  }
 }
 
 void DXBCContainer::StripChunk(bytebuf &ByteCode, uint32_t fourcc)
