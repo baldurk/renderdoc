@@ -926,7 +926,7 @@ void D3D12ShaderExportDatabase::PopulateDatabase(size_t NumSubobjects,
       if(!explicitDefault)
       {
         // if multiple root signatures are defined, then there can't be an unspecified default
-        unassocDefaultValid = defaultRoot != NULL;
+        unassocDefaultValid = defaultRoot == NULL;
         defaultRoot = ((D3D12_LOCAL_ROOT_SIGNATURE *)subobjects[i].pDesc)->pLocalRootSignature;
       }
     }
