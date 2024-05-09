@@ -292,7 +292,7 @@ HRESULT WrappedID3D12Device::CreateStateObject(const D3D12_STATE_OBJECT_DESC *pD
           wrapped->GetResourceID(), GetResourceManager()->GetRaytracingResourceAndUtilHandler(),
           wrapped->GetProperties());
 
-      wrapped->exports->PopulateDatabase(subobjects.size(), subobjects.data());
+      wrapped->exports->PopulateDatabase(pDesc->NumSubobjects, pDesc->pSubobjects);
 
       D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
       record->type = Resource_PipelineState;
