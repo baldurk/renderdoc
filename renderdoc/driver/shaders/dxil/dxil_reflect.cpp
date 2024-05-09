@@ -1679,6 +1679,11 @@ DXBC::Reflection *Program::GetReflection()
   return refl;
 }
 
+rdcstr Program::GetDebugStatus()
+{
+  return "Debugging DXIL is not supported";
+}
+
 void Program::GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const
 {
   lineInfo = LineColumnInfo();

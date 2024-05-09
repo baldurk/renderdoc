@@ -25,6 +25,7 @@
 #include "dxbc_reflect.h"
 #include "common/formatting.h"
 #include "core/core.h"
+#include "driver/shaders/dxil/dxil_bytecode.h"
 #include "dxbc_bytecode.h"
 #include "dxbc_container.h"
 
@@ -373,18 +374,15 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, const ShaderEntryPoint &ent
   if(dxbc->GetDXBCByteCode())
   {
     refl->debugInfo.debugStatus = dxbc->GetDXBCByteCode()->GetDebugStatus();
-
-    refl->debugInfo.debuggable = refl->debugInfo.debugStatus.empty();
   }
   else
   {
-    refl->debugInfo.debuggable = false;
-
     if(dxbc->GetDXILByteCode())
-      refl->debugInfo.debugStatus = "Debugging DXIL is not supported";
+      refl->debugInfo.debugStatus = dxbc->GetDXILByteCode()->GetDebugStatus();
     else
       refl->debugInfo.debugStatus = "Shader contains no recognised bytecode";
   }
+  refl->debugInfo.debuggable = refl->debugInfo.debugStatus.empty();
 
   refl->encoding = ShaderEncoding::DXBC;
   refl->debugInfo.compiler = KnownShaderTool::fxc;
