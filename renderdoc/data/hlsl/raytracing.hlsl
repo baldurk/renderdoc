@@ -116,6 +116,8 @@ void PatchTable(uint byteOffset)
     if(objectLookup.id.x == wrappedRecord.id.x && objectLookup.id.y == wrappedRecord.id.y)
       break;
 
+    i++;
+
     // terminate when the lookup is empty, we're out of state objects
   } while(objectLookup.id.x != 0 || objectLookup.id.y != 0);
 
