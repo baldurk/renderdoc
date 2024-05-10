@@ -152,8 +152,6 @@ D3D12AccelerationStructure::D3D12AccelerationStructure(WrappedID3D12Device *wrap
 
 D3D12AccelerationStructure::~D3D12AccelerationStructure()
 {
-  RDCLOG("AS %s destroyed", ToStr(GetResourceID()).c_str());
-
   Shutdown();
 }
 
@@ -209,9 +207,12 @@ WrappedID3D12Resource::~WrappedID3D12Resource()
     }
   }
 
-  // release all ASs
-  for(auto it = m_accelerationStructMap.begin(); it != m_accelerationStructMap.end(); ++it)
-    SAFE_RELEASE(it->second);
+  // release all ASs during capture. During replay these will be destroyed themselves
+  if(IsCaptureMode(m_pDevice->GetState()))
+  {
+    for(auto it = m_accelerationStructMap.begin(); it != m_accelerationStructMap.end(); ++it)
+      SAFE_RELEASE(it->second);
+  }
 
   if(IsReplayMode(m_pDevice->GetState()))
     m_pDevice->RemoveReplayResource(GetResourceID());
