@@ -1667,6 +1667,16 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootSignature(ID3D12RootSignatu
 
     // store this so we can look up how many descriptors a given slot references, etc
     m_CurCompRootSig = GetWrapped(pRootSignature);
+
+    // From the docs
+    // (https://microsoft.github.io/DirectX-Specs/d3d/ResourceBinding.html#command-list-semantics)
+    // "If a root signature is changed on a command list, all previous root arguments become stale
+    // and all newly expected arguments must be set before Draw/Dispatch otherwise behavior is
+    // undefined. If the root signature is redundantly set to the same one currently set, existing
+    // root signature bindings do not become stale."
+    if(Unwrap(GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(
+           m_CaptureComputeState.compute.rootsig)) != Unwrap(pRootSignature))
+      m_CaptureComputeState.compute.sigelems.clear();
     m_CaptureComputeState.compute.rootsig = GetResID(pRootSignature);
   }
 }
