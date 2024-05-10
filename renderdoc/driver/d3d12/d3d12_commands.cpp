@@ -2089,8 +2089,16 @@ void D3D12CommandData::AddUsageForBindInRootSig(const D3D12RenderState &state,
 
         bool allInRange = (bind >= range.BaseShaderRegister && rangeSize <= range.NumDescriptors);
 
-        // move to the first descriptor in the range which is in the binding we want
-        desc += (bind - range.BaseShaderRegister);
+        // move to the first descriptor in the range which is in the binding we want, if the binding
+        // is later on in the range.
+        //
+        // It's also possible that the range is later on in the binding (e.g. if the binding is at
+        // base register 5 and is 1000000 in length, the range could start at register 10. In that
+        // case we just consume as much of the range as still fits in the bind
+        if(bind > range.BaseShaderRegister)
+          desc += (bind - range.BaseShaderRegister);
+        if(range.BaseShaderRegister > bind)
+          rangeSize -= (range.BaseShaderRegister - bind);
 
         if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
         {
