@@ -1232,7 +1232,7 @@ D3D12_UNWRAPPED_STATE_OBJECT_DESC::D3D12_UNWRAPPED_STATE_OBJECT_DESC(
   }
 
   unwrappedRootsigObjs.resize(numRoots);
-  collObjs.resize(numColls);
+  unwrappedCollObjs.resize(numColls);
   rebasedAssocs.reserve(numAssocs);
 
   for(size_t i = 0, r = 0, c = 0; i < subobjects.size(); i++)
@@ -1247,8 +1247,9 @@ D3D12_UNWRAPPED_STATE_OBJECT_DESC::D3D12_UNWRAPPED_STATE_OBJECT_DESC(
     else if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION)
     {
       D3D12_EXISTING_COLLECTION_DESC *coll = (D3D12_EXISTING_COLLECTION_DESC *)subobjects[i].pDesc;
-      collObjs[c] = *coll;
-      collObjs[c].pExistingCollection = Unwrap(collObjs[c].pExistingCollection);
+      unwrappedCollObjs[c] = *coll;
+      unwrappedCollObjs[c].pExistingCollection = Unwrap(unwrappedCollObjs[c].pExistingCollection);
+      subobjects[i].pDesc = &unwrappedCollObjs[c++];
     }
     else if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION)
     {

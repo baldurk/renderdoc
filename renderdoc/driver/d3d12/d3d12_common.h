@@ -647,7 +647,7 @@ private:
   rdcarray<D3D12_STATE_SUBOBJECT> subobjects;
   rdcarray<D3D12_GLOBAL_ROOT_SIGNATURE> unwrappedRootsigObjs;
   rdcarray<D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION> rebasedAssocs;
-  rdcarray<D3D12_EXISTING_COLLECTION_DESC> collObjs;
+  rdcarray<D3D12_EXISTING_COLLECTION_DESC> unwrappedCollObjs;
 };
 
 // expanded version of D3D12_GRAPHICS_PIPELINE_STATE_DESC / D3D12_COMPUTE_PIPELINE_STATE_DESC with
