@@ -1206,6 +1206,10 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
             (D3D12_GPU_VIRTUAL_ADDRESS *)(ResourceContents + sizeof(header));
         for(UINT64 i = 0; i < numBLAS; i++)
         {
+          // silently ignore NULL BLASs
+          if(blasAddrs[i] == 0)
+            continue;
+
           ResourceId blasId;
           UINT64 blasOffs;
           m_Device->GetResIDFromOrigAddr(blasAddrs[i], blasId, blasOffs);
