@@ -399,11 +399,33 @@ static rdcstr GetResourceShapeName(DXIL::ResourceKind shape, bool uav)
   return "INVALID RESOURCE KIND";
 };
 
+static rdcstr GetSamplerTypeName(const Type *type)
+{
+  // variable should be a pointer to the underlying type
+  RDCASSERT(type->type == Type::Pointer);
+  const Type *resType = type->inner;
+
+  // samplers should be entirely opaque, so we return the struct as-is now
+  if(resType->type == Type::Struct)
+  {
+    rdcstr compType = resType->name;
+    int start = compType.find('.');
+    if(start > 0)
+      compType = compType.substr(start + 1);
+    return compType;
+  }
+  return "UNHANDLED RESOURCE TYPE";
+}
+
 static rdcstr GetResourceTypeName(const Type *type)
 {
   // variable should be a pointer to the underlying type
   RDCASSERT(type->type == Type::Pointer);
   const Type *resType = type->inner;
+
+  // arrayed resources we want to remove the outer array-of-bindings here
+  if(resType->type == Type::Array && resType->inner->type == Type::Struct)
+    resType = resType->inner;
 
   // textures are a struct containing the inner type and a mips type
   if(resType->type == Type::Struct && !resType->members.empty())
@@ -2286,7 +2308,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                   sampler.name = s.name;
               }
             }
-            m_Disassembly += GetResourceTypeName(sampler.type);
+            m_Disassembly += GetSamplerTypeName(sampler.type);
             m_Disassembly += " " + sampler.name;
             if(sampler.regCount > 1)
             {
