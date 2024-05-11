@@ -3959,28 +3959,37 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
           rdcstr labelName;
 
           if(func.blocks[curBlock]->name.empty())
-            labelName = StringFormat::Fmt("; <label>:%u", func.blocks[curBlock]->slot);
+            labelName = StringFormat::Fmt("; <label>:%c%u ", DXIL::dxilIdentifier,
+                                          func.blocks[curBlock]->slot);
           else
-            labelName =
-                StringFormat::Fmt("%s: ", escapeStringIfNeeded(func.blocks[curBlock]->name).c_str());
+            labelName = StringFormat::Fmt("%c%s: ", DXIL::dxilIdentifier,
+                                          escapeStringIfNeeded(func.blocks[curBlock]->name).c_str());
 
-          labelName.reserve(50);
-          while(labelName.size() < 50)
+          labelName.reserve(30);
+          while(labelName.size() < 30)
             labelName.push_back(' ');
 
-          labelName += "; preds = ";
+          rdcstr predicates;
           bool first = true;
           for(const Block *pred : func.blocks[curBlock]->preds)
           {
             if(!first)
-              labelName += ", ";
+              predicates += ", ";
             first = false;
             if(pred->name.empty())
-              labelName += StringFormat::Fmt("%c%u", DXIL::dxilIdentifier, pred->slot);
+            {
+              // Ignore predicate 0
+              if(pred->slot > 0)
+                predicates += StringFormat::Fmt("%c%u", DXIL::dxilIdentifier, pred->slot);
+            }
             else
-              labelName += StringFormat::Fmt("%c%s", DXIL::dxilIdentifier,
-                                             escapeStringIfNeeded(pred->name).c_str());
+            {
+              predicates += StringFormat::Fmt("%c%s", DXIL::dxilIdentifier,
+                                              escapeStringIfNeeded(pred->name).c_str());
+            }
           }
+          if(!predicates.empty())
+            labelName += "; preds = " + predicates;
 
           m_Disassembly += labelName;
           DisassemblyAddNewLine();
