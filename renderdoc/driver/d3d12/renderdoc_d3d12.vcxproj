@@ -130,6 +130,7 @@
     <ClCompile Include="d3d12_device_wrap7.cpp" />
     <ClCompile Include="d3d12_device_wrap8.cpp" />
     <ClCompile Include="d3d12_device_wrap9.cpp" />
+    <ClCompile Include="d3d12_dxil_debug.cpp" />
     <ClCompile Include="d3d12_hooks.cpp" />
     <ClCompile Include="d3d12_initstate.cpp" />
     <ClCompile Include="d3d12_manager.cpp" />
@@ -163,6 +164,7 @@
     <ClInclude Include="d3d12_common.h" />
     <ClInclude Include="d3d12_debug.h" />
     <ClInclude Include="d3d12_device.h" />
+    <ClInclude Include="d3d12_dxil_debug.h" />
     <ClInclude Include="d3d12_hooks.h" />
     <ClInclude Include="d3d12_manager.h" />
     <ClInclude Include="..\dx\official\d3d12.h" />
