@@ -925,9 +925,9 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
 
     unwrappedCmd->CopyBufferRegion(scratchBuffer->Resource(), scratchBuffer->Offset() + hitOffs,
                                    res, offs, desc.HitGroupTable.SizeInBytes);
-  }
 
-  ret.desc.HitGroupTable.StartAddress = scratchBuffer->Address() + hitOffs;
+    ret.desc.HitGroupTable.StartAddress = scratchBuffer->Address() + hitOffs;
+  }
 
   if(desc.CallableShaderTable.SizeInBytes > 0)
   {
@@ -946,9 +946,9 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
 
     unwrappedCmd->CopyBufferRegion(scratchBuffer->Resource(), scratchBuffer->Offset() + callOffs,
                                    res, offs, desc.CallableShaderTable.SizeInBytes);
-  }
 
-  ret.desc.CallableShaderTable.StartAddress = scratchBuffer->Address() + callOffs;
+    ret.desc.CallableShaderTable.StartAddress = scratchBuffer->Address() + callOffs;
+  }
 
   barrier.Transition.pResource = scratchBuffer->Resource();
   barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
