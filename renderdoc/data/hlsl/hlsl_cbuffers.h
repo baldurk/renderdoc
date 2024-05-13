@@ -309,9 +309,11 @@ cbuffer RayDispatchPatchCB REG(b0)
   uint wrapped_sampHeapSize;
   uint wrapped_srvHeapSize;
   uint unwrapped_heapStrides;    // LSB = sampler, MSB = srv
+
+  uint numPatchingAddrs;
 };
 
-#define MAX_LOCALSIG_HANDLES 31
+#define MAX_LOCALSIG_PARAMS 31
 #define WRAPPED_DESCRIPTOR_STRIDE 64
 
 cbuffer DebugSampleOperation REG(b0)

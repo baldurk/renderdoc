@@ -829,70 +829,7 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
 
   D3D12MarkerRegion region(unwrappedCmd, "PatchRayDispatch");
 
-  {
-    SCOPED_LOCK(m_LookupBufferLock);
-    if(m_LookupBufferDirty)
-    {
-      m_LookupBufferDirty = false;
-      SAFE_RELEASE(m_LookupBuffer);
-
-      bytebuf lookupData;
-
-      const size_t ObjectLookupStride = sizeof(ResourceId) + sizeof(uint32_t);
-      const size_t RecordDataStride = sizeof(D3D12ShaderExportDatabase::ExportedIdentifier);
-      const size_t RootSigStride = sizeof(uint32_t) * 32;
-
-      size_t numExports = 0;
-      for(size_t i = 0; i < m_ExportDatabases.size(); i++)
-        numExports += m_ExportDatabases[i]->ownExports.size();
-
-      const size_t ObjectLookupOffset = lookupData.size();
-      // we include one extra export database as a NULL terminator
-      lookupData.resize(lookupData.size() + (m_ExportDatabases.size() + 1) * ObjectLookupStride);
-      lookupData.resize(AlignUp(lookupData.size(), (size_t)256U));
-
-      const size_t RecordDataOffset = lookupData.size();
-      lookupData.resize(lookupData.size() + numExports * RecordDataStride);
-      lookupData.resize(AlignUp(lookupData.size(), (size_t)256U));
-
-      const size_t RootSigOffset = lookupData.size();
-      lookupData.resize(lookupData.size() + m_UniqueLocalRootSigs.size() * RootSigStride);
-
-      uint32_t exportIndex = 0;
-      for(size_t i = 0; i < m_ExportDatabases.size(); i++)
-      {
-        ResourceId id = m_ExportDatabases[i]->GetResourceId();
-        memcpy(lookupData.data() + ObjectLookupOffset + i * ObjectLookupStride, &id, sizeof(id));
-        memcpy(lookupData.data() + ObjectLookupOffset + i * ObjectLookupStride + sizeof(ResourceId),
-               &exportIndex, sizeof(exportIndex));
-
-        memcpy(lookupData.data() + RecordDataOffset + RecordDataStride * exportIndex,
-               m_ExportDatabases[i]->ownExports.data(), m_ExportDatabases[i]->ownExports.byteSize());
-
-        exportIndex += (uint32_t)m_ExportDatabases[i]->ownExports.size();
-      }
-
-      for(size_t i = 0; i < m_UniqueLocalRootSigs.size(); i++)
-      {
-        uint32_t *rootSigData = (uint32_t *)(lookupData.data() + RootSigOffset + RootSigStride * i);
-
-        rootSigData[0] = (uint32_t)m_UniqueLocalRootSigs[i].size();
-        memcpy(&rootSigData[1], m_UniqueLocalRootSigs[i].data(), m_UniqueLocalRootSigs[i].byteSize());
-      }
-
-      D3D12GpuBufferAllocator::Inst()->Alloc(D3D12GpuBufferHeapType::UploadHeap,
-                                             D3D12GpuBufferHeapMemoryFlag::Default,
-                                             lookupData.size(), 256, &m_LookupBuffer);
-
-      memcpy(m_LookupBuffer->Map(), lookupData.data(), lookupData.size());
-      m_LookupBuffer->Unmap();
-
-      D3D12_GPU_VIRTUAL_ADDRESS baseAddr = m_LookupBuffer->Address();
-      m_LookupAddrs[0] = baseAddr + ObjectLookupOffset;
-      m_LookupAddrs[1] = baseAddr + RecordDataOffset;
-      m_LookupAddrs[2] = baseAddr + RootSigOffset;
-    }
-  }
+  PrepareRayDispatchBuffer(NULL);
 
   D3D12GpuBuffer *scratchBuffer = NULL;
 
@@ -1073,6 +1010,8 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
     }
   }
 
+  cbufferData.numPatchingAddrs = m_NumPatchingAddrs;
+
   unwrappedCmd->SetPipelineState(m_RayPatchingData.pipe);
   unwrappedCmd->SetComputeRootSignature(m_RayPatchingData.rootSig);
   unwrappedCmd->SetComputeRoot32BitConstants((UINT)D3D12PatchRayDispatchParam::RootConstantBuffer,
@@ -1085,6 +1024,8 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
                                                  m_LookupAddrs[1]);
   unwrappedCmd->SetComputeRootShaderResourceView((UINT)D3D12PatchRayDispatchParam::RootSigData,
                                                  m_LookupAddrs[2]);
+  unwrappedCmd->SetComputeRootShaderResourceView((UINT)D3D12PatchRayDispatchParam::AddrPatchData,
+                                                 m_LookupAddrs[3]);
   unwrappedCmd->Dispatch(1 + cbufferData.raydispatch_misscount + cbufferData.raydispatch_hitcount +
                              cbufferData.raydispatch_callcount,
                          1, 1);
@@ -1106,12 +1047,113 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
   return ret;
 }
 
+void D3D12RaytracingResourceAndUtilHandler::PrepareRayDispatchBuffer(
+    const GPUAddressRangeTracker *origAddresses)
+{
+  SCOPED_LOCK(m_LookupBufferLock);
+  if(m_LookupBufferDirty || origAddresses)
+  {
+    m_LookupBufferDirty = false;
+    SAFE_RELEASE(m_LookupBuffer);
+
+    bytebuf lookupData;
+
+    const size_t ObjectLookupStride = sizeof(ResourceId) + sizeof(uint32_t);
+    const size_t RecordDataStride = sizeof(D3D12ShaderExportDatabase::ExportedIdentifier);
+    const size_t RootSigStride = sizeof(uint32_t) * 32;
+
+    size_t numExports = 0;
+    for(size_t i = 0; i < m_ExportDatabases.size(); i++)
+      numExports += m_ExportDatabases[i]->ownExports.size();
+
+    const size_t ObjectLookupOffset = lookupData.size();
+    // we include one extra export database as a NULL terminator
+    lookupData.resize(lookupData.size() + (m_ExportDatabases.size() + 1) * ObjectLookupStride);
+    lookupData.resize(AlignUp(lookupData.size(), (size_t)256U));
+
+    const size_t RecordDataOffset = lookupData.size();
+    lookupData.resize(lookupData.size() + numExports * RecordDataStride);
+    lookupData.resize(AlignUp(lookupData.size(), (size_t)256U));
+
+    const size_t RootSigOffset = lookupData.size();
+    lookupData.resize(lookupData.size() + m_UniqueLocalRootSigs.size() * RootSigStride);
+
+    const size_t PatchAddrOffset = lookupData.size();
+    if(origAddresses)
+    {
+      lookupData.resize(lookupData.size() + sizeof(BlasAddressPair) * origAddresses->addresses.size());
+    }
+    else
+    {
+      lookupData.resize(lookupData.size() + sizeof(BlasAddressPair));
+    }
+
+    uint32_t exportIndex = 0;
+    for(size_t i = 0; i < m_ExportDatabases.size(); i++)
+    {
+      ResourceId id = m_ExportDatabases[i]->GetResourceId();
+      memcpy(lookupData.data() + ObjectLookupOffset + i * ObjectLookupStride, &id, sizeof(id));
+      memcpy(lookupData.data() + ObjectLookupOffset + i * ObjectLookupStride + sizeof(ResourceId),
+             &exportIndex, sizeof(exportIndex));
+
+      memcpy(lookupData.data() + RecordDataOffset + RecordDataStride * exportIndex,
+             m_ExportDatabases[i]->ownExports.data(), m_ExportDatabases[i]->ownExports.byteSize());
+
+      exportIndex += (uint32_t)m_ExportDatabases[i]->ownExports.size();
+    }
+
+    for(size_t i = 0; i < m_UniqueLocalRootSigs.size(); i++)
+    {
+      uint32_t *rootSigData = (uint32_t *)(lookupData.data() + RootSigOffset + RootSigStride * i);
+
+      rootSigData[0] = (uint32_t)m_UniqueLocalRootSigs[i].size();
+      memcpy(&rootSigData[1], m_UniqueLocalRootSigs[i].data(), m_UniqueLocalRootSigs[i].byteSize());
+    }
+
+    m_NumPatchingAddrs = 0;
+
+    for(size_t i = 0; origAddresses && i < origAddresses->addresses.size(); i++)
+    {
+      GPUAddressRange addressRange = origAddresses->addresses[i];
+      ResourceId resId = addressRange.id;
+      if(m_wrappedDevice->GetResourceManager()->HasLiveResource(resId))
+      {
+        WrappedID3D12Resource *wrappedRes =
+            (WrappedID3D12Resource *)m_wrappedDevice->GetResourceManager()->GetLiveResource(resId);
+
+        BlasAddressPair addressPair;
+        addressPair.oldAddress.start = addressRange.start;
+        addressPair.oldAddress.end = addressRange.realEnd;
+
+        addressPair.newAddress.start = wrappedRes->GetGPUVirtualAddress();
+        addressPair.newAddress.end = addressPair.newAddress.start + wrappedRes->GetDesc().Width;
+        memcpy(lookupData.data() + PatchAddrOffset + sizeof(BlasAddressPair) * m_NumPatchingAddrs,
+               &addressPair, sizeof(addressPair));
+        m_NumPatchingAddrs++;
+      }
+    }
+
+    D3D12GpuBufferAllocator::Inst()->Alloc(D3D12GpuBufferHeapType::UploadHeap,
+                                           D3D12GpuBufferHeapMemoryFlag::Default, lookupData.size(),
+                                           256, &m_LookupBuffer);
+
+    memcpy(m_LookupBuffer->Map(), lookupData.data(), lookupData.size());
+    m_LookupBuffer->Unmap();
+
+    D3D12_GPU_VIRTUAL_ADDRESS baseAddr = m_LookupBuffer->Address();
+    m_LookupAddrs[0] = baseAddr + ObjectLookupOffset;
+    m_LookupAddrs[1] = baseAddr + RecordDataOffset;
+    m_LookupAddrs[2] = baseAddr + RootSigOffset;
+    m_LookupAddrs[3] = baseAddr + PatchAddrOffset;
+  }
+}
+
 void D3D12RaytracingResourceAndUtilHandler::InitRayDispatchPatchingResources()
 {
-  // need 4x 2-DWORD root buffers, the rest we can have for constants.
+  // need 5x 2-DWORD root buffers, the rest we can have for constants.
   // this could be made another buffer to track but it fits in push constants so we'll use them
-  RDCCOMPILE_ASSERT((sizeof(RayDispatchPatchCB) / sizeof(uint32_t)) + 4 * 2 < 64,
-                    "Root signature constnats are too large");
+  RDCCOMPILE_ASSERT((sizeof(RayDispatchPatchCB) / sizeof(uint32_t)) + 5 * 2 < 64,
+                    "Root signature constants are too large");
 
   // Root Signature
   rdcarray<D3D12_ROOT_PARAMETER1> rootParameters;
@@ -1162,6 +1204,16 @@ void D3D12RaytracingResourceAndUtilHandler::InitRayDispatchPatchingResources()
     rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
     rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
     rootParam.Descriptor.ShaderRegister = 2;
+    rootParam.Descriptor.RegisterSpace = 0;
+    rootParam.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
+    rootParameters.push_back(rootParam);
+  }
+
+  {
+    D3D12_ROOT_PARAMETER1 rootParam;
+    rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+    rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    rootParam.Descriptor.ShaderRegister = 3;
     rootParam.Descriptor.RegisterSpace = 0;
     rootParam.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
     rootParameters.push_back(rootParam);
@@ -1297,7 +1349,7 @@ void D3D12RaytracingResourceAndUtilHandler::InitReplayBlasPatchingResources()
 
 uint32_t D3D12RaytracingResourceAndUtilHandler::RegisterLocalRootSig(const D3D12RootSignature &sig)
 {
-  rdcarray<uint32_t> tableOffsets;
+  rdcarray<uint32_t> patchOffsets;
   uint32_t offset = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
   for(uint32_t i = 0; i < sig.Parameters.size(); i++)
   {
@@ -1306,7 +1358,12 @@ uint32_t D3D12RaytracingResourceAndUtilHandler::RegisterLocalRootSig(const D3D12
       offset = AlignUp(offset, 8U);
 
     if(sig.Parameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
-      tableOffsets.push_back(offset);
+      patchOffsets.push_back(offset);
+
+    if(sig.Parameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_CBV ||
+       sig.Parameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV ||
+       sig.Parameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV)
+      patchOffsets.push_back(0x80000000U | offset);
 
     if(sig.Parameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
       offset += sig.Parameters[i].Constants.Num32BitValues * sizeof(uint32_t);
@@ -1314,21 +1371,21 @@ uint32_t D3D12RaytracingResourceAndUtilHandler::RegisterLocalRootSig(const D3D12
       offset += sizeof(uint64_t);
   }
 
-  if(tableOffsets.size() > MAX_LOCALSIG_HANDLES)
-    RDCERR("Local root signature uses more than %zu handles, will fail to patch",
-           tableOffsets.size());
+  if(patchOffsets.size() > MAX_LOCALSIG_PARAMS)
+    RDCERR("Local root signature uses more than %zu patchable parameters, will fail to patch",
+           patchOffsets.size());
 
   // no patching needed if no tables
-  if(tableOffsets.empty())
+  if(patchOffsets.empty())
     return ~0U;
 
   SCOPED_LOCK(m_LookupBufferLock);
 
-  int idx = m_UniqueLocalRootSigs.indexOf(tableOffsets);
+  int idx = m_UniqueLocalRootSigs.indexOf(patchOffsets);
   if(idx < 0)
   {
     idx = m_UniqueLocalRootSigs.count();
-    m_UniqueLocalRootSigs.push_back(tableOffsets);
+    m_UniqueLocalRootSigs.push_back(patchOffsets);
     m_LookupBufferDirty = true;
   }
 

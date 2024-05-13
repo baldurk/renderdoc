@@ -2497,6 +2497,8 @@ bool WrappedID3D12Device::Serialise_BeginCaptureFrame(SerialiserType &ser)
     m_InitialResourceStates = m_ResourceStates;
 
     GetDebugManager()->PrepareExecuteIndirectPatching(m_OrigGPUAddresses);
+    GetResourceManager()->GetRaytracingResourceAndUtilHandler()->PrepareRayDispatchBuffer(
+        &m_OrigGPUAddresses);
   }
 
   std::map<ResourceId, SubresourceStateVector> initialStates;

@@ -1045,6 +1045,7 @@ enum class D3D12PatchRayDispatchParam
   StateObjectData,
   RecordData,
   RootSigData,
+  AddrPatchData,
   Count,
 };
 
@@ -1109,6 +1110,8 @@ public:
   void RegisterExportDatabase(D3D12ShaderExportDatabase *db);
   void UnregisterExportDatabase(D3D12ShaderExportDatabase *db);
 
+  void PrepareRayDispatchBuffer(const GPUAddressRangeTracker *origAddresses);
+
   PatchedRayDispatch PatchRayDispatch(ID3D12GraphicsCommandList4 *unwrappedCmd,
                                       rdcarray<ResourceId> heaps,
                                       const D3D12_DISPATCH_RAYS_DESC &desc);
@@ -1142,7 +1145,8 @@ private:
   Threading::CriticalSection m_LookupBufferLock;
 
   D3D12GpuBuffer *m_LookupBuffer = NULL;
-  D3D12_GPU_VIRTUAL_ADDRESS m_LookupAddrs[3] = {};
+  D3D12_GPU_VIRTUAL_ADDRESS m_LookupAddrs[4] = {};
+  uint32_t m_NumPatchingAddrs = 0;
 
   // each unique set of descriptor table offsets are stored here, so any root signatures which
   // only vary in ways that don't affect which tables are contained within them (and so don't

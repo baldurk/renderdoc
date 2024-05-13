@@ -75,8 +75,8 @@ StructuredBuffer<RecordData> records : register(t1);
 
 struct RootSig
 {
-  uint numHandles;
-  uint handleOffsets[MAX_LOCALSIG_HANDLES];
+  uint numParams;
+  uint paramOffsets[MAX_LOCALSIG_PARAMS];
 };
 
 StructuredBuffer<RootSig> rootsigs : register(t2);
@@ -86,6 +86,8 @@ struct WrappedRecord
   uint2 id;    // ResourceId
   uint index;
 };
+
+StructuredBuffer<BlasAddressPair> patchAddressesPair : register(t3);
 
 RWByteAddressBuffer bufferToPatch : register(u0);
 
@@ -158,30 +160,55 @@ void PatchTable(uint byteOffset)
     heaps[0].unwrapped_base = unwrapped_sampHeapBase;
     heaps[1].unwrapped_base = unwrapped_srvHeapBase;
 
-    for(uint i = 0; i < sig.numHandles; i++)
+    for(uint i = 0; i < sig.numParams; i++)
     {
-      GPUAddress wrappedHandlePtr = bufferToPatch.Load2(byteOffset + sig.handleOffsets[i]);
+      uint paramOffset = sig.paramOffsets[i] & 0xffff;
+      bool isHandle = (sig.paramOffsets[i] & 0xffff0000) == 0;
 
-      bool patched = false;
-      for(int h = 0; h < 2; h++)
+      if(isHandle)
       {
-        if(lessEqual(heaps[h].wrapped_base, wrappedHandlePtr) &&
-           lessThan(wrappedHandlePtr, heaps[h].wrapped_end))
-        {
-          // assume the byte offsets will all fit into the LSB 32-bits
-          uint index = sub(wrappedHandlePtr, heaps[h].wrapped_base).x / WRAPPED_DESCRIPTOR_STRIDE;
+        GPUAddress wrappedHandlePtr = bufferToPatch.Load2(byteOffset + paramOffset);
 
-          GPUAddress handleOffset = GPUAddress(index * heaps[h].unwrapped_stride, 0);
-          bufferToPatch.Store2(byteOffset + sig.handleOffsets[i],
-                               add(heaps[h].unwrapped_base, handleOffset));
-          patched = true;
+        bool patched = false;
+        for(int h = 0; h < 2; h++)
+        {
+          if(lessEqual(heaps[h].wrapped_base, wrappedHandlePtr) &&
+             lessThan(wrappedHandlePtr, heaps[h].wrapped_end))
+          {
+            // assume the byte offsets will all fit into the LSB 32-bits
+            uint index = sub(wrappedHandlePtr, heaps[h].wrapped_base).x / WRAPPED_DESCRIPTOR_STRIDE;
+
+            GPUAddress handleOffset = GPUAddress(index * heaps[h].unwrapped_stride, 0);
+            bufferToPatch.Store2(byteOffset + paramOffset,
+                                 add(heaps[h].unwrapped_base, handleOffset));
+            patched = true;
+          }
+        }
+
+        if(!patched)
+        {
+          // won't work but is our best effort
+          bufferToPatch.Store2(byteOffset + paramOffset, GPUAddress(0, 0));
         }
       }
-
-      if(!patched)
+      else
       {
-        // won't work but is our best effort
-        bufferToPatch.Store2(byteOffset + sig.handleOffsets[i], GPUAddress(0, 0));
+        // during capture addresses don't have to be patched, only patch them on replay
+        if(numPatchingAddrs > 0)
+        {
+          GPUAddress origAddress = bufferToPatch.Load2(byteOffset + paramOffset);
+
+          for(uint i = 0; i < numPatchingAddrs; i++)
+          {
+            if(InRange(patchAddressesPair[i].oldAddress, origAddress))
+            {
+              GPUAddress offset = sub(origAddress, patchAddressesPair[i].oldAddress.start);
+              bufferToPatch.Store2(byteOffset + paramOffset,
+                                   add(patchAddressesPair[i].newAddress.start, offset));
+              break;
+            }
+          }
+        }
       }
     }
   }
