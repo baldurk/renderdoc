@@ -1852,14 +1852,13 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
     ret->inputs = state.inputs;
 
     delete[] instData;
+
+    dxbc->FillTraceLineInfo(*ret);
   }
   else
   {
     RDCERR("TODO ADD DXIL VERTEX SHADER DEBUGGER SUPPORT");
   }
-
-  if(ret)
-    dxbc->FillTraceLineInfo(*ret);
 
   return ret;
 }
@@ -2693,14 +2692,13 @@ void ExtractInputsPS(PSInput IN,
 
     ret->constantBlocks = global.constantBlocks;
     ret->inputs = state.inputs;
+
+    dxbc->FillTraceLineInfo(*ret);
   }
   else
   {
     RDCERR("TODO ADD DXIL PIXEL SHADER DEBUGGER SUPPORT");
   }
-
-  if(ret)
-    dxbc->FillTraceLineInfo(*ret);
 
   return ret;
 }
@@ -2775,6 +2773,8 @@ ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId,
 
     ret->constantBlocks = global.constantBlocks;
 
+    dxbc->FillTraceLineInfo(*ret);
+
     // add fake inputs for semantics
     for(size_t i = 0; i < dxbc->GetDXBCByteCode()->GetNumDeclarations(); i++)
     {
@@ -2833,9 +2833,6 @@ ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId,
   {
     RDCERR("TODO ADD DXIL COMPUTE SHADER DEBUGGER SUPPORT");
   }
-
-  if(ret)
-    dxbc->FillTraceLineInfo(*ret);
 
   return ret;
 }
