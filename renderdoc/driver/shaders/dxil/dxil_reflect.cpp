@@ -2033,6 +2033,7 @@ rdcstr DoStringise(const DXIL::DXOp &el)
     STRINGISE_ENUM_CLASS(SampleCmpBias);
     STRINGISE_ENUM_CLASS(StartVertexLocation);
     STRINGISE_ENUM_CLASS(StartInstanceLocation);
+    STRINGISE_ENUM_CLASS(NumOpCodes);
   }
   END_ENUM_STRINGISE();
 }

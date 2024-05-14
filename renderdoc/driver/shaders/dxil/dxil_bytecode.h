@@ -570,6 +570,7 @@ enum class DXOp : uint32_t
   SampleCmpBias = 255,
   StartVertexLocation = 256,
   StartInstanceLocation = 257,
+  NumOpCodes = 258,
 };
 
 enum class AtomicBinOpCode : uint32_t
