@@ -503,7 +503,7 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
     RDCASSERT(!isShaderModel6_6OrAbove);
     handle = editor.InsertInstruction(
         f, startInst++,
-        editor.CreateInstruction(createHandle, DXOp::createHandle,
+        editor.CreateInstruction(createHandle, DXOp::CreateHandle,
                                  {
                                      // kind = UAV
                                      editor.CreateConstant((uint8_t)HandleKind::UAV),
@@ -533,7 +533,7 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
 
     Instruction *handleCreate = editor.InsertInstruction(
         f, startInst++,
-        editor.CreateInstruction(createHandleFromBinding, DXOp::createHandleFromBinding,
+        editor.CreateInstruction(createHandleFromBinding, DXOp::CreateHandleFromBinding,
                                  {
                                      // resBind
                                      resBindConstant,
@@ -546,7 +546,7 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
     handle = editor.InsertInstruction(
         f, startInst++,
         editor.CreateInstruction(
-            annotateHandle, DXOp::annotateHandle,
+            annotateHandle, DXOp::AnnotateHandle,
             {
                 // Resource handle
                 handleCreate,
@@ -566,7 +566,7 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
 
   // insert an OR to offset 0, just to indicate validity
   editor.InsertInstruction(f, startInst++,
-                           editor.CreateInstruction(atomicBinOp, DXOp::atomicBinOp,
+                           editor.CreateInstruction(atomicBinOp, DXOp::AtomicBinOp,
                                                     {
                                                         // feedback UAV handle
                                                         handle,
@@ -719,7 +719,7 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
                                                             }));
 
       editor.InsertInstruction(f, i++,
-                               editor.CreateInstruction(atomicBinOp, DXOp::atomicBinOp,
+                               editor.CreateInstruction(atomicBinOp, DXOp::AtomicBinOp,
                                                         {
                                                             // feedback UAV handle
                                                             handle,
@@ -883,7 +883,7 @@ static bool AnnotateDXILShader(const DXBC::DXBCContainer *dxbc, uint32_t space,
       uint32_t stageMask = (uint32_t)MaskForStage(GetShaderStage(editor.GetShaderType()));
       feedbackValue |= (stageMask << magicFeedbackStageShift) & magicFeedbackStageMask;
       editor.InsertInstruction(f, i++,
-                               editor.CreateInstruction(atomicBinOp, DXOp::atomicBinOp,
+                               editor.CreateInstruction(atomicBinOp, DXOp::AtomicBinOp,
                                                         {
                                                             // feedback UAV handle
                                                             handle,

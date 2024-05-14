@@ -120,7 +120,7 @@ static void PayloadBufferCopy(PayloadCopyDir dir, DXIL::ProgramEditor &editor, D
 
       Instruction *srcRet = editor.InsertInstruction(
           f, curInst++,
-          editor.CreateInstruction(loadBuf, DXOp::rawBufferLoad,
+          editor.CreateInstruction(loadBuf, DXOp::RawBufferLoad,
                                    {handle, offset, editor.CreateUndef(i32),
                                     editor.CreateConstant((uint8_t)0x1), align}));
 
@@ -156,7 +156,7 @@ static void PayloadBufferCopy(PayloadCopyDir dir, DXIL::ProgramEditor &editor, D
       editor.InsertInstruction(
           f, curInst++,
           editor.CreateInstruction(
-              storeBuf, DXOp::rawBufferStore,
+              storeBuf, DXOp::RawBufferStore,
               {handle, offset, editor.CreateUndef(i32), load, editor.CreateUndef(memberType),
                editor.CreateUndef(memberType), editor.CreateUndef(memberType),
                editor.CreateConstant((uint8_t)0x1), align}));
@@ -450,7 +450,7 @@ static void AddDXILAmpShaderPayloadStores(const DXBC::DXBCContainer *dxbc, uint3
     RDCASSERT(!isShaderModel6_6OrAbove);
     handle = editor.InsertInstruction(
         f, prelimInst++,
-        editor.CreateInstruction(createHandle, DXOp::createHandle,
+        editor.CreateInstruction(createHandle, DXOp::CreateHandle,
                                  {
                                      // kind = UAV
                                      editor.CreateConstant((uint8_t)HandleKind::UAV),
@@ -480,7 +480,7 @@ static void AddDXILAmpShaderPayloadStores(const DXBC::DXBCContainer *dxbc, uint3
 
     Instruction *unannotatedHandle = editor.InsertInstruction(
         f, prelimInst++,
-        editor.CreateInstruction(createHandleFromBinding, DXOp::createHandleFromBinding,
+        editor.CreateInstruction(createHandleFromBinding, DXOp::CreateHandleFromBinding,
                                  {
                                      // resBind
                                      resBindConstant,
@@ -500,7 +500,7 @@ static void AddDXILAmpShaderPayloadStores(const DXBC::DXBCContainer *dxbc, uint3
         });
 
     handle = editor.InsertInstruction(f, prelimInst++,
-                                      editor.CreateInstruction(annotateHandle, DXOp::annotateHandle,
+                                      editor.CreateInstruction(annotateHandle, DXOp::AnnotateHandle,
                                                                {
                                                                    // Resource handle
                                                                    unannotatedHandle,
@@ -523,17 +523,17 @@ static void AddDXILAmpShaderPayloadStores(const DXBC::DXBCContainer *dxbc, uint3
   {
     // get our output location from group ID
     groupX = editor.InsertInstruction(f, prelimInst++,
-                                      editor.CreateInstruction(groupId, DXOp::groupId, {i32_0}));
+                                      editor.CreateInstruction(groupId, DXOp::GroupId, {i32_0}));
     groupY = editor.InsertInstruction(f, prelimInst++,
-                                      editor.CreateInstruction(groupId, DXOp::groupId, {i32_1}));
+                                      editor.CreateInstruction(groupId, DXOp::GroupId, {i32_1}));
     groupZ = editor.InsertInstruction(f, prelimInst++,
-                                      editor.CreateInstruction(groupId, DXOp::groupId, {i32_2}));
+                                      editor.CreateInstruction(groupId, DXOp::GroupId, {i32_2}));
   }
 
   // get the flat thread ID for comparisons
   Instruction *flatId = editor.InsertInstruction(
       f, prelimInst++,
-      editor.CreateInstruction(flattenedThreadIdInGroup, DXOp::flattenedThreadIdInGroup, {}));
+      editor.CreateInstruction(flattenedThreadIdInGroup, DXOp::FlattenedThreadIdInGroup, {}));
 
   Value *dimX = editor.CreateConstant(dispatchDim[0]);
   Value *dimY = editor.CreateConstant(dispatchDim[1]);
@@ -615,7 +615,7 @@ static void AddDXILAmpShaderPayloadStores(const DXBC::DXBCContainer *dxbc, uint3
 
       editor.InsertInstruction(
           f, i++,
-          editor.CreateInstruction(barrier, DXOp::barrier,
+          editor.CreateInstruction(barrier, DXOp::Barrier,
                                    {
                                        // barrier & TGSM sync
                                        editor.CreateConstant(uint32_t(0x1 | 0x8)),
@@ -629,7 +629,7 @@ static void AddDXILAmpShaderPayloadStores(const DXBC::DXBCContainer *dxbc, uint3
       editor.InsertInstruction(
           f, i++,
           editor.CreateInstruction(
-              rawBufferStore, DXOp::rawBufferStore,
+              rawBufferStore, DXOp::RawBufferStore,
               {handle, xOffset, editor.CreateUndef(i32), inst.args[1], editor.CreateUndef(i32),
                editor.CreateUndef(i32), editor.CreateUndef(i32),
                editor.CreateConstant((uint8_t)0x1), align}));
@@ -641,7 +641,7 @@ static void AddDXILAmpShaderPayloadStores(const DXBC::DXBCContainer *dxbc, uint3
       editor.InsertInstruction(
           f, i++,
           editor.CreateInstruction(
-              rawBufferStore, DXOp::rawBufferStore,
+              rawBufferStore, DXOp::RawBufferStore,
               {handle, yOffset, editor.CreateUndef(i32), inst.args[2], editor.CreateUndef(i32),
                editor.CreateUndef(i32), editor.CreateUndef(i32),
                editor.CreateConstant((uint8_t)0x1), align}));
@@ -653,7 +653,7 @@ static void AddDXILAmpShaderPayloadStores(const DXBC::DXBCContainer *dxbc, uint3
       editor.InsertInstruction(
           f, i++,
           editor.CreateInstruction(
-              rawBufferStore, DXOp::rawBufferStore,
+              rawBufferStore, DXOp::RawBufferStore,
               {handle, zOffset, editor.CreateUndef(i32), inst.args[3], editor.CreateUndef(i32),
                editor.CreateUndef(i32), editor.CreateUndef(i32),
                editor.CreateConstant((uint8_t)0x1), align}));
@@ -958,7 +958,7 @@ static void ConvertToFixedDXILAmpFeeder(const DXBC::DXBCContainer *dxbc, uint32_
   {
     RDCASSERT(!isShaderModel6_6OrAbove);
     handle = editor.AddInstruction(
-        f, editor.CreateInstruction(createHandle, DXOp::createHandle,
+        f, editor.CreateInstruction(createHandle, DXOp::CreateHandle,
                                     {
                                         // kind = UAV
                                         editor.CreateConstant((uint8_t)HandleKind::UAV),
@@ -987,7 +987,7 @@ static void ConvertToFixedDXILAmpFeeder(const DXBC::DXBCContainer *dxbc, uint32_
                                            });
 
     Instruction *unannotatedHandle = editor.AddInstruction(
-        f, editor.CreateInstruction(createHandleFromBinding, DXOp::createHandleFromBinding,
+        f, editor.CreateInstruction(createHandleFromBinding, DXOp::CreateHandleFromBinding,
                                     {
                                         // resBind
                                         resBindConstant,
@@ -1006,7 +1006,7 @@ static void ConvertToFixedDXILAmpFeeder(const DXBC::DXBCContainer *dxbc, uint32_
             editor.CreateConstant(0U),
         });
 
-    handle = editor.AddInstruction(f, editor.CreateInstruction(annotateHandle, DXOp::annotateHandle,
+    handle = editor.AddInstruction(f, editor.CreateInstruction(annotateHandle, DXOp::AnnotateHandle,
                                                                {
                                                                    // Resource handle
                                                                    unannotatedHandle,
@@ -1024,11 +1024,11 @@ static void ConvertToFixedDXILAmpFeeder(const DXBC::DXBCContainer *dxbc, uint32_
 
   // get our output location from group ID
   Instruction *groupX =
-      editor.AddInstruction(f, editor.CreateInstruction(groupId, DXOp::groupId, {i32_0}));
+      editor.AddInstruction(f, editor.CreateInstruction(groupId, DXOp::GroupId, {i32_0}));
   Instruction *groupY =
-      editor.AddInstruction(f, editor.CreateInstruction(groupId, DXOp::groupId, {i32_1}));
+      editor.AddInstruction(f, editor.CreateInstruction(groupId, DXOp::GroupId, {i32_1}));
   Instruction *groupZ =
-      editor.AddInstruction(f, editor.CreateInstruction(groupId, DXOp::groupId, {i32_2}));
+      editor.AddInstruction(f, editor.CreateInstruction(groupId, DXOp::GroupId, {i32_2}));
 
   // linearise it based on the number of dispatches
   Instruction *groupYMul = editor.AddInstruction(
@@ -1047,7 +1047,7 @@ static void ConvertToFixedDXILAmpFeeder(const DXBC::DXBCContainer *dxbc, uint32_
                                   {flatIndex, editor.CreateConstant(payloadSize + 16)}));
 
   Instruction *dimAndOffset = editor.AddInstruction(
-      f, editor.CreateInstruction(rawBufferLoad, DXOp::rawBufferLoad,
+      f, editor.CreateInstruction(rawBufferLoad, DXOp::RawBufferLoad,
                                   {handle, baseOffset, editor.CreateUndef(i32),
                                    editor.CreateConstant((uint8_t)0xf), i32_4}));
 
@@ -1093,7 +1093,7 @@ static void ConvertToFixedDXILAmpFeeder(const DXBC::DXBCContainer *dxbc, uint32_
     editor.AddInstruction(f, store);
   }
 
-  editor.AddInstruction(f, editor.CreateInstruction(dispatchMesh, DXOp::dispatchMesh,
+  editor.AddInstruction(f, editor.CreateInstruction(dispatchMesh, DXOp::DispatchMesh,
                                                     {dimX, dimY, dimZ, payloadVariable}));
   editor.AddInstruction(f, editor.CreateInstruction(Operation::Ret, voidType, {}));
 }
@@ -1504,7 +1504,7 @@ static void AddDXILMeshShaderOutputStores(uint32_t ampPayloadSize, const DXBC::D
     RDCASSERT(!isShaderModel6_6OrAbove);
     handle = editor.InsertInstruction(
         f, prelimInst++,
-        editor.CreateInstruction(createHandle, DXOp::createHandle,
+        editor.CreateInstruction(createHandle, DXOp::CreateHandle,
                                  {
                                      // kind = UAV
                                      editor.CreateConstant((uint8_t)HandleKind::UAV),
@@ -1534,7 +1534,7 @@ static void AddDXILMeshShaderOutputStores(uint32_t ampPayloadSize, const DXBC::D
 
     Instruction *unannotatedHandle = editor.InsertInstruction(
         f, prelimInst++,
-        editor.CreateInstruction(createHandleFromBinding, DXOp::createHandleFromBinding,
+        editor.CreateInstruction(createHandleFromBinding, DXOp::CreateHandleFromBinding,
                                  {
                                      // resBind
                                      resBindConstant,
@@ -1554,7 +1554,7 @@ static void AddDXILMeshShaderOutputStores(uint32_t ampPayloadSize, const DXBC::D
         });
 
     handle = editor.InsertInstruction(f, prelimInst++,
-                                      editor.CreateInstruction(annotateHandle, DXOp::annotateHandle,
+                                      editor.CreateInstruction(annotateHandle, DXOp::AnnotateHandle,
                                                                {
                                                                    // Resource handle
                                                                    unannotatedHandle,
@@ -1578,17 +1578,17 @@ static void AddDXILMeshShaderOutputStores(uint32_t ampPayloadSize, const DXBC::D
   {
     // get our output location from group ID
     groupX = editor.InsertInstruction(f, prelimInst++,
-                                      editor.CreateInstruction(groupId, DXOp::groupId, {i32_0}));
+                                      editor.CreateInstruction(groupId, DXOp::GroupId, {i32_0}));
     groupY = editor.InsertInstruction(f, prelimInst++,
-                                      editor.CreateInstruction(groupId, DXOp::groupId, {i32_1}));
+                                      editor.CreateInstruction(groupId, DXOp::GroupId, {i32_1}));
     groupZ = editor.InsertInstruction(f, prelimInst++,
-                                      editor.CreateInstruction(groupId, DXOp::groupId, {i32_2}));
+                                      editor.CreateInstruction(groupId, DXOp::GroupId, {i32_2}));
   }
 
   // get the flat thread ID for comparisons
   Instruction *flatId = editor.InsertInstruction(
       f, prelimInst++,
-      editor.CreateInstruction(flattenedThreadIdInGroup, DXOp::flattenedThreadIdInGroup, {}));
+      editor.CreateInstruction(flattenedThreadIdInGroup, DXOp::FlattenedThreadIdInGroup, {}));
 
   Value *dimX = NULL, *dimY = NULL;
   Instruction *dispatchBaseMeshletIdx = NULL;
@@ -1612,7 +1612,7 @@ static void AddDXILMeshShaderOutputStores(uint32_t ampPayloadSize, const DXBC::D
     // if there wasn't one before (because we added the payload, or it was unused) we can just add our own
     if(!payloadLoad)
       payloadLoad = editor.InsertInstruction(
-          f, prelimInst++, editor.CreateInstruction(getMeshPayload, DXOp::getMeshPayload, {}));
+          f, prelimInst++, editor.CreateInstruction(getMeshPayload, DXOp::GetMeshPayload, {}));
 
     Type *i32ptr = editor.CreatePointerType(i32, Type::PointerAddrSpace::Default);
 
@@ -1714,7 +1714,7 @@ static void AddDXILMeshShaderOutputStores(uint32_t ampPayloadSize, const DXBC::D
       editor.InsertInstruction(
           f, i++,
           editor.CreateInstruction(
-              rawBufferStore, DXOp::rawBufferStore,
+              rawBufferStore, DXOp::RawBufferStore,
               {handle, writeOffset, editor.CreateUndef(i32), inst.args[1], editor.CreateUndef(i32),
                editor.CreateUndef(i32), editor.CreateUndef(i32),
                editor.CreateConstant((uint8_t)0x1), i32_4}));
@@ -1725,7 +1725,7 @@ static void AddDXILMeshShaderOutputStores(uint32_t ampPayloadSize, const DXBC::D
       editor.InsertInstruction(
           f, i++,
           editor.CreateInstruction(
-              rawBufferStore, DXOp::rawBufferStore,
+              rawBufferStore, DXOp::RawBufferStore,
               {handle, writeOffset, editor.CreateUndef(i32), inst.args[2], editor.CreateUndef(i32),
                editor.CreateUndef(i32), editor.CreateUndef(i32),
                editor.CreateConstant((uint8_t)0x1), i32_4}));
@@ -1812,7 +1812,7 @@ static void AddDXILMeshShaderOutputStores(uint32_t ampPayloadSize, const DXBC::D
       editor.InsertInstruction(
           f, i++,
           editor.CreateInstruction(
-              rawBufferStore, DXOp::rawBufferStore,
+              rawBufferStore, DXOp::RawBufferStore,
               {handle, writeOffset, editor.CreateUndef(i32), value, editor.CreateUndef(value->type),
                editor.CreateUndef(value->type), editor.CreateUndef(value->type),
                editor.CreateConstant((uint8_t)0x1), i32_4}));
@@ -1895,7 +1895,7 @@ static void AddDXILMeshShaderOutputStores(uint32_t ampPayloadSize, const DXBC::D
       editor.InsertInstruction(
           f, i++,
           editor.CreateInstruction(
-              rawBufferStore, DXOp::rawBufferStore,
+              rawBufferStore, DXOp::RawBufferStore,
               {handle, writeOffset, editor.CreateUndef(i32), value, editor.CreateUndef(value->type),
                editor.CreateUndef(value->type), editor.CreateUndef(value->type),
                editor.CreateConstant((uint8_t)0x1), i32_4}));
@@ -1922,7 +1922,7 @@ static void AddDXILMeshShaderOutputStores(uint32_t ampPayloadSize, const DXBC::D
       editor.InsertInstruction(
           f, i++,
           editor.CreateInstruction(
-              rawBufferStore, DXOp::rawBufferStore,
+              rawBufferStore, DXOp::RawBufferStore,
               {handle, writeOffset, editor.CreateUndef(i32), inst.args[2], editor.CreateUndef(i32),
                editor.CreateUndef(i32), editor.CreateUndef(i32),
                editor.CreateConstant((uint8_t)0x1), i32_4}));
@@ -1934,7 +1934,7 @@ static void AddDXILMeshShaderOutputStores(uint32_t ampPayloadSize, const DXBC::D
       editor.InsertInstruction(
           f, i++,
           editor.CreateInstruction(
-              rawBufferStore, DXOp::rawBufferStore,
+              rawBufferStore, DXOp::RawBufferStore,
               {handle, writeOffset, editor.CreateUndef(i32), inst.args[3], editor.CreateUndef(i32),
                editor.CreateUndef(i32), editor.CreateUndef(i32),
                editor.CreateConstant((uint8_t)0x1), i32_4}));
@@ -1948,7 +1948,7 @@ static void AddDXILMeshShaderOutputStores(uint32_t ampPayloadSize, const DXBC::D
         editor.InsertInstruction(
             f, i++,
             editor.CreateInstruction(
-                rawBufferStore, DXOp::rawBufferStore,
+                rawBufferStore, DXOp::RawBufferStore,
                 {handle, writeOffset, editor.CreateUndef(i32), inst.args[4],
                  editor.CreateUndef(i32), editor.CreateUndef(i32), editor.CreateUndef(i32),
                  editor.CreateConstant((uint8_t)0x1), i32_4}));
