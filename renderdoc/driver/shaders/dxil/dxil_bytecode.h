@@ -1294,7 +1294,6 @@ public:
   const rdcstr &GetDisassembly(bool dxcStyle, const DXBC::Reflection *reflection);
 
   // IDebugInfo interface
-
   rdcstr GetCompilerSig() const override { return m_CompilerSig; }
   rdcstr GetEntryFunction() const override { return m_EntryPoint; }
   rdcstr GetShaderProfile() const override { return m_Profile; }
@@ -1305,6 +1304,7 @@ public:
   bool HasSourceMapping() const override;
   void GetLocals(const DXBC::DXBCContainer *dxbc, size_t instruction, uintptr_t offset,
                  rdcarray<SourceVariableMapping> &locals) const override;
+  // IDebugInfo interface
 
   const Metadata *GetMetadataByName(const rdcstr &name) const;
   uint32_t GetDirectHeapAcessCount() const { return m_directHeapAccessCount; }
