@@ -287,7 +287,9 @@ EntryPointInterface::Signature::Signature(const Metadata *signature)
   startCol = getival<int8_t>(signature->children[SignatureElement::StartCol]);
 }
 
-EntryPointInterface::ResourceBase::ResourceBase(const Metadata *resourceBase)
+EntryPointInterface::ResourceBase::ResourceBase(ResourceClass resourceClass,
+                                                const Metadata *resourceBase)
+    : resClass(resourceClass)
 {
   id = getival<uint32_t>(resourceBase->children[(size_t)ResField::ID]);
   type = resourceBase->children[(size_t)ResField::VarDecl]->type;
@@ -297,7 +299,7 @@ EntryPointInterface::ResourceBase::ResourceBase(const Metadata *resourceBase)
   regCount = getival<uint32_t>(resourceBase->children[(size_t)ResField::RegCount]);
 }
 
-EntryPointInterface::SRV::SRV(const Metadata *srv) : ResourceBase(srv)
+EntryPointInterface::SRV::SRV(const Metadata *srv) : ResourceBase(ResourceClass::SRV, srv)
 {
   shape = getival<ResourceKind>(srv->children[(size_t)ResField::SRVShape]);
   sampleCount = getival<uint32_t>(srv->children[(size_t)ResField::SRVSampleCount]);
@@ -319,7 +321,7 @@ EntryPointInterface::SRV::SRV(const Metadata *srv) : ResourceBase(srv)
   }
 }
 
-EntryPointInterface::UAV::UAV(const Metadata *uav) : ResourceBase(uav)
+EntryPointInterface::UAV::UAV(const Metadata *uav) : ResourceBase(ResourceClass::UAV, uav)
 {
   shape = getival<ResourceKind>(uav->children[(size_t)ResField::UAVShape]);
   globallCoherent = (getival<uint32_t>(uav->children[(size_t)ResField::UAVGloballyCoherent]) == 1);
@@ -349,7 +351,8 @@ EntryPointInterface::UAV::UAV(const Metadata *uav) : ResourceBase(uav)
   }
 }
 
-EntryPointInterface::CBuffer::CBuffer(const Metadata *cbuffer) : ResourceBase(cbuffer)
+EntryPointInterface::CBuffer::CBuffer(const Metadata *cbuffer)
+    : ResourceBase(ResourceClass::CBuffer, cbuffer)
 {
   sizeInBytes = getival<uint32_t>(cbuffer->children[(size_t)ResField::CBufferByteSize]);
   const Metadata *tags = cbuffer->children[(size_t)ResField::CBufferTags];
@@ -363,7 +366,8 @@ EntryPointInterface::CBuffer::CBuffer(const Metadata *cbuffer) : ResourceBase(cb
   cbufferRefl = NULL;
 }
 
-EntryPointInterface::Sampler::Sampler(const Metadata *sampler) : ResourceBase(sampler)
+EntryPointInterface::Sampler::Sampler(const Metadata *sampler)
+    : ResourceBase(ResourceClass::Sampler, sampler)
 {
   samplerType = getival<SamplerKind>(sampler->children[(size_t)ResField::SamplerType]);
 }
@@ -544,16 +548,19 @@ static DXBC::CBufferVariableType MakePayloadType(const TypeInfo &typeInfo, const
   return ret;
 }
 
-void Program::FetchEntryPointInterfaces(rdcarray<EntryPointInterface> &entryPointInterfaces)
+void Program::FillEntryPointInterfaces()
 {
+  if(!m_EntryPointInterfaces.isEmpty())
+    return;
+
   DXMeta dx(m_NamedMeta);
 
-  entryPointInterfaces.clear();
+  m_EntryPointInterfaces.clear();
   if(!dx.entryPoints)
     return;
 
   for(size_t c = 0; c < dx.entryPoints->children.size(); ++c)
-    entryPointInterfaces.emplace_back(dx.entryPoints->children[c]);
+    m_EntryPointInterfaces.emplace_back(dx.entryPoints->children[c]);
 }
 
 void Program::FetchComputeProperties(DXBC::Reflection *reflection)
@@ -1716,6 +1723,39 @@ void Program::GetLocals(const DXBC::DXBCContainer *dxbc, size_t instruction, uin
                         rdcarray<SourceVariableMapping> &locals) const
 {
   locals.clear();
+}
+
+rdcstr Program::GetResourceReferenceName(ResourceClass resClass, const BindingSlot &slot) const
+{
+  for(const ResourceReference &resRef : m_ResourceReferences)
+  {
+    if(resRef.resourceBase.resClass != resClass)
+      continue;
+    if(resRef.resourceBase.space != slot.registerSpace)
+      continue;
+    if(resRef.resourceBase.regBase > slot.shaderRegister)
+      continue;
+    if(resRef.resourceBase.regBase + resRef.resourceBase.regCount < slot.shaderRegister)
+      continue;
+
+    return resRef.handleID;
+  }
+  RDCERR("Failed to find DXIL %s Resource Space %d Register %d", ToStr(resClass).c_str(),
+         slot.registerSpace, slot.shaderRegister);
+  return "UNKNOWN_RESOURCE_HANDLE";
+}
+
+const ResourceReference *Program::GetResourceReference(const rdcstr &handleStr) const
+{
+  if(m_ResourceHandles.count(handleStr) > 0)
+  {
+    size_t resRefIndex = m_ResourceHandles.find(handleStr)->second;
+    if(resRefIndex < m_ResourceHandles.size())
+    {
+      return &m_ResourceReferences[resRefIndex];
+    }
+  }
+  return NULL;
 }
 
 };    // namespace DXIL

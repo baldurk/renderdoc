@@ -474,11 +474,22 @@ rdcstr GetCBufferVariableTypeName(const DXBC::CBufferVariableType &type)
   return ret;
 }
 
-void Program::SettleIDs()
+void Program::Parse(const DXBC::Reflection *reflection)
 {
-  if(m_SettledIDs)
+  if(m_Parsed)
     return;
 
+  SettleIDs();
+
+  m_EntryPointInterfaces.clear();
+  FillEntryPointInterfaces();
+  ParseReferences(reflection);
+
+  m_Parsed = true;
+}
+
+void Program::SettleIDs()
+{
   RDCASSERTEQUAL(m_NextMetaSlot, 0);
   RDCASSERT(m_MetaSlots.isEmpty());
 
@@ -689,8 +700,6 @@ void Program::SettleIDs()
 
     m_FuncAttrGroups.push_back(m_AttributeGroups[i]);
   }
-
-  m_SettledIDs = true;
 }
 
 const Metadata *Program::FindMetadata(uint32_t slot) const
@@ -1008,7 +1017,19 @@ const rdcstr &Program::GetDisassembly(bool dxcStyle, const DXBC::Reflection *ref
   if(m_Disassembly.empty() || (dxcStyle != m_DXCStyle))
   {
     m_DXCStyle = dxcStyle;
-    SettleIDs();
+    // Need to set the style formatting before Parse() to get consistent SSA identifiers
+    if(m_DXCStyle)
+    {
+      DXIL::dxcStyleFormatting = true;
+      DXIL::dxilIdentifier = '%';
+    }
+    else
+    {
+      DXIL::dxcStyleFormatting = false;
+      DXIL::dxilIdentifier = '_';
+    }
+
+    Parse(reflection);
 
     if(dxcStyle)
       MakeDXCDisassemblyString();
@@ -1020,9 +1041,6 @@ const rdcstr &Program::GetDisassembly(bool dxcStyle, const DXBC::Reflection *ref
 
 void Program::MakeDXCDisassemblyString()
 {
-  DXIL::dxcStyleFormatting = true;
-  DXIL::dxilIdentifier = '%';
-
   m_Disassembly.clear();
 #if DISABLED(DXC_COMPATIBLE_DISASM)
   m_Disassembly += StringFormat::Fmt("; %s Shader, compiled under SM%u.%u\n\n",
@@ -2034,25 +2052,8 @@ static rdcstr MakeCBufferRegisterStr(uint32_t reg, DXIL::EntryPointInterface::CB
   return ret;
 }
 
-struct ResourceHandle
-{
-  rdcstr name;
-  ResourceClass resourceClass;
-  uint32_t resourceIndex = 0;
-  union
-  {
-    const DXIL::EntryPointInterface::UAV *uav;
-    const DXIL::EntryPointInterface::SRV *srv;
-    const DXIL::EntryPointInterface::CBuffer *cbuffer;
-    const DXIL::EntryPointInterface::Sampler *sampler;
-  };
-};
-
 void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 {
-  DXIL::dxcStyleFormatting = false;
-  DXIL::dxilIdentifier = '_';
-
   m_Disassembly.clear();
   m_DisassemblyInstructionLine = 1;
 
@@ -2066,9 +2067,6 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
   const char *swizzle = "xyzw";
 
-  rdcarray<EntryPointInterface> entryPoints;
-  FetchEntryPointInterfaces(entryPoints);
-
   for(size_t i = 0; i < m_Functions.size(); i++)
   {
     const Function &func = *m_Functions[i];
@@ -2081,11 +2079,11 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
     if(!func.external)
     {
       EntryPointInterface *entryPoint = NULL;
-      for(size_t e = 0; e < entryPoints.size(); ++e)
+      for(size_t e = 0; e < m_EntryPointInterfaces.size(); ++e)
       {
-        if(func.name == entryPoints[e].name)
+        if(func.name == m_EntryPointInterfaces[e].name)
         {
-          entryPoint = &entryPoints[e];
+          entryPoint = &m_EntryPointInterfaces[e];
           break;
         }
       }
@@ -2172,15 +2170,6 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
             if(needBlankLine)
               DisassemblyAddNewLine();
             EntryPointInterface::SRV &srv = entryPoint->srvs[j];
-            if(srv.name.empty() && reflection)
-            {
-              for(DXBC::ShaderInputBind bind : reflection->SRVs)
-              {
-                if((bind.space == srv.space) && (bind.reg == srv.regBase) &&
-                   (bind.bindCount == srv.regCount))
-                  srv.name = bind.name;
-              }
-            }
             m_Disassembly += GetResourceShapeName(srv.shape, false);
             m_Disassembly += "<" + GetResourceTypeName(srv.type) + ">";
             m_Disassembly += " " + srv.name;
@@ -2206,15 +2195,6 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
             if(needBlankLine)
               DisassemblyAddNewLine();
             EntryPointInterface::UAV &uav = entryPoint->uavs[j];
-            if(uav.name.empty() && reflection)
-            {
-              for(DXBC::ShaderInputBind bind : reflection->UAVs)
-              {
-                if((bind.space == uav.space) && (bind.reg == uav.regBase) &&
-                   (bind.bindCount == uav.regCount))
-                  uav.name = bind.name;
-              }
-            }
             m_Disassembly += GetResourceShapeName(uav.shape, true);
             m_Disassembly += "<" + GetResourceTypeName(uav.type) + ">";
             m_Disassembly += " " + uav.name;
@@ -2248,8 +2228,6 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 if((cb.space == cbuffer.space) && (cb.reg == cbuffer.regBase) &&
                    (cb.bindCount == cbuffer.regCount))
                 {
-                  if(cbuffer.name.empty())
-                    cbuffer.name = cb.name;
                   if(!cbuffer.cbufferRefl)
                     cbuffer.cbufferRefl = &reflection->CBuffers[cbIdx];
                 }
@@ -2299,15 +2277,6 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
             if(needBlankLine)
               DisassemblyAddNewLine();
             EntryPointInterface::Sampler &sampler = entryPoint->samplers[j];
-            if(sampler.name.empty() && reflection)
-            {
-              for(DXBC::ShaderInputBind s : reflection->Samplers)
-              {
-                if((s.space == sampler.space) && (s.reg == sampler.regBase) &&
-                   (s.bindCount == sampler.regCount))
-                  sampler.name = s.name;
-              }
-            }
             m_Disassembly += GetSamplerTypeName(sampler.type);
             m_Disassembly += " " + sampler.name;
             if(sampler.regCount > 1)
@@ -2349,7 +2318,6 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
       m_Disassembly += "{";
       DisassemblyAddNewLine();
 
-      std::map<rdcstr, ResourceHandle> resHandles;
       std::map<rdcstr, rdcstr> ssaAliases;
 
       size_t curBlock = 0;
@@ -2483,77 +2451,28 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               uint32_t dxopCode;
               RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
               RDCASSERTEQUAL(dxopCode, (uint32_t)DXOp::createHandle);
-              rdcstr handleStr = resultIdStr;
-              ResourceClass resClass;
-              rdcstr resName;
-              uint32_t resIndex;
-              bool hasResIndex = getival<uint32_t>(inst.args[2], resIndex);
-              if(getival<ResourceClass>(inst.args[1], resClass))
-              {
-                if(hasResIndex)
-                {
-                  ResourceHandle resHandle;
-                  bool validRes = true;
-                  switch(resClass)
-                  {
-                    case ResourceClass::SRV:
-                      resName = entryPoint->srvs[resIndex].name;
-                      resHandle.srv = &entryPoint->srvs[resIndex];
-                      break;
-                    case ResourceClass::UAV:
-                      resName = entryPoint->uavs[resIndex].name;
-                      resHandle.uav = &entryPoint->uavs[resIndex];
-                      break;
-                    case ResourceClass::CBuffer:
-                      resName = entryPoint->cbuffers[resIndex].name;
-                      resHandle.cbuffer = &entryPoint->cbuffers[resIndex];
-                      break;
-                    case ResourceClass::Sampler:
-                      resName = entryPoint->samplers[resIndex].name;
-                      resHandle.sampler = &entryPoint->samplers[resIndex];
-                      break;
-                    default:
-                      validRes = false;
-                      resName = "INVALID RESOURCE CLASS";
-                      break;
-                  };
 
-                  if(validRes)
-                  {
-                    resHandle.name = resName;
-                    resHandle.resourceClass = resClass;
-                    resHandle.resourceIndex = resIndex;
-                    resHandles[handleStr] = resHandle;
-                    ssaAliases[handleStr] = resName;
-                  }
-                  uint32_t index;
-                  if(getival<uint32_t>(inst.args[3], index))
-                  {
-                    if(index != resIndex)
-                      commentStr += " index = " + ToStr(index);
-                  }
-                }
-                else
+              rdcstr handleStr(resultIdStr);
+              rdcstr resName;
+              const ResourceReference *resRef = GetResourceReference(handleStr);
+              if(resRef)
+              {
+                resName = resRef->resourceBase.name;
+
+                uint32_t index;
+                if(getival<uint32_t>(inst.args[3], index))
                 {
-                  switch(resClass)
-                  {
-                    case ResourceClass::SRV: resName = "SRV"; break;
-                    case ResourceClass::UAV: resName = "UAV"; break;
-                    case ResourceClass::CBuffer: resName = "CBuffer"; break;
-                    case ResourceClass::Sampler: resName = "Sampler"; break;
-                    default: resName = "INVALID RESOURCE CLASS"; break;
-                  };
+                  if(index != resRef->resourceIndex)
+                    commentStr += " index = " + ToStr(index);
                 }
               }
               else
               {
                 resName = "ResourceClass:" + ArgToString(inst.args[1], false);
-              }
-              if(!hasResIndex)
-              {
                 resName += "[" + ArgToString(inst.args[2], false) + "]";
                 commentStr += " index = " + ArgToString(inst.args[3], false);
               }
+              ssaAliases[handleStr] = resName;
               uint32_t value;
               if(getival<uint32_t>(inst.args[4], value))
               {
@@ -2575,7 +2494,8 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               else
                 RDCASSERTEQUAL(dxopCode, (uint32_t)DXOp::cbufferLoad);
               rdcstr handleStr = ArgToString(inst.args[1], false);
-              if(resHandles.count(handleStr) > 0)
+              const ResourceReference *resRef = GetResourceReference(handleStr);
+              if(resRef)
               {
                 uint32_t regIndex;
                 if(getival<uint32_t>(inst.args[2], regIndex))
@@ -2587,8 +2507,8 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                     regIndex = regIndex / 16;
                     // uint32_t alignment = getival<uint32_t>(inst.args[3]);
                   }
-                  uint32_t resourceIndex = resHandles[handleStr].resourceIndex;
-                  lineStr += MakeCBufferRegisterStr(regIndex, entryPoint->cbuffers[resourceIndex]);
+                  lineStr +=
+                      MakeCBufferRegisterStr(regIndex, entryPoint->cbuffers[resRef->resourceIndex]);
                 }
               }
               else
@@ -2605,9 +2525,10 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
               RDCASSERTEQUAL(dxopCode, (uint32_t)DXOp::bufferLoad);
               rdcstr handleStr = ArgToString(inst.args[1], false);
-              if(resHandles.count(handleStr) > 0)
+              const ResourceReference *resRef = GetResourceReference(handleStr);
+              if(resRef)
               {
-                lineStr += resHandles[handleStr].name;
+                lineStr += resRef->resourceBase.name;
                 lineStr += "[" + ArgToString(inst.args[2], false) + "]";
               }
               else
@@ -2623,9 +2544,10 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
               RDCASSERTEQUAL(dxopCode, (uint32_t)DXOp::rawBufferLoad);
               rdcstr handleStr = ArgToString(inst.args[1], false);
-              if(resHandles.count(handleStr) > 0)
+              const ResourceReference *resRef = GetResourceReference(handleStr);
+              if(resRef)
               {
-                lineStr += resHandles[handleStr].name;
+                lineStr += resRef->resourceBase.name;
                 if(!isUndef(inst.args[2]))
                 {
                   lineStr += "[" + ArgToString(inst.args[2], false) + "]";
@@ -2674,13 +2596,14 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               }
 
               rdcstr handleStr = ArgToString(inst.args[1], false);
-              if(resHandles.count(handleStr) > 0)
+              const ResourceReference *resRef = GetResourceReference(handleStr);
+              if(resRef)
               {
                 uint32_t offset = 0;
                 bool validElementOffset = !isUndef(inst.args[3]);
                 bool constantElementOffset = validElementOffset && getival(inst.args[3], offset);
 
-                lineStr += resHandles[handleStr].name;
+                lineStr += resRef->resourceBase.name;
                 uint32_t index;
                 if(getival(inst.args[2], index))
                 {
@@ -2731,12 +2654,16 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
               RDCASSERTEQUAL(dxopCode, (uint32_t)DXOp::textureLoad);
               rdcstr handleStr = ArgToString(inst.args[1], false);
-              if(resHandles.count(handleStr) > 0)
+              const ResourceReference *resRef = GetResourceReference(handleStr);
+              if(resRef)
               {
-                lineStr += resHandles[handleStr].name;
+                lineStr += resRef->resourceBase.name;
                 lineStr += ".Load(";
                 bool needComma = false;
-                const EntryPointInterface::SRV *texture = resHandles[handleStr].srv;
+                uint32_t resourceIndex = resRef->resourceIndex;
+                const EntryPointInterface::SRV *texture = resourceIndex < entryPoint->srvs.size()
+                                                              ? &entryPoint->srvs[resourceIndex]
+                                                              : NULL;
                 for(uint32_t a = 3; a < 6; ++a)
                 {
                   if(!isUndef(inst.args[a]))
@@ -2803,9 +2730,10 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               RDCASSERT(getival<uint32_t>(inst.args[0], dxopCode));
               RDCASSERTEQUAL(dxopCode, (uint32_t)DXOp::textureStore);
               rdcstr handleStr = ArgToString(inst.args[1], false);
-              if(resHandles.count(handleStr) > 0)
+              const ResourceReference *resRef = GetResourceReference(handleStr);
+              if(resRef)
               {
-                lineStr += resHandles[handleStr].name;
+                lineStr += resRef->resourceBase.name;
                 lineStr += "[";
                 bool needComma = false;
                 for(uint32_t a = 2; a < 5; ++a)
@@ -2864,9 +2792,10 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                         (dxopCode == (uint32_t)DXOp::sampleCmpBias));
               showDxFuncName = false;
               rdcstr handleStr = ArgToString(inst.args[1], false);
-              if(resHandles.count(handleStr) > 0)
+              const ResourceReference *resRef = GetResourceReference(handleStr);
+              if(resRef)
               {
-                lineStr += resHandles[handleStr].name;
+                lineStr += resRef->resourceBase.name;
                 lineStr += ".";
                 rdcstr dxFuncSig = funcNameSigs[dxopCode];
                 int paramStart = dxFuncSig.find('(') + 1;
@@ -2877,8 +2806,9 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
                 // sampler is 2
                 rdcstr samplerStr = ArgToString(inst.args[2], false);
-                if(resHandles.count(samplerStr) > 0)
-                  samplerStr = resHandles[samplerStr].name;
+                const ResourceReference *samplerRef = GetResourceReference(samplerStr);
+                if(samplerRef)
+                  samplerStr = samplerRef->resourceBase.name;
                 lineStr += samplerStr;
 
                 for(uint32_t a = 3; a < 7; ++a)
@@ -2957,10 +2887,10 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               RDCASSERTEQUAL(dxopCode, (uint32_t)DXOp::atomicBinOp);
               rdcstr handleStr = ArgToString(inst.args[1], false);
               AtomicBinOpCode atomicBinOpCode;
-              if((resHandles.count(handleStr) > 0) &&
-                 getival<AtomicBinOpCode>(inst.args[2], atomicBinOpCode))
+              const ResourceReference *resRef = GetResourceReference(handleStr);
+              if(resRef && getival<AtomicBinOpCode>(inst.args[2], atomicBinOpCode))
               {
-                lineStr += resHandles[handleStr].name;
+                lineStr += resRef->resourceBase.name;
                 lineStr += ".";
                 lineStr += "Interlocked";
                 lineStr += ToStr(atomicBinOpCode);
@@ -4016,6 +3946,134 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
   m_Disassembly += "\n";
 }
 
+void Program::ParseReferences(const DXBC::Reflection *reflection)
+{
+  for(size_t i = 0; i < m_Functions.size(); i++)
+  {
+    const Function &func = *m_Functions[i];
+
+    m_Accum.processFunction(m_Functions[i]);
+
+    if(func.external)
+      continue;
+
+    EntryPointInterface *entryPoint = NULL;
+    for(size_t e = 0; e < m_EntryPointInterfaces.size(); ++e)
+    {
+      if(func.name == m_EntryPointInterfaces[e].name)
+      {
+        entryPoint = &m_EntryPointInterfaces[e];
+        break;
+      }
+    }
+    RDCASSERT(entryPoint);
+
+    // Use resource names from the reflection data if the resource name data is empty
+    if(reflection)
+    {
+      for(EntryPointInterface::CBuffer &cbuffer : entryPoint->cbuffers)
+      {
+        if(cbuffer.name.empty())
+        {
+          for(DXBC::CBuffer reflCB : reflection->CBuffers)
+          {
+            if((reflCB.space == cbuffer.space) && (reflCB.reg == cbuffer.regBase) &&
+               (reflCB.bindCount == cbuffer.regCount))
+              cbuffer.name = reflCB.name;
+          }
+        }
+      }
+
+      for(EntryPointInterface::SRV &srv : entryPoint->srvs)
+      {
+        if(srv.name.empty())
+        {
+          for(DXBC::ShaderInputBind bind : reflection->SRVs)
+          {
+            if((bind.space == srv.space) && (bind.reg == srv.regBase) &&
+               (bind.bindCount == srv.regCount))
+              srv.name = bind.name;
+          }
+        }
+      }
+
+      for(EntryPointInterface::UAV &uav : entryPoint->uavs)
+      {
+        if(uav.name.empty())
+        {
+          for(DXBC::ShaderInputBind bind : reflection->UAVs)
+          {
+            if((bind.space == uav.space) && (bind.reg == uav.regBase) &&
+               (bind.bindCount == uav.regCount))
+              uav.name = bind.name;
+          }
+        }
+      }
+
+      for(size_t j = 0; j < entryPoint->samplers.size(); ++j)
+      {
+        EntryPointInterface::Sampler &sampler = entryPoint->samplers[j];
+        if(sampler.name.empty())
+        {
+          for(DXBC::ShaderInputBind bind : reflection->Samplers)
+          {
+            if((bind.space == sampler.space) && (bind.reg == sampler.regBase) &&
+               (bind.bindCount == sampler.regCount))
+              sampler.name = bind.name;
+          }
+        }
+      }
+    }
+    // Find all the resource handle references and store them in
+    // rdcarray<ResourceReference> m_ResourceReferences;
+    for(size_t funcIdx = 0; funcIdx < func.instructions.size(); funcIdx++)
+    {
+      Instruction &inst = *func.instructions[funcIdx];
+      rdcstr resultIdStr;
+      if(!inst.getName().empty())
+        resultIdStr = StringFormat::Fmt("%c%s", DXIL::dxilIdentifier,
+                                        escapeStringIfNeeded(inst.getName()).c_str());
+      else if(inst.slot != ~0U)
+        resultIdStr = StringFormat::Fmt("%c%s", DXIL::dxilIdentifier, ToStr(inst.slot).c_str());
+
+      switch(inst.op)
+      {
+        case Operation::Call:
+        {
+          rdcstr funcCallName = inst.getFuncCall()->name;
+          if(funcCallName.beginsWith("dx.op.createHandle"))
+          {
+            ResourceClass resClass;
+            uint32_t resIndex;
+            if(getival<ResourceClass>(inst.args[1], resClass) &&
+               getival<uint32_t>(inst.args[2], resIndex))
+            {
+              EntryPointInterface::ResourceBase *resourceBase = NULL;
+              switch(resClass)
+              {
+                case ResourceClass::SRV: resourceBase = &entryPoint->srvs[resIndex]; break;
+                case ResourceClass::UAV: resourceBase = &entryPoint->uavs[resIndex]; break;
+                case ResourceClass::CBuffer: resourceBase = &entryPoint->cbuffers[resIndex]; break;
+                case ResourceClass::Sampler: resourceBase = &entryPoint->samplers[resIndex]; break;
+                default: break;
+              };
+              if(resourceBase)
+              {
+                const rdcstr &handleStr = resultIdStr;
+                RDCASSERT(!GetResourceReference(handleStr));
+                ResourceReference resRef(handleStr, *resourceBase, resIndex);
+                m_ResourceHandles[handleStr] = m_ResourceHandles.size();
+                m_ResourceReferences.push_back(resRef);
+              }
+            }
+          }
+        }
+        default: break;
+      }
+    }
+  }
+}
+
 rdcstr Type::toString() const
 {
   if(!name.empty())
@@ -4760,7 +4818,7 @@ rdcstr DoStringise(const DXIL::AtomicBinOpCode &el)
     STRINGISE_ENUM_CLASS(UMin)
     STRINGISE_ENUM_CLASS(UMax)
     STRINGISE_ENUM_CLASS(Exchange)
-    STRINGISE_ENUM_CLASS(Invalid)
+    STRINGISE_ENUM_CLASS_NAMED(Invalid, "<invalid AtommicBinOpCode>");
   }
   END_ENUM_STRINGISE();
 }

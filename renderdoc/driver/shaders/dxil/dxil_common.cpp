@@ -49,3 +49,17 @@ rdcstr DoStringise(const DXIL::ComponentType &el)
   }
   END_ENUM_STRINGISE();
 }
+
+template <>
+rdcstr DoStringise(const DXIL::ResourceClass &el)
+{
+  BEGIN_ENUM_STRINGISE(DXIL::ResourceClass);
+  {
+    STRINGISE_ENUM_CLASS(SRV);
+    STRINGISE_ENUM_CLASS(UAV);
+    STRINGISE_ENUM_CLASS(CBuffer);
+    STRINGISE_ENUM_CLASS(Sampler);
+    STRINGISE_ENUM_CLASS_NAMED(Invalid, "<invalid ResourceClass>");
+  }
+  END_ENUM_STRINGISE();
+}

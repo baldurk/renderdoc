@@ -1196,13 +1196,14 @@ struct EntryPointInterface
 
   struct ResourceBase
   {
-    ResourceBase(const Metadata *resourceBase);
+    ResourceBase(ResourceClass resourceClass, const Metadata *resourceBase);
     uint32_t id;
     const Type *type;
     rdcstr name;
     uint32_t space;
     uint32_t regBase;
     uint32_t regCount;
+    const ResourceClass resClass;
   };
 
   struct SRV : ResourceBase
@@ -1252,6 +1253,16 @@ struct EntryPointInterface
   rdcarray<Sampler> samplers;
 };
 
+struct ResourceReference
+{
+  ResourceReference(rdcstr handleStr, const EntryPointInterface::ResourceBase &resBase, uint32_t idx)
+      : handleID(handleStr), resourceBase(resBase), resourceIndex(idx){};
+
+  rdcstr handleID;
+  EntryPointInterface::ResourceBase resourceBase;
+  uint32_t resourceIndex;
+};
+
 class Program : public DXBC::IDebugInfo
 {
 public:
@@ -1267,6 +1278,8 @@ public:
   DXBC::Reflection *GetReflection();
   rdcstr GetDebugStatus();
   rdcarray<ShaderEntryPoint> GetEntryPoints();
+  void FillEntryPointInterfaces();
+  rdcstr GetResourceReferenceName(ResourceClass resClass, const BindingSlot &slot) const;
   void FillRayPayloads(
       Program *executable,
       rdcflatmap<ShaderEntryPoint, rdcpair<DXBC::CBufferVariableType, DXBC::CBufferVariableType>>
@@ -1294,7 +1307,9 @@ public:
   const Metadata *GetMetadataByName(const rdcstr &name) const;
   uint32_t GetDirectHeapAcessCount() const { return m_directHeapAccessCount; }
 protected:
+  void Parse(const DXBC::Reflection *reflection);
   void SettleIDs();
+  void ParseReferences(const DXBC::Reflection *reflection);
   void MakeDXCDisassemblyString();
   void MakeRDDisassemblyString(const DXBC::Reflection *reflection);
 
@@ -1312,7 +1327,8 @@ protected:
   uint32_t GetMetaSlot(const DebugLocation *l) const;
   void AssignMetaSlot(rdcarray<Metadata *> &metaSlots, uint32_t &nextMetaSlot, DebugLocation &l);
 
-  void FetchEntryPointInterfaces(rdcarray<EntryPointInterface> &entryPointInterfaces);
+  const ResourceReference *GetResourceReference(const rdcstr &handleStr) const;
+
   const Metadata *FindMetadata(uint32_t slot) const;
   rdcstr ArgToString(const Value *v, bool withTypes, const rdcstr &attrString = "") const;
   rdcstr DisassembleComDats(int &instructionLine) const;
@@ -1376,10 +1392,13 @@ protected:
 
   bool m_Uselists = false;
   bool m_DXCStyle = false;
-  bool m_SettledIDs = false;
+  bool m_Parsed = false;
 
   rdcstr m_Triple, m_Datalayout;
 
+  rdcarray<EntryPointInterface> m_EntryPointInterfaces;
+  std::map<rdcstr, size_t> m_ResourceHandles;
+  rdcarray<ResourceReference> m_ResourceReferences;
   rdcstr m_Disassembly;
   int m_DisassemblyInstructionLine;
 

@@ -147,6 +147,19 @@ enum class SamplerFeedbackType : uint8_t
   LastEntry = 2
 };
 
+struct BindingSlot
+{
+  BindingSlot() : shaderRegister(UINT32_MAX), registerSpace(UINT32_MAX) {}
+  BindingSlot(uint32_t shaderReg, uint32_t regSpace)
+      : shaderRegister(shaderReg), registerSpace(regSpace)
+  {
+  }
+
+  uint32_t shaderRegister;
+  uint32_t registerSpace;
+};
+
 };    // namespace DXIL
 
 DECLARE_STRINGISE_TYPE(DXIL::ComponentType);
+DECLARE_STRINGISE_TYPE(DXIL::ResourceClass);
