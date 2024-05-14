@@ -2055,7 +2055,7 @@ static rdcstr MakeCBufferRegisterStr(uint32_t reg, DXIL::EntryPointInterface::CB
 void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 {
   m_Disassembly.clear();
-  m_DisassemblyInstructionLine = 1;
+  m_DisassemblyInstructionLine = 4;
 
   m_Disassembly += StringFormat::Fmt("; %s Shader, compiled under SM%u.%u",
                                      shaderNames[int(m_Type)], m_Major, m_Minor);
