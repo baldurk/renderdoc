@@ -1758,4 +1758,14 @@ const ResourceReference *Program::GetResourceReference(const rdcstr &handleStr) 
   return NULL;
 }
 
+void Program::ProcessFunctions(std::function<bool(const Function *)> callback) const
+{
+  for(const DXIL::Function *f : m_Functions)
+  {
+    // false means stop processing
+    if(!callback(f))
+      break;
+  }
+}
+
 };    // namespace DXIL
