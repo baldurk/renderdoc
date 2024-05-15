@@ -320,6 +320,29 @@
      </widget>
     </item>
     <item>
+     <widget class="QToolButton" name="bookmark">
+      <property name="toolTip">
+       <string>Add, remove or jump to bookmarks in current file</string>
+      </property>
+      <property name="text">
+       <string>Bookmark...</string>
+      </property>
+      <property name="icon">
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/bookmark_blue.png</normaloff>:/bookmark_blue.png</iconset>
+      </property>
+      <property name="popupMode">
+       <enum>QToolButton::InstantPopup</enum>
+      </property>
+      <property name="toolButtonStyle">
+       <enum>Qt::ToolButtonTextBesideIcon</enum>
+      </property>
+      <property name="autoRaise">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="Line" name="line">
       <property name="orientation">
        <enum>Qt::Vertical</enum>

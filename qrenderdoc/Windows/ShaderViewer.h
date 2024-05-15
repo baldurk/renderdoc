@@ -238,6 +238,14 @@ private:
 
   ShaderEncoding currentEncoding();
 
+  void ToggleBookmark();
+  void NextBookmark();
+  void PreviousBookmark();
+  void ClearAllBookmarks();
+  bool HasBookmarks();
+
+  void SetFindTextFromCurrentWord();
+
   QString m_TooltipVarPath;
   int m_TooltipVarIndex = -1;
   int m_TooltipMember = -1;
@@ -326,9 +334,12 @@ private:
 
   QList<QPair<ScintillaEdit *, int>> m_FindAllResults;
 
+  QMap<ScintillaEdit *, QList<sptr_t>> m_Bookmarks;
+
   static const int CURRENT_MARKER = 0;
   static const int BREAKPOINT_MARKER = 2;
   static const int FINISHED_MARKER = 4;
+  static const int BOOKMARK_MARKER = 6;
 
   static const int CURRENT_INDICATOR = 20;
   static const int FINISHED_INDICATOR = 21;
