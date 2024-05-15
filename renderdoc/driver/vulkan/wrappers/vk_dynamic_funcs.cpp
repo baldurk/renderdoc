@@ -3380,7 +3380,6 @@ bool WrappedVulkan::Serialise_vkCmdSetSampleMaskEXT(SerialiserType &ser,
 
           renderstate.dynamicStates[VkDynamicSampleMaskEXT] = true;
 
-          renderstate.rastSamples = samples;
           renderstate.sampleMask.assign(pSampleMask, ((samples - 1) / 32) + 1);
         }
       }
