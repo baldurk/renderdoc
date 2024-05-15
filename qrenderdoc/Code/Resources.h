@@ -108,7 +108,8 @@
   RESOURCE_DEF(topo_tristrip, "topologies/topo_tristrip.svg")                  \
   RESOURCE_DEF(topo_tristrip_adj, "topologies/topo_tristrip_adj.svg")          \
   RESOURCE_DEF(action, "action.png")                                           \
-  RESOURCE_DEF(action_hover, "action_hover.png")
+  RESOURCE_DEF(action_hover, "action_hover.png")                               \
+  RESOURCE_DEF(bookmark_blue, "bookmark_blue.png")
 
 struct Resource
 {

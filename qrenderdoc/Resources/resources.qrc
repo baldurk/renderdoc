@@ -151,5 +151,7 @@
         <file>wrench@2x.png</file>
         <file>zoom.png</file>
         <file>zoom@2x.png</file>
+        <file>bookmark_blue.png</file>
+        <file>bookmark_blue@2x.png</file>
     </qresource>
 </RCC>
