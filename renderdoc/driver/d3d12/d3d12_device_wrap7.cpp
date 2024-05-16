@@ -77,7 +77,8 @@ bool WrappedID3D12Device::Serialise_AddToStateObject(SerialiserType &ser,
 
     if(m_pDevice7)
     {
-      hr = m_pDevice7->CreateStateObject(&Addition, guid, (void **)&ret);
+      hr = m_pDevice7->AddToStateObject(&Addition, Unwrap(pStateObjectToGrowFrom), guid,
+                                        (void **)&ret);
     }
     else
     {
@@ -147,12 +148,13 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Device::AddToStateObject(
     REFIID riid, _COM_Outptr_ void **ppNewStateObject)
 {
   if(pAddition == NULL)
-    return m_pDevice7->AddToStateObject(pAddition, pStateObjectToGrowFrom, riid, ppNewStateObject);
+    return m_pDevice7->AddToStateObject(pAddition, Unwrap(pStateObjectToGrowFrom), riid,
+                                        ppNewStateObject);
 
   D3D12_UNWRAPPED_STATE_OBJECT_DESC unwrappedDesc(*pAddition);
 
   if(ppNewStateObject == NULL)
-    return m_pDevice7->AddToStateObject(&unwrappedDesc, pStateObjectToGrowFrom, riid,
+    return m_pDevice7->AddToStateObject(&unwrappedDesc, Unwrap(pStateObjectToGrowFrom), riid,
                                         ppNewStateObject);
 
   if(riid != __uuidof(ID3D12StateObject))
@@ -160,8 +162,8 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Device::AddToStateObject(
 
   ID3D12StateObject *real = NULL;
   HRESULT ret;
-  SERIALISE_TIME_CALL(ret = m_pDevice7->AddToStateObject(&unwrappedDesc, pStateObjectToGrowFrom,
-                                                         riid, (void **)&real));
+  SERIALISE_TIME_CALL(ret = m_pDevice7->AddToStateObject(
+                          &unwrappedDesc, Unwrap(pStateObjectToGrowFrom), riid, (void **)&real));
 
   if(SUCCEEDED(ret))
   {
@@ -214,6 +216,8 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Device::AddToStateObject(
           record->AddParent(GetRecord(coll->pExistingCollection));
         }
       }
+
+      record->AddParent(GetRecord(pStateObjectToGrowFrom));
 
       if(vendorChunk)
         record->AddChunk(vendorChunk);
