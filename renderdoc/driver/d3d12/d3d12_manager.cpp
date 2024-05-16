@@ -971,19 +971,25 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
   cbufferData.raydispatch_missstride = (uint32_t)desc.MissShaderTable.StrideInBytes;
   if(desc.MissShaderTable.SizeInBytes > 0)
     cbufferData.raydispatch_misscount =
-        uint32_t(desc.MissShaderTable.SizeInBytes / desc.MissShaderTable.StrideInBytes);
+        desc.MissShaderTable.StrideInBytes == 0
+            ? 1
+            : uint32_t(desc.MissShaderTable.SizeInBytes / desc.MissShaderTable.StrideInBytes);
 
   cbufferData.raydispatch_hitoffs = hitOffs;
   cbufferData.raydispatch_hitstride = (uint32_t)desc.HitGroupTable.StrideInBytes;
   if(desc.HitGroupTable.SizeInBytes > 0)
     cbufferData.raydispatch_hitcount =
-        uint32_t(desc.HitGroupTable.SizeInBytes / desc.HitGroupTable.StrideInBytes);
+        desc.HitGroupTable.StrideInBytes == 0
+            ? 1
+            : uint32_t(desc.HitGroupTable.SizeInBytes / desc.HitGroupTable.StrideInBytes);
 
   cbufferData.raydispatch_calloffs = callOffs;
   cbufferData.raydispatch_callstride = (uint32_t)desc.CallableShaderTable.StrideInBytes;
   if(desc.CallableShaderTable.SizeInBytes > 0)
     cbufferData.raydispatch_callcount =
-        uint32_t(desc.CallableShaderTable.SizeInBytes / desc.CallableShaderTable.StrideInBytes);
+        desc.CallableShaderTable.StrideInBytes == 0
+            ? 1
+            : uint32_t(desc.CallableShaderTable.SizeInBytes / desc.CallableShaderTable.StrideInBytes);
 
   RDCCOMPILE_ASSERT(WRAPPED_DESCRIPTOR_STRIDE == sizeof(D3D12Descriptor),
                     "Shader descriptor stride is wrong");
