@@ -2948,11 +2948,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
           resultTypeStr += " ";
         }
         rdcstr resultIdStr;
-        if(!inst.getName().empty())
-          resultIdStr = StringFormat::Fmt("%c%s", DXIL::dxilIdentifier,
-                                          escapeStringIfNeeded(inst.getName()).c_str());
-        else if(inst.slot != ~0U)
-          resultIdStr = StringFormat::Fmt("%c%s", DXIL::dxilIdentifier, ToStr(inst.slot).c_str());
+        MakeResultId(inst, resultIdStr);
 
         bool showDxFuncName = false;
         rdcstr commentStr;
@@ -4665,11 +4661,7 @@ void Program::ParseReferences(const DXBC::Reflection *reflection)
     {
       Instruction &inst = *func.instructions[funcIdx];
       rdcstr resultIdStr;
-      if(!inst.getName().empty())
-        resultIdStr = StringFormat::Fmt("%c%s", DXIL::dxilIdentifier,
-                                        escapeStringIfNeeded(inst.getName()).c_str());
-      else if(inst.slot != ~0U)
-        resultIdStr = StringFormat::Fmt("%c%s", DXIL::dxilIdentifier, ToStr(inst.slot).c_str());
+      MakeResultId(inst, resultIdStr);
 
       switch(inst.op)
       {
@@ -5519,4 +5511,19 @@ rdcstr Constant::toString(bool withType) const
 
   return ret;
 }
+
+rdcstr Program::GetArgId(const Instruction &inst, uint32_t arg) const
+{
+  return ArgToString(inst.args[arg], false);
+}
+
+void Program::MakeResultId(const DXIL::Instruction &inst, rdcstr &resultId)
+{
+  if(!inst.getName().empty())
+    resultId = StringFormat::Fmt("%c%s", DXIL::dxilIdentifier,
+                                 escapeStringIfNeeded(inst.getName()).c_str());
+  else if(inst.slot != ~0U)
+    resultId = StringFormat::Fmt("%c%s", DXIL::dxilIdentifier, ToStr(inst.slot).c_str());
+}
+
 };    // namespace DXIL

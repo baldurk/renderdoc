@@ -1487,7 +1487,8 @@ struct EntryPointInterface
 
 struct ResourceReference
 {
-  ResourceReference(rdcstr handleStr, const EntryPointInterface::ResourceBase &resBase, uint32_t idx)
+  ResourceReference(const rdcstr &handleStr, const EntryPointInterface::ResourceBase &resBase,
+                    uint32_t idx)
       : handleID(handleStr), resourceBase(resBase), resourceIndex(idx){};
 
   rdcstr handleID;
@@ -1562,6 +1563,8 @@ protected:
 
   const ResourceReference *GetResourceReference(const rdcstr &handleStr) const;
   rdcstr GetHandleAlias(const rdcstr &handleStr) const;
+  static void MakeResultId(const Instruction &inst, rdcstr &resultId);
+  rdcstr GetArgId(const Instruction &inst, uint32_t arg) const;
 
   const Metadata *FindMetadata(uint32_t slot) const;
   rdcstr ArgToString(const Value *v, bool withTypes, const rdcstr &attrString = "") const;
