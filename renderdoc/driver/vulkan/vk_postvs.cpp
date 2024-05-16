@@ -3022,7 +3022,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
     if(!Vulkan_Debug_PostVSDumpDirPath().empty())
       FileIO::WriteAll(Vulkan_Debug_PostVSDumpDirPath() + "/debug_postts_before.spv", taskSpirv);
 
-    AddTaskShaderPayloadStores(taskShad.specialization, meshShad.entryPoint, bufSpecConstant + 1,
+    AddTaskShaderPayloadStores(taskShad.specialization, taskShad.entryPoint, bufSpecConstant + 1,
                                taskSpirv, taskPayloadSize);
 
     if(!Vulkan_Debug_PostVSDumpDirPath().empty())
