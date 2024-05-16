@@ -13,6 +13,7 @@
     <ClCompile Include="dxil_bytecode_editor.cpp" />
     <ClCompile Include="llvm_encoder.cpp" />
     <ClCompile Include="dxil_debug.cpp" />
+    <ClCompile Include="dxil_stringise.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="precompiled.h">
