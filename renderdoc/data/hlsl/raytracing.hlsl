@@ -111,7 +111,7 @@ void PatchTable(uint byteOffset)
   // find the state object it came from
   int i = 0;
   StateObjectLookup objectLookup;
-  do
+  [allow_uav_condition] do
   {
     objectLookup = stateObjects[i];
 
@@ -121,7 +121,9 @@ void PatchTable(uint byteOffset)
     i++;
 
     // terminate when the lookup is empty, we're out of state objects
-  } while(objectLookup.id.x != 0 || objectLookup.id.y != 0);
+  }
+  while(objectLookup.id.x != 0 || objectLookup.id.y != 0)
+    ;
 
   // if didn't find a match, set a NULL shader identifier. This will fail if it's raygen but others
   // will in theory not crash.
@@ -160,7 +162,7 @@ void PatchTable(uint byteOffset)
     heaps[0].unwrapped_base = unwrapped_sampHeapBase;
     heaps[1].unwrapped_base = unwrapped_srvHeapBase;
 
-    for(uint i = 0; i < sig.numParams; i++)
+    [allow_uav_condition] for(uint i = 0; i < sig.numParams; i++)
     {
       uint paramOffset = sig.paramOffsets[i] & 0xffff;
       bool isHandle = (sig.paramOffsets[i] & 0xffff0000) == 0;
@@ -170,7 +172,7 @@ void PatchTable(uint byteOffset)
         GPUAddress wrappedHandlePtr = bufferToPatch.Load2(byteOffset + paramOffset);
 
         bool patched = false;
-        for(int h = 0; h < 2; h++)
+        [allow_uav_condition] for(int h = 0; h < 2; h++)
         {
           if(lessEqual(heaps[h].wrapped_base, wrappedHandlePtr) &&
              lessThan(wrappedHandlePtr, heaps[h].wrapped_end))
@@ -182,6 +184,7 @@ void PatchTable(uint byteOffset)
             bufferToPatch.Store2(byteOffset + paramOffset,
                                  add(heaps[h].unwrapped_base, handleOffset));
             patched = true;
+            break;
           }
         }
 
@@ -198,7 +201,7 @@ void PatchTable(uint byteOffset)
         {
           GPUAddress origAddress = bufferToPatch.Load2(byteOffset + paramOffset);
 
-          for(uint i = 0; i < numPatchingAddrs; i++)
+          [allow_uav_condition] for(uint i = 0; i < numPatchingAddrs; i++)
           {
             if(InRange(patchAddressesPair[i].oldAddress, origAddress))
             {
