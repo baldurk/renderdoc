@@ -82,23 +82,6 @@ bool isUndef(const Value *v)
   return false;
 }
 
-template <typename T>
-bool getival(const Value *v, T &out)
-{
-  if(const Constant *c = cast<Constant>(v))
-  {
-    out = T(c->getU64());
-    return true;
-  }
-  else if(const Literal *lit = cast<Literal>(v))
-  {
-    out = T(c->getU64());
-    return true;
-  }
-  out = T();
-  return false;
-}
-
 static const char *shaderNames[] = {
     "Pixel",      "Vertex",  "Geometry",      "Hull",         "Domain",
     "Compute",    "Library", "RayGeneration", "Intersection", "AnyHit",

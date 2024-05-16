@@ -1649,7 +1649,21 @@ rdcstr escapeString(const rdcstr &str);
 rdcstr escapeStringIfNeeded(const rdcstr &name);
 
 template <typename T>
-bool getival(const Value *v, T &out);
+bool getival(const Value *v, T &out)
+{
+  if(const Constant *c = cast<Constant>(v))
+  {
+    out = T(c->getU64());
+    return true;
+  }
+  else if(const Literal *lit = cast<Literal>(v))
+  {
+    out = T(lit->literal);
+    return true;
+  }
+  out = T();
+  return false;
+}
 
 };    // namespace DXIL
 
