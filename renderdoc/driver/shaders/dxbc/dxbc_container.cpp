@@ -638,6 +638,19 @@ const rdcstr &DXBCContainer::GetDisassembly(bool dxcStyle)
 
 void DXBCContainer::FillTraceLineInfo(ShaderDebugTrace &trace) const
 {
+  // we add some number of lines for the header we added with shader hash, debug name, etc on
+  // top of what the bytecode disassembler did
+
+  // 2 minimum for the shader hash we always print
+  uint32_t extraLines = 2;
+  if(!m_DebugFileName.empty())
+    extraLines++;
+  if(m_ShaderExt.second != ~0U)
+    extraLines++;
+
+  if(m_GlobalFlags != GlobalShaderFlags::None)
+    extraLines += (uint32_t)Bits::CountOnes((uint32_t)m_GlobalFlags) + 2;
+
   if(m_DXBCByteCode)
   {
     trace.instInfo.resize(m_DXBCByteCode->GetNumInstructions());
@@ -650,19 +663,6 @@ void DXBCContainer::FillTraceLineInfo(ShaderDebugTrace &trace) const
       if(m_DebugInfo)
         m_DebugInfo->GetLineInfo(i, op.offset, trace.instInfo[i].lineInfo);
 
-      // we add some number of lines for the header we added with shader hash, debug name, etc on
-      // top of what the bytecode disassembler did
-
-      // 2 minimum for the shader hash we always print
-      uint32_t extraLines = 2;
-      if(!m_DebugFileName.empty())
-        extraLines++;
-      if(m_ShaderExt.second != ~0U)
-        extraLines++;
-
-      if(m_GlobalFlags != GlobalShaderFlags::None)
-        extraLines += (uint32_t)Bits::CountOnes((uint32_t)m_GlobalFlags) + 2;
-
       if(op.line > 0)
         trace.instInfo[i].lineInfo.disassemblyLine = extraLines + op.line;
 
@@ -672,7 +672,25 @@ void DXBCContainer::FillTraceLineInfo(ShaderDebugTrace &trace) const
   }
   else if(m_DXILByteCode)
   {
-    RDCERR("DXIL FillTraceLineInfo not implemented");
+#if ENABLED(DXC_COMPATIBLE_DISASM)
+    extraLines = 0;
+#endif
+    size_t instrCount = m_DXILByteCode->GetInstructionCount();
+    trace.instInfo.resize(instrCount);
+    for(size_t i = 0; i < instrCount; i++)
+    {
+      trace.instInfo[i].instruction = (uint32_t)i;
+
+      if(m_DebugInfo)
+        m_DebugInfo->GetLineInfo(i, 0, trace.instInfo[i].lineInfo);
+      else
+        m_DXILByteCode->GetLineInfo(i, 0, trace.instInfo[i].lineInfo);
+
+      trace.instInfo[i].lineInfo.disassemblyLine += extraLines;
+
+      if(m_DebugInfo)
+        m_DebugInfo->GetLocals(this, i, 0, trace.instInfo[i].sourceVars);
+    }
   }
 }
 
