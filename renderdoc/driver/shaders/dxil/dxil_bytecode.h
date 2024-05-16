@@ -1511,6 +1511,7 @@ public:
   rdcstr GetDebugStatus();
   rdcarray<ShaderEntryPoint> GetEntryPoints();
   void FillEntryPointInterfaces();
+  size_t GetInstructionCount() const;
   rdcstr GetResourceReferenceName(ResourceClass resClass, const BindingSlot &slot) const;
   // false means stop processing
   void ProcessFunctions(std::function<bool(const Function *)> callback) const;

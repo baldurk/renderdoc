@@ -1794,4 +1794,14 @@ void Program::ProcessFunctions(std::function<bool(const Function *)> callback) c
       break;
   }
 }
+
+size_t Program::GetInstructionCount() const
+{
+  size_t ret = 0;
+
+  for(size_t i = 0; i < m_Functions.size(); i++)
+    ret += m_Functions[i]->instructions.size();
+
+  return ret;
+}
 };    // namespace DXIL
