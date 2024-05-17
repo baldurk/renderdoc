@@ -257,16 +257,12 @@ void RDTweakedNativeStyle::drawPrimitive(PrimitiveElement element, const QStyleO
 
       QColor col = opt->palette.color(QPalette::Text);
 
-      if(opt->state & State_MouseOver)
-      {
-        QColor highlightCol = opt->palette.color(QPalette::Highlight);
-
-        col.setRedF(col.redF() * 0.6 + highlightCol.redF() * 0.4);
-        col.setGreenF(col.greenF() * 0.6 + highlightCol.greenF() * 0.4);
-        col.setBlueF(col.blueF() * 0.6 + highlightCol.blueF() * 0.4);
-      }
-
-      p->setPen(QPen(col, 2.0));
+      // turbo hack to pass desired colour through QTreeView::drawBranches when it can't customise
+      // the colour and doesn't set the model index to let us look up this data ourselves :(
+      if(oldPen.widthF() == 1234.5f)
+        p->setPen(QPen(oldPen.color(), 2.0));
+      else
+        p->setPen(QPen(col, 2.0));
 
       QPainterPath path;
 
