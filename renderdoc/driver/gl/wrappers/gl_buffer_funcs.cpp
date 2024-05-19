@@ -3082,9 +3082,8 @@ void WrappedOpenGL::PersistentMapMemoryBarrier(const std::set<GLResourceRecord *
         // update the modified region in the 'comparison' shadow buffer for next check
         if(record->GetShadowPtr(0) == NULL)
           record->AllocShadowStorage(record->Map.length);
-        else
-          memcpy(record->GetShadowPtr(0) + diffStart, record->Map.ptr + diffStart,
-                 diffEnd - diffStart);
+
+        memcpy(record->GetShadowPtr(0) + diffStart, record->Map.ptr + diffStart, diffEnd - diffStart);
 
         // we use our own flush function so it will serialise chunks when necessary, and it
         // also handles copying into the persistent mapped pointer and flushing the real GL
