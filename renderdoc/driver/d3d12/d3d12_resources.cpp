@@ -170,10 +170,7 @@ bool WrappedID3D12Resource::CreateAccStruct(D3D12BufferOffset bufferOffset, UINT
 
       if(IsCaptureMode(m_pDevice->GetState()))
       {
-        size_t deletedAccStructCount = DeleteOverlappingAccStructsInRangeAtOffset(bufferOffset);
-        RDCDEBUG("Acc structure created after deleting %u overlapping acc structure(s)",
-                 deletedAccStructCount);
-        deletedAccStructCount;
+        DeleteOverlappingAccStructsInRangeAtOffset(bufferOffset);
       }
     }
 
