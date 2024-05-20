@@ -113,6 +113,7 @@ public:
   VkPipelineCache GetPipeCache() { return m_PipelineCache; }
   void MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &pipeCreateInfo, ResourceId pipeline);
   void MakeComputePipelineInfo(VkComputePipelineCreateInfo &pipeCreateInfo, ResourceId pipeline);
+  void MakeShaderObjectInfo(VkShaderCreateInfoEXT &shadCreateInfo, ResourceId shader);
 
   bool IsBuffer2MSSupported() { return m_Buffer2MSSupported; }
   void SetCaching(bool enabled) { m_CacheShaders = enabled; }

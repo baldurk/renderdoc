@@ -351,6 +351,69 @@ void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, float col[4])
   CheckVkResult(vkr);
 }
 
+void VulkanDebugManager::PatchFixedColShaderObject(VkShaderEXT &shad, float col[4])
+{
+  union
+  {
+    uint32_t *spirv;
+    float *data;
+  } alias;
+
+  rdcarray<uint32_t> spv = *m_pDriver->GetShaderCache()->GetBuiltinBlob(BuiltinShader::FixedColFS);
+
+  alias.spirv = &spv[0];
+  size_t spirvLength = spv.size();
+
+  int patched = 0;
+
+  size_t it = 5;
+  while(it < spirvLength)
+  {
+    uint16_t WordCount = alias.spirv[it] >> rdcspv::WordCountShift;
+    rdcspv::Op opcode = rdcspv::Op(alias.spirv[it] & rdcspv::OpCodeMask);
+
+    if(opcode == rdcspv::Op::Constant)
+    {
+      if(alias.data[it + 3] >= 1.0f && alias.data[it + 3] <= 1.5f)
+        alias.data[it + 3] = col[0];
+      else if(alias.data[it + 3] >= 2.0f && alias.data[it + 3] <= 2.5f)
+        alias.data[it + 3] = col[1];
+      else if(alias.data[it + 3] >= 3.0f && alias.data[it + 3] <= 3.5f)
+        alias.data[it + 3] = col[2];
+      else if(alias.data[it + 3] >= 4.0f && alias.data[it + 3] <= 4.5f)
+        alias.data[it + 3] = col[3];
+      else
+        RDCERR("Unexpected constant value");
+
+      patched++;
+    }
+
+    it += WordCount;
+  }
+
+  if(patched != 4)
+    RDCERR("Didn't patch all constants");
+
+  VkShaderCreateInfoEXT shadInfo = {VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
+                                    NULL,
+                                    0,
+                                    VK_SHADER_STAGE_FRAGMENT_BIT,
+                                    0,
+                                    VK_SHADER_CODE_TYPE_SPIRV_EXT,
+                                    spv.size() * sizeof(uint32_t),
+                                    alias.spirv,
+                                    "main",
+                                    0,
+                                    NULL,
+                                    0,
+                                    NULL,
+                                    NULL};
+
+  VkResult vkr = m_pDriver->vkCreateShadersEXT(m_Device, 1, &shadInfo, NULL, &shad);
+
+  CheckVkResult(vkr);
+}
+
 void VulkanDebugManager::PatchLineStripIndexBuffer(const ActionDescription *action,
                                                    GPUBuffer &indexBuffer, uint32_t &indexCount)
 {
