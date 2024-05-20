@@ -2311,7 +2311,7 @@ TEST_CASE("DO NOT COMMIT - convenience test", "[dxbc]")
 
   // the only thing fetched lazily is the disassembly, so grab that here
 
-  rdcstr disasm = container.GetDisassembly();
+  rdcstr disasm = container.GetDisassembly(false);
 
   RDCLOG("%s", disasm.c_str());
 }

@@ -1051,11 +1051,22 @@ rdcstr Program::ArgToString(const Value *v, bool withTypes, const rdcstr &attrSt
     if(withTypes)
       ret = "label ";
     ret += attrString;
-    if(block->name.empty())
-      ret += StringFormat::Fmt("%c%u", DXIL::dxilIdentifier, block->slot);
+    if(DXIL::dxcStyleFormatting)
+    {
+      if(block->name.empty())
+        ret += StringFormat::Fmt("%c%u", DXIL::dxilIdentifier, block->slot);
+      else
+        ret += StringFormat::Fmt("%c%s", DXIL::dxilIdentifier,
+                                 escapeStringIfNeeded(block->name).c_str());
+    }
     else
-      ret +=
-          StringFormat::Fmt("%c%s", DXIL::dxilIdentifier, escapeStringIfNeeded(block->name).c_str());
+    {
+      if(block->name.empty())
+        ret += StringFormat::Fmt("%clabel%u", DXIL::dxilIdentifier, block->slot);
+      else
+        ret += StringFormat::Fmt("%clabel_%s%u", DXIL::dxilIdentifier,
+                                 DXBC::BasicDemangle(block->name).c_str(), block->id);
+    }
   }
   else
   {
@@ -4118,11 +4129,12 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
           rdcstr labelName;
 
           if(func.blocks[curBlock]->name.empty())
-            labelName = StringFormat::Fmt("; <label>:%c%u ", DXIL::dxilIdentifier,
-                                          func.blocks[curBlock]->slot);
+            labelName =
+                StringFormat::Fmt("%clabel%u: ", DXIL::dxilIdentifier, func.blocks[curBlock]->slot);
           else
-            labelName = StringFormat::Fmt("%c%s: ", DXIL::dxilIdentifier,
-                                          escapeStringIfNeeded(func.blocks[curBlock]->name).c_str());
+            labelName = StringFormat::Fmt("%clabel_%s%u: ", DXIL::dxilIdentifier,
+                                          DXBC::BasicDemangle(func.blocks[curBlock]->name).c_str(),
+                                          func.blocks[curBlock]->id);
 
           labelName.reserve(30);
           while(labelName.size() < 30)
@@ -4132,23 +4144,28 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
           bool first = true;
           for(const Block *pred : func.blocks[curBlock]->preds)
           {
-            if(!first)
-              predicates += ", ";
-            first = false;
             if(pred->name.empty())
             {
               // Ignore predicate 0
               if(pred->slot > 0)
-                predicates += StringFormat::Fmt("%c%u", DXIL::dxilIdentifier, pred->slot);
+              {
+                if(!first)
+                  predicates += ", ";
+                first = false;
+                predicates += StringFormat::Fmt("%clabel%u", DXIL::dxilIdentifier, pred->slot);
+              }
             }
             else
             {
-              predicates += StringFormat::Fmt("%c%s", DXIL::dxilIdentifier,
-                                              escapeStringIfNeeded(pred->name).c_str());
+              if(!first)
+                predicates += ", ";
+              first = false;
+              predicates += StringFormat::Fmt("%clabel_%s%u", DXIL::dxilIdentifier,
+                                              DXBC::BasicDemangle(pred->name).c_str(), pred->id);
             }
           }
           if(!predicates.empty())
-            labelName += "; preds = " + predicates;
+            labelName += "// preceeded by " + predicates;
 
           m_Disassembly += labelName;
           DisassemblyAddNewLine();
