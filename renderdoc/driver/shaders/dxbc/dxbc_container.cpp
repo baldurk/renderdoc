@@ -42,6 +42,19 @@ RDOC_EXTERN_CONFIG(rdcarray<rdcstr>, DXBC_Debug_SearchDirPaths);
 
 namespace DXBC
 {
+rdcstr BasicDemangle(rdcstr possiblyMangledName)
+{
+  if(possiblyMangledName.size() > 2 && possiblyMangledName[0] == '\x1' &&
+     possiblyMangledName[1] == '?')
+  {
+    int idx = possiblyMangledName.indexOf('@');
+    if(idx > 2)
+      return possiblyMangledName.substr(2, idx - 2);
+  }
+
+  return possiblyMangledName;
+}
+
 struct RDEFCBufferVariable
 {
   uint32_t nameOffset;

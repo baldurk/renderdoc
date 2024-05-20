@@ -340,13 +340,7 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, const ShaderEntryPoint &ent
     refl->debugInfo.entrySourceName = refl->entryPoint = entryFunc;
 
     // demangle DXIL source names for display
-    if(refl->debugInfo.entrySourceName.size() > 2 && refl->debugInfo.entrySourceName[0] == '\x1' &&
-       refl->debugInfo.entrySourceName[1] == '?')
-    {
-      int idx = refl->debugInfo.entrySourceName.indexOf('@');
-      if(idx > 2)
-        refl->debugInfo.entrySourceName = refl->debugInfo.entrySourceName.substr(2, idx - 2);
-    }
+    refl->debugInfo.entrySourceName = DXBC::BasicDemangle(refl->entryPoint);
 
     // assume the debug info put the file with the entry point at the start. SDBG seems to do this
     // by default, and SPDB has an extra sorting step that probably maybe possibly does this.
