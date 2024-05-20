@@ -2432,7 +2432,8 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               DisassemblyAddNewLine();
             EntryPointInterface::SRV &srv = entryPoint->srvs[j];
             m_Disassembly += GetResourceShapeName(srv.shape, false);
-            m_Disassembly += "<" + GetResourceTypeName(srv.type) + ">";
+            if(srv.shape != DXIL::ResourceKind::RTAccelerationStructure)
+              m_Disassembly += "<" + GetResourceTypeName(srv.type) + ">";
             m_Disassembly += " " + srv.name;
             if(srv.regCount > 1)
             {
