@@ -374,6 +374,9 @@ EntryPointInterface::Sampler::Sampler(const Metadata *sampler)
 
 EntryPointInterface::EntryPointInterface(const Metadata *entryPoint)
 {
+  if(entryPoint->children[0] == NULL)
+    return;
+
   function = entryPoint->children[0]->type;
   name = entryPoint->children[1]->str;
 
