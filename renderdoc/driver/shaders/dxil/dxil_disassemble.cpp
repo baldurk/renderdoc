@@ -3779,7 +3779,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               lineStr += ArgToString(inst.args[2], false);
               lineStr += ") goto ";
               lineStr += StringFormat::Fmt("%s", ArgToString(inst.args[0], false).c_str());
-              lineStr += " else goto ";
+              lineStr += "; else goto ";
               lineStr += StringFormat::Fmt("%s", ArgToString(inst.args[1], false).c_str());
             }
             else
