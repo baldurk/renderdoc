@@ -2865,7 +2865,12 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
 
   const VulkanCreationInfo::Pipeline &pipeInfo = creationInfo.m_Pipeline[state.graphics.pipeline];
 
-  const VulkanCreationInfo::ShaderEntry &meshShad = pipeInfo.shaders[7];
+  const VulkanCreationInfo::ShaderObject &meshShadObjInfo =
+      creationInfo.m_ShaderObject[state.shaderObjects[(size_t)ShaderStage::Mesh]];
+
+  const VulkanCreationInfo::ShaderEntry &meshShad =
+      state.graphics.shaderObject ? meshShadObjInfo.shad
+                                  : pipeInfo.shaders[(size_t)ShaderStage::Mesh];
 
   const VulkanCreationInfo::ShaderModule &meshInfo = creationInfo.m_ShaderModule[meshShad.module];
   ShaderReflection *meshrefl = meshShad.refl;
@@ -2931,6 +2936,16 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
   // get pipeline create info
   m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, state.graphics.pipeline);
 
+  // get shader object create info for task/mesh
+  VkShaderCreateInfoEXT taskCreateInfo = {}, meshCreateInfo = {};
+  if(state.graphics.shaderObject)
+  {
+    m_pDriver->GetShaderCache()->MakeShaderObjectInfo(
+        taskCreateInfo, state.shaderObjects[(size_t)ShaderStage::Task]);
+    m_pDriver->GetShaderCache()->MakeShaderObjectInfo(
+        meshCreateInfo, state.shaderObjects[(size_t)ShaderStage::Mesh]);
+  }
+
   uint32_t bufSpecConstant = 0;
 
   bytebuf meshSpecData;
@@ -2956,6 +2971,25 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
                           pipeCreateInfo.pStages[s].pSpecializationInfo->dataSize);
       taskSpecEntries.append(pipeCreateInfo.pStages[s].pSpecializationInfo->pMapEntries,
                              pipeCreateInfo.pStages[s].pSpecializationInfo->mapEntryCount);
+    }
+  }
+
+  // copy over specialization info for shader objects
+  if(state.graphics.shaderObject)
+  {
+    if(meshCreateInfo.pSpecializationInfo)
+    {
+      meshSpecData.append((const byte *)meshCreateInfo.pSpecializationInfo->pData,
+                          meshCreateInfo.pSpecializationInfo->dataSize);
+      meshSpecEntries.append(meshCreateInfo.pSpecializationInfo->pMapEntries,
+                             meshCreateInfo.pSpecializationInfo->mapEntryCount);
+    }
+    if(taskCreateInfo.pSpecializationInfo)
+    {
+      taskSpecData.append((const byte *)taskCreateInfo.pSpecializationInfo->pData,
+                          taskCreateInfo.pSpecializationInfo->dataSize);
+      taskSpecEntries.append(taskCreateInfo.pSpecializationInfo->pMapEntries,
+                             taskCreateInfo.pSpecializationInfo->mapEntryCount);
     }
   }
 
@@ -2998,6 +3032,9 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
   rdcarray<VulkanPostVSData::InstData> taskDispatchSizes;
   const uint32_t totalNumTaskGroups = totalNumMeshlets;
 
+  const VulkanCreationInfo::ShaderObject &taskShadObjInfo =
+      creationInfo.m_ShaderObject[state.shaderObjects[(size_t)ShaderStage::Task]];
+
   // if we have a task shader, we fetch both outputs together as a necessary component.
   // In order to properly pre-allocate the mesh output buffer we need to run the task shader, cache
   // all of its payloads and mesh dispatches per-group, then run a dispatch for each task group that
@@ -3005,9 +3042,12 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
   // behaviour or ordering will remain consistent between both passes and still allow for the
   // allocation after we know the average case. This is necessary because with task expansion the
   // worst case buffer size could be massive
-  if(pipeInfo.shaders[(size_t)ShaderStage::Task].refl)
+  if(state.graphics.shaderObject ? taskShadObjInfo.shad.refl
+                                 : pipeInfo.shaders[(size_t)ShaderStage::Task].refl)
   {
-    const VulkanCreationInfo::ShaderEntry &taskShad = pipeInfo.shaders[(size_t)ShaderStage::Task];
+    const VulkanCreationInfo::ShaderEntry &taskShad =
+        state.graphics.shaderObject ? taskShadObjInfo.shad
+                                    : pipeInfo.shaders[(size_t)ShaderStage::Task];
 
     if(taskShad.patchData->invalidTaskPayload)
     {
@@ -3132,7 +3172,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
     taskSpecInfo.mapEntryCount = (uint32_t)taskSpecEntries.size();
     taskSpecInfo.pMapEntries = taskSpecEntries.data();
 
-    // create mesh shader with modified code
+    // create task shader with modified code
     VkShaderModuleCreateInfo moduleCreateInfo = {
         VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
         NULL,
@@ -3141,9 +3181,12 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
         taskSpirv.data(),
     };
 
-    VkShaderModule taskModule;
-    vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &taskModule);
-    CheckVkResult(vkr);
+    VkShaderModule taskModule = VK_NULL_HANDLE;
+    if(!state.graphics.shaderObject)
+    {
+      vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &taskModule);
+      CheckVkResult(vkr);
+    }
 
     for(uint32_t s = 0; s < pipeCreateInfo.stageCount; s++)
     {
@@ -3157,9 +3200,10 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
     }
 
     // create new pipeline
-    VkPipeline taskPipe;
-    vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
-                                               &taskPipe);
+    VkPipeline taskPipe = VK_NULL_HANDLE;
+    if(!state.graphics.shaderObject)
+      vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
+                                                 &taskPipe);
 
     // delete shader/shader module
     m_pDriver->vkDestroyShaderModule(dev, taskModule, NULL);
@@ -3177,11 +3221,44 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
       return;
     }
 
+    // create task shader object with modified code
+    VkShaderEXT taskShader = VK_NULL_HANDLE;
+    if(state.graphics.shaderObject)
+    {
+      VkShaderCreateInfoEXT shaderCreateInfo = taskCreateInfo;
+      shaderCreateInfo.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT;
+      shaderCreateInfo.codeSize = taskSpirv.size() * sizeof(uint32_t);
+      shaderCreateInfo.pCode = taskSpirv.data();
+
+      vkr = m_pDriver->vkCreateShadersEXT(m_Device, 1, &shaderCreateInfo, NULL, &taskShader);
+
+      if(vkr != VK_SUCCESS)
+      {
+        m_pDriver->vkFreeMemory(m_Device, taskMem, NULL);
+        m_pDriver->vkFreeMemory(m_Device, readbackTaskMem, NULL);
+        m_pDriver->vkDestroyBuffer(m_Device, taskBuffer, NULL);
+        m_pDriver->vkDestroyBuffer(m_Device, readbackTaskBuffer, NULL);
+
+        ret.meshout.status = ret.taskout.status =
+            StringFormat::Fmt("Failed to create patched task shader object: %s", ToStr(vkr).c_str());
+        RDCERR("%s", ret.meshout.status.c_str());
+        return;
+      }
+    }
+
     // make copy of state to draw from
     VulkanRenderState modifiedstate = state;
 
-    // bind created pipeline to partial replay state
-    modifiedstate.graphics.pipeline = GetResID(taskPipe);
+    // bind created shader object or pipeline to partial replay state
+    if(state.graphics.shaderObject)
+    {
+      modifiedstate.graphics.pipeline = ResourceId();
+      modifiedstate.shaderObjects[(size_t)ShaderStage::Task] = GetResID(taskShader);
+    }
+    else
+    {
+      modifiedstate.graphics.pipeline = GetResID(taskPipe);
+    }
 
     VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
@@ -3193,6 +3270,8 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
       m_pDriver->vkDestroyBuffer(m_Device, readbackTaskBuffer, NULL);
 
       m_pDriver->vkDestroyPipeline(dev, taskPipe, NULL);
+      if(taskShader != VK_NULL_HANDLE)
+        m_pDriver->vkDestroyShaderEXT(dev, taskShader, NULL);
       return;
     }
 
@@ -3257,12 +3336,16 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
     vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
     CheckVkResult(vkr);
 
-    // submit & flush so that we don't have to keep pipeline around for a while
+    // submit & flush so that we don't have to keep pipeline or shader object around for a while
     m_pDriver->SubmitCmds();
     m_pDriver->FlushQ();
 
     // delete pipeline
     m_pDriver->vkDestroyPipeline(dev, taskPipe, NULL);
+
+    // delete task shader object
+    if(taskShader != VK_NULL_HANDLE)
+      m_pDriver->vkDestroyShaderEXT(dev, taskShader, NULL);
 
     // readback task data
     const byte *taskData = NULL;
@@ -3503,13 +3586,48 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
       modSpirv.size() * sizeof(uint32_t),          &modSpirv[0],
   };
 
-  VkShaderModule module, taskFeedModule = VK_NULL_HANDLE;
-  vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &module);
-  CheckVkResult(vkr);
+  VkShaderModule module = VK_NULL_HANDLE, taskFeedModule = VK_NULL_HANDLE;
+  if(!state.graphics.shaderObject)
+  {
+    vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &module);
+    CheckVkResult(vkr);
+  }
+
+  // create mesh shader object with modified code
+  VkShaderCreateInfoEXT shaderCreateInfo = meshCreateInfo;
+  VkShaderEXT taskShader = VK_NULL_HANDLE, meshShader = VK_NULL_HANDLE;
+
+  if(state.graphics.shaderObject)
+  {
+    shaderCreateInfo.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT;
+    shaderCreateInfo.codeSize = modSpirv.byteSize();
+    shaderCreateInfo.pCode = modSpirv.data();
+    shaderCreateInfo.pSpecializationInfo = &meshSpecInfo;
+
+    vkr = m_pDriver->vkCreateShadersEXT(dev, 1, &shaderCreateInfo, NULL, &meshShader);
+
+    if(vkr != VK_SUCCESS)
+    {
+      m_pDriver->vkFreeMemory(m_Device, taskMem, NULL);
+      m_pDriver->vkDestroyBuffer(m_Device, taskBuffer, NULL);
+      m_pDriver->vkDestroyBuffer(m_Device, meshBuffer, NULL);
+      m_pDriver->vkFreeMemory(m_Device, meshMem, NULL);
+      m_pDriver->vkDestroyBuffer(m_Device, readbackBuffer, NULL);
+      m_pDriver->vkFreeMemory(m_Device, readbackMem, NULL);
+
+      ret.meshout.status =
+          StringFormat::Fmt("Failed to create patched mesh shader object: %s", ToStr(vkr).c_str());
+      RDCERR("%s", ret.meshout.status.c_str());
+      return;
+    }
+  }
 
   if(taskDataAddress != 0)
   {
-    const VulkanCreationInfo::ShaderEntry &taskShad = pipeInfo.shaders[(size_t)ShaderStage::Task];
+    // use the shader object or shader module, as applicable
+    const VulkanCreationInfo::ShaderEntry &taskShad =
+        state.graphics.shaderObject ? taskShadObjInfo.shad
+                                    : pipeInfo.shaders[(size_t)ShaderStage::Task];
 
     const VulkanCreationInfo::ShaderModule &taskInfo = creationInfo.m_ShaderModule[taskShad.module];
 
@@ -3521,11 +3639,41 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
     if(!Vulkan_Debug_PostVSDumpDirPath().empty())
       FileIO::WriteAll(Vulkan_Debug_PostVSDumpDirPath() + "/debug_postts_feeder.spv", modSpirv);
 
-    moduleCreateInfo.pCode = modSpirv.data();
-    moduleCreateInfo.codeSize = modSpirv.byteSize();
+    if(state.graphics.shaderObject)
+    {
+      shaderCreateInfo = taskCreateInfo;
+      shaderCreateInfo.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT;
+      shaderCreateInfo.codeSize = modSpirv.byteSize();
+      shaderCreateInfo.pCode = modSpirv.data();
+      shaderCreateInfo.pSpecializationInfo = &taskSpecInfo;
 
-    vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &taskFeedModule);
-    CheckVkResult(vkr);
+      vkr = m_pDriver->vkCreateShadersEXT(dev, 1, &shaderCreateInfo, NULL, &taskShader);
+
+      if(vkr != VK_SUCCESS)
+      {
+        if(meshShader != VK_NULL_HANDLE)
+          m_pDriver->vkDestroyShaderEXT(dev, meshShader, NULL);
+        m_pDriver->vkFreeMemory(m_Device, taskMem, NULL);
+        m_pDriver->vkDestroyBuffer(m_Device, taskBuffer, NULL);
+        m_pDriver->vkDestroyBuffer(m_Device, meshBuffer, NULL);
+        m_pDriver->vkFreeMemory(m_Device, meshMem, NULL);
+        m_pDriver->vkDestroyBuffer(m_Device, readbackBuffer, NULL);
+        m_pDriver->vkFreeMemory(m_Device, readbackMem, NULL);
+
+        ret.meshout.status =
+            StringFormat::Fmt("Failed to create patched task shader object: %s", ToStr(vkr).c_str());
+        RDCERR("%s", ret.meshout.status.c_str());
+        return;
+      }
+    }
+    else
+    {
+      moduleCreateInfo.pCode = modSpirv.data();
+      moduleCreateInfo.codeSize = modSpirv.byteSize();
+
+      vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &taskFeedModule);
+      CheckVkResult(vkr);
+    }
   }
 
   for(uint32_t s = 0; s < pipeCreateInfo.stageCount; s++)
@@ -3547,9 +3695,10 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
   }
 
   // create new pipeline
-  VkPipeline pipe;
-  vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
-                                             &pipe);
+  VkPipeline pipe = VK_NULL_HANDLE;
+  if(!state.graphics.shaderObject)
+    vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
+                                               &pipe);
 
   // delete shader/shader module
   m_pDriver->vkDestroyShaderModule(dev, module, NULL);
@@ -3578,12 +3727,24 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
   // bind created pipeline to partial replay state
   modifiedstate.graphics.pipeline = GetResID(pipe);
 
+  // bind task/mesh to partial replay state if using shader objects
+  if(state.graphics.shaderObject)
+  {
+    modifiedstate.graphics.pipeline = ResourceId();
+    modifiedstate.shaderObjects[(size_t)ShaderStage::Task] = GetResID(taskShader);
+    modifiedstate.shaderObjects[(size_t)ShaderStage::Mesh] = GetResID(meshShader);
+  }
+
   if(totalNumMeshlets > 0)
   {
     VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
     if(cmd == VK_NULL_HANDLE)
     {
+      if(taskShader != VK_NULL_HANDLE)
+        m_pDriver->vkDestroyShaderEXT(dev, taskShader, NULL);
+      if(meshShader != VK_NULL_HANDLE)
+        m_pDriver->vkDestroyShaderEXT(dev, meshShader, NULL);
       m_pDriver->vkDestroyPipeline(dev, pipe, NULL);
       m_pDriver->vkFreeMemory(m_Device, taskMem, NULL);
       m_pDriver->vkDestroyBuffer(m_Device, taskBuffer, NULL);
@@ -3662,6 +3823,12 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
 
   // delete pipeline
   m_pDriver->vkDestroyPipeline(dev, pipe, NULL);
+
+  // delete task/mesh shader objects
+  if(taskShader != VK_NULL_HANDLE)
+    m_pDriver->vkDestroyShaderEXT(dev, taskShader, NULL);
+  if(meshShader != VK_NULL_HANDLE)
+    m_pDriver->vkDestroyShaderEXT(dev, meshShader, NULL);
 
   rdcarray<VulkanPostVSData::InstData> meshletOffsets;
 
@@ -4001,7 +4168,8 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
   ret.taskout.buf = taskBuffer;
   ret.taskout.bufmem = taskMem;
 
-  if(!pipeInfo.shaders[6].refl)
+  if(state.graphics.shaderObject ? !taskShadObjInfo.shad.refl
+                                 : !pipeInfo.shaders[(size_t)ShaderStage::Task].refl)
     ret.taskout.status = "No task shader bound";
 
   ret.taskout.baseVertex = 0;
@@ -4072,10 +4240,15 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
   const ActionDescription *action = m_pDriver->GetAction(eventId);
 
-  const VulkanCreationInfo::ShaderModule &moduleInfo =
-      creationInfo.m_ShaderModule[pipeInfo.shaders[0].module];
+  const VulkanCreationInfo::ShaderObject &shadObjInfo =
+      creationInfo.m_ShaderObject[state.shaderObjects[(size_t)ShaderStage::Vertex]];
 
-  ShaderReflection *refl = pipeInfo.shaders[0].refl;
+  const VulkanCreationInfo::ShaderEntry &vertShad =
+      state.graphics.shaderObject ? shadObjInfo.shad : pipeInfo.shaders[(size_t)ShaderStage::Vertex];
+
+  const VulkanCreationInfo::ShaderModule &moduleInfo = creationInfo.m_ShaderModule[vertShad.module];
+
+  ShaderReflection *refl = vertShad.refl;
 
   VulkanPostVSData &ret = m_PostVS.Data[eventId];
 
@@ -4198,7 +4371,8 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   VkPushConstantRange push;
   uint32_t numPush = 0;
   rdcarray<VkPushConstantRange> oldPush =
-      creationInfo.m_PipelineLayout[pipeInfo.vertLayout].pushRanges;
+      state.graphics.shaderObject ? shadObjInfo.pushRanges
+                                  : creationInfo.m_PipelineLayout[pipeInfo.vertLayout].pushRanges;
 
   // ensure the push range is visible to the compute shader
   for(const VkPushConstantRange &range : oldPush)
@@ -4250,7 +4424,9 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     // present wherever VERTEX_BIT was, so we can use the application's descriptor sets and layouts
 
     const rdcarray<ResourceId> &sets =
-        creationInfo.m_PipelineLayout[pipeInfo.vertLayout].descSetLayouts;
+        state.graphics.shaderObject
+            ? shadObjInfo.descSetLayouts
+            : creationInfo.m_PipelineLayout[pipeInfo.vertLayout].descSetLayouts;
 
     setLayouts.reserve(sets.size());
 
@@ -4617,20 +4793,35 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   // get pipeline create info
   m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, state.graphics.pipeline);
 
+  VkShaderCreateInfoEXT shaderCreateInfo;
+
+  // get shader object create info
+  m_pDriver->GetShaderCache()->MakeShaderObjectInfo(
+      shaderCreateInfo, state.shaderObjects[(size_t)ShaderStage::Vertex]);
+
   // copy over specialization info
-  for(uint32_t s = 0; s < pipeCreateInfo.stageCount; s++)
+  const VkSpecializationInfo *prevSpecInfo = NULL;
+
+  if(state.graphics.shaderObject)
   {
-    if(pipeCreateInfo.pStages[s].stage == VK_SHADER_STAGE_VERTEX_BIT)
+    prevSpecInfo = shaderCreateInfo.pSpecializationInfo;
+  }
+  else
+  {
+    for(uint32_t s = 0; s < pipeCreateInfo.stageCount; s++)
     {
-      if(pipeCreateInfo.pStages[s].pSpecializationInfo)
+      if(pipeCreateInfo.pStages[s].stage == VK_SHADER_STAGE_VERTEX_BIT)
       {
-        specData.assign((const byte *)pipeCreateInfo.pStages[s].pSpecializationInfo->pData,
-                        pipeCreateInfo.pStages[s].pSpecializationInfo->dataSize);
-        specEntries.assign(pipeCreateInfo.pStages[s].pSpecializationInfo->pMapEntries,
-                           pipeCreateInfo.pStages[s].pSpecializationInfo->mapEntryCount);
+        prevSpecInfo = pipeCreateInfo.pStages[s].pSpecializationInfo;
+        break;
       }
-      break;
     }
+  }
+
+  if(prevSpecInfo)
+  {
+    specData.assign((const byte *)prevSpecInfo->pData, prevSpecInfo->dataSize);
+    specEntries.assign(prevSpecInfo->pMapEntries, prevSpecInfo->mapEntryCount);
   }
 
   // don't overlap with existing pipeline constants
@@ -5032,9 +5223,9 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   if(!Vulkan_Debug_PostVSDumpDirPath().empty())
     FileIO::WriteAll(Vulkan_Debug_PostVSDumpDirPath() + "/debug_postvs_vert.spv", modSpirv);
 
-  ConvertToMeshOutputCompute(*refl, *pipeInfo.shaders[0].patchData, pipeInfo.shaders[0].entryPoint,
-                             storageMode, attrInstDivisor, action, numVerts, numViews,
-                             baseSpecConstant, modSpirv, bufStride);
+  ConvertToMeshOutputCompute(*refl, *vertShad.patchData, vertShad.entryPoint, storageMode,
+                             attrInstDivisor, action, numVerts, numViews, baseSpecConstant,
+                             modSpirv, bufStride);
 
   if(!Vulkan_Debug_PostVSDumpDirPath().empty())
     FileIO::WriteAll(Vulkan_Debug_PostVSDumpDirPath() + "/debug_postvs_comp.spv", modSpirv);
@@ -5513,14 +5704,22 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
   int stageIndex = 3;
 
   // if there is no such shader bound, try tessellation
-  if(!pipeInfo.shaders[stageIndex].refl)
+  if(state.graphics.shaderObject
+         ? !creationInfo.m_ShaderObject[state.shaderObjects[stageIndex]].shad.refl
+         : !pipeInfo.shaders[stageIndex].refl)
     stageIndex = 2;
 
   // if still nothing, do vertex
-  if(!pipeInfo.shaders[stageIndex].refl)
+  if(state.graphics.shaderObject
+         ? !creationInfo.m_ShaderObject[state.shaderObjects[stageIndex]].shad.refl
+         : !pipeInfo.shaders[stageIndex].refl)
     stageIndex = 0;
 
-  ShaderReflection *lastRefl = pipeInfo.shaders[stageIndex].refl;
+  const VulkanCreationInfo::ShaderEntry &shader =
+      state.graphics.shaderObject ? creationInfo.m_ShaderObject[state.shaderObjects[stageIndex]].shad
+                                  : pipeInfo.shaders[stageIndex];
+
+  ShaderReflection *lastRefl = shader.refl;
 
   RDCASSERT(lastRefl);
 
@@ -5571,8 +5770,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
     return;
   }
 
-  const VulkanCreationInfo::ShaderModule &moduleInfo =
-      creationInfo.m_ShaderModule[pipeInfo.shaders[stageIndex].module];
+  const VulkanCreationInfo::ShaderModule &moduleInfo = creationInfo.m_ShaderModule[shader.module];
 
   rdcarray<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
 
@@ -5582,8 +5780,8 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
     FileIO::WriteAll(Vulkan_Debug_PostVSDumpDirPath() + "/debug_postgs_before.spv", modSpirv);
 
   // adds XFB annotations in order of the output signature (with the position first)
-  AddXFBAnnotations(*lastRefl, *pipeInfo.shaders[stageIndex].patchData, pipeInfo.rasterizationStream,
-                    pipeInfo.shaders[stageIndex].entryPoint.c_str(), modSpirv, xfbStride);
+  AddXFBAnnotations(*lastRefl, *shader.patchData, pipeInfo.rasterizationStream,
+                    shader.entryPoint.c_str(), modSpirv, xfbStride);
 
   if(!Vulkan_Debug_PostVSDumpDirPath().empty())
     FileIO::WriteAll(Vulkan_Debug_PostVSDumpDirPath() + "/debug_postgs_after.spv", modSpirv);
@@ -5606,9 +5804,19 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
   // get pipeline create info
   m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo, state.graphics.pipeline);
 
+  VkShaderCreateInfoEXT shaderObjectCreateInfo;
+
+  // get shader object create info
+  m_pDriver->GetShaderCache()->MakeShaderObjectInfo(shaderObjectCreateInfo,
+                                                    state.shaderObjects[stageIndex]);
+
+  shaderObjectCreateInfo.codeSize = modSpirv.size() * sizeof(uint32_t);
+  shaderObjectCreateInfo.pCode = &modSpirv[0];
+
   VkPipelineRasterizationStateCreateInfo *rs =
       (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
-  rs->rasterizerDiscardEnable = true;
+  if(rs)
+    rs->rasterizerDiscardEnable = true;
 
   for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
   {
@@ -5648,11 +5856,22 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
   RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
 
   VkPipeline pipe = VK_NULL_HANDLE;
-  vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
-                                             &pipe);
+  VkShaderEXT shad = VK_NULL_HANDLE;
+
+  if(state.graphics.shaderObject)
+    vkr = m_pDriver->vkCreateShadersEXT(m_Device, 1, &shaderObjectCreateInfo, NULL, &shad);
+  else
+    vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
+                                               &pipe);
+
   CheckVkResult(vkr);
 
-  state.graphics.pipeline = GetResID(pipe);
+  if(state.graphics.shaderObject)
+    state.shaderObjects[stageIndex] = GetResID(shad);
+  else
+    state.graphics.pipeline = GetResID(pipe);
+
+  state.rastDiscardEnable = true;
   state.SetFramebuffer(m_pDriver, GetResID(fb));
   state.SetRenderPass(GetResID(rp));
   state.dynamicRendering = VulkanRenderState::DynamicRendering();
@@ -5997,6 +6216,10 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
   m_pDriver->vkDestroyFramebuffer(dev, fb, NULL);
   m_pDriver->vkDestroyRenderPass(dev, rp, NULL);
 
+  // delete shader object
+  if(shad != VK_NULL_HANDLE)
+    m_pDriver->vkDestroyShaderEXT(dev, shad, NULL);
+
   // delete pipeline
   m_pDriver->vkDestroyPipeline(dev, pipe, NULL);
 
@@ -6020,7 +6243,7 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId, VulkanRenderState state)
 
   VulkanPostVSData &ret = m_PostVS.Data[eventId];
 
-  if(state.graphics.pipeline == ResourceId() ||
+  if((state.graphics.pipeline == ResourceId() && !state.graphics.shaderObject) ||
      (state.GetRenderPass() == ResourceId() && !state.dynamicRendering.active))
   {
     ret.gsout.status = ret.vsout.status = "Draw outside of renderpass";
@@ -6029,7 +6252,15 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId, VulkanRenderState state)
 
   const VulkanCreationInfo::Pipeline &pipeInfo = creationInfo.m_Pipeline[state.graphics.pipeline];
 
-  if(pipeInfo.shaders[size_t(ShaderStage::Vertex)].module == ResourceId() &&
+  if(state.graphics.shaderObject && state.shaderObjects[size_t(ShaderStage::Vertex)] == ResourceId() &&
+     state.shaderObjects[size_t(ShaderStage::Mesh)] == ResourceId())
+  {
+    ret.gsout.status = ret.vsout.status = "No vertex or mesh shader object";
+    return;
+  }
+
+  if(!state.graphics.shaderObject &&
+     pipeInfo.shaders[size_t(ShaderStage::Vertex)].module == ResourceId() &&
      pipeInfo.shaders[size_t(ShaderStage::Mesh)].module == ResourceId())
   {
     ret.gsout.status = ret.vsout.status = "No vertex or mesh shader in pipeline";
@@ -6068,8 +6299,17 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventId, VulkanRenderState state)
 
   VkMarkerRegion::End();
 
+  bool noTessGS = false;
+
+  if(state.graphics.shaderObject)
+    noTessGS = state.shaderObjects[size_t(ShaderStage::Tess_Eval)] == ResourceId() &&
+               state.shaderObjects[size_t(ShaderStage::Geometry)] == ResourceId();
+  else
+    noTessGS = pipeInfo.shaders[size_t(ShaderStage::Tess_Eval)].module == ResourceId() &&
+               pipeInfo.shaders[size_t(ShaderStage::Geometry)].module == ResourceId();
+
   // if there's no tessellation or geometry shader active, bail out now
-  if(pipeInfo.shaders[2].module == ResourceId() && pipeInfo.shaders[3].module == ResourceId())
+  if(noTessGS)
   {
     ret.gsout.status = "No geometry and no tessellation shader bound.";
     return;

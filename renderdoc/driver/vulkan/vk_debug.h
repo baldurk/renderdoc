@@ -92,6 +92,7 @@ public:
                                                    const MeshFormat &secondary);
 
   void PatchFixedColShader(VkShaderModule &mod, float col[4]);
+  void PatchFixedColShaderObject(VkShaderEXT &shad, float col[4]);
   void PatchLineStripIndexBuffer(const ActionDescription *action, GPUBuffer &indexBuffer,
                                  uint32_t &indexCount);
 

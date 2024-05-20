@@ -544,6 +544,13 @@ void VulkanShaderCache::SetPipeCacheBlob(bytebuf &blob)
 void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &pipeCreateInfo,
                                                  ResourceId pipeline)
 {
+  // skip if invalid pipeline
+  if(pipeline == ResourceId())
+  {
+    RDCEraseEl(pipeCreateInfo);
+    return;
+  }
+
   const VulkanCreationInfo::Pipeline &pipeInfo = m_pDriver->m_CreationInfo.m_Pipeline[pipeline];
 
   VulkanResourceManager *rm = m_pDriver->GetResourceManager();
@@ -1104,4 +1111,85 @@ void VulkanShaderCache::MakeComputePipelineInfo(VkComputePipelineCreateInfo &pip
   ret.flags &= ~VK_PIPELINE_CREATE_DERIVATIVE_BIT;
 
   pipeCreateInfo = ret;
+}
+
+void VulkanShaderCache::MakeShaderObjectInfo(VkShaderCreateInfoEXT &shadCreateInfo,
+                                             ResourceId shaderObj)
+{
+  // skip if invalid shader object
+  if(shaderObj == ResourceId())
+  {
+    RDCEraseEl(shadCreateInfo);
+    return;
+  }
+
+  const VulkanCreationInfo::ShaderObject &shadInfo =
+      m_pDriver->m_CreationInfo.m_ShaderObject[shaderObj];
+
+  const VulkanCreationInfo::ShaderModule &moduleInfo =
+      m_pDriver->m_CreationInfo.m_ShaderModule[shadInfo.shad.module];
+  const rdcarray<uint32_t> &modSpirv = moduleInfo.spirv.GetSPIRV();
+
+  VulkanResourceManager *rm = m_pDriver->GetResourceManager();
+
+  static VkSpecializationInfo specInfo;
+  static rdcarray<VkSpecializationMapEntry> specMapEntries;
+
+  // the specialization constants can't use more than a uint64_t, so we just over-allocate
+  static rdcarray<uint64_t> specdata;
+
+  size_t specEntries = shadInfo.shad.specialization.size();
+
+  specdata.resize(specEntries);
+  specMapEntries.resize(specEntries);
+  VkSpecializationMapEntry *entry = specMapEntries.data();
+
+  uint32_t stage = (uint32_t)shadInfo.shad.stage;
+
+  static rdcarray<VkDescriptorSetLayout> descSetLayouts;
+  descSetLayouts = {};
+
+  for(ResourceId setLayout : shadInfo.descSetLayouts)
+    descSetLayouts.push_back(rm->GetCurrentHandle<VkDescriptorSetLayout>(setLayout));
+
+  VkShaderCreateInfoEXT ret = {VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
+                               NULL,
+                               shadInfo.flags,
+                               (VkShaderStageFlagBits)(1 << stage),
+                               shadInfo.nextStage,
+                               VK_SHADER_CODE_TYPE_SPIRV_EXT,
+                               modSpirv.size() * sizeof(uint32_t),
+                               modSpirv.data(),
+                               shadInfo.shad.entryPoint.c_str(),
+                               (uint32_t)descSetLayouts.size(),
+                               descSetLayouts.data(),
+                               (uint32_t)shadInfo.pushRanges.size(),
+                               shadInfo.pushRanges.data(),
+                               NULL};
+
+  // specialization info
+  uint32_t dataOffset = 0;
+
+  if(!shadInfo.shad.specialization.empty())
+  {
+    ret.pSpecializationInfo = &specInfo;
+    specInfo.pMapEntries = entry;
+    specInfo.mapEntryCount = (uint32_t)shadInfo.shad.specialization.size();
+
+    for(size_t s = 0; s < shadInfo.shad.specialization.size(); s++)
+    {
+      entry[s].constantID = shadInfo.shad.specialization[s].specID;
+      entry[s].size = shadInfo.shad.specialization[s].dataSize;
+      entry[s].offset = dataOffset * sizeof(uint64_t);
+
+      specdata[dataOffset] = shadInfo.shad.specialization[s].value;
+
+      dataOffset++;
+    }
+
+    specInfo.dataSize = specdata.size() * sizeof(uint64_t);
+    specInfo.pData = specdata.data();
+  }
+
+  shadCreateInfo = ret;
 }
