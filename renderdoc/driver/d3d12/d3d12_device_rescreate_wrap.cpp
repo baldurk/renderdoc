@@ -248,7 +248,7 @@ bool WrappedID3D12Device::Serialise_CreateResource(
   SetObjName(ret, StringFormat::Fmt("%s Resource %s %s", ResourceTypeName,
                                     ToStr(desc.Dimension).c_str(), ToStr(pResource).c_str()));
 
-  ret = new WrappedID3D12Resource(ret, pHeap, HeapOffset, this);
+  ret = new WrappedID3D12Resource(ret, pHeap, HeapOffset, this, gpuAddress);
 
   switch(chunkType)
   {

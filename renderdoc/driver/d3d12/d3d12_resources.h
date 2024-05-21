@@ -1170,6 +1170,8 @@ class WrappedID3D12Resource
   rdcflatmap<D3D12BufferOffset, D3D12AccelerationStructure *> m_accelerationStructMap;
   bool m_isAccelerationStructureResource = false;
 
+  UINT64 m_OrigAddress;
+
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Resource, false);
 
@@ -1231,6 +1233,8 @@ public:
     m_Addresses.GetResIDFromAddrAllowOutOfBounds(addr, id, offs);
   }
 
+  UINT64 GetOriginalVA() const { return m_OrigAddress; }
+
   // overload to just return the id in case the offset isn't needed
   static ResourceId GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr)
   {
@@ -1248,9 +1252,10 @@ public:
   };
 
   WrappedID3D12Resource(ID3D12Resource *real, ID3D12Heap *heap, UINT64 HeapOffset,
-                        WrappedID3D12Device *device)
+                        WrappedID3D12Device *device, UINT64 origAddress = 0)
       : WrappedDeviceChild12(real, device)
   {
+    m_OrigAddress = origAddress;
     if(IsReplayMode(device->GetState()))
       device->AddReplayResource(GetResourceID(), this);
 

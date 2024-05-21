@@ -414,6 +414,7 @@ BufferDescription D3D12Replay::GetBuffer(ResourceId id)
   ret.length = desc.Width;
 
   ret.creationFlags = BufferCategory::NoFlags;
+  ret.gpuAddress = it->second->GetOriginalVA();
 
   const rdcarray<EventUsage> &usage = m_pDevice->GetQueue()->GetUsage(id);
 
