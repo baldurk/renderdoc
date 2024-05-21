@@ -57,29 +57,9 @@ bool InRange(BlasAddressRange addressRange, GPUAddress address)
   instanceDescs[dispatchGroup.x].blasAddress = 0;
 }
 
-struct StateObjectLookup
-{
-  uint2 id;    // ResourceId
-  uint offset;
-};
-
 StructuredBuffer<StateObjectLookup> stateObjects : register(t0);
-
-struct RecordData
-{
-  uint4 identifier[2];    // 32-byte real identifier
-  uint rootSigIndex;      // only lower 16-bits are valid
-};
-
-StructuredBuffer<RecordData> records : register(t1);
-
-struct RootSig
-{
-  uint numParams;
-  uint paramOffsets[MAX_LOCALSIG_PARAMS];
-};
-
-StructuredBuffer<RootSig> rootsigs : register(t2);
+StructuredBuffer<ShaderRecordData> records : register(t1);
+StructuredBuffer<LocalRootSigData> rootsigs : register(t2);
 
 struct WrappedRecord
 {
@@ -136,7 +116,7 @@ void PatchTable(uint byteOffset)
 
   // the exports from this state object are contiguous starting from the given index, look up this
   // identifier's export
-  RecordData recordData = records[objectLookup.offset + wrappedRecord.index];
+  ShaderRecordData recordData = records[objectLookup.offset + wrappedRecord.index];
 
   // store the unwrapped shader identifier
   bufferToPatch.Store4(byteOffset, recordData.identifier[0]);
@@ -146,7 +126,7 @@ void PatchTable(uint byteOffset)
 
   if(rootSigIndex != 0xffff)
   {
-    RootSig sig = rootsigs[rootSigIndex];
+    LocalRootSigData sig = rootsigs[rootSigIndex];
 
     DescriptorHeapData heaps[2];
 
@@ -181,8 +161,8 @@ void PatchTable(uint byteOffset)
             uint index = sub(wrappedHandlePtr, heaps[h].wrapped_base).x / WRAPPED_DESCRIPTOR_STRIDE;
 
             GPUAddress handleOffset = GPUAddress(index * heaps[h].unwrapped_stride, 0);
-            bufferToPatch.Store2(byteOffset + paramOffset,
-                                 add(heaps[h].unwrapped_base, handleOffset));
+            GPUAddress unwrapped = add(heaps[h].unwrapped_base, handleOffset);
+            bufferToPatch.Store2(byteOffset + paramOffset, unwrapped);
             patched = true;
             break;
           }

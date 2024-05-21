@@ -288,6 +288,13 @@ struct InstanceDesc
 
 cbuffer RayDispatchPatchCB REG(b0)
 {
+  // declare GPUAddresses first to avoid padding/alignment issues
+  GPUAddress wrapped_sampHeapBase;
+  GPUAddress wrapped_srvHeapBase;
+
+  GPUAddress unwrapped_sampHeapBase;
+  GPUAddress unwrapped_srvHeapBase;
+
   uint raydispatch_missoffs;
   uint raydispatch_missstride;
   uint raydispatch_misscount;
@@ -300,12 +307,6 @@ cbuffer RayDispatchPatchCB REG(b0)
   uint raydispatch_callstride;
   uint raydispatch_callcount;
 
-  GPUAddress wrapped_sampHeapBase;
-  GPUAddress wrapped_srvHeapBase;
-
-  GPUAddress unwrapped_sampHeapBase;
-  GPUAddress unwrapped_srvHeapBase;
-
   uint wrapped_sampHeapSize;
   uint wrapped_srvHeapSize;
   uint unwrapped_heapStrides;    // LSB = sampler, MSB = srv
@@ -313,7 +314,28 @@ cbuffer RayDispatchPatchCB REG(b0)
   uint numPatchingAddrs;
 };
 
+struct StateObjectLookup
+{
+  uint2 id;    // ResourceId
+  uint offset;
+
+  uint pad;
+};
+
+struct ShaderRecordData
+{
+  uint4 identifier[2];    // 32-byte real identifier
+  uint rootSigIndex;      // only lower 16-bits are valid
+};
+
 #define MAX_LOCALSIG_PARAMS 31
+
+struct LocalRootSigData
+{
+  uint numParams;
+  uint paramOffsets[MAX_LOCALSIG_PARAMS];
+};
+
 #define WRAPPED_DESCRIPTOR_STRIDE 64
 
 cbuffer DebugSampleOperation REG(b0)
