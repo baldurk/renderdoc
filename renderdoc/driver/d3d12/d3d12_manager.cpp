@@ -695,6 +695,10 @@ D3D12RaytracingResourceAndUtilHandler::D3D12RaytracingResourceAndUtilHandler(Wra
       m_gpuSyncHandle(NULL),
       m_gpuSyncCounter(0u)
 {
+}
+
+void D3D12RaytracingResourceAndUtilHandler::CreateInternalResources()
+{
   if(m_wrappedDevice)
   {
     ID3D12Device *realDevice = m_wrappedDevice->GetReal();
@@ -1238,7 +1242,7 @@ void D3D12RaytracingResourceAndUtilHandler::InitRayDispatchPatchingResources()
           (void **)&m_RayPatchingData.rootSig);
 
       if(!SUCCEEDED(result))
-        RDCERR("Unable to create root signature for patching the BLAS");
+        RDCERR("Unable to create root signature for dispatch patching");
 
       // PipelineState
       ID3DBlob *shader = NULL;
@@ -1259,7 +1263,11 @@ void D3D12RaytracingResourceAndUtilHandler::InitRayDispatchPatchingResources()
             &pipeline, __uuidof(ID3D12PipelineState), (void **)&m_RayPatchingData.pipe);
 
         if(!SUCCEEDED(result))
-          RDCERR("Unable to create pipeline for patching the BLAS");
+          RDCERR("Unable to create pipeline for dispatch patching");
+      }
+      else
+      {
+        RDCERR("Failed to get shader for dispatch patching");
       }
 
       SAFE_RELEASE(rootSig);

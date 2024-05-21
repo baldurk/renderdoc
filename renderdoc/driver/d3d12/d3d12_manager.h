@@ -1084,6 +1084,8 @@ class D3D12RaytracingResourceAndUtilHandler
 public:
   D3D12RaytracingResourceAndUtilHandler(WrappedID3D12Device *device);
 
+  void CreateInternalResources();
+
   ID3D12GraphicsCommandListX *GetCmd() const { return m_cmdList; }
   ID3D12CommandAllocator *GetCmdAlloc() const { return m_cmdAlloc; }
   ID3D12CommandQueue *GetCmdQueue() const { return m_cmdQueue; }

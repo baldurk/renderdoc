@@ -4045,6 +4045,8 @@ void WrappedID3D12Device::CreateInternalResources()
     }
   }
 
+  GetResourceManager()->GetRaytracingResourceAndUtilHandler()->CreateInternalResources();
+
   // we don't want replay-only shaders added in WrappedID3D12Shader to pollute the list of resources
   WrappedID3D12Shader::InternalResources(true);
 
