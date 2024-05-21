@@ -1273,8 +1273,8 @@ void WrappedID3D12GraphicsCommandList::CopyRaytracingAccelerationStructure(
 
     WrappedID3D12Resource::GetResIDFromAddr(DestAccelerationStructureData, destASBId, destASBOffset);
 
-    if(Mode != D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_SERIALIZE &&
-       Mode != D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_VISUALIZATION_DECODE_FOR_TOOLS)
+    if(Mode == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_SERIALIZE ||
+       Mode == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_VISUALIZATION_DECODE_FOR_TOOLS)
     {
       // these outputs are not ASs themselves, so we don't need to do any further tracking
     }
