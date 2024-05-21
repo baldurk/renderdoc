@@ -69,6 +69,7 @@ void BufferFormatList::setFormat(QString name, QString format)
   for(QString k : keys)
     saved.push_back(k + lit("\n") + formats[k]);
   m_Ctx.Config().BufferFormatter_SavedFormats = saved;
+  m_Ctx.Config().Save();
 }
 
 BufferFormatSpecifier::BufferFormatSpecifier(QWidget *parent)
