@@ -889,7 +889,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
     DoPipelineBarrier(cmd, 1, &barrier);
 
-    if(!pipeInfo.rasterizerDiscardEnable)
+    if(!state.rastDiscardEnable)
     {
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
       CheckVkResult(vkr);
@@ -908,22 +908,35 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo,
                                                             prevstate.graphics.pipeline);
 
+      // make patched shader object
+      VkShaderEXT shad = VK_NULL_HANDLE;
+
+      if(state.graphics.shaderObject)
+        GetDebugManager()->PatchFixedColShaderObject(shad, highlightCol);
+
       // disable all tests possible
       VkPipelineDepthStencilStateCreateInfo *ds =
           (VkPipelineDepthStencilStateCreateInfo *)pipeCreateInfo.pDepthStencilState;
-      ds->depthTestEnable = false;
-      ds->depthWriteEnable = false;
-      ds->stencilTestEnable = false;
-      ds->depthBoundsTestEnable = false;
+      if(ds)
+      {
+        ds->depthTestEnable = false;
+        ds->depthWriteEnable = false;
+        ds->stencilTestEnable = false;
+        ds->depthBoundsTestEnable = false;
+      }
 
       VkPipelineRasterizationStateCreateInfo *rs =
           (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
-      rs->cullMode = VK_CULL_MODE_NONE;
-      rs->rasterizerDiscardEnable = false;
+      if(rs)
+      {
+        rs->cullMode = VK_CULL_MODE_NONE;
+        rs->rasterizerDiscardEnable = false;
+      }
 
       VkPipelineMultisampleStateCreateInfo *msaa =
           (VkPipelineMultisampleStateCreateInfo *)pipeCreateInfo.pMultisampleState;
-      msaa->pSampleMask = NULL;
+      if(msaa)
+        msaa->pSampleMask = NULL;
 
       // disable tests in dynamic state too
       state.depthTestEnable = VK_FALSE;
@@ -939,7 +952,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
       if(m_pDriver->GetDeviceEnabledFeatures().depthClamp)
       {
-        rs->depthClampEnable = true;
+        if(rs)
+          rs->depthClampEnable = true;
+        state.depthClampEnable = true;
       }
 
       // disable line stipple
@@ -951,13 +966,15 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       {
         lineRasterState->stippledLineEnable = VK_FALSE;
       }
+      state.stippledLineEnable = false;
 
       uint32_t patchedIndexCount = 0;
       GPUBuffer patchedIB;
 
       if(overlay == DebugOverlay::Wireframe)
       {
-        rs->lineWidth = 1.0f;
+        if(rs)
+          rs->lineWidth = 1.0f;
 
         if(mainDraw == NULL)
         {
@@ -965,8 +982,12 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         }
         else if(m_pDriver->GetDeviceEnabledFeatures().fillModeNonSolid)
         {
-          rs->polygonMode = VK_POLYGON_MODE_LINE;
-          state.polygonMode = rs->polygonMode;
+          if(rs)
+            rs->polygonMode = VK_POLYGON_MODE_LINE;
+          state.polygonMode = VK_POLYGON_MODE_LINE;
+
+          if(m_pDriver->ShaderObject())
+            state.dynamicStates[VkDynamicLineWidth] = true;
         }
         else if(prevstate.primitiveTopology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST ||
                 prevstate.primitiveTopology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP ||
@@ -984,15 +1005,22 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           VkPipelineInputAssemblyStateCreateInfo *ia =
               (VkPipelineInputAssemblyStateCreateInfo *)pipeCreateInfo.pInputAssemblyState;
 
-          ia->topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+          if(ia)
+            ia->topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+          state.primitiveTopology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
 
           // thankfully, primitive restart is always supported! This makes the index buffer a bit
           // more
           // compact in the common cases where we don't need to repeat two indices for a triangle's
           // three lines, instead we have a single restart index after each triangle.
-          ia->primitiveRestartEnable = true;
+          if(ia)
+            ia->primitiveRestartEnable = true;
+          state.primRestartEnable = true;
 
           GetDebugManager()->PatchLineStripIndexBuffer(mainDraw, patchedIB, patchedIndexCount);
+
+          if(m_pDriver->ShaderObject())
+            state.dynamicStates[VkDynamicLineWidth] = true;
         }
         else
         {
@@ -1003,18 +1031,21 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
       VkPipelineColorBlendStateCreateInfo *cb =
           (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
-      cb->logicOpEnable = false;
-      cb->attachmentCount = 1;    // only one colour attachment
-      for(uint32_t i = 0; i < cb->attachmentCount; i++)
+      if(cb)
       {
-        VkPipelineColorBlendAttachmentState *att =
-            (VkPipelineColorBlendAttachmentState *)&cb->pAttachments[i];
-        att->blendEnable = false;
-        att->colorWriteMask = 0xf;
+        cb->logicOpEnable = false;
+        cb->attachmentCount = 1;    // only one colour attachment
+        for(uint32_t i = 0; i < cb->attachmentCount; i++)
+        {
+          VkPipelineColorBlendAttachmentState *att =
+              (VkPipelineColorBlendAttachmentState *)&cb->pAttachments[i];
+          att->blendEnable = false;
+          att->colorWriteMask = 0xf;
+        }
       }
 
       // set scissors to max for drawcall
-      if(overlay == DebugOverlay::Drawcall)
+      if(overlay == DebugOverlay::Drawcall && pipeCreateInfo.pViewportState)
       {
         for(size_t i = 0; i < pipeCreateInfo.pViewportState->scissorCount; i++)
         {
@@ -1033,40 +1064,46 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       // don't use dynamic rendering
       RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
 
-      bool found = false;
-      for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
+      if(!state.graphics.shaderObject)
       {
-        VkPipelineShaderStageCreateInfo &sh =
-            (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
-        if(sh.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
+        bool found = false;
+        for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
         {
+          VkPipelineShaderStageCreateInfo &sh =
+              (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
+          if(sh.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
+          {
+            sh.module = mod;
+            sh.pName = "main";
+            found = true;
+            break;
+          }
+        }
+
+        if(!found)
+        {
+          // we know this is safe because it's pointing to a static array that's
+          // big enough for all shaders
+
+          VkPipelineShaderStageCreateInfo &sh =
+              (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[pipeCreateInfo.stageCount++];
+          sh.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+          sh.pNext = NULL;
+          sh.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
           sh.module = mod;
           sh.pName = "main";
-          found = true;
-          break;
+          sh.pSpecializationInfo = NULL;
         }
-      }
-
-      if(!found)
-      {
-        // we know this is safe because it's pointing to a static array that's
-        // big enough for all shaders
-
-        VkPipelineShaderStageCreateInfo &sh =
-            (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[pipeCreateInfo.stageCount++];
-        sh.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        sh.pNext = NULL;
-        sh.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        sh.module = mod;
-        sh.pName = "main";
-        sh.pSpecializationInfo = NULL;
       }
 
       VkPipeline pipe = VK_NULL_HANDLE;
 
-      vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
-                                                 &pipe);
-      CheckVkResult(vkr);
+      if(!state.graphics.shaderObject)
+      {
+        vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo,
+                                                   NULL, &pipe);
+        CheckVkResult(vkr);
+      }
 
       // modify state
       state.SetRenderPass(GetResID(m_Overlay.NoDepthRP));
@@ -1077,6 +1114,12 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       state.dynamicRendering.flags &= ~VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT;
 
       state.graphics.pipeline = GetResID(pipe);
+
+      if(state.graphics.shaderObject)
+      {
+        state.graphics.pipeline = ResourceId();
+        state.shaderObjects[4] = GetResID(shad);
+      }
 
       // set dynamic scissors in case pipeline was using them
       if(overlay == DebugOverlay::Drawcall)
@@ -1143,6 +1186,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
       patchedIB.Destroy();
 
+      if(shad != VK_NULL_HANDLE)
+        m_pDriver->vkDestroyShaderEXT(m_Device, shad, NULL);
+
       m_pDriver->vkDestroyPipeline(m_Device, pipe, NULL);
       m_pDriver->vkDestroyShaderModule(m_Device, mod, NULL);
     }
@@ -1177,7 +1223,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
     black[3] = 0.0f;
 
-    if(!pipeInfo.rasterizerDiscardEnable)
+    if(!state.rastDiscardEnable)
     {
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
       CheckVkResult(vkr);
@@ -1190,15 +1236,22 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       // make patched shader
       VkShaderModule mod[2] = {0};
       VkPipeline pipe[2] = {0};
+      VkShaderEXT shad[2] = {0};
 
       // first shader, no culling, writes red
-      GetDebugManager()->PatchFixedColShader(mod[0], highlightCol);
+      if(!state.graphics.shaderObject)
+        GetDebugManager()->PatchFixedColShader(mod[0], highlightCol);
+      else
+        GetDebugManager()->PatchFixedColShaderObject(shad[0], highlightCol);
 
       highlightCol[0] = 0.0f;
       highlightCol[1] = 1.0f;
 
       // second shader, normal culling, writes green
-      GetDebugManager()->PatchFixedColShader(mod[1], highlightCol);
+      if(!state.graphics.shaderObject)
+        GetDebugManager()->PatchFixedColShader(mod[1], highlightCol);
+      else
+        GetDebugManager()->PatchFixedColShaderObject(shad[1], highlightCol);
 
       // make patched pipeline
       VkGraphicsPipelineCreateInfo pipeCreateInfo;
@@ -1206,22 +1259,88 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo,
                                                             prevstate.graphics.pipeline);
 
-      // disable all tests possible
-      VkPipelineDepthStencilStateCreateInfo *ds =
-          (VkPipelineDepthStencilStateCreateInfo *)pipeCreateInfo.pDepthStencilState;
-      ds->depthTestEnable = false;
-      ds->depthWriteEnable = false;
-      ds->stencilTestEnable = false;
-      ds->depthBoundsTestEnable = false;
+      if(!state.graphics.shaderObject)
+      {
+        // disable all tests possible
+        VkPipelineDepthStencilStateCreateInfo *ds =
+            (VkPipelineDepthStencilStateCreateInfo *)pipeCreateInfo.pDepthStencilState;
+        ds->depthTestEnable = false;
+        ds->depthWriteEnable = false;
+        ds->stencilTestEnable = false;
+        ds->depthBoundsTestEnable = false;
 
-      VkPipelineRasterizationStateCreateInfo *rs =
-          (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
-      rs->cullMode = VK_CULL_MODE_NONE;    // first render without any culling
-      rs->rasterizerDiscardEnable = false;
+        VkPipelineRasterizationStateCreateInfo *rs =
+            (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
+        rs->cullMode = VK_CULL_MODE_NONE;    // first render without any culling
+        rs->rasterizerDiscardEnable = false;
 
-      VkPipelineMultisampleStateCreateInfo *msaa =
-          (VkPipelineMultisampleStateCreateInfo *)pipeCreateInfo.pMultisampleState;
-      msaa->pSampleMask = NULL;
+        VkPipelineMultisampleStateCreateInfo *msaa =
+            (VkPipelineMultisampleStateCreateInfo *)pipeCreateInfo.pMultisampleState;
+        msaa->pSampleMask = NULL;
+
+        if(m_pDriver->GetDeviceEnabledFeatures().depthClamp)
+          rs->depthClampEnable = true;
+
+        VkPipelineColorBlendStateCreateInfo *cb =
+            (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
+        cb->logicOpEnable = false;
+        cb->attachmentCount = 1;    // only one colour attachment
+        for(uint32_t i = 0; i < cb->attachmentCount; i++)
+        {
+          VkPipelineColorBlendAttachmentState *att =
+              (VkPipelineColorBlendAttachmentState *)&cb->pAttachments[i];
+          att->blendEnable = false;
+          att->colorWriteMask = 0xf;
+        }
+
+        // set our renderpass and shader
+        pipeCreateInfo.renderPass = m_Overlay.NoDepthRP;
+        pipeCreateInfo.subpass = 0;
+
+        // don't use dynamic rendering
+        RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
+
+        VkPipelineShaderStageCreateInfo *fragShader = NULL;
+        for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
+        {
+          VkPipelineShaderStageCreateInfo &sh =
+              (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
+          if(sh.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
+          {
+            sh.module = mod[0];
+            sh.pName = "main";
+            fragShader = &sh;
+            break;
+          }
+        }
+
+        if(fragShader == NULL)
+        {
+          // we know this is safe because it's pointing to a static array that's
+          // big enough for all shaders
+
+          VkPipelineShaderStageCreateInfo &sh =
+              (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[pipeCreateInfo.stageCount++];
+          sh.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+          sh.pNext = NULL;
+          sh.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+          sh.module = mod[0];
+          sh.pName = "main";
+          sh.pSpecializationInfo = NULL;
+
+          fragShader = &sh;
+        }
+
+        vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo,
+                                                   NULL, &pipe[0]);
+        CheckVkResult(vkr);
+
+        fragShader->module = mod[1];
+
+        vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo,
+                                                   NULL, &pipe[1]);
+        CheckVkResult(vkr);
+      }
 
       // disable tests in dynamic state too
       state.depthTestEnable = VK_FALSE;
@@ -1231,68 +1350,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       state.depthBoundsTestEnable = VK_FALSE;
       state.cullMode = VK_CULL_MODE_NONE;
 
+      // enable dynamic depth clamp
       if(m_pDriver->GetDeviceEnabledFeatures().depthClamp)
-        rs->depthClampEnable = true;
-
-      VkPipelineColorBlendStateCreateInfo *cb =
-          (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
-      cb->logicOpEnable = false;
-      cb->attachmentCount = 1;    // only one colour attachment
-      for(uint32_t i = 0; i < cb->attachmentCount; i++)
-      {
-        VkPipelineColorBlendAttachmentState *att =
-            (VkPipelineColorBlendAttachmentState *)&cb->pAttachments[i];
-        att->blendEnable = false;
-        att->colorWriteMask = 0xf;
-      }
-
-      // set our renderpass and shader
-      pipeCreateInfo.renderPass = m_Overlay.NoDepthRP;
-      pipeCreateInfo.subpass = 0;
-
-      // don't use dynamic rendering
-      RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
-
-      VkPipelineShaderStageCreateInfo *fragShader = NULL;
-      for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
-      {
-        VkPipelineShaderStageCreateInfo &sh =
-            (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
-        if(sh.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
-        {
-          sh.module = mod[0];
-          sh.pName = "main";
-          fragShader = &sh;
-          break;
-        }
-      }
-
-      if(fragShader == NULL)
-      {
-        // we know this is safe because it's pointing to a static array that's
-        // big enough for all shaders
-
-        VkPipelineShaderStageCreateInfo &sh =
-            (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[pipeCreateInfo.stageCount++];
-        sh.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        sh.pNext = NULL;
-        sh.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        sh.module = mod[0];
-        sh.pName = "main";
-        sh.pSpecializationInfo = NULL;
-
-        fragShader = &sh;
-      }
-
-      vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
-                                                 &pipe[0]);
-      CheckVkResult(vkr);
-
-      fragShader->module = mod[1];
-
-      vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
-                                                 &pipe[1]);
-      CheckVkResult(vkr);
+        state.depthClampEnable = true;
 
       // modify state
       state.SetRenderPass(GetResID(m_Overlay.NoDepthRP));
@@ -1301,6 +1361,12 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
       state.graphics.pipeline = GetResID(pipe[0]);
       state.scissors = prevstate.scissors;
+
+      if(state.graphics.shaderObject)
+      {
+        state.graphics.pipeline = ResourceId();
+        state.shaderObjects[4] = GetResID(shad[0]);
+      }
 
       for(VkRect2D &sc : state.scissors)
       {
@@ -1314,6 +1380,12 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
       state.graphics.pipeline = GetResID(pipe[1]);
       state.scissors = prevstate.scissors;
+
+      if(state.graphics.shaderObject)
+      {
+        state.graphics.pipeline = ResourceId();
+        state.shaderObjects[4] = GetResID(shad[1]);
+      }
 
       m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
@@ -1440,6 +1512,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
       for(int i = 0; i < 2; i++)
       {
+        if(shad[i] != VK_NULL_HANDLE)
+          m_pDriver->vkDestroyShaderEXT(m_Device, shad[i], NULL);
         m_pDriver->vkDestroyPipeline(m_Device, pipe[i], NULL);
         m_pDriver->vkDestroyShaderModule(m_Device, mod[i], NULL);
       }
@@ -1475,7 +1549,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
     highlightCol[1] = 0.0f;
     highlightCol[3] = 1.0f;
 
-    if(!pipeInfo.rasterizerDiscardEnable)
+    if(!state.rastDiscardEnable)
     {
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
       CheckVkResult(vkr);
@@ -1486,42 +1560,116 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       // make patched shader
       VkShaderModule mod[2] = {0};
       VkPipeline pipe[2] = {0};
+      VkShaderEXT shad[2] = {0};
 
       // first shader, no culling, writes red
-      GetDebugManager()->PatchFixedColShader(mod[0], highlightCol);
+      if(!state.graphics.shaderObject)
+        GetDebugManager()->PatchFixedColShader(mod[0], highlightCol);
+      else
+        GetDebugManager()->PatchFixedColShaderObject(shad[0], highlightCol);
 
       highlightCol[0] = 0.0f;
       highlightCol[1] = 1.0f;
 
       // second shader, normal culling, writes green
-      GetDebugManager()->PatchFixedColShader(mod[1], highlightCol);
+      if(!state.graphics.shaderObject)
+        GetDebugManager()->PatchFixedColShader(mod[1], highlightCol);
+      else
+        GetDebugManager()->PatchFixedColShaderObject(shad[1], highlightCol);
+
+      // save original state
+      VkCullModeFlags origCullMode = prevstate.cullMode;
 
       // make patched pipeline
       VkGraphicsPipelineCreateInfo pipeCreateInfo;
 
-      m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo,
-                                                            prevstate.graphics.pipeline);
+      if(!state.graphics.shaderObject)
+      {
+        m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo,
+                                                              prevstate.graphics.pipeline);
 
-      // disable all tests possible
-      VkPipelineDepthStencilStateCreateInfo *ds =
-          (VkPipelineDepthStencilStateCreateInfo *)pipeCreateInfo.pDepthStencilState;
-      ds->depthTestEnable = false;
-      ds->depthWriteEnable = false;
-      ds->stencilTestEnable = false;
-      ds->depthBoundsTestEnable = false;
+        // disable all tests possible
+        VkPipelineDepthStencilStateCreateInfo *ds =
+            (VkPipelineDepthStencilStateCreateInfo *)pipeCreateInfo.pDepthStencilState;
+        ds->depthTestEnable = false;
+        ds->depthWriteEnable = false;
+        ds->stencilTestEnable = false;
+        ds->depthBoundsTestEnable = false;
 
-      VkPipelineRasterizationStateCreateInfo *rs =
-          (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
-      VkCullModeFlags origCullMode = prevstate.cullMode;
-      rs->cullMode = VK_CULL_MODE_NONE;    // first render without any culling
-      rs->rasterizerDiscardEnable = false;
+        VkPipelineRasterizationStateCreateInfo *rs =
+            (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
+        rs->cullMode = VK_CULL_MODE_NONE;    // first render without any culling
+        rs->rasterizerDiscardEnable = false;
 
-      VkPipelineMultisampleStateCreateInfo *msaa =
-          (VkPipelineMultisampleStateCreateInfo *)pipeCreateInfo.pMultisampleState;
-      msaa->pSampleMask = NULL;
+        VkPipelineMultisampleStateCreateInfo *msaa =
+            (VkPipelineMultisampleStateCreateInfo *)pipeCreateInfo.pMultisampleState;
+        msaa->pSampleMask = NULL;
 
-      if(m_pDriver->GetDeviceEnabledFeatures().depthClamp)
-        rs->depthClampEnable = true;
+        if(m_pDriver->GetDeviceEnabledFeatures().depthClamp)
+          rs->depthClampEnable = true;
+
+        VkPipelineColorBlendStateCreateInfo *cb =
+            (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
+        cb->logicOpEnable = false;
+        cb->attachmentCount = 1;    // only one colour attachment
+        for(uint32_t i = 0; i < cb->attachmentCount; i++)
+        {
+          VkPipelineColorBlendAttachmentState *att =
+              (VkPipelineColorBlendAttachmentState *)&cb->pAttachments[i];
+          att->blendEnable = false;
+          att->colorWriteMask = 0xf;
+        }
+
+        // set our renderpass and shader
+        pipeCreateInfo.renderPass = m_Overlay.NoDepthRP;
+        pipeCreateInfo.subpass = 0;
+
+        // don't use dynamic rendering
+        RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
+
+        VkPipelineShaderStageCreateInfo *fragShader = NULL;
+
+        for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
+        {
+          VkPipelineShaderStageCreateInfo &sh =
+              (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
+          if(sh.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
+          {
+            sh.module = mod[0];
+            sh.pName = "main";
+            fragShader = &sh;
+            break;
+          }
+        }
+
+        if(fragShader == NULL)
+        {
+          // we know this is safe because it's pointing to a static array that's
+          // big enough for all shaders
+
+          VkPipelineShaderStageCreateInfo &sh =
+              (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[pipeCreateInfo.stageCount++];
+          sh.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+          sh.pNext = NULL;
+          sh.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+          sh.module = mod[0];
+          sh.pName = "main";
+          sh.pSpecializationInfo = NULL;
+
+          fragShader = &sh;
+        }
+
+        vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo,
+                                                   NULL, &pipe[0]);
+        CheckVkResult(vkr);
+
+        fragShader->module = mod[1];
+        rs->cullMode = origCullMode;
+
+        vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo,
+                                                   NULL, &pipe[1]);
+        CheckVkResult(vkr);
+      }
 
       // disable tests in dynamic state too
       state.depthTestEnable = VK_FALSE;
@@ -1531,67 +1679,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       state.depthBoundsTestEnable = VK_FALSE;
       state.cullMode = VK_CULL_MODE_NONE;
 
-      VkPipelineColorBlendStateCreateInfo *cb =
-          (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
-      cb->logicOpEnable = false;
-      cb->attachmentCount = 1;    // only one colour attachment
-      for(uint32_t i = 0; i < cb->attachmentCount; i++)
-      {
-        VkPipelineColorBlendAttachmentState *att =
-            (VkPipelineColorBlendAttachmentState *)&cb->pAttachments[i];
-        att->blendEnable = false;
-        att->colorWriteMask = 0xf;
-      }
-
-      // set our renderpass and shader
-      pipeCreateInfo.renderPass = m_Overlay.NoDepthRP;
-      pipeCreateInfo.subpass = 0;
-
-      // don't use dynamic rendering
-      RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
-
-      VkPipelineShaderStageCreateInfo *fragShader = NULL;
-
-      for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
-      {
-        VkPipelineShaderStageCreateInfo &sh =
-            (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
-        if(sh.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
-        {
-          sh.module = mod[0];
-          sh.pName = "main";
-          fragShader = &sh;
-          break;
-        }
-      }
-
-      if(fragShader == NULL)
-      {
-        // we know this is safe because it's pointing to a static array that's
-        // big enough for all shaders
-
-        VkPipelineShaderStageCreateInfo &sh =
-            (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[pipeCreateInfo.stageCount++];
-        sh.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        sh.pNext = NULL;
-        sh.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        sh.module = mod[0];
-        sh.pName = "main";
-        sh.pSpecializationInfo = NULL;
-
-        fragShader = &sh;
-      }
-
-      vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
-                                                 &pipe[0]);
-      CheckVkResult(vkr);
-
-      fragShader->module = mod[1];
-      rs->cullMode = origCullMode;
-
-      vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
-                                                 &pipe[1]);
-      CheckVkResult(vkr);
+      // enable dynamic depth clamp
+      if(m_pDriver->GetDeviceEnabledFeatures().depthClamp)
+        state.depthClampEnable = true;
 
       // modify state
       state.SetRenderPass(GetResID(m_Overlay.NoDepthRP));
@@ -1600,10 +1690,22 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
       state.graphics.pipeline = GetResID(pipe[0]);
 
+      if(state.graphics.shaderObject)
+      {
+        state.graphics.pipeline = ResourceId();
+        state.shaderObjects[4] = GetResID(shad[0]);
+      }
+
       m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
       state.graphics.pipeline = GetResID(pipe[1]);
       state.cullMode = origCullMode;
+
+      if(state.graphics.shaderObject)
+      {
+        state.graphics.pipeline = ResourceId();
+        state.shaderObjects[4] = GetResID(shad[1]);
+      }
 
       m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
@@ -1624,6 +1726,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
       for(int i = 0; i < 2; i++)
       {
+        if(shad[i] != VK_NULL_HANDLE)
+          m_pDriver->vkDestroyShaderEXT(m_Device, shad[i], NULL);
         m_pDriver->vkDestroyPipeline(m_Device, pipe[i], NULL);
         m_pDriver->vkDestroyShaderModule(m_Device, mod[i], NULL);
       }
@@ -1662,7 +1766,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       DoPipelineBarrier(cmd, 1, &barrier);
     }
 
-    if(!pipeInfo.rasterizerDiscardEnable)
+    if(!state.rastDiscardEnable)
     {
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
       CheckVkResult(vkr);
@@ -2048,16 +2152,27 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
       // make patched shader
       VkShaderModule failmod = {}, passmod = {};
+      VkShaderEXT failshad = {}, passshad = {};
       VkPipeline failpipe = {}, passpipe = {}, depthWriteStencilPipe = {};
 
       // first shader, no depth/stencil testing, writes red
-      GetDebugManager()->PatchFixedColShader(failmod, highlightCol);
+      if(!state.graphics.shaderObject)
+        GetDebugManager()->PatchFixedColShader(failmod, highlightCol);
+      else
+        GetDebugManager()->PatchFixedColShaderObject(failshad, highlightCol);
 
       highlightCol[0] = 0.0f;
       highlightCol[1] = 1.0f;
 
       // second shader, enabled depth/stencil testing, writes green
-      GetDebugManager()->PatchFixedColShader(passmod, highlightCol);
+      if(!state.graphics.shaderObject)
+        GetDebugManager()->PatchFixedColShader(passmod, highlightCol);
+      else
+        GetDebugManager()->PatchFixedColShaderObject(passshad, highlightCol);
+
+      // save original state
+      VkBool32 origDepthTest = prevstate.depthTestEnable;
+      VkBool32 origStencilTest = prevstate.stencilTestEnable;
 
       // make patched pipeline
       VkGraphicsPipelineCreateInfo pipeCreateInfo;
@@ -2065,144 +2180,145 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo,
                                                             prevstate.graphics.pipeline);
 
-      // disable all tests possible
-      VkPipelineDepthStencilStateCreateInfo *ds =
-          (VkPipelineDepthStencilStateCreateInfo *)pipeCreateInfo.pDepthStencilState;
-      VkBool32 origDepthTest = prevstate.depthTestEnable;
-      ds->depthTestEnable = false;
-      ds->depthWriteEnable = false;
-      VkBool32 origStencilTest = prevstate.stencilTestEnable;
-      ds->stencilTestEnable = false;
-      ds->depthBoundsTestEnable = false;
-
-      VkPipelineMultisampleStateCreateInfo *msaa =
-          (VkPipelineMultisampleStateCreateInfo *)pipeCreateInfo.pMultisampleState;
-      msaa->pSampleMask = NULL;
-
-      VkPipelineColorBlendStateCreateInfo *cb =
-          (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
-      cb->logicOpEnable = false;
-      cb->attachmentCount = 1;    // only one colour attachment
-      for(uint32_t i = 0; i < cb->attachmentCount; i++)
+      if(!state.graphics.shaderObject)
       {
-        VkPipelineColorBlendAttachmentState *att =
-            (VkPipelineColorBlendAttachmentState *)&cb->pAttachments[i];
-        att->blendEnable = false;
-        att->colorWriteMask = 0xf;
-      }
+        // disable all tests possible
+        VkPipelineDepthStencilStateCreateInfo *ds =
+            (VkPipelineDepthStencilStateCreateInfo *)pipeCreateInfo.pDepthStencilState;
+        ds->depthTestEnable = false;
+        ds->depthWriteEnable = false;
+        ds->stencilTestEnable = false;
+        ds->depthBoundsTestEnable = false;
 
-      // subpass 0 in either render pass
-      pipeCreateInfo.subpass = 0;
+        VkPipelineMultisampleStateCreateInfo *msaa =
+            (VkPipelineMultisampleStateCreateInfo *)pipeCreateInfo.pMultisampleState;
+        msaa->pSampleMask = NULL;
 
-      VkPipelineShaderStageCreateInfo orgFragShader = {};
-      VkPipelineShaderStageCreateInfo *fragShader = NULL;
-
-      for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
-      {
-        VkPipelineShaderStageCreateInfo &sh =
-            (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
-        if(sh.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
-        {
-          orgFragShader = sh;
-          sh.pName = "main";
-          fragShader = &sh;
-          break;
-        }
-      }
-
-      if(fragShader == NULL)
-      {
-        useDepthWriteStencilPass = false;
-        // we know this is safe because it's pointing to a static array that's
-        // big enough for all shaders
-
-        VkPipelineShaderStageCreateInfo &sh =
-            (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[pipeCreateInfo.stageCount++];
-        sh.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        sh.pNext = NULL;
-        sh.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        sh.pName = "main";
-        sh.pSpecializationInfo = NULL;
-
-        fragShader = &sh;
-      }
-
-      fragShader->module = passmod;
-
-      if(depthRP != VK_NULL_HANDLE)
-      {
-        if(overlay == DebugOverlay::Depth)
-          ds->depthTestEnable = origDepthTest;
-        else
-        {
-          ds->front.passOp = ds->front.failOp = ds->front.depthFailOp = VK_STENCIL_OP_KEEP;
-          ds->back.passOp = ds->back.failOp = ds->back.depthFailOp = VK_STENCIL_OP_KEEP;
-          ds->stencilTestEnable = origStencilTest;
-        }
-        pipeCreateInfo.renderPass = depthRP;
-      }
-      else
-      {
-        pipeCreateInfo.renderPass = m_Overlay.NoDepthRP;
-      }
-
-      // don't use dynamic rendering
-      RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
-
-      vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
-                                                 &passpipe);
-      CheckVkResult(vkr);
-
-      fragShader->module = failmod;
-
-      // set our renderpass and shader
-      pipeCreateInfo.renderPass = m_Overlay.NoDepthRP;
-
-      // disable culling/discard and enable depth clamp. That way we show any failures due to these
-      VkPipelineRasterizationStateCreateInfo *rs =
-          (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
-      VkPipelineRasterizationStateCreateInfo orgRS = *rs;
-      rs->cullMode = VK_CULL_MODE_NONE;
-      rs->rasterizerDiscardEnable = false;
-
-      if(m_pDriver->GetDeviceEnabledFeatures().depthClamp)
-        rs->depthClampEnable = true;
-
-      vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
-                                                 &failpipe);
-      CheckVkResult(vkr);
-
-      if(useDepthWriteStencilPass)
-      {
-        pipeCreateInfo.renderPass = depthRP;
-        *rs = orgRS;
-
-        // disable colour write
+        VkPipelineColorBlendStateCreateInfo *cb =
+            (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
+        cb->logicOpEnable = false;
+        cb->attachmentCount = 1;    // only one colour attachment
         for(uint32_t i = 0; i < cb->attachmentCount; i++)
         {
           VkPipelineColorBlendAttachmentState *att =
               (VkPipelineColorBlendAttachmentState *)&cb->pAttachments[i];
           att->blendEnable = false;
-          att->colorWriteMask = 0x0;
+          att->colorWriteMask = 0xf;
         }
 
-        // Write stencil 0x1 for depth passing pixels
-        ds->stencilTestEnable = true;
-        ds->front.compareOp = VK_COMPARE_OP_ALWAYS;
-        ds->front.failOp = VK_STENCIL_OP_KEEP;
-        ds->front.depthFailOp = VK_STENCIL_OP_KEEP;
-        ds->front.passOp = VK_STENCIL_OP_REPLACE;
-        ds->front.compareMask = 0xff;
-        ds->front.reference = 0x1;
-        ds->front.writeMask = 0xff;
-        ds->back = ds->front;
+        // subpass 0 in either render pass
+        pipeCreateInfo.subpass = 0;
 
-        // Use original shader
-        *fragShader = orgFragShader;
+        VkPipelineShaderStageCreateInfo orgFragShader = {};
+        VkPipelineShaderStageCreateInfo *fragShader = NULL;
+
+        for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
+        {
+          VkPipelineShaderStageCreateInfo &sh =
+              (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
+          if(sh.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
+          {
+            orgFragShader = sh;
+            sh.pName = "main";
+            fragShader = &sh;
+            break;
+          }
+        }
+
+        if(fragShader == NULL)
+        {
+          useDepthWriteStencilPass = false;
+          // we know this is safe because it's pointing to a static array that's
+          // big enough for all shaders
+
+          VkPipelineShaderStageCreateInfo &sh =
+              (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[pipeCreateInfo.stageCount++];
+          sh.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+          sh.pNext = NULL;
+          sh.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+          sh.pName = "main";
+          sh.pSpecializationInfo = NULL;
+
+          fragShader = &sh;
+        }
+
+        fragShader->module = passmod;
+
+        if(depthRP != VK_NULL_HANDLE)
+        {
+          if(overlay == DebugOverlay::Depth)
+            ds->depthTestEnable = origDepthTest;
+          else
+          {
+            ds->front.passOp = ds->front.failOp = ds->front.depthFailOp = VK_STENCIL_OP_KEEP;
+            ds->back.passOp = ds->back.failOp = ds->back.depthFailOp = VK_STENCIL_OP_KEEP;
+            ds->stencilTestEnable = origStencilTest;
+          }
+          pipeCreateInfo.renderPass = depthRP;
+        }
+        else
+        {
+          pipeCreateInfo.renderPass = m_Overlay.NoDepthRP;
+        }
+
+        // don't use dynamic rendering
+        RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
 
         vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo,
-                                                   NULL, &depthWriteStencilPipe);
+                                                   NULL, &passpipe);
         CheckVkResult(vkr);
+
+        fragShader->module = failmod;
+
+        // set our renderpass and shader
+        pipeCreateInfo.renderPass = m_Overlay.NoDepthRP;
+
+        // disable culling/discard and enable depth clamp. That way we show any failures due to these
+        VkPipelineRasterizationStateCreateInfo *rs =
+            (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
+        VkPipelineRasterizationStateCreateInfo orgRS = *rs;
+        rs->cullMode = VK_CULL_MODE_NONE;
+        rs->rasterizerDiscardEnable = false;
+
+        if(m_pDriver->GetDeviceEnabledFeatures().depthClamp)
+          rs->depthClampEnable = true;
+
+        vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo,
+                                                   NULL, &failpipe);
+        CheckVkResult(vkr);
+
+        if(useDepthWriteStencilPass)
+        {
+          pipeCreateInfo.renderPass = depthRP;
+          *rs = orgRS;
+
+          // disable colour write
+          for(uint32_t i = 0; i < cb->attachmentCount; i++)
+          {
+            VkPipelineColorBlendAttachmentState *att =
+                (VkPipelineColorBlendAttachmentState *)&cb->pAttachments[i];
+            att->blendEnable = false;
+            att->colorWriteMask = 0x0;
+          }
+
+          // Write stencil 0x1 for depth passing pixels
+          ds->stencilTestEnable = true;
+          ds->front.compareOp = VK_COMPARE_OP_ALWAYS;
+          ds->front.failOp = VK_STENCIL_OP_KEEP;
+          ds->front.depthFailOp = VK_STENCIL_OP_KEEP;
+          ds->front.passOp = VK_STENCIL_OP_REPLACE;
+          ds->front.compareMask = 0xff;
+          ds->front.reference = 0x1;
+          ds->front.writeMask = 0xff;
+          ds->back = ds->front;
+
+          // Use original shader
+          *fragShader = orgFragShader;
+
+          vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo,
+                                                     NULL, &depthWriteStencilPipe);
+          CheckVkResult(vkr);
+        }
       }
 
       // modify state
@@ -2218,6 +2334,16 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       state.stencilTestEnable = VK_FALSE;
       state.depthBoundsTestEnable = VK_FALSE;
       state.cullMode = VK_CULL_MODE_NONE;
+
+      // enable dynamic depth clamp
+      if(m_pDriver->GetDeviceEnabledFeatures().depthClamp)
+        state.depthClampEnable = true;
+
+      if(state.graphics.shaderObject)
+      {
+        state.graphics.pipeline = ResourceId();
+        state.shaderObjects[4] = GetResID(failshad);
+      }
 
       m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
@@ -2299,6 +2425,12 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         cmd = VK_NULL_HANDLE;
       }
 
+      if(state.graphics.shaderObject)
+      {
+        state.graphics.pipeline = ResourceId();
+        state.shaderObjects[4] = GetResID(passshad);
+      }
+
       m_pDriver->ReplayLog(0, eventId, eReplay_OnlyDraw);
 
       if(useDepthWriteStencilPass)
@@ -2364,6 +2496,11 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       m_pDriver->vkDestroyPipeline(m_Device, depthWriteStencilPipe, NULL);
       m_pDriver->vkDestroyImage(m_Device, dsTempImage, NULL);
       m_pDriver->vkFreeMemory(m_Device, dsTempImageMem, NULL);
+
+      if(failshad != VK_NULL_HANDLE)
+        m_pDriver->vkDestroyShaderEXT(m_Device, failshad, NULL);
+      if(passshad != VK_NULL_HANDLE)
+        m_pDriver->vkDestroyShaderEXT(m_Device, passshad, NULL);
 
       if(depthRP != VK_NULL_HANDLE)
       {
@@ -2480,7 +2617,8 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       }
 
       // Try to clear depth as well, to help debug shadow rendering
-      if(state.graphics.pipeline != ResourceId() && IsDepthOrStencilFormat(iminfo.format))
+      if((state.graphics.pipeline != ResourceId() || state.graphics.shaderObject) &&
+         IsDepthOrStencilFormat(iminfo.format))
       {
         VkCompareOp depthCompareOp = state.depthCompareOp;
 
