@@ -1159,7 +1159,6 @@ class WrappedID3D12Resource
     : public WrappedDeviceChild12<ID3D12Resource, ID3D12Resource1, ID3D12Resource2>
 {
   static GPUAddressRangeTracker m_Addresses;
-  static rdcarray<ResourceId> m_bufferResources;
 
   WriteSerialiser &GetThreadSerialiser();
   size_t DeleteOverlappingAccStructsInRangeAtOffset(D3D12BufferOffset bufferOffset);
@@ -1208,13 +1207,6 @@ public:
 
   bool IsAccelerationStructureResource() const { return m_isAccelerationStructureResource; }
   void MarkAsAccelerationStructureResource() { m_isAccelerationStructureResource = true; }
-  static void MarkAllBufferResourceFrameReferenced(D3D12ResourceManager *rm)
-  {
-    for(ResourceId id : m_bufferResources)
-    {
-      rm->MarkResourceFrameReferenced(id, eFrameRef_Read);
-    }
-  }
 
   static void RefBuffers(D3D12ResourceManager *rm);
   static void GetMappableIDs(D3D12ResourceManager *rm, const std::unordered_set<ResourceId> &refdIDs,
@@ -1286,8 +1278,6 @@ public:
       range.id = GetResourceID();
 
       m_Addresses.AddTo(range);
-
-      m_bufferResources.push_back(GetResourceID());
     }
   }
   virtual ~WrappedID3D12Resource();

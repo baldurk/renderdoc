@@ -2702,19 +2702,6 @@ bool WrappedID3D12Device::EndFrameCapture(DeviceOwnedWindow devWnd)
 
   rdcarray<WrappedID3D12CommandQueue *> queues;
 
-  // There is no easy way to mark resource referenced in the AS input and the dispatch tables.
-  // We could be more selective and only force-reference acceleration structure buffers - resources
-  // in the AS state - but this would not include scratch buffers (which could be done by hand) and
-  // build input buffers (which can't).
-  // we don't do this with the forced reference system as we want this to be retroactive - only
-  // after seeing an AS build do we mark all buffers referenced but buffers could be created before
-  // an AS is built.
-  CaptureOptions opts = RenderDoc::Inst().GetCaptureOptions();
-  if(!opts.refAllResources && m_HaveSeenASBuild)
-  {
-    WrappedID3D12Resource::MarkAllBufferResourceFrameReferenced(GetResourceManager());
-  }
-
   // transition back to IDLE and readback initial states atomically
   {
     SCOPED_WRITELOCK(m_CapTransitionLock);
@@ -2727,7 +2714,13 @@ bool WrappedID3D12Device::EndFrameCapture(DeviceOwnedWindow devWnd)
     for(auto it = queues.begin(); it != queues.end(); ++it)
       ContainsExecuteIndirect |= (*it)->GetResourceRecord()->ContainsExecuteIndirect;
 
-    if(ContainsExecuteIndirect)
+    // There is no easy way to mark resource referenced in the AS input and the dispatch tables.
+    // We could be more selective and only force-reference acceleration structure buffers -
+    // resources in the AS state - but this would not include scratch buffers (which could be done
+    // by hand) and build input buffers (which can't). we don't do this with the forced reference
+    // system as we want this to be retroactive - only after seeing an AS build do we mark all
+    // buffers referenced but buffers could be created before an AS is built.
+    if(ContainsExecuteIndirect || m_HaveSeenASBuild)
       WrappedID3D12Resource::RefBuffers(GetResourceManager());
 
     m_State = CaptureState::BackgroundCapturing;
