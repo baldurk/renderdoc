@@ -66,8 +66,8 @@ CounterDescription IntelGlCounters::GetCounterDescription(GPUCounter index) cons
     desc.name = "Counters limited, see description";
     desc.category = "More counters are available";
     desc.description =
-        "Not all counters available, run 'sudo sysctl dev.i915.perf_stream_paranoid=0' to enable "
-        "more counters!";
+        "Not all counters available, run 'sudo sysctl dev.i915.perf_stream_paranoid=0' or "
+        "'sudo sysctl dev.xe.perf_stream_paranoid=0' to enable more counters!";
 
     desc.resultType = CompType::UInt;
     desc.resultByteWidth = 8;
@@ -197,17 +197,32 @@ bool IntelGlCounters::Init()
   m_Paranoid = false;
 
 #if defined(RENDERDOC_PLATFORM_ANDROID) || defined(RENDERDOC_PLATFORM_LINUX)
-  rdcstr contents;
-  FileIO::ReadAll("/proc/sys/dev/i915/perf_stream_paranoid", contents);
-  contents.trim();
-  if(!contents.empty())
+  rdcstr i915_contents, xe_contents;
+
+  FileIO::ReadAll("/proc/sys/dev/i915/perf_stream_paranoid", i915_contents);
+  i915_contents.trim();
+
+  FileIO::ReadAll("/proc/sys/dev/xe/perf_stream_paranoid", xe_contents);
+  xe_contents.trim();
+
+  if(!i915_contents.empty())
   {
-    int paranoid = atoi(contents.c_str());
-    if(paranoid)
+    if(atoi(i915_contents.c_str()))
     {
       RDCWARN(
           "Not all counters available, run "
           "'sudo sysctl dev.i915.perf_stream_paranoid=0' to enable more counters!");
+      m_Paranoid = true;
+    }
+  }
+
+  if(!xe_contents.empty())
+  {
+    if(atoi(xe_contents.c_str()))
+    {
+      RDCWARN(
+          "Not all counters available, run "
+          "'sudo sysctl dev.xe.perf_stream_paranoid=0' to enable more counters!");
       m_Paranoid = true;
     }
   }
