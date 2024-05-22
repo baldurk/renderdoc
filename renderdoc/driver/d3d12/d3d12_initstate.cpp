@@ -1218,11 +1218,9 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
 
           if(blasId == ResourceId() || blas == NULL)
           {
-            RDResult err;
-            SET_ERROR_RESULT(err, ResultCode::APIDataCorrupted,
-                             "BLAS referenced by TLAS is not available on replay");
-            m_Device->ReportFatalError(err);
-            return false;
+            RDCWARN("BLAS referenced by TLAS is not available on replay - possibly stale TLAS");
+            blasAddrs[i] = 0;
+            continue;
           }
 
           blasAddrs[i] = blas->GetGPUVirtualAddress() + blasOffs;
