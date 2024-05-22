@@ -979,8 +979,9 @@ void VulkanReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len,
   bytebuf inlineData;
   bool useInlineData = false;
 
-  // specialisation constants 'descriptor' stored in a pipeline
+  // specialisation constants 'descriptor' stored in a pipeline or shader object
   auto pipe = m_pDriver->m_CreationInfo.m_Pipeline.find(buff);
+  auto shad = m_pDriver->m_CreationInfo.m_ShaderObject.find(buff);
   if(pipe != m_pDriver->m_CreationInfo.m_Pipeline.end())
   {
     const VulkanCreationInfo::Pipeline &p = pipe->second;
@@ -1020,6 +1021,46 @@ void VulkanReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len,
         inlineData.resize_for_index(offs + sizeof(uint64_t));
         memcpy(inlineData.data() + offs, &s.value, s.dataSize);
       }
+    }
+
+    useInlineData = true;
+  }
+  else if(shad != m_pDriver->m_CreationInfo.m_ShaderObject.end())
+  {
+    const VulkanCreationInfo::ShaderEntry &shader = shad->second.shad;
+
+    // set up the defaults
+    if(shader.refl)
+    {
+      for(size_t cb = 0; cb < shader.refl->constantBlocks.size(); cb++)
+      {
+        if(shader.refl->constantBlocks[cb].compileConstants)
+        {
+          for(const ShaderConstant &sc : shader.refl->constantBlocks[cb].variables)
+          {
+            inlineData.resize_for_index(sc.byteOffset + sizeof(uint64_t));
+            memcpy(inlineData.data() + sc.byteOffset, &sc.defaultValue, sizeof(uint64_t));
+          }
+          break;
+        }
+      }
+    }
+
+    // apply any specializations
+    for(const SpecConstant &s : shader.specialization)
+    {
+      int32_t idx = shader.patchData->specIDs.indexOf(s.specID);
+
+      if(idx == -1)
+      {
+        RDCWARN("Couldn't find offset for spec ID %u", s.specID);
+        continue;
+      }
+
+      size_t offs = idx * sizeof(uint64_t);
+
+      inlineData.resize_for_index(offs + sizeof(uint64_t));
+      memcpy(inlineData.data() + offs, &s.value, s.dataSize);
     }
 
     useInlineData = true;
@@ -1190,7 +1231,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
   ret.compute.pipelineResourceId = rm->GetUnreplacedOriginalID(state.compute.pipeline);
   ret.graphics.pipelineResourceId = rm->GetUnreplacedOriginalID(state.graphics.pipeline);
 
-  if(state.compute.pipeline != ResourceId())
+  if(state.compute.pipeline != ResourceId() || state.compute.shaderObject)
   {
     const VulkanCreationInfo::Pipeline &p = c.m_Pipeline[state.compute.pipeline];
 
@@ -1202,15 +1243,24 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
 
     int i = 5;    // 5 is the CS idx (VS, TCS, TES, GS, FS, CS)
     {
-      stage.resourceId = rm->GetUnreplacedOriginalID(p.shaders[i].module);
-      stage.entryPoint = p.shaders[i].entryPoint;
+      stage.shaderObject = state.compute.shaderObject;
+
+      const VulkanCreationInfo::ShaderEntry &shad =
+          stage.shaderObject ? c.m_ShaderObject[state.shaderObjects[i]].shad : p.shaders[i];
+
+      const rdcarray<VkPushConstantRange> &pushRanges =
+          stage.shaderObject ? c.m_ShaderObject[state.shaderObjects[i]].pushRanges
+                             : c.m_PipelineLayout[p.compLayout].pushRanges;
+
+      stage.resourceId = rm->GetUnreplacedOriginalID(shad.module);
+      stage.entryPoint = shad.entryPoint;
 
       stage.stage = ShaderStage::Compute;
-      if(p.shaders[i].refl)
-        stage.reflection = p.shaders[i].refl;
+      if(shad.refl)
+        stage.reflection = shad.refl;
 
       stage.pushConstantRangeByteOffset = stage.pushConstantRangeByteSize = 0;
-      for(const VkPushConstantRange &pr : c.m_PipelineLayout[p.compLayout].pushRanges)
+      for(const VkPushConstantRange &pr : pushRanges)
       {
         if(pr.stageFlags & VK_SHADER_STAGE_COMPUTE_BIT)
         {
@@ -1225,13 +1275,13 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       stage.specializationData.clear();
 
       // set up the defaults
-      if(p.shaders[i].refl)
+      if(shad.refl)
       {
-        for(size_t cb = 0; cb < p.shaders[i].refl->constantBlocks.size(); cb++)
+        for(size_t cb = 0; cb < shad.refl->constantBlocks.size(); cb++)
         {
-          if(p.shaders[i].refl->constantBlocks[cb].compileConstants)
+          if(shad.refl->constantBlocks[cb].compileConstants)
           {
-            for(const ShaderConstant &sc : p.shaders[i].refl->constantBlocks[cb].variables)
+            for(const ShaderConstant &sc : shad.refl->constantBlocks[cb].variables)
             {
               stage.specializationData.resize_for_index(sc.byteOffset + sizeof(uint64_t));
               memcpy(stage.specializationData.data() + sc.byteOffset, &sc.defaultValue,
@@ -1243,9 +1293,9 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       }
 
       // apply any specializations
-      for(const SpecConstant &s : p.shaders[i].specialization)
+      for(const SpecConstant &s : shad.specialization)
       {
-        int32_t idx = p.shaders[i].patchData->specIDs.indexOf(s.specID);
+        int32_t idx = shad.patchData->specIDs.indexOf(s.specID);
 
         if(idx == -1)
         {
@@ -1258,8 +1308,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         stage.specializationData.resize_for_index(offs + sizeof(uint64_t));
         memcpy(stage.specializationData.data() + offs, &s.value, s.dataSize);
       }
-      if(p.shaders[i].patchData)
-        stage.specializationIds = p.shaders[i].patchData->specIDs;
+      if(shad.patchData)
+        stage.specializationIds = shad.patchData->specIDs;
     }
   }
   else
@@ -1269,7 +1319,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     ret.computeShader = VKPipe::Shader();
   }
 
-  if(state.graphics.pipeline != ResourceId())
+  if(state.graphics.pipeline != ResourceId() || state.graphics.shaderObject)
   {
     const VulkanCreationInfo::Pipeline &p = c.m_Pipeline[state.graphics.pipeline];
 
@@ -1332,16 +1382,25 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       if(stages[i] == NULL)
         continue;
 
-      stages[i]->resourceId = rm->GetUnreplacedOriginalID(p.shaders[i].module);
-      stages[i]->entryPoint = p.shaders[i].entryPoint;
+      stages[i]->shaderObject = state.graphics.shaderObject;
+
+      const VulkanCreationInfo::ShaderEntry &shad =
+          stages[i]->shaderObject ? c.m_ShaderObject[state.shaderObjects[i]].shad : p.shaders[i];
+
+      const rdcarray<VkPushConstantRange> &pushRanges =
+          stages[i]->shaderObject ? c.m_ShaderObject[state.shaderObjects[i]].pushRanges
+                                  : c.m_PipelineLayout[p.vertLayout].pushRanges;
+
+      stages[i]->resourceId = rm->GetUnreplacedOriginalID(shad.module);
+      stages[i]->entryPoint = shad.entryPoint;
 
       stages[i]->stage = StageFromIndex(i);
-      if(p.shaders[i].refl)
-        stages[i]->reflection = p.shaders[i].refl;
+      if(shad.refl)
+        stages[i]->reflection = shad.refl;
 
       stages[i]->pushConstantRangeByteOffset = stages[i]->pushConstantRangeByteSize = 0;
       // don't have to handle separate vert/frag layouts as push constant ranges must be identical
-      for(const VkPushConstantRange &pr : c.m_PipelineLayout[p.vertLayout].pushRanges)
+      for(const VkPushConstantRange &pr : pushRanges)
       {
         if(pr.stageFlags & ShaderMaskFromIndex(i))
         {
@@ -1356,13 +1415,13 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       stages[i]->requiredSubgroupSize = p.shaders[i].requiredSubgroupSize;
 
       // set up the defaults
-      if(p.shaders[i].refl)
+      if(shad.refl)
       {
-        for(size_t cb = 0; cb < p.shaders[i].refl->constantBlocks.size(); cb++)
+        for(size_t cb = 0; cb < shad.refl->constantBlocks.size(); cb++)
         {
-          if(p.shaders[i].refl->constantBlocks[cb].compileConstants)
+          if(shad.refl->constantBlocks[cb].compileConstants)
           {
-            for(const ShaderConstant &sc : p.shaders[i].refl->constantBlocks[cb].variables)
+            for(const ShaderConstant &sc : shad.refl->constantBlocks[cb].variables)
             {
               stages[i]->specializationData.resize_for_index(sc.byteOffset + sizeof(uint64_t));
               memcpy(stages[i]->specializationData.data() + sc.byteOffset, &sc.defaultValue,
@@ -1374,9 +1433,9 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       }
 
       // apply any specializations
-      for(const SpecConstant &s : p.shaders[i].specialization)
+      for(const SpecConstant &s : shad.specialization)
       {
-        int32_t idx = p.shaders[i].patchData->specIDs.indexOf(s.specID);
+        int32_t idx = shad.patchData->specIDs.indexOf(s.specID);
 
         if(idx == -1)
         {
@@ -1389,8 +1448,8 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
         stages[i]->specializationData.resize_for_index(offs + sizeof(uint64_t));
         memcpy(stages[i]->specializationData.data() + offs, &s.value, s.dataSize);
       }
-      if(p.shaders[i].patchData)
-        stages[i]->specializationIds = p.shaders[i].patchData->specIDs;
+      if(shad.patchData)
+        stages[i]->specializationIds = shad.patchData->specIDs;
     }
 
     // Tessellation
@@ -2389,9 +2448,11 @@ rdcarray<Descriptor> VulkanReplay::GetDescriptors(ResourceId descriptorStore,
 
   VulkanResourceManager *rm = m_pDriver->GetResourceManager();
 
-  // specialisation constants 'descriptor' stored in a pipeline
+  // specialisation constants 'descriptor' stored in a pipeline or shader object
   auto pipe = m_pDriver->m_CreationInfo.m_Pipeline.find(descriptorStore);
-  if(pipe != m_pDriver->m_CreationInfo.m_Pipeline.end())
+  auto shad = m_pDriver->m_CreationInfo.m_ShaderObject.find(descriptorStore);
+  bool isShader = shad != m_pDriver->m_CreationInfo.m_ShaderObject.end();
+  if(pipe != m_pDriver->m_CreationInfo.m_Pipeline.end() || isShader)
   {
     // should only be one descriptor referred here, but just munge them all to be the same
     for(Descriptor &d : ret)
@@ -2403,7 +2464,8 @@ rdcarray<Descriptor> VulkanReplay::GetDescriptors(ResourceId descriptorStore,
       // specialisation constants implicitly always view the whole data, the shader reflection
       // offsets are absolute (by specialisation ID)
       d.byteOffset = 0;
-      d.byteSize = pipe->second.virtualSpecialisationByteSize;
+      d.byteSize = isShader ? shad->second.virtualSpecialisationByteSize
+                            : pipe->second.virtualSpecialisationByteSize;
     }
 
     return ret;
@@ -2491,9 +2553,11 @@ rdcarray<SamplerDescriptor> VulkanReplay::GetSamplerDescriptors(ResourceId descr
   rdcarray<SamplerDescriptor> ret;
   ret.resize(count);
 
-  // specialisation constants 'descriptor' stored in a pipeline
+  // specialisation constants 'descriptor' stored in a pipeline or shader object
   if(m_pDriver->m_CreationInfo.m_Pipeline.find(descriptorStore) !=
-     m_pDriver->m_CreationInfo.m_Pipeline.end())
+         m_pDriver->m_CreationInfo.m_Pipeline.end() ||
+     m_pDriver->m_CreationInfo.m_ShaderObject.find(descriptorStore) !=
+         m_pDriver->m_CreationInfo.m_ShaderObject.end())
   {
     // not sampler data
     return ret;
@@ -2557,6 +2621,23 @@ rdcarray<DescriptorAccess> VulkanReplay::GetDescriptorAccess(uint32_t eventId)
   if(state.compute.pipeline != ResourceId())
     ret.append(m_pDriver->m_CreationInfo.m_Pipeline[state.compute.pipeline].staticDescriptorAccess);
 
+  if(state.graphics.shaderObject)
+  {
+    for(uint32_t i = 0; i < (uint32_t)ShaderStage::Count; i++)
+    {
+      if(i == (uint32_t)ShaderStage::Compute)
+        continue;
+      ResourceId shadid = state.shaderObjects[i];
+      if(shadid != ResourceId())
+        ret.append(m_pDriver->m_CreationInfo.m_ShaderObject[shadid].staticDescriptorAccess);
+    }
+  }
+
+  if(state.compute.shaderObject && state.shaderObjects[(uint32_t)ShaderStage::Compute] != ResourceId())
+    ret.append(m_pDriver->m_CreationInfo
+                   .m_ShaderObject[state.shaderObjects[(uint32_t)ShaderStage::Compute]]
+                   .staticDescriptorAccess);
+
   for(DescriptorAccess &access : ret)
   {
     uint32_t bindset = (uint32_t)access.byteSize;
@@ -2605,9 +2686,11 @@ rdcarray<DescriptorLogicalLocation> VulkanReplay::GetDescriptorLocations(
     count += r.count;
   ret.resize(count);
 
-  // specialisation constants 'descriptor' stored in a pipeline
+  // specialisation constants 'descriptor' stored in a pipeline or shader object
   auto pipe = m_pDriver->m_CreationInfo.m_Pipeline.find(descriptorStore);
-  if(pipe != m_pDriver->m_CreationInfo.m_Pipeline.end())
+  auto shad = m_pDriver->m_CreationInfo.m_ShaderObject.find(descriptorStore);
+  if(pipe != m_pDriver->m_CreationInfo.m_Pipeline.end() ||
+     shad != m_pDriver->m_CreationInfo.m_ShaderObject.end())
   {
     // should only be one descriptor referred here, but just munge them all to be the same
     for(DescriptorLogicalLocation &d : ret)
@@ -4786,6 +4869,26 @@ void VulkanReplay::BuildTargetShader(ShaderEncoding sourceEncoding, const bytebu
   {
     spirv.resize(source.size() / 4);
     memcpy(&spirv[0], source.data(), source.size());
+  }
+
+  // check for shader module or shader object
+  const VulkanRenderState state = m_pDriver->GetCmdRenderState();
+
+  if(type == ShaderStage::Compute ? state.compute.shaderObject : state.graphics.shaderObject)
+  {
+    VkShaderCreateInfoEXT shadinfo;
+    m_pDriver->GetShaderCache()->MakeShaderObjectInfo(shadinfo, state.shaderObjects[(uint32_t)type]);
+
+    shadinfo.codeSize = spirv.size() * sizeof(uint32_t);
+    shadinfo.pCode = spirv.data();
+
+    VkShaderEXT shader;
+    VkResult vkr = m_pDriver->vkCreateShadersEXT(m_pDriver->GetDev(), 1, &shadinfo, NULL, &shader);
+    CheckVkResult(vkr);
+
+    id = GetResID(shader);
+
+    return;
   }
 
   VkShaderModuleCreateInfo modinfo = {
