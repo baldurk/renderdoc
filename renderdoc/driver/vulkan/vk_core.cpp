@@ -1214,6 +1214,10 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_SHADER_IMAGE_ATOMIC_INT64_SPEC_VERSION,
     },
     {
+        VK_EXT_SHADER_OBJECT_EXTENSION_NAME,
+        VK_EXT_SHADER_OBJECT_SPEC_VERSION,
+    },
+    {
         VK_EXT_SHADER_STENCIL_EXPORT_EXTENSION_NAME,
         VK_EXT_SHADER_STENCIL_EXPORT_SPEC_VERSION,
     },
