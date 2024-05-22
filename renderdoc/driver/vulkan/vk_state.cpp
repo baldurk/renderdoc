@@ -384,7 +384,8 @@ void VulkanRenderState::BindShaderObjects(WrappedVulkan *vk, VkCommandBuffer cmd
   {
     if(graphics.shaderObject)
     {
-      for(uint32_t i = 0; i < (uint32_t)ShaderStage::Count; i++)
+      // According to spec, shader objects don't support ray tracing shaders
+      for(uint32_t i = 0; i < (uint32_t)ShaderStage::RayGen; i++)
       {
         if(i == (uint32_t)ShaderStage::Compute)
           continue;
