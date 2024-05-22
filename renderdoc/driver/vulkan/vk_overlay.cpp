@@ -61,6 +61,13 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
       m_pDriver->vkDestroyPipeline(dev, it->second.pipe, NULL);
       m_pDriver->vkDestroyPipelineLayout(dev, it->second.pipeLayout, NULL);
     }
+
+    for(auto it = m_ShaderCache.begin(); it != m_ShaderCache.end(); ++it)
+    {
+      if(it->second.shad != VK_NULL_HANDLE)
+        m_pDriver->vkDestroyShaderEXT(dev, it->second.shad, NULL);
+      m_pDriver->vkDestroyPipelineLayout(dev, it->second.pipeLayout, NULL);
+    }
   }
   void PreDraw(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd)
   {
@@ -78,30 +85,41 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
 
     // check cache first
     CachedPipeline pipe = m_PipelineCache[pipestate.graphics.pipeline];
+    CachedShader shad = m_ShaderCache[pipestate.shaderObjects[4]];
 
     // if we don't get a hit, create a modified pipeline
-    if(pipe.pipe == VK_NULL_HANDLE)
+    if(pipestate.graphics.shaderObject ? shad.shad == VK_NULL_HANDLE : pipe.pipe == VK_NULL_HANDLE)
     {
       const VulkanCreationInfo::Pipeline &p =
           m_pDriver->GetDebugManager()->GetPipelineInfo(pipestate.graphics.pipeline);
 
+      const ResourceId layoutID =
+          (pipestate.graphics.shaderObject)
+              ? pipestate.graphics.descSets[pipestate.graphics.lastBoundSet].pipeLayout
+              : p.vertLayout;
+
+      const VulkanCreationInfo::PipelineLayout &layout =
+          m_pDriver->GetDebugManager()->GetPipelineLayoutInfo(layoutID);
+
+      const rdcarray<ResourceId> &origDescSetLayouts =
+          (pipestate.graphics.shaderObject) ? layout.descSetLayouts : p.descSetLayouts;
+
       VkDescriptorSetLayout *descSetLayouts;
 
       // descSet will be the index of our new descriptor set
-      uint32_t descSet = (uint32_t)p.descSetLayouts.size();
+      uint32_t descSet = (uint32_t)origDescSetLayouts.size();
 
       descSetLayouts = new VkDescriptorSetLayout[descSet + 1];
 
       for(uint32_t i = 0; i < descSet; i++)
         descSetLayouts[i] = m_pDriver->GetResourceManager()->GetCurrentHandle<VkDescriptorSetLayout>(
-            p.descSetLayouts[i]);
+            origDescSetLayouts[i]);
 
       // this layout has storage image and
       descSetLayouts[descSet] = m_DescSetLayout;
 
       // don't have to handle separate vert/frag layouts as push constant ranges must be identical
-      const rdcarray<VkPushConstantRange> &push =
-          m_pDriver->GetDebugManager()->GetPipelineLayoutInfo(p.vertLayout).pushRanges;
+      const rdcarray<VkPushConstantRange> &push = layout.pushRanges;
 
       VkPipelineLayoutCreateInfo pipeLayoutInfo = {
           VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -114,41 +132,46 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
       };
 
       // create pipeline layout with same descriptor set layouts, plus our mesh output set
-      vkr = m_pDriver->vkCreatePipelineLayout(m_pDriver->GetDev(), &pipeLayoutInfo, NULL,
-                                              &pipe.pipeLayout);
+      if(pipestate.graphics.shaderObject)
+        vkr = m_pDriver->vkCreatePipelineLayout(m_pDriver->GetDev(), &pipeLayoutInfo, NULL,
+                                                &shad.pipeLayout);
+      else
+        vkr = m_pDriver->vkCreatePipelineLayout(m_pDriver->GetDev(), &pipeLayoutInfo, NULL,
+                                                &pipe.pipeLayout);
       m_pDriver->CheckVkResult(vkr);
-
-      SAFE_DELETE_ARRAY(descSetLayouts);
 
       VkGraphicsPipelineCreateInfo pipeCreateInfo;
       m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo,
                                                             pipestate.graphics.pipeline);
 
-      // repoint pipeline layout
-      pipeCreateInfo.layout = pipe.pipeLayout;
-
-      // disable colour writes/blends
-      VkPipelineColorBlendStateCreateInfo *cb =
-          (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
-      for(uint32_t i = 0; i < cb->attachmentCount; i++)
+      if(!pipestate.graphics.shaderObject)
       {
-        VkPipelineColorBlendAttachmentState *att =
-            (VkPipelineColorBlendAttachmentState *)&cb->pAttachments[i];
-        att->blendEnable = false;
-        att->colorWriteMask = 0x0;
+        // repoint pipeline layout
+        pipeCreateInfo.layout = pipe.pipeLayout;
+
+        // disable colour writes/blends
+        VkPipelineColorBlendStateCreateInfo *cb =
+            (VkPipelineColorBlendStateCreateInfo *)pipeCreateInfo.pColorBlendState;
+        for(uint32_t i = 0; i < cb->attachmentCount; i++)
+        {
+          VkPipelineColorBlendAttachmentState *att =
+              (VkPipelineColorBlendAttachmentState *)&cb->pAttachments[i];
+          att->blendEnable = false;
+          att->colorWriteMask = 0x0;
+        }
+
+        // disable depth/stencil writes but keep any tests enabled
+        VkPipelineDepthStencilStateCreateInfo *ds =
+            (VkPipelineDepthStencilStateCreateInfo *)pipeCreateInfo.pDepthStencilState;
+        ds->depthWriteEnable = false;
+        ds->front.passOp = ds->front.failOp = ds->front.depthFailOp = VK_STENCIL_OP_KEEP;
+        ds->back.passOp = ds->back.failOp = ds->back.depthFailOp = VK_STENCIL_OP_KEEP;
+
+        // don't discard
+        VkPipelineRasterizationStateCreateInfo *rs =
+            (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
+        rs->rasterizerDiscardEnable = false;
       }
-
-      // disable depth/stencil writes but keep any tests enabled
-      VkPipelineDepthStencilStateCreateInfo *ds =
-          (VkPipelineDepthStencilStateCreateInfo *)pipeCreateInfo.pDepthStencilState;
-      ds->depthWriteEnable = false;
-      ds->front.passOp = ds->front.failOp = ds->front.depthFailOp = VK_STENCIL_OP_KEEP;
-      ds->back.passOp = ds->back.failOp = ds->back.depthFailOp = VK_STENCIL_OP_KEEP;
-
-      // don't discard
-      VkPipelineRasterizationStateCreateInfo *rs =
-          (VkPipelineRasterizationStateCreateInfo *)pipeCreateInfo.pRasterizationState;
-      rs->rasterizerDiscardEnable = false;
 
       rdcarray<uint32_t> spirv =
           *m_pDriver->GetShaderCache()->GetBuiltinBlob(BuiltinShader::QuadWriteFS);
@@ -170,70 +193,134 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
         it += WordCount;
       }
 
-      VkShaderModuleCreateInfo modinfo = {
-          VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-          NULL,
-          0,
-          spirv.size() * sizeof(uint32_t),
-          &spirv[0],
-      };
-
-      VkShaderModule module;
-
-      VkDevice dev = m_pDriver->GetDev();
-
-      vkr = m_pDriver->vkCreateShaderModule(dev, &modinfo, NULL, &module);
-      m_pDriver->CheckVkResult(vkr);
-
-      bool found = false;
-      for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
+      if(pipestate.graphics.shaderObject)
       {
-        VkPipelineShaderStageCreateInfo &sh =
-            (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
-        if(sh.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
+        VkDevice dev = m_pDriver->GetDev();
+
+        VkShaderCreateInfoEXT shadCreateInfo;
+        m_pDriver->GetShaderCache()->MakeShaderObjectInfo(shadCreateInfo, pipestate.shaderObjects[4]);
+
+        shadCreateInfo.pSetLayouts = descSetLayouts;
+        shadCreateInfo.setLayoutCount = descSet + 1;
+        shadCreateInfo.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT;
+        shadCreateInfo.codeSize = spirv.size() * sizeof(uint32_t);
+        shadCreateInfo.pCode = &spirv[0];
+        shadCreateInfo.pName = "main";
+        shadCreateInfo.pSpecializationInfo = NULL;
+
+        vkr = m_pDriver->vkCreateShadersEXT(dev, 1, &shadCreateInfo, NULL, &shad.shad);
+        m_pDriver->CheckVkResult(vkr);
+
+        shad.descSet = descSet;
+
+        m_ShaderCache[pipestate.shaderObjects[4]] = shad;
+      }
+      else
+      {
+        VkShaderModuleCreateInfo modinfo = {
+            VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            NULL,
+            0,
+            spirv.size() * sizeof(uint32_t),
+            &spirv[0],
+        };
+
+        VkShaderModule module;
+
+        VkDevice dev = m_pDriver->GetDev();
+
+        vkr = m_pDriver->vkCreateShaderModule(dev, &modinfo, NULL, &module);
+        m_pDriver->CheckVkResult(vkr);
+
+        bool found = false;
+        for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
         {
+          VkPipelineShaderStageCreateInfo &sh =
+              (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
+          if(sh.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
+          {
+            sh.module = module;
+            sh.pName = "main";
+            found = true;
+            break;
+          }
+        }
+
+        if(!found)
+        {
+          // we know this is safe because it's pointing to a static array that's
+          // big enough for all shaders
+
+          VkPipelineShaderStageCreateInfo &sh =
+              (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[pipeCreateInfo.stageCount++];
+          sh.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+          sh.pNext = NULL;
+          sh.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
           sh.module = module;
           sh.pName = "main";
-          found = true;
-          break;
+          sh.pSpecializationInfo = NULL;
         }
+
+        vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
+                                                   &pipe.pipe);
+        m_pDriver->CheckVkResult(vkr);
+
+        m_pDriver->vkDestroyShaderModule(dev, module, NULL);
+
+        pipe.descSet = descSet;
+
+        m_PipelineCache[pipestate.graphics.pipeline] = pipe;
       }
 
-      if(!found)
-      {
-        // we know this is safe because it's pointing to a static array that's
-        // big enough for all shaders
-
-        VkPipelineShaderStageCreateInfo &sh =
-            (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[pipeCreateInfo.stageCount++];
-        sh.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        sh.pNext = NULL;
-        sh.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        sh.module = module;
-        sh.pName = "main";
-        sh.pSpecializationInfo = NULL;
-      }
-
-      vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
-                                                 &pipe.pipe);
-      m_pDriver->CheckVkResult(vkr);
-
-      m_pDriver->vkDestroyShaderModule(dev, module, NULL);
-
-      pipe.descSet = descSet;
-
-      m_PipelineCache[pipestate.graphics.pipeline] = pipe;
+      SAFE_DELETE_ARRAY(descSetLayouts);
     }
 
     // modify state for first draw call
-    pipestate.graphics.pipeline = GetResID(pipe.pipe);
-    RDCASSERT(pipestate.graphics.descSets.size() >= pipe.descSet);
-    pipestate.graphics.descSets.resize(pipe.descSet + 1);
-    pipestate.graphics.descSets[pipe.descSet].pipeLayout = GetResID(pipe.pipeLayout);
-    pipestate.graphics.descSets[pipe.descSet].descSet = GetResID(m_DescSet);
+    if(pipestate.graphics.shaderObject)
+    {
+      pipestate.shaderObjects[4] = GetResID(shad.shad);
+      pipestate.graphics.lastBoundSet = shad.descSet;
+      pipestate.graphics.pipeline = ResourceId();
+      RDCASSERT(pipestate.graphics.descSets.size() >= shad.descSet);
+      pipestate.graphics.descSets.resize(shad.descSet + 1);
+      pipestate.graphics.descSets[shad.descSet].pipeLayout = GetResID(shad.pipeLayout);
+      pipestate.graphics.descSets[shad.descSet].descSet = GetResID(m_DescSet);
+    }
+    else
+    {
+      pipestate.graphics.pipeline = GetResID(pipe.pipe);
+      RDCASSERT(pipestate.graphics.descSets.size() >= pipe.descSet);
+      pipestate.graphics.descSets.resize(pipe.descSet + 1);
+      pipestate.graphics.descSets[pipe.descSet].pipeLayout = GetResID(pipe.pipeLayout);
+      pipestate.graphics.descSets[pipe.descSet].descSet = GetResID(m_DescSet);
+    }
+
+    // modify dynamic state
+    {
+      // disable colour writes/blends
+      for(uint32_t i = 0; i < pipestate.colorBlendEnable.size(); i++)
+        pipestate.colorBlendEnable[i] = false;
+
+      for(uint32_t i = 0; i < pipestate.colorWriteMask.size(); i++)
+        pipestate.colorWriteMask[i] = 0x0;
+
+      // disable depth/stencil writes but keep any tests enabled
+      pipestate.depthWriteEnable = false;
+      pipestate.front.passOp = pipestate.front.failOp = pipestate.front.depthFailOp =
+          VK_STENCIL_OP_KEEP;
+      pipestate.back.passOp = pipestate.back.failOp = pipestate.back.depthFailOp = VK_STENCIL_OP_KEEP;
+
+      // don't discard
+      pipestate.rastDiscardEnable = false;
+    }
 
     if(cmd)
-      pipestate.BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
+    {
+      if(pipestate.graphics.shaderObject)
+        pipestate.BindShaderObjects(m_pDriver, cmd, VulkanRenderState::BindGraphics);
+      else
+        pipestate.BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
+    }
   }
 
   bool PostDraw(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd)
@@ -245,8 +332,12 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
     m_pDriver->GetCmdRenderState() = m_PrevState;
 
     RDCASSERT(cmd);
-    m_pDriver->GetCmdRenderState().BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics,
-                                                false);
+    if(m_PrevState.graphics.shaderObject)
+      m_pDriver->GetCmdRenderState().BindShaderObjects(m_pDriver, cmd,
+                                                       VulkanRenderState::BindGraphics);
+    else
+      m_pDriver->GetCmdRenderState().BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics,
+                                                  false);
 
     return true;
   }
@@ -293,6 +384,14 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
     VkPipeline pipe;
   };
   std::map<ResourceId, CachedPipeline> m_PipelineCache;
+  // cache modified shader objects
+  struct CachedShader
+  {
+    uint32_t descSet;
+    VkPipelineLayout pipeLayout;
+    VkShaderEXT shad;
+  };
+  std::map<ResourceId, CachedShader> m_ShaderCache;
   VulkanRenderState m_PrevState;
 };
 
@@ -2675,7 +2774,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
   }
   else if(overlay == DebugOverlay::QuadOverdrawPass || overlay == DebugOverlay::QuadOverdrawDraw)
   {
-    if(m_Overlay.m_QuadResolvePipeline[0] != VK_NULL_HANDLE && !pipeInfo.rasterizerDiscardEnable)
+    if(m_Overlay.m_QuadResolvePipeline[0] != VK_NULL_HANDLE && !state.rastDiscardEnable)
     {
       VulkanRenderState prevstate = state;
 
@@ -2924,7 +3023,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
   }
   else if(overlay == DebugOverlay::TriangleSizePass || overlay == DebugOverlay::TriangleSizeDraw)
   {
-    if(!pipeInfo.rasterizerDiscardEnable)
+    if(!state.rastDiscardEnable)
     {
       VulkanRenderState prevstate = state;
 
@@ -3223,38 +3322,129 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         // don't use dynamic rendering
         RemoveNextStruct(&pipeCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO);
 
-        uint32_t &dynamicStateCount = (uint32_t &)pipeCreateInfo.pDynamicState->dynamicStateCount;
-        VkDynamicState *dynamicStateList =
-            (VkDynamicState *)pipeCreateInfo.pDynamicState->pDynamicStates;
-
-        // remove any dynamic states we don't want
-        for(uint32_t i = 0; i < dynamicStateCount;)
+        if(pipeCreateInfo.pDynamicState)
         {
-          // we are controlling the vertex binding so we don't need the stride or input to be
-          // dynamic.
-          // Similarly we're controlling the topology so that doesn't need to be dynamic
-          if(dynamicStateList[i] == VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE ||
-             dynamicStateList[i] == VK_DYNAMIC_STATE_VERTEX_INPUT_EXT ||
-             dynamicStateList[i] == VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY)
+          uint32_t &dynamicStateCount = (uint32_t &)pipeCreateInfo.pDynamicState->dynamicStateCount;
+          VkDynamicState *dynamicStateList =
+              (VkDynamicState *)pipeCreateInfo.pDynamicState->pDynamicStates;
+
+          // remove any dynamic states we don't want
+          for(uint32_t i = 0; i < dynamicStateCount;)
           {
-            // swap with the last item if this isn't the last one
-            if(i != dynamicStateCount - 1)
-              std::swap(dynamicStateList[i], dynamicStateList[dynamicStateCount - 1]);
+            // we are controlling the vertex binding so we don't need the stride or input to be
+            // dynamic.
+            // Similarly we're controlling the topology so that doesn't need to be dynamic
+            if(dynamicStateList[i] == VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE ||
+               dynamicStateList[i] == VK_DYNAMIC_STATE_VERTEX_INPUT_EXT ||
+               dynamicStateList[i] == VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY)
+            {
+              // swap with the last item if this isn't the last one
+              if(i != dynamicStateCount - 1)
+                std::swap(dynamicStateList[i], dynamicStateList[dynamicStateCount - 1]);
 
-            // then pop the last item.
-            dynamicStateCount--;
+              // then pop the last item.
+              dynamicStateCount--;
 
-            // process this item again. If we swapped we'll then consider that dynamic state, and if
-            // we didn't then this was the last item and i will be past dynamicStateCount now
-            continue;
+              // process this item again. If we swapped we'll then consider that dynamic state, and
+              // if we didn't then this was the last item and i will be past dynamicStateCount now
+              continue;
+            }
+
+            i++;
           }
-
-          i++;
         }
 
         typedef rdcpair<uint32_t, Topology> PipeKey;
 
         std::map<PipeKey, VkPipeline> pipes;
+
+        // shader object vertex state
+        VkVertexInputBindingDescription2EXT soBinds[2];
+        VkVertexInputAttributeDescription2EXT soAttrs[2];
+
+        VkShaderStageFlagBits stageFlags[3] = {
+            VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT, VK_SHADER_STAGE_GEOMETRY_BIT};
+        VkShaderEXT shaders[3] = {0};
+        VkShaderEXT unwrappedShaders[3] = {0};
+
+        if(state.graphics.shaderObject)
+        {
+          // create the tri-size shader objects
+          const VulkanCreationInfo::PipelineLayout &layoutInfo =
+              createinfo.m_PipelineLayout[GetResID(m_Overlay.m_TriSizePipeLayout)];
+
+          rdcarray<VkDescriptorSetLayout> descSetLayouts;
+          for(ResourceId setLayout : layoutInfo.descSetLayouts)
+            descSetLayouts.push_back(
+                m_pDriver->GetResourceManager()->GetCurrentHandle<VkDescriptorSetLayout>(setLayout));
+
+          VkShaderCreateInfoEXT shadInfo = {
+              VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
+              NULL,
+              0,
+              VK_SHADER_STAGE_VERTEX_BIT,
+              VK_SHADER_STAGE_GEOMETRY_BIT,
+              VK_SHADER_CODE_TYPE_SPIRV_EXT,
+              shaderCache->GetBuiltinBlob(BuiltinShader::MeshVS)->size() * sizeof(uint32_t),
+              shaderCache->GetBuiltinBlob(BuiltinShader::MeshVS)->data(),
+              "main",
+              (uint32_t)descSetLayouts.size(),
+              descSetLayouts.data(),
+              (uint32_t)layoutInfo.pushRanges.size(),
+              layoutInfo.pushRanges.data(),
+              NULL};
+
+          vkr = m_pDriver->vkCreateShadersEXT(m_Device, 1, &shadInfo, NULL, &shaders[0]);
+
+          shadInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+          shadInfo.nextStage = 0;
+          shadInfo.codeSize =
+              shaderCache->GetBuiltinBlob(BuiltinShader::TrisizeFS)->size() * sizeof(uint32_t);
+          shadInfo.pCode = shaderCache->GetBuiltinBlob(BuiltinShader::TrisizeFS)->data();
+
+          vkr = m_pDriver->vkCreateShadersEXT(m_Device, 1, &shadInfo, NULL, &shaders[1]);
+
+          shadInfo.stage = VK_SHADER_STAGE_GEOMETRY_BIT;
+          shadInfo.nextStage = VK_SHADER_STAGE_FRAGMENT_BIT;
+          shadInfo.codeSize =
+              shaderCache->GetBuiltinBlob(BuiltinShader::TrisizeGS)->size() * sizeof(uint32_t);
+          shadInfo.pCode = shaderCache->GetBuiltinBlob(BuiltinShader::TrisizeGS)->data();
+
+          vkr = m_pDriver->vkCreateShadersEXT(m_Device, 1, &shadInfo, NULL, &shaders[2]);
+
+          // vertex state
+          // primary
+          soBinds[0] = {VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT,
+                        0,
+                        0,
+                        0,
+                        VK_VERTEX_INPUT_RATE_VERTEX,
+                        1};
+          // secondary
+          soBinds[1] = {VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT,
+                        0,
+                        1,
+                        0,
+                        VK_VERTEX_INPUT_RATE_VERTEX,
+                        1};
+
+          soAttrs[0] = {VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT,
+                        0,
+                        0,
+                        0,
+                        VK_FORMAT_R32G32B32A32_SFLOAT,
+                        0};
+          soAttrs[1] = {VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT,
+                        0,
+                        1,
+                        0,
+                        VK_FORMAT_R32G32B32A32_SFLOAT,
+                        0};
+
+          unwrappedShaders[0] = Unwrap(shaders[0]);
+          unwrappedShaders[1] = Unwrap(shaders[1]);
+          unwrappedShaders[2] = Unwrap(shaders[2]);
+        }
 
         for(size_t i = 0; i < events.size(); i++)
         {
@@ -3299,11 +3489,12 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
               ia.topology = MakeVkPrimitiveTopology(fmt.topology);
 
               binds[0].stride = binds[1].stride = fmt.vertexByteStride;
+              soBinds[0].stride = soBinds[1].stride = fmt.vertexByteStride;
 
               PipeKey key = make_rdcpair(fmt.vertexByteStride, fmt.topology);
               VkPipeline pipe = pipes[key];
 
-              if(pipe == VK_NULL_HANDLE)
+              if(pipe == VK_NULL_HANDLE && !state.graphics.shaderObject)
               {
                 vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1,
                                                            &pipeCreateInfo, NULL, &pipe);
@@ -3322,7 +3513,10 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
                                         Unwrap(m_Overlay.m_TriSizePipeLayout), 0, 1,
                                         UnwrapPtr(m_Overlay.m_TriSizeDescSet), 2, offsets);
 
-              vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
+              if(state.graphics.shaderObject)
+                vt->CmdBindShadersEXT(Unwrap(cmd), 3, stageFlags, unwrappedShaders);
+              else
+                vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
 
               const VkPipelineDynamicStateCreateInfo *dyn = pipeCreateInfo.pDynamicState;
 
@@ -3553,6 +3747,228 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
                 }
               }
 
+              if(state.graphics.shaderObject)
+              {
+                if(!state.views.empty() && state.dynamicStates[VkDynamicViewport])
+                {
+                  vt->CmdSetViewport(Unwrap(cmd), 0, (uint32_t)state.views.size(), &state.views[0]);
+                }
+                if(!state.scissors.empty() && state.dynamicStates[VkDynamicScissor])
+                {
+                  vt->CmdSetScissor(Unwrap(cmd), 0, (uint32_t)state.scissors.size(),
+                                    &state.scissors[0]);
+                }
+                if(state.dynamicStates[VkDynamicLineWidth])
+                {
+                  vt->CmdSetLineWidth(Unwrap(cmd), state.lineWidth);
+                }
+                if(state.dynamicStates[VkDynamicDepthBias])
+                {
+                  vt->CmdSetDepthBias(Unwrap(cmd), state.bias.depth, state.bias.biasclamp,
+                                      state.bias.slope);
+                }
+                if(state.dynamicStates[VkDynamicBlendConstants])
+                {
+                  vt->CmdSetBlendConstants(Unwrap(cmd), state.blendConst);
+                }
+                if(state.dynamicStates[VkDynamicDepthBounds])
+                {
+                  vt->CmdSetDepthBounds(Unwrap(cmd), state.mindepth, state.maxdepth);
+                }
+                if(state.dynamicStates[VkDynamicStencilCompareMask])
+                {
+                  vt->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT,
+                                               state.back.compare);
+                  vt->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT,
+                                               state.front.compare);
+                }
+                if(state.dynamicStates[VkDynamicStencilWriteMask])
+                {
+                  vt->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, state.back.write);
+                  vt->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT,
+                                             state.front.write);
+                }
+                if(state.dynamicStates[VkDynamicStencilReference])
+                {
+                  vt->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, state.back.ref);
+                  vt->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, state.front.ref);
+                }
+                if(state.dynamicStates[VkDynamicViewportCount])
+                {
+                  vt->CmdSetViewportWithCountEXT(Unwrap(cmd), (uint32_t)state.views.size(),
+                                                 state.views.data());
+                }
+                if(state.dynamicStates[VkDynamicScissorCount])
+                {
+                  vt->CmdSetScissorWithCountEXT(Unwrap(cmd), (uint32_t)state.scissors.size(),
+                                                state.scissors.data());
+                }
+                if(state.dynamicStates[VkDynamicCullMode])
+                {
+                  vt->CmdSetCullModeEXT(Unwrap(cmd), state.cullMode);
+                }
+                if(state.dynamicStates[VkDynamicFrontFace])
+                {
+                  vt->CmdSetFrontFaceEXT(Unwrap(cmd), state.frontFace);
+                }
+
+                // overriding topology
+                vt->CmdSetPrimitiveTopologyEXT(Unwrap(cmd), MakeVkPrimitiveTopology(fmt.topology));
+
+                // VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE unnecessary since utilizing vertex input
+
+                if(state.dynamicStates[VkDynamicDepthTestEnable])
+                {
+                  vt->CmdSetDepthTestEnableEXT(Unwrap(cmd), state.depthTestEnable);
+                }
+                if(state.dynamicStates[VkDynamicDepthWriteEnable])
+                {
+                  vt->CmdSetDepthWriteEnableEXT(Unwrap(cmd), state.depthWriteEnable);
+                }
+                if(state.dynamicStates[VkDynamicDepthCompareOp])
+                {
+                  vt->CmdSetDepthCompareOpEXT(Unwrap(cmd), state.depthCompareOp);
+                }
+                if(state.dynamicStates[VkDynamicDepthBoundsTestEnable])
+                {
+                  vt->CmdSetDepthBoundsTestEnableEXT(Unwrap(cmd), state.depthBoundsTestEnable);
+                }
+                if(state.dynamicStates[VkDynamicStencilTestEnable])
+                {
+                  vt->CmdSetStencilTestEnableEXT(Unwrap(cmd), state.stencilTestEnable);
+                }
+                if(state.dynamicStates[VkDynamicStencilOp])
+                {
+                  vt->CmdSetStencilOpEXT(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, state.front.failOp,
+                                         state.front.passOp, state.front.depthFailOp,
+                                         state.front.compareOp);
+                  vt->CmdSetStencilOpEXT(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, state.front.failOp,
+                                         state.front.passOp, state.front.depthFailOp,
+                                         state.front.compareOp);
+                }
+                if(!state.colorWriteEnable.empty() && state.dynamicStates[VkDynamicColorWriteEXT])
+                {
+                  vt->CmdSetColorWriteEnableEXT(Unwrap(cmd), (uint32_t)state.colorWriteEnable.size(),
+                                                state.colorWriteEnable.data());
+                }
+                if(state.dynamicStates[VkDynamicDepthBiasEnable])
+                {
+                  vt->CmdSetDepthBiasEnableEXT(Unwrap(cmd), state.depthBiasEnable);
+                }
+                if(state.dynamicStates[VkDynamicLogicOpEXT])
+                {
+                  vt->CmdSetLogicOpEXT(Unwrap(cmd), state.logicOp);
+                }
+                if(state.dynamicStates[VkDynamicControlPointsEXT])
+                {
+                  vt->CmdSetPatchControlPointsEXT(Unwrap(cmd), state.patchControlPoints);
+                }
+                if(state.dynamicStates[VkDynamicPrimRestart])
+                {
+                  vt->CmdSetPrimitiveRestartEnableEXT(Unwrap(cmd), state.primRestartEnable);
+                }
+                if(state.dynamicStates[VkDynamicRastDiscard])
+                {
+                  vt->CmdSetRasterizerDiscardEnableEXT(Unwrap(cmd), state.rastDiscardEnable);
+                }
+
+                // overriding vertex input
+                vt->CmdSetVertexInputEXT(Unwrap(cmd), 2, soBinds, 2, soAttrs);
+
+                if(state.dynamicStates[VkDynamicAttachmentFeedbackLoopEnableEXT])
+                {
+                  vt->CmdSetAttachmentFeedbackLoopEnableEXT(Unwrap(cmd), state.feedbackAspects);
+                }
+                if(state.dynamicStates[VkDynamicAlphaToCoverageEXT])
+                {
+                  vt->CmdSetAlphaToCoverageEnableEXT(Unwrap(cmd), state.alphaToCoverageEnable);
+                }
+                if(state.dynamicStates[VkDynamicAlphaToOneEXT])
+                {
+                  vt->CmdSetAlphaToOneEnableEXT(Unwrap(cmd), state.alphaToOneEnable);
+                }
+                if(!state.colorBlendEnable.empty() &&
+                   state.dynamicStates[VkDynamicColorBlendEnableEXT])
+                {
+                  vt->CmdSetColorBlendEnableEXT(Unwrap(cmd), 0,
+                                                (uint32_t)state.colorBlendEnable.size(),
+                                                state.colorBlendEnable.data());
+                }
+                if(!state.colorBlendEquation.empty() &&
+                   state.dynamicStates[VkDynamicColorBlendEquationEXT])
+                {
+                  vt->CmdSetColorBlendEquationEXT(Unwrap(cmd), 0,
+                                                  (uint32_t)state.colorBlendEquation.size(),
+                                                  state.colorBlendEquation.data());
+                }
+                if(!state.colorWriteMask.empty() && state.dynamicStates[VkDynamicColorWriteMaskEXT])
+                {
+                  vt->CmdSetColorWriteMaskEXT(Unwrap(cmd), 0, (uint32_t)state.colorWriteMask.size(),
+                                              state.colorWriteMask.data());
+                }
+                if(state.dynamicStates[VkDynamicConservativeRastModeEXT])
+                {
+                  vt->CmdSetConservativeRasterizationModeEXT(Unwrap(cmd), state.conservativeRastMode);
+                }
+                if(state.dynamicStates[VkDynamicDepthClampEnableEXT])
+                {
+                  vt->CmdSetDepthClampEnableEXT(Unwrap(cmd), state.depthClampEnable);
+                }
+                if(state.dynamicStates[VkDynamicDepthClipEnableEXT])
+                {
+                  vt->CmdSetDepthClipEnableEXT(Unwrap(cmd), state.depthClipEnable);
+                }
+                if(state.dynamicStates[VkDynamicDepthClipNegativeOneEXT])
+                {
+                  vt->CmdSetDepthClipNegativeOneToOneEXT(Unwrap(cmd), state.negativeOneToOne);
+                }
+                if(state.dynamicStates[VkDynamicOverstimationSizeEXT])
+                {
+                  vt->CmdSetExtraPrimitiveOverestimationSizeEXT(Unwrap(cmd),
+                                                                state.primOverestimationSize);
+                }
+                if(state.dynamicStates[VkDynamicLineRastModeEXT])
+                {
+                  vt->CmdSetLineRasterizationModeEXT(Unwrap(cmd), state.lineRasterMode);
+                }
+                if(state.dynamicStates[VkDynamicLineStippleEnableEXT])
+                {
+                  vt->CmdSetLineStippleEnableEXT(Unwrap(cmd), state.stippledLineEnable);
+                }
+                if(state.dynamicStates[VkDynamicLogicOpEnableEXT])
+                {
+                  vt->CmdSetLogicOpEnableEXT(Unwrap(cmd), state.logicOpEnable);
+                }
+                if(state.dynamicStates[VkDynamicPolygonModeEXT])
+                {
+                  vt->CmdSetPolygonModeEXT(Unwrap(cmd), state.polygonMode);
+                }
+                if(state.dynamicStates[VkDynamicProvokingVertexModeEXT])
+                {
+                  vt->CmdSetProvokingVertexModeEXT(Unwrap(cmd), state.provokingVertexMode);
+                }
+                if(state.dynamicStates[VkDynamicRasterizationSamplesEXT])
+                {
+                  vt->CmdSetRasterizationSamplesEXT(Unwrap(cmd), state.rastSamples);
+                }
+                if(state.dynamicStates[VkDynamicRasterizationStreamEXT])
+                {
+                  vt->CmdSetRasterizationStreamEXT(Unwrap(cmd), state.rasterStream);
+                }
+                if(state.dynamicStates[VkDynamicSampleLocationsEnableEXT])
+                {
+                  vt->CmdSetSampleLocationsEnableEXT(Unwrap(cmd), state.sampleLocEnable);
+                }
+                if(state.dynamicStates[VkDynamicSampleMaskEXT])
+                {
+                  vt->CmdSetSampleMaskEXT(Unwrap(cmd), state.rastSamples, state.sampleMask.data());
+                }
+                if(state.dynamicStates[VkDynamicTessDomainOriginEXT])
+                {
+                  vt->CmdSetTessellationDomainOriginEXT(Unwrap(cmd), state.domainOrigin);
+                }
+              }
+
               if(fmt.indexByteStride)
               {
                 VkIndexType idxtype = VK_INDEX_TYPE_UINT16;
@@ -3602,6 +4018,12 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         for(auto it = pipes.begin(); it != pipes.end(); ++it)
           m_pDriver->vkDestroyPipeline(m_Device, it->second, NULL);
+
+        for(uint32_t i = 0; i < 3; i++)
+        {
+          if(shaders[i] != VK_NULL_HANDLE)
+            m_pDriver->vkDestroyShaderEXT(m_Device, shaders[i], NULL);
+        }
       }
 
       // restore back to normal
