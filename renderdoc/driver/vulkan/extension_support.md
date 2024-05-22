@@ -99,6 +99,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_shader_atomic_float2`
 * `VK_EXT_shader_demote_to_helper_invocation`
 * `VK_EXT_shader_image_atomic_int64`
+* `VK_EXT_shader_object`
 * `VK_EXT_shader_stencil_export`
 * `VK_EXT_shader_subgroup_ballot`
 * `VK_EXT_shader_subgroup_vote`
@@ -300,7 +301,6 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_pipeline_robustness`
 * `VK_EXT_shader_module_identifier`
 * `VK_EXT_shader_replicated_composites`
-* `VK_EXT_shader_object`
 * `VK_EXT_shader_tile_image`
 * `VK_EXT_subpass_merge_feedback`
 
