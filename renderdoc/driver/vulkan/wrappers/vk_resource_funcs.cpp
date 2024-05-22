@@ -1591,8 +1591,6 @@ bool WrappedVulkan::Serialise_vkBindImageMemory(SerialiserType &ser, VkDevice de
 VkResult WrappedVulkan::vkBindImageMemory(VkDevice device, VkImage image, VkDeviceMemory mem,
                                           VkDeviceSize memOffset)
 {
-  VkResourceRecord *record = GetRecord(image);
-
   VkResult ret;
   SERIALISE_TIME_CALL(ret = ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(image),
                                                              Unwrap(mem), memOffset));
@@ -1618,6 +1616,39 @@ VkResult WrappedVulkan::vkBindImageMemory(VkDevice device, VkImage image, VkDevi
         RDCERR("Binding memory to unknown image %s", ToStr(GetResID(image)).c_str());
       else
         state->isMemoryBound = true;
+    }
+
+    VkResourceRecord *record = GetRecord(image);
+
+    if(record->resInfo->imageInfo.isAHB)
+    {
+      VkMemoryRequirements nonExternalMrq = record->resInfo->memreqs;
+      ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(image),
+                                                  &record->resInfo->memreqs);
+
+      VkMemoryRequirements &externalMrq = record->resInfo->memreqs;
+
+      RDCDEBUG(
+          "AHB-backed external image requires %llu bytes at %llu alignment, in %x memory types",
+          externalMrq.size, externalMrq.alignment, externalMrq.memoryTypeBits);
+      RDCDEBUG(
+          "Non-external version requires %llu bytes at %llu alignment, in %x memory "
+          "types",
+          nonExternalMrq.size, nonExternalMrq.alignment, nonExternalMrq.memoryTypeBits);
+
+      externalMrq.size = RDCMAX(externalMrq.size, nonExternalMrq.size);
+      externalMrq.alignment = RDCMAX(externalMrq.alignment, nonExternalMrq.alignment);
+
+      if((externalMrq.memoryTypeBits & nonExternalMrq.memoryTypeBits) == 0)
+      {
+        RDCWARN(
+            "External image shares no memory types with non-external image. This image "
+            "will not be replayable.");
+      }
+      else
+      {
+        externalMrq.memoryTypeBits &= nonExternalMrq.memoryTypeBits;
+      }
     }
 
     // memory object bindings are immutable and must happen before creation or use,
@@ -2304,6 +2335,13 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
 {
   VkImageCreateInfo createInfo_adjusted = *pCreateInfo;
 
+  // We can't process this call if it carries an unknown format
+  if(pCreateInfo->format == VK_FORMAT_UNDEFINED)
+  {
+    RDCERR("Image format undefined");
+    return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+  }
+
   // if you change any properties here, ensure you also update
   // vkGetDeviceImageMemoryRequirementsKHR
 
@@ -2460,9 +2498,6 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
 
       record->storable = (pCreateInfo->usage & VK_IMAGE_USAGE_STORAGE_BIT) != 0;
 
-      // pre-populate memory requirements
-      ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(*pImage), &resInfo.memreqs);
-
       bool isLinear = (pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR);
 
       bool isExternal = false;
@@ -2477,7 +2512,16 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
            next->sType == VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID)
         {
           isExternal = true;
-          break;
+
+          // we can't call vkGetImageMemoryRequirements on AHB-backed images until they are bound
+          if(next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO)
+          {
+            VkExternalMemoryImageCreateInfo *extCreateInfo = (VkExternalMemoryImageCreateInfo *)next;
+            resInfo.imageInfo.isAHB =
+                (extCreateInfo->handleTypes &
+                 VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID) != 0;
+            break;
+          }
         }
 
         next = next->pNext;
@@ -2490,6 +2534,11 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       // appropriate.
       GetResourceManager()->MarkDirtyResource(id);
       GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_ReadBeforeWrite);
+
+      // pre-populate memory requirements
+      if(!resInfo.imageInfo.isAHB)
+        ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(*pImage),
+                                                    &resInfo.memreqs);
 
       // sparse and external images should be considered dirty from creation anyway. For sparse
       // images this is so that we can serialise the tracked page table, for external images this is
@@ -2528,35 +2577,53 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
             VkMemoryRequirements mrq = {};
             ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), tmpimg, &mrq);
 
-            if(mrq.size > 0)
+            // If this is an AHB-backed image its memory requirements will need retrieving after
+            // binding.  So just store the non-external data for reference
+            // (see WrappedVulkan::vkBindImageMemory)
+            if(resInfo.imageInfo.isAHB)
             {
-              RDCDEBUG("External image requires %llu bytes at %llu alignment, in %x memory types",
-                       resInfo.memreqs.size, resInfo.memreqs.alignment,
-                       resInfo.memreqs.memoryTypeBits);
-              RDCDEBUG(
-                  "Non-external version requires %llu bytes at %llu alignment, in %x memory types",
-                  mrq.size, mrq.alignment, mrq.memoryTypeBits);
+              resInfo.memreqs.size = mrq.size;
+              resInfo.memreqs.alignment = mrq.alignment;
+              resInfo.memreqs.memoryTypeBits = mrq.memoryTypeBits;
 
-              if(resInfo.memreqs.size != mrq.size)
+              RDCWARN(
+                  "Android hardware buffer backed image, so pre-emptively banning dedicated "
+                  "memory");
+              resInfo.banDedicated = true;
+            }
+            else
+            {
+              if(mrq.size > 0)
               {
-                RDCWARN(
-                    "Required size changed on image between external/non-external, banning "
-                    "dedicated memory");
-                resInfo.banDedicated = true;
-              }
+                RDCDEBUG("External image requires %llu bytes at %llu alignment, in %x memory types",
+                         resInfo.memreqs.size, resInfo.memreqs.alignment,
+                         resInfo.memreqs.memoryTypeBits);
+                RDCDEBUG(
+                    "Non-external version requires %llu bytes at %llu alignment, in %x memory "
+                    "types",
+                    mrq.size, mrq.alignment, mrq.memoryTypeBits);
 
-              resInfo.memreqs.size = RDCMAX(resInfo.memreqs.size, mrq.size);
-              resInfo.memreqs.alignment = RDCMAX(resInfo.memreqs.alignment, mrq.alignment);
+                if(resInfo.memreqs.size != mrq.size)
+                {
+                  RDCWARN(
+                      "Required size changed on image between external/non-external, banning "
+                      "dedicated memory");
+                  resInfo.banDedicated = true;
+                }
 
-              if((resInfo.memreqs.memoryTypeBits & mrq.memoryTypeBits) == 0)
-              {
-                RDCWARN(
-                    "External image shares no memory types with non-external image. This image "
-                    "will not be replayable.");
-              }
-              else
-              {
-                resInfo.memreqs.memoryTypeBits &= mrq.memoryTypeBits;
+                resInfo.memreqs.size = RDCMAX(resInfo.memreqs.size, mrq.size);
+                resInfo.memreqs.alignment = RDCMAX(resInfo.memreqs.alignment, mrq.alignment);
+
+                if((resInfo.memreqs.memoryTypeBits & mrq.memoryTypeBits) == 0)
+                {
+                  RDCWARN(
+                      "External image shares no memory types with non-external image. This image "
+                      "will not be replayable.");
+                }
+                else
+                {
+                  resInfo.memreqs.memoryTypeBits &= mrq.memoryTypeBits;
+                }
               }
             }
           }
@@ -3067,6 +3134,37 @@ VkResult WrappedVulkan::vkBindImageMemory2(VkDevice device, uint32_t bindInfoCou
           RDCERR("Binding memory for unknown image %s", ToStr(id).c_str());
         else
           state->isMemoryBound = true;
+      }
+
+      if(imgrecord->resInfo->imageInfo.isAHB)
+      {
+        VkMemoryRequirements nonExternalMrq = imgrecord->resInfo->memreqs;
+        ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(pBindInfos[i].image),
+                                                    &imgrecord->resInfo->memreqs);
+
+        VkMemoryRequirements &externalMrq = imgrecord->resInfo->memreqs;
+
+        RDCDEBUG(
+            "AHB-backed external image requires %llu bytes at %llu alignment, in %x memory types",
+            externalMrq.size, externalMrq.alignment, externalMrq.memoryTypeBits);
+        RDCDEBUG(
+            "Non-external version requires %llu bytes at %llu alignment, in %x memory "
+            "types",
+            nonExternalMrq.size, nonExternalMrq.alignment, nonExternalMrq.memoryTypeBits);
+
+        externalMrq.size = RDCMAX(externalMrq.size, nonExternalMrq.size);
+        externalMrq.alignment = RDCMAX(externalMrq.alignment, nonExternalMrq.alignment);
+
+        if((externalMrq.memoryTypeBits & nonExternalMrq.memoryTypeBits) == 0)
+        {
+          RDCWARN(
+              "External image shares no memory types with non-external image. This image "
+              "will not be replayable.");
+        }
+        else
+        {
+          externalMrq.memoryTypeBits &= nonExternalMrq.memoryTypeBits;
+        }
       }
 
       // memory object bindings are immutable and must happen before creation or use,
