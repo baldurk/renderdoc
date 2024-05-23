@@ -568,6 +568,14 @@ RDResult InstallRenderDocServer(const rdcstr &deviceID)
     // Only verify permissions if we are otherwise happy with the installation
     if(result != ResultCode::AndroidAPKVerifyFailed)
     {
+      if(apiVersion >= 30)
+      {
+        // Grant permission to access files
+        rdcstr cmd = "shell appops set --uid " + GetRenderDocPackageForABI(abi) +
+                     " MANAGE_EXTERNAL_STORAGE allow";
+        adbExecCommand(deviceID, cmd);
+      }
+
       AndroidInstallPermissionCheckResult permissionsCheck =
           CheckAndroidServerInstallPermissions(deviceID, GetRenderDocPackageForABI(abi), apiVersion);
       if(permissionsCheck != AndroidInstallPermissionCheckResult::Correct)
