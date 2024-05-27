@@ -529,6 +529,12 @@ HRESULT WrappedIDXGISwapChain4::GetDevice(
       *ppDevice = this;
       AddRef();
     }
+    else if(riid == __uuidof(IDXGIDevice) || riid == __uuidof(IDXGIDevice1) ||
+            riid == __uuidof(IDXGIDevice2) || riid == __uuidof(IDXGIDevice3) ||
+            riid == __uuidof(IDXGIDevice4))
+    {
+      return m_pDevice->QueryInterface(riid, ppDevice);
+    }
     else if(!HandleWrap("GetDevice", riid, ppDevice))
     {
       // can probably get away with returning the real result here,
