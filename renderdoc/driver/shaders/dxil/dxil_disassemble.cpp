@@ -2594,6 +2594,42 @@ static rdcstr MakeCBufferRegisterStr(uint32_t reg, DXIL::EntryPointInterface::CB
   return ret;
 }
 
+rdcstr ProcessNormCompType(ComponentType &compType)
+{
+  if(compType == ComponentType::SNormF16)
+  {
+    compType = ComponentType::F16;
+    return "snorm ";
+  }
+  else if(compType == ComponentType::SNormF32)
+  {
+    compType = ComponentType::F32;
+    return "snorm ";
+  }
+  else if(compType == ComponentType::SNormF64)
+  {
+    compType = ComponentType::F64;
+    return "snorm ";
+  }
+  else if(compType == ComponentType::UNormF16)
+  {
+    compType = ComponentType::F16;
+    return "unorm ";
+  }
+  else if(compType == ComponentType::UNormF32)
+  {
+    compType = ComponentType::F32;
+    return "unorm ";
+  }
+  else if(compType == ComponentType::UNormF64)
+  {
+    compType = ComponentType::F64;
+    return "unorm ";
+  }
+
+  return rdcstr();
+}
+
 void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 {
   m_Disassembly.clear();
@@ -2644,14 +2680,20 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
             if(needBlankLine)
               DisassemblyAddNewLine();
             EntryPointInterface::Signature &sig = entryPoint->inputs[j];
-            VarType varType = VarTypeForComponentType(sig.type);
+
             m_Disassembly += "  ";
+
+            ComponentType compType = sig.type;
+
+            m_Disassembly += ProcessNormCompType(compType);
+
+            VarType varType = VarTypeForComponentType(compType);
             m_Disassembly += ToStr(varType).c_str();
 
             if(sig.cols > 1)
               m_Disassembly += ToStr(sig.cols);
 
-            if(reflection && sig.rows == 1)
+            if(reflection && sig.rows == 1 && j < reflection->InputSig.size())
             {
               const SigParameter &sigParam = reflection->InputSig[j];
               if(sigParam.semanticName == sig.name)
@@ -2683,14 +2725,20 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
             if(needBlankLine)
               DisassemblyAddNewLine();
             EntryPointInterface::Signature &sig = entryPoint->outputs[j];
-            VarType varType = VarTypeForComponentType(sig.type);
+
             m_Disassembly += "  ";
+
+            ComponentType compType = sig.type;
+
+            m_Disassembly += ProcessNormCompType(compType);
+
+            VarType varType = VarTypeForComponentType(compType);
             m_Disassembly += ToStr(varType).c_str();
 
             if(sig.cols > 1)
               m_Disassembly += ToStr(sig.cols);
 
-            if(reflection && sig.rows == 1)
+            if(reflection && sig.rows == 1 && j < reflection->OutputSig.size())
             {
               const SigParameter &sigParam = reflection->OutputSig[j];
               if(sigParam.semanticName == sig.name)
