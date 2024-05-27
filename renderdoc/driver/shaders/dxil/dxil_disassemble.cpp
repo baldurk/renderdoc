@@ -1391,9 +1391,15 @@ rdcstr Program::DisassembleTypes(int &instructionLine) const
         ret += StringFormat::Fmt("%s", t->toString().c_str());
       }
       if(typ->members.empty())
+      {
+        if(ret.back() == ' ')
+          ret.pop_back();
         ret += "}\n";
+      }
       else
+      {
         ret += " }\n";
+      }
 
       instructionLine++;
       printedTypes = true;
