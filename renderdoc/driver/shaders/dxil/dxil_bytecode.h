@@ -1419,6 +1419,16 @@ struct EntryPointInterface
   struct ResourceBase
   {
     ResourceBase(ResourceClass resourceClass, const Metadata *resourceBase);
+    bool MatchesBinding(uint32_t lowerBound, uint32_t upperBound, uint32_t spaceID) const
+    {
+      if(space != spaceID)
+        return false;
+      if(regBase > lowerBound)
+        return false;
+      if(regBase + regCount <= upperBound)
+        return false;
+      return true;
+    }
     uint32_t id;
     const Type *type;
     rdcstr name;

@@ -3043,16 +3043,24 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 lineStr += "<OUT>." + name + rowStr + "." + componentStr;
                 lineStr += " = " + ArgToString(inst.args[4], false);
               }
-              else if(dxOpCode == DXOp::CreateHandle)
+              else if((dxOpCode == DXOp::CreateHandle) || (dxOpCode == DXOp::CreateHandleFromBinding))
               {
                 // CreateHandle(resourceClass,rangeId,index,nonUniformIndex)
                 showDxFuncName = false;
+
+                uint32_t resIndexArgId = 3;
+                uint32_t nonUniformIndexArgId = 4;
+                if(dxOpCode == DXOp::CreateHandleFromBinding)
+                {
+                  resIndexArgId = 2;
+                  nonUniformIndexArgId = 3;
+                }
 
                 const ResourceReference *resRef = GetResourceReference(resultIdStr);
                 if(resRef)
                 {
                   uint32_t index = 0;
-                  if(getival<uint32_t>(inst.args[3], index))
+                  if(getival<uint32_t>(inst.args[resIndexArgId], index))
                   {
                     if(index != resRef->resourceIndex)
                       commentStr += " index = " + ToStr(index);
@@ -3060,10 +3068,10 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 }
                 else
                 {
-                  commentStr += " index = " + ArgToString(inst.args[3], false);
+                  commentStr += " index = " + ArgToString(inst.args[resIndexArgId], false);
                 }
                 uint32_t value;
-                if(getival<uint32_t>(inst.args[4], value))
+                if(getival<uint32_t>(inst.args[nonUniformIndexArgId], value))
                 {
                   if(value != 0)
                     commentStr += " nonUniformIndex = true";
@@ -4645,58 +4653,158 @@ void Program::ParseReferences(const DXBC::Reflection *reflection)
           {
             DXOp dxOpCode;
             RDCASSERT(getival<DXOp>(inst.args[0], dxOpCode));
-            if(dxOpCode == DXOp::CreateHandle)
+            if((dxOpCode == DXOp::CreateHandle) || (dxOpCode == DXOp::CreateHandleFromBinding))
             {
               // CreateHandle(resourceClass,rangeId,index,nonUniformIndex)
+              // CreateHandleFromBinding(bind,index,nonUniformIndex)
+              uint32_t resIndexArgId = 3;
+              uint32_t nonUniformIndexArgId = 4;
+              bool validBinding = false;
+              EntryPointInterface::ResourceBase *resourceBase = NULL;
               rdcstr resName;
-              ResourceClass resClass;
-              uint32_t resIndex;
-              if(getival<ResourceClass>(inst.args[1], resClass) &&
-                 getival<uint32_t>(inst.args[2], resIndex))
+              uint32_t resIndex = 0;
+              if(dxOpCode == DXOp::CreateHandle)
               {
-                EntryPointInterface::ResourceBase *resourceBase = NULL;
-                switch(resClass)
+                ResourceClass resClass;
+                validBinding = getival<ResourceClass>(inst.args[1], resClass) &&
+                               getival<uint32_t>(inst.args[2], resIndex);
+                if(validBinding)
                 {
-                  case ResourceClass::SRV: resourceBase = &entryPoint->srvs[resIndex]; break;
-                  case ResourceClass::UAV: resourceBase = &entryPoint->uavs[resIndex]; break;
-                  case ResourceClass::CBuffer:
-                    resourceBase = &entryPoint->cbuffers[resIndex];
-                    break;
-                  case ResourceClass::Sampler:
-                    resourceBase = &entryPoint->samplers[resIndex];
-                    break;
-                  default: break;
-                };
-                if(resourceBase)
+                  switch(resClass)
+                  {
+                    case ResourceClass::SRV: resourceBase = &entryPoint->srvs[resIndex]; break;
+                    case ResourceClass::UAV: resourceBase = &entryPoint->uavs[resIndex]; break;
+                    case ResourceClass::CBuffer:
+                      resourceBase = &entryPoint->cbuffers[resIndex];
+                      break;
+                    case ResourceClass::Sampler:
+                      resourceBase = &entryPoint->samplers[resIndex];
+                      break;
+                    default: break;
+                  };
+                }
+                else
                 {
-                  RDCASSERT(!GetResourceReference(resultIdStr));
-                  ResourceReference resRef(resultIdStr, *resourceBase, resIndex);
-                  m_ResourceHandles[resultIdStr] = m_ResourceHandles.size();
-                  m_ResourceReferences.push_back(resRef);
-                  resName = resourceBase->name;
-                  uint32_t index = 0;
-                  if(getival<uint32_t>(inst.args[3], index))
-                  {
-                    if(index != resIndex)
-                    {
-                      if(resourceBase->regCount > 1)
-                        resName += StringFormat::Fmt("[%u]", index);
-                    }
-                  }
-                  else
-                  {
-                    if(resourceBase->regCount > 1)
-                      resName += "[" + ArgToString(inst.args[3], false) + "]";
-                  }
+                  resName = "ResourceClass:" + ArgToString(inst.args[1], false);
+                  resName += "[" + ArgToString(inst.args[2], false) + "]";
+                  resName += "[" + ArgToString(inst.args[resIndexArgId], false) + "]";
                 }
               }
               else
               {
-                resName = "ResourceClass:" + ArgToString(inst.args[1], false);
-                resName += "[" + ArgToString(inst.args[2], false) + "]";
-                resName += "[" + ArgToString(inst.args[3], false) + "]";
+                resIndexArgId = 2;
+                nonUniformIndexArgId = 3;
+                if(const Constant *props = cast<Constant>(inst.args[1]))
+                {
+                  if(props && !props->isNULL() && props->getMembers().size() >= 4)
+                  {
+                    const rdcarray<Value *> &members = props->getMembers();
+                    uint32_t lowerBound;
+                    uint32_t upperBound;
+                    uint32_t spaceID;
+                    ResourceClass resClass;
+                    validBinding = getival<uint32_t>(members[0], lowerBound);
+                    validBinding &= getival<uint32_t>(members[1], upperBound);
+                    validBinding &= getival<uint32_t>(members[2], spaceID);
+                    validBinding &= getival<ResourceClass>(members[3], resClass);
+                    // Search through the resources to find the binding
+                    if(validBinding)
+                    {
+                      switch(resClass)
+                      {
+                        case ResourceClass::SRV:
+                        {
+                          for(uint32_t r = 0; r < entryPoint->srvs.size(); ++r)
+                          {
+                            EntryPointInterface::ResourceBase *res = &entryPoint->srvs[r];
+                            if(res->MatchesBinding(lowerBound, upperBound, spaceID))
+                            {
+                              resIndex = r;
+                              resourceBase = res;
+                              break;
+                            }
+                          }
+                          break;
+                        }
+                        case ResourceClass::UAV:
+                        {
+                          for(uint32_t r = 0; r < entryPoint->uavs.size(); ++r)
+                          {
+                            EntryPointInterface::ResourceBase *res = &entryPoint->uavs[r];
+                            if(res->MatchesBinding(lowerBound, upperBound, spaceID))
+                            {
+                              resIndex = r;
+                              resourceBase = res;
+                              break;
+                            }
+                          }
+                          break;
+                        }
+                        case ResourceClass::CBuffer:
+                        {
+                          for(uint32_t r = 0; r < entryPoint->cbuffers.size(); ++r)
+                          {
+                            EntryPointInterface::ResourceBase *res = &entryPoint->cbuffers[r];
+                            if(res->MatchesBinding(lowerBound, upperBound, spaceID))
+                            {
+                              resIndex = r;
+                              resourceBase = res;
+                              break;
+                            }
+                          }
+                          break;
+                        }
+                        case ResourceClass::Sampler:
+                        {
+                          for(uint32_t r = 0; r < entryPoint->samplers.size(); ++r)
+                          {
+                            EntryPointInterface::ResourceBase *res = &entryPoint->samplers[r];
+                            if(res->MatchesBinding(lowerBound, upperBound, spaceID))
+                            {
+                              resIndex = r;
+                              resourceBase = res;
+                              break;
+                            }
+                          }
+                          break;
+                          default: break;
+                        }
+                      }
+                      if(!resourceBase)
+                      {
+                        resName = "ResourceClass:" + ArgToString(inst.args[1], false);
+                        resName += "[" + ArgToString(inst.args[2], false) + "]";
+                        resName += "[" + ArgToString(inst.args[resIndexArgId], false) + "]";
+                      }
+                    }
+                  }
+                }
               }
-              m_SsaAliases[resultIdStr] = resName;
+
+              if(resourceBase)
+              {
+                RDCASSERT(!GetResourceReference(resultIdStr));
+                ResourceReference resRef(resultIdStr, *resourceBase, resIndex);
+                m_ResourceHandles[resultIdStr] = m_ResourceHandles.size();
+                m_ResourceReferences.push_back(resRef);
+                resName = resourceBase->name;
+                uint32_t index = 0;
+                if(getival<uint32_t>(inst.args[resIndexArgId], index))
+                {
+                  if(index != resIndex)
+                  {
+                    if(resourceBase->regCount > 1)
+                      resName += StringFormat::Fmt("[%u]", index);
+                  }
+                }
+                else
+                {
+                  if(resourceBase->regCount > 1)
+                    resName += "[" + ArgToString(inst.args[resIndexArgId], false) + "]";
+                }
+              }
+              if(!resName.isEmpty())
+                m_SsaAliases[resultIdStr] = resName;
             }
             else if(dxOpCode == DXOp::CreateHandleFromHeap)
             {
@@ -4720,6 +4828,15 @@ void Program::ParseReferences(const DXBC::Reflection *reflection)
               rdcstr resName = "__heap_descriptor_" + ToStr(heapDescriptorResourceCount);
               heapDescriptorResourceCount += 1;
               m_SsaAliases[resultIdStr] = resName;
+              // If the underlying handle points to a known resource then duplicate the resource and
+              // register it as resultIdStr
+              rdcstr baseResource = ArgToString(inst.args[1], false);
+              const ResourceReference *resRef = GetResourceReference(baseResource);
+              if(resRef)
+              {
+                m_ResourceHandles[resultIdStr] = m_ResourceHandles.size();
+                m_ResourceReferences.push_back(*resRef);
+              }
             }
           }
         }
@@ -5018,8 +5135,8 @@ static void floatAppendToString(const Type *t, const ShaderValue &val, uint32_t 
       rdcstr flt = StringFormat::Fmt("%.6le", d);
 
 #if ENABLED(DXC_COMPATIBLE_DISASM)
-      // dxc/llvm only prints floats as floats if they roundtrip, but our disassembly doesn't need
-      // to roundtrip so it's better to display the value in all cases
+      // dxc/llvm only prints floats as floats if they roundtrip, but our disassembly doesn't
+      // need to roundtrip so it's better to display the value in all cases
       double reparse = strtod(flt.begin(), NULL);
 
       if(d == reparse)
@@ -5408,8 +5525,8 @@ rdcstr DoStringise(const DXIL::Attribute &el)
   {
     STRINGISE_BITFIELD_CLASS_VALUE_NAMED(None, "");
 
-    // these bits are ordered not in declaration order (which matches how they're serialised) but in
-    // the (mostly but not quite) alphabetical order since that's how LLVM prints them
+    // these bits are ordered not in declaration order (which matches how they're serialised) but
+    // in the (mostly but not quite) alphabetical order since that's how LLVM prints them
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(Alignment, "alignment");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(AlwaysInline, "alwaysinline");
     STRINGISE_BITFIELD_CLASS_BIT_NAMED(Builtin, "builtin");
