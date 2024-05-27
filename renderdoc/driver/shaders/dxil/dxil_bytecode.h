@@ -1552,6 +1552,7 @@ protected:
   void AssignMetaSlot(rdcarray<Metadata *> &metaSlots, uint32_t &nextMetaSlot, DebugLocation &l);
 
   const ResourceReference *GetResourceReference(const rdcstr &handleStr) const;
+  rdcstr GetHandleAlias(const rdcstr &handleStr) const;
 
   const Metadata *FindMetadata(uint32_t slot) const;
   rdcstr ArgToString(const Value *v, bool withTypes, const rdcstr &attrString = "") const;
@@ -1622,6 +1623,8 @@ protected:
 
   rdcarray<EntryPointInterface> m_EntryPointInterfaces;
   std::map<rdcstr, size_t> m_ResourceHandles;
+  std::map<rdcstr, rdcstr> m_SsaAliases;
+
   rdcarray<ResourceReference> m_ResourceReferences;
   rdcstr m_Disassembly;
   int m_DisassemblyInstructionLine;

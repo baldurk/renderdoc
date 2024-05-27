@@ -996,6 +996,14 @@ rdcstr GetCBufferVariableTypeName(const DXBC::CBufferVariableType &type)
   return ret;
 }
 
+rdcstr Program::GetHandleAlias(const rdcstr &handleStr) const
+{
+  auto it = m_SsaAliases.find(handleStr);
+  if(it != m_SsaAliases.end())
+    return it->second;
+  return handleStr;
+}
+
 void Program::Parse(const DXBC::Reflection *reflection)
 {
   if(m_Parsed)
@@ -1005,6 +1013,7 @@ void Program::Parse(const DXBC::Reflection *reflection)
 
   m_EntryPointInterfaces.clear();
   FillEntryPointInterfaces();
+  m_SsaAliases.clear();
   ParseReferences(reflection);
 
   m_Parsed = true;
@@ -2852,8 +2861,6 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
       m_Disassembly += "{";
       DisassemblyAddNewLine();
 
-      std::map<rdcstr, rdcstr> ssaAliases;
-
       size_t curBlock = 0;
 
       // if the first block has a name, use it
@@ -2869,11 +2876,11 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
         Instruction &inst = *func.instructions[funcIdx];
 
         inst.disassemblyLine = m_DisassemblyInstructionLine;
-        rdcstr lineStr;
+        rdcstr resultTypeStr;
         if(!inst.type->isVoid())
         {
-          lineStr += inst.type->toString();
-          lineStr += " ";
+          resultTypeStr += inst.type->toString();
+          resultTypeStr += " ";
         }
         rdcstr resultIdStr;
         if(!inst.getName().empty())
@@ -2882,12 +2889,10 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
         else if(inst.slot != ~0U)
           resultIdStr = StringFormat::Fmt("%c%s", DXIL::dxilIdentifier, ToStr(inst.slot).c_str());
 
-        if(!resultIdStr.empty())
-          lineStr += resultIdStr + " = ";
-
         bool showDxFuncName = false;
         rdcstr commentStr;
 
+        rdcstr lineStr;
         switch(inst.op)
         {
           case Operation::NoOp: lineStr += "??? "; break;
@@ -2916,7 +2921,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 uint32_t inputIdx;
                 uint32_t rowIdx;
                 bool hasRowIdx = getival<uint32_t>(inst.args[2], rowIdx);
-                if(getival<uint32_t>(inst.args[1], inputIdx))
+                if(entryPoint && getival<uint32_t>(inst.args[1], inputIdx))
                 {
                   EntryPointInterface::Signature &sig = entryPoint->inputs[inputIdx];
                   name = sig.name;
@@ -2955,7 +2960,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 uint32_t outputIdx;
                 uint32_t rowIdx;
                 bool hasRowIdx = getival<uint32_t>(inst.args[2], rowIdx);
-                if(getival<uint32_t>(inst.args[1], outputIdx))
+                if(entryPoint && getival<uint32_t>(inst.args[1], outputIdx))
                 {
                   EntryPointInterface::Signature &sig = entryPoint->outputs[outputIdx];
                   name = sig.name;
@@ -2989,43 +2994,219 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 // CreateHandle(resourceClass,rangeId,index,nonUniformIndex)
                 showDxFuncName = false;
 
-                rdcstr handleStr(resultIdStr);
-                rdcstr resName;
-                const ResourceReference *resRef = GetResourceReference(handleStr);
+                const ResourceReference *resRef = GetResourceReference(resultIdStr);
                 if(resRef)
                 {
-                  resName = resRef->resourceBase.name;
-
                   uint32_t index = 0;
                   if(getival<uint32_t>(inst.args[3], index))
                   {
                     if(index != resRef->resourceIndex)
-                    {
                       commentStr += " index = " + ToStr(index);
-                      if(resRef->resourceBase.regCount > 1)
-                        resName += StringFormat::Fmt("[%u]", index);
-                    }
-                  }
-                  else
-                  {
-                    if(resRef->resourceBase.regCount > 1)
-                      resName += "[" + ArgToString(inst.args[3], false) + "]";
                   }
                 }
                 else
                 {
-                  resName = "ResourceClass:" + ArgToString(inst.args[1], false);
-                  resName += "[" + ArgToString(inst.args[2], false) + "]";
                   commentStr += " index = " + ArgToString(inst.args[3], false);
                 }
-                ssaAliases[handleStr] = resName;
                 uint32_t value;
                 if(getival<uint32_t>(inst.args[4], value))
                 {
                   if(value != 0)
                     commentStr += " nonUniformIndex = true";
                 }
-                lineStr += resName;
+                lineStr += GetHandleAlias(resultIdStr);
+              }
+              else if(dxOpCode == DXOp::CreateHandleFromHeap)
+              {
+                // CreateHandleFromHeap(index,samplerHeap,nonUniformIndex)
+                showDxFuncName = false;
+
+                uint32_t samplerHeap;
+                if(getival<uint32_t>(inst.args[2], samplerHeap))
+                {
+                  lineStr += GetHandleAlias(resultIdStr);
+
+                  uint32_t value;
+                  if(getival<uint32_t>(inst.args[3], value))
+                  {
+                    if(value != 0)
+                      commentStr += " nonUniformIndex = true";
+                  }
+                }
+                else
+                {
+                  showDxFuncName = true;
+                }
+              }
+              else if(dxOpCode == DXOp::AnnotateHandle)
+              {
+                // AnnotateHandle(res,props)
+                showDxFuncName = false;
+
+                if(const Constant *props = cast<Constant>(inst.args[2]))
+                {
+                  const Constant *packed[2];
+                  if(props && !props->isNULL() && props->getMembers().size() == 2 &&
+                     (packed[0] = cast<Constant>(props->getMembers()[0])) != NULL &&
+                     (packed[1] = cast<Constant>(props->getMembers()[1])) != NULL)
+                  {
+                    uint32_t packedProps[2] = {};
+                    packedProps[0] = packed[0]->getU32();
+                    packedProps[1] = packed[1]->getU32();
+
+                    bool uav = (packedProps[0] & (1 << 12)) != 0;
+                    bool rov = (packedProps[0] & (1 << 13)) != 0;
+                    bool globallyCoherent = (packedProps[0] & (1 << 14)) != 0;
+                    bool sampelCmpOrCounter = (packedProps[0] & (1 << 15)) != 0;
+                    ResourceKind resKind = (ResourceKind)(packedProps[0] & 0xFF);
+                    ResourceClass resClass;
+                    if(sampelCmpOrCounter && resKind == ResourceKind::Sampler)
+                      resKind = ResourceKind::SamplerComparison;
+                    if(resKind == ResourceKind::Sampler || resKind == ResourceKind::SamplerComparison)
+                      resClass = ResourceClass::Sampler;
+                    else if(resKind == ResourceKind::CBuffer)
+                      resClass = ResourceClass::CBuffer;
+                    else if(uav)
+                      resClass = ResourceClass::UAV;
+                    else
+                      resClass = ResourceClass::SRV;
+
+                    rdcstr typeStr;
+
+                    bool srv = (resClass == ResourceClass::SRV);
+
+                    ComponentType compType = ComponentType(packedProps[1] & 0xFF);
+                    uint8_t compCount = (packedProps[1] & 0xFF00) >> 8;
+
+                    uint8_t feedbackType = packedProps[1] & 0xFF;
+
+                    uint32_t structStride = packedProps[1];
+
+                    switch(resKind)
+                    {
+                      case ResourceKind::Unknown: typeStr += "Unknown"; break;
+                      case ResourceKind::Texture1D:
+                      case ResourceKind::Texture2D:
+                      case ResourceKind::Texture2DMS:
+                      case ResourceKind::Texture3D:
+                      case ResourceKind::TextureCube:
+                      case ResourceKind::Texture1DArray:
+                      case ResourceKind::Texture2DArray:
+                      case ResourceKind::Texture2DMSArray:
+                      case ResourceKind::TextureCubeArray:
+                      case ResourceKind::TypedBuffer:
+                        if(globallyCoherent)
+                          typeStr += "globallycoherent ";
+                        if(!srv && rov)
+                          typeStr += "ROV";
+                        else if(!srv)
+                          typeStr += "RW";
+                        switch(resKind)
+                        {
+                          case ResourceKind::Texture1D: typeStr += "Texture1D"; break;
+                          case ResourceKind::Texture2D: typeStr += "Texture2D"; break;
+                          case ResourceKind::Texture2DMS: typeStr += "Texture2DMS"; break;
+                          case ResourceKind::Texture3D: typeStr += "Texture3D"; break;
+                          case ResourceKind::TextureCube: typeStr += "TextureCube"; break;
+                          case ResourceKind::Texture1DArray: typeStr += "Texture1DArray"; break;
+                          case ResourceKind::Texture2DArray: typeStr += "Texture2DArray"; break;
+                          case ResourceKind::Texture2DMSArray: typeStr += "Texture2DMSArray"; break;
+                          case ResourceKind::TextureCubeArray: typeStr += "TextureCubeArray"; break;
+                          case ResourceKind::TypedBuffer: typeStr += "TypedBuffer"; break;
+                          default: break;
+                        }
+                        break;
+                      case ResourceKind::RTAccelerationStructure:
+                        typeStr += "RTAccelerationStructure";
+                        break;
+                      case ResourceKind::FeedbackTexture2D: typeStr += "FeedbackTexture2D"; break;
+                      case ResourceKind::FeedbackTexture2DArray:
+                        typeStr += "FeedbackTexture2DArray";
+                        break;
+                      case ResourceKind::StructuredBuffer:
+                        if(globallyCoherent)
+                          typeStr += "globallycoherent ";
+                        typeStr += srv ? "StructuredBuffer" : "RWStructuredBuffer";
+                        typeStr += StringFormat::Fmt("<stride=%u", structStride);
+                        if(sampelCmpOrCounter)
+                          typeStr += ", counter";
+                        typeStr += ">";
+                        break;
+                      case ResourceKind::StructuredBufferWithCounter:
+                        if(globallyCoherent)
+                          typeStr += "globallycoherent ";
+                        typeStr +=
+                            srv ? "StructuredBufferWithCounter" : "RWStructuredBufferWithCounter";
+                        typeStr += StringFormat::Fmt("<stride=%u>", structStride);
+                        break;
+                      case ResourceKind::RawBuffer:
+                        if(globallyCoherent)
+                          typeStr += "globallycoherent ";
+                        typeStr += srv ? "ByteAddressBuffer" : "RWByteAddressBuffer";
+                        break;
+                      case ResourceKind::CBuffer:
+                        RDCASSERT(resClass == ResourceClass::CBuffer);
+                        typeStr += "CBuffer";
+                        break;
+                      case ResourceKind::Sampler:
+                        RDCASSERT(resClass == ResourceClass::Sampler);
+                        typeStr += "SamplerState";
+                        break;
+                      case ResourceKind::TBuffer:
+                        RDCASSERT(resClass == ResourceClass::SRV);
+                        typeStr += "TBuffer";
+                        break;
+                      case ResourceKind::SamplerComparison:
+                        RDCASSERT(resClass == ResourceClass::Sampler);
+                        typeStr += "SamplerComparisonState";
+                        break;
+                    }
+
+                    if(resKind == ResourceKind::FeedbackTexture2D ||
+                       resKind == ResourceKind::FeedbackTexture2DArray)
+                    {
+                      if(feedbackType == 0)
+                        typeStr += "<MinMip>";
+                      else if(feedbackType == 1)
+                        typeStr += "<MipRegionUsed>";
+                      else
+                        typeStr += "<Invalid>";
+                    }
+                    else if(resKind == ResourceKind::Texture1D ||
+                            resKind == ResourceKind::Texture2D || resKind == ResourceKind::Texture3D ||
+                            resKind == ResourceKind::TextureCube ||
+                            resKind == ResourceKind::Texture1DArray ||
+                            resKind == ResourceKind::Texture2DArray ||
+                            resKind == ResourceKind::TextureCubeArray ||
+                            resKind == ResourceKind::TypedBuffer ||
+                            resKind == ResourceKind::Texture2DMS ||
+                            resKind == ResourceKind::Texture2DMSArray)
+                    {
+                      typeStr += "<";
+                      if(compCount > 1)
+                        typeStr += StringFormat::Fmt("%dx", compCount);
+                      typeStr += StringFormat::Fmt("%s>", ToStr(compType).c_str());
+                    }
+                    lineStr += "(";
+                    lineStr += typeStr;
+                    lineStr += ")";
+                    rdcstr ssaStr = ArgToString(inst.args[1], false);
+                    if(m_SsaAliases.count(ssaStr) == 0)
+                      lineStr += ssaStr;
+                    else
+                      lineStr += m_SsaAliases[ssaStr];
+
+                    resultIdStr = GetHandleAlias(resultIdStr);
+                  }
+                  else
+                  {
+                    showDxFuncName = true;
+                  }
+                }
+                else
+                {
+                  showDxFuncName = true;
+                }
               }
               else if((dxOpCode == DXOp::CBufferLoad) || (dxOpCode == DXOp::CBufferLoadLegacy))
               {
@@ -3035,7 +3216,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
                 rdcstr handleStr = ArgToString(inst.args[1], false);
                 const ResourceReference *resRef = GetResourceReference(handleStr);
-                if(resRef)
+                if(entryPoint && resRef)
                 {
                   uint32_t regIndex;
                   if(getival<uint32_t>(inst.args[2], regIndex))
@@ -3063,10 +3244,10 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 showDxFuncName = false;
 
                 rdcstr handleStr = ArgToString(inst.args[1], false);
-                const ResourceReference *resRef = GetResourceReference(handleStr);
-                if(resRef)
+                rdcstr resName = GetHandleAlias(handleStr);
+                if(!resName.isEmpty())
                 {
-                  lineStr += resRef->resourceBase.name;
+                  lineStr += resName;
                   lineStr += "[" + ArgToString(inst.args[2], false) + "]";
                 }
                 else
@@ -3080,10 +3261,10 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 showDxFuncName = false;
 
                 rdcstr handleStr = ArgToString(inst.args[1], false);
-                const ResourceReference *resRef = GetResourceReference(handleStr);
-                if(resRef)
+                rdcstr resName = GetHandleAlias(handleStr);
+                if(!resName.isEmpty())
                 {
-                  lineStr += resRef->resourceBase.name;
+                  lineStr += resName;
                   if(!isUndef(inst.args[2]))
                   {
                     lineStr += "[" + ArgToString(inst.args[2], false) + "]";
@@ -3118,14 +3299,14 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 showDxFuncName = false;
 
                 rdcstr handleStr = ArgToString(inst.args[1], false);
-                const ResourceReference *resRef = GetResourceReference(handleStr);
-                if(resRef)
+                rdcstr resName = GetHandleAlias(handleStr);
+                if(!resName.isEmpty())
                 {
                   uint32_t offset = 0;
                   bool validElementOffset = !isUndef(inst.args[3]);
                   bool constantElementOffset = validElementOffset && getival(inst.args[3], offset);
 
-                  lineStr += resRef->resourceBase.name;
+                  lineStr += resName;
                   uint32_t index;
                   if(getival(inst.args[2], index))
                   {
@@ -3175,15 +3356,22 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
                 rdcstr handleStr = ArgToString(inst.args[1], false);
                 const ResourceReference *resRef = GetResourceReference(handleStr);
-                if(resRef)
+                uint32_t sampleCount = 0;
+                if(entryPoint && resRef)
                 {
-                  lineStr += resRef->resourceBase.name;
-                  lineStr += ".Load(";
-                  bool needComma = false;
                   uint32_t resourceIndex = resRef->resourceIndex;
                   const EntryPointInterface::SRV *texture = resourceIndex < entryPoint->srvs.size()
                                                                 ? &entryPoint->srvs[resourceIndex]
                                                                 : NULL;
+                  if(texture)
+                    sampleCount = texture->sampleCount;
+                }
+                rdcstr resName = GetHandleAlias(handleStr);
+                if(!resName.isEmpty())
+                {
+                  lineStr += resName;
+                  lineStr += ".Load(";
+                  bool needComma = false;
                   for(uint32_t a = 3; a < 6; ++a)
                   {
                     if(!isUndef(inst.args[a]))
@@ -3201,7 +3389,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                     bool showArg = true;
                     if(needText)
                     {
-                      if(texture && texture->sampleCount > 1)
+                      if(sampleCount > 1)
                       {
                         prefix = "SampleIndex = ";
                       }
@@ -3248,10 +3436,10 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 showDxFuncName = false;
 
                 rdcstr handleStr = ArgToString(inst.args[1], false);
-                const ResourceReference *resRef = GetResourceReference(handleStr);
-                if(resRef)
+                rdcstr resName = GetHandleAlias(handleStr);
+                if(!resName.isEmpty())
                 {
-                  lineStr += resRef->resourceBase.name;
+                  lineStr += resName;
                   lineStr += "[";
                   bool needComma = false;
                   for(uint32_t a = 2; a < 5; ++a)
@@ -3303,10 +3491,10 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 showDxFuncName = false;
 
                 rdcstr handleStr = ArgToString(inst.args[1], false);
-                const ResourceReference *resRef = GetResourceReference(handleStr);
-                if(resRef)
+                rdcstr resName = GetHandleAlias(handleStr);
+                if(!resName.isEmpty())
                 {
-                  lineStr += resRef->resourceBase.name;
+                  lineStr += resName;
                   lineStr += ".";
                   rdcstr dxFuncSig = funcNameSigs[(uint32_t)dxOpCode];
                   int paramStart = dxFuncSig.find('(') + 1;
@@ -3317,9 +3505,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
                   // sampler is 2
                   rdcstr samplerStr = ArgToString(inst.args[2], false);
-                  const ResourceReference *samplerRef = GetResourceReference(samplerStr);
-                  if(samplerRef)
-                    samplerStr = samplerRef->resourceBase.name;
+                  samplerStr = GetHandleAlias(samplerStr);
                   lineStr += samplerStr;
 
                   for(uint32_t a = 3; a < 7; ++a)
@@ -3396,10 +3582,10 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
                 rdcstr handleStr = ArgToString(inst.args[1], false);
                 AtomicBinOpCode atomicBinOpCode;
-                const ResourceReference *resRef = GetResourceReference(handleStr);
-                if(resRef && getival<AtomicBinOpCode>(inst.args[2], atomicBinOpCode))
+                rdcstr resName = GetHandleAlias(handleStr);
+                if(!resName.isEmpty() && getival<AtomicBinOpCode>(inst.args[2], atomicBinOpCode))
                 {
-                  lineStr += resRef->resourceBase.name;
+                  lineStr += resName;
                   lineStr += ".";
                   lineStr += "Interlocked";
                   lineStr += ToStr(atomicBinOpCode);
@@ -3526,10 +3712,10 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
                     lineStr += paramNameStr;
                     rdcstr ssaStr = ArgToString(inst.args[a], false);
-                    if(ssaAliases.count(ssaStr) == 0)
+                    if(m_SsaAliases.count(ssaStr) == 0)
                       lineStr += ssaStr;
                     else
-                      lineStr += ssaAliases[ssaStr];
+                      lineStr += m_SsaAliases[ssaStr];
                     first = false;
                   }
                 }
@@ -4213,159 +4399,9 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
             break;
           }
         }
+        if(!resultIdStr.empty())
+          lineStr = resultTypeStr + resultIdStr + " = " + lineStr;
 
-        if(showDxFuncName)
-        {
-          DXOp dxOpCode;
-          RDCASSERT(getival<DXOp>(inst.args[0], dxOpCode));
-          if(dxOpCode == DXOp::AnnotateHandle)
-          {
-            // AnnotateHandle(res,props)
-            if(const Constant *props = cast<Constant>(inst.args[2]))
-            {
-              const Constant *packed[2];
-              if(props && !props->isNULL() && props->getMembers().size() == 2 &&
-                 (packed[0] = cast<Constant>(props->getMembers()[0])) != NULL &&
-                 (packed[1] = cast<Constant>(props->getMembers()[1])) != NULL)
-              {
-                uint32_t packedProps[2] = {};
-                packedProps[0] = packed[0]->getU32();
-                packedProps[1] = packed[1]->getU32();
-
-                bool uav = (packedProps[0] & (1 << 12)) != 0;
-                bool rov = (packedProps[0] & (1 << 13)) != 0;
-                bool globallyCoherent = (packedProps[0] & (1 << 14)) != 0;
-                bool sampelCmpOrCounter = (packedProps[0] & (1 << 15)) != 0;
-                ResourceKind resKind = (ResourceKind)(packedProps[0] & 0xFF);
-                ResourceClass resClass;
-                if(sampelCmpOrCounter && resKind == ResourceKind::Sampler)
-                  resKind = ResourceKind::SamplerComparison;
-                if(resKind == ResourceKind::Sampler || resKind == ResourceKind::SamplerComparison)
-                  resClass = ResourceClass::Sampler;
-                else if(resKind == ResourceKind::CBuffer)
-                  resClass = ResourceClass::CBuffer;
-                else if(uav)
-                  resClass = ResourceClass::UAV;
-                else
-                  resClass = ResourceClass::SRV;
-
-                lineStr += "  resource: ";
-
-                bool srv = (resClass == ResourceClass::SRV);
-
-                ComponentType compType = ComponentType(packedProps[1] & 0xFF);
-                uint8_t compCount = (packedProps[1] & 0xFF00) >> 8;
-
-                uint8_t feedbackType = packedProps[1] & 0xFF;
-
-                uint32_t structStride = packedProps[1];
-
-                switch(resKind)
-                {
-                  case ResourceKind::Unknown: lineStr += "Unknown"; break;
-                  case ResourceKind::Texture1D:
-                  case ResourceKind::Texture2D:
-                  case ResourceKind::Texture2DMS:
-                  case ResourceKind::Texture3D:
-                  case ResourceKind::TextureCube:
-                  case ResourceKind::Texture1DArray:
-                  case ResourceKind::Texture2DArray:
-                  case ResourceKind::Texture2DMSArray:
-                  case ResourceKind::TextureCubeArray:
-                  case ResourceKind::TypedBuffer:
-                    if(globallyCoherent)
-                      lineStr += "globallycoherent ";
-                    if(!srv && rov)
-                      lineStr += "ROV";
-                    else if(!srv)
-                      lineStr += "RW";
-                    switch(resKind)
-                    {
-                      case ResourceKind::Texture1D: lineStr += "Texture1D"; break;
-                      case ResourceKind::Texture2D: lineStr += "Texture2D"; break;
-                      case ResourceKind::Texture2DMS: lineStr += "Texture2DMS"; break;
-                      case ResourceKind::Texture3D: lineStr += "Texture3D"; break;
-                      case ResourceKind::TextureCube: lineStr += "TextureCube"; break;
-                      case ResourceKind::Texture1DArray: lineStr += "Texture1DArray"; break;
-                      case ResourceKind::Texture2DArray: lineStr += "Texture2DArray"; break;
-                      case ResourceKind::Texture2DMSArray: lineStr += "Texture2DMSArray"; break;
-                      case ResourceKind::TextureCubeArray: lineStr += "TextureCubeArray"; break;
-                      case ResourceKind::TypedBuffer: lineStr += "TypedBuffer"; break;
-                      default: break;
-                    }
-                    break;
-                  case ResourceKind::RTAccelerationStructure:
-                    lineStr += "RTAccelerationStructure";
-                    break;
-                  case ResourceKind::FeedbackTexture2D: lineStr += "FeedbackTexture2D"; break;
-                  case ResourceKind::FeedbackTexture2DArray:
-                    lineStr += "FeedbackTexture2DArray";
-                    break;
-                  case ResourceKind::StructuredBuffer:
-                    if(globallyCoherent)
-                      lineStr += "globallycoherent ";
-                    lineStr += srv ? "StructuredBuffer" : "RWStructuredBuffer";
-                    lineStr += StringFormat::Fmt("<stride=%u", structStride);
-                    if(sampelCmpOrCounter)
-                      lineStr += ", counter";
-                    lineStr += ">";
-                    break;
-                  case ResourceKind::StructuredBufferWithCounter:
-                    if(globallyCoherent)
-                      lineStr += "globallycoherent ";
-                    lineStr += srv ? "StructuredBufferWithCounter" : "RWStructuredBufferWithCounter";
-                    lineStr += StringFormat::Fmt("<stride=%u>", structStride);
-                    break;
-                  case ResourceKind::RawBuffer:
-                    if(globallyCoherent)
-                      lineStr += "globallycoherent ";
-                    lineStr += srv ? "ByteAddressBuffer" : "RWByteAddressBuffer";
-                    break;
-                  case ResourceKind::CBuffer:
-                    RDCASSERT(resClass == ResourceClass::CBuffer);
-                    lineStr += "CBuffer";
-                    break;
-                  case ResourceKind::Sampler:
-                    RDCASSERT(resClass == ResourceClass::Sampler);
-                    lineStr += "SamplerState";
-                    break;
-                  case ResourceKind::TBuffer:
-                    RDCASSERT(resClass == ResourceClass::SRV);
-                    lineStr += "TBuffer";
-                    break;
-                  case ResourceKind::SamplerComparison:
-                    RDCASSERT(resClass == ResourceClass::Sampler);
-                    lineStr += "SamplerComparisonState";
-                    break;
-                }
-
-                if(resKind == ResourceKind::FeedbackTexture2D ||
-                   resKind == ResourceKind::FeedbackTexture2DArray)
-                {
-                  if(feedbackType == 0)
-                    lineStr += "<MinMip>";
-                  else if(feedbackType == 1)
-                    lineStr += "<MipRegionUsed>";
-                  else
-                    lineStr += "<Invalid>";
-                }
-                else if(resKind == ResourceKind::Texture1D || resKind == ResourceKind::Texture2D ||
-                        resKind == ResourceKind::Texture3D || resKind == ResourceKind::TextureCube ||
-                        resKind == ResourceKind::Texture1DArray ||
-                        resKind == ResourceKind::Texture2DArray ||
-                        resKind == ResourceKind::TextureCubeArray ||
-                        resKind == ResourceKind::TypedBuffer || resKind == ResourceKind::Texture2DMS ||
-                        resKind == ResourceKind::Texture2DMSArray)
-                {
-                  lineStr += "<";
-                  if(compCount > 1)
-                    lineStr += StringFormat::Fmt("%dx", compCount);
-                  lineStr += StringFormat::Fmt("%s>", ToStr(compType).c_str());
-                }
-              }
-            }
-          }
-        }
         if(!lineStr.empty())
         {
           lineStr += ";";
@@ -4455,6 +4491,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
 void Program::ParseReferences(const DXBC::Reflection *reflection)
 {
+  uint32_t heapDescriptorResourceCount = 0;
   for(size_t i = 0; i < m_Functions.size(); i++)
   {
     const Function &func = *m_Functions[i];
@@ -4473,7 +4510,9 @@ void Program::ParseReferences(const DXBC::Reflection *reflection)
         break;
       }
     }
-    RDCASSERT(entryPoint);
+    // Ignore functions which are not an entry point
+    if(!entryPoint)
+      continue;
 
     // Use resource names from the reflection data if the resource name data is empty
     if(reflection)
@@ -4554,6 +4593,8 @@ void Program::ParseReferences(const DXBC::Reflection *reflection)
             RDCASSERT(getival<DXOp>(inst.args[0], dxOpCode));
             if(dxOpCode == DXOp::CreateHandle)
             {
+              // CreateHandle(resourceClass,rangeId,index,nonUniformIndex)
+              rdcstr resName;
               ResourceClass resClass;
               uint32_t resIndex;
               if(getival<ResourceClass>(inst.args[1], resClass) &&
@@ -4574,13 +4615,57 @@ void Program::ParseReferences(const DXBC::Reflection *reflection)
                 };
                 if(resourceBase)
                 {
-                  const rdcstr &handleStr = resultIdStr;
-                  RDCASSERT(!GetResourceReference(handleStr));
-                  ResourceReference resRef(handleStr, *resourceBase, resIndex);
-                  m_ResourceHandles[handleStr] = m_ResourceHandles.size();
+                  RDCASSERT(!GetResourceReference(resultIdStr));
+                  ResourceReference resRef(resultIdStr, *resourceBase, resIndex);
+                  m_ResourceHandles[resultIdStr] = m_ResourceHandles.size();
                   m_ResourceReferences.push_back(resRef);
+                  resName = resourceBase->name;
+                  uint32_t index = 0;
+                  if(getival<uint32_t>(inst.args[3], index))
+                  {
+                    if(index != resIndex)
+                    {
+                      if(resourceBase->regCount > 1)
+                        resName += StringFormat::Fmt("[%u]", index);
+                    }
+                  }
+                  else
+                  {
+                    if(resourceBase->regCount > 1)
+                      resName += "[" + ArgToString(inst.args[3], false) + "]";
+                  }
                 }
               }
+              else
+              {
+                resName = "ResourceClass:" + ArgToString(inst.args[1], false);
+                resName += "[" + ArgToString(inst.args[2], false) + "]";
+                resName += "[" + ArgToString(inst.args[3], false) + "]";
+              }
+              m_SsaAliases[resultIdStr] = resName;
+            }
+            else if(dxOpCode == DXOp::CreateHandleFromHeap)
+            {
+              // CreateHandleFromHeap(index,samplerHeap,nonUniformIndex)
+              uint32_t samplerHeap;
+              if(getival<uint32_t>(inst.args[2], samplerHeap))
+              {
+                rdcstr resName =
+                    (samplerHeap == 0) ? "ResourceDescriptorHeap" : "SamplerDescriptorHeap";
+
+                resName += "[";
+                resName += ArgToString(inst.args[1], false);
+                resName += "]";
+
+                m_SsaAliases[resultIdStr] = resName;
+              }
+            }
+            else if(dxOpCode == DXOp::AnnotateHandle)
+            {
+              // AnnotateHandle(res,props)
+              rdcstr resName = "__heap_descriptor_" + ToStr(heapDescriptorResourceCount);
+              heapDescriptorResourceCount += 1;
+              m_SsaAliases[resultIdStr] = resName;
             }
           }
         }
