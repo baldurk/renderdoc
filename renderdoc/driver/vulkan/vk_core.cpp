@@ -4598,7 +4598,8 @@ rdcstr WrappedVulkan::GetPhysDeviceCompatString(bool externalResource, bool orig
         "memory, meaning that captures using resources like this can't be replayed.\n\n";
   }
 
-  if(capture == replay)
+  if(capture == replay && rdcstr(m_OrigPhysicalDeviceData.props.deviceName) ==
+                              rdcstr(m_PhysicalDeviceData.props.deviceName))
   {
     ret += StringFormat::Fmt("Captured and replayed on the same device: %s %s, %u.%u.%u",
                              ToStr(capture.Vendor()).c_str(),
