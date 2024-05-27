@@ -2521,9 +2521,8 @@ static const DXBC::CBufferVariable *FindCBufferVar(const uint32_t minOffset, con
     // absolute byte offset of this variable in the cbuffer
     const uint32_t voffs = byteOffset + v.offset;
 
-    // does minOffset-maxOffset reside in this variable? We don't handle the case where the range
-    // crosses a variable (and I don't think FXC emits that anyway).
-    if(voffs <= minOffset && voffs + v.type.bytesize > maxOffset)
+    // Does does minOffset-maxOffset fit within this variable?
+    if(voffs <= minOffset && voffs + v.type.bytesize >= maxOffset)
     {
       byteOffset = voffs;
 
@@ -2542,7 +2541,8 @@ static const DXBC::CBufferVariable *FindCBufferVar(const uint32_t minOffset, con
   return NULL;
 }
 
-static rdcstr MakeCBufferRegisterStr(uint32_t reg, DXIL::EntryPointInterface::CBuffer cbuffer)
+static rdcstr MakeCBufferRegisterStr(uint32_t reg, uint32_t bytesPerElement,
+                                     DXIL::EntryPointInterface::CBuffer cbuffer)
 {
   rdcstr ret = "{";
   uint32_t offset = 0;
@@ -2554,7 +2554,7 @@ static rdcstr MakeCBufferRegisterStr(uint32_t reg, DXIL::EntryPointInterface::CB
 
     uint32_t baseOffset = 0;
     uint32_t minOffset = regOffset + offset;
-    uint32_t maxOffset = minOffset + 1;
+    uint32_t maxOffset = minOffset + bytesPerElement;
     rdcstr prefix;
     const DXBC::CBufferVariable *var =
         FindCBufferVar(minOffset, maxOffset, cbuffer.cbufferRefl->variables, baseOffset, prefix);
@@ -2586,6 +2586,28 @@ static rdcstr MakeCBufferRegisterStr(uint32_t reg, DXIL::EntryPointInterface::CB
       {
         ret += StringFormat::Fmt("[%u]", varOffset / 16);
       }
+      // or if it's a vector
+      if((var->type.varClass == DXBC::CLASS_VECTOR && var->type.cols > 1) ||
+         (var->type.varClass == DXBC::CLASS_SCALAR && var->type.cols > 1))
+      {
+        offset = var->offset;
+        offset -= regOffset;
+
+        uint32_t byteSize = var->type.bytesize;
+        const uint32_t elementSize = byteSize / var->type.cols;
+        const char *swizzle = "xyzw";
+        ret += ".x";
+        offset += elementSize;
+        for(uint32_t c = 1; c < var->type.cols; ++c)
+        {
+          if(offset > 16)
+            break;
+          ret += ", ";
+          ret += cbuffer.name + "." + prefix + var->name;
+          ret += StringFormat::Fmt(".%c", swizzle[c & 0x3]);
+          offset += elementSize;
+        }
+      }
 
       offset = var->offset + var->type.bytesize;
       offset -= regOffset;
@@ -2593,7 +2615,7 @@ static rdcstr MakeCBufferRegisterStr(uint32_t reg, DXIL::EntryPointInterface::CB
     else
     {
       ret += "<padding>";
-      offset += 4;
+      offset += bytesPerElement;
     }
   }
   ret += "}";
@@ -3290,7 +3312,16 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                       regIndex = regIndex / 16;
                       // uint32_t alignment = getival<uint32_t>(inst.args[3]);
                     }
-                    lineStr += MakeCBufferRegisterStr(regIndex,
+                    const Type *retType = inst.type;
+                    uint32_t bytesPerElement = 4;
+                    if(retType)
+                    {
+                      RDCASSERT(retType->type == Type::TypeKind::Struct);
+                      const Type *baseType = retType->members[0];
+                      RDCASSERT(baseType->type == Type::TypeKind::Scalar);
+                      bytesPerElement = baseType->bitWidth / 8;
+                    }
+                    lineStr += MakeCBufferRegisterStr(regIndex, bytesPerElement,
                                                       entryPoint->cbuffers[resRef->resourceIndex]);
                   }
                 }
