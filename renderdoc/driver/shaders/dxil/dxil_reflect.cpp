@@ -626,14 +626,28 @@ void Program::FetchComputeProperties(DXBC::Reflection *reflection)
             RDCERR("Unexpected number of arguments to dispatchMesh");
             continue;
           }
-          GlobalVar *payloadVariable = cast<GlobalVar>(inst.args[4]);
-          if(!payloadVariable)
-          {
-            RDCERR("Unexpected non-variable payload argument to dispatchMesh");
-            continue;
-          }
 
-          Type *payloadType = (Type *)payloadVariable->type;
+          Type *payloadType = NULL;
+
+          GlobalVar *payloadVariable = cast<GlobalVar>(inst.args[4]);
+          if(payloadVariable)
+          {
+            payloadType = (Type *)payloadVariable->type;
+          }
+          else
+          {
+            Instruction *payloadAlloc = cast<Instruction>(inst.args[4]);
+
+            if(payloadAlloc->op == Operation::Alloca || payloadAlloc->op == Operation::GetElementPtr)
+            {
+              payloadType = (Type *)payloadAlloc->type;
+            }
+            else
+            {
+              RDCERR("Unexpected non-variable payload argument to dispatchMesh");
+              continue;
+            }
+          }
 
           RDCASSERT(payloadType->type == Type::Pointer);
           payloadType = (Type *)payloadType->inner;
