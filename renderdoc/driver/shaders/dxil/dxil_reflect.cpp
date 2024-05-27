@@ -1099,6 +1099,10 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
   if(IsEmptyStruct(t))
     return ret;
 
+  // textures declared in a struct that becomes a global uniform could end up here, treat it as an empty struct.
+  if(ret.name.beginsWith("Texture2D<"))
+    return ret;
+
   auto it = typeInfo.structData.find(t);
 
   if(it == typeInfo.structData.end())
