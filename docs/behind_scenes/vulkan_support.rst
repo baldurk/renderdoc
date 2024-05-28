@@ -31,7 +31,7 @@ Likewise try to avoid making very large memory allocations in the range of 1GB a
 Current support
 ---------------
 
-RenderDoc has support for Vulkan version 1.2, as well as a number of extensions, but it contains some caveats. In addition, not all replay features are currently supported, but this is being actively worked on.
+RenderDoc has support for Vulkan version 1.3, as well as a number of extensions, but it contains some caveats. In addition, not all replay features are currently supported, but this is being actively worked on.
 
 * RenderDoc assumes that even if multiple GPUs are present, that only one VkDevice will be created and used.
 * RenderDoc captures will in general not be portable between different systems, only currently supporting capture and replay on the same or similar enough machines.
