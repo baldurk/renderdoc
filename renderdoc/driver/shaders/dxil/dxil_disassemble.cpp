@@ -2836,8 +2836,6 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
         {
           for(size_t j = 0; j < entryPoint->cbuffers.size(); ++j)
           {
-            if(needBlankLine)
-              DisassemblyAddNewLine();
             EntryPointInterface::CBuffer &cbuffer = entryPoint->cbuffers[j];
             if(reflection)
             {
@@ -2852,6 +2850,8 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 }
               }
             }
+            if(needBlankLine)
+              DisassemblyAddNewLine();
             m_Disassembly += "cbuffer " + cbuffer.name;
             if(cbuffer.regCount > 1)
             {
@@ -2862,7 +2862,8 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
             }
             m_Disassembly +=
                 " : register(b" + ToStr(cbuffer.regBase) + ", space" + ToStr(cbuffer.space) + ")";
-            if(cbuffer.cbufferRefl)
+            // Ignore cbuffer's which don't have reflection data
+            if(cbuffer.cbufferRefl && cbuffer.cbufferRefl->hasReflectionData)
             {
               if(!cbuffer.cbufferRefl->variables.empty())
               {
@@ -2883,10 +2884,15 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 }
                 m_Disassembly += "};";
                 DisassemblyAddNewLine();
+                needBlankLine = true;
               }
             }
-            needBlankLine = true;
+            else
+            {
+              DisassemblyAddNewLine();
+            }
           }
+          needBlankLine = true;
         }
 
         if(!entryPoint->samplers.empty())
@@ -3312,17 +3318,30 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                       regIndex = regIndex / 16;
                       // uint32_t alignment = getival<uint32_t>(inst.args[3]);
                     }
-                    const Type *retType = inst.type;
-                    uint32_t bytesPerElement = 4;
-                    if(retType)
+                    const EntryPointInterface::CBuffer &cbuffer =
+                        entryPoint->cbuffers[resRef->resourceIndex];
+                    if(cbuffer.cbufferRefl && cbuffer.cbufferRefl->hasReflectionData)
                     {
-                      RDCASSERT(retType->type == Type::TypeKind::Struct);
-                      const Type *baseType = retType->members[0];
-                      RDCASSERT(baseType->type == Type::TypeKind::Scalar);
-                      bytesPerElement = baseType->bitWidth / 8;
+                      const Type *retType = inst.type;
+                      uint32_t bytesPerElement = 4;
+                      if(retType)
+                      {
+                        RDCASSERT(retType->type == Type::TypeKind::Struct);
+                        const Type *baseType = retType->members[0];
+                        RDCASSERT(baseType->type == Type::TypeKind::Scalar);
+                        bytesPerElement = baseType->bitWidth / 8;
+                      }
+                      lineStr += MakeCBufferRegisterStr(regIndex, bytesPerElement, cbuffer);
+                      commentStr += " cbuffer = " + cbuffer.name;
+                      commentStr += ", byte_offset = " + ToStr(regIndex * 16);
                     }
-                    lineStr += MakeCBufferRegisterStr(regIndex, bytesPerElement,
-                                                      entryPoint->cbuffers[resRef->resourceIndex]);
+                    else
+                    {
+                      lineStr += cbuffer.name;
+                      lineStr += ".Load4(";
+                      lineStr += "byte_offset = " + ToStr(regIndex * 16);
+                      lineStr += ")";
+                    }
                   }
                 }
                 else
@@ -3886,7 +3905,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
             }
             switch(inst.op)
             {
-              case Operation::Trunc: commentStr = "truncate ";
+              case Operation::Trunc: commentStr += "truncate ";
               case Operation::ZExt: commentStr += "zero extend "; break;
               case Operation::SExt: commentStr += "signed extend "; break;
               case Operation::UToF: commentStr += "unsigned "; break;
@@ -4263,7 +4282,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               case Operation::SGreater:
               case Operation::SGreaterEqual:
               case Operation::SLess:
-              case Operation::SLessEqual: commentStr = "signed ";
+              case Operation::SLessEqual: commentStr += "signed ";
               default: break;
             }
             lineStr += "(";

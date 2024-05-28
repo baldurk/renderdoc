@@ -366,6 +366,7 @@ struct CBuffer
   } descriptor;
 
   rdcarray<CBufferVariable> variables;
+  bool hasReflectionData;
 };
 
 struct Reflection

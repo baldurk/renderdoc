@@ -1627,9 +1627,13 @@ DXBC::Reflection *Program::GetReflection()
 
         bind.descriptor.type = CBuffer::Descriptor::TYPE_CBUFFER;
         bind.descriptor.byteSize = getival<uint32_t>(r->children[(size_t)ResField::CBufferByteSize]);
+        bind.hasReflectionData = true;
 
         if(bind.name.empty())
+        {
+          bind.hasReflectionData = false;
           bind.name = StringFormat::Fmt("cbuffer%u", bind.identifier);
+        }
 
         const Type *cbufType = r->children[(size_t)ResField::VarDecl]->type;
 
@@ -1645,6 +1649,8 @@ DXBC::Reflection *Program::GetReflection()
         }
         else
         {
+          bind.hasReflectionData = false;
+
           CBufferVariable var;
 
           var.name = "unknown";
