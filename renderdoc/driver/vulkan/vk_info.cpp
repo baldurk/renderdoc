@@ -685,6 +685,10 @@ bool CreateDescriptorWritesForSlotData(WrappedVulkan *vk, rdcarray<VkWriteDescri
     if(descType == VK_DESCRIPTOR_TYPE_MAX_ENUM)
       continue;
 
+    // skip immutable sampler-only descriptors
+    if(immutableSamplers && descType == VK_DESCRIPTOR_TYPE_SAMPLER)
+      continue;
+
     // the current write is either empty, in which case we can just set it to what we
     // want,
     // or it's the same type in which case we're appending to its array
