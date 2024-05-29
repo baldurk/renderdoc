@@ -45,12 +45,12 @@ def sampleCode(controller):
 	# Get the pixel shader's reflection object
 	ps = state.GetShaderReflection(rd.ShaderStage.Pixel)
 
-	cb = state.GetConstantBuffer(rd.ShaderStage.Pixel, 0, 0)
+	cb = state.GetConstantBlock(rd.ShaderStage.Pixel, 0, 0)
 
 	print("Pixel shader:")
 	print(controller.DisassembleShader(pipe, ps, target))
 
-	cbufferVars = controller.GetCBufferVariableContents(pipe, ps.resourceId, rd.ShaderStage.Pixel, entry, 0, cb.resourceId, 0, 0)
+	cbufferVars = controller.GetCBufferVariableContents(pipe, ps.resourceId, rd.ShaderStage.Pixel, entry, 0, cb.descriptor.resource, 0, 0)
 
 	for v in cbufferVars:
 		printVar(v)
