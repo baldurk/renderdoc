@@ -3376,27 +3376,34 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 rdcstr resName = GetHandleAlias(handleStr);
                 if(!resName.isEmpty())
                 {
-                  lineStr += resName;
                   if(!isUndef(inst.args[2]))
                   {
-                    lineStr += "[" + ArgToString(inst.args[2], false) + "]";
+                    rdcstr arrayStr = resName + "[" + ArgToString(inst.args[2], false) + "]";
                     if(!isUndef(inst.args[3]))
                     {
+                      // *(&<resName>[<index>] + <elementOffset> bytes)
                       uint32_t elementOffset;
                       if(getival<uint32_t>(inst.args[3], elementOffset))
                       {
                         if(elementOffset > 0)
-                          lineStr += " + " + ToStr(elementOffset) + " bytes";
+                          lineStr += "*(&" + arrayStr + " + " + ToStr(elementOffset) + " bytes)";
+                        else
+                          lineStr += arrayStr;
                       }
                       else
                       {
-                        lineStr += " + " + ArgToString(inst.args[3], false) + " bytes";
+                        lineStr +=
+                            "*(&" + arrayStr + " + " + ArgToString(inst.args[3], false) + " bytes)";
                       }
+                    }
+                    else
+                    {
+                      lineStr += arrayStr;
                     }
                   }
                   else
                   {
-                    lineStr += "[" + ArgToString(inst.args[3], false) + "]";
+                    lineStr += resName + "[" + ArgToString(inst.args[3], false) + "]";
                   }
                 }
                 else
@@ -3418,28 +3425,36 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                   bool validElementOffset = !isUndef(inst.args[3]);
                   bool constantElementOffset = validElementOffset && getival(inst.args[3], offset);
 
-                  lineStr += resName;
+                  rdcstr arrayStr = resName;
                   uint32_t index;
                   if(getival(inst.args[2], index))
                   {
                     if((offset == 0) || (index > 0))
-                      lineStr += "[" + ToStr(index) + "]";
+                      arrayStr += "[" + ToStr(index) + "]";
                   }
                   else
                   {
-                    lineStr += "[" + ArgToString(inst.args[2], false) + "]";
+                    arrayStr += "[" + ArgToString(inst.args[2], false) + "]";
                   }
                   if(validElementOffset)
                   {
+                    // *(&<resName>[<index>] + <elementOffset> bytes)
                     if(constantElementOffset)
                     {
                       if(offset > 0)
-                        lineStr += " + " + ToStr(offset) + " bytes";
+                        lineStr = "*(&" + arrayStr + " + " + ToStr(offset) + " bytes)";
+                      else
+                        lineStr += arrayStr;
                     }
                     else
                     {
-                      lineStr += " + " + ArgToString(inst.args[3], false) + " bytes";
+                      lineStr +=
+                          "*(&" + arrayStr + " + " + ArgToString(inst.args[3], false) + " bytes)";
                     }
+                  }
+                  else
+                  {
+                    lineStr += arrayStr;
                   }
                   lineStr += " = ";
                   lineStr += "{";
@@ -4045,27 +4060,23 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
                   switch(addrspace)
                   {
-                    case DXIL::Type::PointerAddrSpace::Default: lineStr = ""; break;
+                    case DXIL::Type::PointerAddrSpace::Default: resultTypeStr = ""; break;
                     case DXIL::Type::PointerAddrSpace::DeviceMemory:
-                      lineStr = "DeviceMemory";
+                      resultTypeStr = "DeviceMemory";
                       break;
-                    case DXIL::Type::PointerAddrSpace::CBuffer: lineStr = "CBuffer"; break;
-                    case DXIL::Type::PointerAddrSpace::GroupShared: lineStr = "GroupShared"; break;
-                    case DXIL::Type::PointerAddrSpace::GenericPointer: lineStr = ""; break;
+                    case DXIL::Type::PointerAddrSpace::CBuffer: resultTypeStr = "CBuffer"; break;
+                    case DXIL::Type::PointerAddrSpace::GroupShared:
+                      resultTypeStr = "GroupShared";
+                      break;
+                    case DXIL::Type::PointerAddrSpace::GenericPointer: resultTypeStr = ""; break;
                     case DXIL::Type::PointerAddrSpace::ImmediateCBuffer:
-                      lineStr = "ImmediateCBuffer";
+                      resultTypeStr = "ImmediateCBuffer";
                       break;
                   };
 
-                  lineStr += " ";
-                  lineStr += scalarType;
-                  lineStr += "* ";
-
-                  if(!inst.getName().empty())
-                    lineStr += StringFormat::Fmt("%c%s = ", DXIL::dxilIdentifier,
-                                                 escapeStringIfNeeded(inst.getName()).c_str());
-                  else if(inst.slot != ~0U)
-                    lineStr += StringFormat::Fmt("%c%u = ", DXIL::dxilIdentifier, inst.slot);
+                  resultTypeStr += " ";
+                  resultTypeStr += scalarType;
+                  resultTypeStr += "* ";
 
                   // arg[0] : ptr
                   rdcstr ptrStr = ArgToString(inst.args[0], false);
