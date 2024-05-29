@@ -4080,32 +4080,15 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
                   // arg[0] : ptr
                   rdcstr ptrStr = ArgToString(inst.args[0], false);
-                  // Try to de-mangle the pointer name
-                  // @"\01?shared_pos@@3PAY0BC@$$CAMA.1dim" -> shared_pos
-                  // Take the string between first alphabetical character and last
-                  // alphanumeric character or "_"
-                  start = 0;
-                  int strEnd = (int)ptrStr.size();
-                  while(start < strEnd)
+                  // Simple demangle take string between first "?" and next "@"
+                  int nameStart = ptrStr.indexOf('?');
+                  if(nameStart > 0)
                   {
-                    if(isalpha(ptrStr[start]))
-                      break;
-                    ++start;
+                    nameStart++;
+                    int nameEnd = ptrStr.indexOf('@', nameStart);
+                    if(nameEnd > nameStart)
+                      ptrStr = ptrStr.substr(nameStart, nameEnd - nameStart);
                   }
-                  if(start < strEnd)
-                  {
-                    end = start + 1;
-                    while(end < strEnd)
-                    {
-                      char c = ptrStr[end];
-                      if(!isalnum(c) && c != '_')
-                        break;
-                      ++end;
-                    }
-                  }
-                  if(end > start)
-                    ptrStr = ptrStr.substr(start, end - start);
-
                   lineStr += ptrStr;
                   // arg[1] : index 0
                   bool first = true;
