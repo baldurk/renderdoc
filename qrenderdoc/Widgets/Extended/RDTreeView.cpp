@@ -774,9 +774,15 @@ void RDTreeView::drawBranches(QPainter *painter, const QRect &rect, const QModel
   opt.rect = allLinesRect;
   opt.showDecorationSelected = true;
   opt.backgroundBrush = index.data(Qt::BackgroundRole).value<QBrush>();
-  QColor foreCol = index.data(Qt::ForegroundRole).value<QBrush>().color();
-  opt.palette.setColor(QPalette::Foreground, foreCol);
-  opt.palette.setColor(QPalette::Text, foreCol);
+  QVariant foreColVar = index.data(Qt::ForegroundRole);
+  QColor foreCol;
+
+  if(foreColVar.isValid())
+  {
+    foreCol = foreColVar.value<QBrush>().color();
+    opt.palette.setColor(QPalette::Foreground, foreCol);
+    opt.palette.setColor(QPalette::Text, foreCol);
+  }
 
   style()->drawPrimitive(QStyle::PE_PanelItemViewItem, &opt, painter, this);
 
@@ -786,7 +792,8 @@ void RDTreeView::drawBranches(QPainter *painter, const QRect &rect, const QModel
   {
     // set the desired colour for RDTweakedNativeStyle via a huge hack - see
     // RDTweakedNativeStyle::drawPrimitive for QStyle::PE_IndicatorBranch
-    painter->setPen(QPen(foreCol, 1234.5));
+    if(foreColVar.isValid())
+      painter->setPen(QPen(foreCol, 1234.5));
     QTreeView::drawBranches(painter, rect, index);
   }
   else
