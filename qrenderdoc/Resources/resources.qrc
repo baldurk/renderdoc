@@ -153,5 +153,9 @@
         <file>zoom@2x.png</file>
         <file>bookmark_blue.png</file>
         <file>bookmark_blue@2x.png</file>
+        <file>button_navigation.png</file>
+        <file>button_navigation@2x.png</file>
+        <file>button_navigation_back.png</file>
+        <file>button_navigation_back@2x.png</file>
     </qresource>
 </RCC>

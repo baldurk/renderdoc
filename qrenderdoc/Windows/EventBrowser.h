@@ -170,6 +170,8 @@ private slots:
   void on_stepPrev_clicked();
   void on_exportActions_clicked();
   void on_colSelect_clicked();
+  void on_historyNext_clicked();
+  void on_historyPrev_clicked();
 
   // manual slots
   void findHighlight_timeout();
@@ -261,6 +263,14 @@ private:
   QCompleter *m_SavedCompleter;
   QStringListModel *m_SavedCompletionModel;
   RDTextEdit *m_CurrentFilterText;
+
+  static const int MAX_EVENT_HISTORY_LENGTH = 20;
+  int m_NextHistoryPosition = -1;
+  int m_HistoryPosition = -1;
+  QList<uint32_t> m_History;
+  void FillHistoryPrevMenu(QMenu *menu);
+  void FillHistoryNextMenu(QMenu *menu);
+  bool GoToHistoryPosition(int position);
 
   void RefreshShaderMessages();
   Ui::EventBrowser *ui;

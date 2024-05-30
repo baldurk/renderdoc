@@ -3561,6 +3561,24 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_Escape).toString(), ui->findStrip,
                                         [this](QWidget *) { on_HideFind(); });
 
+  ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_Minus | Qt::ControlModifier).toString(),
+                                        NULL, [this](QWidget *sender) { on_historyPrev_clicked(); });
+
+  ctx.GetMainWindow()->RegisterShortcut(QKeySequence(Qt::Key_Equal | Qt::ControlModifier).toString(),
+                                        NULL, [this](QWidget *sender) { on_historyNext_clicked(); });
+
+  {
+    QMenu *historyPrevMenu = new QMenu(ui->historyPrev);
+    ui->historyPrev->setMenu(historyPrevMenu);
+    QObject::connect(historyPrevMenu, &QMenu::aboutToShow,
+                     [this, historyPrevMenu]() { FillHistoryPrevMenu(historyPrevMenu); });
+
+    QMenu *historyNextMenu = new QMenu(ui->historyNext);
+    ui->historyNext->setMenu(historyNextMenu);
+    QObject::connect(historyNextMenu, &QMenu::aboutToShow,
+                     [this, historyNextMenu]() { FillHistoryNextMenu(historyNextMenu); });
+  }
+
   ui->events->setContextMenuPolicy(Qt::CustomContextMenu);
   QObject::connect(ui->events, &RDTreeView::customContextMenuRequested, this,
                    &EventBrowser::events_contextMenu);
@@ -3666,6 +3684,12 @@ EventBrowser::~EventBrowser()
 
   m_Ctx.GetMainWindow()->UnregisterShortcut(QString(), ui->findStrip);
 
+  m_Ctx.GetMainWindow()->UnregisterShortcut(
+      QKeySequence(Qt::Key_Minus | Qt::ControlModifier).toString(), NULL);
+
+  m_Ctx.GetMainWindow()->UnregisterShortcut(
+      QKeySequence(Qt::Key_Equal | Qt::ControlModifier).toString(), NULL);
+
   m_Ctx.BuiltinWindowClosed(this);
   m_Ctx.RemoveCaptureViewer(this);
   delete ui;
@@ -3705,6 +3729,8 @@ void EventBrowser::OnCaptureLoaded()
   ui->exportActions->setEnabled(true);
   ui->stepPrev->setEnabled(true);
   ui->stepNext->setEnabled(true);
+  ui->historyPrev->setEnabled(false);
+  ui->historyNext->setEnabled(false);
 }
 
 void EventBrowser::OnCaptureClosed()
@@ -3731,6 +3757,11 @@ void EventBrowser::OnCaptureClosed()
   ui->exportActions->setEnabled(false);
   ui->stepPrev->setEnabled(false);
   ui->stepNext->setEnabled(false);
+
+  m_History.clear();
+  m_HistoryPosition = -1;
+  ui->historyPrev->setEnabled(false);
+  ui->historyNext->setEnabled(false);
 }
 
 void EventBrowser::OnEventChanged(uint32_t eventId)
@@ -3802,6 +3833,31 @@ void EventBrowser::events_currentChanged(const QModelIndex &current, const QMode
 
   ui->stepPrev->setEnabled(action && action->previous);
   ui->stepNext->setEnabled(action && action->next);
+
+  // event history management
+  if(m_NextHistoryPosition >= 0)
+  {
+    // going forward or back into event history
+    m_HistoryPosition = m_NextHistoryPosition;
+  }
+  else
+  {
+    // adding new event to history
+    if(!m_History.isEmpty())
+    {
+      // remove following history entries
+      while(m_History.count() - 1 > m_HistoryPosition)
+        m_History.removeLast();
+
+      // if needed, make space for new history entry be removing oldest one
+      while(m_History.count() >= MAX_EVENT_HISTORY_LENGTH)
+        m_History.removeFirst();
+    }
+    m_History.push_back(selectedEID);
+    m_HistoryPosition = m_History.count() - 1;
+  }
+  ui->historyPrev->setEnabled(m_HistoryPosition > 0);
+  ui->historyNext->setEnabled(m_HistoryPosition < m_History.count() - 1);
 
   // special case for the first action in the frame
   if(selectedEID == 0)
@@ -5009,6 +5065,20 @@ void EventBrowser::on_stepPrev_clicked()
   SelectEvent(0);
 }
 
+void EventBrowser::on_historyNext_clicked()
+{
+  int historyPosition = m_HistoryPosition;
+  while(historyPosition < m_History.count() - 1 && !GoToHistoryPosition(historyPosition + 1))
+    ++historyPosition;
+}
+
+void EventBrowser::on_historyPrev_clicked()
+{
+  int historyPosition = m_HistoryPosition;
+  while(historyPosition > 0 && !GoToHistoryPosition(historyPosition - 1))
+    --historyPosition;
+}
+
 void EventBrowser::on_exportActions_clicked()
 {
   QString filename =
@@ -5744,4 +5814,38 @@ void EventBrowser::SetUseCustomActionNames(bool use)
 void EventBrowser::SetEmptyRegionsVisible(bool show)
 {
   m_FilterModel->SetEmptyRegionsVisible(show);
+}
+
+void EventBrowser::FillHistoryPrevMenu(QMenu *menu)
+{
+  menu->clear();
+  for(int i = m_HistoryPosition - 1; i >= 0; --i)
+  {
+    uint32_t eid = m_History[i];
+    QString eventName = QFormatStr("%1: %2").arg(eid).arg(GetEventName(eid));
+    QAction *action = new QAction(eventName, menu);
+    QObject::connect(action, &QAction::triggered, [this, i]() { GoToHistoryPosition(i); });
+    menu->addAction(action);
+  }
+}
+
+void EventBrowser::FillHistoryNextMenu(QMenu *menu)
+{
+  menu->clear();
+  for(int i = m_HistoryPosition + 1; i < m_History.count(); ++i)
+  {
+    uint32_t eid = m_History[i];
+    QString eventName = QFormatStr("%1: %2").arg(eid).arg(GetEventName(eid));
+    QAction *action = new QAction(eventName, menu);
+    QObject::connect(action, &QAction::triggered, [this, i]() { GoToHistoryPosition(i); });
+    menu->addAction(action);
+  }
+}
+
+bool EventBrowser::GoToHistoryPosition(int position)
+{
+  m_NextHistoryPosition = position;
+  bool selectedEvent = SelectEvent(m_History[position]);
+  m_NextHistoryPosition = -1;
+  return selectedEvent;
 }

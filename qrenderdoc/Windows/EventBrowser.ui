@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>281</width>
+    <width>368</width>
     <height>298</height>
    </rect>
   </property>
@@ -93,6 +93,59 @@
      </item>
      <item>
       <widget class="Line" name="line">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="historyPrev">
+       <property name="toolTip">
+        <string>Go to Previous visited event</string>
+       </property>
+       <property name="text">
+        <string>...</string>
+       </property>
+       <property name="icon">
+        <iconset resource="../Resources/resources.qrc">
+         <normaloff>:/button_navigation_back.png</normaloff>:/button_navigation_back.png</iconset>
+       </property>
+       <property name="popupMode">
+        <enum>QToolButton::MenuButtonPopup</enum>
+       </property>
+       <property name="autoRaise">
+        <bool>true</bool>
+       </property>
+       <property name="arrowType">
+        <enum>Qt::NoArrow</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="historyNext">
+       <property name="toolTip">
+        <string>Go to Next visited event</string>
+       </property>
+       <property name="text">
+        <string>...</string>
+       </property>
+       <property name="icon">
+        <iconset resource="../Resources/resources.qrc">
+         <normaloff>:/button_navigation.png</normaloff>:/button_navigation.png</iconset>
+       </property>
+       <property name="popupMode">
+        <enum>QToolButton::MenuButtonPopup</enum>
+       </property>
+       <property name="autoRaise">
+        <bool>true</bool>
+       </property>
+       <property name="arrowType">
+        <enum>Qt::NoArrow</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="Line" name="line_3">
        <property name="orientation">
         <enum>Qt::Vertical</enum>
        </property>
