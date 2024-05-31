@@ -122,15 +122,17 @@ class Iter_Test(rdtest.TestCase):
                 name = var.name
 
                 if name not in postvs[0].keys():
-                    raise rdtest.TestFailureException("Don't have expected output for {}".format(name))
+                    rdtest.log.error("Don't have expected output for {}".format(name))
+                    continue
 
                 expect = postvs[0][name]
                 value = self.evaluate_source_var(var, variables)
 
                 if len(expect) != value.columns:
-                    raise rdtest.TestFailureException(
+                    rdtest.log.error(
                         "Output {} at EID {} has different size ({} values) to expectation ({} values)"
                             .format(name, action.eventId, value.columns, len(expect)))
+                    continue
 
                 compType = rd.VarTypeCompType(value.type)
                 if compType == rd.CompType.UInt:
