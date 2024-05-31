@@ -829,6 +829,8 @@ void VulkanCreationInfo::ShaderEntry::ProcessStaticDescriptorAccess(
   if(!refl)
     return;
 
+  const uint32_t descSetLayoutsCount = (uint32_t)setLayoutInfos.size();
+
   DescriptorAccess access;
   access.stage = refl->stage;
 
@@ -871,6 +873,11 @@ void VulkanCreationInfo::ShaderEntry::ProcessStaticDescriptorAccess(
     }
     else
     {
+      // Ignore bindings which are not in the descriptor set layouts
+      if((bind.fixedBindSetOrSpace >= descSetLayoutsCount) ||
+         bind.fixedBindNumber >= setLayoutInfos[bind.fixedBindSetOrSpace]->bindings.size())
+        continue;
+
       access.descriptorStore = ResourceId();
 
       // VkShaderStageFlagBits and ShaderStageMask are identical bit-for-bit.
@@ -898,6 +905,11 @@ void VulkanCreationInfo::ShaderEntry::ProcessStaticDescriptorAccess(
     if(bind.bindArraySize > 1)
       continue;
 
+    // Ignore bindings which are not in the descriptor set layouts
+    if((bind.fixedBindSetOrSpace >= descSetLayoutsCount) ||
+       bind.fixedBindNumber >= setLayoutInfos[bind.fixedBindSetOrSpace]->bindings.size())
+      continue;
+
     // VkShaderStageFlagBits and ShaderStageMask are identical bit-for-bit.
     // this might be deliberate if the binding is never actually used dynamically, only
     // statically used bindings must be declared
@@ -921,6 +933,11 @@ void VulkanCreationInfo::ShaderEntry::ProcessStaticDescriptorAccess(
     if(bind.bindArraySize > 1)
       continue;
 
+    // Ignore bindings which are not in the descriptor set layouts
+    if((bind.fixedBindSetOrSpace >= descSetLayoutsCount) ||
+       bind.fixedBindNumber >= setLayoutInfos[bind.fixedBindSetOrSpace]->bindings.size())
+      continue;
+
     // VkShaderStageFlagBits and ShaderStageMask are identical bit-for-bit.
     // this might be deliberate if the binding is never actually used dynamically, only
     // statically used bindings must be declared
@@ -942,6 +959,11 @@ void VulkanCreationInfo::ShaderEntry::ProcessStaticDescriptorAccess(
     const ShaderResource &bind = refl->readWriteResources[i];
     // arrayed descriptors will be handled with bindless feedback
     if(bind.bindArraySize > 1)
+      continue;
+
+    // Ignore bindings which are not in the descriptor set layouts
+    if((bind.fixedBindSetOrSpace >= descSetLayoutsCount) ||
+       bind.fixedBindNumber >= setLayoutInfos[bind.fixedBindSetOrSpace]->bindings.size())
       continue;
 
     // VkShaderStageFlagBits and ShaderStageMask are identical bit-for-bit.
