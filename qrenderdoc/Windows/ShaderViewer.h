@@ -243,6 +243,8 @@ private:
   void PreviousBookmark();
   void ClearAllBookmarks();
   bool HasBookmarks();
+  void UpdateBookmarkMenu(QMenu *menu, QAction *nextAction, QAction *prevAction,
+                          QAction *clearAction);
 
   void SetFindTextFromCurrentWord();
 
@@ -334,6 +336,8 @@ private:
 
   QList<QPair<ScintillaEdit *, int>> m_FindAllResults;
 
+  static const int BOOKMARK_MAX_MENU_ENTRY_LENGTH = 60;    // max length of bookmark names in menu
+  static const int BOOKMARK_MAX_MENU_ENTRY_COUNT = 40;     // max number of bookmarks listed in menu
   QMap<ScintillaEdit *, QList<sptr_t>> m_Bookmarks;
 
   static const int CURRENT_MARKER = 0;

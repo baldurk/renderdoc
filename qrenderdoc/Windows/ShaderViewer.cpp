@@ -867,13 +867,11 @@ void ShaderViewer::debugShader(const ShaderReflection *shader, ResourceId pipeli
       bookmarkMenu->addAction(clearAction);
 
       QObject::connect(bookmarkMenu, &QMenu::aboutToShow,
-                       [this, nextAction, prevAction, clearAction]() {
-                         const bool hasBookmarks = HasBookmarks();
-                         nextAction->setEnabled(hasBookmarks);
-                         prevAction->setEnabled(hasBookmarks);
-                         clearAction->setEnabled(hasBookmarks);
+                       [this, bookmarkMenu, nextAction, prevAction, clearAction]() {
+                         UpdateBookmarkMenu(bookmarkMenu, nextAction, prevAction, clearAction);
                        });
 
+      bookmarkMenu->addSeparator();
       ui->bookmark->setMenu(bookmarkMenu);
     }
 
@@ -6688,4 +6686,51 @@ bool ShaderViewer::HasBookmarks()
   ScintillaEdit *cur = currentScintilla();
   auto itBookmarks = m_Bookmarks.find(cur);
   return itBookmarks != m_Bookmarks.end() && !itBookmarks->empty();
+}
+
+void ShaderViewer::UpdateBookmarkMenu(QMenu *menu, QAction *nextAction, QAction *prevAction,
+                                      QAction *clearAction)
+{
+  // setup permanent actions
+  const bool hasBookmarks = HasBookmarks();
+  nextAction->setEnabled(hasBookmarks);
+  prevAction->setEnabled(hasBookmarks);
+  clearAction->setEnabled(hasBookmarks);
+
+  // remove current bookmark list
+  QList<QAction *> actions = menu->actions();
+  for(auto itAction = actions.rbegin(); !(*itAction)->isSeparator(); ++itAction)
+    menu->removeAction(*itAction);
+
+  // populate bookmark list
+  ScintillaEdit *cur = currentScintilla();
+  if(!cur)
+    return;
+
+  auto itBookmarks = m_Bookmarks.find(cur);
+  if(itBookmarks == m_Bookmarks.end())
+    return;
+
+  int numAddedBookmarks = 0;
+  for(auto &lineNumber : *itBookmarks)
+  {
+    QString textLine = QString::fromUtf8(cur->getLine(lineNumber)).simplified();
+    if(textLine.size() > BOOKMARK_MAX_MENU_ENTRY_LENGTH)
+    {
+      textLine.chop(textLine.size() - BOOKMARK_MAX_MENU_ENTRY_LENGTH);
+      textLine.append(lit("..."));
+    }
+    else if(textLine.isEmpty())
+    {
+      textLine = lit("(empty)");
+    }
+
+    QString name = QFormatStr("%1: %2").arg(lineNumber + 1).arg(textLine);
+    QAction *action = new QAction(name, menu);
+    QObject::connect(action, &QAction::triggered, [cur, lineNumber]() { cur->gotoLine(lineNumber); });
+    menu->addAction(action);
+
+    if(++numAddedBookmarks >= BOOKMARK_MAX_MENU_ENTRY_COUNT)
+      break;
+  }
 }
