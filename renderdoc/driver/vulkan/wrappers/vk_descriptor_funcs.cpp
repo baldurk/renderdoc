@@ -1329,19 +1329,6 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
         GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].srcSet),
                                                           eFrameRef_Read);
 
-        if(pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
-        {
-          VkWriteDescriptorSetAccelerationStructureKHR *asWrite =
-              (VkWriteDescriptorSetAccelerationStructureKHR *)FindNextStruct(
-                  &pDescriptorCopies[i],
-                  VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR);
-          for(uint32_t j = 0; j < pDescriptorCopies[i].descriptorCount; j++)
-          {
-            GetResourceManager()->MarkResourceFrameReferenced(
-                GetResID(asWrite->pAccelerationStructures[j]), eFrameRef_Read);
-          }
-        }
-
         ResourceId id = GetResID(pDescriptorCopies[i].srcSet);
         VkResourceRecord *record = GetRecord(pDescriptorCopies[i].srcSet);
 
