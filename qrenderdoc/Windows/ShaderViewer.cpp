@@ -356,6 +356,8 @@ void ShaderViewer::editShader(ResourceId id, ShaderStage stage, const QString &e
   if(files.count() > 2)
     addFileList();
 
+  ConfigureBookmarkMenu();
+
   m_Errors = MakeEditor(lit("errors"), QString(), SCLEX_NULL);
   m_Errors->setReadOnly(true);
   m_Errors->setWindowTitle(lit("Errors"));
@@ -556,6 +558,8 @@ void ShaderViewer::debugShader(const ShaderReflection *shader, ResourceId pipeli
   ui->editStatusLabel->hide();
   ui->snippets->hide();
   ui->editSep->hide();
+
+  ConfigureBookmarkMenu();
 
   if(m_Trace)
   {
@@ -838,49 +842,8 @@ void ShaderViewer::debugShader(const ShaderReflection *shader, ResourceId pipeli
       ui->execForwards->setMenu(forwardsMenu);
     }
 
-    {
-      QMenu *bookmarkMenu = new QMenu(this);
-      bookmarkMenu->setToolTipsVisible(true);
-
-      QAction *toggleAction = MakeExecuteAction(tr("Toggle Bookmark"), Icons::bookmark_blue(),
-                                                tr("Toggle bookmark on current line"),
-                                                QKeySequence(Qt::Key_F2 | Qt::ControlModifier));
-      QObject::connect(toggleAction, &QAction::triggered, [this]() { ToggleBookmark(); });
-      bookmarkMenu->addAction(toggleAction);
-
-      QAction *nextAction = MakeExecuteAction(tr("Next Bookmark"), Icons::arrow_right(),
-                                              tr("Go to next bookmark in the current file"),
-                                              QKeySequence(Qt::Key_F2));
-      QObject::connect(nextAction, &QAction::triggered, [this]() { NextBookmark(); });
-      bookmarkMenu->addAction(nextAction);
-
-      QAction *prevAction = MakeExecuteAction(tr("Previous Bookmark"), Icons::arrow_left(),
-                                              tr("Go to previous bookmark in the current file"),
-                                              QKeySequence(Qt::Key_F2 | Qt::ShiftModifier));
-      QObject::connect(prevAction, &QAction::triggered, [this]() { PreviousBookmark(); });
-      bookmarkMenu->addAction(prevAction);
-
-      QAction *clearAction =
-          MakeExecuteAction(tr("Clear All Bookmarks"), Icons::cross(),
-                            tr("Clear all bookmarks in the current file"), QKeySequence());
-      QObject::connect(clearAction, &QAction::triggered, [this]() { ClearAllBookmarks(); });
-      bookmarkMenu->addAction(clearAction);
-
-      QObject::connect(bookmarkMenu, &QMenu::aboutToShow,
-                       [this, nextAction, prevAction, clearAction]() {
-                         const bool hasBookmarks = HasBookmarks();
-                         nextAction->setEnabled(hasBookmarks);
-                         prevAction->setEnabled(hasBookmarks);
-                         clearAction->setEnabled(hasBookmarks);
-                       });
-
-      ui->bookmark->setMenu(bookmarkMenu);
-    }
-
     for(ScintillaEdit *edit : m_Scintillas)
     {
-      edit->setMarginWidthN(1, 20.0 * devicePixelRatioF());
-
       // display current line in margin 2, distinct from breakpoint in margin 1
       sptr_t markMask = (1 << CURRENT_MARKER) | (1 << FINISHED_MARKER);
 
@@ -1222,11 +1185,46 @@ void ShaderViewer::debugShader(const ShaderReflection *shader, ResourceId pipeli
     edit->markerSetBack(BREAKPOINT_MARKER + 1, SCINTILLA_COLOUR(255, 0, 0));
     edit->markerDefine(BREAKPOINT_MARKER, SC_MARK_CIRCLE);
     edit->markerDefine(BREAKPOINT_MARKER + 1, SC_MARK_BACKGROUND);
-
-    // C# Highlight
-    edit->markerSetBack(BOOKMARK_MARKER, SCINTILLA_COLOUR(51, 153, 255));
-    edit->markerDefine(BOOKMARK_MARKER, SC_MARK_BOOKMARK);
   }
+}
+
+void ShaderViewer::ConfigureBookmarkMenu()
+{
+  QMenu *bookmarkMenu = new QMenu(this);
+  bookmarkMenu->setToolTipsVisible(true);
+
+  QAction *toggleAction = MakeExecuteAction(tr("Toggle Bookmark"), Icons::bookmark_blue(),
+                                            tr("Toggle bookmark on current line"),
+                                            QKeySequence(Qt::Key_F2 | Qt::ControlModifier));
+  QObject::connect(toggleAction, &QAction::triggered, [this]() { ToggleBookmark(); });
+  bookmarkMenu->addAction(toggleAction);
+
+  QAction *nextAction =
+      MakeExecuteAction(tr("Next Bookmark"), Icons::arrow_right(),
+                        tr("Go to next bookmark in the current file"), QKeySequence(Qt::Key_F2));
+  QObject::connect(nextAction, &QAction::triggered, [this]() { NextBookmark(); });
+  bookmarkMenu->addAction(nextAction);
+
+  QAction *prevAction = MakeExecuteAction(tr("Previous Bookmark"), Icons::arrow_left(),
+                                          tr("Go to previous bookmark in the current file"),
+                                          QKeySequence(Qt::Key_F2 | Qt::ShiftModifier));
+  QObject::connect(prevAction, &QAction::triggered, [this]() { PreviousBookmark(); });
+  bookmarkMenu->addAction(prevAction);
+
+  QAction *clearAction =
+      MakeExecuteAction(tr("Clear All Bookmarks"), Icons::cross(),
+                        tr("Clear all bookmarks in the current file"), QKeySequence());
+  QObject::connect(clearAction, &QAction::triggered, [this]() { ClearAllBookmarks(); });
+  bookmarkMenu->addAction(clearAction);
+
+  QObject::connect(bookmarkMenu, &QMenu::aboutToShow, [this, nextAction, prevAction, clearAction]() {
+    const bool hasBookmarks = HasBookmarks();
+    nextAction->setEnabled(hasBookmarks);
+    prevAction->setEnabled(hasBookmarks);
+    clearAction->setEnabled(hasBookmarks);
+  });
+
+  ui->bookmark->setMenu(bookmarkMenu);
 }
 
 QAction *ShaderViewer::MakeExecuteAction(QString name, const QIcon &icon, QString tooltip,
@@ -1480,7 +1478,7 @@ ScintillaEdit *ShaderViewer::MakeEditor(const QString &name, const QString &text
   ScintillaEdit *ret = new ScintillaEdit(this);
 
   ret->setMarginLeft(4.0 * devicePixelRatioF());
-  ret->setMarginWidthN(1, 0);
+  ret->setMarginWidthN(1, 20.0 * devicePixelRatioF());
   ret->setMarginWidthN(2, 16.0 * devicePixelRatioF());
   ret->setObjectName(name);
 
@@ -1505,6 +1503,10 @@ ScintillaEdit *ShaderViewer::MakeEditor(const QString &name, const QString &text
   ret->indicSetStyle(INDICATOR_FINDALLHIGHLIGHT, INDIC_FULLBOX);
   ret->indicSetAlpha(INDICATOR_FINDALLHIGHLIGHT, 120);
   ret->indicSetOutlineAlpha(INDICATOR_FINDALLHIGHLIGHT, 180);
+
+  // C# Highlight for bookmarks
+  ret->markerSetBack(BOOKMARK_MARKER, SCINTILLA_COLOUR(51, 153, 255));
+  ret->markerDefine(BOOKMARK_MARKER, SC_MARK_BOOKMARK);
 
   ConfigureSyntax(ret, lang);
 

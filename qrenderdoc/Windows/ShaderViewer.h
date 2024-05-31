@@ -218,6 +218,8 @@ private:
 
   void MarkModification();
 
+  void ConfigureBookmarkMenu();
+
   void PopulateCompileTools();
   void PopulateCompileToolParameters();
   bool ProcessIncludeDirectives(QString &source, const rdcstrpairs &files);
