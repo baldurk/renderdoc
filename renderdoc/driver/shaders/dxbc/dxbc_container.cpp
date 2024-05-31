@@ -42,7 +42,7 @@ RDOC_EXTERN_CONFIG(rdcarray<rdcstr>, DXBC_Debug_SearchDirPaths);
 
 namespace DXBC
 {
-rdcstr BasicDemangle(rdcstr possiblyMangledName)
+rdcstr BasicDemangle(const rdcstr &possiblyMangledName)
 {
   if(possiblyMangledName.size() > 2 && possiblyMangledName[0] == '\x1' &&
      possiblyMangledName[1] == '?')

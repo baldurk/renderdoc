@@ -414,6 +414,6 @@ public:
                          rdcarray<SourceVariableMapping> &locals) const = 0;
 };
 
-rdcstr BasicDemangle(rdcstr possiblyMangledName);
+rdcstr BasicDemangle(const rdcstr &possiblyMangledName);
 
 };
