@@ -907,7 +907,7 @@ static rdcstr GetResourceShapeName(DXIL::ResourceKind shape, bool uav)
 static rdcstr GetSamplerTypeName(const Type *type)
 {
   // variable should be a pointer to the underlying type
-  RDCASSERT(type->type == Type::Pointer);
+  RDCASSERTEQUAL(type->type, Type::Pointer);
   const Type *resType = type->inner;
 
   // samplers should be entirely opaque, so we return the struct as-is now
@@ -925,7 +925,7 @@ static rdcstr GetSamplerTypeName(const Type *type)
 static rdcstr GetResourceTypeName(const Type *type)
 {
   // variable should be a pointer to the underlying type
-  RDCASSERT(type->type == Type::Pointer);
+  RDCASSERTEQUAL(type->type, Type::Pointer);
   const Type *resType = type->inner;
 
   // arrayed resources we want to remove the outer array-of-bindings here
@@ -3213,19 +3213,19 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                         typeStr += srv ? "ByteAddressBuffer" : "RWByteAddressBuffer";
                         break;
                       case ResourceKind::CBuffer:
-                        RDCASSERT(resClass == ResourceClass::CBuffer);
+                        RDCASSERTEQUAL(resClass, ResourceClass::CBuffer);
                         typeStr += "CBuffer";
                         break;
                       case ResourceKind::Sampler:
-                        RDCASSERT(resClass == ResourceClass::Sampler);
+                        RDCASSERTEQUAL(resClass, ResourceClass::Sampler);
                         typeStr += "SamplerState";
                         break;
                       case ResourceKind::TBuffer:
-                        RDCASSERT(resClass == ResourceClass::SRV);
+                        RDCASSERTEQUAL(resClass, ResourceClass::SRV);
                         typeStr += "TBuffer";
                         break;
                       case ResourceKind::SamplerComparison:
-                        RDCASSERT(resClass == ResourceClass::Sampler);
+                        RDCASSERTEQUAL(resClass, ResourceClass::Sampler);
                         typeStr += "SamplerComparisonState";
                         break;
                     }
@@ -3304,9 +3304,9 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                       uint32_t bytesPerElement = 4;
                       if(retType)
                       {
-                        RDCASSERT(retType->type == Type::TypeKind::Struct);
+                        RDCASSERTEQUAL(retType->type, Type::TypeKind::Struct);
                         const Type *baseType = retType->members[0];
-                        RDCASSERT(baseType->type == Type::TypeKind::Scalar);
+                        RDCASSERTEQUAL(baseType->type, Type::TypeKind::Scalar);
                         bytesPerElement = baseType->bitWidth / 8;
                       }
                       lineStr += MakeCBufferRegisterStr(regIndex, bytesPerElement, cbuffer);
@@ -5264,7 +5264,7 @@ rdcstr Constant::toString(bool withType) const
         ret += "getelementptr inbounds (";
 
         const Type *baseType = members->at(0)->type;
-        RDCASSERT(baseType->type == Type::Pointer);
+        RDCASSERTEQUAL(baseType->type, Type::Pointer);
         ret += baseType->inner->toString();
         for(size_t i = 0; i < members->size(); i++)
         {
