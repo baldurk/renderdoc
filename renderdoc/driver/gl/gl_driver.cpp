@@ -4264,7 +4264,8 @@ bool WrappedOpenGL::ProcessChunk(ReadSerialiser &ser, GLChunk chunk)
     case GLChunk::glDepthRangeArrayfvOES:
     case GLChunk::glDepthRangeArrayv: return Serialise_glDepthRangeArrayv(ser, 0, 0, 0);
     case GLChunk::glDepthBoundsEXT: return Serialise_glDepthBoundsEXT(ser, 0, 0);
-    case GLChunk::glClipControl: return Serialise_glClipControl(ser, eGL_NONE, eGL_NONE);
+    case GLChunk::glClipControl:
+    case GLChunk::glClipControlEXT: return Serialise_glClipControl(ser, eGL_NONE, eGL_NONE);
     case GLChunk::glProvokingVertexEXT:
     case GLChunk::glProvokingVertex: return Serialise_glProvokingVertex(ser, eGL_NONE);
     case GLChunk::glPrimitiveRestartIndex: return Serialise_glPrimitiveRestartIndex(ser, 0);

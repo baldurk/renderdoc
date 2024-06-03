@@ -2238,6 +2238,7 @@ enum class GLChunk : uint32_t
 
   glMapBufferRangeEXT,
   glFlushMappedBufferRangeEXT,
+  glClipControlEXT,
 
   Max,
 };

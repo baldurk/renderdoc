@@ -343,6 +343,7 @@
   FUNC(glDepthRangeIndexed, glDepthRangeIndexed); \
   FUNC(glDepthRangeArrayv, glDepthRangeArrayv); \
   FUNC(glClipControl, glClipControl); \
+  FUNC(glClipControl, glClipControlEXT); \
   FUNC(glProvokingVertex, glProvokingVertex); \
   FUNC(glProvokingVertex, glProvokingVertexEXT); \
   FUNC(glPrimitiveRestartIndex, glPrimitiveRestartIndex); \
@@ -1606,6 +1607,7 @@
   FuncWrapper3(void, glDepthRangeIndexed, GLuint, index, GLdouble, n, GLdouble, f); \
   FuncWrapper3(void, glDepthRangeArrayv, GLuint, first, GLsizei, count, const GLdouble *, v); \
   FuncWrapper2(void, glClipControl, GLenum, origin, GLenum, depth); \
+  AliasWrapper2(void, glClipControlEXT, glClipControl, GLenum, origin, GLenum, depth); \
   FuncWrapper1(void, glProvokingVertex, GLenum, mode); \
   AliasWrapper1(void, glProvokingVertexEXT, glProvokingVertex, GLenum, mode); \
   FuncWrapper1(void, glPrimitiveRestartIndex, GLuint, index); \
@@ -2660,7 +2662,6 @@
   FUNC(glClientActiveVertexStreamATI); \
   FUNC(glClientAttribDefaultEXT); \
   FUNC(glClientWaitSyncAPPLE); \
-  FUNC(glClipControlEXT); \
   FUNC(glClipPlanefOES); \
   FUNC(glClipPlane); \
   FUNC(glClipPlanexOES); \
@@ -4570,7 +4571,6 @@
   UnsupportedWrapper1(void, glClientActiveVertexStreamATI, GLenum, stream); \
   UnsupportedWrapper1(void, glClientAttribDefaultEXT, GLbitfield, mask); \
   UnsupportedWrapper3(GLenum, glClientWaitSyncAPPLE, GLsync, sync, GLbitfield, flags, GLuint64, timeout); \
-  UnsupportedWrapper2(void, glClipControlEXT, GLenum, origin, GLenum, depth); \
   UnsupportedWrapper2(void, glClipPlanefOES, GLenum, plane, const GLfloat *, equation); \
   UnsupportedWrapper2(void, glClipPlane, GLenum, plane, const GLdouble *, equation); \
   UnsupportedWrapper2(void, glClipPlanexOES, GLenum, plane, const GLfixed *, equation); \

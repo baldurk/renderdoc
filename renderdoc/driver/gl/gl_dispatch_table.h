@@ -250,7 +250,7 @@ struct GLDispatchTable
   PFNGLDEPTHRANGEFPROC glDepthRangef;
   PFNGLDEPTHRANGEINDEXEDPROC glDepthRangeIndexed;
   PFNGLDEPTHRANGEARRAYVPROC glDepthRangeArrayv;
-  PFNGLCLIPCONTROLPROC glClipControl;
+  PFNGLCLIPCONTROLPROC glClipControl;    // aliases glClipControlEXT
   PFNGLPROVOKINGVERTEXPROC glProvokingVertex;    // aliases glProvokingVertexEXT
   PFNGLPRIMITIVERESTARTINDEXPROC glPrimitiveRestartIndex;
   PFNGLCREATESHADERPROC glCreateShader;
