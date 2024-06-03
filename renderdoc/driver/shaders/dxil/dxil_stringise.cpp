@@ -491,3 +491,21 @@ rdcstr DoStringise(const DXIL::DXOp &el)
   }
   END_ENUM_STRINGISE();
 }
+
+template <>
+rdcstr DoStringise(const DXIL::Type::TypeKind &el)
+{
+  BEGIN_ENUM_STRINGISE(DXIL::Type::TypeKind);
+  {
+    STRINGISE_ENUM_CLASS(None);
+    STRINGISE_ENUM_CLASS(Scalar);
+    STRINGISE_ENUM_CLASS(Vector);
+    STRINGISE_ENUM_CLASS(Pointer);
+    STRINGISE_ENUM_CLASS(Array);
+    STRINGISE_ENUM_CLASS(Function);
+    STRINGISE_ENUM_CLASS(Struct);
+    STRINGISE_ENUM_CLASS(Metadata);
+    STRINGISE_ENUM_CLASS(Label);
+  }
+  END_ENUM_STRINGISE();
+}
