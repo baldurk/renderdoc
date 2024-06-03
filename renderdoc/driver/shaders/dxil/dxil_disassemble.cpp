@@ -4545,7 +4545,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
             }
           }
           if(!predicates.empty())
-            labelName += "// preceeded by " + predicates;
+            labelName += "// preceded by " + predicates;
 
           m_Disassembly += labelName;
           DisassemblyAddNewLine();
