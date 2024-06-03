@@ -2960,22 +2960,19 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
           case Operation::Call:
           {
             rdcstr funcCallName = inst.getFuncCall()->name;
-            showDxFuncName = funcCallName.beginsWith("dx.op.");
             DXOp dxOpCode = DXOp::NumOpCodes;
-            if(showDxFuncName)
+            if(funcCallName.beginsWith("dx.op."))
             {
               RDCASSERT(getival<DXOp>(inst.args[0], dxOpCode));
               // Have to use beginsWith to include the function names which a type suffix ie. ".f32"
               RDCASSERT(funcCallName.beginsWith(dxOpFunctionNames[(uint32_t)dxOpCode]));
             }
 
-            if(dxOpCode != DXOp::NumOpCodes)
+            switch(dxOpCode)
             {
-              if(dxOpCode == DXOp::LoadInput)
+              case DXOp::LoadInput:
               {
                 // LoadInput(inputSigId,rowIndex,colIndex,gsVertexAxis)
-                showDxFuncName = false;
-
                 rdcstr name;
                 rdcstr rowStr;
                 rdcstr componentStr;
@@ -3009,12 +3006,11 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                   componentStr = ArgToString(inst.args[3], false);
 
                 lineStr += "<IN>." + name + rowStr + "." + componentStr;
+                break;
               }
-              else if(dxOpCode == DXOp::StoreOutput)
+              case DXOp::StoreOutput:
               {
                 // StoreOutput(outputSigId,rowIndex,colIndex,value)
-                showDxFuncName = false;
-
                 rdcstr name;
                 rdcstr rowStr;
                 rdcstr componentStr;
@@ -3049,10 +3045,13 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
                 lineStr += "<OUT>." + name + rowStr + "." + componentStr;
                 lineStr += " = " + ArgToString(inst.args[4], false);
+                break;
               }
-              else if((dxOpCode == DXOp::CreateHandle) || (dxOpCode == DXOp::CreateHandleFromBinding))
+              case DXOp::CreateHandle:
+              case DXOp::CreateHandleFromBinding:
               {
                 // CreateHandle(resourceClass,rangeId,index,nonUniformIndex)
+                // CreateHandleFromBinding(bind,index,nonUniformIndex)
                 showDxFuncName = false;
 
                 uint32_t resIndexArgId = 3;
@@ -3084,12 +3083,11 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                     commentStr += " nonUniformIndex = true";
                 }
                 lineStr += GetHandleAlias(resultIdStr);
+                break;
               }
-              else if(dxOpCode == DXOp::CreateHandleFromHeap)
+              case DXOp::CreateHandleFromHeap:
               {
                 // CreateHandleFromHeap(index,samplerHeap,nonUniformIndex)
-                showDxFuncName = false;
-
                 uint32_t samplerHeap;
                 if(getival<uint32_t>(inst.args[2], samplerHeap))
                 {
@@ -3106,8 +3104,9 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 {
                   showDxFuncName = true;
                 }
+                break;
               }
-              else if(dxOpCode == DXOp::AnnotateHandle)
+              case DXOp::AnnotateHandle:
               {
                 // AnnotateHandle(res,props)
                 showDxFuncName = false;
@@ -3276,13 +3275,13 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 {
                   showDxFuncName = true;
                 }
+                break;
               }
-              else if((dxOpCode == DXOp::CBufferLoad) || (dxOpCode == DXOp::CBufferLoadLegacy))
+              case DXOp::CBufferLoad:
+              case DXOp::CBufferLoadLegacy:
               {
                 // CBufferLoad(handle,byteOffset,alignment)
                 // CBufferLoadLegacy(handle,regIndex)
-                showDxFuncName = false;
-
                 rdcstr handleStr = ArgToString(inst.args[1], false);
                 const ResourceReference *resRef = GetResourceReference(handleStr);
                 if(entryPoint && resRef)
@@ -3327,13 +3326,12 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 {
                   showDxFuncName = true;
                 }
+                break;
               }
-              else if(dxOpCode == DXOp::BufferLoad)
+              case DXOp::BufferLoad:
               {
                 // BufferLoad(srv,index,wot)
                 // wot is unused
-                showDxFuncName = false;
-
                 rdcstr handleStr = ArgToString(inst.args[1], false);
                 rdcstr resName = GetHandleAlias(handleStr);
                 if(!resName.isEmpty())
@@ -3345,12 +3343,11 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 {
                   showDxFuncName = true;
                 }
+                break;
               }
-              else if(dxOpCode == DXOp::RawBufferLoad)
+              case DXOp::RawBufferLoad:
               {
                 // RawBufferLoad(srv,index,elementOffset,mask,alignment)
-                showDxFuncName = false;
-
                 rdcstr handleStr = ArgToString(inst.args[1], false);
                 rdcstr resName = GetHandleAlias(handleStr);
                 if(!resName.isEmpty())
@@ -3389,13 +3386,13 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 {
                   showDxFuncName = true;
                 }
+                break;
               }
-              else if((dxOpCode == DXOp::BufferStore) || (dxOpCode == DXOp::RawBufferStore))
+              case DXOp::BufferStore:
+              case DXOp::RawBufferStore:
               {
                 // BufferStore(uav,coord0,coord1,value0,value1,value2,value3,mask)
                 // RawBufferStore(uav,index,elementOffset,value0,value1,value2,value3,mask,alignment)
-                showDxFuncName = false;
-
                 rdcstr handleStr = ArgToString(inst.args[1], false);
                 rdcstr resName = GetHandleAlias(handleStr);
                 if(!resName.isEmpty())
@@ -3454,12 +3451,11 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 {
                   showDxFuncName = true;
                 }
+                break;
               }
-              else if(dxOpCode == DXOp::TextureLoad)
+              case DXOp::TextureLoad:
               {
                 // TextureLoad(srv,mipLevelOrSampleCount,coord0,coord1,coord2,offset0,offset1,offset2)
-                showDxFuncName = false;
-
                 rdcstr handleStr = ArgToString(inst.args[1], false);
                 const ResourceReference *resRef = GetResourceReference(handleStr);
                 uint32_t sampleCount = 0;
@@ -3535,12 +3531,11 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 {
                   showDxFuncName = true;
                 }
+                break;
               }
-              else if(dxOpCode == DXOp::TextureStore)
+              case DXOp::TextureStore:
               {
                 // TextureStore(srv,coord0,coord1,coord2,value0,value1,value2,value3,mask)
-                showDxFuncName = false;
-
                 rdcstr handleStr = ArgToString(inst.args[1], false);
                 rdcstr resName = GetHandleAlias(handleStr);
                 if(!resName.isEmpty())
@@ -3578,12 +3573,17 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 {
                   showDxFuncName = true;
                 }
+                break;
               }
-              else if((dxOpCode == DXOp::Sample) || (dxOpCode == DXOp::SampleBias) ||
-                      (dxOpCode == DXOp::SampleLevel) || (dxOpCode == DXOp::SampleGrad) ||
-                      (dxOpCode == DXOp::SampleCmp) || (dxOpCode == DXOp::SampleCmpLevelZero) ||
-                      (dxOpCode == DXOp::SampleCmpLevel) || (dxOpCode == DXOp::SampleCmpGrad) ||
-                      (dxOpCode == DXOp::SampleCmpBias))
+              case DXOp::Sample:
+              case DXOp::SampleBias:
+              case DXOp::SampleLevel:
+              case DXOp::SampleGrad:
+              case DXOp::SampleCmp:
+              case DXOp::SampleCmpLevelZero:
+              case DXOp::SampleCmpLevel:
+              case DXOp::SampleCmpGrad:
+              case DXOp::SampleCmpBias:
               {
                 // Sample(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,clamp)
                 // SampleBias(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,bias,clamp)
@@ -3594,8 +3594,6 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 // SampleCmpLevel(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,lod)
                 // SampleCmpGrad(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,ddx0,ddx1,ddx2,ddy0,ddy1,ddy2,clamp)
                 // SampleCmpBias(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,bias,clamp)
-                showDxFuncName = false;
-
                 rdcstr handleStr = ArgToString(inst.args[1], false);
                 rdcstr resName = GetHandleAlias(handleStr);
                 if(!resName.isEmpty())
@@ -3680,12 +3678,11 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 {
                   showDxFuncName = true;
                 }
+                break;
               }
-              else if(dxOpCode == DXOp::AtomicBinOp)
+              case DXOp::AtomicBinOp:
               {
                 // AtomicBinOp(handle, atomicOp, offset0, offset1, offset2, newValue)
-                showDxFuncName = false;
-
                 rdcstr handleStr = ArgToString(inst.args[1], false);
                 AtomicBinOpCode atomicBinOpCode;
                 rdcstr resName = GetHandleAlias(handleStr);
@@ -3720,15 +3717,15 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 {
                   showDxFuncName = true;
                 }
+                break;
               }
-              else if((dxOpCode == DXOp::Dot2) || (dxOpCode == DXOp::Dot3) ||
-                      (dxOpCode == DXOp::Dot4))
+              case DXOp::Dot2:
+              case DXOp::Dot3:
+              case DXOp::Dot4:
               {
                 // Dot4(ax,ay,az,aw,bx,by,bz,bw)
                 // Dot3(ax,ay,az,bx,by,bz)
                 // Dot2(ax,ay,bx,by)
-                showDxFuncName = false;
-
                 uint32_t countComponents = 0;
                 if(dxOpCode == DXOp::Dot4)
                   countComponents = 4;
@@ -3769,27 +3766,30 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 }
                 lineStr += "}";
                 lineStr += ")";
+                break;
               }
+              case DXOp::NumOpCodes: showDxFuncName = false; break;
+              default: showDxFuncName = true; break;
+            }
+            if(dxOpCode != DXOp::NumOpCodes)
+            {
               if(showDxFuncName)
               {
                 rdcstr dxFuncSig;
                 int paramStart = -1;
-                if(Constant *op = cast<Constant>(inst.args[0]))
+                uint32_t opcode = (uint32_t)dxOpCode;
+                if(opcode < ARRAY_COUNT(funcNameSigs))
                 {
-                  uint32_t opcode = op->getU32();
-                  if(opcode < ARRAY_COUNT(funcNameSigs))
-                  {
-                    dxFuncSig = funcNameSigs[opcode];
-                    paramStart = dxFuncSig.find('(') + 1;
-                    if(paramStart > 0)
-                      lineStr += dxFuncSig.substr(0, paramStart);
-                    else
-                      lineStr += dxFuncSig;
-                  }
+                  dxFuncSig = funcNameSigs[opcode];
+                  paramStart = dxFuncSig.find('(') + 1;
+                  if(paramStart > 0)
+                    lineStr += dxFuncSig.substr(0, paramStart);
                   else
-                  {
-                    lineStr += escapeStringIfNeeded(funcCallName);
-                  }
+                    lineStr += dxFuncSig;
+                }
+                else
+                {
+                  lineStr += escapeStringIfNeeded(funcCallName);
                 }
                 bool first = true;
                 int paramStrCount = (int)dxFuncSig.size();
@@ -4672,190 +4672,198 @@ void Program::ParseReferences(const DXBC::Reflection *reflection)
           {
             DXOp dxOpCode;
             RDCASSERT(getival<DXOp>(inst.args[0], dxOpCode));
-            if((dxOpCode == DXOp::CreateHandle) || (dxOpCode == DXOp::CreateHandleFromBinding))
+            switch(dxOpCode)
             {
-              // CreateHandle(resourceClass,rangeId,index,nonUniformIndex)
-              // CreateHandleFromBinding(bind,index,nonUniformIndex)
-              uint32_t resIndexArgId = 3;
-              uint32_t nonUniformIndexArgId = 4;
-              bool validBinding = false;
-              EntryPointInterface::ResourceBase *resourceBase = NULL;
-              rdcstr resName;
-              uint32_t resIndex = 0;
-              if(dxOpCode == DXOp::CreateHandle)
+              case DXOp::CreateHandle:
+              case DXOp::CreateHandleFromBinding:
               {
-                ResourceClass resClass;
-                validBinding = getival<ResourceClass>(inst.args[1], resClass) &&
-                               getival<uint32_t>(inst.args[2], resIndex);
-                if(validBinding)
+                // CreateHandle(resourceClass,rangeId,index,nonUniformIndex)
+                // CreateHandleFromBinding(bind,index,nonUniformIndex)
+                uint32_t resIndexArgId = 3;
+                uint32_t nonUniformIndexArgId = 4;
+                bool validBinding = false;
+                EntryPointInterface::ResourceBase *resourceBase = NULL;
+                rdcstr resName;
+                uint32_t resIndex = 0;
+                if(dxOpCode == DXOp::CreateHandle)
                 {
-                  switch(resClass)
+                  ResourceClass resClass;
+                  validBinding = getival<ResourceClass>(inst.args[1], resClass) &&
+                                 getival<uint32_t>(inst.args[2], resIndex);
+                  if(validBinding)
                   {
-                    case ResourceClass::SRV: resourceBase = &entryPoint->srvs[resIndex]; break;
-                    case ResourceClass::UAV: resourceBase = &entryPoint->uavs[resIndex]; break;
-                    case ResourceClass::CBuffer:
-                      resourceBase = &entryPoint->cbuffers[resIndex];
-                      break;
-                    case ResourceClass::Sampler:
-                      resourceBase = &entryPoint->samplers[resIndex];
-                      break;
-                    default: break;
-                  };
+                    switch(resClass)
+                    {
+                      case ResourceClass::SRV: resourceBase = &entryPoint->srvs[resIndex]; break;
+                      case ResourceClass::UAV: resourceBase = &entryPoint->uavs[resIndex]; break;
+                      case ResourceClass::CBuffer:
+                        resourceBase = &entryPoint->cbuffers[resIndex];
+                        break;
+                      case ResourceClass::Sampler:
+                        resourceBase = &entryPoint->samplers[resIndex];
+                        break;
+                      default: break;
+                    };
+                  }
+                  else
+                  {
+                    resName = "ResourceClass:" + ArgToString(inst.args[1], false);
+                    resName += "[" + ArgToString(inst.args[2], false) + "]";
+                    resName += "[" + ArgToString(inst.args[resIndexArgId], false) + "]";
+                  }
                 }
                 else
                 {
-                  resName = "ResourceClass:" + ArgToString(inst.args[1], false);
-                  resName += "[" + ArgToString(inst.args[2], false) + "]";
-                  resName += "[" + ArgToString(inst.args[resIndexArgId], false) + "]";
-                }
-              }
-              else
-              {
-                resIndexArgId = 2;
-                nonUniformIndexArgId = 3;
-                if(const Constant *props = cast<Constant>(inst.args[1]))
-                {
-                  if(props && !props->isNULL() && props->getMembers().size() >= 4)
+                  resIndexArgId = 2;
+                  nonUniformIndexArgId = 3;
+                  if(const Constant *props = cast<Constant>(inst.args[1]))
                   {
-                    const rdcarray<Value *> &members = props->getMembers();
-                    uint32_t lowerBound;
-                    uint32_t upperBound;
-                    uint32_t spaceID;
-                    ResourceClass resClass;
-                    validBinding = getival<uint32_t>(members[0], lowerBound);
-                    validBinding &= getival<uint32_t>(members[1], upperBound);
-                    validBinding &= getival<uint32_t>(members[2], spaceID);
-                    validBinding &= getival<ResourceClass>(members[3], resClass);
-                    // Search through the resources to find the binding
-                    if(validBinding)
+                    if(props && !props->isNULL() && props->getMembers().size() >= 4)
                     {
-                      switch(resClass)
+                      const rdcarray<Value *> &members = props->getMembers();
+                      uint32_t lowerBound;
+                      uint32_t upperBound;
+                      uint32_t spaceID;
+                      ResourceClass resClass;
+                      validBinding = getival<uint32_t>(members[0], lowerBound);
+                      validBinding &= getival<uint32_t>(members[1], upperBound);
+                      validBinding &= getival<uint32_t>(members[2], spaceID);
+                      validBinding &= getival<ResourceClass>(members[3], resClass);
+                      // Search through the resources to find the binding
+                      if(validBinding)
                       {
-                        case ResourceClass::SRV:
+                        switch(resClass)
                         {
-                          for(uint32_t r = 0; r < entryPoint->srvs.size(); ++r)
+                          case ResourceClass::SRV:
                           {
-                            EntryPointInterface::ResourceBase *res = &entryPoint->srvs[r];
-                            if(res->MatchesBinding(lowerBound, upperBound, spaceID))
+                            for(uint32_t r = 0; r < entryPoint->srvs.size(); ++r)
                             {
-                              resIndex = r;
-                              resourceBase = res;
-                              break;
+                              EntryPointInterface::ResourceBase *res = &entryPoint->srvs[r];
+                              if(res->MatchesBinding(lowerBound, upperBound, spaceID))
+                              {
+                                resIndex = r;
+                                resourceBase = res;
+                                break;
+                              }
                             }
+                            break;
                           }
-                          break;
+                          case ResourceClass::UAV:
+                          {
+                            for(uint32_t r = 0; r < entryPoint->uavs.size(); ++r)
+                            {
+                              EntryPointInterface::ResourceBase *res = &entryPoint->uavs[r];
+                              if(res->MatchesBinding(lowerBound, upperBound, spaceID))
+                              {
+                                resIndex = r;
+                                resourceBase = res;
+                                break;
+                              }
+                            }
+                            break;
+                          }
+                          case ResourceClass::CBuffer:
+                          {
+                            for(uint32_t r = 0; r < entryPoint->cbuffers.size(); ++r)
+                            {
+                              EntryPointInterface::ResourceBase *res = &entryPoint->cbuffers[r];
+                              if(res->MatchesBinding(lowerBound, upperBound, spaceID))
+                              {
+                                resIndex = r;
+                                resourceBase = res;
+                                break;
+                              }
+                            }
+                            break;
+                          }
+                          case ResourceClass::Sampler:
+                          {
+                            for(uint32_t r = 0; r < entryPoint->samplers.size(); ++r)
+                            {
+                              EntryPointInterface::ResourceBase *res = &entryPoint->samplers[r];
+                              if(res->MatchesBinding(lowerBound, upperBound, spaceID))
+                              {
+                                resIndex = r;
+                                resourceBase = res;
+                                break;
+                              }
+                            }
+                            break;
+                            default: break;
+                          }
                         }
-                        case ResourceClass::UAV:
+                        if(!resourceBase)
                         {
-                          for(uint32_t r = 0; r < entryPoint->uavs.size(); ++r)
-                          {
-                            EntryPointInterface::ResourceBase *res = &entryPoint->uavs[r];
-                            if(res->MatchesBinding(lowerBound, upperBound, spaceID))
-                            {
-                              resIndex = r;
-                              resourceBase = res;
-                              break;
-                            }
-                          }
-                          break;
+                          resName = "ResourceClass:" + ArgToString(inst.args[1], false);
+                          resName += "[" + ArgToString(inst.args[2], false) + "]";
+                          resName += "[" + ArgToString(inst.args[resIndexArgId], false) + "]";
                         }
-                        case ResourceClass::CBuffer:
-                        {
-                          for(uint32_t r = 0; r < entryPoint->cbuffers.size(); ++r)
-                          {
-                            EntryPointInterface::ResourceBase *res = &entryPoint->cbuffers[r];
-                            if(res->MatchesBinding(lowerBound, upperBound, spaceID))
-                            {
-                              resIndex = r;
-                              resourceBase = res;
-                              break;
-                            }
-                          }
-                          break;
-                        }
-                        case ResourceClass::Sampler:
-                        {
-                          for(uint32_t r = 0; r < entryPoint->samplers.size(); ++r)
-                          {
-                            EntryPointInterface::ResourceBase *res = &entryPoint->samplers[r];
-                            if(res->MatchesBinding(lowerBound, upperBound, spaceID))
-                            {
-                              resIndex = r;
-                              resourceBase = res;
-                              break;
-                            }
-                          }
-                          break;
-                          default: break;
-                        }
-                      }
-                      if(!resourceBase)
-                      {
-                        resName = "ResourceClass:" + ArgToString(inst.args[1], false);
-                        resName += "[" + ArgToString(inst.args[2], false) + "]";
-                        resName += "[" + ArgToString(inst.args[resIndexArgId], false) + "]";
                       }
                     }
                   }
                 }
-              }
 
-              if(resourceBase)
-              {
-                RDCASSERT(!GetResourceReference(resultIdStr));
-                ResourceReference resRef(resultIdStr, *resourceBase, resIndex);
-                m_ResourceHandles[resultIdStr] = m_ResourceHandles.size();
-                m_ResourceReferences.push_back(resRef);
-                resName = resourceBase->name;
-                uint32_t index = 0;
-                if(getival<uint32_t>(inst.args[resIndexArgId], index))
+                if(resourceBase)
                 {
-                  if(index != resIndex)
+                  RDCASSERT(!GetResourceReference(resultIdStr));
+                  ResourceReference resRef(resultIdStr, *resourceBase, resIndex);
+                  m_ResourceHandles[resultIdStr] = m_ResourceHandles.size();
+                  m_ResourceReferences.push_back(resRef);
+                  resName = resourceBase->name;
+                  uint32_t index = 0;
+                  if(getival<uint32_t>(inst.args[resIndexArgId], index))
+                  {
+                    if(index != resIndex)
+                    {
+                      if(resourceBase->regCount > 1)
+                        resName += StringFormat::Fmt("[%u]", index);
+                    }
+                  }
+                  else
                   {
                     if(resourceBase->regCount > 1)
-                      resName += StringFormat::Fmt("[%u]", index);
+                      resName += "[" + ArgToString(inst.args[resIndexArgId], false) + "]";
                   }
                 }
-                else
+                if(!resName.isEmpty())
+                  m_SsaAliases[resultIdStr] = resName;
+                break;
+              }
+              case DXOp::CreateHandleFromHeap:
+              {
+                // CreateHandleFromHeap(index,samplerHeap,nonUniformIndex)
+                uint32_t samplerHeap;
+                if(getival<uint32_t>(inst.args[2], samplerHeap))
                 {
-                  if(resourceBase->regCount > 1)
-                    resName += "[" + ArgToString(inst.args[resIndexArgId], false) + "]";
+                  rdcstr resName =
+                      (samplerHeap == 0) ? "ResourceDescriptorHeap" : "SamplerDescriptorHeap";
+
+                  resName += "[";
+                  resName += ArgToString(inst.args[1], false);
+                  resName += "]";
+
+                  m_SsaAliases[resultIdStr] = resName;
                 }
+                break;
               }
-              if(!resName.isEmpty())
-                m_SsaAliases[resultIdStr] = resName;
-            }
-            else if(dxOpCode == DXOp::CreateHandleFromHeap)
-            {
-              // CreateHandleFromHeap(index,samplerHeap,nonUniformIndex)
-              uint32_t samplerHeap;
-              if(getival<uint32_t>(inst.args[2], samplerHeap))
+              case DXOp::AnnotateHandle:
               {
-                rdcstr resName =
-                    (samplerHeap == 0) ? "ResourceDescriptorHeap" : "SamplerDescriptorHeap";
-
-                resName += "[";
-                resName += ArgToString(inst.args[1], false);
-                resName += "]";
-
+                // AnnotateHandle(res,props)
+                rdcstr resName = "__heap_descriptor_" + ToStr(heapDescriptorResourceCount);
+                heapDescriptorResourceCount += 1;
                 m_SsaAliases[resultIdStr] = resName;
+                // If the underlying handle points to a known resource then duplicate the resource
+                // and register it as resultIdStr
+                rdcstr baseResource = ArgToString(inst.args[1], false);
+                const ResourceReference *resRef = GetResourceReference(baseResource);
+                if(resRef)
+                {
+                  m_ResourceHandles[resultIdStr] = m_ResourceHandles.size();
+                  m_ResourceReferences.push_back(*resRef);
+                }
+                break;
               }
-            }
-            else if(dxOpCode == DXOp::AnnotateHandle)
-            {
-              // AnnotateHandle(res,props)
-              rdcstr resName = "__heap_descriptor_" + ToStr(heapDescriptorResourceCount);
-              heapDescriptorResourceCount += 1;
-              m_SsaAliases[resultIdStr] = resName;
-              // If the underlying handle points to a known resource then duplicate the resource and
-              // register it as resultIdStr
-              rdcstr baseResource = ArgToString(inst.args[1], false);
-              const ResourceReference *resRef = GetResourceReference(baseResource);
-              if(resRef)
-              {
-                m_ResourceHandles[resultIdStr] = m_ResourceHandles.size();
-                m_ResourceReferences.push_back(*resRef);
-              }
+              default: break;
             }
           }
         }
@@ -5525,5 +5533,4 @@ void Program::MakeResultId(const DXIL::Instruction &inst, rdcstr &resultId)
   else if(inst.slot != ~0U)
     resultId = StringFormat::Fmt("%c%s", DXIL::dxilIdentifier, ToStr(inst.slot).c_str());
 }
-
 };    // namespace DXIL
