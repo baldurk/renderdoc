@@ -4953,8 +4953,8 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
       else if(IsSIntFormat(origFormat))
         expandedFormat = VK_FORMAT_R32G32B32A32_SINT;
 
-      uint32_t origElemSize = GetByteSize(1, 1, 1, origFormat, 0);
-      uint32_t elemSize = GetByteSize(1, 1, 1, expandedFormat, 0);
+      uint32_t origElemSize = (uint32_t)GetByteSize(1, 1, 1, origFormat, 0);
+      uint32_t elemSize = (uint32_t)GetByteSize(1, 1, 1, expandedFormat, 0);
 
       // 64-bit values are packed as uvec2
       if(Is64BitFormat(origFormat))

@@ -462,7 +462,7 @@ void WrappedVulkan::vkGetDeviceImageMemoryRequirements(VkDevice device,
 
     if(formatListInfo)
     {
-      uint32_t bs = GetByteSize(1, 1, 1, info->format, 0);
+      uint32_t bs = (uint32_t)GetByteSize(1, 1, 1, info->format, 0);
 
       VkFormat msaaCopyFormat = VK_FORMAT_UNDEFINED;
       if(bs == 1)

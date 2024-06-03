@@ -89,45 +89,47 @@ size_t GetCompressedByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum internalfor
 
   uint32_t astc[3] = {0, 0, 1u};
 
+  size_t numBlockAlignedTexels = size_t(AlignUp4(w)) * size_t(AlignUp4(h)) * size_t(d);
+
   switch(internalformat)
   {
     // BC1
     case eGL_COMPRESSED_RGB_S3TC_DXT1_EXT:
     case eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
     case eGL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
-    case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT: return (AlignUp4(w) * AlignUp4(h) * d) / 2;
+    case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT: return numBlockAlignedTexels / 2;
     // BC2
     case eGL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
-    case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT: return (AlignUp4(w) * AlignUp4(h) * d);
+    case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT: return numBlockAlignedTexels;
     // BC3
     case eGL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
-    case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT: return (AlignUp4(w) * AlignUp4(h) * d);
+    case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT: return numBlockAlignedTexels;
     // BC4
     case eGL_COMPRESSED_RED_RGTC1:
-    case eGL_COMPRESSED_SIGNED_RED_RGTC1: return (AlignUp4(w) * AlignUp4(h) * d) / 2;
+    case eGL_COMPRESSED_SIGNED_RED_RGTC1: return numBlockAlignedTexels / 2;
     // BC5
     case eGL_COMPRESSED_RG_RGTC2:
-    case eGL_COMPRESSED_SIGNED_RG_RGTC2: return (AlignUp4(w) * AlignUp4(h) * d);
+    case eGL_COMPRESSED_SIGNED_RG_RGTC2: return numBlockAlignedTexels;
     // BC6
     case eGL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB:
-    case eGL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB: return (AlignUp4(w) * AlignUp4(h) * d);
+    case eGL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB: return numBlockAlignedTexels;
     // BC7
     case eGL_COMPRESSED_RGBA_BPTC_UNORM_ARB:
-    case eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB: return (AlignUp4(w) * AlignUp4(h) * d);
+    case eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB: return numBlockAlignedTexels;
     // ETC1
     case eGL_ETC1_RGB8_OES:
     // ETC2
     case eGL_COMPRESSED_RGB8_ETC2:
     case eGL_COMPRESSED_SRGB8_ETC2:
     case eGL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
-    case eGL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2: return (AlignUp4(w) * AlignUp4(h) * d) / 2;
+    case eGL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2: return numBlockAlignedTexels / 2;
     // EAC
     case eGL_COMPRESSED_RGBA8_ETC2_EAC:
-    case eGL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC: return (AlignUp4(w) * AlignUp4(h) * d);
+    case eGL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC: return numBlockAlignedTexels;
     case eGL_COMPRESSED_R11_EAC:
-    case eGL_COMPRESSED_SIGNED_R11_EAC: return (AlignUp4(w) * AlignUp4(h) * d) / 2;
+    case eGL_COMPRESSED_SIGNED_R11_EAC: return numBlockAlignedTexels / 2;
     case eGL_COMPRESSED_RG11_EAC:
-    case eGL_COMPRESSED_SIGNED_RG11_EAC: return (AlignUp4(w) * AlignUp4(h) * d);
+    case eGL_COMPRESSED_SIGNED_RG11_EAC: return numBlockAlignedTexels;
     // ASTC
     case eGL_COMPRESSED_RGBA_ASTC_4x4_KHR:
     case eGL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR:
@@ -263,17 +265,17 @@ size_t GetCompressedByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum internalfor
     case eGL_COMPRESSED_SRGB_PVRTC_2BPPV1_EXT:
     case eGL_COMPRESSED_SRGB_ALPHA_PVRTC_2BPPV1_EXT:
       // 4x8 block in 8 bytes = 32 pixels in 8 bytes = 0.25 bytes per pixel
-      return (AlignUp(w, 4) * AlignUp(h, 8) * d) / 4;
+      return (size_t(AlignUp(w, 4)) * size_t(AlignUp(h, 8)) * size_t(d)) / 4;
     case eGL_COMPRESSED_SRGB_PVRTC_4BPPV1_EXT:
     case eGL_COMPRESSED_SRGB_ALPHA_PVRTC_4BPPV1_EXT:
       // 4x4 block in 8 bytes = 16 pixels in 8 bytes = 0.5 bytes per pixel
-      return (AlignUp(w, 4) * AlignUp(h, 4) * d) / 2;
+      return numBlockAlignedTexels / 2;
     default: break;
   }
 
   if(astc[0] > 0 && astc[1] > 0 && astc[2] > 0)
   {
-    uint32_t blocks[3] = {(w / astc[0]), (h / astc[1]), (d / astc[2])};
+    size_t blocks[3] = {(w / astc[0]), (h / astc[1]), (d / astc[2])};
 
     // how many blocks are needed - including any extra partial blocks
     blocks[0] += (w % astc[0]) ? 1 : 0;
@@ -489,6 +491,8 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type)
 {
   size_t elemSize = 1;
 
+  size_t numTexels = size_t(w) * size_t(h) * size_t(d);
+
   switch(type)
   {
     case eGL_UNSIGNED_BYTE:
@@ -502,28 +506,28 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type)
     case eGL_FLOAT: elemSize = 4; break;
     case eGL_DOUBLE: elemSize = 8; break;
     case eGL_UNSIGNED_BYTE_3_3_2:
-    case eGL_UNSIGNED_BYTE_2_3_3_REV: return w * h * d;
+    case eGL_UNSIGNED_BYTE_2_3_3_REV: return numTexels;
     case eGL_UNSIGNED_SHORT_5_6_5:
     case eGL_UNSIGNED_SHORT_5_6_5_REV:
     case eGL_UNSIGNED_SHORT_4_4_4_4:
     case eGL_UNSIGNED_SHORT_4_4_4_4_REV:
     case eGL_UNSIGNED_SHORT_5_5_5_1:
-    case eGL_UNSIGNED_SHORT_1_5_5_5_REV: return w * h * d * 2;
+    case eGL_UNSIGNED_SHORT_1_5_5_5_REV: return numTexels * 2;
     case eGL_UNSIGNED_INT_8_8_8_8:
     case eGL_UNSIGNED_INT_8_8_8_8_REV:
     case eGL_UNSIGNED_INT_10_10_10_2:
     case eGL_UNSIGNED_INT_2_10_10_10_REV:
     case eGL_INT_2_10_10_10_REV:
     case eGL_UNSIGNED_INT_10F_11F_11F_REV:
-    case eGL_UNSIGNED_INT_5_9_9_9_REV: return w * h * d * 4;
-    case eGL_DEPTH_COMPONENT16: return w * h * d * 2;
+    case eGL_UNSIGNED_INT_5_9_9_9_REV: return numTexels * 4;
+    case eGL_DEPTH_COMPONENT16: return numTexels * 2;
     case eGL_DEPTH_COMPONENT24:
     case eGL_DEPTH24_STENCIL8:
     case eGL_DEPTH_COMPONENT32:
     case eGL_DEPTH_COMPONENT32F:
-    case eGL_UNSIGNED_INT_24_8: return w * h * d * 4;
+    case eGL_UNSIGNED_INT_24_8: return numTexels * 4;
     case eGL_DEPTH32F_STENCIL8:
-    case eGL_FLOAT_32_UNSIGNED_INT_24_8_REV: return w * h * d * 8;
+    case eGL_FLOAT_32_UNSIGNED_INT_24_8_REV: return numTexels * 8;
     default: RDCERR("Unhandled Byte Size type %s!", ToStr(type).c_str()); break;
   }
 
@@ -540,21 +544,21 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type)
     case eGL_ALPHA_INTEGER:
     case eGL_DEPTH_COMPONENT:
     case eGL_STENCIL_INDEX:
-    case eGL_STENCIL: return w * h * d * elemSize;
+    case eGL_STENCIL: return numTexels * elemSize;
     case eGL_RG:
     case eGL_RG_INTEGER:
     case eGL_LUMINANCE_ALPHA:
-    case eGL_DEPTH_STENCIL: return w * h * d * elemSize * 2;
+    case eGL_DEPTH_STENCIL: return numTexels * elemSize * 2;
     case eGL_RGB:
     case eGL_RGB_INTEGER:
     case eGL_BGR:
     case eGL_BGR_INTEGER:
-    case eGL_SRGB: return w * h * d * elemSize * 3;
+    case eGL_SRGB: return numTexels * elemSize * 3;
     case eGL_RGBA:
     case eGL_RGBA_INTEGER:
     case eGL_BGRA:
     case eGL_BGRA_INTEGER:
-    case eGL_SRGB_ALPHA: return w * h * d * elemSize * 4;
+    case eGL_SRGB_ALPHA: return numTexels * elemSize * 4;
     default: RDCERR("Unhandled Byte Size format %s!", ToStr(format).c_str()); break;
   }
 

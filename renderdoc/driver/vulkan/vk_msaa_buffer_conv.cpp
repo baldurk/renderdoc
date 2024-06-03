@@ -69,7 +69,7 @@ void VulkanDebugManager::CopyTex2DMSToBuffer(VkCommandBuffer cmd, VkBuffer destB
       },
   };
 
-  uint32_t bs = GetByteSize(1, 1, 1, fmt, 0);
+  uint32_t bs = (uint32_t)GetByteSize(1, 1, 1, fmt, 0);
 
   if(bs == 1)
     viewInfo.format = VK_FORMAT_R8_UINT;
@@ -114,9 +114,13 @@ void VulkanDebugManager::CopyTex2DMSToBuffer(VkCommandBuffer cmd, VkBuffer destB
     ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
                                   Unwrap(m_MS2BufferPipe));
 
-    const uint32_t dispatchBufferSize =
+    const uint64_t dispatchBufferSize =
         GetByteSize(extent.width, extent.height, extent.depth, fmt, 0);
-    uint32_t dispatchOffset = 0;
+    uint64_t dispatchOffset = 0;
+
+    RDCASSERTMSG("More than 32-bit offset required for CopyTex2DMSToBuffer",
+                 uint64_t(numSlices) * uint64_t(numSamples) * dispatchBufferSize < 0xffffffffULL,
+                 numSlices, numSamples, extent, fmt);
 
     VkDescriptorImageInfo srcdesc = {0};
     srcdesc.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -157,7 +161,7 @@ void VulkanDebugManager::CopyTex2DMSToBuffer(VkCommandBuffer cmd, VkBuffer destB
 
         Vec4u params[2] = {
             {extent.width, currentSlice, currentSample, bs},
-            {maxInvoc, dispatchOffset, 0, 0},
+            {maxInvoc, dispatchOffset & 0xffffffffU, 0, 0},
         };
 
         ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_BufferMSPipeLayout),
@@ -168,7 +172,13 @@ void VulkanDebugManager::CopyTex2DMSToBuffer(VkCommandBuffer cmd, VkBuffer destB
         ObjDisp(cmd)->CmdDispatch(Unwrap(cmd), numWorkGroup, 1, 1);
 
         dispatchOffset += dispatchBufferSize / 4;
+
+        if(dispatchOffset > 0xffffffffULL)
+          break;
       }
+
+      if(dispatchOffset > 0xffffffffULL)
+        break;
     }
   }
 
@@ -312,8 +322,12 @@ void VulkanDebugManager::CopyDepthTex2DMSToBuffer(VkCommandBuffer cmd, VkBuffer 
     }
   }
 
-  const uint32_t dispatchBufferSize = GetByteSize(extent.width, extent.height, extent.depth, fmt, 0);
-  uint32_t dispatchOffset = 0;
+  const uint64_t dispatchBufferSize = GetByteSize(extent.width, extent.height, extent.depth, fmt, 0);
+  uint64_t dispatchOffset = 0;
+
+  RDCASSERTMSG("More than 32-bit offset required for CopyTex2DMSToBuffer",
+               uint64_t(numSlices) * uint64_t(numSamples) * dispatchBufferSize < 0xffffffffULL,
+               numSlices, numSamples, extent, fmt);
 
   VkDescriptorBufferInfo destdesc = {0};
   destdesc.buffer = destBuffer;
@@ -352,7 +366,7 @@ void VulkanDebugManager::CopyDepthTex2DMSToBuffer(VkCommandBuffer cmd, VkBuffer 
 
       Vec4u params[2] = {
           {extent.width, currentSlice, currentSample, fmtIndex},
-          {maxInvoc, dispatchOffset, 0, 0},
+          {maxInvoc, dispatchOffset & 0xffffffffU, 0, 0},
       };
 
       ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_BufferMSPipeLayout), VK_SHADER_STAGE_ALL,
@@ -361,7 +375,13 @@ void VulkanDebugManager::CopyDepthTex2DMSToBuffer(VkCommandBuffer cmd, VkBuffer 
       ObjDisp(cmd)->CmdDispatch(Unwrap(cmd), numWorkGroup, 1, 1);
 
       dispatchOffset += dispatchBufferSize / 4;
+
+      if(dispatchOffset > 0xffffffffULL)
+        break;
     }
+
+    if(dispatchOffset > 0xffffffffULL)
+      break;
   }
 
   if(endCommand)
@@ -417,7 +437,7 @@ void VulkanDebugManager::CopyBufferToTex2DMS(VkCommandBuffer cmd, VkImage destMS
       },
   };
 
-  uint32_t bs = GetByteSize(1, 1, 1, fmt, 0);
+  uint32_t bs = (uint32_t)GetByteSize(1, 1, 1, fmt, 0);
 
   if(bs == 1)
     viewInfo.format = VK_FORMAT_R8_UINT;
@@ -464,9 +484,13 @@ void VulkanDebugManager::CopyBufferToTex2DMS(VkCommandBuffer cmd, VkImage destMS
     ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
                                   Unwrap(m_Buffer2MSPipe));
 
-    const uint32_t dispatchBufferSize =
+    const uint64_t dispatchBufferSize =
         GetByteSize(extent.width, extent.height, extent.depth, fmt, 0);
-    uint32_t dispatchOffset = 0;
+    uint64_t dispatchOffset = 0;
+
+    RDCASSERTMSG("More than 32-bit offset required for CopyTex2DMSToBuffer",
+                 uint64_t(numSlices) * uint64_t(numSamples) * dispatchBufferSize < 0xffffffffULL,
+                 numSlices, numSamples, extent, fmt);
 
     VkDescriptorBufferInfo srcdesc = {0};
     srcdesc.buffer = srcBuffer;
@@ -504,7 +528,7 @@ void VulkanDebugManager::CopyBufferToTex2DMS(VkCommandBuffer cmd, VkImage destMS
 
         Vec4u params[2] = {
             {extent.width, currentSlice, currentSample, bs},
-            {maxInvoc, dispatchOffset, 0, 0},
+            {maxInvoc, dispatchOffset & 0xffffffffU, 0, 0},
         };
 
         ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_BufferMSPipeLayout),
@@ -513,7 +537,13 @@ void VulkanDebugManager::CopyBufferToTex2DMS(VkCommandBuffer cmd, VkImage destMS
         ObjDisp(cmd)->CmdDispatch(Unwrap(cmd), numWorkGroup, 1, 1);
 
         dispatchOffset += dispatchBufferSize / 4;
+
+        if(dispatchOffset > 0xffffffffULL)
+          break;
       }
+
+      if(dispatchOffset > 0xffffffffULL)
+        break;
     }
   }
 

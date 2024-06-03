@@ -2203,7 +2203,7 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
 
       if(formatListInfo)
       {
-        uint32_t bs = GetByteSize(1, 1, 1, CreateInfo.format, 0);
+        uint32_t bs = (uint32_t)GetByteSize(1, 1, 1, CreateInfo.format, 0);
 
         VkFormat msaaCopyFormat = VK_FORMAT_UNDEFINED;
         if(bs == 1)
@@ -2430,7 +2430,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
 
     if(formatListInfo)
     {
-      uint32_t bs = GetByteSize(1, 1, 1, createInfo_adjusted.format, 0);
+      uint32_t bs = (uint32_t)GetByteSize(1, 1, 1, createInfo_adjusted.format, 0);
 
       VkFormat msaaCopyFormat = VK_FORMAT_UNDEFINED;
       if(bs == 1)

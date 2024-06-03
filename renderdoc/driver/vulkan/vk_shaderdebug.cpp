@@ -1508,7 +1508,8 @@ private:
   struct ImageData
   {
     uint32_t width = 0, height = 0, depth = 0;
-    uint32_t texelSize = 0, rowPitch = 0, slicePitch = 0, samplePitch = 0;
+    uint32_t texelSize = 0;
+    uint64_t rowPitch = 0, slicePitch = 0, samplePitch = 0;
     ResourceFormat fmt;
     bytebuf bytes;
 
@@ -1725,8 +1726,8 @@ private:
           ResourceFormat fmt = MakeResourceFormat(imageProps.format);
 
           data.fmt = MakeResourceFormat(imageProps.format);
-          data.texelSize = GetByteSize(1, 1, 1, imageProps.format, 0);
-          data.rowPitch = GetByteSize(data.width, 1, 1, imageProps.format, 0);
+          data.texelSize = (uint32_t)GetByteSize(1, 1, 1, imageProps.format, 0);
+          data.rowPitch = (uint32_t)GetByteSize(data.width, 1, 1, imageProps.format, 0);
           data.slicePitch = GetByteSize(data.width, data.height, 1, imageProps.format, 0);
           data.samplePitch = GetByteSize(data.width, data.height, data.depth, imageProps.format, 0);
 

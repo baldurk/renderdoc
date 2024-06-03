@@ -1752,7 +1752,7 @@ VkExtent2D GetPlaneShape(uint32_t Width, uint32_t Height, VkFormat Format, uint3
   }
 }
 
-uint32_t GetPlaneByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat Format,
+uint64_t GetPlaneByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat Format,
                           uint32_t mip, uint32_t plane)
 {
   uint32_t mipWidth = RDCMAX(Width >> mip, 1U);
@@ -1763,16 +1763,16 @@ uint32_t GetPlaneByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFor
 
   BlockShape blockShape = GetBlockShape(Format, plane);
 
-  uint32_t widthInBlocks = (planeShape.width + blockShape.width - 1) / blockShape.width;
-  uint32_t heightInBlocks = (planeShape.height + blockShape.height - 1) / blockShape.height;
+  uint64_t widthInBlocks = (planeShape.width + blockShape.width - 1) / blockShape.width;
+  uint64_t heightInBlocks = (planeShape.height + blockShape.height - 1) / blockShape.height;
 
-  return blockShape.bytes * widthInBlocks * heightInBlocks * mipDepth;
+  return uint64_t(blockShape.bytes) * widthInBlocks * heightInBlocks * uint64_t(mipDepth);
 }
 
-uint32_t GetByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat Format, uint32_t mip)
+uint64_t GetByteSize(uint32_t Width, uint32_t Height, uint32_t Depth, VkFormat Format, uint32_t mip)
 {
   uint32_t planeCount = GetYUVPlaneCount(Format);
-  uint32_t size = 0;
+  uint64_t size = 0;
   for(uint32_t p = 0; p < planeCount; p++)
     size += GetPlaneByteSize(Width, Height, Depth, Format, mip, p);
   return size;
@@ -4869,7 +4869,7 @@ TEST_CASE("Vulkan formats", "[format][vulkan]")
 
       uint32_t planeCount = GetYUVPlaneCount(f);
 
-      uint32_t planeSum = 0;
+      uint64_t planeSum = 0;
       for(uint32_t p = 0; p < planeCount; p++)
         planeSum += GetPlaneByteSize(width, height, 1, f, 0, p);
 

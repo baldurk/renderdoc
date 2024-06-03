@@ -126,7 +126,8 @@ VKMeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineL
   // since we don't want to put the whole offset into the cache key we just put a single bit of
   // 'offset bigger than stride padding'
 
-  uint32_t primaryStridePadding = primary.vertexByteStride - GetByteSize(1, 1, 1, primaryFmt, 0);
+  uint32_t primaryStridePadding =
+      primary.vertexByteStride - (uint32_t)GetByteSize(1, 1, 1, primaryFmt, 0);
 
   if(primary.vertexByteOffset > primaryStridePadding)
     key |= 1ULL << bit;
@@ -136,7 +137,8 @@ VKMeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(VkPipelineL
 
   if(secondary.vertexResourceId != ResourceId())
   {
-    secondaryStridePadding = secondary.vertexByteStride - GetByteSize(1, 1, 1, secondaryFmt, 0);
+    secondaryStridePadding =
+        secondary.vertexByteStride - (uint32_t)GetByteSize(1, 1, 1, secondaryFmt, 0);
 
     if(secondary.vertexByteOffset > secondaryStridePadding)
       key |= 1ULL << bit;

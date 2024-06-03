@@ -3763,7 +3763,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
   VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
   CheckVkResult(vkr);
 
-  uint32_t dataSize = 0;
+  size_t dataSize = 0;
   VkBuffer readbackBuf = VK_NULL_HANDLE;
   VkDeviceMemory readbackMem = VK_NULL_HANDLE;
 
@@ -4188,15 +4188,15 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
   }
   else if(wasms)
   {
-    dataSize = GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
-                           imCreateInfo.format, s.mip);
+    dataSize = (size_t)GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
+                                   imCreateInfo.format, s.mip);
 
     // buffer size needs to be align to the int for shader writing
     VkBufferCreateInfo bufInfo = {
         VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
         NULL,
         0,
-        AlignUp(dataSize, 4U),
+        AlignUp(dataSize, (size_t)4U),
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
             VK_BUFFER_USAGE_TRANSFER_DST_BIT,
     };
@@ -4339,16 +4339,16 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
       copyregions.push_back(copyRegionTemplate);
     }
 
-    dataSize = GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
-                           imCreateInfo.format, s.mip);
+    dataSize = (size_t)GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
+                                   imCreateInfo.format, s.mip);
 
     if(imCreateInfo.format == VK_FORMAT_D24_UNORM_S8_UINT)
     {
       // for most combined depth-stencil images this will be large enough for both to be copied
       // separately, but for D24S8 we need to add extra space since they won't be copied packed
-      dataSize = AlignUp(dataSize, 4U);
-      dataSize += GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
-                              VK_FORMAT_S8_UINT, s.mip);
+      dataSize = AlignUp(dataSize, (size_t)4U);
+      dataSize += (size_t)GetByteSize(imInfo.extent.width, imInfo.extent.height,
+                                      imInfo.extent.depth, VK_FORMAT_S8_UINT, s.mip);
     }
 
     VkBufferCreateInfo bufInfo = {

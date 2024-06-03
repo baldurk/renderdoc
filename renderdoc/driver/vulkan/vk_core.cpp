@@ -2421,7 +2421,7 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
     vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
     CheckVkResult(vkr);
 
-    uint32_t rowPitch = GetByteSize(imageInfo.extent.width, 1, 1, imageInfo.format, 0);
+    uint32_t rowPitch = (uint32_t)GetByteSize(imageInfo.extent.width, 1, 1, imageInfo.format, 0);
 
     VkBufferImageCopy cpy = {
         0,
@@ -2686,8 +2686,18 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
     captureSectionSize = captureWriter->GetOffset();
   }
 
-  RDCLOG("Captured Vulkan frame with %f MB capture section in %f seconds",
-         double(captureSectionSize) / (1024.0 * 1024.0), m_CaptureTimer.GetMilliseconds() / 1000.0);
+  if(m_CaptureFailure)
+  {
+    m_LastCaptureFailed = Timing::GetUnixTimestamp();
+    SAFE_DELETE(rdc);
+  }
+  else
+  {
+    RDCLOG("Captured Vulkan frame with %f MB capture section in %f seconds",
+           double(captureSectionSize) / (1024.0 * 1024.0), m_CaptureTimer.GetMilliseconds() / 1000.0);
+  }
+
+  m_CaptureFailure = false;
 
   RenderDoc::Inst().FinishCaptureWriting(rdc, m_CapturedFrames.back().frameNumber);
 
