@@ -1513,7 +1513,6 @@ public:
   rdcarray<ShaderEntryPoint> GetEntryPoints();
   void FillEntryPointInterfaces();
   size_t GetInstructionCount() const;
-  rdcstr GetResourceReferenceName(ResourceClass resClass, const BindingSlot &slot) const;
   void FillRayPayloads(
       Program *executable,
       rdcflatmap<ShaderEntryPoint, rdcpair<DXBC::CBufferVariableType, DXBC::CBufferVariableType>>

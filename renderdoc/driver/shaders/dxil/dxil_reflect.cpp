@@ -1752,26 +1752,6 @@ void Program::GetLocals(const DXBC::DXBCContainer *dxbc, size_t instruction, uin
   locals.clear();
 }
 
-rdcstr Program::GetResourceReferenceName(ResourceClass resClass, const BindingSlot &slot) const
-{
-  for(const ResourceReference &resRef : m_ResourceReferences)
-  {
-    if(resRef.resourceBase.resClass != resClass)
-      continue;
-    if(resRef.resourceBase.space != slot.registerSpace)
-      continue;
-    if(resRef.resourceBase.regBase > slot.shaderRegister)
-      continue;
-    if(resRef.resourceBase.regBase + resRef.resourceBase.regCount < slot.shaderRegister)
-      continue;
-
-    return resRef.handleID;
-  }
-  RDCERR("Failed to find DXIL %s Resource Space %d Register %d", ToStr(resClass).c_str(),
-         slot.registerSpace, slot.shaderRegister);
-  return "UNKNOWN_RESOURCE_HANDLE";
-}
-
 const ResourceReference *Program::GetResourceReference(const rdcstr &handleStr) const
 {
   if(m_ResourceHandles.count(handleStr) > 0)
