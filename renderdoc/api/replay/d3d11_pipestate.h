@@ -537,13 +537,13 @@ struct State
 
 :type: int
 )");
-  uint32_t descriptorCount;
+  uint32_t descriptorCount = 0;
 
   DOCUMENT(R"(The byte size of a descriptor in the virtual descriptor storage.
 
 :type: int
 )");
-  uint32_t descriptorByteSize;
+  uint32_t descriptorByteSize = 0;
 
   DOCUMENT(R"(The stream-out pipeline stage.
 

@@ -236,6 +236,8 @@ public:
   void SetPipelineStates(D3D11Pipe::State *d3d11, D3D12Pipe::State *d3d12, GLPipe::State *gl,
                          VKPipe::State *vk)
   {
+    d3d11->descriptorCount = 0;
+    d3d11->descriptorByteSize = 0;
     d3d11->outputMerger.renderTargets.resize(1);
     d3d11->outputMerger.renderTargets[0].resource = m_TextureID;
     d3d11->outputMerger.renderTargets[0].format = m_TexDetails.format;
