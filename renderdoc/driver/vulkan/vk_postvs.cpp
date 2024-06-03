@@ -2222,11 +2222,15 @@ static void AddMeshShaderOutputStores(const ShaderReflection &refl,
   }
 
   rdcspv::Id entryID;
+  rdcarray<rdcspv::Id> entryInterface;
 
   for(const rdcspv::EntryPoint &entry : editor.GetEntries())
   {
     if(entry.name == entryName && entry.executionModel == rdcspv::ExecutionModel::MeshEXT)
+    {
       entryID = entry.id;
+      entryInterface = entry.usedIds;
+    }
   }
 
   RDCASSERT(entryID);
@@ -2306,6 +2310,10 @@ static void AddMeshShaderOutputStores(const ShaderReflection &refl,
   for(const rdcspv::Variable &var : editor.GetGlobals())
   {
     if(var.storage != rdcspv::StorageClass::Output)
+      continue;
+
+    // skip variables that aren't for us
+    if(!entryInterface.contains(var.id))
       continue;
 
     const rdcspv::Decorations &d = editor.GetDecorations(var.id);
