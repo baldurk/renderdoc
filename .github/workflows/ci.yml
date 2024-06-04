@@ -307,13 +307,12 @@ jobs:
         sudo rm /usr/local/bin/python3 || true
         sudo rm /usr/local/bin/python3-config || true
         brew update || true
-        brew upgrade aom
         brew unlink python
         brew link --overwrite --force python
         brew unlink python@3.11
         brew link --overwrite --force python@3.11
-        brew install --overwrite lftp automake pcre qt5
-        brew link --overwrite --force qt5
+        brew install --overwrite lftp automake pcre qt@5
+        brew link --overwrite --force qt@5
     - name: Build
       run: |
         mkdir build
