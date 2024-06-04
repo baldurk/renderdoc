@@ -39,7 +39,7 @@ jobs:
     strategy:
       fail-fast: true
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 5
     - name: Run clang-format
@@ -64,7 +64,7 @@ jobs:
     strategy:
       fail-fast: true
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 5
     - name: Download minimum supported cmake version
@@ -122,7 +122,7 @@ jobs:
             platform: x64
             configuration: Development
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 5
     - name: Download optional 3rdparty extras
@@ -155,7 +155,7 @@ jobs:
     env:
       QT_SELECT: qt5
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 5
     - name: Install compilation dependencies
@@ -204,7 +204,7 @@ jobs:
             cxx: clang++-12
             type: Debug
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 5
     - name: Add LLVM apt repository
@@ -253,7 +253,7 @@ jobs:
     needs: [commit-msg, clang-format]
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 5
     - name: Install Android SDK 3859397 and NDK r14b
@@ -291,7 +291,7 @@ jobs:
           - name: Release
             type: Release
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 5
     - name: Install Homebrew dependencies
