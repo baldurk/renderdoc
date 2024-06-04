@@ -1470,6 +1470,7 @@ rdcarray<ShaderEntryPoint> Program::GetEntryPoints()
 
 DXBC::Reflection *Program::GetReflection()
 {
+  const bool dxcStyleFormatting = m_DXCStyle;
   using namespace DXBC;
 
   Reflection *refl = new Reflection;
@@ -1489,10 +1490,10 @@ DXBC::Reflection *Program::GetReflection()
 
   if(dx.valver && dx.valver->children.size() == 1 && dx.valver->children[0]->children.size() == 2)
   {
-    m_CompilerSig +=
-        StringFormat::Fmt(" (Validation version %s.%s)",
-                          dx.valver->children[0]->children[0]->value->toString().c_str(),
-                          dx.valver->children[0]->children[1]->value->toString().c_str());
+    m_CompilerSig += StringFormat::Fmt(
+        " (Validation version %s.%s)",
+        dx.valver->children[0]->children[0]->value->toString(dxcStyleFormatting).c_str(),
+        dx.valver->children[0]->children[1]->value->toString(dxcStyleFormatting).c_str());
   }
 
   if(dx.entryPoints && dx.entryPoints->children.size() > 0 &&
@@ -1509,10 +1510,10 @@ DXBC::Reflection *Program::GetReflection()
   if(dx.shaderModel && dx.shaderModel->children.size() == 1 &&
      dx.shaderModel->children[0]->children.size() == 3)
   {
-    m_Profile =
-        StringFormat::Fmt("%s_%s_%s", dx.shaderModel->children[0]->children[0]->str.c_str(),
-                          dx.shaderModel->children[0]->children[1]->value->toString().c_str(),
-                          dx.shaderModel->children[0]->children[2]->value->toString().c_str());
+    m_Profile = StringFormat::Fmt(
+        "%s_%s_%s", dx.shaderModel->children[0]->children[0]->str.c_str(),
+        dx.shaderModel->children[0]->children[1]->value->toString(dxcStyleFormatting).c_str(),
+        dx.shaderModel->children[0]->children[2]->value->toString(dxcStyleFormatting).c_str());
   }
   else
   {

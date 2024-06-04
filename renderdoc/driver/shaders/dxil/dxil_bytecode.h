@@ -113,9 +113,9 @@ struct Type
   static void *operator new(size_t count, BumpAllocator &b) { return b.alloc(count); }
   static void operator delete(void *ptr, BumpAllocator &b) {}
   bool isVoid() const { return type == Scalar && scalarType == Void; }
-  rdcstr toString() const;
+  rdcstr toString(bool dxcStyleFormatting) const;
   rdcstr declFunction(rdcstr funcName, const rdcarray<Instruction *> &args,
-                      const AttributeSet *attrs) const;
+                      const AttributeSet *attrs, bool dxcStyleFormatting) const;
 
   // for scalars, arrays, vectors, pointers
   union
@@ -716,7 +716,7 @@ struct Value
   static constexpr uint32_t VisitedID = 0x00fffffd;
   uint32_t id : 24;
 
-  rdcstr toString(bool withType = false) const;
+  rdcstr toString(bool dxcStyleFormatting, bool withType = false) const;
 
   static void *operator new(size_t count, BumpAllocator &b) { return b.alloc(count); }
   static void operator delete(void *ptr, BumpAllocator &b) {}
@@ -1049,7 +1049,7 @@ struct Constant : public ForwardReferencableValue<Constant>
     return empty;
   }
 
-  rdcstr toString(bool withType = false) const;
+  rdcstr toString(bool dxcStyleFormatting, bool withType = false) const;
 
 private:
   union
@@ -1099,7 +1099,7 @@ struct DIBase
 
   DIBase(Type t) : type(t) {}
   virtual ~DIBase() = default;
-  virtual rdcstr toString() const = 0;
+  virtual rdcstr toString(bool dxcStyleFormatting) const = 0;
   virtual void setID(uint32_t ID) {}
   template <typename Derived>
   const Derived *As() const
@@ -1125,7 +1125,7 @@ struct DebugLocation
     return line == o.line && col == o.col && scope == o.scope && inlinedAt == o.inlinedAt;
   }
 
-  rdcstr toString() const;
+  rdcstr toString(bool dxcStyleFormatting) const;
 };
 
 struct Metadata : public Value
@@ -1147,8 +1147,8 @@ struct Metadata : public Value
   DIBase *dwarf = NULL;
   DebugLocation *debugLoc = NULL;
 
-  rdcstr refString() const;
-  rdcstr valString() const;
+  rdcstr refString(bool dxcStyleFormatting) const;
+  rdcstr valString(bool dxcStyleFormatting) const;
 };
 
 // loose wrapper around an array for metadata pointer. This creates metadata nodes on demand because
@@ -1539,6 +1539,8 @@ public:
 
   const Metadata *GetMetadataByName(const rdcstr &name) const;
   uint32_t GetDirectHeapAcessCount() const { return m_directHeapAccessCount; }
+
+  static char GetDXILIdentifier(const bool dxcStyle) { return dxcStyle ? '%' : '_'; }
 protected:
   void Parse(const DXBC::Reflection *reflection);
   void SettleIDs();

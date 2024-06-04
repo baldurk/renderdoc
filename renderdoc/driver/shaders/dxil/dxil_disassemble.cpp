@@ -38,9 +38,6 @@
 
 namespace DXIL
 {
-static bool dxcStyleFormatting = true;
-static char dxilIdentifier = '%';
-
 bool needsEscaping(const rdcstr &name)
 {
   return name.find_first_not_of(
@@ -1230,7 +1227,8 @@ const Metadata *Program::FindMetadata(uint32_t slot) const
 rdcstr Program::ArgToString(const Value *v, bool withTypes, const rdcstr &attrString) const
 {
   rdcstr ret;
-
+  const bool dxcStyleFormatting = m_DXCStyle;
+  const char dxilIdentifier = Program::GetDXILIdentifier(dxcStyleFormatting);
   if(const Literal *lit = cast<Literal>(v))
   {
     if(withTypes)
@@ -1253,16 +1251,16 @@ rdcstr Program::ArgToString(const Value *v, bool withTypes, const rdcstr &attrSt
           metaConst->isUndef() || metaConst->isNULL() ||
           metaConst->type->name.beginsWith("class.matrix.")))
       {
-        ret += metaConst->toString(withTypes);
+        ret += metaConst->toString(dxcStyleFormatting, withTypes);
       }
       else if(m.isConstant && metaInst)
       {
-        ret += m.valString();
+        ret += m.valString(dxcStyleFormatting);
       }
       else if(m.isConstant && metaGlobal)
       {
         if(withTypes)
-          ret += metaGlobal->type->toString() + " ";
+          ret += metaGlobal->type->toString(dxcStyleFormatting) + " ";
         ret += "@" + escapeStringIfNeeded(metaGlobal->name);
       }
       else
@@ -1279,45 +1277,43 @@ rdcstr Program::ArgToString(const Value *v, bool withTypes, const rdcstr &attrSt
   else if(const GlobalVar *global = cast<GlobalVar>(v))
   {
     if(withTypes)
-      ret = global->type->toString() + " ";
+      ret = global->type->toString(dxcStyleFormatting) + " ";
     ret += attrString;
     ret += "@" + escapeStringIfNeeded(global->name);
   }
   else if(const Constant *c = cast<Constant>(v))
   {
     ret += attrString;
-    ret = c->toString(withTypes);
+    ret = c->toString(dxcStyleFormatting, withTypes);
   }
   else if(const Instruction *inst = cast<Instruction>(v))
   {
     if(withTypes)
-      ret = inst->type->toString() + " ";
+      ret = inst->type->toString(dxcStyleFormatting) + " ";
     ret += attrString;
     if(inst->getName().empty())
-      ret += StringFormat::Fmt("%c%u", DXIL::dxilIdentifier, inst->slot);
+      ret += StringFormat::Fmt("%c%u", dxilIdentifier, inst->slot);
     else
-      ret += StringFormat::Fmt("%c%s", DXIL::dxilIdentifier,
-                               escapeStringIfNeeded(inst->getName()).c_str());
+      ret += StringFormat::Fmt("%c%s", dxilIdentifier, escapeStringIfNeeded(inst->getName()).c_str());
   }
   else if(const Block *block = cast<Block>(v))
   {
     if(withTypes)
       ret = "label ";
     ret += attrString;
-    if(DXIL::dxcStyleFormatting)
+    if(dxcStyleFormatting)
     {
       if(block->name.empty())
-        ret += StringFormat::Fmt("%c%u", DXIL::dxilIdentifier, block->slot);
+        ret += StringFormat::Fmt("%c%u", dxilIdentifier, block->slot);
       else
-        ret += StringFormat::Fmt("%c%s", DXIL::dxilIdentifier,
-                                 escapeStringIfNeeded(block->name).c_str());
+        ret += StringFormat::Fmt("%c%s", dxilIdentifier, escapeStringIfNeeded(block->name).c_str());
     }
     else
     {
       if(block->name.empty())
-        ret += StringFormat::Fmt("%clabel%u", DXIL::dxilIdentifier, block->slot);
+        ret += StringFormat::Fmt("%clabel%u", dxilIdentifier, block->slot);
       else
-        ret += StringFormat::Fmt("%clabel_%s%u", DXIL::dxilIdentifier,
+        ret += StringFormat::Fmt("%clabel_%s%u", dxilIdentifier,
                                  DXBC::BasicDemangle(block->name).c_str(), block->id);
     }
   }
@@ -1357,13 +1353,14 @@ rdcstr Program::DisassembleComDats(int &instructionLine) const
 
 rdcstr Program::DisassembleTypes(int &instructionLine) const
 {
+  const bool dxcStyleFormatting = m_DXCStyle;
   rdcstr ret;
   bool printedTypes = false;
   for(const Type *typ : m_Accum.printOrderTypes)
   {
     if(typ->type == Type::Struct && !typ->name.empty())
     {
-      rdcstr name = typ->toString();
+      rdcstr name = typ->toString(dxcStyleFormatting);
       ret += StringFormat::Fmt("%s = type { ", name.c_str());
       bool first = true;
       for(const Type *t : typ->members)
@@ -1371,7 +1368,7 @@ rdcstr Program::DisassembleTypes(int &instructionLine) const
         if(!first)
           ret += ", ";
         first = false;
-        ret += StringFormat::Fmt("%s", t->toString().c_str());
+        ret += StringFormat::Fmt("%s", t->toString(dxcStyleFormatting).c_str());
       }
       if(typ->members.empty())
       {
@@ -1398,6 +1395,7 @@ rdcstr Program::DisassembleTypes(int &instructionLine) const
 
 rdcstr Program::DisassembleGlobalVars(int &instructionLine) const
 {
+  const bool dxcStyleFormatting = m_DXCStyle;
   rdcstr ret;
   for(size_t i = 0; i < m_GlobalVars.size(); i++)
   {
@@ -1435,9 +1433,9 @@ rdcstr Program::DisassembleGlobalVars(int &instructionLine) const
       ret += "global ";
 
     if(g.initialiser)
-      ret += g.initialiser->toString(true);
+      ret += g.initialiser->toString(dxcStyleFormatting, true);
     else
-      ret += g.type->inner->toString();
+      ret += g.type->inner->toString(dxcStyleFormatting);
 
     if(g.align > 0)
       ret += StringFormat::Fmt(", align %u", g.align);
@@ -1498,6 +1496,7 @@ rdcstr Program::DisassembleFuncAttrGroups() const
 
 rdcstr Program::DisassembleMeta() const
 {
+  const bool dxcStyleFormatting = m_DXCStyle;
   rdcstr ret;
   size_t numIdx = 0;
   size_t dbgIdx = 0;
@@ -1508,7 +1507,7 @@ rdcstr Program::DisassembleMeta() const
     {
       rdcstr metaline =
           StringFormat::Fmt("!%u = %s%s\n", i, m_MetaSlots[numIdx]->isDistinct ? "distinct " : "",
-                            m_MetaSlots[numIdx]->valString().c_str());
+                            m_MetaSlots[numIdx]->valString(dxcStyleFormatting).c_str());
 #if ENABLED(DXC_COMPATIBLE_DISASM)
       for(size_t c = 0; c < metaline.size(); c += 4096)
         ret += metaline.substr(c, 4096);
@@ -1521,7 +1520,8 @@ rdcstr Program::DisassembleMeta() const
     }
     else if(dbgIdx < m_DebugLocations.size() && m_DebugLocations[dbgIdx].slot == i)
     {
-      ret += StringFormat::Fmt("!%u = %s\n", i, m_DebugLocations[dbgIdx].toString().c_str());
+      ret += StringFormat::Fmt("!%u = %s\n", i,
+                               m_DebugLocations[dbgIdx].toString(dxcStyleFormatting).c_str());
       dbgIdx++;
     }
     else
@@ -1548,17 +1548,6 @@ const rdcstr &Program::GetDisassembly(bool dxcStyle, const DXBC::Reflection *ref
   if(m_Disassembly.empty() || (dxcStyle != m_DXCStyle))
   {
     m_DXCStyle = dxcStyle;
-    // Need to set the style formatting before Parse() to get consistent SSA identifiers
-    if(m_DXCStyle)
-    {
-      DXIL::dxcStyleFormatting = true;
-      DXIL::dxilIdentifier = '%';
-    }
-    else
-    {
-      DXIL::dxcStyleFormatting = false;
-      DXIL::dxilIdentifier = '_';
-    }
 
     Parse(reflection);
 
@@ -1572,6 +1561,9 @@ const rdcstr &Program::GetDisassembly(bool dxcStyle, const DXBC::Reflection *ref
 
 void Program::MakeDXCDisassemblyString()
 {
+  const bool dxcStyleFormatting = true;
+  const char dxilIdentifier = Program::GetDXILIdentifier(dxcStyleFormatting);
+
   m_Disassembly.clear();
 #if DISABLED(DXC_COMPATIBLE_DISASM)
   m_Disassembly += StringFormat::Fmt("; %s Shader, compiled under SM%u.%u\n\n",
@@ -1605,8 +1597,8 @@ void Program::MakeDXCDisassemblyString()
     m_Disassembly += (func.external ? "declare " : "define ");
     if(func.internalLinkage)
       m_Disassembly += "internal ";
-    m_Disassembly +=
-        func.type->declFunction("@" + escapeStringIfNeeded(func.name), func.args, func.attrs);
+    m_Disassembly += func.type->declFunction("@" + escapeStringIfNeeded(func.name), func.args,
+                                             func.attrs, dxcStyleFormatting);
 
     if(func.comdatIdx < m_Comdats.size())
       m_Disassembly += StringFormat::Fmt(
@@ -1640,10 +1632,10 @@ void Program::MakeDXCDisassemblyString()
         inst.disassemblyLine = m_DisassemblyInstructionLine;
         m_Disassembly += "  ";
         if(!inst.getName().empty())
-          m_Disassembly += StringFormat::Fmt("%c%s = ", DXIL::dxilIdentifier,
+          m_Disassembly += StringFormat::Fmt("%c%s = ", dxilIdentifier,
                                              escapeStringIfNeeded(inst.getName()).c_str());
         else if(inst.slot != ~0U)
-          m_Disassembly += StringFormat::Fmt("%c%u = ", DXIL::dxilIdentifier, inst.slot);
+          m_Disassembly += StringFormat::Fmt("%c%u = ", dxilIdentifier, inst.slot);
 
         bool debugCall = false;
 
@@ -1653,7 +1645,7 @@ void Program::MakeDXCDisassemblyString()
           case Operation::Call:
           {
             rdcstr funcCallName = inst.getFuncCall()->name;
-            m_Disassembly += "call " + inst.type->toString();
+            m_Disassembly += "call " + inst.type->toString(dxcStyleFormatting);
             m_Disassembly += " @" + escapeStringIfNeeded(funcCallName);
             m_Disassembly += "(";
             bool first = true;
@@ -1721,7 +1713,7 @@ void Program::MakeDXCDisassemblyString()
 
             m_Disassembly += ArgToString(inst.args[0], true);
             m_Disassembly += " to ";
-            m_Disassembly += inst.type->toString();
+            m_Disassembly += inst.type->toString(dxcStyleFormatting);
             break;
           }
           case Operation::ExtractVal:
@@ -1802,7 +1794,7 @@ void Program::MakeDXCDisassemblyString()
           case Operation::Ret:
           {
             if(inst.args.empty())
-              m_Disassembly += "ret " + inst.type->toString();
+              m_Disassembly += "ret " + inst.type->toString(dxcStyleFormatting);
             else
               m_Disassembly += "ret " + ArgToString(inst.args[0], true);
             break;
@@ -1811,7 +1803,7 @@ void Program::MakeDXCDisassemblyString()
           case Operation::Alloca:
           {
             m_Disassembly += "alloca ";
-            m_Disassembly += inst.type->inner->toString();
+            m_Disassembly += inst.type->inner->toString(dxcStyleFormatting);
             if(inst.align > 0)
               m_Disassembly += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
             break;
@@ -1821,7 +1813,7 @@ void Program::MakeDXCDisassemblyString()
             m_Disassembly += "getelementptr ";
             if(inst.opFlags() & InstructionFlags::InBounds)
               m_Disassembly += "inbounds ";
-            m_Disassembly += inst.args[0]->type->inner->toString();
+            m_Disassembly += inst.args[0]->type->inner->toString(dxcStyleFormatting);
             m_Disassembly += ", ";
             bool first = true;
             for(const Value *s : inst.args)
@@ -1839,7 +1831,7 @@ void Program::MakeDXCDisassemblyString()
             m_Disassembly += "load ";
             if(inst.opFlags() & InstructionFlags::Volatile)
               m_Disassembly += "volatile ";
-            m_Disassembly += inst.type->toString();
+            m_Disassembly += inst.type->toString(dxcStyleFormatting);
             m_Disassembly += ", ";
             bool first = true;
             for(const Value *s : inst.args)
@@ -2020,7 +2012,7 @@ void Program::MakeDXCDisassemblyString()
           case Operation::Phi:
           {
             m_Disassembly += "phi ";
-            m_Disassembly += inst.type->toString();
+            m_Disassembly += inst.type->toString(dxcStyleFormatting);
             for(size_t a = 0; a < inst.args.size(); a += 2)
             {
               if(a == 0)
@@ -2075,7 +2067,7 @@ void Program::MakeDXCDisassemblyString()
             m_Disassembly += "load atomic ";
             if(inst.opFlags() & InstructionFlags::Volatile)
               m_Disassembly += "volatile ";
-            m_Disassembly += inst.type->toString();
+            m_Disassembly += inst.type->toString(dxcStyleFormatting);
             m_Disassembly += ", ";
             bool first = true;
             for(const Value *s : inst.args)
@@ -2257,7 +2249,7 @@ void Program::MakeDXCDisassemblyString()
             RDCASSERT(expr);
             m_Disassembly +=
                 StringFormat::Fmt(" ; var:%s ", escapeString(GetDebugVarName(var->dwarf)).c_str());
-            m_Disassembly += expr->valString();
+            m_Disassembly += expr->valString(dxcStyleFormatting);
 
             rdcstr funcName = GetFunctionScopeName(var->dwarf);
             if(!funcName.empty())
@@ -2465,9 +2457,9 @@ void Program::MakeDXCDisassemblyString()
               labelName += ", ";
             first = false;
             if(pred->name.empty())
-              labelName += StringFormat::Fmt("%c%u", DXIL::dxilIdentifier, pred->slot);
+              labelName += StringFormat::Fmt("%c%u", dxilIdentifier, pred->slot);
             else
-              labelName += StringFormat::Fmt("%c%s", DXIL::dxilIdentifier,
+              labelName += StringFormat::Fmt("%c%s", dxilIdentifier,
                                              escapeStringIfNeeded(pred->name).c_str());
           }
 #endif
@@ -2643,6 +2635,9 @@ rdcstr ProcessNormCompType(ComponentType &compType)
 
 void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 {
+  const bool dxcStyleFormatting = m_DXCStyle;
+  const char dxilIdentifier = Program::GetDXILIdentifier(dxcStyleFormatting);
+
   m_Disassembly.clear();
   m_DisassemblyInstructionLine = 1;
 
@@ -2908,8 +2903,8 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
       if(func.internalLinkage)
         m_Disassembly += "internal ";
-      m_Disassembly +=
-          func.type->declFunction("@" + escapeStringIfNeeded(func.name), func.args, func.attrs);
+      m_Disassembly += func.type->declFunction("@" + escapeStringIfNeeded(func.name), func.args,
+                                               func.attrs, dxcStyleFormatting);
 
       if(func.comdatIdx < m_Comdats.size())
         m_Disassembly += StringFormat::Fmt(
@@ -2944,7 +2939,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
         rdcstr resultTypeStr;
         if(!inst.type->isVoid())
         {
-          resultTypeStr += inst.type->toString();
+          resultTypeStr += inst.type->toString(dxcStyleFormatting);
           resultTypeStr += " ";
         }
         rdcstr resultIdStr;
@@ -3890,7 +3885,9 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               case Operation::FToU:
               case Operation::FToS:
               case Operation::PtrToI:
-              case Operation::SToF: lineStr += "(" + inst.type->toString() + ")"; break;
+              case Operation::SToF:
+                lineStr += "(" + inst.type->toString(dxcStyleFormatting) + ")";
+                break;
               case Operation::IToPtr: lineStr += "(void *)"; break;
               case Operation::AddrSpaceCast: lineStr += "addrspacecast"; break;
               default: break;
@@ -4001,7 +3998,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
           case Operation::Alloca:
           {
             lineStr += "alloca ";
-            lineStr += inst.type->inner->toString();
+            lineStr += inst.type->inner->toString(dxcStyleFormatting);
             if(inst.align > 0)
               lineStr += StringFormat::Fmt(", align %u", (1U << inst.align) >> 1);
             break;
@@ -4012,7 +4009,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
             if(!inst.type->isVoid())
             {
               // type "float addrspace(3)*" : addrspace(3) is DXIL specific, see DXIL::Type::PointerAddrSpace
-              rdcstr typeStr = inst.type->toString();
+              rdcstr typeStr = inst.type->toString(dxcStyleFormatting);
               int start = typeStr.find(" addrspace(");
               if(start > 0)
               {
@@ -4333,7 +4330,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
           case Operation::Phi:
           {
             lineStr += "phi ";
-            lineStr += inst.type->toString();
+            lineStr += inst.type->toString(dxcStyleFormatting);
             for(uint32_t a = 0; a < inst.args.size(); a += 2)
             {
               if(a == 0)
@@ -4509,10 +4506,9 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
           rdcstr labelName;
 
           if(func.blocks[curBlock]->name.empty())
-            labelName =
-                StringFormat::Fmt("%clabel%u: ", DXIL::dxilIdentifier, func.blocks[curBlock]->slot);
+            labelName = StringFormat::Fmt("%clabel%u: ", dxilIdentifier, func.blocks[curBlock]->slot);
           else
-            labelName = StringFormat::Fmt("%clabel_%s%u: ", DXIL::dxilIdentifier,
+            labelName = StringFormat::Fmt("%clabel_%s%u: ", dxilIdentifier,
                                           DXBC::BasicDemangle(func.blocks[curBlock]->name).c_str(),
                                           func.blocks[curBlock]->id);
 
@@ -4532,7 +4528,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 if(!first)
                   predicates += ", ";
                 first = false;
-                predicates += StringFormat::Fmt("%clabel%u", DXIL::dxilIdentifier, pred->slot);
+                predicates += StringFormat::Fmt("%clabel%u", dxilIdentifier, pred->slot);
               }
             }
             else
@@ -4540,7 +4536,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               if(!first)
                 predicates += ", ";
               first = false;
-              predicates += StringFormat::Fmt("%clabel_%s%u", DXIL::dxilIdentifier,
+              predicates += StringFormat::Fmt("%clabel_%s%u", dxilIdentifier,
                                               DXBC::BasicDemangle(pred->name).c_str(), pred->id);
             }
           }
@@ -4871,11 +4867,12 @@ void Program::ParseReferences(const DXBC::Reflection *reflection)
   }
 }
 
-rdcstr Type::toString() const
+rdcstr Type::toString(bool dxcStyleFormatting) const
 {
+  const char dxilIdentifier = Program::GetDXILIdentifier(dxcStyleFormatting);
   if(!name.empty())
   {
-    return StringFormat::Fmt("%c%s", DXIL::dxilIdentifier, escapeStringIfNeeded(name).c_str());
+    return StringFormat::Fmt("%c%s", dxilIdentifier, escapeStringIfNeeded(name).c_str());
   }
 
   switch(type)
@@ -4886,7 +4883,7 @@ rdcstr Type::toString() const
       {
         case Void: return "void";
         case Int:
-          if(DXIL::dxcStyleFormatting)
+          if(dxcStyleFormatting)
           {
             return StringFormat::Fmt("i%u", bitWidth);
           }
@@ -4914,33 +4911,35 @@ rdcstr Type::toString() const
     }
     case Vector:
     {
-      if(DXIL::dxcStyleFormatting)
-        return StringFormat::Fmt("<%u x %s>", elemCount, inner->toString().c_str());
+      if(dxcStyleFormatting)
+        return StringFormat::Fmt("<%u x %s>", elemCount, inner->toString(dxcStyleFormatting).c_str());
       else
-        return StringFormat::Fmt("%s%u", inner->toString().c_str(), elemCount);
+        return StringFormat::Fmt("%s%u", inner->toString(dxcStyleFormatting).c_str(), elemCount);
     }
     case Pointer:
     {
       if(inner->type == Type::Function)
       {
         if(addrSpace == Type::PointerAddrSpace::Default)
-          return inner->toString();
+          return inner->toString(dxcStyleFormatting);
         else
-          return StringFormat::Fmt("%s addrspace(%d)", inner->toString().c_str(), addrSpace);
+          return StringFormat::Fmt("%s addrspace(%d)", inner->toString(dxcStyleFormatting).c_str(),
+                                   addrSpace);
       }
       if(addrSpace == Type::PointerAddrSpace::Default)
-        return StringFormat::Fmt("%s*", inner->toString().c_str());
+        return StringFormat::Fmt("%s*", inner->toString(dxcStyleFormatting).c_str());
       else
-        return StringFormat::Fmt("%s addrspace(%d)*", inner->toString().c_str(), addrSpace);
+        return StringFormat::Fmt("%s addrspace(%d)*", inner->toString(dxcStyleFormatting).c_str(),
+                                 addrSpace);
     }
     case Array:
     {
-      if(DXIL::dxcStyleFormatting)
-        return StringFormat::Fmt("[%u x %s]", elemCount, inner->toString().c_str());
+      if(dxcStyleFormatting)
+        return StringFormat::Fmt("[%u x %s]", elemCount, inner->toString(dxcStyleFormatting).c_str());
       else
-        return StringFormat::Fmt("%s[%u]", inner->toString().c_str(), elemCount);
+        return StringFormat::Fmt("%s[%u]", inner->toString(dxcStyleFormatting).c_str(), elemCount);
     }
-    case Function: return declFunction(rdcstr(), {}, NULL) + "*";
+    case Function: return declFunction(rdcstr(), {}, NULL, dxcStyleFormatting) + "*";
     case Struct:
     {
       rdcstr ret;
@@ -4952,7 +4951,7 @@ rdcstr Type::toString() const
       {
         if(i > 0)
           ret += ", ";
-        ret += members[i]->toString();
+        ret += members[i]->toString(dxcStyleFormatting);
       }
       if(packedStruct)
         ret += " }>";
@@ -4968,15 +4967,15 @@ rdcstr Type::toString() const
 }
 
 rdcstr Type::declFunction(rdcstr funcName, const rdcarray<Instruction *> &args,
-                          const AttributeSet *attrs) const
+                          const AttributeSet *attrs, bool dxcStyleFormatting) const
 {
-  rdcstr ret = inner->toString();
+  rdcstr ret = inner->toString(dxcStyleFormatting);
   ret += " " + funcName + "(";
   for(size_t i = 0; i < members.size(); i++)
   {
     if(i > 0)
       ret += ", ";
-    ret += members[i]->toString();
+    ret += members[i]->toString(dxcStyleFormatting);
 
     if(attrs && i + 1 < attrs->groupSlots.size() && attrs->groupSlots[i + 1])
     {
@@ -5043,34 +5042,36 @@ rdcstr AttributeGroup::toString(bool stringAttrs) const
   return ret.trimmed();
 }
 
-rdcstr Metadata::refString() const
+rdcstr Metadata::refString(bool dxcStyleFormatting) const
 {
   if(slot == ~0U)
-    return valString();
+    return valString(dxcStyleFormatting);
   return StringFormat::Fmt("!%u", slot);
 }
 
-rdcstr DebugLocation::toString() const
+rdcstr DebugLocation::toString(bool dxcStyleFormatting) const
 {
   rdcstr ret = StringFormat::Fmt("!DILocation(line: %llu", line);
   if(col)
     ret += StringFormat::Fmt(", column: %llu", col);
-  ret += StringFormat::Fmt(", scope: %s", scope ? scope->refString().c_str() : "null");
+  ret += StringFormat::Fmt(", scope: %s",
+                           scope ? scope->refString(dxcStyleFormatting).c_str() : "null");
   if(inlinedAt)
-    ret += StringFormat::Fmt(", inlinedAt: %s", inlinedAt->refString().c_str());
+    ret += StringFormat::Fmt(", inlinedAt: %s", inlinedAt->refString(dxcStyleFormatting).c_str());
   ret += ")";
   return ret;
 }
 
-rdcstr Metadata::valString() const
+rdcstr Metadata::valString(bool dxcStyleFormatting) const
 {
+  const char dxilIdentifier = Program::GetDXILIdentifier(dxcStyleFormatting);
   if(dwarf)
   {
-    return dwarf->toString();
+    return dwarf->toString(dxcStyleFormatting);
   }
   else if(debugLoc)
   {
-    return debugLoc->toString();
+    return debugLoc->toString(dxcStyleFormatting);
   }
   else if(isConstant)
   {
@@ -5098,15 +5099,15 @@ rdcstr Metadata::valString() const
       if(i)
       {
         if(i->getName().empty())
-          return StringFormat::Fmt("%s %c%u", i->type->toString().c_str(), DXIL::dxilIdentifier,
-                                   i->slot);
+          return StringFormat::Fmt("%s %c%u", i->type->toString(dxcStyleFormatting).c_str(),
+                                   dxilIdentifier, i->slot);
         else
-          return StringFormat::Fmt("%s %c%s", i->type->toString().c_str(), DXIL::dxilIdentifier,
-                                   escapeStringIfNeeded(i->getName()).c_str());
+          return StringFormat::Fmt("%s %c%s", i->type->toString(dxcStyleFormatting).c_str(),
+                                   dxilIdentifier, escapeStringIfNeeded(i->getName()).c_str());
       }
       else if(value)
       {
-        return value->toString(true);
+        return value->toString(dxcStyleFormatting, true);
       }
       else
       {
@@ -5125,7 +5126,7 @@ rdcstr Metadata::valString() const
       if(!children[i])
         ret += "null";
       else if(children[i]->isConstant)
-        ret += children[i]->valString();
+        ret += children[i]->valString(dxcStyleFormatting);
       else
         ret += StringFormat::Fmt("!%u", children[i]->slot);
     }
@@ -5135,9 +5136,10 @@ rdcstr Metadata::valString() const
   }
 }
 
-static void floatAppendToString(const Type *t, const ShaderValue &val, uint32_t i, rdcstr &ret)
+static void floatAppendToString(const Type *t, const ShaderValue &val, uint32_t i, rdcstr &ret,
+                                bool dxcStyleFormatting)
 {
-  if(DXIL::dxcStyleFormatting)
+  if(dxcStyleFormatting)
   {
 #if ENABLED(DXC_COMPATIBLE_DISASM)
     // dxc/llvm always prints half floats as their 16-bit hex representation.
@@ -5154,7 +5156,7 @@ static void floatAppendToString(const Type *t, const ShaderValue &val, uint32_t 
   // NaNs/infs are printed as hex to ensure we don't lose bits
   if(RDCISFINITE(d))
   {
-    if(DXIL::dxcStyleFormatting)
+    if(dxcStyleFormatting)
     {
       // check we can reparse precisely a float-formatted string. Otherwise we print as hex
       rdcstr flt = StringFormat::Fmt("%.6le", d);
@@ -5187,11 +5189,12 @@ static void floatAppendToString(const Type *t, const ShaderValue &val, uint32_t 
   ret += StringFormat::Fmt("0x%llX", d);
 }
 
-void shaderValAppendToString(const Type *type, const ShaderValue &val, uint32_t i, rdcstr &ret)
+void shaderValAppendToString(const Type *type, const ShaderValue &val, uint32_t i, rdcstr &ret,
+                             bool dxcStyleFormatting)
 {
   if(type->scalarType == Type::Float)
   {
-    floatAppendToString(type, val, i, ret);
+    floatAppendToString(type, val, i, ret, dxcStyleFormatting);
   }
   else if(type->scalarType == Type::Int)
   {
@@ -5205,13 +5208,13 @@ void shaderValAppendToString(const Type *type, const ShaderValue &val, uint32_t 
   }
 }
 
-rdcstr Value::toString(bool withType) const
+rdcstr Value::toString(bool dxcStyleFormatting, bool withType) const
 {
   rdcstr ret;
   if(withType)
   {
     if(type)
-      ret += type->toString() + " ";
+      ret += type->toString(dxcStyleFormatting) + " ";
     else
       RDCERR("Type requested in value string, but no type available");
   }
@@ -5226,7 +5229,9 @@ rdcstr Value::toString(bool withType) const
     case ValueKind::Alias:
       ret += StringFormat::Fmt("@%s", escapeStringIfNeeded(cast<Alias>(this)->name).c_str());
       break;
-    case ValueKind::Constant: return cast<Constant>(this)->toString(withType); break;
+    case ValueKind::Constant:
+      return cast<Constant>(this)->toString(dxcStyleFormatting, withType);
+      break;
     case ValueKind::ForwardReferencePlaceholder:
       RDCERR("forward-reference value being stringised");
       ret += "???";
@@ -5242,14 +5247,14 @@ rdcstr Value::toString(bool withType) const
   return ret;
 }
 
-rdcstr Constant::toString(bool withType) const
+rdcstr Constant::toString(bool dxcStyleFormatting, bool withType) const
 {
   if(type == NULL)
     return escapeString(str);
 
   rdcstr ret;
   if(withType)
-    ret += type->toString() + " ";
+    ret += type->toString(dxcStyleFormatting) + " ";
   if(isUndef())
   {
     ret += "undef";
@@ -5265,12 +5270,12 @@ rdcstr Constant::toString(bool withType) const
 
         const Type *baseType = members->at(0)->type;
         RDCASSERTEQUAL(baseType->type, Type::Pointer);
-        ret += baseType->inner->toString();
+        ret += baseType->inner->toString(dxcStyleFormatting);
         for(size_t i = 0; i < members->size(); i++)
         {
           ret += ", ";
 
-          ret += members->at(i)->toString(withType);
+          ret += members->at(i)->toString(dxcStyleFormatting, withType);
         }
         ret += ")";
         break;
@@ -5308,9 +5313,9 @@ rdcstr Constant::toString(bool withType) const
         }
 
         ret += "(";
-        ret += inner->toString(withType);
+        ret += inner->toString(dxcStyleFormatting, withType);
         ret += " to ";
-        ret += type->toString();
+        ret += type->toString(dxcStyleFormatting);
         ret += ")";
         break;
       }
@@ -5367,11 +5372,11 @@ rdcstr Constant::toString(bool withType) const
             ShaderValue v;
             v.u64v[0] = l->literal;
 
-            shaderValAppendToString(members->at(i)->type, v, 0, ret);
+            shaderValAppendToString(members->at(i)->type, v, 0, ret, dxcStyleFormatting);
           }
           else
           {
-            ret += members->at(i)->toString(withType);
+            ret += members->at(i)->toString(dxcStyleFormatting, withType);
           }
         }
 
@@ -5385,7 +5390,7 @@ rdcstr Constant::toString(bool withType) const
   {
     ShaderValue v;
     v.u64v[0] = u64;
-    shaderValAppendToString(type, v, 0, ret);
+    shaderValAppendToString(type, v, 0, ret, dxcStyleFormatting);
   }
   else if(isNULL())
   {
@@ -5421,11 +5426,11 @@ rdcstr Constant::toString(bool withType) const
       if(i > 0)
         ret += ", ";
       if(withType)
-        ret += type->inner->toString() + " ";
+        ret += type->inner->toString(dxcStyleFormatting) + " ";
       if(isCompound() && cast<Constant>(members->at(i))->isUndef())
         ret += "undef";
       else
-        shaderValAppendToString(type, v, i, ret);
+        shaderValAppendToString(type, v, i, ret, dxcStyleFormatting);
     }
     ret += ">";
   }
@@ -5446,16 +5451,16 @@ rdcstr Constant::toString(bool withType) const
         if(Literal *l = cast<Literal>(members->at(i)))
         {
           if(withType)
-            ret += type->inner->toString() + " ";
+            ret += type->inner->toString(dxcStyleFormatting) + " ";
 
           ShaderValue v;
           v.u64v[0] = l->literal;
 
-          shaderValAppendToString(type->inner, v, 0, ret);
+          shaderValAppendToString(type->inner, v, 0, ret, dxcStyleFormatting);
         }
         else
         {
-          ret += members->at(i)->toString(withType);
+          ret += members->at(i)->toString(dxcStyleFormatting, withType);
         }
       }
       ret += "]";
@@ -5500,11 +5505,11 @@ rdcstr Constant::toString(bool withType) const
           ShaderValue v;
           v.u64v[0] = l->literal;
 
-          shaderValAppendToString(members->at(i)->type, v, 0, ret);
+          shaderValAppendToString(members->at(i)->type, v, 0, ret, dxcStyleFormatting);
         }
         else
         {
-          ret += members->at(i)->toString(withType);
+          ret += members->at(i)->toString(dxcStyleFormatting, withType);
         }
       }
       ret += " }";
@@ -5520,15 +5525,14 @@ rdcstr Constant::toString(bool withType) const
 
 rdcstr Program::GetArgId(const Instruction &inst, uint32_t arg) const
 {
-  return ArgToString(inst.args[arg], false);
+  return ArgToString(inst.args[arg], false, false);
 }
 
 void Program::MakeResultId(const DXIL::Instruction &inst, rdcstr &resultId)
 {
   if(!inst.getName().empty())
-    resultId = StringFormat::Fmt("%c%s", DXIL::dxilIdentifier,
-                                 escapeStringIfNeeded(inst.getName()).c_str());
+    resultId = StringFormat::Fmt("%c%s", '_', escapeStringIfNeeded(inst.getName()).c_str());
   else if(inst.slot != ~0U)
-    resultId = StringFormat::Fmt("%c%s", DXIL::dxilIdentifier, ToStr(inst.slot).c_str());
+    resultId = StringFormat::Fmt("%c%s", '_', ToStr(inst.slot).c_str());
 }
 };    // namespace DXIL

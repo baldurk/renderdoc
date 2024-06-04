@@ -363,7 +363,7 @@ struct DIFile : public DIBase
   const Metadata *file;
   const Metadata *dir;
 
-  virtual rdcstr toString() const;
+  virtual rdcstr toString(bool dxcStyleFormatting) const;
 };
 
 struct DICompileUnit : public DIBase
@@ -404,7 +404,7 @@ struct DICompileUnit : public DIBase
   const Metadata *globals;
   const Metadata *imports;
 
-  virtual rdcstr toString() const;
+  virtual rdcstr toString(bool dxcStyleFormatting) const;
 };
 
 struct DIBasicType : public DIBase
@@ -427,7 +427,7 @@ struct DIBasicType : public DIBase
   uint64_t alignInBits;
   DW_ENCODING encoding;
 
-  virtual rdcstr toString() const;
+  virtual rdcstr toString(bool dxcStyleFormatting) const;
 };
 
 struct DIDerivedType : public DIBase
@@ -463,7 +463,7 @@ struct DIDerivedType : public DIBase
   DIFlags flags;
   const Metadata *extra;
 
-  virtual rdcstr toString() const;
+  virtual rdcstr toString(bool dxcStyleFormatting) const;
 };
 
 struct DICompositeType : public DIBase
@@ -502,7 +502,7 @@ struct DICompositeType : public DIBase
   const Metadata *elements;
   const Metadata *templateParams;
 
-  virtual rdcstr toString() const;
+  virtual rdcstr toString(bool dxcStyleFormatting) const;
 };
 
 struct DIEnum : public DIBase
@@ -512,7 +512,7 @@ struct DIEnum : public DIBase
   int64_t value;
   const rdcstr *name;
 
-  virtual rdcstr toString() const;
+  virtual rdcstr toString(bool dxcStyleFormatting) const;
 };
 
 struct DITemplateTypeParameter : public DIBase
@@ -525,7 +525,7 @@ struct DITemplateTypeParameter : public DIBase
   const rdcstr *name;
   const Metadata *type;
 
-  virtual rdcstr toString() const;
+  virtual rdcstr toString(bool dxcStyleFormatting) const;
 };
 
 struct DITemplateValueParameter : public DIBase
@@ -541,7 +541,7 @@ struct DITemplateValueParameter : public DIBase
   const Metadata *type;
   const Metadata *value;
 
-  virtual rdcstr toString() const;
+  virtual rdcstr toString(bool dxcStyleFormatting) const;
 };
 
 struct DISubprogram : public DIBase
@@ -600,7 +600,7 @@ struct DISubprogram : public DIBase
       function->id = ID;
   }
 
-  virtual rdcstr toString() const;
+  virtual rdcstr toString(bool dxcStyleFormatting) const;
 };
 
 struct DISubroutineType : public DIBase
@@ -609,7 +609,7 @@ struct DISubroutineType : public DIBase
   DISubroutineType(const Metadata *types) : DIBase(DIType), types(types) {}
   const Metadata *types;
 
-  virtual rdcstr toString() const;
+  virtual rdcstr toString(bool dxcStyleFormatting) const;
 };
 
 struct DIGlobalVariable : public DIBase
@@ -643,7 +643,7 @@ struct DIGlobalVariable : public DIBase
   const Metadata *variable;
   const Metadata *declaration;
 
-  virtual rdcstr toString() const;
+  virtual rdcstr toString(bool dxcStyleFormatting) const;
 };
 
 struct DILocalVariable : public DIBase
@@ -673,7 +673,7 @@ struct DILocalVariable : public DIBase
   DIFlags flags;
   uint64_t alignInBits;
 
-  virtual rdcstr toString() const;
+  virtual rdcstr toString(bool dxcStyleFormatting) const;
 };
 
 struct DIExpression : public DIBase
@@ -691,7 +691,7 @@ struct DIExpression : public DIBase
     } bit_piece;
   } evaluated;
 
-  virtual rdcstr toString() const;
+  virtual rdcstr toString(bool dxcStyleFormatting) const;
 };
 
 struct DILexicalBlock : public DIBase
@@ -707,7 +707,7 @@ struct DILexicalBlock : public DIBase
   uint64_t line;
   uint64_t column;
 
-  virtual rdcstr toString() const;
+  virtual rdcstr toString(bool dxcStyleFormatting) const;
 };
 
 struct DISubrange : public DIBase
@@ -721,7 +721,7 @@ struct DISubrange : public DIBase
   int64_t count;
   int64_t lowerBound;
 
-  virtual rdcstr toString() const;
+  virtual rdcstr toString(bool dxcStyleFormatting) const;
 };
 
 struct DINamespace : public DIBase
@@ -737,7 +737,7 @@ struct DINamespace : public DIBase
   const rdcstr *name;
   uint64_t line;
 
-  virtual rdcstr toString() const;
+  virtual rdcstr toString(bool dxcStyleFormatting) const;
 };
 
 struct DIImportedEntity : public DIBase
@@ -755,7 +755,7 @@ struct DIImportedEntity : public DIBase
   uint64_t line;
   const rdcstr *name;
 
-  virtual rdcstr toString() const;
+  virtual rdcstr toString(bool dxcStyleFormatting) const;
 };
 };    // namespace DXIL
 

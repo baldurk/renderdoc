@@ -323,16 +323,16 @@ rdcstr getOptMetaString(const Metadata *meta)
   return meta ? escapeString(meta->str).c_str() : "\"\"";
 }
 
-rdcstr DIFile::toString() const
+rdcstr DIFile::toString(bool dxcStyleFormatting) const
 {
   return StringFormat::Fmt("!DIFile(filename: %s, directory: %s)", getOptMetaString(file).c_str(),
                            getOptMetaString(dir).c_str());
 }
 
-rdcstr DICompileUnit::toString() const
+rdcstr DICompileUnit::toString(bool dxcStyleFormatting) const
 {
   rdcstr ret = StringFormat::Fmt("!DICompileUnit(language: %s, file: %s", ToStr(lang).c_str(),
-                                 file ? file->refString().c_str() : "null");
+                                 file ? file->refString(dxcStyleFormatting).c_str() : "null");
 
   if(producer)
     ret += ", producer: " + escapeString(*producer);
@@ -344,22 +344,22 @@ rdcstr DICompileUnit::toString() const
     ret += ", splitDebugFilename: " + escapeString(*splitDebugFilename);
   ret += StringFormat::Fmt(", emissionKind: %llu", emissionKind);
   if(enums)
-    ret += ", enums: " + enums->refString();
+    ret += ", enums: " + enums->refString(dxcStyleFormatting);
   if(retainedTypes)
-    ret += ", retainedTypes: " + retainedTypes->refString();
+    ret += ", retainedTypes: " + retainedTypes->refString(dxcStyleFormatting);
   if(subprograms)
-    ret += ", subprograms: " + subprograms->refString();
+    ret += ", subprograms: " + subprograms->refString(dxcStyleFormatting);
   if(globals)
-    ret += ", globals: " + globals->refString();
+    ret += ", globals: " + globals->refString(dxcStyleFormatting);
   if(imports)
-    ret += ", imports: " + imports->refString();
+    ret += ", imports: " + imports->refString(dxcStyleFormatting);
 
   ret += ")";
 
   return ret;
 }
 
-rdcstr DIBasicType::toString() const
+rdcstr DIBasicType::toString(bool dxcStyleFormatting) const
 {
   rdcstr ret = "!DIBasicType(";
   if(tag != DW_TAG_base_type)
@@ -372,19 +372,19 @@ rdcstr DIBasicType::toString() const
   return ret;
 }
 
-rdcstr DIDerivedType::toString() const
+rdcstr DIDerivedType::toString(bool dxcStyleFormatting) const
 {
   rdcstr ret = StringFormat::Fmt("!DIDerivedType(tag: %s", ToStr(tag).c_str());
   if(name)
     ret += StringFormat::Fmt(", name: %s", escapeString(*name).c_str());
   if(scope)
-    ret += StringFormat::Fmt(", scope: %s", scope->refString().c_str());
+    ret += StringFormat::Fmt(", scope: %s", scope->refString(dxcStyleFormatting).c_str());
   if(file)
-    ret += StringFormat::Fmt(", file: %s", file->refString().c_str());
+    ret += StringFormat::Fmt(", file: %s", file->refString(dxcStyleFormatting).c_str());
   if(line)
     ret += StringFormat::Fmt(", line: %llu", line);
   if(base)
-    ret += StringFormat::Fmt(", baseType: %s", base->refString().c_str());
+    ret += StringFormat::Fmt(", baseType: %s", base->refString(dxcStyleFormatting).c_str());
   else
     ret += ", baseType: null";
   if(sizeInBits)
@@ -396,24 +396,24 @@ rdcstr DIDerivedType::toString() const
   if(flags != DIFlagNone)
     ret += StringFormat::Fmt(", flags: %s", ToStr(flags).c_str());
   if(extra)
-    ret += StringFormat::Fmt(", extraData: %s", extra->refString().c_str());
+    ret += StringFormat::Fmt(", extraData: %s", extra->refString(dxcStyleFormatting).c_str());
   ret += ")";
   return ret;
 }
 
-rdcstr DICompositeType::toString() const
+rdcstr DICompositeType::toString(bool dxcStyleFormatting) const
 {
   rdcstr ret = StringFormat::Fmt("!DICompositeType(tag: %s", ToStr(tag).c_str());
   if(name)
     ret += StringFormat::Fmt(", name: %s", escapeString(*name).c_str());
   if(scope)
-    ret += StringFormat::Fmt(", scope: %s", scope->refString().c_str());
+    ret += StringFormat::Fmt(", scope: %s", scope->refString(dxcStyleFormatting).c_str());
   if(file)
-    ret += StringFormat::Fmt(", file: %s", file->refString().c_str());
+    ret += StringFormat::Fmt(", file: %s", file->refString(dxcStyleFormatting).c_str());
   if(line)
     ret += StringFormat::Fmt(", line: %llu", line);
   if(base)
-    ret += StringFormat::Fmt(", baseType: %s", base->refString().c_str());
+    ret += StringFormat::Fmt(", baseType: %s", base->refString(dxcStyleFormatting).c_str());
   if(sizeInBits)
     ret += StringFormat::Fmt(", size: %llu", sizeInBits);
   if(alignInBits)
@@ -423,14 +423,15 @@ rdcstr DICompositeType::toString() const
   if(flags != DIFlagNone)
     ret += StringFormat::Fmt(", flags: %s", ToStr(flags).c_str());
   if(elements)
-    ret += StringFormat::Fmt(", elements: %s", elements->refString().c_str());
+    ret += StringFormat::Fmt(", elements: %s", elements->refString(dxcStyleFormatting).c_str());
   if(templateParams)
-    ret += StringFormat::Fmt(", templateParams: %s", templateParams->refString().c_str());
+    ret += StringFormat::Fmt(", templateParams: %s",
+                             templateParams->refString(dxcStyleFormatting).c_str());
   ret += ")";
   return ret;
 }
 
-rdcstr DIEnum::toString() const
+rdcstr DIEnum::toString(bool dxcStyleFormatting) const
 {
   rdcstr ret = "!DIEnumerator(";
   ret += StringFormat::Fmt("name: %s", escapeString(*name).c_str());
@@ -439,22 +440,22 @@ rdcstr DIEnum::toString() const
   return ret;
 }
 
-rdcstr DITemplateTypeParameter::toString() const
+rdcstr DITemplateTypeParameter::toString(bool dxcStyleFormatting) const
 {
   return StringFormat::Fmt("!DITemplateTypeParameter(name: %s, type: %s)",
                            escapeString(name ? *name : rdcstr()).c_str(),
-                           type ? type->refString().c_str() : "null");
+                           type ? type->refString(dxcStyleFormatting).c_str() : "null");
 }
 
-rdcstr DITemplateValueParameter::toString() const
+rdcstr DITemplateValueParameter::toString(bool dxcStyleFormatting) const
 {
   return StringFormat::Fmt("!DITemplateValueParameter(name: %s, type: %s, value: %s)",
                            escapeString(name ? *name : rdcstr()).c_str(),
-                           type ? type->refString().c_str() : "null",
-                           value ? value->refString().c_str() : "null");
+                           type ? type->refString(dxcStyleFormatting).c_str() : "null",
+                           value ? value->refString(dxcStyleFormatting).c_str() : "null");
 }
 
-rdcstr DISubprogram::toString() const
+rdcstr DISubprogram::toString(bool dxcStyleFormatting) const
 {
   rdcstr ret = "!DISubprogram(";
   if(name)
@@ -462,21 +463,22 @@ rdcstr DISubprogram::toString() const
   if(linkageName)
     ret += StringFormat::Fmt("linkageName: %s, ", escapeString(*linkageName).c_str());
   if(scope)
-    ret += StringFormat::Fmt("scope: %s, ", scope->refString().c_str());
+    ret += StringFormat::Fmt("scope: %s, ", scope->refString(dxcStyleFormatting).c_str());
   if(file)
-    ret += StringFormat::Fmt("file: %s", file->refString().c_str());
+    ret += StringFormat::Fmt("file: %s", file->refString(dxcStyleFormatting).c_str());
   else
     ret += "file: null";
   if(line)
     ret += StringFormat::Fmt(", line: %llu", line);
   if(type)
-    ret += StringFormat::Fmt(", type: %s", type->refString().c_str());
+    ret += StringFormat::Fmt(", type: %s", type->refString(dxcStyleFormatting).c_str());
   ret += StringFormat::Fmt(", isLocal: %s", isLocal ? "true" : "false");
   ret += StringFormat::Fmt(", isDefinition: %s", isDefinition ? "true" : "false");
   if(scopeLine)
     ret += StringFormat::Fmt(", scopeLine: %llu", scopeLine);
   if(containingType)
-    ret += StringFormat::Fmt(", containingType: %s", containingType->refString().c_str());
+    ret += StringFormat::Fmt(", containingType: %s",
+                             containingType->refString(dxcStyleFormatting).c_str());
 
   if(virtuality)
   {
@@ -491,73 +493,74 @@ rdcstr DISubprogram::toString() const
   ret += StringFormat::Fmt(", isOptimized: %s", isOptimized ? "true" : "false");
 
   if(function)
-    ret += StringFormat::Fmt(", function: %s", function->refString().c_str());
+    ret += StringFormat::Fmt(", function: %s", function->refString(dxcStyleFormatting).c_str());
   if(templateParams)
-    ret += StringFormat::Fmt(", templateParams: %s", templateParams->refString().c_str());
+    ret += StringFormat::Fmt(", templateParams: %s",
+                             templateParams->refString(dxcStyleFormatting).c_str());
   if(declaration)
-    ret += StringFormat::Fmt(", declaration: %s", declaration->refString().c_str());
+    ret += StringFormat::Fmt(", declaration: %s", declaration->refString(dxcStyleFormatting).c_str());
   if(variables)
-    ret += StringFormat::Fmt(", variables: %s", variables->refString().c_str());
+    ret += StringFormat::Fmt(", variables: %s", variables->refString(dxcStyleFormatting).c_str());
 
   ret += ")";
   return ret;
 }
 
-rdcstr DISubroutineType::toString() const
+rdcstr DISubroutineType::toString(bool dxcStyleFormatting) const
 {
   return StringFormat::Fmt("!DISubroutineType(types: %s)",
-                           types ? types->refString().c_str() : "null");
+                           types ? types->refString(dxcStyleFormatting).c_str() : "null");
 }
 
-rdcstr DIGlobalVariable::toString() const
+rdcstr DIGlobalVariable::toString(bool dxcStyleFormatting) const
 {
   rdcstr ret =
       StringFormat::Fmt("!DIGlobalVariable(name: %s", escapeString(name ? *name : rdcstr()).c_str());
   if(linkageName)
     ret += StringFormat::Fmt(", linkageName: %s", escapeString(*linkageName).c_str());
   if(scope)
-    ret += StringFormat::Fmt(", scope: %s", scope->refString().c_str());
+    ret += StringFormat::Fmt(", scope: %s", scope->refString(dxcStyleFormatting).c_str());
   if(file)
-    ret += StringFormat::Fmt(", file: %s", file->refString().c_str());
+    ret += StringFormat::Fmt(", file: %s", file->refString(dxcStyleFormatting).c_str());
   else
     ret += ", file: null";
   if(line)
     ret += StringFormat::Fmt(", line: %llu", line);
   if(type)
-    ret += StringFormat::Fmt(", type: %s", type->refString().c_str());
+    ret += StringFormat::Fmt(", type: %s", type->refString(dxcStyleFormatting).c_str());
   ret += StringFormat::Fmt(", isLocal: %s", isLocal ? "true" : "false");
   ret += StringFormat::Fmt(", isDefinition: %s", isDefinition ? "true" : "false");
   if(declaration)
-    ret += StringFormat::Fmt(", declaration: %s", declaration->refString().c_str());
+    ret += StringFormat::Fmt(", declaration: %s", declaration->refString(dxcStyleFormatting).c_str());
   if(variable)
-    ret += StringFormat::Fmt(", variable: %s", variable->refString().c_str());
+    ret += StringFormat::Fmt(", variable: %s", variable->refString(dxcStyleFormatting).c_str());
   ret += ")";
   return ret;
 }
 
-rdcstr DILocalVariable::toString() const
+rdcstr DILocalVariable::toString(bool dxcStyleFormatting) const
 {
   rdcstr ret = StringFormat::Fmt("!DILocalVariable(tag: %s, name: %s", ToStr(tag).c_str(),
                                  escapeString(name ? *name : rdcstr()).c_str());
   if(arg || tag != DW_TAG_auto_variable)
     ret += StringFormat::Fmt(", arg: %llu", arg);
   if(scope)
-    ret += StringFormat::Fmt(", scope: %s", scope->refString().c_str());
+    ret += StringFormat::Fmt(", scope: %s", scope->refString(dxcStyleFormatting).c_str());
   else
     ret += ", scope: null";
   if(file)
-    ret += StringFormat::Fmt(", file: %s", file->refString().c_str());
+    ret += StringFormat::Fmt(", file: %s", file->refString(dxcStyleFormatting).c_str());
   if(line)
     ret += StringFormat::Fmt(", line: %llu", line);
   if(type)
-    ret += StringFormat::Fmt(", type: %s", type->refString().c_str());
+    ret += StringFormat::Fmt(", type: %s", type->refString(dxcStyleFormatting).c_str());
   if(flags != DIFlagNone)
     ret += StringFormat::Fmt(", flags: %s", ToStr(flags).c_str());
   ret += ")";
   return ret;
 }
 
-rdcstr DIExpression::toString() const
+rdcstr DIExpression::toString(bool dxcStyleFormatting) const
 {
   if(op == DW_OP_bit_piece)
     return StringFormat::Fmt("!DIExpression(DW_OP_bit_piece, %llu, %llu)",
@@ -580,15 +583,15 @@ rdcstr DIExpression::toString() const
   return ret;
 }
 
-rdcstr DILexicalBlock::toString() const
+rdcstr DILexicalBlock::toString(bool dxcStyleFormatting) const
 {
   rdcstr ret = "!DILexicalBlock(";
   if(scope)
-    ret += StringFormat::Fmt("scope: %s", scope->refString().c_str());
+    ret += StringFormat::Fmt("scope: %s", scope->refString(dxcStyleFormatting).c_str());
   else
     ret += "scope: null";
   if(file)
-    ret += StringFormat::Fmt(", file: %s", file->refString().c_str());
+    ret += StringFormat::Fmt(", file: %s", file->refString(dxcStyleFormatting).c_str());
   if(line)
     ret += StringFormat::Fmt(", line: %llu", line);
   if(column)
@@ -597,7 +600,7 @@ rdcstr DILexicalBlock::toString() const
   return ret;
 }
 
-rdcstr DISubrange::toString() const
+rdcstr DISubrange::toString(bool dxcStyleFormatting) const
 {
   rdcstr ret = "!DISubrange(";
   ret += StringFormat::Fmt("count: %lld", count);
@@ -607,33 +610,33 @@ rdcstr DISubrange::toString() const
   return ret;
 }
 
-rdcstr DINamespace::toString() const
+rdcstr DINamespace::toString(bool dxcStyleFormatting) const
 {
   rdcstr ret = "!DINamespace(";
   if(name)
     ret += StringFormat::Fmt("name: %s, ", escapeString(*name).c_str());
   if(scope)
-    ret += StringFormat::Fmt("scope: %s", scope->refString().c_str());
+    ret += StringFormat::Fmt("scope: %s", scope->refString(dxcStyleFormatting).c_str());
   else
     ret += "scope: null";
   if(file)
-    ret += StringFormat::Fmt(", file: %s", file->refString().c_str());
+    ret += StringFormat::Fmt(", file: %s", file->refString(dxcStyleFormatting).c_str());
   ret += StringFormat::Fmt(", line: %llu", line);
   ret += ")";
   return ret;
 }
 
-rdcstr DIImportedEntity::toString() const
+rdcstr DIImportedEntity::toString(bool dxcStyleFormatting) const
 {
   rdcstr ret = StringFormat::Fmt("!DIImportedEntity(tag: %s", ToStr(tag).c_str());
   if(name)
     ret += StringFormat::Fmt(", name: %s, ", escapeString(*name).c_str());
   if(scope)
-    ret += StringFormat::Fmt(", scope: %s", scope->refString().c_str());
+    ret += StringFormat::Fmt(", scope: %s", scope->refString(dxcStyleFormatting).c_str());
   else
     ret += ", scope: null";
   if(entity)
-    ret += StringFormat::Fmt(", entity: %s", entity->refString().c_str());
+    ret += StringFormat::Fmt(", entity: %s", entity->refString(dxcStyleFormatting).c_str());
   if(line)
     ret += StringFormat::Fmt(", line: %llu", line);
   ret += ")";
