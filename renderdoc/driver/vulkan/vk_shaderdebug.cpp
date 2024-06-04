@@ -1734,7 +1734,7 @@ private:
           const uint32_t numSlices = imageProps.type == VK_IMAGE_TYPE_3D ? 1 : data.depth;
           const uint32_t numSamples = (uint32_t)imageProps.samples;
 
-          data.bytes.reserve(data.samplePitch * numSamples);
+          data.bytes.reserve(size_t(data.samplePitch * numSamples));
 
           // defaults are fine - no interpretation. Maybe we could use the view's typecast?
           const GetTextureDataParams params = GetTextureDataParams();
@@ -4006,7 +4006,7 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
 
     bytebuf data;
 
-    size_t size = GetByteSize(1, 1, 1, attr.format, 0);
+    size_t size = (size_t)GetByteSize(1, 1, 1, attr.format, 0);
 
     bool found = false;
 

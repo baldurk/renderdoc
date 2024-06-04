@@ -161,7 +161,7 @@ void VulkanDebugManager::CopyTex2DMSToBuffer(VkCommandBuffer cmd, VkBuffer destB
 
         Vec4u params[2] = {
             {extent.width, currentSlice, currentSample, bs},
-            {maxInvoc, dispatchOffset & 0xffffffffU, 0, 0},
+            {maxInvoc, uint32_t(dispatchOffset & 0xffffffffU), 0, 0},
         };
 
         ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_BufferMSPipeLayout),
@@ -366,7 +366,7 @@ void VulkanDebugManager::CopyDepthTex2DMSToBuffer(VkCommandBuffer cmd, VkBuffer 
 
       Vec4u params[2] = {
           {extent.width, currentSlice, currentSample, fmtIndex},
-          {maxInvoc, dispatchOffset & 0xffffffffU, 0, 0},
+          {maxInvoc, uint32_t(dispatchOffset & 0xffffffffU), 0, 0},
       };
 
       ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_BufferMSPipeLayout), VK_SHADER_STAGE_ALL,
@@ -528,7 +528,7 @@ void VulkanDebugManager::CopyBufferToTex2DMS(VkCommandBuffer cmd, VkImage destMS
 
         Vec4u params[2] = {
             {extent.width, currentSlice, currentSample, bs},
-            {maxInvoc, dispatchOffset & 0xffffffffU, 0, 0},
+            {maxInvoc, uint32_t(dispatchOffset & 0xffffffffU), 0, 0},
         };
 
         ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_BufferMSPipeLayout),
