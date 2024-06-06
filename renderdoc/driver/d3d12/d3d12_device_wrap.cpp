@@ -1851,6 +1851,12 @@ bool WrappedID3D12Device::Serialise_CreateCommandSignature(SerialiserType &ser,
             wrapped->sig.PackedByteSize += sizeof(D3D12_DISPATCH_MESH_ARGUMENTS);
             break;
           }
+          case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_RAYS:
+          {
+            wrapped->sig.PackedByteSize += sizeof(D3D12_DISPATCH_RAYS_DESC);
+            wrapped->sig.raytraced = true;
+            break;
+          }
           case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
           {
             wrapped->sig.PackedByteSize +=
@@ -1946,6 +1952,10 @@ HRESULT WrappedID3D12Device::CreateCommandSignature(const D3D12_COMMAND_SIGNATUR
     {
       GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
     }
+
+    if(pDesc->pArgumentDescs[pDesc->NumArgumentDescs - 1].Type ==
+       D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_RAYS)
+      wrapped->sig.raytraced = true;
 
     *ppvCommandSignature = (ID3D12CommandSignature *)wrapped;
   }

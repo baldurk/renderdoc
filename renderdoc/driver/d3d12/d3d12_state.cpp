@@ -92,7 +92,8 @@ void D3D12RenderState::ResolvePendingIndirectState(WrappedID3D12Device *device)
         case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW:
         case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED:
         case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH:
-        case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH: break;
+        case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH:
+        case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_RAYS: break;
         case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
         {
           size_t argSize = sizeof(uint32_t) * arg.Constant.Num32BitValuesToSet;

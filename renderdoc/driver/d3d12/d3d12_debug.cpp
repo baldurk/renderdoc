@@ -1041,6 +1041,11 @@ rdcpair<ID3D12Resource *, UINT64> D3D12DebugManager::PatchExecuteIndirect(
         offset += sizeof(D3D12_DISPATCH_MESH_ARGUMENTS);
         break;
       }
+      case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_RAYS:
+      {
+        offset += sizeof(D3D12_DISPATCH_RAYS_DESC);
+        break;
+      }
       case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
       {
         offset += sizeof(uint32_t) * arg.Constant.Num32BitValuesToSet;
