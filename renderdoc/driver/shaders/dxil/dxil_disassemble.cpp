@@ -5525,7 +5525,7 @@ rdcstr Constant::toString(bool dxcStyleFormatting, bool withType) const
 
 rdcstr Program::GetArgId(const Instruction &inst, uint32_t arg) const
 {
-  return ArgToString(inst.args[arg], false, false);
+  return ArgToString(inst.args[arg], false);
 }
 
 void Program::MakeResultId(const DXIL::Instruction &inst, rdcstr &resultId)
