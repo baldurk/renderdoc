@@ -1743,6 +1743,9 @@ IUnknown *WrappedID3D11Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
   {
     pTex = new WrappedID3D11Texture2D1((ID3D11Texture2D *)realSurface, this, TEXDISPLAY_UNKNOWN);
 
+    // this is only used to indicate that this texture is a backbuffer
+    pTex->m_RealDescriptor = new D3D11_TEXTURE2D_DESC();
+
     SetDebugName(pTex, "Swap Chain Backbuffer");
 
     D3D11_TEXTURE2D_DESC desc;
@@ -1825,6 +1828,36 @@ void WrappedID3D11Device::ReportDeath(ID3D11DeviceChild *obj)
 {
   SCOPED_LOCK(m_D3DLock);
 
+  ID3D11DeviceChild *texObj = obj;
+
+  ResourceRange range = ResourceRange::Null;
+
+  // backbuffers and their views are destroyed immediately to accommodate D3D's refcounting rules for
+  // backbuffers. For views, get the resource to check and for everything else check the object directly
+  if(WrappedID3D11ShaderResourceView1::IsAlloc(obj))
+    range = ResourceRange((WrappedID3D11ShaderResourceView1 *)obj);
+  else if(WrappedID3D11UnorderedAccessView1::IsAlloc(obj))
+    range = ResourceRange((WrappedID3D11UnorderedAccessView1 *)obj);
+  else if(WrappedID3D11RenderTargetView1::IsAlloc(obj))
+    range = ResourceRange((WrappedID3D11RenderTargetView1 *)obj);
+  else if(WrappedID3D11DepthStencilView::IsAlloc(obj))
+    range = ResourceRange((WrappedID3D11DepthStencilView *)obj);
+
+  if(range.GetResource() != NULL)
+    texObj = range.GetResource();
+
+  // if this is a wrapped 2D texture and is a backbuffer, destroy whatever object we were reporting
+  // the death of and stop
+  if(WrappedID3D11Texture2D1::IsAlloc(texObj))
+  {
+    WrappedID3D11Texture2D1 *tex = (WrappedID3D11Texture2D1 *)texObj;
+    if(tex->m_RealDescriptor)
+    {
+      DestroyDeadObject(obj);
+      return;
+    }
+  }
+
   m_DeadObjects.push_back(obj);
 
   // if we're shutting down or replaying, immediately flush the object as dead. This isn't super
@@ -1858,8 +1891,6 @@ void WrappedID3D11Device::FlushPendingDead()
   if(IsActiveCapturing(m_State))
     return;
 
-  D3D11ResourceManager *rm = GetResourceManager();
-
   int pass = 0;
   do
   {
@@ -1867,45 +1898,7 @@ void WrappedID3D11Device::FlushPendingDead()
     objs.swap(m_DeadObjects);
 
     for(ID3D11DeviceChild *child : objs)
-    {
-      // only wrapped objects are reported for death
-      WrappedDeviceChild11<ID3D11DeviceChild> *wrapped =
-          (WrappedDeviceChild11<ID3D11DeviceChild> *)child;
-
-      // is this object still dead? If so delete it, otherwise ignore it.
-      if(wrapped->GetIntRefCount() == 0 && wrapped->GetExtRefCount() == 0)
-      {
-        ResourceId id = wrapped->GetResourceID();
-
-        // clean up book-keeping
-        rm->RemoveWrapper(wrapped->GetReal());
-        rm->ReleaseCurrentResource(id);
-        D3D11ResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
-        if(record)
-          record->Delete(GetResourceManager());
-
-        if(GetResourceManager()->HasLiveResource(id))
-          GetResourceManager()->EraseLiveResource(id);
-
-        // this is a bit of a hack. the vtable for e.g. a wrapped blend state will have:
-        //
-        //   [IUnknown][ID3D11DeviceChild][ID3D11BlendState]
-        //
-        // but a buffer will have
-        //
-        //   [IUnknown][ID3D11DeviceChild][ID3D11Resource][ID3D11Buffer]
-        //
-        // If we have WrappedDeviceChild11 having a virtual descructor then because it's templated
-        // it will insert it in a variable location after all the I* functions. Even if we avoided
-        // that with another base class we'd then need two vtable pointers or we'd need to know the
-        // type to custom offset into the vtable (i.e. do the proper type cast to get the compiler
-        // to do that).
-        //
-        // Instead we hijack ID3D11DeviceChild's SetPrivateData with a custom GUID to get the object
-        // to delete itself.
-        wrapped->SetPrivateData(RENDERDOC_DeleteSelf, 0, NULL);
-      }
-    }
+      DestroyDeadObject(child);
 
     objs.clear();
 
@@ -1918,6 +1911,48 @@ void WrappedID3D11Device::FlushPendingDead()
     if(pass > 3)
       break;
   } while(!m_DeadObjects.empty());
+}
+
+void WrappedID3D11Device::DestroyDeadObject(ID3D11DeviceChild *child)
+{
+  D3D11ResourceManager *rm = GetResourceManager();
+
+  // only wrapped objects are reported for death
+  WrappedDeviceChild11<ID3D11DeviceChild> *wrapped = (WrappedDeviceChild11<ID3D11DeviceChild> *)child;
+
+  // is this object still dead? If so delete it, otherwise ignore it.
+  if(wrapped->GetIntRefCount() == 0 && wrapped->GetExtRefCount() == 0)
+  {
+    ResourceId id = wrapped->GetResourceID();
+
+    // clean up book-keeping
+    rm->RemoveWrapper(wrapped->GetReal());
+    rm->ReleaseCurrentResource(id);
+    D3D11ResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
+    if(record)
+      record->Delete(GetResourceManager());
+
+    if(GetResourceManager()->HasLiveResource(id))
+      GetResourceManager()->EraseLiveResource(id);
+
+    // this is a bit of a hack. the vtable for e.g. a wrapped blend state will have:
+    //
+    //   [IUnknown][ID3D11DeviceChild][ID3D11BlendState]
+    //
+    // but a buffer will have
+    //
+    //   [IUnknown][ID3D11DeviceChild][ID3D11Resource][ID3D11Buffer]
+    //
+    // If we have WrappedDeviceChild11 having a virtual descructor then because it's templated
+    // it will insert it in a variable location after all the I* functions. Even if we avoided
+    // that with another base class we'd then need two vtable pointers or we'd need to know the
+    // type to custom offset into the vtable (i.e. do the proper type cast to get the compiler
+    // to do that).
+    //
+    // Instead we hijack ID3D11DeviceChild's SetPrivateData with a custom GUID to get the object
+    // to delete itself.
+    wrapped->SetPrivateData(RENDERDOC_DeleteSelf, 0, NULL);
+  }
 }
 
 void WrappedID3D11Device::SetMarker(uint32_t col, const wchar_t *name)
