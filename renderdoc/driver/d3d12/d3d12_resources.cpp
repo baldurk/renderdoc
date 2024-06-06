@@ -26,6 +26,7 @@
 #include "driver/shaders/dxbc/dxbc_reflect.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
+#include "d3d12_shader_cache.h"
 
 GPUAddressRangeTracker WrappedID3D12Resource::m_Addresses;
 std::map<WrappedID3D12PipelineState::DXBCKey, WrappedID3D12Shader *> WrappedID3D12Shader::m_Shaders;
@@ -603,15 +604,15 @@ void WrappedID3D12PipelineState::ShaderEntry::BuildReflection()
   m_Details->resourceId = GetResourceID();
 }
 
-rdcpair<uint32_t, uint32_t> FindMatchingRootParameter(const D3D12RootSignature *sig,
+rdcpair<uint32_t, uint32_t> FindMatchingRootParameter(const D3D12RootSignature &sig,
                                                       D3D12_SHADER_VISIBILITY visibility,
                                                       D3D12_DESCRIPTOR_RANGE_TYPE rangeType,
                                                       uint32_t space, uint32_t bind)
 {
   // search the root signature to find the matching entry and figure out the offset from the root binding
-  for(uint32_t root = 0; root < sig->Parameters.size(); root++)
+  for(uint32_t root = 0; root < sig.Parameters.size(); root++)
   {
-    const D3D12RootSignatureParameter &param = sig->Parameters[root];
+    const D3D12RootSignatureParameter &param = sig.Parameters[root];
 
     if(param.ShaderVisibility != visibility && param.ShaderVisibility != D3D12_SHADER_VISIBILITY_ALL)
       continue;
@@ -659,11 +660,11 @@ rdcpair<uint32_t, uint32_t> FindMatchingRootParameter(const D3D12RootSignature *
   if(rangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
   {
     // indicate that we're looking up static samplers
-    uint32_t numRoots = (uint32_t)sig->Parameters.size();
-    for(uint32_t samp = 0; samp < sig->StaticSamplers.size(); samp++)
+    uint32_t numRoots = (uint32_t)sig.Parameters.size();
+    for(uint32_t samp = 0; samp < sig.StaticSamplers.size(); samp++)
     {
-      if(sig->StaticSamplers[samp].RegisterSpace == space &&
-         sig->StaticSamplers[samp].ShaderRegister == bind)
+      if(sig.StaticSamplers[samp].RegisterSpace == space &&
+         sig.StaticSamplers[samp].ShaderRegister == bind)
       {
         return {numRoots, samp};
       }
@@ -673,17 +674,60 @@ rdcpair<uint32_t, uint32_t> FindMatchingRootParameter(const D3D12RootSignature *
   return {~0U, 0};
 }
 
+void WrappedID3D12PipelineState::FetchRootSig(D3D12ShaderCache *shaderCache)
+{
+  if(compute)
+  {
+    if(compute->pRootSignature)
+    {
+      usedSig = ((WrappedID3D12RootSignature *)compute->pRootSignature)->sig;
+    }
+    else
+    {
+      D3D12_SHADER_BYTECODE desc = CS()->GetDesc();
+      if(DXBC::DXBCContainer::CheckForRootSig(desc.pShaderBytecode, desc.BytecodeLength))
+      {
+        usedSig = shaderCache->GetRootSig(desc.pShaderBytecode, desc.BytecodeLength);
+      }
+      else
+      {
+        RDCWARN("Couldn't find root signature in either desc or compute shader");
+      }
+    }
+  }
+  else if(graphics)
+  {
+    if(graphics->pRootSignature)
+    {
+      usedSig = ((WrappedID3D12RootSignature *)graphics->pRootSignature)->sig;
+    }
+    else
+    {
+      // if there is any root signature it must match in all shaders, so we just have to find the first one.
+      for(ShaderEntry *shad : {PS(), VS(), HS(), DS(), GS(), AS(), MS()})
+      {
+        if(shad)
+        {
+          D3D12_SHADER_BYTECODE desc = shad->GetDesc();
+
+          if(DXBC::DXBCContainer::CheckForRootSig(desc.pShaderBytecode, desc.BytecodeLength))
+          {
+            usedSig = shaderCache->GetRootSig(desc.pShaderBytecode, desc.BytecodeLength);
+            return;
+          }
+        }
+      }
+
+      RDCWARN("Couldn't find root signature in either desc or any bound shader");
+    }
+  }
+}
+
 void WrappedID3D12PipelineState::ProcessDescriptorAccess()
 {
   if(m_AccessProcessed)
     return;
   m_AccessProcessed = true;
-
-  const D3D12RootSignature *sig = NULL;
-  if(graphics)
-    sig = &((WrappedID3D12RootSignature *)graphics->pRootSignature)->sig;
-  else if(compute)
-    sig = &((WrappedID3D12RootSignature *)compute->pRootSignature)->sig;
 
   for(ShaderEntry *shad : {VS(), HS(), DS(), GS(), PS(), AS(), MS(), CS()})
   {
@@ -727,7 +771,7 @@ void WrappedID3D12PipelineState::ProcessDescriptorAccess()
       access.type = DescriptorType::ConstantBuffer;
       access.index = i;
       rdctie(access.byteSize, access.byteOffset) =
-          FindMatchingRootParameter(sig, visibility, D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
+          FindMatchingRootParameter(usedSig, visibility, D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
                                     bind.fixedBindSetOrSpace, bind.fixedBindNumber);
 
       if(access.byteSize != ~0U)
@@ -746,7 +790,7 @@ void WrappedID3D12PipelineState::ProcessDescriptorAccess()
       access.type = DescriptorType::Sampler;
       access.index = i;
       rdctie(access.byteSize, access.byteOffset) =
-          FindMatchingRootParameter(sig, visibility, D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER,
+          FindMatchingRootParameter(usedSig, visibility, D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER,
                                     bind.fixedBindSetOrSpace, bind.fixedBindNumber);
 
       if(access.byteSize != ~0U)
@@ -765,7 +809,7 @@ void WrappedID3D12PipelineState::ProcessDescriptorAccess()
       access.type = refl.readOnlyResources[i].descriptorType;
       access.index = i;
       rdctie(access.byteSize, access.byteOffset) =
-          FindMatchingRootParameter(sig, visibility, D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
+          FindMatchingRootParameter(usedSig, visibility, D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
                                     bind.fixedBindSetOrSpace, bind.fixedBindNumber);
 
       if(access.byteSize != ~0U)
@@ -784,7 +828,7 @@ void WrappedID3D12PipelineState::ProcessDescriptorAccess()
       access.type = refl.readWriteResources[i].descriptorType;
       access.index = i;
       rdctie(access.byteSize, access.byteOffset) =
-          FindMatchingRootParameter(sig, visibility, D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
+          FindMatchingRootParameter(usedSig, visibility, D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
                                     bind.fixedBindSetOrSpace, bind.fixedBindNumber);
 
       if(access.byteSize != ~0U)

@@ -490,6 +490,8 @@ bool WrappedID3D12Device::Serialise_CreateGraphicsPipelineState(
 
       wrapped->graphics = new D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(Descriptor);
 
+      wrapped->FetchRootSig(GetShaderCache());
+
       D3D12_SHADER_BYTECODE *shaders[] = {
           &wrapped->graphics->VS, &wrapped->graphics->HS, &wrapped->graphics->DS,
           &wrapped->graphics->GS, &wrapped->graphics->PS,
@@ -637,6 +639,8 @@ void WrappedID3D12Device::ProcessCreatedGraphicsPSO(ID3D12PipelineState *real,
 
     wrapped->graphics = new D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(*pDesc);
 
+    wrapped->FetchRootSig(GetShaderCache());
+
     D3D12_SHADER_BYTECODE *shaders[] = {
         &wrapped->graphics->VS, &wrapped->graphics->HS, &wrapped->graphics->DS,
         &wrapped->graphics->GS, &wrapped->graphics->PS, &wrapped->graphics->AS,
@@ -778,6 +782,8 @@ bool WrappedID3D12Device::Serialise_CreateComputePipelineState(
 
       wrapped->compute = new D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(Descriptor);
 
+      wrapped->FetchRootSig(GetShaderCache());
+
       WrappedID3D12Shader *entry = WrappedID3D12Shader::AddShader(wrapped->compute->CS, this);
       entry->AddRef();
 
@@ -859,6 +865,8 @@ void WrappedID3D12Device::ProcessCreatedComputePSO(ID3D12PipelineState *real, ui
     GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
 
     wrapped->compute = new D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(*pDesc);
+
+    wrapped->FetchRootSig(GetShaderCache());
 
     WrappedID3D12Shader *sh = WrappedID3D12Shader::AddShader(wrapped->compute->CS, this);
     sh->AddRef();

@@ -233,6 +233,7 @@ public:
 
   static bool CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLength);
   static bool CheckForDXIL(const void *ByteCode, size_t ByteCodeLength);
+  static bool CheckForRootSig(const void *ByteCode, size_t ByteCodeLength);
   static rdcstr GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength);
   static D3D_PRIMITIVE_TOPOLOGY GetOutputTopology(const void *ByteCode, size_t ByteCodeLength);
 

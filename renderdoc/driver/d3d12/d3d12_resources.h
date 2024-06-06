@@ -29,7 +29,7 @@
 #include "d3d12_device.h"
 #include "d3d12_manager.h"
 
-rdcpair<uint32_t, uint32_t> FindMatchingRootParameter(const D3D12RootSignature *sig,
+rdcpair<uint32_t, uint32_t> FindMatchingRootParameter(const D3D12RootSignature &sig,
                                                       D3D12_SHADER_VISIBILITY visibility,
                                                       D3D12_DESCRIPTOR_RANGE_TYPE rangeType,
                                                       uint32_t space, uint32_t bind);
@@ -642,8 +642,14 @@ public:
   D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC *graphics = NULL;
   D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC *compute = NULL;
 
+  // either the signature from graphics/compute above, or else an extracted signature from the
+  // shader blobs inside valid only on replay
+  D3D12RootSignature usedSig;
+
   rdcarray<DescriptorAccess> staticDescriptorAccess;
   bool m_AccessProcessed = false;
+
+  void FetchRootSig(D3D12ShaderCache *shaderCache);
 
   void Fill(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &desc)
   {

@@ -2049,10 +2049,6 @@ rdcarray<DescriptorLogicalLocation> D3D12Replay::GetDescriptorLocations(
   {
     WrappedID3D12PipelineState *pipe = (WrappedID3D12PipelineState *)res;
 
-    WrappedID3D12RootSignature *sig =
-        (WrappedID3D12RootSignature *)(pipe->IsGraphics() ? pipe->graphics->pRootSignature
-                                                          : pipe->compute->pRootSignature);
-
     // root constants
     size_t dst = 0;
     for(const DescriptorRange &r : ranges)
@@ -2061,7 +2057,7 @@ rdcarray<DescriptorLogicalLocation> D3D12Replay::GetDescriptorLocations(
 
       for(uint32_t i = 0; i < r.count; i++, rootIndex++, dst++)
       {
-        const D3D12RootSignatureParameter &param = sig->sig.Parameters[rootIndex];
+        const D3D12RootSignatureParameter &param = pipe->usedSig.Parameters[rootIndex];
 
         DescriptorLogicalLocation &l = ret[dst];
 

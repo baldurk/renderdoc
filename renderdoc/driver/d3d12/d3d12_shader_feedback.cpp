@@ -1520,7 +1520,7 @@ bool D3D12Replay::FetchShaderFeedback(uint32_t eventId)
           {
             access.arrayElement = i;
             rdctie(access.byteSize, access.byteOffset) = FindMatchingRootParameter(
-                &modsig, visibility, rangeType, it->first.space, it->first.bind);
+                modsig, visibility, rangeType, it->first.space, it->first.bind);
 
             access.byteOffset += access.arrayElement;
 

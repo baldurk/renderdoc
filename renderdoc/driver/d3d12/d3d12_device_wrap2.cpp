@@ -190,6 +190,8 @@ bool WrappedID3D12Device::Serialise_CreatePipelineState(SerialiserType &ser,
         }
       }
 
+      wrapped->FetchRootSig(GetShaderCache());
+
       // if this shader was initialised with nvidia's dynamic UAV, pull in that chunk as one of ours
       // and unset it (there will be one for each create that actually used vendor extensions)
       if(m_VendorEXT == GPUVendor::nVidia && m_GlobalEXTUAV != ~0U)
@@ -382,6 +384,8 @@ HRESULT WrappedID3D12Device::CreatePipelineState(const D3D12_PIPELINE_STATE_STRE
           wrapped->graphics->ViewInstancing.pViewInstanceLocations = NULL;
         }
       }
+
+      wrapped->FetchRootSig(GetShaderCache());
     }
 
     *ppPipelineState = (ID3D12PipelineState *)wrapped;

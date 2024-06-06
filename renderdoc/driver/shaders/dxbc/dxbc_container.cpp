@@ -1109,6 +1109,34 @@ bool DXBCContainer::CheckForDXIL(const void *ByteCode, size_t ByteCodeLength)
   return false;
 }
 
+bool DXBCContainer::CheckForRootSig(const void *ByteCode, size_t ByteCodeLength)
+{
+  FileHeader *header = (FileHeader *)ByteCode;
+
+  char *data = (char *)ByteCode;    // just for convenience
+
+  if(ByteCode == NULL || ByteCodeLength == 0)
+    return false;
+
+  if(header->fourcc != FOURCC_DXBC)
+    return false;
+
+  if(header->fileLength != (uint32_t)ByteCodeLength)
+    return false;
+
+  uint32_t *chunkOffsets = (uint32_t *)(header + 1);    // right after the header
+
+  for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
+  {
+    uint32_t *fourcc = (uint32_t *)(data + chunkOffsets[chunkIdx]);
+
+    if(*fourcc == FOURCC_RTS0)
+      return true;
+  }
+
+  return false;
+}
+
 rdcstr DXBCContainer::GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength)
 {
   rdcstr debugPath;
