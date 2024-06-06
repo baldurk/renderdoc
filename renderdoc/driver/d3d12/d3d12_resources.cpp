@@ -477,7 +477,7 @@ rdcarray<ID3D12Resource *> WrappedID3D12Resource::AddRefBuffersBeforeCapture(D3D
 
   for(size_t i = 0; i < addresses.size(); i++)
   {
-    ID3D12Resource *resource = (ID3D12Resource *)rm->GetCurrentResource(m_Addresses.addresses[i].id);
+    ID3D12Resource *resource = (ID3D12Resource *)rm->GetCurrentResource(addresses[i].id);
     if(resource)
     {
       resource->AddRef();
