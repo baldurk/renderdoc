@@ -15,7 +15,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
 
         failed = False
 
-        shaderModels = ["sm_5_0", "sm_5_1"]
+        shaderModels = ["sm_5_0", "sm_5_1", "sm_6_0", "sm_6_6"]
         for sm in range(len(shaderModels)):
             rdtest.log.begin_section(shaderModels[sm] + " tests")
 
@@ -26,9 +26,28 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
 
             pipe: rd.PipeState = self.controller.GetPipelineState()
 
+            if pipe.GetShaderReflection(rd.ShaderStage.Vertex).debugInfo.debuggable:
+                # Debug the vertex shader
+                instId = 10
+                trace: rd.ShaderDebugTrace = self.controller.DebugVertex(0, instId, 0, 0)
+                cycles, variables = self.process_trace(trace)
+                output = self.find_output_source_var(trace, rd.ShaderBuiltin.Undefined, 3)
+                debugged = self.evaluate_source_var(output, variables)
+                actual = debugged.value.u32v[0]
+                expected = instId
+                if not rdtest.value_compare(actual, expected):
+                    failed = True
+                    rdtest.log.error(
+                        f"Vertex shader TRIANGLE output did not match expectation {actual} != {expected}")
+                if not failed:
+                    rdtest.log.success("Basic VS debugging was successful")
+            else:
+                rdtest.log.print(f"Ignoring undebuggable Vertex shader at {action.eventId}.")
+
             if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
-                rdtest.log.print("Skipping undebuggable shader at {}.".format(action.eventId))
-                return
+                rdtest.log.print("Skipping undebuggable Pixel shader at {}.".format(action.eventId))
+                rdtest.log.end_section(shaderModels[sm] + " tests")
+                continue
 
             # Loop over every test
             for test in range(action.numInstances):
@@ -90,50 +109,57 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
 
         rdtest.log.end_section("MSAA tests")
 
-        test_marker: rd.ActionDescription = self.find_action("VertexSample")
-        action = test_marker.next
-        self.controller.SetFrameEvent(action.eventId, False)
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        rdtest.log.begin_section("VertexSample tests")
+        shaderModels = ["sm_5_0", "sm_6_0", "sm_6_6"]
+        for sm in range(len(shaderModels)):
+            test_marker: rd.ActionDescription = self.find_action("VertexSample " + shaderModels[sm])
+            action = test_marker.next
+            self.controller.SetFrameEvent(action.eventId, False)
+            pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        # Debug the vertex shader
-        trace: rd.ShaderDebugTrace = self.controller.DebugVertex(0, 0, 0, 0)
+            if pipe.GetShaderReflection(rd.ShaderStage.Vertex).debugInfo.debuggable:
+                # Debug the vertex shader
+                trace: rd.ShaderDebugTrace = self.controller.DebugVertex(0, 0, 0, 0)
+                cycles, variables = self.process_trace(trace)
+                output = self.find_output_source_var(trace, rd.ShaderBuiltin.Undefined, 1)
+                debugged = self.evaluate_source_var(output, variables)
 
-        cycles, variables = self.process_trace(trace)
+                actual = debugged.value.f32v[0:4]
+                expected = [0.3, 0.5, 0.8, 1.0]
+                if not rdtest.value_compare(actual, expected):
+                    failed = True
+                    rdtest.log.error(
+                        f"{shaderModels[sm]} Vertex shader color output did not match expectation {actual} != {expected}")
 
-        output = self.find_output_source_var(trace, rd.ShaderBuiltin.Undefined, 1)
+                if not failed:
+                    rdtest.log.success(shaderModels[sm] + " VertexSample VS was debugged correctly")
+            else:
+                rdtest.log.print("Skipping undebuggable Vertex shader at {}.".format(action.eventId))
 
-        debugged = self.evaluate_source_var(output, variables)
+            if pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
+                # Debug the pixel shader
+                inputs = rd.DebugPixelInputs()
+                inputs.sample = 0
+                trace: rd.ShaderDebugTrace = self.controller.DebugPixel(51, 51, inputs)
+                cycles, variables = self.process_trace(trace)
+                output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+                debugged = self.evaluate_source_var(output, variables)
 
-        if not rdtest.value_compare(debugged.value.f32v[0:4], [0.3, 0.5, 0.8, 1.0]):
-            failed = True
-            rdtest.log.error(
-                "Vertex shader color output did not match expectation ({}). {}".format(str(debugged.value.f32v[0:4]),
-                                                                                       str([0.3, 0.5, 0.8, 1.0])))
+                # Validate the debug output result
+                try:
+                    self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 51, 51, debugged.value.f32v[0:4])
+                except rdtest.TestFailureException as ex:
+                    failed = True
+                    rdtest.log.error("Vertex sample pixel shader output did not match. {}".format(str(ex)))
 
-        rdtest.log.success("VertexSample VS was debugged correctly")
+                rdtest.log.success("VertexSample PS was debugged correctly")
+            else:
+                rdtest.log.print("Skipping undebuggable Pixel shader at {}.".format(action.eventId))
 
-        # Debug the pixel shader
-        inputs = rd.DebugPixelInputs()
-        inputs.sample = 0
-        trace: rd.ShaderDebugTrace = self.controller.DebugPixel(51, 51, inputs)
+            if failed:
+                raise rdtest.TestFailureException("Some tests were not as expected")
 
-        cycles, variables = self.process_trace(trace)
-
-        output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
-
-        debugged = self.evaluate_source_var(output, variables)
-
-        # Validate the debug output result
-        try:
-            self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 51, 51, debugged.value.f32v[0:4])
-        except rdtest.TestFailureException as ex:
-            failed = True
-            rdtest.log.error("Vertex sample pixel shader output did not match. {}".format(str(ex)))
-
-        rdtest.log.success("VertexSample PS was debugged correctly")
-
-        if failed:
-            raise rdtest.TestFailureException("Some tests were not as expected")
+        rdtest.log.end_section("VertexSample tests")
 
         test_marker: rd.ActionDescription = self.find_action("Banned")
         action = test_marker.next
@@ -149,14 +175,14 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
 
         debugged = self.evaluate_source_var(output, variables)
 
-        if not rdtest.value_compare(debugged.value.f32v[0:4], [-0.5, -0.5, 0.0, 1.0]):
+        actual = debugged.value.f32v[0:4]
+        expected = [-0.5, -0.5, 0.0, 1.0]
+        if not rdtest.value_compare(actual, expected):
             failed = True
-            rdtest.log.error(
-                "Banned signature vertex shader position did not match expectation ({}). {}".format(
-                    str(debugged.value.f32v[0:4]),
-                    str([-0.5, -0.5, 0.0, 1.0])))
+            rdtest.log.error(f"Banned signature vertex shader position did not match expectation {actual} != {expected}")
 
-        rdtest.log.success("Banned signature VS was debugged correctly")
+        if not failed:
+            rdtest.log.success("Banned signature VS was debugged correctly")
 
         # Debug the pixel shader
         inputs = rd.DebugPixelInputs()
@@ -177,6 +203,35 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
             rdtest.log.error("Vertex sample pixel shader output did not match. {}".format(str(ex)))
 
         rdtest.log.success("Banned signature PS was debugged correctly")
+
+        csShaderModels = ["cs_6_0", "cs_6_6"]
+        for sm in range(len(csShaderModels)):
+            test = csShaderModels[sm]
+            section = test + " tests"
+            rdtest.log.begin_section(section)
+
+            # Jump to the action
+            test_marker: rd.ActionDescription = self.find_action(test)
+            action = test_marker.next
+            self.controller.SetFrameEvent(action.eventId, False)
+            pipe: rd.PipeState = self.controller.GetPipelineState()
+            if not pipe.GetShaderReflection(rd.ShaderStage.Compute).debugInfo.debuggable:
+                rdtest.log.print("Skipping undebuggable shader at {}.".format(action.eventId))
+                continue
+
+            # Debug the shader
+            trace: rd.ShaderDebugTrace = self.controller.DebugThread([0,0,0], [0,0,0])
+            cycles, variables = self.process_trace(trace)
+            # Check for non-zero cycles
+            # TODO: Check source variables have expected values (bit like output variables in Vertex and Pixel Shaders)
+            self.controller.FreeTrace(trace)
+            if cycles == 0:
+                rdtest.log.error("Shader debug cycle count was zero")
+                failed = True
+                continue
+
+            rdtest.log.success("Test {} matched as expected".format(test))
+            rdtest.log.end_section(section)
 
         if failed:
             raise rdtest.TestFailureException("Some tests were not as expected")
