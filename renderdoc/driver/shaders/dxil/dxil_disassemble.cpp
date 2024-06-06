@@ -3399,8 +3399,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                   uint32_t index;
                   if(getival(inst.args[2], index))
                   {
-                    if((offset == 0) || (index > 0))
-                      arrayStr += "[" + ToStr(index) + "]";
+                    arrayStr += "[" + ToStr(index) + "]";
                   }
                   else
                   {
