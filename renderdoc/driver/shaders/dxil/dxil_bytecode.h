@@ -41,6 +41,12 @@ namespace LLVMBC
 struct BlockOrRecord;
 };
 
+namespace DXILDebug
+{
+class Debugger;
+struct ThreadState;
+};
+
 namespace DXIL
 {
 struct BumpAllocator
@@ -1498,6 +1504,8 @@ struct ResourceReference
 
 class Program : public DXBC::IDebugInfo
 {
+  friend DXILDebug::Debugger;
+  friend DXILDebug::ThreadState;
 public:
   Program(const byte *bytes, size_t length);
   Program(const Program &o) = delete;
@@ -1666,6 +1674,8 @@ bool getival(const Value *v, T &out)
   out = T();
   return false;
 }
+
+bool isUndef(const Value *v);
 
 };    // namespace DXIL
 
