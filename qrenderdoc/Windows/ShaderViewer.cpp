@@ -1217,14 +1217,67 @@ void ShaderViewer::ConfigureBookmarkMenu()
   QObject::connect(clearAction, &QAction::triggered, [this]() { ClearAllBookmarks(); });
   bookmarkMenu->addAction(clearAction);
 
-  QObject::connect(bookmarkMenu, &QMenu::aboutToShow, [this, nextAction, prevAction, clearAction]() {
-    const bool hasBookmarks = HasBookmarks();
-    nextAction->setEnabled(hasBookmarks);
-    prevAction->setEnabled(hasBookmarks);
-    clearAction->setEnabled(hasBookmarks);
-  });
+  QObject::connect(bookmarkMenu, &QMenu::aboutToShow,
+                   [this, bookmarkMenu, nextAction, prevAction, clearAction]() {
+                     UpdateBookmarkMenu(bookmarkMenu, nextAction, prevAction, clearAction);
+                   });
 
+  bookmarkMenu->addSeparator();
   ui->bookmark->setMenu(bookmarkMenu);
+}
+
+void ShaderViewer::UpdateBookmarkMenu(QMenu *menu, QAction *nextAction, QAction *prevAction,
+                                      QAction *clearAction)
+{
+  // setup permanent actions
+  const bool hasBookmarks = HasBookmarks();
+  nextAction->setEnabled(hasBookmarks);
+  prevAction->setEnabled(hasBookmarks);
+  clearAction->setEnabled(hasBookmarks);
+
+  // remove current bookmark list
+  QList<QAction *> actions = menu->actions();
+  for(auto itAction = actions.rbegin(); itAction != actions.rend() && !(*itAction)->isSeparator();
+      ++itAction)
+    menu->removeAction(*itAction);
+
+  // populate bookmark list
+  ScintillaEdit *cur = currentScintilla();
+  if(!cur)
+    return;
+
+  auto itBookmarks = m_Bookmarks.find(cur);
+  if(itBookmarks == m_Bookmarks.end())
+    return;
+
+  QString filename;
+  if(cur == m_DisassemblyView)
+    filename = m_DisassemblyFrame->windowTitle();
+  else
+    filename = cur->windowTitle();
+
+  int numAddedBookmarks = 0;
+  for(sptr_t lineNumber : *itBookmarks)
+  {
+    QString textLine = QString::fromUtf8(cur->getLine(lineNumber)).simplified();
+    if(textLine.size() > BOOKMARK_MAX_MENU_ENTRY_LENGTH)
+    {
+      textLine.chop(textLine.size() - BOOKMARK_MAX_MENU_ENTRY_LENGTH);
+      textLine.append(lit("..."));
+    }
+    else if(textLine.isEmpty())
+    {
+      textLine = lit("(empty)");
+    }
+
+    QString name = QFormatStr("%1:%2 - %3").arg(filename).arg(lineNumber + 1).arg(textLine);
+    QAction *action = new QAction(name, menu);
+    QObject::connect(action, &QAction::triggered, [cur, lineNumber]() { cur->gotoLine(lineNumber); });
+    menu->addAction(action);
+
+    if(++numAddedBookmarks >= BOOKMARK_MAX_MENU_ENTRY_COUNT)
+      break;
+  }
 }
 
 QAction *ShaderViewer::MakeExecuteAction(QString name, const QIcon &icon, QString tooltip,
