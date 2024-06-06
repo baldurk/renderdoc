@@ -2308,12 +2308,12 @@ HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pF
 
     // don't support raytracing
     if(!D3D12_Experimental_EnableRTSupport())
+    {
       opts->RaytracingTier = D3D12_RAYTRACING_TIER_NOT_SUPPORTED;
 
-    opts->RaytracingTier = RDCMIN(D3D12_RAYTRACING_TIER_1_0, opts->RaytracingTier);
-
-    if(dolog)
-      RDCLOG("Forcing no raytracing tier support");
+      if(dolog)
+        RDCLOG("Forcing no raytracing tier support");
+    }
 
     return S_OK;
   }
