@@ -34,6 +34,7 @@
 #define float2 Vec2f
 #define float3 Vec3f
 #define uint4 Vec4u
+#define uint3 Vec3u
 #define uint2 Vec2u
 #define int4 Vec4i
 #define float4 Vec4f
@@ -333,6 +334,32 @@ struct LocalRootSigData
 };
 
 #define WRAPPED_DESCRIPTOR_STRIDE 64
+
+cbuffer RayIndirectDispatchCB REG(b0)
+{
+  GPUAddress scratchBuffer;
+
+  uint commandSigDispatchOffset;
+  uint commandSigStride;
+  uint commandSigSize;
+  uint maxCommandCount;    // MaxCommandCount to clamp to. We also set the top bit if there is no count buffer
+};
+
+struct PatchingExecute
+{
+  // D3D12PatchRayDispatchParam::RecordCB
+  uint shaderrecord_stride;
+  uint shaderrecord_count;
+  // D3D12PatchRayDispatchParam::SourceBuffer
+  GPUAddress sourceData;
+  // D3D12PatchRayDispatchParam::DestBuffer
+  GPUAddress destData;
+  // Dispatch itself
+  uint3 dispatchDim;
+  uint padding1;
+
+  uint2 padding2;
+};
 
 cbuffer DebugSampleOperation REG(b0)
 {

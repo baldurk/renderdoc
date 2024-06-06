@@ -643,6 +643,7 @@ void WrappedID3D12CommandQueue::CheckAndFreeRayDispatches()
     {
       SAFE_RELEASE(ray.patchScratchBuffer);
       SAFE_RELEASE(ray.lookupBuffer);
+      SAFE_RELEASE(ray.argumentBuffer);
     }
   }
 
@@ -1434,8 +1435,9 @@ void WrappedID3D12GraphicsCommandList::AddRayDispatches(rdcarray<PatchedRayDispa
   for(const PatchedRayDispatch::Resources &r : m_RayDispatches)
   {
     dispatches.push_back(r);
-    r.lookupBuffer->AddRef();
-    r.patchScratchBuffer->AddRef();
+    SAFE_ADDREF(r.lookupBuffer);
+    SAFE_ADDREF(r.patchScratchBuffer);
+    SAFE_ADDREF(r.argumentBuffer);
   }
 }
 

@@ -997,6 +997,17 @@ enum class D3D12PatchTLASBuildParam
   Count
 };
 
+enum class D3D12IndirectPrepParam
+{
+  GeneralCB,
+  AppExecuteArgs,
+  AppCount,
+  PatchedExecuteArgs,
+  InternalExecuteArgs,
+  InternalExecuteCount,
+  Count,
+};
+
 enum class D3D12PatchRayDispatchParam
 {
   GeneralCB,
@@ -1025,6 +1036,8 @@ struct PatchedRayDispatch
     D3D12GpuBuffer *lookupBuffer;
     // the scratch buffer used for patching's fence.
     D3D12GpuBuffer *patchScratchBuffer;
+    // the argument buffer used for indirect executes.
+    D3D12GpuBuffer *argumentBuffer;
 
     // for convenience, when these resources are referenced in a queue they get a fence value to
     // indicate when they're safe to release. This values are unset when returned from patching or
@@ -1063,8 +1076,11 @@ public:
     SAFE_RELEASE(m_gpuFence);
     SAFE_RELEASE(m_accStructPatchInfo.m_rootSignature);
     SAFE_RELEASE(m_accStructPatchInfo.m_pipeline);
-    SAFE_RELEASE(m_RayPatchingData.rootSig);
-    SAFE_RELEASE(m_RayPatchingData.pipe);
+    SAFE_RELEASE(m_RayPatchingData.descPatchRootSig);
+    SAFE_RELEASE(m_RayPatchingData.descPatchPipe);
+    SAFE_RELEASE(m_RayPatchingData.indirectComSig);
+    SAFE_RELEASE(m_RayPatchingData.indirectPrepPipe);
+    SAFE_RELEASE(m_RayPatchingData.indirectPrepRootSig);
   }
 
   void InitInternalResources();
@@ -1079,6 +1095,12 @@ public:
   PatchedRayDispatch PatchRayDispatch(ID3D12GraphicsCommandList4 *unwrappedCmd,
                                       rdcarray<ResourceId> heaps,
                                       const D3D12_DISPATCH_RAYS_DESC &desc);
+  PatchedRayDispatch PatchIndirectRayDispatch(ID3D12GraphicsCommandList *unwrappedCmd,
+                                              rdcarray<ResourceId> heaps,
+                                              ID3D12CommandSignature *pCommandSignature,
+                                              UINT MaxCommandCount, ID3D12Resource *pArgumentBuffer,
+                                              UINT64 ArgumentBufferOffset,
+                                              ID3D12Resource *pCountBuffer, UINT64 CountBufferOffset);
 
   void AddPendingASBuilds(ID3D12Fence *fence, UINT64 waitValue,
                           const rdcarray<std::function<bool()>> &callbacks);
@@ -1127,8 +1149,11 @@ private:
   // pipeline data for patching ray dispatches
   struct
   {
-    ID3D12RootSignature *rootSig = NULL;
-    ID3D12PipelineState *pipe = NULL;
+    ID3D12RootSignature *descPatchRootSig = NULL;
+    ID3D12PipelineState *descPatchPipe = NULL;
+    ID3D12RootSignature *indirectPrepRootSig = NULL;
+    ID3D12PipelineState *indirectPrepPipe = NULL;
+    ID3D12CommandSignature *indirectComSig = NULL;
   } m_RayPatchingData;
 
   struct PendingASBuild

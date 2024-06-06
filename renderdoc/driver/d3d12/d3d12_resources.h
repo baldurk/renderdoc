@@ -380,9 +380,78 @@ public:
     TypeEnum = Resource_CommandSignature,
   };
 
-  WrappedID3D12CommandSignature(ID3D12CommandSignature *real, WrappedID3D12Device *device)
+  WrappedID3D12CommandSignature(ID3D12CommandSignature *real, WrappedID3D12Device *device,
+                                const D3D12_COMMAND_SIGNATURE_DESC &Descriptor)
       : WrappedDeviceChild12(real, device)
   {
+    sig.ByteStride = Descriptor.ByteStride;
+    sig.arguments.assign(Descriptor.pArgumentDescs, Descriptor.NumArgumentDescs);
+
+    sig.graphics = true;
+    sig.PackedByteSize = 0;
+
+    // From MSDN, command signatures are either graphics or compute so just search for dispatches:
+    // "A given command signature is either an action or a compute command signature. If a command
+    // signature contains a drawing operation, then it is a graphics command signature. Otherwise,
+    // the command signature must contain a dispatch operation, and it is a compute command
+    // signature."
+    for(uint32_t i = 0; i < Descriptor.NumArgumentDescs; i++)
+    {
+      switch(Descriptor.pArgumentDescs[i].Type)
+      {
+        case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW:
+        {
+          sig.PackedByteSize += sizeof(D3D12_DRAW_ARGUMENTS);
+          break;
+        }
+        case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED:
+        {
+          sig.PackedByteSize += sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
+          break;
+        }
+        case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH:
+        {
+          sig.PackedByteSize += sizeof(D3D12_DISPATCH_ARGUMENTS);
+          sig.graphics = false;
+          break;
+        }
+        case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH:
+        {
+          sig.PackedByteSize += sizeof(D3D12_DISPATCH_MESH_ARGUMENTS);
+          break;
+        }
+        case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_RAYS:
+        {
+          sig.PackedByteSize += sizeof(D3D12_DISPATCH_RAYS_DESC);
+          sig.raytraced = true;
+          break;
+        }
+        case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
+        {
+          sig.PackedByteSize +=
+              sizeof(uint32_t) * Descriptor.pArgumentDescs[i].Constant.Num32BitValuesToSet;
+          break;
+        }
+        case D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW:
+        {
+          sig.PackedByteSize += sizeof(D3D12_VERTEX_BUFFER_VIEW);
+          break;
+        }
+        case D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW:
+        {
+          sig.PackedByteSize += sizeof(D3D12_INDEX_BUFFER_VIEW);
+          break;
+        }
+        case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW:
+        case D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW:
+        case D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW:
+        {
+          sig.PackedByteSize += sizeof(D3D12_GPU_VIRTUAL_ADDRESS);
+          break;
+        }
+        default: RDCERR("Unexpected argument type! %d", Descriptor.pArgumentDescs[i].Type); break;
+      }
+    }
   }
   virtual ~WrappedID3D12CommandSignature() { Shutdown(); }
 };

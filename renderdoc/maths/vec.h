@@ -203,6 +203,24 @@ struct Vec4u
   };
 };
 
+struct Vec3u
+{
+  Vec3u(uint32_t X = 0, uint32_t Y = 0, uint32_t Z = 0)
+  {
+    x = X;
+    y = Y;
+    z = Z;
+  }
+  union
+  {
+    struct
+    {
+      uint32_t x, y, z;
+    };
+    uint32_t uv[3];
+  };
+};
+
 struct Vec4i
 {
   Vec4i(int32_t X = 0, int32_t Y = 0, int32_t Z = 0, int32_t W = 0)

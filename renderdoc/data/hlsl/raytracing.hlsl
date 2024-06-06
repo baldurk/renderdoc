@@ -82,7 +82,8 @@ struct DescriptorHeapData
   uint unwrapped_stride;
 };
 
-uint CopyData(uint byteOffset, uint dataOffset, uint dataEnd)
+uint CopyData(ByteAddressBuffer src, RWByteAddressBuffer dst, uint byteOffset, uint dataOffset,
+              uint dataEnd)
 {
   uint4 data = 0;
   uint readBytes = 0;
@@ -90,26 +91,26 @@ uint CopyData(uint byteOffset, uint dataOffset, uint dataEnd)
   // copy larger chunks if possible
   if(dataOffset + 16 <= dataEnd)
   {
-    data = patchSource.Load4(byteOffset + dataOffset);
-    patchDest.Store4(byteOffset + dataOffset, data);
+    data = src.Load4(byteOffset + dataOffset);
+    dst.Store4(byteOffset + dataOffset, data);
     readBytes = 16;
   }
   else if(dataOffset + 12 <= dataEnd)
   {
-    data = patchSource.Load3(byteOffset + dataOffset).xyzx;
-    patchDest.Store3(byteOffset + dataOffset, data.xyz);
+    data = src.Load3(byteOffset + dataOffset).xyzx;
+    dst.Store3(byteOffset + dataOffset, data.xyz);
     readBytes = 12;
   }
   else if(dataOffset + 8 <= dataEnd)
   {
-    data = patchSource.Load2(byteOffset + dataOffset).xyxx;
-    patchDest.Store2(byteOffset + dataOffset, data.xy);
+    data = src.Load2(byteOffset + dataOffset).xyxx;
+    dst.Store2(byteOffset + dataOffset, data.xy);
     readBytes = 8;
   }
   else if(dataOffset + 4 <= dataEnd)
   {
-    data = patchSource.Load(byteOffset + dataOffset).xxxx;
-    patchDest.Store(byteOffset + dataOffset, data.x);
+    data = src.Load(byteOffset + dataOffset).xxxx;
+    dst.Store(byteOffset + dataOffset, data.x);
     readBytes = 4;
   }
   else
@@ -193,7 +194,7 @@ void PatchTable(uint byteOffset)
       // copy any gap from where we last processed
       for(uint b = firstUncopiedByte; b < paramOffset;)
       {
-        b = CopyData(byteOffset, b, paramOffset);
+        b = CopyData(patchSource, patchDest, byteOffset, b, paramOffset);
       }
       firstUncopiedByte = paramOffset + 8;
 
@@ -253,7 +254,7 @@ void PatchTable(uint byteOffset)
     // copy any remaining trailing bytes
     for(uint b = firstUncopiedByte; b < shaderrecord_stride;)
     {
-      b = CopyData(byteOffset, b, shaderrecord_stride);
+      b = CopyData(patchSource, patchDest, byteOffset, b, shaderrecord_stride);
     }
   }
   else
@@ -261,7 +262,7 @@ void PatchTable(uint byteOffset)
     // no root sig data to patch, just copy the whole stride
     for(uint b = firstUncopiedByte; b < shaderrecord_stride;)
     {
-      b = CopyData(byteOffset, b, shaderrecord_stride);
+      b = CopyData(patchSource, patchDest, byteOffset, b, shaderrecord_stride);
     }
   }
 }
@@ -271,4 +272,180 @@ void PatchTable(uint byteOffset)
                                                                            : SV_DispatchThreadID) {
   if(dispatchThread.x < shaderrecord_count)
     PatchTable(shaderrecord_stride * dispatchThread.x);
+}
+
+// define these structs in hlsl for simplicity
+
+struct D3D12_GPU_VIRTUAL_ADDRESS_RANGE
+{
+  GPUAddress StartAddress;
+  uint2 SizeInBytes;    // we ignore the high order bits in .y
+};
+
+struct D3D12_GPU_VIRTUAL_ADDRESS_RANGE_AND_STRIDE
+{
+  GPUAddress StartAddress;
+  uint2 SizeInBytes;      // we ignore the high order bits in .y
+  uint2 StrideInBytes;    // we ignore the high order bits in .y
+};
+
+struct D3D12_DISPATCH_RAYS_DESC
+{
+  D3D12_GPU_VIRTUAL_ADDRESS_RANGE RayGenerationShaderRecord;
+  D3D12_GPU_VIRTUAL_ADDRESS_RANGE_AND_STRIDE MissShaderTable;
+  D3D12_GPU_VIRTUAL_ADDRESS_RANGE_AND_STRIDE HitGroupTable;
+  D3D12_GPU_VIRTUAL_ADDRESS_RANGE_AND_STRIDE CallableShaderTable;
+  uint Width;
+  uint Height;
+  uint Depth;
+};
+
+struct D3D12_DISPATCH_RAYS_DESC_RAW
+{
+  uint4 a[6];
+  uint b;
+};
+
+ByteAddressBuffer applicationExecuteArguments : register(t0);
+ByteAddressBuffer applicationCountBuffer : register(t1);
+RWByteAddressBuffer patchedExecuteArguments : register(u0);
+RWStructuredBuffer<PatchingExecute> internalExecuteArguments : register(u1);
+RWByteAddressBuffer internalExecuteCount : register(u2);
+
+GPUAddress AlignRecordAddress(GPUAddress x)
+{
+  GPUAddress ret = add(x, GPUAddress(0xff, 0));
+  ret.x &= ~0xff;
+  return ret;
+}
+
+[numthreads(1, 1, 1)] void RENDERDOC_PrepareRayIndirectExecuteCS() {
+  uint numCommands = maxCommandCount;
+  if(numCommands & 0x80000000U)
+  {
+    numCommands &= 0x7fffffffU;
+  }
+  else
+  {
+    numCommands = min(numCommands, applicationCountBuffer.Load(0));
+  }
+
+  GPUAddress outputBufferLocation = scratchBuffer;
+  uint dispatchIndex = 0;
+
+  PatchingExecute execute = (PatchingExecute)0xccddeeff;
+
+  // loop over all commands the application ran (probably just one)
+  for(uint i = 0; i < numCommands; i++)
+  {
+    uint commandOffset = i * commandSigStride;
+
+    // load the indirect arguments in batch as possible
+    D3D12_DISPATCH_RAYS_DESC_RAW raw = {
+        applicationExecuteArguments.Load4(commandSigDispatchOffset + commandOffset + 0 * 16),
+        applicationExecuteArguments.Load4(commandSigDispatchOffset + commandOffset + 1 * 16),
+        applicationExecuteArguments.Load4(commandSigDispatchOffset + commandOffset + 2 * 16),
+        applicationExecuteArguments.Load4(commandSigDispatchOffset + commandOffset + 3 * 16),
+        applicationExecuteArguments.Load4(commandSigDispatchOffset + commandOffset + 4 * 16),
+        applicationExecuteArguments.Load4(commandSigDispatchOffset + commandOffset + 5 * 16),
+        applicationExecuteArguments.Load(commandSigDispatchOffset + commandOffset + 6 * 16),
+    };
+
+    D3D12_DISPATCH_RAYS_DESC appCommand = (D3D12_DISPATCH_RAYS_DESC)raw;
+
+    // align the address before each record we're going to patch into
+    outputBufferLocation = AlignRecordAddress(outputBufferLocation);
+
+    // raygen - set up an execute to patch the record
+    {
+      execute.shaderrecord_stride = appCommand.RayGenerationShaderRecord.SizeInBytes.x;
+      execute.shaderrecord_count = 1;
+      execute.sourceData = appCommand.RayGenerationShaderRecord.StartAddress;
+      execute.destData = outputBufferLocation;
+      execute.dispatchDim = uint3(1, 1, 1);
+      internalExecuteArguments[dispatchIndex++] = execute;
+
+      // update the dispatch desc to point to the new location
+      appCommand.RayGenerationShaderRecord.StartAddress = outputBufferLocation;
+
+      outputBufferLocation =
+          add(outputBufferLocation, appCommand.RayGenerationShaderRecord.SizeInBytes);
+    }
+
+    outputBufferLocation = AlignRecordAddress(outputBufferLocation);
+
+    if(appCommand.MissShaderTable.SizeInBytes.x > 0)
+    {
+      execute.shaderrecord_stride = appCommand.MissShaderTable.StrideInBytes.x;
+      execute.shaderrecord_count = appCommand.MissShaderTable.SizeInBytes.x /
+                                   max(1, appCommand.MissShaderTable.StrideInBytes.x);
+      execute.sourceData = appCommand.MissShaderTable.StartAddress;
+      execute.destData = outputBufferLocation;
+      execute.dispatchDim = uint3(
+          (execute.shaderrecord_count + (RECORD_PATCH_THREADS - 1)) / RECORD_PATCH_THREADS, 1, 1);
+      internalExecuteArguments[dispatchIndex++] = execute;
+
+      appCommand.MissShaderTable.StartAddress = outputBufferLocation;
+
+      outputBufferLocation = add(outputBufferLocation, appCommand.MissShaderTable.SizeInBytes);
+    }
+
+    outputBufferLocation = AlignRecordAddress(outputBufferLocation);
+
+    if(appCommand.HitGroupTable.SizeInBytes.x > 0)
+    {
+      execute.shaderrecord_stride = appCommand.HitGroupTable.StrideInBytes.x;
+      execute.shaderrecord_count =
+          appCommand.HitGroupTable.SizeInBytes.x / max(1, appCommand.HitGroupTable.StrideInBytes.x);
+      execute.sourceData = appCommand.HitGroupTable.StartAddress;
+      execute.destData = outputBufferLocation;
+      execute.dispatchDim = uint3(
+          (execute.shaderrecord_count + (RECORD_PATCH_THREADS - 1)) / RECORD_PATCH_THREADS, 1, 1);
+      internalExecuteArguments[dispatchIndex++] = execute;
+
+      appCommand.HitGroupTable.StartAddress = outputBufferLocation;
+
+      outputBufferLocation = add(outputBufferLocation, appCommand.HitGroupTable.SizeInBytes);
+    }
+
+    outputBufferLocation = AlignRecordAddress(outputBufferLocation);
+
+    if(appCommand.CallableShaderTable.SizeInBytes.x > 0)
+    {
+      execute.shaderrecord_stride = appCommand.CallableShaderTable.StrideInBytes.x;
+      execute.shaderrecord_count = appCommand.CallableShaderTable.SizeInBytes.x /
+                                   max(1, appCommand.CallableShaderTable.StrideInBytes.x);
+      execute.sourceData = appCommand.CallableShaderTable.StartAddress;
+      execute.destData = outputBufferLocation;
+      execute.dispatchDim = uint3(
+          (execute.shaderrecord_count + (RECORD_PATCH_THREADS - 1)) / RECORD_PATCH_THREADS, 1, 1);
+      internalExecuteArguments[dispatchIndex++] = execute;
+
+      appCommand.CallableShaderTable.StartAddress = outputBufferLocation;
+
+      outputBufferLocation = add(outputBufferLocation, appCommand.CallableShaderTable.SizeInBytes);
+    }
+
+    // copy all data apart from the indirect draw (if anything) to the patched argument buffer
+    // no root sig data to patch, just copy the whole stride
+    for(uint b = 0; b < commandSigDispatchOffset;)
+    {
+      b = CopyData(applicationExecuteArguments, patchedExecuteArguments, commandOffset, b,
+                   commandSigDispatchOffset);
+    }
+
+    // store the indirect command (with updated addresses) to the patched buffer
+    raw = (D3D12_DISPATCH_RAYS_DESC_RAW)appCommand;
+
+    patchedExecuteArguments.Store4(commandSigDispatchOffset + commandOffset + 0 * 16, raw.a[0]);
+    patchedExecuteArguments.Store4(commandSigDispatchOffset + commandOffset + 1 * 16, raw.a[1]);
+    patchedExecuteArguments.Store4(commandSigDispatchOffset + commandOffset + 2 * 16, raw.a[2]);
+    patchedExecuteArguments.Store4(commandSigDispatchOffset + commandOffset + 3 * 16, raw.a[3]);
+    patchedExecuteArguments.Store4(commandSigDispatchOffset + commandOffset + 4 * 16, raw.a[4]);
+    patchedExecuteArguments.Store4(commandSigDispatchOffset + commandOffset + 5 * 16, raw.a[5]);
+    patchedExecuteArguments.Store(commandSigDispatchOffset + commandOffset + 6 * 16, raw.b);
+  }
+
+  // store the number of patching indirect dispatches we'll do, up to 4 per the application's number
+  internalExecuteCount.Store(0, dispatchIndex);
 }

@@ -1813,76 +1813,8 @@ bool WrappedID3D12Device::Serialise_CreateCommandSignature(SerialiserType &ser,
     }
     else
     {
-      WrappedID3D12CommandSignature *wrapped = new WrappedID3D12CommandSignature(ret, this);
-
-      wrapped->sig.ByteStride = Descriptor.ByteStride;
-      wrapped->sig.arguments.assign(Descriptor.pArgumentDescs, Descriptor.NumArgumentDescs);
-
-      wrapped->sig.graphics = true;
-      wrapped->sig.PackedByteSize = 0;
-
-      // From MSDN, command signatures are either graphics or compute so just search for dispatches:
-      // "A given command signature is either an action or a compute command signature. If a command
-      // signature contains a drawing operation, then it is a graphics command signature. Otherwise,
-      // the command signature must contain a dispatch operation, and it is a compute command
-      // signature."
-      for(uint32_t i = 0; i < Descriptor.NumArgumentDescs; i++)
-      {
-        switch(Descriptor.pArgumentDescs[i].Type)
-        {
-          case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW:
-          {
-            wrapped->sig.PackedByteSize += sizeof(D3D12_DRAW_ARGUMENTS);
-            break;
-          }
-          case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED:
-          {
-            wrapped->sig.PackedByteSize += sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
-            break;
-          }
-          case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH:
-          {
-            wrapped->sig.PackedByteSize += sizeof(D3D12_DISPATCH_ARGUMENTS);
-            wrapped->sig.graphics = false;
-            break;
-          }
-          case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH:
-          {
-            wrapped->sig.PackedByteSize += sizeof(D3D12_DISPATCH_MESH_ARGUMENTS);
-            break;
-          }
-          case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_RAYS:
-          {
-            wrapped->sig.PackedByteSize += sizeof(D3D12_DISPATCH_RAYS_DESC);
-            wrapped->sig.raytraced = true;
-            break;
-          }
-          case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
-          {
-            wrapped->sig.PackedByteSize +=
-                sizeof(uint32_t) * Descriptor.pArgumentDescs[i].Constant.Num32BitValuesToSet;
-            break;
-          }
-          case D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW:
-          {
-            wrapped->sig.PackedByteSize += sizeof(D3D12_VERTEX_BUFFER_VIEW);
-            break;
-          }
-          case D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW:
-          {
-            wrapped->sig.PackedByteSize += sizeof(D3D12_INDEX_BUFFER_VIEW);
-            break;
-          }
-          case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW:
-          case D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW:
-          case D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW:
-          {
-            wrapped->sig.PackedByteSize += sizeof(D3D12_GPU_VIRTUAL_ADDRESS);
-            break;
-          }
-          default: RDCERR("Unexpected argument type! %d", Descriptor.pArgumentDescs[i].Type); break;
-        }
-      }
+      WrappedID3D12CommandSignature *wrapped =
+          new WrappedID3D12CommandSignature(ret, this, Descriptor);
 
       ret = wrapped;
 
@@ -1929,7 +1861,7 @@ HRESULT WrappedID3D12Device::CreateCommandSignature(const D3D12_COMMAND_SIGNATUR
         return ret;
       }
 
-      wrapped = new WrappedID3D12CommandSignature(real, this);
+      wrapped = new WrappedID3D12CommandSignature(real, this, *pDesc);
     }
 
     if(IsCaptureMode(m_State))
