@@ -57,9 +57,9 @@ bool InRange(BlasAddressRange addressRange, GPUAddress address)
   instanceDescs[dispatchGroup.x].blasAddress = 0;
 }
 
-StructuredBuffer<StateObjectLookup> stateObjects : register(t0);
-StructuredBuffer<ShaderRecordData> records : register(t1);
-StructuredBuffer<LocalRootSigData> rootsigs : register(t2);
+StructuredBuffer<StateObjectLookup> stateObjects : register(t1);
+StructuredBuffer<ShaderRecordData> records : register(t2);
+StructuredBuffer<LocalRootSigData> rootsigs : register(t3);
 
 struct WrappedRecord
 {
@@ -67,9 +67,10 @@ struct WrappedRecord
   uint index;
 };
 
-StructuredBuffer<BlasAddressPair> patchAddressesPair : register(t3);
+StructuredBuffer<BlasAddressPair> patchAddressesPair : register(t4);
 
-RWByteAddressBuffer bufferToPatch : register(u0);
+ByteAddressBuffer patchSource : register(t0);
+RWByteAddressBuffer patchDest : register(u0);
 
 struct DescriptorHeapData
 {
@@ -81,12 +82,51 @@ struct DescriptorHeapData
   uint unwrapped_stride;
 };
 
+uint CopyData(uint byteOffset, uint dataOffset, uint dataEnd)
+{
+  uint4 data = 0;
+  uint readBytes = 0;
+
+  // copy larger chunks if possible
+  if(dataOffset + 16 <= dataEnd)
+  {
+    data = patchSource.Load4(byteOffset + dataOffset);
+    patchDest.Store4(byteOffset + dataOffset, data);
+    readBytes = 16;
+  }
+  else if(dataOffset + 12 <= dataEnd)
+  {
+    data = patchSource.Load3(byteOffset + dataOffset).xyzx;
+    patchDest.Store3(byteOffset + dataOffset, data.xyz);
+    readBytes = 12;
+  }
+  else if(dataOffset + 8 <= dataEnd)
+  {
+    data = patchSource.Load2(byteOffset + dataOffset).xyxx;
+    patchDest.Store2(byteOffset + dataOffset, data.xy);
+    readBytes = 8;
+  }
+  else if(dataOffset + 4 <= dataEnd)
+  {
+    data = patchSource.Load(byteOffset + dataOffset).xxxx;
+    patchDest.Store(byteOffset + dataOffset, data.x);
+    readBytes = 4;
+  }
+  else
+  {
+    readBytes = dataEnd;
+  }
+
+  // don't copy anything here, everything should be uint32 aligned
+  return dataOffset + readBytes;
+}
+
 void PatchTable(uint byteOffset)
 {
   // load our wrapped record from the start of the table
   WrappedRecord wrappedRecord;
-  wrappedRecord.id = bufferToPatch.Load2(byteOffset);
-  wrappedRecord.index = bufferToPatch.Load(byteOffset + 8);
+  wrappedRecord.id = patchSource.Load2(byteOffset);
+  wrappedRecord.index = patchSource.Load(byteOffset + 8);
 
   // find the state object it came from
   int i = 0;
@@ -109,8 +149,8 @@ void PatchTable(uint byteOffset)
   // will in theory not crash.
   if(objectLookup.id.x == 0 && objectLookup.id.y == 0)
   {
-    bufferToPatch.Store4(byteOffset, uint4(0, 0, 0, 0));
-    bufferToPatch.Store4(byteOffset + 16, uint4(0, 0, 0, 0));
+    patchDest.Store4(byteOffset, uint4(0, 0, 0, 0));
+    patchDest.Store4(byteOffset + 16, uint4(0, 0, 0, 0));
     return;
   }
 
@@ -119,8 +159,11 @@ void PatchTable(uint byteOffset)
   ShaderRecordData recordData = records[objectLookup.offset + wrappedRecord.index];
 
   // store the unwrapped shader identifier
-  bufferToPatch.Store4(byteOffset, recordData.identifier[0]);
-  bufferToPatch.Store4(byteOffset + 16, recordData.identifier[1]);
+  patchDest.Store4(byteOffset, recordData.identifier[0]);
+  patchDest.Store4(byteOffset + 16, recordData.identifier[1]);
+
+  // size of a shader record, which we've just copied/patched above
+  uint firstUncopiedByte = 32;
 
   uint rootSigIndex = (recordData.rootSigIndex & 0xffff);
 
@@ -147,9 +190,16 @@ void PatchTable(uint byteOffset)
       uint paramOffset = sig.paramOffsets[i] & 0xffff;
       bool isHandle = (sig.paramOffsets[i] & 0xffff0000) == 0;
 
+      // copy any gap from where we last processed
+      for(uint b = firstUncopiedByte; b < paramOffset;)
+      {
+        b = CopyData(byteOffset, b, paramOffset);
+      }
+      firstUncopiedByte = paramOffset + 8;
+
       if(isHandle)
       {
-        GPUAddress wrappedHandlePtr = bufferToPatch.Load2(byteOffset + paramOffset);
+        GPUAddress wrappedHandlePtr = patchSource.Load2(byteOffset + paramOffset);
 
         bool patched = false;
         [allow_uav_condition] for(int h = 0; h < 2; h++)
@@ -162,7 +212,7 @@ void PatchTable(uint byteOffset)
 
             GPUAddress handleOffset = GPUAddress(index * heaps[h].unwrapped_stride, 0);
             GPUAddress unwrapped = add(heaps[h].unwrapped_base, handleOffset);
-            bufferToPatch.Store2(byteOffset + paramOffset, unwrapped);
+            patchDest.Store2(byteOffset + paramOffset, unwrapped);
             patched = true;
             break;
           }
@@ -171,7 +221,7 @@ void PatchTable(uint byteOffset)
         if(!patched)
         {
           // won't work but is our best effort
-          bufferToPatch.Store2(byteOffset + paramOffset, GPUAddress(0, 0));
+          patchDest.Store2(byteOffset + paramOffset, GPUAddress(0, 0));
         }
       }
       else
@@ -179,56 +229,46 @@ void PatchTable(uint byteOffset)
         // during capture addresses don't have to be patched, only patch them on replay
         if(numPatchingAddrs > 0)
         {
-          GPUAddress origAddress = bufferToPatch.Load2(byteOffset + paramOffset);
+          GPUAddress origAddress = patchSource.Load2(byteOffset + paramOffset);
 
           [allow_uav_condition] for(uint i = 0; i < numPatchingAddrs; i++)
           {
             if(InRange(patchAddressesPair[i].oldAddress, origAddress))
             {
               GPUAddress offset = sub(origAddress, patchAddressesPair[i].oldAddress.start);
-              bufferToPatch.Store2(byteOffset + paramOffset,
-                                   add(patchAddressesPair[i].newAddress.start, offset));
+              patchDest.Store2(byteOffset + paramOffset,
+                               add(patchAddressesPair[i].newAddress.start, offset));
               break;
             }
           }
         }
+        else
+        {
+          GPUAddress origAddress = patchSource.Load2(byteOffset + paramOffset);
+          patchDest.Store2(byteOffset + paramOffset, origAddress);
+        }
       }
+    }
+
+    // copy any remaining trailing bytes
+    for(uint b = firstUncopiedByte; b < shaderrecord_stride;)
+    {
+      b = CopyData(byteOffset, b, shaderrecord_stride);
+    }
+  }
+  else
+  {
+    // no root sig data to patch, just copy the whole stride
+    for(uint b = firstUncopiedByte; b < shaderrecord_stride;)
+    {
+      b = CopyData(byteOffset, b, shaderrecord_stride);
     }
   }
 }
 
 // Each SV_GroupId corresponds to one shader record to patch
-[numthreads(1, 1, 1)] void RENDERDOC_PatchRayDispatchCS(uint3 dispatchGroup
-                                                        : SV_GroupId) {
-  uint group = dispatchGroup.x;
-
-  if(group == 0)
-  {
-    PatchTable(0);
-    return;
-  }
-
-  group--;
-
-  if(group < raydispatch_misscount)
-  {
-    PatchTable(raydispatch_missoffs + raydispatch_missstride * group);
-    return;
-  }
-
-  group -= raydispatch_misscount;
-
-  if(group < raydispatch_hitcount)
-  {
-    PatchTable(raydispatch_hitoffs + raydispatch_hitstride * group);
-    return;
-  }
-
-  group -= raydispatch_hitcount;
-
-  if(group < raydispatch_callcount)
-  {
-    PatchTable(raydispatch_calloffs + raydispatch_callstride * group);
-    return;
-  }
+[numthreads(RECORD_PATCH_THREADS, 1, 1)] void RENDERDOC_PatchRayDispatchCS(uint3 dispatchThread
+                                                                           : SV_DispatchThreadID) {
+  if(dispatchThread.x < shaderrecord_count)
+    PatchTable(shaderrecord_stride * dispatchThread.x);
 }

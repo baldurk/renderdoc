@@ -856,144 +856,9 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
   const uint32_t callOffs = patchDataSize;
   patchDataSize += (uint32_t)desc.CallableShaderTable.SizeInBytes;
 
-  cbufferData.raydispatch_missoffs = missOffs;
-  cbufferData.raydispatch_missstride = (uint32_t)desc.MissShaderTable.StrideInBytes;
-  if(desc.MissShaderTable.SizeInBytes > 0)
-    cbufferData.raydispatch_misscount =
-        desc.MissShaderTable.StrideInBytes == 0
-            ? 1
-            : uint32_t(desc.MissShaderTable.SizeInBytes / desc.MissShaderTable.StrideInBytes);
-
-  cbufferData.raydispatch_hitoffs = hitOffs;
-  cbufferData.raydispatch_hitstride = (uint32_t)desc.HitGroupTable.StrideInBytes;
-  if(desc.HitGroupTable.SizeInBytes > 0)
-    cbufferData.raydispatch_hitcount =
-        desc.HitGroupTable.StrideInBytes == 0
-            ? 1
-            : uint32_t(desc.HitGroupTable.SizeInBytes / desc.HitGroupTable.StrideInBytes);
-
-  cbufferData.raydispatch_calloffs = callOffs;
-  cbufferData.raydispatch_callstride = (uint32_t)desc.CallableShaderTable.StrideInBytes;
-  if(desc.CallableShaderTable.SizeInBytes > 0)
-    cbufferData.raydispatch_callcount =
-        desc.CallableShaderTable.StrideInBytes == 0
-            ? 1
-            : uint32_t(desc.CallableShaderTable.SizeInBytes / desc.CallableShaderTable.StrideInBytes);
-
   m_GPUBufferAllocator.Alloc(D3D12GpuBufferHeapType::DefaultHeapWithUav,
                              D3D12GpuBufferHeapMemoryFlag::Default, patchDataSize,
                              D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT, &scratchBuffer);
-
-  ResourceId id;
-  uint64_t offs = 0;
-
-  rdcarray<ID3D12Resource *> tableResources;
-
-  // we transition all unique table resources into copy source. In theory with new barriers this is
-  // safe because buffers don't have layouts there so it would be in COMMON for interop?
-  D3D12_RESOURCE_BARRIER barrier = {};
-  barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-  barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-  barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
-
-  D3D12_HEAP_PROPERTIES heapProps;
-
-  {
-    WrappedID3D12Resource::GetResIDFromAddr(desc.RayGenerationShaderRecord.StartAddress, id, offs);
-    ID3D12Resource *res =
-        Unwrap(m_wrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(id));
-
-    res->GetHeapProperties(&heapProps, NULL);
-
-    if(!tableResources.contains(res) && heapProps.Type != D3D12_HEAP_TYPE_UPLOAD)
-    {
-      tableResources.push_back(res);
-      barrier.Transition.pResource = res;
-      unwrappedCmd->ResourceBarrier(1, &barrier);
-    }
-
-    unwrappedCmd->CopyBufferRegion(scratchBuffer->Resource(), scratchBuffer->Offset() + raygenOffs,
-                                   res, offs, desc.RayGenerationShaderRecord.SizeInBytes);
-  }
-
-  ret.desc.RayGenerationShaderRecord.StartAddress = scratchBuffer->Address() + raygenOffs;
-
-  {
-    WrappedID3D12Resource::GetResIDFromAddr(desc.MissShaderTable.StartAddress, id, offs);
-    ID3D12Resource *res =
-        Unwrap(m_wrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(id));
-
-    res->GetHeapProperties(&heapProps, NULL);
-
-    if(!tableResources.contains(res) && heapProps.Type != D3D12_HEAP_TYPE_UPLOAD)
-    {
-      tableResources.push_back(res);
-      barrier.Transition.pResource = res;
-      unwrappedCmd->ResourceBarrier(1, &barrier);
-    }
-
-    unwrappedCmd->CopyBufferRegion(scratchBuffer->Resource(), scratchBuffer->Offset() + missOffs,
-                                   res, offs, desc.MissShaderTable.SizeInBytes);
-  }
-
-  ret.desc.MissShaderTable.StartAddress = scratchBuffer->Address() + missOffs;
-
-  if(desc.HitGroupTable.SizeInBytes > 0)
-  {
-    WrappedID3D12Resource::GetResIDFromAddr(desc.HitGroupTable.StartAddress, id, offs);
-    ID3D12Resource *res =
-        Unwrap(m_wrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(id));
-
-    res->GetHeapProperties(&heapProps, NULL);
-
-    if(!tableResources.contains(res) && heapProps.Type != D3D12_HEAP_TYPE_UPLOAD)
-    {
-      tableResources.push_back(res);
-      barrier.Transition.pResource = res;
-      unwrappedCmd->ResourceBarrier(1, &barrier);
-    }
-
-    unwrappedCmd->CopyBufferRegion(scratchBuffer->Resource(), scratchBuffer->Offset() + hitOffs,
-                                   res, offs, desc.HitGroupTable.SizeInBytes);
-
-    ret.desc.HitGroupTable.StartAddress = scratchBuffer->Address() + hitOffs;
-  }
-
-  if(desc.CallableShaderTable.SizeInBytes > 0)
-  {
-    WrappedID3D12Resource::GetResIDFromAddr(desc.CallableShaderTable.StartAddress, id, offs);
-    ID3D12Resource *res =
-        Unwrap(m_wrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(id));
-
-    res->GetHeapProperties(&heapProps, NULL);
-
-    if(!tableResources.contains(res) && heapProps.Type != D3D12_HEAP_TYPE_UPLOAD)
-    {
-      tableResources.push_back(res);
-      barrier.Transition.pResource = res;
-      unwrappedCmd->ResourceBarrier(1, &barrier);
-    }
-
-    unwrappedCmd->CopyBufferRegion(scratchBuffer->Resource(), scratchBuffer->Offset() + callOffs,
-                                   res, offs, desc.CallableShaderTable.SizeInBytes);
-
-    ret.desc.CallableShaderTable.StartAddress = scratchBuffer->Address() + callOffs;
-  }
-
-  barrier.Transition.pResource = scratchBuffer->Resource();
-  barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-  barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-  unwrappedCmd->ResourceBarrier(1, &barrier);
-
-  // put the resources into common. This should be implicitly promotable to
-  // D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE but also compatible with new barriers if they are used
-  for(ID3D12Resource *res : tableResources)
-  {
-    barrier.Transition.pResource = res;
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COMMON;
-    unwrappedCmd->ResourceBarrier(1, &barrier);
-  }
 
   RDCCOMPILE_ASSERT(WRAPPED_DESCRIPTOR_STRIDE == sizeof(D3D12Descriptor),
                     "Shader descriptor stride is wrong");
@@ -1022,12 +887,14 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
 
   cbufferData.numPatchingAddrs = m_NumPatchingAddrs;
 
+  RayDispatchShaderRecordCB recordInfo;
+
+  // set up general patching data - lookup buffers and so on
+
   unwrappedCmd->SetPipelineState(m_RayPatchingData.pipe);
   unwrappedCmd->SetComputeRootSignature(m_RayPatchingData.rootSig);
-  unwrappedCmd->SetComputeRoot32BitConstants((UINT)D3D12PatchRayDispatchParam::RootConstantBuffer,
+  unwrappedCmd->SetComputeRoot32BitConstants((UINT)D3D12PatchRayDispatchParam::GeneralCB,
                                              sizeof(cbufferData) / sizeof(uint32_t), &cbufferData, 0);
-  unwrappedCmd->SetComputeRootUnorderedAccessView((UINT)D3D12PatchRayDispatchParam::DestBuffer,
-                                                  scratchBuffer->Address());
   unwrappedCmd->SetComputeRootShaderResourceView((UINT)D3D12PatchRayDispatchParam::StateObjectData,
                                                  m_LookupAddrs[0]);
   unwrappedCmd->SetComputeRootShaderResourceView((UINT)D3D12PatchRayDispatchParam::RecordData,
@@ -1036,10 +903,83 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
                                                  m_LookupAddrs[2]);
   unwrappedCmd->SetComputeRootShaderResourceView((UINT)D3D12PatchRayDispatchParam::AddrPatchData,
                                                  m_LookupAddrs[3]);
-  unwrappedCmd->Dispatch(1 + cbufferData.raydispatch_misscount + cbufferData.raydispatch_hitcount +
-                             cbufferData.raydispatch_callcount,
-                         1, 1);
 
+  // dispatch per shader table
+
+  // raygen - required
+  {
+    recordInfo.shaderrecord_count = 1;
+    recordInfo.shaderrecord_stride = uint32_t(ret.desc.RayGenerationShaderRecord.SizeInBytes);
+
+    unwrappedCmd->SetComputeRoot32BitConstants((UINT)D3D12PatchRayDispatchParam::RecordCB,
+                                               sizeof(recordInfo) / sizeof(uint32_t), &recordInfo, 0);
+    unwrappedCmd->SetComputeRootShaderResourceView((UINT)D3D12PatchRayDispatchParam::SourceBuffer,
+                                                   ret.desc.RayGenerationShaderRecord.StartAddress);
+    ret.desc.RayGenerationShaderRecord.StartAddress = scratchBuffer->Address() + raygenOffs;
+    unwrappedCmd->SetComputeRootUnorderedAccessView((UINT)D3D12PatchRayDispatchParam::DestBuffer,
+                                                    ret.desc.RayGenerationShaderRecord.StartAddress);
+    unwrappedCmd->Dispatch(1, 1, 1);
+  }
+
+  // miss - optional
+  if(ret.desc.MissShaderTable.SizeInBytes > 0)
+  {
+    recordInfo.shaderrecord_count =
+        uint32_t(ret.desc.MissShaderTable.SizeInBytes / ret.desc.MissShaderTable.StrideInBytes);
+    recordInfo.shaderrecord_stride = uint32_t(ret.desc.MissShaderTable.StrideInBytes);
+
+    unwrappedCmd->SetComputeRoot32BitConstants((UINT)D3D12PatchRayDispatchParam::RecordCB,
+                                               sizeof(recordInfo) / sizeof(uint32_t), &recordInfo, 0);
+    unwrappedCmd->SetComputeRootShaderResourceView((UINT)D3D12PatchRayDispatchParam::SourceBuffer,
+                                                   ret.desc.MissShaderTable.StartAddress);
+    ret.desc.MissShaderTable.StartAddress = scratchBuffer->Address() + missOffs;
+    unwrappedCmd->SetComputeRootUnorderedAccessView((UINT)D3D12PatchRayDispatchParam::DestBuffer,
+                                                    ret.desc.MissShaderTable.StartAddress);
+    unwrappedCmd->Dispatch(AlignUp(recordInfo.shaderrecord_count, (uint32_t)RECORD_PATCH_THREADS) /
+                               RECORD_PATCH_THREADS,
+                           1, 1);
+  }
+
+  // hitgroups - optional
+  if(desc.HitGroupTable.SizeInBytes > 0)
+  {
+    recordInfo.shaderrecord_count =
+        uint32_t(ret.desc.HitGroupTable.SizeInBytes / ret.desc.HitGroupTable.StrideInBytes);
+    recordInfo.shaderrecord_stride = uint32_t(ret.desc.HitGroupTable.StrideInBytes);
+
+    unwrappedCmd->SetComputeRoot32BitConstants((UINT)D3D12PatchRayDispatchParam::RecordCB,
+                                               sizeof(recordInfo) / sizeof(uint32_t), &recordInfo, 0);
+    unwrappedCmd->SetComputeRootShaderResourceView((UINT)D3D12PatchRayDispatchParam::SourceBuffer,
+                                                   ret.desc.HitGroupTable.StartAddress);
+    ret.desc.HitGroupTable.StartAddress = scratchBuffer->Address() + hitOffs;
+    unwrappedCmd->SetComputeRootUnorderedAccessView((UINT)D3D12PatchRayDispatchParam::DestBuffer,
+                                                    ret.desc.HitGroupTable.StartAddress);
+    unwrappedCmd->Dispatch(AlignUp(recordInfo.shaderrecord_count, (uint32_t)RECORD_PATCH_THREADS) /
+                               RECORD_PATCH_THREADS,
+                           1, 1);
+  }
+
+  // callables - optional
+  if(desc.CallableShaderTable.SizeInBytes > 0)
+  {
+    recordInfo.shaderrecord_count = uint32_t(ret.desc.CallableShaderTable.SizeInBytes /
+                                             ret.desc.CallableShaderTable.StrideInBytes);
+    recordInfo.shaderrecord_stride = uint32_t(ret.desc.CallableShaderTable.StrideInBytes);
+
+    unwrappedCmd->SetComputeRoot32BitConstants((UINT)D3D12PatchRayDispatchParam::RecordCB,
+                                               sizeof(recordInfo) / sizeof(uint32_t), &recordInfo, 0);
+    unwrappedCmd->SetComputeRootShaderResourceView((UINT)D3D12PatchRayDispatchParam::SourceBuffer,
+                                                   ret.desc.CallableShaderTable.StartAddress);
+    ret.desc.CallableShaderTable.StartAddress = scratchBuffer->Address() + callOffs;
+    unwrappedCmd->SetComputeRootUnorderedAccessView((UINT)D3D12PatchRayDispatchParam::DestBuffer,
+                                                    ret.desc.CallableShaderTable.StartAddress);
+    unwrappedCmd->Dispatch(AlignUp(recordInfo.shaderrecord_count, (uint32_t)RECORD_PATCH_THREADS) /
+                               RECORD_PATCH_THREADS,
+                           1, 1);
+  }
+
+  D3D12_RESOURCE_BARRIER barrier = {};
+  barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
   barrier.Transition.pResource = scratchBuffer->Resource();
   barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
   barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
@@ -1165,8 +1105,11 @@ void D3D12RaytracingResourceAndUtilHandler::InitRayDispatchPatchingResources()
 {
   // need 5x 2-DWORD root buffers, the rest we can have for constants.
   // this could be made another buffer to track but it fits in push constants so we'll use them
-  RDCCOMPILE_ASSERT((sizeof(RayDispatchPatchCB) / sizeof(uint32_t)) + 5 * 2 < 64,
-                    "Root signature constants are too large");
+  RDCCOMPILE_ASSERT(
+      ((sizeof(RayDispatchPatchCB) + sizeof(RayDispatchShaderRecordCB)) / sizeof(uint32_t)) +
+              (uint32_t(D3D12PatchRayDispatchParam::Count) - 2) * 2 <
+          64,
+      "Root signature constants are too large");
 
   // Root Signature
   rdcarray<D3D12_ROOT_PARAMETER1> rootParameters;
@@ -1184,7 +1127,17 @@ void D3D12RaytracingResourceAndUtilHandler::InitRayDispatchPatchingResources()
 
   {
     D3D12_ROOT_PARAMETER1 rootParam;
-    rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
+    rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+    rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    rootParam.Constants.ShaderRegister = 1;
+    rootParam.Constants.RegisterSpace = 0;
+    rootParam.Constants.Num32BitValues = sizeof(RayDispatchShaderRecordCB) / sizeof(uint32_t);
+    rootParameters.push_back(rootParam);
+  }
+
+  {
+    D3D12_ROOT_PARAMETER1 rootParam;
+    rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
     rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
     rootParam.Descriptor.ShaderRegister = 0;
     rootParam.Descriptor.RegisterSpace = 0;
@@ -1194,7 +1147,7 @@ void D3D12RaytracingResourceAndUtilHandler::InitRayDispatchPatchingResources()
 
   {
     D3D12_ROOT_PARAMETER1 rootParam;
-    rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+    rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
     rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
     rootParam.Descriptor.ShaderRegister = 0;
     rootParam.Descriptor.RegisterSpace = 0;
@@ -1231,6 +1184,18 @@ void D3D12RaytracingResourceAndUtilHandler::InitRayDispatchPatchingResources()
     rootParam.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
     rootParameters.push_back(rootParam);
   }
+
+  {
+    D3D12_ROOT_PARAMETER1 rootParam;
+    rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+    rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    rootParam.Descriptor.ShaderRegister = 4;
+    rootParam.Descriptor.RegisterSpace = 0;
+    rootParam.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
+    rootParameters.push_back(rootParam);
+  }
+
+  RDCASSERT(rootParameters.size() == uint32_t(D3D12PatchRayDispatchParam::Count));
 
   D3D12ShaderCache *shaderCache = m_wrappedDevice->GetShaderCache();
 

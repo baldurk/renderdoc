@@ -601,21 +601,6 @@ struct D3D12GpuBuffer
   D3D12GpuBuffer &operator=(const D3D12GpuBuffer &) = delete;
 
   D3D12GpuBufferHeapType HeapType() const { return m_heapType; }
-  D3D12_HEAP_TYPE GetD3D12HeapType() const
-  {
-    switch(m_heapType)
-    {
-      case D3D12GpuBufferHeapType::AccStructDefaultHeap:
-      case D3D12GpuBufferHeapType::DefaultHeap:
-      case D3D12GpuBufferHeapType::DefaultHeapWithUav: return D3D12_HEAP_TYPE_DEFAULT;
-      case D3D12GpuBufferHeapType::ReadBackHeap: return D3D12_HEAP_TYPE_READBACK;
-      case D3D12GpuBufferHeapType::UploadHeap: return D3D12_HEAP_TYPE_UPLOAD;
-      case D3D12GpuBufferHeapType::CustomHeapWithUavCpuAccess: return D3D12_HEAP_TYPE_CUSTOM;
-      default: RDCERR("Unhandled/Invalid type");
-    }
-
-    return D3D12_HEAP_TYPE_DEFAULT;
-  }
   bool operator!=(const D3D12GpuBuffer &other) const { return !(*this == other); }
   bool operator==(const D3D12GpuBuffer &other) const
   {
@@ -1014,7 +999,9 @@ enum class D3D12PatchTLASBuildParam
 
 enum class D3D12PatchRayDispatchParam
 {
-  RootConstantBuffer,
+  GeneralCB,
+  RecordCB,
+  SourceBuffer,
   DestBuffer,
   StateObjectData,
   RecordData,

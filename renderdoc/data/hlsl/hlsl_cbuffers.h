@@ -295,23 +295,17 @@ cbuffer RayDispatchPatchCB REG(b0)
   GPUAddress unwrapped_sampHeapBase;
   GPUAddress unwrapped_srvHeapBase;
 
-  uint raydispatch_missoffs;
-  uint raydispatch_missstride;
-  uint raydispatch_misscount;
-
-  uint raydispatch_hitoffs;
-  uint raydispatch_hitstride;
-  uint raydispatch_hitcount;
-
-  uint raydispatch_calloffs;
-  uint raydispatch_callstride;
-  uint raydispatch_callcount;
-
   uint wrapped_sampHeapSize;
   uint wrapped_srvHeapSize;
   uint unwrapped_heapStrides;    // LSB = sampler, MSB = srv
 
   uint numPatchingAddrs;
+};
+
+cbuffer RayDispatchShaderRecordCB REG(b1)
+{
+  uint shaderrecord_stride;
+  uint shaderrecord_count;
 };
 
 struct StateObjectLookup
@@ -327,6 +321,8 @@ struct ShaderRecordData
   uint4 identifier[2];    // 32-byte real identifier
   uint rootSigIndex;      // only lower 16-bits are valid
 };
+
+#define RECORD_PATCH_THREADS 32
 
 #define MAX_LOCALSIG_PARAMS 31
 
