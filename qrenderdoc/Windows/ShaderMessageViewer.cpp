@@ -159,7 +159,7 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
     ui->messages->setItemDelegateForColumn(0, m_debugDelegate);
     ui->messages->setItemDelegateForColumn(1, m_gotoDelegate);
 
-    QCheckBox *boxes[] = {
+    QCheckBox *boxes[NumShaderStages] = {
         ui->vertex,
         ui->hull,
         ui->domain,
@@ -169,14 +169,21 @@ ShaderMessageViewer::ShaderMessageViewer(ICaptureContext &ctx, ShaderStageMask s
         NULL,
         ui->task,
         ui->mesh,
+        // raytracing stages
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
     };
 
     for(ShaderStage s : values<ShaderStage>())
     {
-      if(s == ShaderStage::Compute)
-        continue;
-
       uint32_t idx = (uint32_t)s;
+
+      if(!boxes[idx])
+        continue;
 
       m_OrigShaders[idx] = pipe.GetShader(s);
 
