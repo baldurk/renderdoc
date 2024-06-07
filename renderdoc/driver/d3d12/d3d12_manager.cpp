@@ -686,14 +686,16 @@ D3D12Descriptor *DescriptorFromPortableHandle(D3D12ResourceManager *manager, Por
 #define BARRIER_ASSERT(...)
 #endif
 
-D3D12RaytracingResourceAndUtilHandler::D3D12RaytracingResourceAndUtilHandler(WrappedID3D12Device *device)
+D3D12RaytracingResourceAndUtilHandler::D3D12RaytracingResourceAndUtilHandler(
+    WrappedID3D12Device *device, D3D12GpuBufferAllocator &gpuBufferAllocator)
     : m_wrappedDevice(device),
       m_cmdList(NULL),
       m_cmdAlloc(NULL),
       m_cmdQueue(NULL),
       m_gpuFence(NULL),
       m_gpuSyncHandle(NULL),
-      m_gpuSyncCounter(0u)
+      m_gpuSyncCounter(0u),
+      m_GPUBufferAllocator(gpuBufferAllocator)
 {
 }
 
@@ -744,9 +746,8 @@ void D3D12RaytracingResourceAndUtilHandler::CreateInternalResources()
       m_gpuSyncHandle = ::CreateEvent(NULL, FALSE, FALSE, NULL);
     }
 
-    D3D12GpuBufferAllocator::Inst()->Alloc(D3D12GpuBufferHeapType::CustomHeapWithUavCpuAccess,
-                                           D3D12GpuBufferHeapMemoryFlag::Default, 16, 256,
-                                           &ASQueryBuffer);
+    m_GPUBufferAllocator.Alloc(D3D12GpuBufferHeapType::CustomHeapWithUavCpuAccess,
+                               D3D12GpuBufferHeapMemoryFlag::Default, 16, 256, &ASQueryBuffer);
   }
 }
 
@@ -780,9 +781,8 @@ void D3D12RaytracingResourceAndUtilHandler::ResizeSerialisationBuffer(UINT64 siz
   {
     SAFE_RELEASE(ASSerialiseBuffer);
 
-    D3D12GpuBufferAllocator::Inst()->Alloc(D3D12GpuBufferHeapType::DefaultHeapWithUav,
-                                           D3D12GpuBufferHeapMemoryFlag::Default, size, 256,
-                                           &ASSerialiseBuffer);
+    m_GPUBufferAllocator.Alloc(D3D12GpuBufferHeapType::DefaultHeapWithUav,
+                               D3D12GpuBufferHeapMemoryFlag::Default, size, 256, &ASSerialiseBuffer);
   }
 }
 
@@ -880,9 +880,9 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
             ? 1
             : uint32_t(desc.CallableShaderTable.SizeInBytes / desc.CallableShaderTable.StrideInBytes);
 
-  D3D12GpuBufferAllocator::Inst()->Alloc(
-      D3D12GpuBufferHeapType::DefaultHeapWithUav, D3D12GpuBufferHeapMemoryFlag::Default,
-      patchDataSize, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT, &scratchBuffer);
+  m_GPUBufferAllocator.Alloc(D3D12GpuBufferHeapType::DefaultHeapWithUav,
+                             D3D12GpuBufferHeapMemoryFlag::Default, patchDataSize,
+                             D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT, &scratchBuffer);
 
   ResourceId id;
   uint64_t offs = 0;
@@ -1146,9 +1146,9 @@ void D3D12RaytracingResourceAndUtilHandler::PrepareRayDispatchBuffer(
       }
     }
 
-    D3D12GpuBufferAllocator::Inst()->Alloc(D3D12GpuBufferHeapType::UploadHeap,
-                                           D3D12GpuBufferHeapMemoryFlag::Default, lookupData.size(),
-                                           256, &m_LookupBuffer);
+    m_GPUBufferAllocator.Alloc(D3D12GpuBufferHeapType::UploadHeap,
+                               D3D12GpuBufferHeapMemoryFlag::Default, lookupData.size(), 256,
+                               &m_LookupBuffer);
 
     memcpy(m_LookupBuffer->Map(), lookupData.data(), lookupData.size());
     m_LookupBuffer->Unmap();
@@ -1425,8 +1425,6 @@ void D3D12RaytracingResourceAndUtilHandler::UnregisterExportDatabase(D3D12Shader
   // memory use - next time we need to add data we'll reclaim that.
 }
 
-D3D12GpuBufferAllocator *D3D12GpuBufferAllocator::m_bufferAllocator = NULL;
-
 bool D3D12GpuBufferAllocator::D3D12GpuBufferResource::CreateCommittedResourceBuffer(
     ID3D12Device *device, const D3D12_HEAP_PROPERTIES &heapProperty, D3D12_RESOURCE_STATES initState,
     uint64_t size, bool allowUav, D3D12GpuBufferResource **bufferResource)
@@ -1500,6 +1498,7 @@ bool D3D12GpuBufferAllocator::D3D12GpuBufferPool::Alloc(WrappedID3D12Device *wra
                                                         uint64_t size, uint64_t alignment,
                                                         D3D12GpuBuffer **gpuBuffer)
 {
+  D3D12GpuBufferAllocator &allocator = wrappedDevice->GetResourceManager()->GetGPUBufferAllocator();
   if(heapMem == D3D12GpuBufferHeapMemoryFlag::Default)
   {
     if(size > m_bufferInitSize)
@@ -1512,21 +1511,23 @@ bool D3D12GpuBufferAllocator::D3D12GpuBufferPool::Alloc(WrappedID3D12Device *wra
     {
       if(bufferRes->SubAlloc(size, alignment, gpuAddress))
       {
-        *gpuBuffer = new D3D12GpuBuffer(m_bufferPoolHeapType, D3D12GpuBufferHeapMemoryFlag::Default,
-                                        size, alignment, gpuAddress, bufferRes->Resource());
+        *gpuBuffer = new D3D12GpuBuffer(allocator, m_bufferPoolHeapType,
+                                        D3D12GpuBufferHeapMemoryFlag::Default, size, alignment,
+                                        gpuAddress, bufferRes->Resource());
         return true;
       }
     }
 
     D3D12GpuBufferResource *newBufferResource = NULL;
-    if(D3D12GpuBufferAllocator::CreateBufferResource(wrappedDevice, m_bufferPoolHeapType,
-                                                     m_bufferInitSize, &newBufferResource))
+    if(D3D12GpuBufferAllocator::D3D12GpuBufferResource::CreateBufferResource(
+           wrappedDevice, m_bufferPoolHeapType, m_bufferInitSize, &newBufferResource))
     {
       m_bufferResourceList.push_back(newBufferResource);
       if(newBufferResource->SubAlloc(size, alignment, gpuAddress))
       {
-        *gpuBuffer = new D3D12GpuBuffer(m_bufferPoolHeapType, D3D12GpuBufferHeapMemoryFlag::Default,
-                                        size, alignment, gpuAddress, newBufferResource->Resource());
+        *gpuBuffer = new D3D12GpuBuffer(allocator, m_bufferPoolHeapType,
+                                        D3D12GpuBufferHeapMemoryFlag::Default, size, alignment,
+                                        gpuAddress, newBufferResource->Resource());
         return true;
       }
     }
@@ -1534,14 +1535,14 @@ bool D3D12GpuBufferAllocator::D3D12GpuBufferPool::Alloc(WrappedID3D12Device *wra
   else
   {
     D3D12GpuBufferResource *newBufferResource = NULL;
-    if(CreateBufferResource(m_bufferAllocator->m_wrappedDevice, m_bufferPoolHeapType, size,
-                            &newBufferResource))
+    if(D3D12GpuBufferAllocator::D3D12GpuBufferResource::CreateBufferResource(
+           wrappedDevice, m_bufferPoolHeapType, size, &newBufferResource))
     {
       m_bufferResourceList.push_back(newBufferResource);
-      *gpuBuffer = new D3D12GpuBuffer(m_bufferPoolHeapType, D3D12GpuBufferHeapMemoryFlag::Dedicated,
-                                      size, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
-                                      newBufferResource->Resource()->GetGPUVirtualAddress(),
-                                      newBufferResource->Resource());
+      *gpuBuffer = new D3D12GpuBuffer(
+          allocator, m_bufferPoolHeapType, D3D12GpuBufferHeapMemoryFlag::Dedicated, size,
+          D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
+          newBufferResource->Resource()->GetGPUVirtualAddress(), newBufferResource->Resource());
       return true;
     }
   }
@@ -1633,9 +1634,9 @@ void D3D12GpuBufferAllocator::Release(const D3D12GpuBuffer &gpuBuffer)
   RDCERR("Couldn't identify buffer heap type %zu", heap);
 }
 
-bool D3D12GpuBufferAllocator::CreateBufferResource(WrappedID3D12Device *wrappedDevice,
-                                                   D3D12GpuBufferHeapType heapType, uint64_t size,
-                                                   D3D12GpuBufferResource **bufferResource)
+bool D3D12GpuBufferAllocator::D3D12GpuBufferResource::CreateBufferResource(
+    WrappedID3D12Device *wrappedDevice, D3D12GpuBufferHeapType heapType, uint64_t size,
+    D3D12GpuBufferResource **bufferResource)
 {
   D3D12_HEAP_PROPERTIES heapProperty;
   heapProperty.CreationNodeMask = 0;
@@ -2130,7 +2131,7 @@ void D3D12GpuBuffer::Release()
   unsigned int ret = InterlockedDecrement(&m_RefCount);
   if(ret == 0)
   {
-    D3D12GpuBufferAllocator::Inst()->Release(*this);
+    m_Allocator.Release(*this);
 
     delete this;
   }

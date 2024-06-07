@@ -1016,7 +1016,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BuildRaytracingAccelerationStru
         totalInstancesSize =
             AlignUp<uint64_t>(totalInstancesSize, D3D12_RAYTRACING_INSTANCE_DESCS_BYTE_ALIGNMENT);
 
-        if(D3D12GpuBufferAllocator::Inst()->Alloc(
+        if(GetResourceManager()->GetGPUBufferAllocator().Alloc(
                D3D12GpuBufferHeapType::DefaultHeapWithUav, D3D12GpuBufferHeapMemoryFlag::Default,
                totalInstancesSize, D3D12_RAYTRACING_INSTANCE_DESCS_BYTE_ALIGNMENT,
                &patchInfo.m_patchedInstanceBuffer))
@@ -1297,9 +1297,9 @@ void WrappedID3D12GraphicsCommandList::CopyRaytracingAccelerationStructure(
       // after the copy operation for simplicity.
 
       D3D12GpuBuffer *sizeBuffer = NULL;
-      D3D12GpuBufferAllocator::Inst()->Alloc(D3D12GpuBufferHeapType::CustomHeapWithUavCpuAccess,
-                                             D3D12GpuBufferHeapMemoryFlag::Default, 8, 8,
-                                             &sizeBuffer);
+      GetResourceManager()->GetGPUBufferAllocator().Alloc(
+          D3D12GpuBufferHeapType::CustomHeapWithUavCpuAccess, D3D12GpuBufferHeapMemoryFlag::Default,
+          8, 8, &sizeBuffer);
 
       D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC desc = {};
       desc.DestBuffer = sizeBuffer->Address();
