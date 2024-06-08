@@ -805,6 +805,8 @@
   HookInitExtension(KHR_performance_query, GetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR);   \
   HookInitPromotedExtension(EXT_tooling_info, GetPhysicalDeviceToolProperties, EXT);                 \
   HookInitExtension(KHR_fragment_shading_rate, GetPhysicalDeviceFragmentShadingRatesKHR);            \
+  HookInitExtension(EXT_acquire_drm_display, AcquireDrmDisplayEXT);                                  \
+  HookInitExtension(EXT_acquire_drm_display, GetDrmDisplayEXT);                                      \
   HookInitExtension(KHR_calibrated_timestamps, GetPhysicalDeviceCalibrateableTimeDomainsKHR);        \
   HookInitExtension_Instance_Win32();                                                                \
   HookInitExtension_Instance_Linux();                                                                \
