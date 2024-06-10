@@ -3728,9 +3728,10 @@ void WrappedOpenGL::glCompressedMultiTexImage1DEXT(GLenum texunit, GLenum target
 }
 
 void WrappedOpenGL::StoreCompressedTexData(ResourceId texId, GLenum target, GLint level,
-                                           GLint xoffset, GLint yoffset, GLint zoffset,
-                                           GLsizei width, GLsizei height, GLsizei depth,
-                                           GLenum format, GLsizei imageSize, const void *pixels)
+                                           bool subUpdate, GLint xoffset, GLint yoffset,
+                                           GLint zoffset, GLsizei width, GLsizei height,
+                                           GLsizei depth, GLenum format, GLsizei imageSize,
+                                           const void *pixels)
 {
   byte *unpackedPixels = NULL;
   byte *srcPixels = NULL;
@@ -3758,22 +3759,23 @@ void WrappedOpenGL::StoreCompressedTexData(ResourceId texId, GLenum target, GLin
   {
     rdcstr error;
 
-    // Only the trivial case is handled yet.
-    if(xoffset == 0 && yoffset == 0)
+    if(target == GL_TEXTURE_2D || target == GL_TEXTURE_CUBE_MAP_POSITIVE_X ||
+       target == GL_TEXTURE_CUBE_MAP_NEGATIVE_X || target == GL_TEXTURE_CUBE_MAP_POSITIVE_Y ||
+       target == GL_TEXTURE_CUBE_MAP_NEGATIVE_Y || target == GL_TEXTURE_CUBE_MAP_POSITIVE_Z ||
+       target == GL_TEXTURE_CUBE_MAP_NEGATIVE_Z || target == GL_TEXTURE_2D_ARRAY ||
+       target == GL_TEXTURE_CUBE_MAP_ARRAY)
     {
-      if(target == GL_TEXTURE_2D || target == GL_TEXTURE_CUBE_MAP_POSITIVE_X ||
-         target == GL_TEXTURE_CUBE_MAP_NEGATIVE_X || target == GL_TEXTURE_CUBE_MAP_POSITIVE_Y ||
-         target == GL_TEXTURE_CUBE_MAP_NEGATIVE_Y || target == GL_TEXTURE_CUBE_MAP_POSITIVE_Z ||
-         target == GL_TEXTURE_CUBE_MAP_NEGATIVE_Z || target == GL_TEXTURE_2D_ARRAY ||
-         target == GL_TEXTURE_CUBE_MAP_ARRAY)
+      if(depth <= 1)
       {
-        if(depth <= 1)
+        size_t compressedImageSize = GetCompressedByteSize(width, height, 1, format);
+        RDCASSERT(compressedImageSize == (size_t)imageSize);
+        CompressedDataStore &cd = m_Textures[texId].compressedData;
+        rdcarray<byte> &cdData = cd[level];
+        GLint zoff = IsCubeFace(target) ? CubeTargetIndex(target) : zoffset;
+        if(!subUpdate)
         {
-          size_t compressedImageSize = GetCompressedByteSize(width, height, 1, format);
-          RDCASSERT(compressedImageSize == (size_t)imageSize);
-          CompressedDataStore &cd = m_Textures[texId].compressedData;
-          rdcarray<byte> &cdData = cd[level];
-          GLint zoff = IsCubeFace(target) ? CubeTargetIndex(target) : zoffset;
+          RDCASSERT(xoffset == 0);
+          RDCASSERT(yoffset == 0);
           size_t startOffset = imageSize * zoff;
           if(cdData.size() < startOffset + imageSize)
             cdData.resize(startOffset + imageSize);
@@ -3781,32 +3783,56 @@ void WrappedOpenGL::StoreCompressedTexData(ResourceId texId, GLenum target, GLin
         }
         else
         {
-          error = StringFormat::Fmt("depth (%d)", depth);
-        }
-      }
-      else if(target == GL_TEXTURE_3D)
-      {
-        if(zoffset == 0)
-        {
-          RDCASSERT(GetCompressedByteSize(width, height, depth, format) == (size_t)imageSize);
-          CompressedDataStore &cd = m_Textures[texId].compressedData;
-          rdcarray<byte> &cdData = cd[level];
-          cdData.resize(imageSize);
-          memcpy(cdData.data(), srcPixels, imageSize);
-        }
-        else
-        {
-          error = StringFormat::Fmt("zoffset (%d)", zoffset);
+          rdcfixedarray<uint32_t, 3> blockSize = GetCompressedBlockSize(format);
+          RDCASSERT(xoffset % blockSize[0] == 0);
+          RDCASSERT(yoffset % blockSize[1] == 0);
+          RDCASSERT(width % blockSize[0] == 0);
+          RDCASSERT(height % blockSize[1] == 0);
+          GLsizei texLevelWidth = RDCMAX(1, m_Textures[texId].width >> level);
+          GLsizei texLevelHeight = RDCMAX(1, m_Textures[texId].height >> level);
+          size_t startOffset = GetCompressedByteSize(texLevelWidth, texLevelHeight, 1, format) * zoff;
+          size_t endOffset =
+              startOffset + GetCompressedByteSize(texLevelWidth, yoffset + height, 1, format);
+          if(cdData.size() < endOffset)
+            cdData.resize(endOffset);
+          size_t srcRowSize = GetCompressedByteSize(width, (GLsizei)blockSize[1], 1, format);
+          size_t dstRowSize = GetCompressedByteSize(texLevelWidth, (GLsizei)blockSize[1], 1, format);
+          size_t srcOffset = 0;
+          size_t dstOffset = startOffset + GetCompressedByteSize(texLevelWidth, yoffset, 1, format) +
+                             GetCompressedByteSize(xoffset, (GLsizei)blockSize[1], 1, format);
+          for(size_t y = 0; y < (size_t)height; y += blockSize[1])
+          {
+            memcpy(cdData.data() + dstOffset, srcPixels + srcOffset, srcRowSize);
+            srcOffset += srcRowSize;
+            dstOffset += dstRowSize;
+          }
         }
       }
       else
       {
-        error = "target";
+        error = StringFormat::Fmt("depth (%d)", depth);
+      }
+    }
+    else if(target == GL_TEXTURE_3D)
+    {
+      // Only the trivial case is handled yet.
+      if(xoffset == 0 && yoffset == 0 && zoffset == 0)
+      {
+        RDCASSERT(GetCompressedByteSize(width, height, depth, format) == (size_t)imageSize);
+        CompressedDataStore &cd = m_Textures[texId].compressedData;
+        rdcarray<byte> &cdData = cd[level];
+        cdData.resize(imageSize);
+        memcpy(cdData.data(), srcPixels, imageSize);
+      }
+      else
+      {
+        error = StringFormat::Fmt("xoffset (%d) and/or yoffset (%d) and/or zoffset (%d)", xoffset,
+                                  yoffset, zoffset);
       }
     }
     else
     {
-      error = StringFormat::Fmt("xoffset (%d) and/or yoffset (%d)", xoffset, yoffset);
+      error = "target";
     }
 
     if(unpackbuf != 0)
@@ -3863,8 +3889,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage2DEXT(SerialiserType &ser,
     const void *databuf = pixels;
 
     if(IsGLES)
-      StoreCompressedTexData(GetResourceManager()->GetResID(texture), target, level, 0, 0, 0, width,
-                             height, 0, internalformat, imageSize, pixels);
+      StoreCompressedTexData(GetResourceManager()->GetResID(texture), target, level, false, 0, 0, 0,
+                             width, height, 0, internalformat, imageSize, pixels);
 
     // if we didn't have data provided (this is invalid, but could happen if the data
     // should have been sourced from an unpack buffer), then grow our scratch buffer if
@@ -3982,8 +4008,8 @@ void WrappedOpenGL::Common_glCompressedTextureImage2DEXT(ResourceId texId, GLenu
     RDCASSERT(record);
 
     if(IsGLES)
-      StoreCompressedTexData(record->GetResourceID(), target, level, 0, 0, 0, width, height, 0,
-                             internalformat, imageSize, pixels);
+      StoreCompressedTexData(record->GetResourceID(), target, level, false, 0, 0, 0, width, height,
+                             0, internalformat, imageSize, pixels);
 
     // This is kind of an arbitary heuristic, but in the past a game has re-specified a texture with
     // glTexImage over and over
@@ -4147,8 +4173,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage3DEXT(SerialiserType &ser,
     const void *databuf = pixels;
 
     if(IsGLES)
-      StoreCompressedTexData(GetResourceManager()->GetResID(texture), target, level, 0, 0, 0, width,
-                             height, depth, internalformat, imageSize, pixels);
+      StoreCompressedTexData(GetResourceManager()->GetResID(texture), target, level, false, 0, 0, 0,
+                             width, height, depth, internalformat, imageSize, pixels);
 
     // if we didn't have data provided (this is invalid, but could happen if the data
     // should have been sourced from an unpack buffer), then grow our scratch buffer if
@@ -4242,8 +4268,8 @@ void WrappedOpenGL::Common_glCompressedTextureImage3DEXT(ResourceId texId, GLenu
     RDCASSERT(record);
 
     if(IsGLES)
-      StoreCompressedTexData(record->GetResourceID(), target, level, 0, 0, 0, width, height, depth,
-                             internalformat, imageSize, pixels);
+      StoreCompressedTexData(record->GetResourceID(), target, level, false, 0, 0, 0, width, height,
+                             depth, internalformat, imageSize, pixels);
 
     // This is kind of an arbitary heuristic, but in the past a game has re-specified a texture with
     // glTexImage over and over
@@ -6447,7 +6473,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage2DEXT(SerialiserType &s
   {
     if(IsLoading(m_State) && IsGLES)
     {
-      StoreCompressedTexData(GetResourceManager()->GetResID(texture), target, level, xoffset,
+      StoreCompressedTexData(GetResourceManager()->GetResID(texture), target, level, true, xoffset,
                              yoffset, 0, width, height, 0, format, imageSize,
                              pixels ? pixels : (const void *)UnpackOffset);
     }
@@ -6523,7 +6549,7 @@ void WrappedOpenGL::Common_glCompressedTextureSubImage2DEXT(GLResourceRecord *re
   GL.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
 
   if(IsGLES)
-    StoreCompressedTexData(record->GetResourceID(), target, level, xoffset, yoffset, 0, width,
+    StoreCompressedTexData(record->GetResourceID(), target, level, true, xoffset, yoffset, 0, width,
                            height, 0, format, imageSize, pixels);
 
   if(IsBackgroundCapturing(m_State) && unpackbuf != 0)
@@ -6687,7 +6713,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage3DEXT(
   if(IsReplayingAndReading())
   {
     if(IsLoading(m_State) && IsGLES)
-      StoreCompressedTexData(GetResourceManager()->GetResID(texture), target, level, xoffset,
+      StoreCompressedTexData(GetResourceManager()->GetResID(texture), target, level, true, xoffset,
                              yoffset, zoffset, width, height, depth, format, imageSize,
                              pixels ? pixels : (const void *)UnpackOffset);
 
@@ -6764,8 +6790,8 @@ void WrappedOpenGL::Common_glCompressedTextureSubImage3DEXT(GLResourceRecord *re
   GL.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
 
   if(IsGLES)
-    StoreCompressedTexData(record->GetResourceID(), target, level, xoffset, yoffset, zoffset, width,
-                           height, depth, format, imageSize, pixels);
+    StoreCompressedTexData(record->GetResourceID(), target, level, true, xoffset, yoffset, zoffset,
+                           width, height, depth, format, imageSize, pixels);
 
   if(IsBackgroundCapturing(m_State) && unpackbuf != 0)
   {

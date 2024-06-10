@@ -605,9 +605,10 @@ private:
   // many drivers will still try to access memory via legacy behaviour even on core profile.
   bool Check_SafeDraw(bool indexed);
 
-  void StoreCompressedTexData(ResourceId texId, GLenum target, GLint level, GLint xoffset,
-                              GLint yoffset, GLint zoffset, GLsizei width, GLsizei height,
-                              GLsizei depth, GLenum format, GLsizei imageSize, const void *pixels);
+  void StoreCompressedTexData(ResourceId texId, GLenum target, GLint level, bool subUpdate,
+                              GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width,
+                              GLsizei height, GLsizei depth, GLenum format, GLsizei imageSize,
+                              const void *pixels);
 
   // no copy semantics
   WrappedOpenGL(const WrappedOpenGL &);
