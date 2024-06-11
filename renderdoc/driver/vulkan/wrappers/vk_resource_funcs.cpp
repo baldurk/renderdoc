@@ -1501,7 +1501,7 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
     VkResourceRecord *memrecord = GetRecord(memory);
 
     record->AddParent(memrecord);
-    record->baseResource = id;
+    record->baseResourceMem = record->baseResource = id;
     record->dedicated = memrecord->memMapState->dedicated;
     record->memOffset = memoryOffset;
 
@@ -1663,7 +1663,7 @@ VkResult WrappedVulkan::vkBindImageMemory(VkDevice device, VkImage image, VkDevi
     // images are a base resource but we want to track where their memory comes from.
     // Anything that looks up a baseResource for an image knows not to chase further
     // than the image.
-    record->baseResource = memrecord->GetResourceID();
+    record->baseResourceMem = record->baseResource = memrecord->GetResourceID();
     record->dedicated = memrecord->memMapState->dedicated;
   }
   else
@@ -2076,7 +2076,7 @@ VkResult WrappedVulkan::vkCreateBufferView(VkDevice device, const VkBufferViewCr
 
       // store the base resource
       record->baseResource = bufferRecord->GetResourceID();
-      record->baseResourceMem = bufferRecord->baseResource;
+      record->baseResourceMem = bufferRecord->baseResourceMem;
       record->dedicated = bufferRecord->dedicated;
       record->resInfo = bufferRecord->resInfo;
       record->storable = bufferRecord->storable;
@@ -2868,7 +2868,7 @@ VkResult WrappedVulkan::vkCreateImageView(VkDevice device, const VkImageViewCrea
       // store the base resource. Note images have a baseResource pointing
       // to their memory, which we will also need so we store that separately
       record->baseResource = imageRecord->GetResourceID();
-      record->baseResourceMem = imageRecord->baseResource;
+      record->baseResourceMem = imageRecord->baseResourceMem;
       record->dedicated = imageRecord->dedicated;
       record->resInfo = imageRecord->resInfo;
       record->viewRange = pCreateInfo->subresourceRange;
@@ -3003,7 +3003,7 @@ VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCo
       bufrecord->AddChunk(chunk);
 
       bufrecord->AddParent(memrecord);
-      bufrecord->baseResource = memrecord->GetResourceID();
+      bufrecord->baseResourceMem = bufrecord->baseResource = memrecord->GetResourceID();
       bufrecord->dedicated = memrecord->memMapState->dedicated;
       bufrecord->memOffset = pBindInfos[i].memoryOffset;
 
@@ -3177,7 +3177,7 @@ VkResult WrappedVulkan::vkBindImageMemory2(VkDevice device, uint32_t bindInfoCou
       // images are a base resource but we want to track where their memory comes from.
       // Anything that looks up a baseResource for an image knows not to chase further
       // than the image.
-      imgrecord->baseResource = memrecord->GetResourceID();
+      imgrecord->baseResourceMem = imgrecord->baseResource = memrecord->GetResourceID();
       imgrecord->dedicated = memrecord->memMapState->dedicated;
     }
   }
