@@ -179,6 +179,9 @@ void main()
     VkBuffer databuf;
     vkCreateBuffer(device, bufinfo, NULL, &databuf);
 
+    VkBuffer staticBuf;
+    vkCreateBuffer(device, bufinfo, NULL, &staticBuf);
+
     VkMemoryRequirements mrq;
     vkGetBufferMemoryRequirements(device, databuf, &mrq);
 
@@ -197,6 +200,10 @@ void main()
     VkDeviceMemory databufMem;
     vkAllocateMemory(device, &memoryAllocateInfo, NULL, &databufMem);
     vkBindBufferMemory(device, databuf, databufMem, 0);
+
+    VkDeviceMemory staticBufMem;
+    vkAllocateMemory(device, &memoryAllocateInfo, NULL, &staticBufMem);
+    vkBindBufferMemory(device, staticBuf, staticBufMem, 0);
 
     // north-facing primary colours triangle
     const DefaultA2V tri1[3] = {
@@ -257,6 +264,41 @@ void main()
     drawscpu[2].offset = Vec2f(0.6f, 0.0f);
     drawscpu[2].scale = Vec2f(0.5f, 0.5f);
     drawscpu[2].tint = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
+
+    // Make a static buffer of draw data
+    info.buffer = staticBuf;
+    baseAddr = vkGetBufferDeviceAddressKHR(device, &info);
+    gpuptr = (byte *)baseAddr;    // not a valid cpu pointer but useful for avoiding casting
+    vkMapMemory(device, staticBufMem, 0, mrq.size, 0, (void **)&cpuptr);
+
+    // put triangle data first
+    memcpy(cpuptr, tri1, sizeof(tri1));
+    gputri1 = (DefaultA2V *)gpuptr;
+    cpuptr += sizeof(tri1);
+    gpuptr += sizeof(tri1);
+
+    // align to 16 bytes
+    cpuptr = AlignUpPtr(cpuptr, 16);
+    gpuptr = AlignUpPtr(gpuptr, 16);
+
+    memcpy(cpuptr, tri2, sizeof(tri2));
+    gputri2 = (DefaultA2V *)gpuptr;
+    cpuptr += sizeof(tri2);
+    gpuptr += sizeof(tri2);
+
+    // align to 16 bytes
+    cpuptr = AlignUpPtr(cpuptr, 16);
+    gpuptr = AlignUpPtr(gpuptr, 16);
+
+    DrawData *staticDrawsCpu = (DrawData *)cpuptr;
+    DrawData *staticDrawsGpu = (DrawData *)gpuptr;
+
+    staticDrawsCpu[0].vert_data = gputri1;
+    staticDrawsCpu[0].offset = Vec2f(-0.5f, 0.5f);
+    staticDrawsCpu[0].scale = Vec2f(0.5f, 0.5f);
+    staticDrawsCpu[0].tint = Vec4f(1.0f, 1.0f, 0.2f, 1.0f);    // tint yellow
+
+    vkUnmapMemory(device, staticBufMem);
 
     float time = 0.0f;
 
@@ -320,6 +362,11 @@ void main()
       setMarker(cmd, "Draw 3");
       vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_ALL, 0, 8, &bindptr);
       vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_ALL, 8, 8, &bindptr);
+      vkCmdDraw(cmd, 3, 1, 0, 0);
+
+      setMarker(cmd, "Draw 4");
+      vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_ALL, 0, 8, &staticDrawsGpu);
+      vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_ALL, 8, 8, &staticDrawsGpu);
       vkCmdDraw(cmd, 3, 1, 0, 0);
 
       vkCmdEndRenderPass(cmd);
