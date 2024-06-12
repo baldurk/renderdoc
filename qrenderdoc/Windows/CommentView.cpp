@@ -46,7 +46,7 @@ CommentView::CommentView(ICaptureContext &ctx, QWidget *parent)
   m_commentsEditor->setWrapMode(SC_WRAP_WORD);
   m_commentsEditor->setWrapVisualFlags(SC_WRAPVISUALFLAG_MARGIN);
 
-  m_commentsEditor->setMarginWidthN(0, sptr_t(30.0 * devicePixelRatioF()));
+  m_commentsEditor->setMarginWidthN(0, 30.0);
 
   ConfigureSyntax(m_commentsEditor, SCLEX_NULL);
 

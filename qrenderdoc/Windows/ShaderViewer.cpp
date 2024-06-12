@@ -1477,9 +1477,9 @@ ScintillaEdit *ShaderViewer::MakeEditor(const QString &name, const QString &text
 {
   ScintillaEdit *ret = new ScintillaEdit(this);
 
-  ret->setMarginLeft(4.0 * devicePixelRatioF());
-  ret->setMarginWidthN(1, 20.0 * devicePixelRatioF());
-  ret->setMarginWidthN(2, 16.0 * devicePixelRatioF());
+  ret->setMarginLeft(4.0);
+  ret->setMarginWidthN(1, 20.0);
+  ret->setMarginWidthN(2, 16.0);
   ret->setObjectName(name);
 
   ret->styleSetFont(STYLE_DEFAULT, Formatter::FixedFont().family().toUtf8().data());
@@ -1536,7 +1536,7 @@ void ShaderViewer::SetTextAndUpdateMargin0(ScintillaEdit *sc, const QString &tex
 
   sptr_t width = sc->textWidth(SC_MARGIN_RTEXT, QString::number(numLines).toUtf8().data());
 
-  sc->setMarginWidthN(0, int(width * devicePixelRatioF()));
+  sc->setMarginWidthN(0, int(width));
 }
 
 void ShaderViewer::readonly_keyPressed(QKeyEvent *event)
