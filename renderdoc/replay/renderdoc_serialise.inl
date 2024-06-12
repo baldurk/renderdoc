@@ -253,6 +253,7 @@ void DoSerialise(SerialiserType &ser, ShaderDebugInfo &el)
 {
   SERIALISE_MEMBER(compileFlags);
   SERIALISE_MEMBER(files);
+  SERIALISE_MEMBER(entrySourceName);
   SERIALISE_MEMBER(entryLocation);
   SERIALISE_MEMBER(editBaseFile);
   SERIALISE_MEMBER(encoding);
