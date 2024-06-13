@@ -3251,10 +3251,12 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                             resKind == ResourceKind::Texture2DMS ||
                             resKind == ResourceKind::Texture2DMSArray)
                     {
+                      VarType varType = VarTypeForComponentType(compType);
                       typeStr += "<";
+                      typeStr += ToStr(varType);
                       if(compCount > 1)
-                        typeStr += StringFormat::Fmt("%dx", compCount);
-                      typeStr += StringFormat::Fmt("%s>", ToStr(compType).c_str());
+                        typeStr += StringFormat::Fmt("%d", compCount);
+                      typeStr += ">";
                     }
                     lineStr += "(";
                     lineStr += typeStr;
