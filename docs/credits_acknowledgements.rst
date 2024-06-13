@@ -140,6 +140,10 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
   Used to simplify compatibility with a broad range of Python versions.
 
+* `intellij-community <https://github.com/JetBrains/intellij-community>`_ - Copyright Contributors to the intellij-community project. Distributed under the Apache License.
+
+  Used to generate Python stubs for binary modules.
+
 Thanks
 ------
 
