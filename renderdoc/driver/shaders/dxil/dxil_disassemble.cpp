@@ -3071,13 +3071,19 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 {
                   commentStr += " index = " + GetArgId(inst, resIndexArgId);
                 }
+
+                lineStr = "InitialiseHandle(";
+                lineStr += GetHandleAlias(resultIdStr);
+
                 uint32_t value;
                 if(getival<uint32_t>(inst.args[nonUniformIndexArgId], value))
                 {
                   if(value != 0)
-                    commentStr += " nonUniformIndex = true";
+                    lineStr += ", nonUniformIndex = true";
                 }
-                lineStr += GetHandleAlias(resultIdStr);
+
+                lineStr += ")";
+                resultIdStr.clear();
                 break;
               }
               case DXOp::CreateHandleFromHeap:
