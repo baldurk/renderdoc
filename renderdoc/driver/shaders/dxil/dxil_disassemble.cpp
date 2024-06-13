@@ -79,6 +79,54 @@ bool isUndef(const Value *v)
   return false;
 }
 
+// Detect the DXC output which uses a load from global variable called "dx.nothing.*" instead of a Nop
+bool DXIL::IsDXCNop(const Instruction &inst)
+{
+  if(inst.op != Operation::Load)
+    return false;
+
+  if(const Constant *c = cast<Constant>(inst.args[0]))
+  {
+    if((c->op == Operation::GetElementPtr) && c->isCompound())
+    {
+      const rdcarray<DXIL::Value *> &members = c->getMembers();
+      if(const GlobalVar *gv = cast<GlobalVar>(members[0]))
+      {
+        if(gv->name.beginsWith("dx.nothing."))
+          return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool DXIL::IsLLVMDebugCall(const Instruction &inst)
+{
+  return ((inst.op == Operation::Call) && (inst.getFuncCall()->name.beginsWith("llvm.dbg.")));
+}
+
+// true if the Value is an SSA value i.e. from an instruction, not a constant etc.
+bool DXIL::IsSSA(const Value *dxilValue)
+{
+  if(const Instruction *inst = cast<Instruction>(dxilValue))
+    return true;
+  if(const Constant *c = cast<Constant>(dxilValue))
+    return false;
+  if(const Literal *lit = cast<Literal>(dxilValue))
+    return false;
+  if(const Block *block = cast<Block>(dxilValue))
+    return false;
+  if(const GlobalVar *gv = cast<GlobalVar>(dxilValue))
+    return false;
+  if(const Function *func = cast<Function>(dxilValue))
+    return false;
+  if(const Metadata *meta = cast<Metadata>(dxilValue))
+    return false;
+
+  RDCERR("Unknown DXIL::Value type");
+  return false;
+}
+
 static const char *shaderNames[] = {
     "Pixel",      "Vertex",  "Geometry",      "Hull",         "Domain",
     "Compute",    "Library", "RayGeneration", "Intersection", "AnyHit",
@@ -1644,7 +1692,7 @@ void Program::MakeDXCDisassemblyString()
           case Operation::NoOp: m_Disassembly += "??? "; break;
           case Operation::Call:
           {
-            rdcstr funcCallName = inst.getFuncCall()->name;
+            const rdcstr &funcCallName = inst.getFuncCall()->name;
             m_Disassembly += "call " + inst.type->toString(dxcStyleFormatting);
             m_Disassembly += " @" + escapeStringIfNeeded(funcCallName);
             m_Disassembly += "(";
@@ -2937,6 +2985,10 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
         Instruction &inst = *func.instructions[funcIdx];
 
         inst.disassemblyLine = m_DisassemblyInstructionLine;
+
+        if(IsDXCNop(inst))
+          continue;
+
         rdcstr resultTypeStr;
         if(!inst.type->isVoid())
         {
@@ -2952,7 +3004,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
         rdcstr lineStr;
         switch(inst.op)
         {
-          case Operation::NoOp: lineStr += "??? "; break;
+          case Operation::NoOp: lineStr += "nop"; break;
           case Operation::Call:
           {
             rdcstr funcCallName = inst.getFuncCall()->name;
@@ -5563,4 +5615,5 @@ void Program::MakeResultId(const DXIL::Instruction &inst, rdcstr &resultId)
   else if(inst.slot != ~0U)
     resultId = StringFormat::Fmt("%c%s", '_', ToStr(inst.slot).c_str());
 }
+
 };    // namespace DXIL

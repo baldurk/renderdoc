@@ -1676,6 +1676,10 @@ bool getival(const Value *v, T &out)
   return false;
 }
 
+bool IsSSA(const Value *dxilValue);
+bool IsDXCNop(const Instruction &inst);
+bool IsLLVMDebugCall(const Instruction &inst);
+
 bool isUndef(const Value *v);
 
 };    // namespace DXIL
