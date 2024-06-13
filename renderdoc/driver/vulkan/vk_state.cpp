@@ -669,14 +669,15 @@ void VulkanRenderState::BindDynamicState(WrappedVulkan *vk, VkCommandBuffer cmd)
         ibuffer.offs, type);
   }
 
-  if(vk->DynamicVertexInput() && dynamicStates[VkDynamicVertexInputEXT])
+  if((vk->DynamicVertexInput() || vk->ShaderObject()) && dynamicStates[VkDynamicVertexInputEXT])
   {
     ObjDisp(cmd)->CmdSetVertexInputEXT(Unwrap(cmd), (uint32_t)vertexBindings.size(),
                                        vertexBindings.data(), (uint32_t)vertexAttributes.size(),
                                        vertexAttributes.data());
   }
 
-  bool dynamicStride = dynamicStates[VkDynamicVertexInputBindingStride] && vk->ExtendedDynamicState();
+  bool dynamicStride = dynamicStates[VkDynamicVertexInputBindingStride] &&
+                       (vk->ExtendedDynamicState() || vk->ShaderObject());
 
   for(size_t i = 0; i < vbuffers.size(); i++)
   {
