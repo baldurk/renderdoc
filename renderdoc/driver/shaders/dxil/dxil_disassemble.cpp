@@ -2517,7 +2517,8 @@ static const DXBC::CBufferVariable *FindCBufferVar(const uint32_t minOffset, con
 }
 
 static rdcstr MakeCBufferRegisterStr(uint32_t reg, uint32_t bytesPerElement,
-                                     DXIL::EntryPointInterface::CBuffer cbuffer)
+                                     DXIL::EntryPointInterface::CBuffer cbuffer,
+                                     const rdcstr &handleStr)
 {
   rdcstr ret = "{";
   uint32_t offset = 0;
@@ -2535,7 +2536,7 @@ static rdcstr MakeCBufferRegisterStr(uint32_t reg, uint32_t bytesPerElement,
         FindCBufferVar(minOffset, maxOffset, cbuffer.cbufferRefl->variables, baseOffset, prefix);
     if(var)
     {
-      ret += cbuffer.name + "." + prefix + var->name;
+      ret += handleStr + "." + prefix + var->name;
       uint32_t varOffset = regOffset - baseOffset;
 
       // if it's an array, add the index based on the relative index to the base offset
@@ -2578,7 +2579,7 @@ static rdcstr MakeCBufferRegisterStr(uint32_t reg, uint32_t bytesPerElement,
           if(offset > 16)
             break;
           ret += ", ";
-          ret += cbuffer.name + "." + prefix + var->name;
+          ret += handleStr + "." + prefix + var->name;
           ret += StringFormat::Fmt(".%c", swizzle[c & 0x3]);
           offset += elementSize;
         }
@@ -3090,6 +3091,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               {
                 // CreateHandleFromHeap(index,samplerHeap,nonUniformIndex)
                 uint32_t samplerHeap;
+                resultIdStr = GetHandleAlias(resultIdStr);
                 if(getival<uint32_t>(inst.args[2], samplerHeap))
                 {
                   lineStr += GetHandleAlias(resultIdStr);
@@ -3262,11 +3264,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                     lineStr += typeStr;
                     lineStr += ")";
                     rdcstr ssaStr = GetArgId(inst, 1);
-                    if(m_SsaAliases.count(ssaStr) == 0)
-                      lineStr += ssaStr;
-                    else
-                      lineStr += m_SsaAliases[ssaStr];
-
+                    lineStr += GetHandleAlias(ssaStr);
                     resultIdStr = GetHandleAlias(resultIdStr);
                   }
                   else
@@ -3287,11 +3285,13 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 // CBufferLoadLegacy(handle,regIndex)
                 rdcstr handleStr = GetArgId(inst, 1);
                 const ResourceReference *resRef = GetResourceReference(handleStr);
+                bool useFallback = true;
                 if(entryPoint && resRef)
                 {
                   uint32_t regIndex;
                   if(getival<uint32_t>(inst.args[2], regIndex))
                   {
+                    useFallback = false;
                     if(dxOpCode == DXOp::CBufferLoad)
                     {
                       // TODO: handle non 16-byte aligned offsets
@@ -3312,22 +3312,37 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                         RDCASSERTEQUAL(baseType->type, Type::TypeKind::Scalar);
                         bytesPerElement = baseType->bitWidth / 8;
                       }
-                      lineStr += MakeCBufferRegisterStr(regIndex, bytesPerElement, cbuffer);
+                      lineStr +=
+                          MakeCBufferRegisterStr(regIndex, bytesPerElement, cbuffer, handleStr);
                       commentStr += " cbuffer = " + cbuffer.name;
                       commentStr += ", byte_offset = " + ToStr(regIndex * 16);
                     }
                     else
                     {
-                      lineStr += cbuffer.name;
+                      lineStr += handleStr;
                       lineStr += ".Load4(";
                       lineStr += "byte_offset = " + ToStr(regIndex * 16);
                       lineStr += ")";
                     }
                   }
                 }
-                else
+                if(useFallback)
                 {
-                  showDxFuncName = true;
+                  lineStr += GetHandleAlias(handleStr);
+                  lineStr += ".Load4(";
+                  lineStr += "byte_offset = ";
+                  uint32_t regIndex;
+                  if(getival<uint32_t>(inst.args[2], regIndex))
+                  {
+                    lineStr += ToStr(regIndex * 16);
+                  }
+                  else
+                  {
+                    lineStr += GetArgId(inst, 2);
+                    if(dxOpCode == DXOp::CBufferLoadLegacy)
+                      lineStr += " * 16";
+                  }
+                  lineStr += ")";
                 }
                 break;
               }
@@ -3818,10 +3833,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
                     lineStr += paramNameStr;
                     rdcstr ssaStr = GetArgId(inst, a);
-                    if(m_SsaAliases.count(ssaStr) == 0)
-                      lineStr += ssaStr;
-                    else
-                      lineStr += m_SsaAliases[ssaStr];
+                    lineStr += GetHandleAlias(ssaStr);
                     first = false;
                   }
                 }
@@ -4577,7 +4589,6 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
 void Program::ParseReferences(const DXBC::Reflection *reflection)
 {
-  uint32_t heapDescriptorResourceCount = 0;
   for(size_t i = 0; i < m_Functions.size(); i++)
   {
     const Function &func = *m_Functions[i];
@@ -4833,6 +4844,12 @@ void Program::ParseReferences(const DXBC::Reflection *reflection)
               case DXOp::CreateHandleFromHeap:
               {
                 // CreateHandleFromHeap(index,samplerHeap,nonUniformIndex)
+                rdcstr resBaseName = "untyped_descriptor";
+                uint32_t annotateHandleCount = m_ResourceAnnotateCounts[resBaseName];
+                rdcstr resultAlias = "__" + resBaseName + "_" + ToStr(annotateHandleCount);
+                m_ResourceAnnotateCounts[resBaseName]++;
+                m_SsaAliases[resultIdStr] = resultAlias;
+
                 uint32_t samplerHeap;
                 if(getival<uint32_t>(inst.args[2], samplerHeap))
                 {
@@ -4842,26 +4859,30 @@ void Program::ParseReferences(const DXBC::Reflection *reflection)
                   resName += "[";
                   resName += GetArgId(inst, 1);
                   resName += "]";
-
-                  m_SsaAliases[resultIdStr] = resName;
+                  m_SsaAliases[resultAlias] = resName;
                 }
                 break;
               }
               case DXOp::AnnotateHandle:
               {
                 // AnnotateHandle(res,props)
-                rdcstr resName = "__heap_descriptor_" + ToStr(heapDescriptorResourceCount);
-                heapDescriptorResourceCount += 1;
-                m_SsaAliases[resultIdStr] = resName;
+
                 // If the underlying handle points to a known resource then duplicate the resource
                 // and register it as resultIdStr
                 rdcstr baseResource = GetArgId(inst, 1);
                 const ResourceReference *resRef = GetResourceReference(baseResource);
+                rdcstr resBaseName = "typed_descriptor";
                 if(resRef)
                 {
+                  resBaseName = resRef->resourceBase.name;
                   m_ResourceHandles[resultIdStr] = m_ResourceHandles.size();
                   m_ResourceReferences.push_back(*resRef);
                 }
+                uint32_t annotateHandleCount = m_ResourceAnnotateCounts[resBaseName];
+                rdcstr resName = "__" + resBaseName + "_" + ToStr(annotateHandleCount);
+                m_SsaAliases[resultIdStr] = resName;
+                m_ResourceAnnotateCounts[resBaseName]++;
+
                 break;
               }
               default: break;

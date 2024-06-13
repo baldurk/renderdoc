@@ -1645,6 +1645,7 @@ protected:
   rdcarray<EntryPointInterface> m_EntryPointInterfaces;
   std::map<rdcstr, size_t> m_ResourceHandles;
   std::map<rdcstr, rdcstr> m_SsaAliases;
+  std::map<rdcstr, uint32_t> m_ResourceAnnotateCounts;
 
   rdcarray<ResourceReference> m_ResourceReferences;
   rdcstr m_Disassembly;
