@@ -464,6 +464,25 @@ void main()
 
 )EOSHADER";
 
+  std::string pixelUAVWrite = R"EOSHADER(
+
+struct v2f
+{
+	float4 pos : SV_POSITION;
+	float4 col : COLOR0;
+	float2 uv : TEXCOORD0;
+};
+
+RWTexture2D<float4> uavOut;
+
+float4 main(v2f IN) : SV_Target0
+{
+  uavOut[IN.pos.xy*0.5] = float4(IN.uv.x, IN.uv.y, 0.0f, 1.0f);
+	return float4(0.1234, 1.0f, 0.0f, 0.5f);
+}
+
+)EOSHADER";
+
   int main()
   {
     // initialise, create window, create device, etc
@@ -478,6 +497,7 @@ void main()
     ID3D11PixelShaderPtr ps = CreatePS(Compile(pixel, "main", "ps_4_0"));
     ID3D11PixelShaderPtr psUInt = CreatePS(Compile(pixelUInt, "main", "ps_4_0"));
     ID3D11PixelShaderPtr psSInt = CreatePS(Compile(pixelSInt, "main", "ps_4_0"));
+    ID3D11PixelShaderPtr psUAVWrite = CreatePS(Compile(pixelUAVWrite, "main", "ps_5_0"));
 
     ID3D11ComputeShaderPtr cs = CreateCS(Compile(compute, "main", "cs_5_0"));
 
@@ -620,6 +640,10 @@ void main()
     ID3D11RenderTargetViewPtr mrt =
         MakeRTV(MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM, 16, 16).RTV().Tex2D());
 
+    // texture for UAV write testing
+    ID3D11UnorderedAccessViewPtr uavView =
+        MakeUAV(MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM, 8, 8).UAV().Tex2D());
+
     while(Running())
     {
       ClearRenderTargetView(bbRTV, {0.2f, 0.2f, 0.2f, 1.0f});
@@ -723,6 +747,18 @@ void main()
 
           popMarker();
         }
+      }
+
+      {
+        float white[] = {1.0f, 1.0f, 1.0f, 1.0f};
+        ctx->ClearUnorderedAccessViewFloat(uavView.GetInterfacePtr(), white);
+        ctx->PSSetShader(psUAVWrite, NULL, 0);
+        ctx->OMSetRenderTargetsAndUnorderedAccessViews(1, &rts[0].GetInterfacePtr(), NULL, 1, 1,
+                                                       &uavView.GetInterfacePtr(), NULL);
+
+        setMarker("UAVWrite");
+        ctx->Draw(3, 0);
+        ctx->PSSetShader(psUAVWrite, NULL, 0);
       }
 
       Present();
