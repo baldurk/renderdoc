@@ -1113,11 +1113,14 @@ void WrappedID3D11DeviceContext::AddUsage(const ActionDescription &a)
   //////////////////////////////
   // OM
 
-  for(int i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
+  // We iterate over shader slots here, but the matching index in the UAV array
+  //    provided by the user has the first UAV mapping to UAVStartSlot at zero.
+  for(int i = pipe->OM.UAVStartSlot; i < D3D11_1_UAV_SLOT_COUNT; i++)
   {
-    if(pipe->PS.Used_UAV(i) && pipe->OM.UAVs[i])
+    if(pipe->PS.Used_UAV(i) && pipe->OM.UAVs[i - pipe->OM.UAVStartSlot])
     {
-      WrappedID3D11UnorderedAccessView1 *view = (WrappedID3D11UnorderedAccessView1 *)pipe->OM.UAVs[i];
+      WrappedID3D11UnorderedAccessView1 *view =
+          (WrappedID3D11UnorderedAccessView1 *)pipe->OM.UAVs[i - pipe->OM.UAVStartSlot];
       m_ResourceUses[view->GetResourceResID()].push_back(
           EventUsage(e, ResourceUsage::PS_RWResource, view->GetResourceID()));
     }
