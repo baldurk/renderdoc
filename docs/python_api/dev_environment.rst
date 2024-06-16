@@ -19,8 +19,24 @@ Build instructions for your platform are available `on github <https://github.co
 
 Once you have compiled RenderDoc copy the python module into the same folder as the main renderdoc library. On windows this means copying out of the ``pymodules`` subdirectory, on linux this will likely be the case already. We do this to keep things simple, so the python module can load the library without needing to change ``PATH``.
 
-Installing PyCharm
-------------------
+Python Setup for VS Code
+------------------------
+Using the same python version as the RenderDoc build used (Python 3.6 by default).
+From inside the `docs` folder run the following command:
+`python3 regenerate_stubs.py <path_to_folder_to_store_render_python_symbols>``
+After running the command the output folder `<path_to_folder_to_store_render_python_symbols>` should contain `renderdoc` and `qrenderdoc` folders.
+
+In `VS Code` change the setting `python.analysis.extraPaths`` and add the output path used in the previous command (`<path_to_folder_to_store_render_python_symbols>`).
+
+Now when viewing a python script in `VS Code`, you should see the `RenderDoc` types being correctly resolved and autocompleted.
+
+If you get a warning about failure to import module `renderdoc` then something is not correct in the setup, double check the `VS Code` setting `python.analysis.extraPaths` includes the `RenderDoc` python API parsed output folder (which should contain two folders `renderdoc` and `qrenderdoc`).
+
+Configuring python module for PyCharm
+-------------------------------------
+
+Python Setup for PyCharm
+------------------------
 
 Now install PyCharm, for this document we will install 2020.3.2. Any version is fine, though newer versions may require modification to work properly.
 
@@ -28,8 +44,8 @@ Before you run PyCharm, we will replace one file in it to generate better type i
 
 If you're using a different version of PyCharm you can try to apply the patch also available in that folder.
 
-Configuring python module
--------------------------
+Configuring python module for PyCharm
+-------------------------------------
 
 You can now launch PyCharm and open or create the python project where you'll be writing code. Now we'll configure the python interpreter. This must match the python version that you built against above - the same major and minor version, and the same bitness (32-bit to 32-bit or 64-bit to 64-bit).
 
@@ -41,8 +57,8 @@ Once you've chosen the correct interpreter we'll also tell it where to find the 
 
 If everything went well, PyCharm should load that interpreter for the project and discover the renderdoc python modules. It will then generate stubs for them with correct typing information so you can benefit from proper autocomplete while writing python code.
 
-Troubleshooting
----------------
+Troubleshooting PyCharm
+-----------------------
 
 If you get an error about "No module named 'renderdoc'" then something has gone wrong with how the interpreter finds and loads the python module. Ensure you have the right path specified and that the interpreter is the correctly matching version for the python module you compiled.
 
