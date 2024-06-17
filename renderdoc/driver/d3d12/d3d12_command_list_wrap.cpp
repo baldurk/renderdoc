@@ -4206,9 +4206,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
           ID3D12Resource *argBuffer = Unwrap(patched.first);
           UINT64 argOffset = patched.second;
 
-          PatchedRayDispatch patchedDispatch = {};
           if(comSig->sig.raytraced)
           {
+            PatchedRayDispatch patchedDispatch = {};
             patchedDispatch =
                 GetResourceManager()->GetRaytracingResourceAndUtilHandler()->PatchIndirectRayDispatch(
                     Unwrap(pCommandList), state.heaps, comSig, MaxCommandCount, patched.first,
@@ -4225,9 +4225,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
                 ->SetPipelineState1(
                     Unwrap(GetResourceManager()->GetCurrentAs<ID3D12StateObject>(state.stateobj)));
             state.ApplyComputeRootElementsUnwrapped(Unwrap(pCommandList));
+            m_Cmd->m_RayDispatches.push_back(patchedDispatch.resources);
           }
-
-          m_Cmd->m_RayDispatches.push_back(patchedDispatch.resources);
 
           if(m_Cmd->m_FirstEventID <= 1)
           {
@@ -4262,7 +4261,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
               // fortunately ExecuteIndirect has no 'draw' builtin, so we can just offset the
               // argument buffer and set count to 1
               count = 1;
-              patched.second += comSig->sig.ByteStride * execidx;
+              argOffset += comSig->sig.ByteStride * execidx;
             }
           }
 
@@ -4308,9 +4307,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
       ID3D12Resource *argBuffer = Unwrap(patched.first);
       UINT64 argOffset = patched.second;
 
-      PatchedRayDispatch patchedDispatch = {};
       if(comSig->sig.raytraced)
       {
+        PatchedRayDispatch patchedDispatch = {};
         patchedDispatch =
             GetResourceManager()->GetRaytracingResourceAndUtilHandler()->PatchIndirectRayDispatch(
                 Unwrap(list), state.heaps, comSig, MaxCommandCount, patched.first, patched.second,
@@ -4327,9 +4326,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
             ->SetPipelineState1(
                 Unwrap(GetResourceManager()->GetCurrentAs<ID3D12StateObject>(state.stateobj)));
         state.ApplyComputeRootElementsUnwrapped(Unwrap(pCommandList));
+        m_Cmd->m_RayDispatches.push_back(patchedDispatch.resources);
       }
-
-      m_Cmd->m_RayDispatches.push_back(patchedDispatch.resources);
 
       Unwrap(list)->ExecuteIndirect(comSig->GetReal(), MaxCommandCount, argBuffer, argOffset,
                                     Unwrap(pCountBuffer), CountBufferOffset);
