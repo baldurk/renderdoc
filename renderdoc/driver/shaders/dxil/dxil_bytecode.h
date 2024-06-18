@@ -49,6 +49,9 @@ struct ThreadState;
 
 namespace DXIL
 {
+static const rdcstr DXIL_FAKE_OUTPUT_STRUCT_NAME("_OUT");
+static const rdcstr DXIL_FAKE_INPUT_STRUCT_NAME("_IN");
+
 struct BumpAllocator
 {
   BumpAllocator(size_t totalSize);

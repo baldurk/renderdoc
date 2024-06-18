@@ -3053,7 +3053,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 else
                   componentStr = GetArgId(inst, 3);
 
-                lineStr += "<IN>." + name + rowStr + "." + componentStr;
+                lineStr += DXIL_FAKE_INPUT_STRUCT_NAME + "." + name + rowStr + "." + componentStr;
                 break;
               }
               case DXOp::StoreOutput:
@@ -3091,7 +3091,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 else
                   componentStr = GetArgId(inst, 3);
 
-                lineStr += "<OUT>." + name + rowStr + "." + componentStr;
+                lineStr += DXIL_FAKE_OUTPUT_STRUCT_NAME + "." + name + rowStr + "." + componentStr;
                 lineStr += " = " + GetArgId(inst, 4);
                 break;
               }
