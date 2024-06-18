@@ -959,7 +959,7 @@ bool WrappedID3D12Device::Serialise_CreateDescriptorHeap(
 
     if(patched && FAILED(hr))
     {
-      RDCERR(
+      RDCWARN(
           "RenderDoc needs extra descriptors for patching during analysis,"
           "but heap failed to expand any further even at tier 3");
       PatchedDesc.NumDescriptors = Descriptor.NumDescriptors;
