@@ -1491,7 +1491,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DispatchRays(SerialiserType &se
         m_Cmd->m_RayDispatches.push_back(patchedDispatch.resources);
 
         uint32_t eventId = m_Cmd->HandlePreCallback(list, ActionFlags::DispatchRay);
-        // this can't work yet as the shader records have not been patched
         Unwrap4(list)->DispatchRays(&patchedDispatch.desc);
         if(eventId && m_Cmd->m_ActionCallback->PostDraw(eventId, list))
         {

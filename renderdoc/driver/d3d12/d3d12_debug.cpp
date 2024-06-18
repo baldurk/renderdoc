@@ -1043,6 +1043,13 @@ rdcpair<ID3D12Resource *, UINT64> D3D12DebugManager::PatchExecuteIndirect(
       }
       case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_RAYS:
       {
+        argOffsets.push_back(
+            offset + offsetof(D3D12_DISPATCH_RAYS_DESC, RayGenerationShaderRecord.StartAddress));
+        argOffsets.push_back(offset +
+                             offsetof(D3D12_DISPATCH_RAYS_DESC, MissShaderTable.StartAddress));
+        argOffsets.push_back(offset + offsetof(D3D12_DISPATCH_RAYS_DESC, HitGroupTable.StartAddress));
+        argOffsets.push_back(offset +
+                             offsetof(D3D12_DISPATCH_RAYS_DESC, CallableShaderTable.StartAddress));
         offset += sizeof(D3D12_DISPATCH_RAYS_DESC);
         break;
       }
