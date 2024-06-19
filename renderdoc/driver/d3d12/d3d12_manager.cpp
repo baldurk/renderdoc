@@ -928,8 +928,8 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
   // miss - optional
   if(ret.desc.MissShaderTable.SizeInBytes > 0)
   {
-    recordInfo.shaderrecord_count =
-        uint32_t(ret.desc.MissShaderTable.SizeInBytes / ret.desc.MissShaderTable.StrideInBytes);
+    recordInfo.shaderrecord_count = uint32_t(ret.desc.MissShaderTable.SizeInBytes /
+                                             RDCMAX(1ULL, ret.desc.MissShaderTable.StrideInBytes));
     recordInfo.shaderrecord_stride = uint32_t(ret.desc.MissShaderTable.StrideInBytes);
 
     unwrappedCmd->SetComputeRoot32BitConstants((UINT)D3D12PatchRayDispatchParam::RecordCB,
@@ -947,8 +947,8 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
   // hitgroups - optional
   if(desc.HitGroupTable.SizeInBytes > 0)
   {
-    recordInfo.shaderrecord_count =
-        uint32_t(ret.desc.HitGroupTable.SizeInBytes / ret.desc.HitGroupTable.StrideInBytes);
+    recordInfo.shaderrecord_count = uint32_t(ret.desc.HitGroupTable.SizeInBytes /
+                                             RDCMAX(1ULL, ret.desc.HitGroupTable.StrideInBytes));
     recordInfo.shaderrecord_stride = uint32_t(ret.desc.HitGroupTable.StrideInBytes);
 
     unwrappedCmd->SetComputeRoot32BitConstants((UINT)D3D12PatchRayDispatchParam::RecordCB,
@@ -966,8 +966,9 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
   // callables - optional
   if(desc.CallableShaderTable.SizeInBytes > 0)
   {
-    recordInfo.shaderrecord_count = uint32_t(ret.desc.CallableShaderTable.SizeInBytes /
-                                             ret.desc.CallableShaderTable.StrideInBytes);
+    recordInfo.shaderrecord_count =
+        uint32_t(ret.desc.CallableShaderTable.SizeInBytes /
+                 RDCMAX(1ULL, ret.desc.CallableShaderTable.StrideInBytes));
     recordInfo.shaderrecord_stride = uint32_t(ret.desc.CallableShaderTable.StrideInBytes);
 
     unwrappedCmd->SetComputeRoot32BitConstants((UINT)D3D12PatchRayDispatchParam::RecordCB,
