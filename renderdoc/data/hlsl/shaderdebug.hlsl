@@ -122,36 +122,40 @@ float4 DoFloatOpcode(float4 uv)
       {
         switch(debugSampleRetType)
         {
-          case DEBUG_SAMPLE_UNORM: return t1D_unorm.SampleGrad(s, uv, ddx_, ddy_, offsets);
-          case DEBUG_SAMPLE_SNORM: return t1D_snorm.SampleGrad(s, uv, ddx_, ddy_, offsets);
-          default: return t1D_float.SampleGrad(s, uv, ddx_, ddy_, offsets);
+          case DEBUG_SAMPLE_UNORM: return t1D_unorm.SampleGrad(s, uv.xy, ddx_.x, ddy_.x, offsets.x);
+          case DEBUG_SAMPLE_SNORM: return t1D_snorm.SampleGrad(s, uv.xy, ddx_.x, ddy_.x, offsets.x);
+          default: return t1D_float.SampleGrad(s, uv.xy, ddx_.x, ddy_.x, offsets.x);
         }
       }
       case DEBUG_SAMPLE_TEX2D:
       {
         switch(debugSampleRetType)
         {
-          case DEBUG_SAMPLE_UNORM: return t2D_unorm.SampleGrad(s, uv, ddx_, ddy_, offsets);
-          case DEBUG_SAMPLE_SNORM: return t2D_snorm.SampleGrad(s, uv, ddx_, ddy_, offsets);
-          default: return t2D_float.SampleGrad(s, uv, ddx_, ddy_, offsets);
+          case DEBUG_SAMPLE_UNORM:
+            return t2D_unorm.SampleGrad(s, uv.xyz, ddx_.xy, ddy_.xy, offsets.xy);
+          case DEBUG_SAMPLE_SNORM:
+            return t2D_snorm.SampleGrad(s, uv.xyz, ddx_.xy, ddy_.xy, offsets.xy);
+          default: return t2D_float.SampleGrad(s, uv.xyz, ddx_.xy, ddy_.xy, offsets.xy);
         }
       }
       case DEBUG_SAMPLE_TEX3D:
       {
         switch(debugSampleRetType)
         {
-          case DEBUG_SAMPLE_UNORM: return t3D_unorm.SampleGrad(s, uv, ddx_, ddy_, offsets);
-          case DEBUG_SAMPLE_SNORM: return t3D_snorm.SampleGrad(s, uv, ddx_, ddy_, offsets);
-          default: return t3D_float.SampleGrad(s, uv, ddx_, ddy_, offsets);
+          case DEBUG_SAMPLE_UNORM:
+            return t3D_unorm.SampleGrad(s, uv.xyz, ddx_.xyz, ddy_.xyz, offsets.xyz);
+          case DEBUG_SAMPLE_SNORM:
+            return t3D_snorm.SampleGrad(s, uv.xyz, ddx_.xyz, ddy_.xyz, offsets.xyz);
+          default: return t3D_float.SampleGrad(s, uv.xyz, ddx_.xyz, ddy_.xyz, offsets.xyz);
         }
       }
       case DEBUG_SAMPLE_TEXCUBE:
       {
         switch(debugSampleRetType)
         {
-          case DEBUG_SAMPLE_UNORM: return tCube_unorm.SampleGrad(s, uv, ddx_, ddy_);
-          case DEBUG_SAMPLE_SNORM: return tCube_snorm.SampleGrad(s, uv, ddx_, ddy_);
-          default: return tCube_float.SampleGrad(s, uv, ddx_, ddy_);
+          case DEBUG_SAMPLE_UNORM: return tCube_unorm.SampleGrad(s, uv, ddx_.xyz, ddy_.xyz);
+          case DEBUG_SAMPLE_SNORM: return tCube_snorm.SampleGrad(s, uv, ddx_.xyz, ddy_.xyz);
+          default: return tCube_float.SampleGrad(s, uv, ddx_.xyz, ddy_.xyz);
         }
       }
     }
@@ -165,27 +169,27 @@ float4 DoFloatOpcode(float4 uv)
       {
         switch(debugSampleRetType)
         {
-          case DEBUG_SAMPLE_UNORM: return t1D_unorm.SampleLevel(s, uv, lod, offsets);
-          case DEBUG_SAMPLE_SNORM: return t1D_snorm.SampleLevel(s, uv, lod, offsets);
-          default: return t1D_float.SampleLevel(s, uv, lod, offsets);
+          case DEBUG_SAMPLE_UNORM: return t1D_unorm.SampleLevel(s, uv.xy, lod, offsets.x);
+          case DEBUG_SAMPLE_SNORM: return t1D_snorm.SampleLevel(s, uv.xy, lod, offsets.x);
+          default: return t1D_float.SampleLevel(s, uv.xy, lod, offsets.x);
         }
       }
       case DEBUG_SAMPLE_TEX2D:
       {
         switch(debugSampleRetType)
         {
-          case DEBUG_SAMPLE_UNORM: return t2D_unorm.SampleLevel(s, uv, lod, offsets);
-          case DEBUG_SAMPLE_SNORM: return t2D_snorm.SampleLevel(s, uv, lod, offsets);
-          default: return t2D_float.SampleLevel(s, uv, lod, offsets);
+          case DEBUG_SAMPLE_UNORM: return t2D_unorm.SampleLevel(s, uv.xyz, lod, offsets.xy);
+          case DEBUG_SAMPLE_SNORM: return t2D_snorm.SampleLevel(s, uv.xyz, lod, offsets.xy);
+          default: return t2D_float.SampleLevel(s, uv.xyz, lod, offsets.xy);
         }
       }
       case DEBUG_SAMPLE_TEX3D:
       {
         switch(debugSampleRetType)
         {
-          case DEBUG_SAMPLE_UNORM: return t3D_unorm.SampleLevel(s, uv, lod, offsets);
-          case DEBUG_SAMPLE_SNORM: return t3D_snorm.SampleLevel(s, uv, lod, offsets);
-          default: return t3D_float.SampleLevel(s, uv, lod, offsets);
+          case DEBUG_SAMPLE_UNORM: return t3D_unorm.SampleLevel(s, uv.xyz, lod, offsets.xyz);
+          case DEBUG_SAMPLE_SNORM: return t3D_snorm.SampleLevel(s, uv.xyz, lod, offsets.xyz);
+          default: return t3D_float.SampleLevel(s, uv.xyz, lod, offsets.xyz);
         }
       }
       case DEBUG_SAMPLE_TEXCUBE:
@@ -208,36 +212,38 @@ float4 DoFloatOpcode(float4 uv)
       {
         switch(debugSampleRetType)
         {
-          case DEBUG_SAMPLE_UNORM: return t1D_unorm.Load(uvInt, offsets);
-          case DEBUG_SAMPLE_SNORM: return t1D_snorm.Load(uvInt, offsets);
-          default: return t1D_float.Load(uvInt, offsets);
+          case DEBUG_SAMPLE_UNORM: return t1D_unorm.Load(uvInt.xyz, offsets.x);
+          case DEBUG_SAMPLE_SNORM: return t1D_snorm.Load(uvInt.xyz, offsets.x);
+          default: return t1D_float.Load(uvInt.xyz, offsets.x);
         }
       }
       case DEBUG_SAMPLE_TEX2D:
       {
         switch(debugSampleRetType)
         {
-          case DEBUG_SAMPLE_UNORM: return t2D_unorm.Load(uvInt, offsets);
-          case DEBUG_SAMPLE_SNORM: return t2D_snorm.Load(uvInt, offsets);
-          default: return t2D_float.Load(uvInt, offsets);
+          case DEBUG_SAMPLE_UNORM: return t2D_unorm.Load(uvInt, offsets.xy);
+          case DEBUG_SAMPLE_SNORM: return t2D_snorm.Load(uvInt, offsets.xy);
+          default: return t2D_float.Load(uvInt, offsets.xy);
         }
       }
       case DEBUG_SAMPLE_TEX3D:
       {
         switch(debugSampleRetType)
         {
-          case DEBUG_SAMPLE_UNORM: return t3D_unorm.Load(uvInt, offsets);
-          case DEBUG_SAMPLE_SNORM: return t3D_snorm.Load(uvInt, offsets);
-          default: return t3D_float.Load(uvInt, offsets);
+          case DEBUG_SAMPLE_UNORM: return t3D_unorm.Load(uvInt, offsets.xyz);
+          case DEBUG_SAMPLE_SNORM: return t3D_snorm.Load(uvInt, offsets.xyz);
+          default: return t3D_float.Load(uvInt, offsets.xyz);
         }
       }
       case DEBUG_SAMPLE_TEXMS:
       {
         switch(debugSampleRetType)
         {
-          case DEBUG_SAMPLE_UNORM: return tMS_unorm.Load(uvInt, debugSampleSampleIndex, offsets);
-          case DEBUG_SAMPLE_SNORM: return tMS_snorm.Load(uvInt, debugSampleSampleIndex, offsets);
-          default: return tMS_float.Load(uvInt, debugSampleSampleIndex, offsets);
+          case DEBUG_SAMPLE_UNORM:
+            return tMS_unorm.Load(uvInt.xyz, debugSampleSampleIndex, offsets.xy);
+          case DEBUG_SAMPLE_SNORM:
+            return tMS_snorm.Load(uvInt.xyz, debugSampleSampleIndex, offsets.xy);
+          default: return tMS_float.Load(uvInt.xyz, debugSampleSampleIndex, offsets.xy);
         }
       }
     }
@@ -251,18 +257,18 @@ float4 DoFloatOpcode(float4 uv)
       {
         switch(debugSampleRetType)
         {
-          case DEBUG_SAMPLE_UNORM: return t1D_unorm.SampleCmp(sc, uv, compare, offsets);
-          case DEBUG_SAMPLE_SNORM: return t1D_snorm.SampleCmp(sc, uv, compare, offsets);
-          default: return t1D_float.SampleCmp(sc, uv, compare, offsets);
+          case DEBUG_SAMPLE_UNORM: return t1D_unorm.SampleCmp(sc, uv.xy, compare, offsets.x);
+          case DEBUG_SAMPLE_SNORM: return t1D_snorm.SampleCmp(sc, uv.xy, compare, offsets.x);
+          default: return t1D_float.SampleCmp(sc, uv.xy, compare, offsets.x);
         }
       }
       case DEBUG_SAMPLE_TEX2D:
       {
         switch(debugSampleRetType)
         {
-          case DEBUG_SAMPLE_UNORM: return t2D_unorm.SampleCmp(sc, uv, compare, offsets);
-          case DEBUG_SAMPLE_SNORM: return t2D_snorm.SampleCmp(sc, uv, compare, offsets);
-          default: return t2D_float.SampleCmp(sc, uv, compare, offsets);
+          case DEBUG_SAMPLE_UNORM: return t2D_unorm.SampleCmp(sc, uv.xyz, compare, offsets.xy);
+          case DEBUG_SAMPLE_SNORM: return t2D_snorm.SampleCmp(sc, uv.xyz, compare, offsets.xy);
+          default: return t2D_float.SampleCmp(sc, uv.xyz, compare, offsets.xy);
         }
       }
       case DEBUG_SAMPLE_TEXCUBE:
@@ -285,18 +291,22 @@ float4 DoFloatOpcode(float4 uv)
       {
         switch(debugSampleRetType)
         {
-          case DEBUG_SAMPLE_UNORM: return t1D_unorm.SampleCmpLevelZero(sc, uv, compare, offsets);
-          case DEBUG_SAMPLE_SNORM: return t1D_snorm.SampleCmpLevelZero(sc, uv, compare, offsets);
-          default: return t1D_float.SampleCmpLevelZero(sc, uv, compare, offsets);
+          case DEBUG_SAMPLE_UNORM:
+            return t1D_unorm.SampleCmpLevelZero(sc, uv.xy, compare, offsets.x);
+          case DEBUG_SAMPLE_SNORM:
+            return t1D_snorm.SampleCmpLevelZero(sc, uv.xy, compare, offsets.x);
+          default: return t1D_float.SampleCmpLevelZero(sc, uv.xy, compare, offsets.x);
         }
       }
       case DEBUG_SAMPLE_TEX2D:
       {
         switch(debugSampleRetType)
         {
-          case DEBUG_SAMPLE_UNORM: return t2D_unorm.SampleCmpLevelZero(sc, uv, compare, offsets);
-          case DEBUG_SAMPLE_SNORM: return t2D_snorm.SampleCmpLevelZero(sc, uv, compare, offsets);
-          default: return t2D_float.SampleCmpLevelZero(sc, uv, compare, offsets);
+          case DEBUG_SAMPLE_UNORM:
+            return t2D_unorm.SampleCmpLevelZero(sc, uv.xyz, compare, offsets.xy);
+          case DEBUG_SAMPLE_SNORM:
+            return t2D_snorm.SampleCmpLevelZero(sc, uv.xyz, compare, offsets.xy);
+          default: return t2D_float.SampleCmpLevelZero(sc, uv.xyz, compare, offsets.xy);
         }
       }
       case DEBUG_SAMPLE_TEXCUBE:
@@ -320,20 +330,20 @@ float4 DoFloatOpcode(float4 uv)
         switch(debugSampleRetType)
         {
           case DEBUG_SAMPLE_UNORM:
-            return float4(t1D_unorm.CalculateLevelOfDetail(s, uv),
-                          t1D_unorm.CalculateLevelOfDetailUnclamped(s, uv), 0.0f, 0.0f);
+            return float4(t1D_unorm.CalculateLevelOfDetail(s, uv.x),
+                          t1D_unorm.CalculateLevelOfDetailUnclamped(s, uv.x), 0.0f, 0.0f);
           case DEBUG_SAMPLE_SNORM:
-            return float4(t1D_snorm.CalculateLevelOfDetail(s, uv),
-                          t1D_snorm.CalculateLevelOfDetailUnclamped(s, uv), 0.0f, 0.0f);
+            return float4(t1D_snorm.CalculateLevelOfDetail(s, uv.x),
+                          t1D_snorm.CalculateLevelOfDetailUnclamped(s, uv.x), 0.0f, 0.0f);
           case DEBUG_SAMPLE_UINT:
-            return float4(t1D_uint.CalculateLevelOfDetail(s, uv),
-                          t1D_uint.CalculateLevelOfDetailUnclamped(s, uv), 0.0f, 0.0f);
+            return float4(t1D_uint.CalculateLevelOfDetail(s, uv.x),
+                          t1D_uint.CalculateLevelOfDetailUnclamped(s, uv.x), 0.0f, 0.0f);
           case DEBUG_SAMPLE_INT:
-            return float4(t1D_int.CalculateLevelOfDetail(s, uv),
-                          t1D_int.CalculateLevelOfDetailUnclamped(s, uv), 0.0f, 0.0f);
+            return float4(t1D_int.CalculateLevelOfDetail(s, uv.x),
+                          t1D_int.CalculateLevelOfDetailUnclamped(s, uv.x), 0.0f, 0.0f);
           default:
-            return float4(t1D_float.CalculateLevelOfDetail(s, uv),
-                          t1D_float.CalculateLevelOfDetailUnclamped(s, uv), 0.0f, 0.0f);
+            return float4(t1D_float.CalculateLevelOfDetail(s, uv.x),
+                          t1D_float.CalculateLevelOfDetailUnclamped(s, uv.x), 0.0f, 0.0f);
         }
       }
       case DEBUG_SAMPLE_TEX2D:
@@ -341,20 +351,20 @@ float4 DoFloatOpcode(float4 uv)
         switch(debugSampleRetType)
         {
           case DEBUG_SAMPLE_UNORM:
-            return float4(t2D_unorm.CalculateLevelOfDetail(s, uv),
-                          t2D_unorm.CalculateLevelOfDetailUnclamped(s, uv), 0.0f, 0.0f);
+            return float4(t2D_unorm.CalculateLevelOfDetail(s, uv.xy),
+                          t2D_unorm.CalculateLevelOfDetailUnclamped(s, uv.xy), 0.0f, 0.0f);
           case DEBUG_SAMPLE_SNORM:
-            return float4(t2D_snorm.CalculateLevelOfDetail(s, uv),
-                          t2D_snorm.CalculateLevelOfDetailUnclamped(s, uv), 0.0f, 0.0f);
+            return float4(t2D_snorm.CalculateLevelOfDetail(s, uv.xy),
+                          t2D_snorm.CalculateLevelOfDetailUnclamped(s, uv.xy), 0.0f, 0.0f);
           case DEBUG_SAMPLE_UINT:
-            return float4(t2D_uint.CalculateLevelOfDetail(s, uv),
-                          t2D_uint.CalculateLevelOfDetailUnclamped(s, uv), 0.0f, 0.0f);
+            return float4(t2D_uint.CalculateLevelOfDetail(s, uv.xy),
+                          t2D_uint.CalculateLevelOfDetailUnclamped(s, uv.xy), 0.0f, 0.0f);
           case DEBUG_SAMPLE_INT:
-            return float4(t2D_int.CalculateLevelOfDetail(s, uv),
-                          t2D_int.CalculateLevelOfDetailUnclamped(s, uv), 0.0f, 0.0f);
+            return float4(t2D_int.CalculateLevelOfDetail(s, uv.xy),
+                          t2D_int.CalculateLevelOfDetailUnclamped(s, uv.xy), 0.0f, 0.0f);
           default:
-            return float4(t2D_float.CalculateLevelOfDetail(s, uv),
-                          t2D_float.CalculateLevelOfDetailUnclamped(s, uv), 0.0f, 0.0f);
+            return float4(t2D_float.CalculateLevelOfDetail(s, uv.xy),
+                          t2D_float.CalculateLevelOfDetailUnclamped(s, uv.xy), 0.0f, 0.0f);
         }
       }
       case DEBUG_SAMPLE_TEX3D:
@@ -362,20 +372,20 @@ float4 DoFloatOpcode(float4 uv)
         switch(debugSampleRetType)
         {
           case DEBUG_SAMPLE_UNORM:
-            return float4(t3D_unorm.CalculateLevelOfDetail(s, uv),
-                          t3D_unorm.CalculateLevelOfDetailUnclamped(s, uv), 0.0f, 0.0f);
+            return float4(t3D_unorm.CalculateLevelOfDetail(s, uv.xyz),
+                          t3D_unorm.CalculateLevelOfDetailUnclamped(s, uv.xyz), 0.0f, 0.0f);
           case DEBUG_SAMPLE_SNORM:
-            return float4(t3D_snorm.CalculateLevelOfDetail(s, uv),
-                          t3D_snorm.CalculateLevelOfDetailUnclamped(s, uv), 0.0f, 0.0f);
+            return float4(t3D_snorm.CalculateLevelOfDetail(s, uv.xyz),
+                          t3D_snorm.CalculateLevelOfDetailUnclamped(s, uv.xyz), 0.0f, 0.0f);
           case DEBUG_SAMPLE_UINT:
-            return float4(t3D_uint.CalculateLevelOfDetail(s, uv),
-                          t3D_uint.CalculateLevelOfDetailUnclamped(s, uv), 0.0f, 0.0f);
+            return float4(t3D_uint.CalculateLevelOfDetail(s, uv.xyz),
+                          t3D_uint.CalculateLevelOfDetailUnclamped(s, uv.xyz), 0.0f, 0.0f);
           case DEBUG_SAMPLE_INT:
-            return float4(t3D_int.CalculateLevelOfDetail(s, uv),
-                          t3D_int.CalculateLevelOfDetailUnclamped(s, uv), 0.0f, 0.0f);
+            return float4(t3D_int.CalculateLevelOfDetail(s, uv.xyz),
+                          t3D_int.CalculateLevelOfDetailUnclamped(s, uv.xyz), 0.0f, 0.0f);
           default:
-            return float4(t3D_float.CalculateLevelOfDetail(s, uv),
-                          t3D_float.CalculateLevelOfDetailUnclamped(s, uv), 0.0f, 0.0f);
+            return float4(t3D_float.CalculateLevelOfDetail(s, uv.xyz),
+                          t3D_float.CalculateLevelOfDetailUnclamped(s, uv.xyz), 0.0f, 0.0f);
         }
       }
       case DEBUG_SAMPLE_TEXCUBE:
@@ -383,20 +393,20 @@ float4 DoFloatOpcode(float4 uv)
         switch(debugSampleRetType)
         {
           case DEBUG_SAMPLE_UNORM:
-            return float4(tCube_unorm.CalculateLevelOfDetail(s, uv),
-                          tCube_unorm.CalculateLevelOfDetailUnclamped(s, uv), 0.0f, 0.0f);
+            return float4(tCube_unorm.CalculateLevelOfDetail(s, uv.xyz),
+                          tCube_unorm.CalculateLevelOfDetailUnclamped(s, uv.xyz), 0.0f, 0.0f);
           case DEBUG_SAMPLE_SNORM:
-            return float4(tCube_snorm.CalculateLevelOfDetail(s, uv),
-                          tCube_snorm.CalculateLevelOfDetailUnclamped(s, uv), 0.0f, 0.0f);
+            return float4(tCube_snorm.CalculateLevelOfDetail(s, uv.xyz),
+                          tCube_snorm.CalculateLevelOfDetailUnclamped(s, uv.xyz), 0.0f, 0.0f);
           case DEBUG_SAMPLE_UINT:
-            return float4(tCube_uint.CalculateLevelOfDetail(s, uv),
-                          tCube_uint.CalculateLevelOfDetailUnclamped(s, uv), 0.0f, 0.0f);
+            return float4(tCube_uint.CalculateLevelOfDetail(s, uv.xyz),
+                          tCube_uint.CalculateLevelOfDetailUnclamped(s, uv.xyz), 0.0f, 0.0f);
           case DEBUG_SAMPLE_INT:
-            return float4(tCube_int.CalculateLevelOfDetail(s, uv),
-                          tCube_int.CalculateLevelOfDetailUnclamped(s, uv), 0.0f, 0.0f);
+            return float4(tCube_int.CalculateLevelOfDetail(s, uv.xyz),
+                          tCube_int.CalculateLevelOfDetailUnclamped(s, uv.xyz), 0.0f, 0.0f);
           default:
-            return float4(tCube_float.CalculateLevelOfDetail(s, uv),
-                          tCube_float.CalculateLevelOfDetailUnclamped(s, uv), 0.0f, 0.0f);
+            return float4(tCube_float.CalculateLevelOfDetail(s, uv.xyz),
+                          tCube_float.CalculateLevelOfDetailUnclamped(s, uv.xyz), 0.0f, 0.0f);
         }
       }
     }
@@ -412,9 +422,9 @@ float4 DoFloatOpcode(float4 uv)
         {
           switch(debugSampleRetType)
           {
-            case DEBUG_SAMPLE_UNORM: return t2D_unorm.GatherRed(s, uv, offsets);
-            case DEBUG_SAMPLE_SNORM: return t2D_snorm.GatherRed(s, uv, offsets);
-            default: return t2D_float.GatherRed(s, uv, offsets);
+            case DEBUG_SAMPLE_UNORM: return t2D_unorm.GatherRed(s, uv.xyz, offsets.xy);
+            case DEBUG_SAMPLE_SNORM: return t2D_snorm.GatherRed(s, uv.xyz, offsets.xy);
+            default: return t2D_float.GatherRed(s, uv.xyz, offsets.xy);
           }
         }
         case DEBUG_SAMPLE_TEXCUBE:
@@ -437,9 +447,9 @@ float4 DoFloatOpcode(float4 uv)
         {
           switch(debugSampleRetType)
           {
-            case DEBUG_SAMPLE_UNORM: return t2D_unorm.GatherGreen(s, uv, offsets);
-            case DEBUG_SAMPLE_SNORM: return t2D_snorm.GatherGreen(s, uv, offsets);
-            default: return t2D_float.GatherGreen(s, uv, offsets);
+            case DEBUG_SAMPLE_UNORM: return t2D_unorm.GatherGreen(s, uv.xyz, offsets.xy);
+            case DEBUG_SAMPLE_SNORM: return t2D_snorm.GatherGreen(s, uv.xyz, offsets.xy);
+            default: return t2D_float.GatherGreen(s, uv.xyz, offsets.xy);
           }
         }
         case DEBUG_SAMPLE_TEXCUBE:
@@ -462,9 +472,9 @@ float4 DoFloatOpcode(float4 uv)
         {
           switch(debugSampleRetType)
           {
-            case DEBUG_SAMPLE_UNORM: return t2D_unorm.GatherBlue(s, uv, offsets);
-            case DEBUG_SAMPLE_SNORM: return t2D_snorm.GatherBlue(s, uv, offsets);
-            default: return t2D_float.GatherBlue(s, uv, offsets);
+            case DEBUG_SAMPLE_UNORM: return t2D_unorm.GatherBlue(s, uv.xyz, offsets.xy);
+            case DEBUG_SAMPLE_SNORM: return t2D_snorm.GatherBlue(s, uv.xyz, offsets.xy);
+            default: return t2D_float.GatherBlue(s, uv.xyz, offsets.xy);
           }
         }
         case DEBUG_SAMPLE_TEXCUBE:
@@ -487,9 +497,9 @@ float4 DoFloatOpcode(float4 uv)
         {
           switch(debugSampleRetType)
           {
-            case DEBUG_SAMPLE_UNORM: return t2D_unorm.GatherAlpha(s, uv, offsets);
-            case DEBUG_SAMPLE_SNORM: return t2D_snorm.GatherAlpha(s, uv, offsets);
-            default: return t2D_float.GatherAlpha(s, uv, offsets);
+            case DEBUG_SAMPLE_UNORM: return t2D_unorm.GatherAlpha(s, uv.xyz, offsets.xy);
+            case DEBUG_SAMPLE_SNORM: return t2D_snorm.GatherAlpha(s, uv.xyz, offsets.xy);
+            default: return t2D_float.GatherAlpha(s, uv.xyz, offsets.xy);
           }
         }
         case DEBUG_SAMPLE_TEXCUBE:
@@ -515,11 +525,11 @@ float4 DoFloatOpcode(float4 uv)
         {
           switch(debugSampleRetType)
           {
-            case DEBUG_SAMPLE_UNORM: return t2D_unorm.GatherCmpRed(sc, uv, compare, offsets);
-            case DEBUG_SAMPLE_SNORM: return t2D_snorm.GatherCmpRed(sc, uv, compare, offsets);
-            case DEBUG_SAMPLE_UINT: return t2D_uint.GatherCmpRed(sc, uv, compare, offsets);
-            case DEBUG_SAMPLE_INT: return t2D_int.GatherCmpRed(sc, uv, compare, offsets);
-            default: return t2D_float.GatherCmpRed(sc, uv, compare, offsets);
+            case DEBUG_SAMPLE_UNORM: return t2D_unorm.GatherCmpRed(sc, uv.xyz, compare, offsets.xy);
+            case DEBUG_SAMPLE_SNORM: return t2D_snorm.GatherCmpRed(sc, uv.xyz, compare, offsets.xy);
+            case DEBUG_SAMPLE_UINT: return t2D_uint.GatherCmpRed(sc, uv.xyz, compare, offsets.xy);
+            case DEBUG_SAMPLE_INT: return t2D_int.GatherCmpRed(sc, uv.xyz, compare, offsets.xy);
+            default: return t2D_float.GatherCmpRed(sc, uv.xyz, compare, offsets.xy);
           }
         }
         case DEBUG_SAMPLE_TEXCUBE:
@@ -544,11 +554,13 @@ float4 DoFloatOpcode(float4 uv)
         {
           switch(debugSampleRetType)
           {
-            case DEBUG_SAMPLE_UNORM: return t2D_unorm.GatherCmpGreen(sc, uv, compare, offsets);
-            case DEBUG_SAMPLE_SNORM: return t2D_snorm.GatherCmpGreen(sc, uv, compare, offsets);
-            case DEBUG_SAMPLE_UINT: return t2D_uint.GatherCmpGreen(sc, uv, compare, offsets);
-            case DEBUG_SAMPLE_INT: return t2D_int.GatherCmpGreen(sc, uv, compare, offsets);
-            default: return t2D_float.GatherCmpGreen(sc, uv, compare, offsets);
+            case DEBUG_SAMPLE_UNORM:
+              return t2D_unorm.GatherCmpGreen(sc, uv.xyz, compare, offsets.xy);
+            case DEBUG_SAMPLE_SNORM:
+              return t2D_snorm.GatherCmpGreen(sc, uv.xyz, compare, offsets.xy);
+            case DEBUG_SAMPLE_UINT: return t2D_uint.GatherCmpGreen(sc, uv.xyz, compare, offsets.xy);
+            case DEBUG_SAMPLE_INT: return t2D_int.GatherCmpGreen(sc, uv.xyz, compare, offsets.xy);
+            default: return t2D_float.GatherCmpGreen(sc, uv.xyz, compare, offsets.xy);
           }
         }
         case DEBUG_SAMPLE_TEXCUBE:
@@ -573,11 +585,13 @@ float4 DoFloatOpcode(float4 uv)
         {
           switch(debugSampleRetType)
           {
-            case DEBUG_SAMPLE_UNORM: return t2D_unorm.GatherCmpBlue(sc, uv, compare, offsets);
-            case DEBUG_SAMPLE_SNORM: return t2D_snorm.GatherCmpBlue(sc, uv, compare, offsets);
-            case DEBUG_SAMPLE_UINT: return t2D_uint.GatherCmpBlue(sc, uv, compare, offsets);
-            case DEBUG_SAMPLE_INT: return t2D_int.GatherCmpBlue(sc, uv, compare, offsets);
-            default: return t2D_float.GatherCmpBlue(sc, uv, compare, offsets);
+            case DEBUG_SAMPLE_UNORM:
+              return t2D_unorm.GatherCmpBlue(sc, uv.xyz, compare, offsets.xy);
+            case DEBUG_SAMPLE_SNORM:
+              return t2D_snorm.GatherCmpBlue(sc, uv.xyz, compare, offsets.xy);
+            case DEBUG_SAMPLE_UINT: return t2D_uint.GatherCmpBlue(sc, uv.xyz, compare, offsets.xy);
+            case DEBUG_SAMPLE_INT: return t2D_int.GatherCmpBlue(sc, uv.xyz, compare, offsets.xy);
+            default: return t2D_float.GatherCmpBlue(sc, uv.xyz, compare, offsets.xy);
           }
         }
         case DEBUG_SAMPLE_TEXCUBE:
@@ -602,11 +616,13 @@ float4 DoFloatOpcode(float4 uv)
         {
           switch(debugSampleRetType)
           {
-            case DEBUG_SAMPLE_UNORM: return t2D_unorm.GatherCmpAlpha(sc, uv, compare, offsets);
-            case DEBUG_SAMPLE_SNORM: return t2D_snorm.GatherCmpAlpha(sc, uv, compare, offsets);
-            case DEBUG_SAMPLE_UINT: return t2D_uint.GatherCmpAlpha(sc, uv, compare, offsets);
-            case DEBUG_SAMPLE_INT: return t2D_int.GatherCmpAlpha(sc, uv, compare, offsets);
-            default: return t2D_float.GatherCmpAlpha(sc, uv, compare, offsets);
+            case DEBUG_SAMPLE_UNORM:
+              return t2D_unorm.GatherCmpAlpha(sc, uv.xyz, compare, offsets.xy);
+            case DEBUG_SAMPLE_SNORM:
+              return t2D_snorm.GatherCmpAlpha(sc, uv.xyz, compare, offsets.xy);
+            case DEBUG_SAMPLE_UINT: return t2D_uint.GatherCmpAlpha(sc, uv.xyz, compare, offsets.xy);
+            case DEBUG_SAMPLE_INT: return t2D_int.GatherCmpAlpha(sc, uv.xyz, compare, offsets.xy);
+            default: return t2D_float.GatherCmpAlpha(sc, uv.xyz, compare, offsets.xy);
           }
         }
         case DEBUG_SAMPLE_TEXCUBE:
@@ -643,10 +659,10 @@ int4 DoIntOpcode(float4 uv)
     switch(debugSampleTexDim)
     {
       default:
-      case DEBUG_SAMPLE_TEX1D: return t1D_int.Load(uvInt, offsets);
-      case DEBUG_SAMPLE_TEX2D: return t2D_int.Load(uvInt, offsets);
-      case DEBUG_SAMPLE_TEX3D: return t3D_int.Load(uvInt, offsets);
-      case DEBUG_SAMPLE_TEXMS: return tMS_int.Load(uvInt, debugSampleSampleIndex, offsets);
+      case DEBUG_SAMPLE_TEX1D: return t1D_int.Load(uvInt.xyz, offsets.x);
+      case DEBUG_SAMPLE_TEX2D: return t2D_int.Load(uvInt, offsets.xy);
+      case DEBUG_SAMPLE_TEX3D: return t3D_int.Load(uvInt, offsets.xyz);
+      case DEBUG_SAMPLE_TEXMS: return tMS_int.Load(uvInt.xyz, debugSampleSampleIndex, offsets.xy);
     }
   }
   else if(opcode == DEBUG_SAMPLE_TEX_GATHER4 || opcode == DEBUG_SAMPLE_TEX_GATHER4_PO)
@@ -656,7 +672,7 @@ int4 DoIntOpcode(float4 uv)
       switch(debugSampleTexDim)
       {
         default:
-        case DEBUG_SAMPLE_TEX2D: return t2D_int.GatherRed(s, uv, offsets);
+        case DEBUG_SAMPLE_TEX2D: return t2D_int.GatherRed(s, uv.xyz, offsets.xy);
         case DEBUG_SAMPLE_TEXCUBE: return tCube_int.GatherRed(s, uv);
       }
     }
@@ -665,7 +681,7 @@ int4 DoIntOpcode(float4 uv)
       switch(debugSampleTexDim)
       {
         default:
-        case DEBUG_SAMPLE_TEX2D: return t2D_int.GatherGreen(s, uv, offsets);
+        case DEBUG_SAMPLE_TEX2D: return t2D_int.GatherGreen(s, uv.xyz, offsets.xy);
         case DEBUG_SAMPLE_TEXCUBE: return tCube_int.GatherGreen(s, uv);
       }
     }
@@ -674,7 +690,7 @@ int4 DoIntOpcode(float4 uv)
       switch(debugSampleTexDim)
       {
         default:
-        case DEBUG_SAMPLE_TEX2D: return t2D_int.GatherBlue(s, uv, offsets);
+        case DEBUG_SAMPLE_TEX2D: return t2D_int.GatherBlue(s, uv.xyz, offsets.xy);
         case DEBUG_SAMPLE_TEXCUBE: return tCube_int.GatherBlue(s, uv);
       }
     }
@@ -683,7 +699,7 @@ int4 DoIntOpcode(float4 uv)
       switch(debugSampleTexDim)
       {
         default:
-        case DEBUG_SAMPLE_TEX2D: return t2D_int.GatherAlpha(s, uv, offsets);
+        case DEBUG_SAMPLE_TEX2D: return t2D_int.GatherAlpha(s, uv.xyz, offsets.xy);
         case DEBUG_SAMPLE_TEXCUBE: return tCube_int.GatherAlpha(s, uv);
       }
     }
@@ -708,10 +724,10 @@ uint4 DoUIntOpcode(float4 uv)
     switch(debugSampleTexDim)
     {
       default:
-      case DEBUG_SAMPLE_TEX1D: return t1D_uint.Load(uvInt, offsets);
-      case DEBUG_SAMPLE_TEX2D: return t2D_uint.Load(uvInt, offsets);
-      case DEBUG_SAMPLE_TEX3D: return t3D_uint.Load(uvInt, offsets);
-      case DEBUG_SAMPLE_TEXMS: return tMS_uint.Load(uvInt, debugSampleSampleIndex, offsets);
+      case DEBUG_SAMPLE_TEX1D: return t1D_uint.Load(uvInt.xyz, offsets.x);
+      case DEBUG_SAMPLE_TEX2D: return t2D_uint.Load(uvInt, offsets.xy);
+      case DEBUG_SAMPLE_TEX3D: return t3D_uint.Load(uvInt, offsets.xyz);
+      case DEBUG_SAMPLE_TEXMS: return tMS_uint.Load(uvInt.xyz, debugSampleSampleIndex, offsets.xy);
     }
   }
   else if(opcode == DEBUG_SAMPLE_TEX_GATHER4 || opcode == DEBUG_SAMPLE_TEX_GATHER4_PO)
@@ -721,7 +737,7 @@ uint4 DoUIntOpcode(float4 uv)
       switch(debugSampleTexDim)
       {
         default:
-        case DEBUG_SAMPLE_TEX2D: return t2D_uint.GatherRed(s, uv, offsets);
+        case DEBUG_SAMPLE_TEX2D: return t2D_uint.GatherRed(s, uv.xyz, offsets.xy);
         case DEBUG_SAMPLE_TEXCUBE: return tCube_uint.GatherRed(s, uv);
       }
     }
@@ -730,7 +746,7 @@ uint4 DoUIntOpcode(float4 uv)
       switch(debugSampleTexDim)
       {
         default:
-        case DEBUG_SAMPLE_TEX2D: return t2D_uint.GatherGreen(s, uv, offsets);
+        case DEBUG_SAMPLE_TEX2D: return t2D_uint.GatherGreen(s, uv.xyz, offsets.xy);
         case DEBUG_SAMPLE_TEXCUBE: return tCube_uint.GatherGreen(s, uv);
       }
     }
@@ -739,7 +755,7 @@ uint4 DoUIntOpcode(float4 uv)
       switch(debugSampleTexDim)
       {
         default:
-        case DEBUG_SAMPLE_TEX2D: return t2D_uint.GatherBlue(s, uv, offsets);
+        case DEBUG_SAMPLE_TEX2D: return t2D_uint.GatherBlue(s, uv.xyz, offsets.xy);
         case DEBUG_SAMPLE_TEXCUBE: return tCube_uint.GatherBlue(s, uv);
       }
     }
@@ -748,7 +764,7 @@ uint4 DoUIntOpcode(float4 uv)
       switch(debugSampleTexDim)
       {
         default:
-        case DEBUG_SAMPLE_TEX2D: return t2D_uint.GatherAlpha(s, uv, offsets);
+        case DEBUG_SAMPLE_TEX2D: return t2D_uint.GatherAlpha(s, uv.xyz, offsets.xy);
         case DEBUG_SAMPLE_TEXCUBE: return tCube_uint.GatherAlpha(s, uv);
       }
     }
