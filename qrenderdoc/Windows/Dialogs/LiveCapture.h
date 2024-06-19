@@ -157,6 +157,8 @@ private:
   bool checkAllowDelete();
   void deleteCaptureUnprompted(QListWidgetItem *item);
 
+  bool isLocal() const;
+
   Ui::LiveCapture *ui;
   ICaptureContext &m_Ctx;
   QString m_Hostname;

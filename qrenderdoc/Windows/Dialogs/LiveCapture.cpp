@@ -24,6 +24,7 @@
 
 #include "LiveCapture.h"
 #include <QDesktopServices>
+#include <QHostInfo>
 #include <QMenu>
 #include <QMetaProperty>
 #include <QMouseEvent>
@@ -448,8 +449,15 @@ void LiveCapture::childUpdate()
     }
   }
 
+  // We only compare the child processes for a local context
+  const bool local = isLocal();
+
   // enumerate processes outside of the lock
-  QProcessList processes = QProcessInfo::enumerate(false);
+  QProcessList processes;
+  if(local)
+  {
+    processes = QProcessInfo::enumerate(false);
+  }
 
   // now since we're adding and removing, we lock around the whole rest of the function. It won't be
   // too slow.
@@ -472,7 +480,7 @@ void LiveCapture::childUpdate()
           }
         }
 
-        if(!found)
+        if(!found && local)
         {
           if(m_Children[i].added)
           {
@@ -1459,4 +1467,10 @@ void LiveCapture::connectionThreadEntry()
 
     connectionClosed();
   });
+}
+
+bool LiveCapture::isLocal() const
+{
+  return m_Hostname.isEmpty() || QHostInfo::localHostName() == m_Hostname ||
+         QLatin1String("0.0.0.0") == m_Hostname || QHostAddress(m_Hostname).isLoopback();
 }
