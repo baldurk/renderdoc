@@ -162,7 +162,9 @@ public:
   ID3D12RootSignature *GetMeshRootSig() { return m_MeshRootSig; }
   ID3D12RootSignature *GetShaderDebugRootSig() { return m_ShaderDebugRootSig; }
   ID3D12PipelineState *GetMathIntrinsicsPso() { return m_MathIntrinsicsPso; }
+  ID3D12PipelineState *GetDXILMathIntrinsicsPso() { return m_DXILMathIntrinsicsPso; }
   ID3D12PipelineState *GetTexSamplePso(const int8_t offsets[3]);
+  ID3D12PipelineState *GetDXILTexSamplePso(const int8_t offsets[3]);
   ID3D12Resource *GetShaderDebugResultBuffer() { return m_ShaderDebugResultBuffer; }
   ID3D12Resource *GetReadbackBuffer() { return m_ReadbackBuffer; }
   ID3D12GraphicsCommandListX *ResetDebugList();
@@ -252,9 +254,12 @@ private:
   // Shader debugging resources
   ID3D12RootSignature *m_ShaderDebugRootSig = NULL;
   ID3D12PipelineState *m_MathIntrinsicsPso = NULL;
+  ID3D12PipelineState *m_DXILMathIntrinsicsPso = NULL;
   ID3D12Resource *m_ShaderDebugResultBuffer = NULL;
   ID3D12PipelineState *m_TexSamplePso = NULL;
+  ID3D12PipelineState *m_DXILTexSamplePso = NULL;
   std::map<uint32_t, ID3D12PipelineState *> m_OffsetTexSamplePso;
+  std::map<uint32_t, ID3D12PipelineState *> m_DXILOffsetTexSamplePso;
 
   // PixelHistoryCopyPixel
   ID3D12RootSignature *m_PixelHistoryCopySig = NULL;

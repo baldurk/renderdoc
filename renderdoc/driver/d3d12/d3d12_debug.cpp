@@ -296,6 +296,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     RDCERR("Failed to create resources for shader debugging math intrinsics");
     SAFE_RELEASE(m_ShaderDebugRootSig);
     SAFE_RELEASE(m_MathIntrinsicsPso);
+    SAFE_RELEASE(m_DXILMathIntrinsicsPso);
     SAFE_RELEASE(m_ShaderDebugResultBuffer);
   }
 
@@ -549,9 +550,13 @@ D3D12DebugManager::~D3D12DebugManager()
 
   SAFE_RELEASE(m_ShaderDebugRootSig);
   SAFE_RELEASE(m_MathIntrinsicsPso);
+  SAFE_RELEASE(m_DXILMathIntrinsicsPso);
   SAFE_RELEASE(m_ShaderDebugResultBuffer);
   SAFE_RELEASE(m_TexSamplePso);
+  SAFE_RELEASE(m_DXILTexSamplePso);
   for(auto it = m_OffsetTexSamplePso.begin(); it != m_OffsetTexSamplePso.end(); ++it)
+    it->second->Release();
+  for(auto it = m_DXILOffsetTexSamplePso.begin(); it != m_DXILOffsetTexSamplePso.end(); ++it)
     it->second->Release();
 
   SAFE_RELEASE(m_ArrayMSAARootSig);
@@ -799,6 +804,79 @@ bool D3D12DebugManager::CreateShaderDebugResources()
   }
   m_pDevice->GetResourceManager()->SetInternalResource(m_TexSamplePso);
 
+  if(m_pDevice->UsedDXIL())
+  {
+    ID3DBlob *dxilCsBlob = NULL;
+    if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DebugMathOp",
+                                                  D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_6_0",
+                                                  &dxilCsBlob) != "")
+    {
+      RDCASSERT(!dxilCsBlob);
+      RDCERR("Failed to compile DXIL compute shader to calculate math intrinsic");
+      return false;
+    }
+
+    psoDesc.pRootSignature = m_ShaderDebugRootSig;
+    psoDesc.CS.BytecodeLength = dxilCsBlob->GetBufferSize();
+    psoDesc.CS.pShaderBytecode = dxilCsBlob->GetBufferPointer();
+    psoDesc.NodeMask = 0;
+    psoDesc.CachedPSO.pCachedBlob = NULL;
+    psoDesc.CachedPSO.CachedBlobSizeInBytes = 0;
+    psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+
+    hr = m_pDevice->CreateComputePipelineState(&psoDesc, __uuidof(ID3D12PipelineState),
+                                               (void **)&m_DXILMathIntrinsicsPso);
+    m_pDevice->InternalRef();
+    SAFE_RELEASE(dxilCsBlob);
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create math instrinsics PSO for DXIL shader debugging HRESULT: %s",
+             ToStr(hr).c_str());
+      return false;
+    }
+    m_pDevice->GetResourceManager()->SetInternalResource(m_DXILMathIntrinsicsPso);
+  }
+
+  if(m_pDevice->UsedDXIL())
+  {
+    ID3DBlob *dxilVsBlob = NULL;
+    if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DebugSampleVS",
+                                                  D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "vs_6_0",
+                                                  &dxilVsBlob) != "")
+    {
+      RDCASSERT(!dxilVsBlob);
+      RDCERR("Failed to compile DXIL vertex shader for shader debugging");
+      return false;
+    }
+    ID3DBlob *dxilPsBlob = NULL;
+    if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DebugSamplePS",
+                                                  D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_6_0",
+                                                  &dxilPsBlob) != "")
+    {
+      RDCASSERT(!dxilPsBlob);
+      RDCERR("Failed to compile DXIL pixel shader for shader debugging");
+      return false;
+    }
+
+    pipeDesc.VS.BytecodeLength = dxilVsBlob->GetBufferSize();
+    pipeDesc.VS.pShaderBytecode = dxilVsBlob->GetBufferPointer();
+    pipeDesc.PS.BytecodeLength = dxilPsBlob->GetBufferSize();
+    pipeDesc.PS.pShaderBytecode = dxilPsBlob->GetBufferPointer();
+
+    hr = m_pDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                                (void **)&m_DXILTexSamplePso);
+    m_pDevice->InternalRef();
+    SAFE_RELEASE(dxilVsBlob);
+    SAFE_RELEASE(dxilPsBlob);
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create texture sampling PSO for DXIL shader debugging HRESULT: %s",
+             ToStr(hr).c_str());
+      return false;
+    }
+    m_pDevice->GetResourceManager()->SetInternalResource(m_DXILTexSamplePso);
+  }
+
   return true;
 }
 
@@ -881,6 +959,93 @@ ID3D12PipelineState *D3D12DebugManager::GetTexSamplePso(const int8_t offsets[3])
   m_pDevice->GetResourceManager()->SetInternalResource(pso);
 
   m_OffsetTexSamplePso[offsKey] = pso;
+
+  shaderCache->SetCaching(false);
+
+  return pso;
+}
+
+ID3D12PipelineState *D3D12DebugManager::GetDXILTexSamplePso(const int8_t offsets[3])
+{
+  uint32_t offsKey = offsets[0] | (offsets[1] << 8) | (offsets[2] << 16);
+  if(offsKey == 0)
+    return m_DXILTexSamplePso;
+
+  ID3D12PipelineState *ps = m_DXILOffsetTexSamplePso[offsKey];
+  if(ps)
+    return ps;
+
+  D3D12ShaderCache *shaderCache = m_pDevice->GetShaderCache();
+
+  shaderCache->SetCaching(true);
+
+  rdcstr hlsl = GetEmbeddedResource(shaderdebug_hlsl);
+
+  hlsl = StringFormat::Fmt("#define debugSampleOffsets int4(%d,%d,%d,0)\n\n%s", offsets[0],
+                           offsets[1], offsets[2], hlsl.c_str());
+
+  ID3DBlob *vsBlob = NULL;
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DebugSampleVS",
+                                                D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "vs_6_0",
+                                                &vsBlob) != "")
+  {
+    // TODO : need some kind of fallback
+    RDCERR("Failed to create DXIL shader debugger vertex shader to do texture sample");
+    SAFE_RELEASE(vsBlob);
+    return false;
+  }
+
+  ID3DBlob *psBlob = NULL;
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DebugSamplePS",
+                                                D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_6_0",
+                                                &psBlob) != "")
+  {
+    // TODO : need some kind of fallback
+    RDCERR("Failed to create DXIL shader debugger pixel shader to do texture sample");
+    SAFE_RELEASE(vsBlob);
+    SAFE_RELEASE(psBlob);
+    return false;
+  }
+
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc = {};
+
+  pipeDesc.pRootSignature = m_ShaderDebugRootSig;
+  pipeDesc.VS.BytecodeLength = vsBlob->GetBufferSize();
+  pipeDesc.VS.pShaderBytecode = vsBlob->GetBufferPointer();
+  pipeDesc.PS.BytecodeLength = psBlob->GetBufferSize();
+  pipeDesc.PS.pShaderBytecode = psBlob->GetBufferPointer();
+  pipeDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+  pipeDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+  pipeDesc.SampleMask = 0xFFFFFFFF;
+  pipeDesc.SampleDesc.Count = 1;
+  pipeDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+  pipeDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+  pipeDesc.NumRenderTargets = 1;
+  pipeDesc.RTVFormats[0] = DXGI_FORMAT_R32G32B32A32_FLOAT;
+  pipeDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+  pipeDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
+  pipeDesc.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
+  pipeDesc.BlendState.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+  pipeDesc.BlendState.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+  pipeDesc.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_SRC_ALPHA;
+  pipeDesc.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
+  pipeDesc.BlendState.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+  pipeDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = 0;
+
+  ID3D12PipelineState *pso = NULL;
+  HRESULT hr = m_pDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                                      (void **)&pso);
+  m_pDevice->InternalRef();
+  SAFE_RELEASE(vsBlob);
+  SAFE_RELEASE(psBlob);
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create PSO for shader debugging HRESULT: %s", ToStr(hr).c_str());
+    return false;
+  }
+  m_pDevice->GetResourceManager()->SetInternalResource(pso);
+
+  m_DXILOffsetTexSamplePso[offsKey] = pso;
 
   shaderCache->SetCaching(false);
 
