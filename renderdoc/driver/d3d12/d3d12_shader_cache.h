@@ -58,6 +58,8 @@ public:
   };
   ID3DBlob *MakeFixedColShader(FixedColVariant variant, bool dxil = false);
   ID3DBlob *GetQuadShaderDXILBlob();
+  ID3DBlob *GetPrimitiveIDShaderDXILBlob();
+  ID3DBlob *GetFixedColorShaderDXILBlob(uint32_t variant);
 
   void LoadDXC();
 

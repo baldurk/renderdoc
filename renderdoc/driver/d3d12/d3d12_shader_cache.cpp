@@ -1072,6 +1072,39 @@ ID3DBlob *D3D12ShaderCache::GetQuadShaderDXILBlob()
   return ret;
 }
 
+ID3DBlob *D3D12ShaderCache::GetPrimitiveIDShaderDXILBlob()
+{
+  rdcstr embedded = GetEmbeddedResource(pixelhistory_primitiveid_dxbc);
+  if(embedded.empty() || !embedded.beginsWith("DXBC"))
+    return NULL;
+
+  ID3DBlob *ret = NULL;
+  D3D12ShaderCacheCallbacks.Create((uint32_t)embedded.size(), embedded.data(), &ret);
+  return ret;
+}
+
+ID3DBlob *D3D12ShaderCache::GetFixedColorShaderDXILBlob(uint32_t variant)
+{
+  const rdcstr variants[] = {
+      GetEmbeddedResource(pixelhistory_fixedcol_0_dxbc),
+      GetEmbeddedResource(pixelhistory_fixedcol_1_dxbc),
+      GetEmbeddedResource(pixelhistory_fixedcol_2_dxbc),
+      GetEmbeddedResource(pixelhistory_fixedcol_3_dxbc),
+      GetEmbeddedResource(pixelhistory_fixedcol_4_dxbc),
+      GetEmbeddedResource(pixelhistory_fixedcol_5_dxbc),
+      GetEmbeddedResource(pixelhistory_fixedcol_6_dxbc),
+      GetEmbeddedResource(pixelhistory_fixedcol_7_dxbc),
+  };
+
+  const rdcstr embedded = variants[variant];
+  if(embedded.empty() || !embedded.beginsWith("DXBC"))
+    return NULL;
+
+  ID3DBlob *ret = NULL;
+  D3D12ShaderCacheCallbacks.Create((uint32_t)embedded.size(), embedded.data(), &ret);
+  return ret;
+}
+
 void D3D12ShaderCache::LoadDXC()
 {
   GetDXC();

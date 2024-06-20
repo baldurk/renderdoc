@@ -131,6 +131,15 @@ RESOURCE_fixedcol_1_dxbc   TYPE_EMBED  fixedcol_1.dxbc
 RESOURCE_fixedcol_2_dxbc   TYPE_EMBED  fixedcol_2.dxbc
 RESOURCE_fixedcol_3_dxbc   TYPE_EMBED  fixedcol_3.dxbc
 RESOURCE_quadwrite_dxbc    TYPE_EMBED  quadwrite.dxbc
+RESOURCE_pixelhistory_primitiveid_dxbc TYPE_EMBED  pixelhistory_primitiveid.dxbc
+RESOURCE_pixelhistory_fixedcol_0_dxbc  TYPE_EMBED  pixelhistory_fixedcol_0.dxbc
+RESOURCE_pixelhistory_fixedcol_1_dxbc  TYPE_EMBED  pixelhistory_fixedcol_1.dxbc
+RESOURCE_pixelhistory_fixedcol_2_dxbc  TYPE_EMBED  pixelhistory_fixedcol_2.dxbc
+RESOURCE_pixelhistory_fixedcol_3_dxbc  TYPE_EMBED  pixelhistory_fixedcol_3.dxbc
+RESOURCE_pixelhistory_fixedcol_4_dxbc  TYPE_EMBED  pixelhistory_fixedcol_4.dxbc
+RESOURCE_pixelhistory_fixedcol_5_dxbc  TYPE_EMBED  pixelhistory_fixedcol_5.dxbc
+RESOURCE_pixelhistory_fixedcol_6_dxbc  TYPE_EMBED  pixelhistory_fixedcol_6.dxbc
+RESOURCE_pixelhistory_fixedcol_7_dxbc  TYPE_EMBED  pixelhistory_fixedcol_7.dxbc
 
 #else
 
@@ -139,6 +148,15 @@ RESOURCE_fixedcol_1_dxbc   TYPE_EMBED   "hlsl/empty.dxbc"
 RESOURCE_fixedcol_2_dxbc   TYPE_EMBED   "hlsl/empty.dxbc"
 RESOURCE_fixedcol_3_dxbc   TYPE_EMBED   "hlsl/empty.dxbc"
 RESOURCE_quadwrite_dxbc    TYPE_EMBED   "hlsl/empty.dxbc"
+RESOURCE_pixelhistory_primitiveid_dxbc TYPE_EMBED  "hlsl/empty.dxbc"
+RESOURCE_pixelhistory_fixedcol_0_dxbc  TYPE_EMBED  "hlsl/empty.dxbc"
+RESOURCE_pixelhistory_fixedcol_1_dxbc  TYPE_EMBED  "hlsl/empty.dxbc"
+RESOURCE_pixelhistory_fixedcol_2_dxbc  TYPE_EMBED  "hlsl/empty.dxbc"
+RESOURCE_pixelhistory_fixedcol_3_dxbc  TYPE_EMBED  "hlsl/empty.dxbc"
+RESOURCE_pixelhistory_fixedcol_4_dxbc  TYPE_EMBED  "hlsl/empty.dxbc"
+RESOURCE_pixelhistory_fixedcol_5_dxbc  TYPE_EMBED  "hlsl/empty.dxbc"
+RESOURCE_pixelhistory_fixedcol_6_dxbc  TYPE_EMBED  "hlsl/empty.dxbc"
+RESOURCE_pixelhistory_fixedcol_7_dxbc  TYPE_EMBED  "hlsl/empty.dxbc"
 
 #endif
 

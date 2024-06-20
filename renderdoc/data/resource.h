@@ -27,6 +27,15 @@
 #define RESOURCE_fixedcol_2_dxbc    115
 #define RESOURCE_fixedcol_3_dxbc    116
 #define RESOURCE_quadwrite_dxbc     117
+#define RESOURCE_pixelhistory_primitiveid_dxbc 122
+#define RESOURCE_pixelhistory_fixedcol_0_dxbc  123
+#define RESOURCE_pixelhistory_fixedcol_1_dxbc  124
+#define RESOURCE_pixelhistory_fixedcol_2_dxbc  125
+#define RESOURCE_pixelhistory_fixedcol_3_dxbc  126
+#define RESOURCE_pixelhistory_fixedcol_4_dxbc  127
+#define RESOURCE_pixelhistory_fixedcol_5_dxbc  128
+#define RESOURCE_pixelhistory_fixedcol_6_dxbc  129
+#define RESOURCE_pixelhistory_fixedcol_7_dxbc  130
 
 #define RESOURCE_sourcecodepro_ttf  301
 

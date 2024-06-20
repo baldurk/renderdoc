@@ -818,7 +818,7 @@ namespace DXCEnumerateAndCheck {
       </ResourceCompile>
     </ItemGroup>
   </Target>
-  <Target Name="_bakeShaders" BeforeTargets="PrepareForBuild" Condition="$(DXCExecutable.Length) &gt; 0" Inputs="data\hlsl\fixedcol.hlsl;data\hlsl\quadoverdraw.hlsl" Outputs="$(DXILBakedDir)\fixedcol_0.dxbc;$(DXILBakedDir)\fixedcol_1.dxbc;$(DXILBakedDir)\fixedcol_2.dxbc;$(DXILBakedDir)\fixedcol_3.dxbc;$(DXILBakedDir)\quadwrite.dxbc">
+  <Target Name="_bakeShaders" BeforeTargets="PrepareForBuild" Condition="$(DXCExecutable.Length) &gt; 0" Inputs="data\hlsl\fixedcol.hlsl;data\hlsl\quadoverdraw.hlsl;data\hlsl\d3d12_pixelhistory.hlsl" Outputs="$(DXILBakedDir)\fixedcol_0.dxbc;$(DXILBakedDir)\fixedcol_1.dxbc;$(DXILBakedDir)\fixedcol_2.dxbc;$(DXILBakedDir)\fixedcol_3.dxbc;$(DXILBakedDir)\quadwrite.dxbc;$(DXILBakedDir)\pixelhistory_primitiveid.dxbc;$(DXILBakedDir)\pixelhistory_fixedcol_0.dxbc;$(DXILBakedDir)\pixelhistory_fixedcol_1.dxbc;$(DXILBakedDir)\pixelhistory_fixedcol_2.dxbc;$(DXILBakedDir)\pixelhistory_fixedcol_3.dxbc;$(DXILBakedDir)\pixelhistory_fixedcol_4.dxbc;$(DXILBakedDir)\pixelhistory_fixedcol_5.dxbc;$(DXILBakedDir)\pixelhistory_fixedcol_6.dxbc;$(DXILBakedDir)\pixelhistory_fixedcol_7.dxbc">
     <Message Text="Baking DXIL Shaders with $(DXCExecutable)" Importance="High" />
     <MakeDir Directories="$(DXILBakedDir)" />
     <Exec Command="&quot;$(DXCExecutable)&quot; &quot;$(ProjectDir)data\hlsl\fixedcol.hlsl&quot; -T ps_6_0 -DVARIANT=0 -E main -Qstrip_reflect -Fo &quot;$(DXILBakedDir)fixedcol_0.dxbc&quot;" />
@@ -826,6 +826,15 @@ namespace DXCEnumerateAndCheck {
     <Exec Command="&quot;$(DXCExecutable)&quot; &quot;$(ProjectDir)data\hlsl\fixedcol.hlsl&quot; -T ps_6_0 -DVARIANT=2 -E main -Qstrip_reflect -Fo &quot;$(DXILBakedDir)fixedcol_2.dxbc&quot;" />
     <Exec Command="&quot;$(DXCExecutable)&quot; &quot;$(ProjectDir)data\hlsl\fixedcol.hlsl&quot; -T ps_6_0 -DVARIANT=3 -E main -Qstrip_reflect -Fo &quot;$(DXILBakedDir)fixedcol_3.dxbc&quot;" />
     <Exec Command="&quot;$(DXCExecutable)&quot; &quot;$(ProjectDir)data\hlsl\quadoverdraw.hlsl&quot; -T ps_6_0 -DD3D12=1 -E RENDERDOC_QuadOverdrawPS -Qstrip_reflect -Fo &quot;$(DXILBakedDir)quadwrite.dxbc&quot;" />
+    <Exec Command="&quot;$(DXCExecutable)&quot; &quot;$(ProjectDir)data\hlsl\d3d12_pixelhistory.hlsl&quot; -T ps_6_0 -E RENDERDOC_PrimitiveIDPS -Qstrip_reflect -Fo &quot;$(DXILBakedDir)pixelhistory_primitiveid.dxbc&quot;" />
+    <Exec Command="&quot;$(DXCExecutable)&quot; &quot;$(ProjectDir)data\hlsl\d3d12_pixelhistory.hlsl&quot; -T ps_6_0 -DRT=0 -E RENDERDOC_PixelHistoryFixedColPS -Qstrip_reflect -Fo &quot;$(DXILBakedDir)pixelhistory_fixedcol_0.dxbc&quot;" />
+    <Exec Command="&quot;$(DXCExecutable)&quot; &quot;$(ProjectDir)data\hlsl\d3d12_pixelhistory.hlsl&quot; -T ps_6_0 -DRT=1 -E RENDERDOC_PixelHistoryFixedColPS -Qstrip_reflect -Fo &quot;$(DXILBakedDir)pixelhistory_fixedcol_1.dxbc&quot;" />
+    <Exec Command="&quot;$(DXCExecutable)&quot; &quot;$(ProjectDir)data\hlsl\d3d12_pixelhistory.hlsl&quot; -T ps_6_0 -DRT=2 -E RENDERDOC_PixelHistoryFixedColPS -Qstrip_reflect -Fo &quot;$(DXILBakedDir)pixelhistory_fixedcol_2.dxbc&quot;" />
+    <Exec Command="&quot;$(DXCExecutable)&quot; &quot;$(ProjectDir)data\hlsl\d3d12_pixelhistory.hlsl&quot; -T ps_6_0 -DRT=3 -E RENDERDOC_PixelHistoryFixedColPS -Qstrip_reflect -Fo &quot;$(DXILBakedDir)pixelhistory_fixedcol_3.dxbc&quot;" />
+    <Exec Command="&quot;$(DXCExecutable)&quot; &quot;$(ProjectDir)data\hlsl\d3d12_pixelhistory.hlsl&quot; -T ps_6_0 -DRT=4 -E RENDERDOC_PixelHistoryFixedColPS -Qstrip_reflect -Fo &quot;$(DXILBakedDir)pixelhistory_fixedcol_4.dxbc&quot;" />
+    <Exec Command="&quot;$(DXCExecutable)&quot; &quot;$(ProjectDir)data\hlsl\d3d12_pixelhistory.hlsl&quot; -T ps_6_0 -DRT=5 -E RENDERDOC_PixelHistoryFixedColPS -Qstrip_reflect -Fo &quot;$(DXILBakedDir)pixelhistory_fixedcol_5.dxbc&quot;" />
+    <Exec Command="&quot;$(DXCExecutable)&quot; &quot;$(ProjectDir)data\hlsl\d3d12_pixelhistory.hlsl&quot; -T ps_6_0 -DRT=6 -E RENDERDOC_PixelHistoryFixedColPS -Qstrip_reflect -Fo &quot;$(DXILBakedDir)pixelhistory_fixedcol_6.dxbc&quot;" />
+    <Exec Command="&quot;$(DXCExecutable)&quot; &quot;$(ProjectDir)data\hlsl\d3d12_pixelhistory.hlsl&quot; -T ps_6_0 -DRT=7 -E RENDERDOC_PixelHistoryFixedColPS -Qstrip_reflect -Fo &quot;$(DXILBakedDir)pixelhistory_fixedcol_7.dxbc&quot;" />
   </Target>
   <ItemGroup>
     <Natvis Include="renderdoc.natvis" />
