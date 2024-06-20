@@ -161,6 +161,7 @@ struct RDEFHeader;
 uint32_t DecodeFlags(const ShaderCompileFlags &compileFlags);
 rdcstr GetProfile(const ShaderCompileFlags &compileFlags);
 ShaderCompileFlags EncodeFlags(const uint32_t flags, const rdcstr &profile);
+void EncodeDXCFlags(uint32_t flags, rdcarray<rdcwstr> &args);
 
 // declare one of these and pass in your shader bytecode, then inspect
 // the members that are populated with the shader information.

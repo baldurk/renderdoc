@@ -569,9 +569,16 @@ rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry,
           {{"hlsl_texsample.h", texSampleBlob}, {"hlsl_cbuffers.h", cBufferBlob}});
 
       IDxcOperationResult *result = NULL;
+      uint32_t flags = DXBC::DecodeFlags(compileFlags) & ~D3DCOMPILE_NO_PRESHADER;
+      rdcarray<rdcwstr> argsData;
+      DXBC::EncodeDXCFlags(flags, argsData);
+      rdcarray<LPCWSTR> arguments;
+      for(const rdcwstr &arg : argsData)
+        arguments.push_back(arg.c_str());
+
       hr = compiler->Compile(sourceBlob, NULL, StringFormat::UTF82Wide(entry).c_str(),
-                             StringFormat::UTF82Wide(profile).c_str(), NULL, (UINT)0, NULL, 0,
-                             &includeHandler, &result);
+                             StringFormat::UTF82Wide(profile).c_str(), arguments.data(),
+                             arguments.count(), NULL, 0, &includeHandler, &result);
 
       SAFE_RELEASE(sourceBlob);
 

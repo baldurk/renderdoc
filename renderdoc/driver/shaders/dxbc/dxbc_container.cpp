@@ -2194,6 +2194,59 @@ DXBCContainer::~DXBCContainer()
   SAFE_DELETE(m_Reflection);
 }
 
+struct DxcArg
+{
+  uint32_t bit;
+  const wchar_t *arg;
+} dxc_flags[] = {
+    {D3DCOMPILE_DEBUG, L"-Zi"},
+    {D3DCOMPILE_SKIP_VALIDATION, L"-Vd"},
+    {D3DCOMPILE_SKIP_OPTIMIZATION, L"-Od"},
+    {D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, L"-Zpr"},
+    {D3DCOMPILE_PACK_MATRIX_COLUMN_MAJOR, L"-Zpc "},
+    {D3DCOMPILE_PARTIAL_PRECISION, L"-Gpp"},
+    {D3DCOMPILE_NO_PRESHADER, L"-Op"},
+    {D3DCOMPILE_AVOID_FLOW_CONTROL, L"-Gfa"},
+    {D3DCOMPILE_PREFER_FLOW_CONTROL, L"-Gfp"},
+    {D3DCOMPILE_ENABLE_STRICTNESS, L"-Ges"},
+    {D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY, L"-Gec"},
+    {D3DCOMPILE_IEEE_STRICTNESS, L"-Gis"},
+    {D3DCOMPILE_WARNINGS_ARE_ERRORS, L"-WX"},
+    {D3DCOMPILE_RESOURCES_MAY_ALIAS, L"-res_may_alias"},
+    {D3DCOMPILE_ALL_RESOURCES_BOUND, L"-all_resources_bound"},
+    {D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES, L"-enable_unbounded_descriptor_tables"},
+    {D3DCOMPILE_DEBUG_NAME_FOR_SOURCE, L"-Zss"},
+    {D3DCOMPILE_DEBUG_NAME_FOR_BINARY, L"-Zsb"},
+};
+
+void EncodeDXCFlags(uint32_t flags, rdcarray<rdcwstr> &args)
+{
+  for(const DxcArg &arg : dxc_flags)
+  {
+    if(flags & arg.bit)
+      args.push_back(arg.arg);
+  }
+
+  // Can't make this match DXC defaults
+  // DXC by default uses /O3 and FXC uses /O1
+
+  // Optimization flags are a special case.
+  // D3DCOMPILE_OPTIMIZATION_LEVEL0 = (1 << 14)
+  // D3DCOMPILE_OPTIMIZATION_LEVEL1 = 0
+  // D3DCOMPILE_OPTIMIZATION_LEVEL2 = ((1 << 14) | (1 << 15))
+  // D3DCOMPILE_OPTIMIZATION_LEVEL3 = (1 << 15)
+
+  uint32_t opt = (flags & D3DCOMPILE_OPTIMIZATION_LEVEL2);
+  if(opt == D3DCOMPILE_OPTIMIZATION_LEVEL0)
+    args.push_back(L"-O0");
+  else if(opt == D3DCOMPILE_OPTIMIZATION_LEVEL1)
+    args.push_back(L"-O1");
+  else if(opt == D3DCOMPILE_OPTIMIZATION_LEVEL2)
+    args.push_back(L"-O2");
+  else if(opt == D3DCOMPILE_OPTIMIZATION_LEVEL3)
+    args.push_back(L"-O3");
+};
+
 struct FxcArg
 {
   uint32_t bit;
