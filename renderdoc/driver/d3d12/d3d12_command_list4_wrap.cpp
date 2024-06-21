@@ -795,7 +795,7 @@ bool WrappedID3D12GraphicsCommandList::ProcessASBuildAfterSubmission(ResourceId 
 
 bool WrappedID3D12GraphicsCommandList::PatchAccStructBlasAddress(
     const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC *accStructInput,
-    ID3D12GraphicsCommandList4 *dxrCmd, BakedCmdListInfo::PatchRaytracing *patchRaytracing)
+    ID3D12GraphicsCommandList4 *list, BakedCmdListInfo::PatchRaytracing *patchRaytracing)
 {
   if(accStructInput->Inputs.Type == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL &&
      accStructInput->Inputs.NumDescs > 0)
@@ -857,12 +857,12 @@ bool WrappedID3D12GraphicsCommandList::PatchAccStructBlasAddress(
         resBarriers.push_back(resBarrier);
       }
 
-      dxrCmd->ResourceBarrier((UINT)resBarriers.size(), resBarriers.data());
+      list->ResourceBarrier((UINT)resBarriers.size(), resBarriers.data());
     }
 
-    dxrCmd->CopyBufferRegion(patchRaytracing->m_patchedInstanceBuffer->Resource(),
-                             patchRaytracing->m_patchedInstanceBuffer->Offset(), instanceResource,
-                             instanceResOffset, totalInstancesSize);
+    list->CopyBufferRegion(patchRaytracing->m_patchedInstanceBuffer->Resource(),
+                           patchRaytracing->m_patchedInstanceBuffer->Offset(), instanceResource,
+                           instanceResOffset, totalInstancesSize);
 
     D3D12AccStructPatchInfo patchInfo = rtHandler->GetAccStructPatchInfo();
 
@@ -891,7 +891,7 @@ bool WrappedID3D12GraphicsCommandList::PatchAccStructBlasAddress(
         resBarriers.push_back(resBarrier);
       }
 
-      dxrCmd->ResourceBarrier((UINT)resBarriers.size(), resBarriers.data());
+      list->ResourceBarrier((UINT)resBarriers.size(), resBarriers.data());
     }
 
     RDCCOMPILE_ASSERT(sizeof(D3D12_RAYTRACING_INSTANCE_DESC) == sizeof(InstanceDesc),
@@ -908,7 +908,7 @@ bool WrappedID3D12GraphicsCommandList::PatchAccStructBlasAddress(
       resBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
       resBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
       resBarrier.UAV.pResource = patchRaytracing->m_patchedInstanceBuffer->Resource();
-      dxrCmd->ResourceBarrier(1, &resBarrier);
+      list->ResourceBarrier(1, &resBarrier);
     }
 
     ID3D12Resource *addressPairRes = m_pDevice->GetBLASAddressBufferResource();
@@ -916,22 +916,22 @@ bool WrappedID3D12GraphicsCommandList::PatchAccStructBlasAddress(
 
     uint64_t addressCount = m_pDevice->GetBLASAddressCount();
 
-    dxrCmd->SetPipelineState(patchInfo.m_pipeline);
-    dxrCmd->SetComputeRootSignature(patchInfo.m_rootSignature);
-    dxrCmd->SetComputeRoot32BitConstant((UINT)D3D12PatchTLASBuildParam::RootConstantBuffer,
-                                        (UINT)addressCount, 0);
-    dxrCmd->SetComputeRootShaderResourceView((UINT)D3D12PatchTLASBuildParam::RootAddressPairSrv,
-                                             addressPairResAddress);
-    dxrCmd->SetComputeRootUnorderedAccessView((UINT)D3D12PatchTLASBuildParam::RootPatchedAddressUav,
-                                              patchRaytracing->m_patchedInstanceBuffer->Address());
-    dxrCmd->Dispatch(accStructInput->Inputs.NumDescs, 1, 1);
+    list->SetPipelineState(patchInfo.m_pipeline);
+    list->SetComputeRootSignature(patchInfo.m_rootSignature);
+    list->SetComputeRoot32BitConstant((UINT)D3D12PatchTLASBuildParam::RootConstantBuffer,
+                                      (UINT)addressCount, 0);
+    list->SetComputeRootShaderResourceView((UINT)D3D12PatchTLASBuildParam::RootAddressPairSrv,
+                                           addressPairResAddress);
+    list->SetComputeRootUnorderedAccessView((UINT)D3D12PatchTLASBuildParam::RootPatchedAddressUav,
+                                            patchRaytracing->m_patchedInstanceBuffer->Address());
+    list->Dispatch(accStructInput->Inputs.NumDescs, 1, 1);
 
     {
       D3D12_RESOURCE_BARRIER resBarrier;
       resBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
       resBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
       resBarrier.UAV.pResource = patchRaytracing->m_patchedInstanceBuffer->Resource();
-      dxrCmd->ResourceBarrier(1, &resBarrier);
+      list->ResourceBarrier(1, &resBarrier);
     }
 
     {
@@ -942,7 +942,7 @@ bool WrappedID3D12GraphicsCommandList::PatchAccStructBlasAddress(
       resBarrier.Transition.pResource = patchRaytracing->m_patchedInstanceBuffer->Resource();
       resBarrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
       resBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-      dxrCmd->ResourceBarrier(1, &resBarrier);
+      list->ResourceBarrier(1, &resBarrier);
     }
 
     patchRaytracing->m_patched = true;
@@ -969,8 +969,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BuildRaytracingAccelerationStru
   SERIALISE_ELEMENT(NumPostbuildInfoDescs);
   SERIALISE_ELEMENT_ARRAY(pPostbuildInfoDescs, NumPostbuildInfoDescs);
 
-  ID3D12GraphicsCommandList4 *dxrCmd = Unwrap4(pCommandList);
-
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -982,11 +980,13 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BuildRaytracingAccelerationStru
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
+        ID3D12GraphicsCommandList4 *list = Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID));
+
         if(AccStructDesc.Inputs.Type == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL &&
            AccStructDesc.Inputs.NumDescs > 0)
         {
           patchInfo.m_patched = false;
-          PatchAccStructBlasAddress(&AccStructDesc, dxrCmd, &patchInfo);
+          PatchAccStructBlasAddress(&AccStructDesc, list, &patchInfo);
           if(patchInfo.m_patched)
           {
             AccStructDesc.Inputs.InstanceDescs = patchInfo.m_patchedInstanceBuffer->Address();
@@ -1001,8 +1001,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BuildRaytracingAccelerationStru
           bakedCmdInfo.state.ApplyState(m_pDevice, (ID3D12GraphicsCommandListX *)pCommandList);
         }
 
-        dxrCmd->BuildRaytracingAccelerationStructure(&AccStructDesc, NumPostbuildInfoDescs,
-                                                     pPostbuildInfoDescs);
+        list->BuildRaytracingAccelerationStructure(&AccStructDesc, NumPostbuildInfoDescs,
+                                                   pPostbuildInfoDescs);
       }
     }
     else
@@ -1021,7 +1021,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BuildRaytracingAccelerationStru
                totalInstancesSize, D3D12_RAYTRACING_INSTANCE_DESCS_BYTE_ALIGNMENT,
                &patchInfo.m_patchedInstanceBuffer))
         {
-          PatchAccStructBlasAddress(&AccStructDesc, dxrCmd, &patchInfo);
+          PatchAccStructBlasAddress(&AccStructDesc, Unwrap4(pCommandList), &patchInfo);
 
           if(patchInfo.m_patched)
           {
@@ -1033,8 +1033,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BuildRaytracingAccelerationStru
         }
       }
 
-      dxrCmd->BuildRaytracingAccelerationStructure(&AccStructDesc, NumPostbuildInfoDescs,
-                                                   pPostbuildInfoDescs);
+      Unwrap4(pCommandList)
+          ->BuildRaytracingAccelerationStructure(&AccStructDesc, NumPostbuildInfoDescs,
+                                                 pPostbuildInfoDescs);
 
       m_Cmd->AddEvent();
 
@@ -1213,8 +1214,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyRaytracingAccelerationStruc
       .Important();
   SERIALISE_ELEMENT(Mode);
 
-  ID3D12GraphicsCommandList4 *dxrCmd = Unwrap4(pCommandList);
-
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResourceManager()->GetOriginalID(GetResID(pCommandList));
@@ -1223,14 +1222,17 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyRaytracingAccelerationStruc
     {
       if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
       {
-        dxrCmd->CopyRaytracingAccelerationStructure(DestAccelerationStructureData,
-                                                    SourceAccelerationStructureData, Mode);
+        ID3D12GraphicsCommandList4 *list = Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID));
+
+        list->CopyRaytracingAccelerationStructure(DestAccelerationStructureData,
+                                                  SourceAccelerationStructureData, Mode);
       }
     }
     else
     {
-      dxrCmd->CopyRaytracingAccelerationStructure(DestAccelerationStructureData,
-                                                  SourceAccelerationStructureData, Mode);
+      Unwrap4(pCommandList)
+          ->CopyRaytracingAccelerationStructure(DestAccelerationStructureData,
+                                                SourceAccelerationStructureData, Mode);
 
       m_Cmd->AddEvent();
 
