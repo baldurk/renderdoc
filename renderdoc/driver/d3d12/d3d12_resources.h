@@ -1207,6 +1207,7 @@ public:
   }
   virtual void STDMETHODCALLTYPE SetPipelineStackSize(UINT64 PipelineStackSizeInBytes)
   {
+    m_pDevice->SetPipelineStackSize(this, PipelineStackSizeInBytes);
     properties->SetPipelineStackSize(PipelineStackSizeInBytes);
   }
 };

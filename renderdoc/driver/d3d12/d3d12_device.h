@@ -1280,6 +1280,8 @@ public:
                           ID3D12PipelineState **state);
 
   // Resource
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(void, SetPipelineStackSize, ID3D12StateObject *pStateObject,
+                                       UINT64 StackSize);
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(void, SetName, ID3D12DeviceChild *pResource, const char *Name);
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(HRESULT, SetShaderDebugPath, ID3D12DeviceChild *pResource,
                                        const char *Path);

@@ -28,7 +28,7 @@
 template <>
 rdcstr DoStringise(const D3D12Chunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1132, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)D3D12Chunk::Max == 1133, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(D3D12Chunk)
   {
@@ -234,6 +234,8 @@ rdcstr DoStringise(const D3D12Chunk &el)
     STRINGISE_ENUM_CLASS_NAMED(List_SetPipelineState1,
                                "ID3D12GraphicsCommandList4::SetPipelineState1");
     STRINGISE_ENUM_CLASS_NAMED(CreateAS, "Internal::Acceleration Structure Create");
+    STRINGISE_ENUM_CLASS_NAMED(StateObject_SetPipelineStackSize,
+                               "ID3D12StateObjectProperties::SetPipelineStackSize");
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()

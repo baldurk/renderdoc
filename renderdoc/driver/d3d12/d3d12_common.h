@@ -1223,5 +1223,6 @@ enum class D3D12Chunk : uint32_t
   List_DispatchRays,
   List_SetPipelineState1,
   CreateAS,
+  StateObject_SetPipelineStackSize,
   Max,
 };

@@ -3816,6 +3816,47 @@ void WrappedID3D12Device::SetShaderExtUAV(GPUVendor vendor, uint32_t reg, uint32
 INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12Device, SetShaderExtUAV, GPUVendor vendor,
                                 uint32_t reg, uint32_t space, bool global);
 
+template <typename SerialiserType>
+bool WrappedID3D12Device::Serialise_SetPipelineStackSize(SerialiserType &ser,
+                                                         ID3D12StateObject *pStateObject,
+                                                         UINT64 StackSize)
+{
+  SERIALISE_ELEMENT(pStateObject);
+  SERIALISE_ELEMENT(StackSize);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading() && pStateObject)
+  {
+    ID3D12StateObjectProperties *properties = NULL;
+    pStateObject->QueryInterface(__uuidof(ID3D12StateObjectProperties), (void **)&properties);
+
+    properties->SetPipelineStackSize(StackSize);
+
+    SAFE_RELEASE(properties);
+  }
+
+  return true;
+}
+
+void WrappedID3D12Device::SetPipelineStackSize(ID3D12StateObject *pStateObject, UINT64 StackSize)
+{
+  if(IsCaptureMode(m_State))
+  {
+    D3D12ResourceRecord *record = GetRecord(pStateObject);
+
+    {
+      WriteSerialiser &ser = GetThreadSerialiser();
+      SCOPED_SERIALISE_CHUNK(D3D12Chunk::StateObject_SetPipelineStackSize);
+      Serialise_SetPipelineStackSize(ser, pStateObject, StackSize);
+      record->AddChunk(scope.Get());
+    }
+  }
+}
+
+INSTANTIATE_FUNCTION_SERIALISED(void, WrappedID3D12Device, SetPipelineStackSize,
+                                ID3D12StateObject *pStateObject, UINT64 StackSize);
+
 void WrappedID3D12Device::SetShaderExt(GPUVendor vendor)
 {
   // just overwrite, we don't expect to switch back and forth on a given device.
@@ -4455,6 +4496,8 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
     case D3D12Chunk::Device_AddToStateObject:
       return Serialise_AddToStateObject(ser, NULL, NULL, IID(), NULL);
     case D3D12Chunk::CreateAS: return Serialise_CreateAS(ser, NULL, 0, {}, NULL);
+    case D3D12Chunk::StateObject_SetPipelineStackSize:
+      return Serialise_SetPipelineStackSize(ser, NULL, 0);
 
     // in order to get a warning if we miss a case, we explicitly handle the list/queue chunks here.
     // If we actually encounter one it's an error (we should hit CaptureBegin first and switch to
