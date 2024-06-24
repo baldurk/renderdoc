@@ -2395,6 +2395,15 @@ void GPUAddressRangeTracker::GetResIDFromAddrAllowOutOfBounds(D3D12_GPU_VIRTUAL_
       return;
 
     range = *it;
+
+    // find the largest resource containing this address - not perfect but helps with trivially bad
+    // aliases where a tiny resource and a large resource are co-situated and the larger resource
+    // needs to be used for validity
+    while((it + 1)->start <= addr && (it + 1)->realEnd > range.realEnd)
+    {
+      it++;
+      range = *it;
+    }
   }
 
   if(addr < range.start)
