@@ -663,7 +663,7 @@ uint32_t WrappedVulkan::HandlePreCallback(VkCommandBuffer commandBuffer, ActionF
 
   if(type == ActionFlags::MeshDispatch || type == ActionFlags::Drawcall)
     m_ActionCallback->PreDraw(eventId, type, commandBuffer);
-  else if(type == ActionFlags::Dispatch)
+  else if(type == ActionFlags::Dispatch || type == ActionFlags::DispatchRay)
     m_ActionCallback->PreDispatch(eventId, type, commandBuffer);
   else
     m_ActionCallback->PreMisc(eventId, type, commandBuffer);
