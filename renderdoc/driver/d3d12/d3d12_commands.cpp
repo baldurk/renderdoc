@@ -1828,6 +1828,7 @@ uint32_t D3D12CommandData::HandlePreCallback(ID3D12GraphicsCommandListX *list, A
       break;
     }
     case ActionFlags::Dispatch:
+    case ActionFlags::DispatchRay:
     {
       m_ActionCallback->PreDispatch(eventId, list);
       break;

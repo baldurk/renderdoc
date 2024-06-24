@@ -1494,10 +1494,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DispatchRays(SerialiserType &se
 
         uint32_t eventId = m_Cmd->HandlePreCallback(list, ActionFlags::DispatchRay);
         Unwrap4(list)->DispatchRays(&patchedDispatch.desc);
-        if(eventId && m_Cmd->m_ActionCallback->PostDraw(eventId, list))
+        if(eventId && m_Cmd->m_ActionCallback->PostDispatch(eventId, list))
         {
           Unwrap4(list)->DispatchRays(&patchedDispatch.desc);
-          m_Cmd->m_ActionCallback->PostRedraw(eventId, list);
+          m_Cmd->m_ActionCallback->PostRedispatch(eventId, list);
         }
       }
     }
