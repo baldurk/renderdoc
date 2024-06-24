@@ -1518,6 +1518,9 @@ struct VulkanOcclusionCallback : public VulkanPixelHistoryCallback
     VulkanRenderState prevState = m_pDriver->GetCmdRenderState();
     VulkanRenderState &pipestate = m_pDriver->GetCmdRenderState();
 
+    if(prevState.graphics.shaderObject)
+      return;
+
     VkPipeline pipe = GetPixelOcclusionPipeline(eid, prevState.graphics.pipeline,
                                                 GetColorAttachmentIndex(prevState));
     // set the scissor
