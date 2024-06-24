@@ -90,7 +90,7 @@ DECL_VKFLAG(VkFenceImport);
 DECL_VKFLAG(VkFramebufferCreate);
 DECL_VKFLAG(VkMemoryAllocate);
 DECL_VKFLAG(VkMemoryHeap);
-DECL_VKFLAG_EMPTY(VkMemoryMap);
+DECL_VKFLAG(VkMemoryMap);
 DECL_VKFLAG(VkMemoryProperty);
 DECL_VKFLAG(VkPeerMemoryFeature);
 DECL_VKFLAG(VkPipelineCacheCreate);
@@ -1356,6 +1356,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_PROPERTIES_EXT,                         \
                VkPhysicalDeviceShaderObjectPropertiesEXT)                                              \
                                                                                                        \
+  /* VK_KHR_shader_relaxed_extended_instruction */                                                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_RELAXED_EXTENDED_INSTRUCTION_FEATURES_KHR,     \
+               VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR)                            \
+                                                                                                       \
   /* VK_KHR_shader_subgroup_extended_types */                                                          \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SUBGROUP_EXTENDED_TYPES_FEATURES,              \
                VkPhysicalDeviceShaderSubgroupExtendedTypesFeatures)                                    \
@@ -1613,6 +1617,15 @@ SERIALISE_VK_HANDLES();
   /* VK_EXT_legacy_dithering */                                                                        \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LEGACY_DITHERING_FEATURES_EXT)                   \
                                                                                                        \
+  /* VK_EXT_legacy_vertex_attributes */                                                                \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LEGACY_VERTEX_ATTRIBUTES_FEATURES_EXT)           \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LEGACY_VERTEX_ATTRIBUTES_PROPERTIES_EXT)         \
+                                                                                                       \
+  /* VK_EXT_map_memory_placed */                                                                       \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAP_MEMORY_PLACED_FEATURES_EXT)                  \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAP_MEMORY_PLACED_PROPERTIES_EXT)                \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_MAP_PLACED_INFO_EXT)                                      \
+                                                                                                       \
   /* VK_EXT_metal_objects */                                                                           \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_EXPORT_METAL_OBJECT_CREATE_INFO_EXT)                             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_EXPORT_METAL_OBJECTS_INFO_EXT)                                   \
@@ -1666,6 +1679,9 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_MODULE_IDENTIFIER_PROPERTIES_EXT)         \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_MODULE_IDENTIFIER_CREATE_INFO_EXT)         \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SHADER_MODULE_IDENTIFIER_EXT)                                    \
+                                                                                                       \
+  /* VK_EXT_shader_replicated_composites */                                                            \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_REPLICATED_COMPOSITES_FEATURES_EXT)       \
                                                                                                        \
   /* VK_EXT_shader_tile_image */                                                                       \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_TILE_IMAGE_FEATURES_EXT)                  \
@@ -1867,6 +1883,11 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DIRECT_DRIVER_LOADING_INFO_LUNARG)                               \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DIRECT_DRIVER_LOADING_LIST_LUNARG)                               \
                                                                                                        \
+  /* VK_MESA_image_alignment_control */                                                                \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_ALIGNMENT_CONTROL_FEATURES_MESA)           \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_ALIGNMENT_CONTROL_PROPERTIES_MESA)         \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_ALIGNMENT_CONTROL_CREATE_INFO_MESA)                        \
+                                                                                                       \
   /* VK_MSFT_layered_driver */                                                                         \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LAYERED_DRIVER_PROPERTIES_MSFT)                  \
                                                                                                        \
@@ -1986,6 +2007,9 @@ SERIALISE_VK_HANDLES();
   /* VK_NV_per_stage_descriptor_set */                                                                 \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PER_STAGE_DESCRIPTOR_SET_FEATURES_NV)            \
                                                                                                        \
+  /* VK_NV_raw_access_chains */                                                                        \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAW_ACCESS_CHAINS_FEATURES_NV)                   \
+                                                                                                       \
   /* VK_NV_ray_tracing */                                                                              \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NV)                           \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV)                                  \
@@ -2008,6 +2032,9 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_MOTION_BLUR_FEATURES_NV)             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MOTION_INFO_NV)                           \
                                                                                                        \
+  /* VK_NV_ray_tracing_validation */                                                                   \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_VALIDATION_FEATURES_NV)              \
+                                                                                                       \
   /* VK_NV_representative_fragment_test */                                                             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_REPRESENTATIVE_FRAGMENT_TEST_FEATURES_NV)        \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_REPRESENTATIVE_FRAGMENT_TEST_STATE_CREATE_INFO_NV)      \
@@ -2019,6 +2046,9 @@ SERIALISE_VK_HANDLES();
   /* VK_NV_shader_sm_builtins  */                                                                      \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SM_BUILTINS_FEATURES_NV)                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SM_BUILTINS_PROPERTIES_NV)                \
+                                                                                                       \
+  /* VK_NV_shader_atomic_float16_vector  */                                                            \
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT16_VECTOR_FEATURES_NV)        \
                                                                                                        \
   /* VK_NV_fragment_shading_rate_enums */                                                              \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_ENUMS_FEATURES_NV)         \
@@ -10145,6 +10175,23 @@ void Deserialise(const VkPhysicalDeviceShaderSubgroupExtendedTypesFeatures &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType ==
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_RELAXED_EXTENDED_INSTRUCTION_FEATURES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(shaderRelaxedExtendedInstruction);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPhysicalDeviceShaderIntegerDotProductFeatures &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -12505,6 +12552,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderIntegerDotProductFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderIntegerDotProductProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderObjectFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderObjectPropertiesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderRelaxedExtendedInstructionFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderSubgroupExtendedTypesFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderSubgroupUniformControlFlowFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceShaderTerminateInvocationFeatures);

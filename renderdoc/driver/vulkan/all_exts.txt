@@ -214,6 +214,7 @@
 270    VK_KHR_pipeline_executable_properties
 271    VK_EXT_host_image_copy
 272    VK_KHR_map_memory2
+273    VK_EXT_map_memory_placed
 274    VK_EXT_shader_atomic_float2
 275    VK_EXT_surface_maintenance1
 276    VK_EXT_swapchain_maintenance1
@@ -338,6 +339,7 @@
 491    VK_NV_ray_tracing_invocation_reorder
 493    VK_NV_extended_sparse_address_space
 495    VK_EXT_mutable_descriptor_type
+496    VK_EXT_legacy_vertex_attributes
 497    VK_EXT_layer_settings
 498    VK_ARM_shader_core_builtins
 499    VK_EXT_pipeline_library_group_handles
@@ -364,3 +366,9 @@
 545    VK_KHR_shader_expect_assume
 546    VK_KHR_maintenance6
 547    VK_NV_descriptor_pool_overallocation
+556    VK_NV_raw_access_chains
+559    VK_KHR_shader_relaxed_extended_instruction
+564    VK_NV_shader_atomic_float16_vector
+565    VK_EXT_shader_replicated_composites
+569    VK_NV_ray_tracing_validation
+576    VK_MESA_image_alignment_control

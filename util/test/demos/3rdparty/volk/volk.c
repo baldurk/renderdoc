@@ -31,6 +31,17 @@ __declspec(dllimport) FARPROC __stdcall GetProcAddress(HMODULE, LPCSTR);
 __declspec(dllimport) int __stdcall FreeLibrary(HMODULE);
 #endif
 
+#if defined(__GNUC__)
+#    define VOLK_DISABLE_GCC_PEDANTIC_WARNINGS \
+		_Pragma("GCC diagnostic push") \
+		_Pragma("GCC diagnostic ignored \"-Wpedantic\"")
+#    define VOLK_RESTORE_GCC_PEDANTIC_WARNINGS \
+		_Pragma("GCC diagnostic pop")
+#else
+#    define VOLK_DISABLE_GCC_PEDANTIC_WARNINGS
+#    define VOLK_RESTORE_GCC_PEDANTIC_WARNINGS
+#endif
+
 static void* loadedModule = NULL;
 static VkInstance loadedInstance = VK_NULL_HANDLE;
 static VkDevice loadedDevice = VK_NULL_HANDLE;
@@ -72,6 +83,12 @@ VkResult volkInitialize(void)
 		module = dlopen("libvulkan.1.dylib", RTLD_NOW | RTLD_LOCAL);
 	if (!module)
 		module = dlopen("libMoltenVK.dylib", RTLD_NOW | RTLD_LOCAL);
+    // Add support for using Vulkan and MoltenVK in a Framework. App store rules for iOS
+    // strictly enforce no .dylib's. If they aren't found it just falls through
+    if (!module)
+        module = dlopen("vulkan.framework/vulkan", RTLD_NOW | RTLD_LOCAL);
+    if (!module)
+        module = dlopen("MoltenVK.framework/MoltenVK", RTLD_NOW | RTLD_LOCAL);
 	// modern versions of macOS don't search /usr/local/lib automatically contrary to what man dlopen says
 	// Vulkan SDK uses this as the system-wide installation location, so we're going to fallback to this if all else fails
 	if (!module && getenv("DYLD_FALLBACK_LIBRARY_PATH") == NULL)
@@ -86,8 +103,9 @@ VkResult volkInitialize(void)
 		module = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
 	if (!module)
 		return VK_ERROR_INITIALIZATION_FAILED;
-
+	VOLK_DISABLE_GCC_PEDANTIC_WARNINGS
 	vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)dlsym(module, "vkGetInstanceProcAddr");
+	VOLK_RESTORE_GCC_PEDANTIC_WARNINGS
 #endif
 
 	loadedModule = module;

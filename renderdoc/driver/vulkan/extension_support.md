@@ -193,6 +193,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_KHR_shader_float16_int8`
 * `VK_KHR_shader_integer_dot_product`
 * `VK_KHR_shader_non_semantic_info`
+* `VK_KHR_shader_relaxed_extended_instruction`
 * `VK_KHR_shader_subgroup_extended_types`
 * `VK_KHR_shader_subgroup_uniform_control_flow`
 * `VK_KHR_shader_terminate_invocation`
@@ -287,6 +288,8 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_image_sliced_view_of_3d`
 * `VK_EXT_layer_settings`
 * `VK_EXT_legacy_dithering`
+* `VK_EXT_legacy_vertex_attributes`
+* `VK_EXT_map_memory_placed`
 * `VK_EXT_metal_objects`
 * `VK_EXT_multi_draw`
 * `VK_EXT_opacity_micromap`
@@ -296,6 +299,7 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_EXT_pipeline_protected_access`
 * `VK_EXT_pipeline_robustness`
 * `VK_EXT_shader_module_identifier`
+* `VK_EXT_shader_replicated_composites`
 * `VK_EXT_shader_object`
 * `VK_EXT_shader_tile_image`
 * `VK_EXT_subpass_merge_feedback`
@@ -343,6 +347,10 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_INTEL_shader_integer_functions2`
 * `VK_INTEL_performance_query`
 
+### MESA
+
+* `VK_MESA_image_alignment_control`
+
 ### Microsoft
 
 * `VK_MSFT_layered_driver`
@@ -377,10 +385,13 @@ Ray tracing extensions are now standard and will likely be supported at some poi
 * `VK_NV_optical_flow`
 * `VK_NV_per_stage_descriptor_set`
 * `VK_NV_present_barrier`
+* `VK_NV_raw_access_chains`
 * `VK_NV_ray_tracing_invocation_reorder`
 * `VK_NV_ray_tracing_motion_blur`
+* `VK_NV_ray_tracing_validation`
 * `VK_NV_representative_fragment_test`
 * `VK_NV_scissor_exclusive`
+* `VK_NV_shader_atomic_float16_vector`
 * `VK_NV_shader_sm_builtins`
 * `VK_NV_shading_rate_image`
 * `VK_NV_viewport_swizzle`
