@@ -446,6 +446,7 @@ static void ConvertToMeshOutputCompute(const ShaderReflection &refl,
        it.opcode() == rdcspv::Op::Variable || it.opcode() == rdcspv::Op::AccessChain ||
        it.opcode() == rdcspv::Op::InBoundsAccessChain || it.opcode() == rdcspv::Op::Bitcast ||
        it.opcode() == rdcspv::Op::Undef || it.opcode() == rdcspv::Op::ExtInst ||
+       it.opcode() == rdcspv::Op::ExtInstWithForwardRefsKHR ||
        it.opcode() == rdcspv::Op::FunctionCall || it.opcode() == rdcspv::Op::Phi ||
        it.opcode() == rdcspv::Op::Select)
     {

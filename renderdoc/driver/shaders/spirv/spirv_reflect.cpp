@@ -651,7 +651,7 @@ void Reflector::RegisterOp(Iter it)
   {
     loopBlocks.insert(curBlock);
   }
-  else if(opdata.op == Op::ExtInst)
+  else if(opdata.op == Op::ExtInst || opdata.op == Op::ExtInstWithForwardRefsKHR)
   {
     OpShaderDbg dbg(it);
 

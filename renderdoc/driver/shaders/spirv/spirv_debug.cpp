@@ -587,7 +587,7 @@ void ThreadState::SkipIgnoredInstructions()
       continue;
     }
 
-    if(op == Op::ExtInst)
+    if(op == Op::ExtInst || op == Op::ExtInstWithForwardRefsKHR)
     {
       if(debugger.IsDebugExtInstSet(Id::fromWord(it.word(3))))
       {
@@ -1369,6 +1369,7 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
       //////////////////////////////////////////////////////////////////////////////
 
     case Op::ExtInst:
+    case Op::ExtInstWithForwardRefsKHR:
     {
       Id result = Id::fromWord(it.word(2));
       Id extinst = Id::fromWord(it.word(3));
@@ -3812,6 +3813,10 @@ void ThreadState::StepNext(ShaderDebugState *state, const rdcarray<ThreadState> 
     case Op::CompositeConstructContinuedINTEL:
     case Op::MaskedGatherINTEL:
     case Op::MaskedScatterINTEL:
+    case Op::CompositeConstructReplicateEXT:
+    case Op::ConstantCompositeReplicateEXT:
+    case Op::SpecConstantCompositeReplicateEXT:
+    case Op::RawAccessChainNV:
     {
       RDCERR("Unsupported extension opcode used %s", ToStr(opdata.op).c_str());
 

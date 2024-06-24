@@ -436,6 +436,7 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       "SPV_EXT_shader_image_int64",
       "SPV_GOOGLE_user_type",
       "SPV_KHR_physical_storage_buffer",
+      "SPV_KHR_relaxed_extended_instruction",
   };
 
   // whitelist supported extensions
@@ -758,6 +759,9 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       case Capability::CacheControlsINTEL:
       case Capability::RegisterLimitsINTEL:
       case Capability::GlobalVariableHostAccessINTEL:
+      case Capability::CooperativeMatrixLayoutsARM:
+      case Capability::RawAccessChainsNV:
+      case Capability::ReplicatedCompositesEXT:
       case Capability::Max:
       case Capability::Invalid:
       {
@@ -3838,7 +3842,7 @@ void Debugger::RegisterOp(Iter it)
 
   const uint32_t curInstIndex = (uint32_t)instructionOffsets.size();
 
-  if(opdata.op == Op::ExtInst)
+  if(opdata.op == Op::ExtInst || opdata.op == Op::ExtInstWithForwardRefsKHR)
   {
     OpExtInst extinst(it);
 

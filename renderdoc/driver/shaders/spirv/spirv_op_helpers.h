@@ -560,6 +560,8 @@ inline uint16_t OptionalWordCount(const KernelProfilingInfo val) { return val !=
 
 inline uint16_t OptionalWordCount(const RayFlags val) { return val != RayFlags::NoneKHR ? 1 : 0; }
 
+inline uint16_t OptionalWordCount(const RawAccessChainOperands val) { return val != RawAccessChainOperands::None ? 1 : 0; }
+
 inline uint16_t OptionalWordCount(const SourceLanguage val) { return val != SourceLanguage::Invalid ? 1 : 0; }
 
 inline uint16_t OptionalWordCount(const ExecutionModel val) { return val != ExecutionModel::Invalid ? 1 : 0; }
@@ -830,14 +832,14 @@ struct ExecutionModeParam<ExecutionMode::MaxNumWorkgroupsAMDX>
 };
 
 template<>
-struct ExecutionModeParam<ExecutionMode::OutputPrimitivesNV>
+struct ExecutionModeParam<ExecutionMode::OutputPrimitivesEXT>
 {
-  uint32_t outputPrimitivesNV;
-  ExecutionModeParam(uint32_t outputPrimitivesNVParam) {  outputPrimitivesNV = outputPrimitivesNVParam; }
+  uint32_t outputPrimitivesEXT;
+  ExecutionModeParam(uint32_t outputPrimitivesEXTParam) {  outputPrimitivesEXT = outputPrimitivesEXTParam; }
   operator ExecutionModeAndParamData()
   {
-    ExecutionModeAndParamData ret(ExecutionMode::OutputPrimitivesNV);
-    ret.outputPrimitivesNV = outputPrimitivesNV;
+    ExecutionModeAndParamData ret(ExecutionMode::OutputPrimitivesEXT);
+    ret.outputPrimitivesEXT = outputPrimitivesEXT;
     return ret;
   }
 };
@@ -1152,8 +1154,8 @@ inline ExecutionModeAndParamData DecodeParam(const ConstIter &it, uint32_t &word
       ret.maxNumWorkgroupsAMDX.zsize = Id::fromWord(it.word(word+2));
       word += 3;
       break;
-    case ExecutionMode::OutputPrimitivesNV:
-      ret.outputPrimitivesNV = (uint32_t)it.word(word);
+    case ExecutionMode::OutputPrimitivesEXT:
+      ret.outputPrimitivesEXT = (uint32_t)it.word(word);
       word += 1;
       break;
     case ExecutionMode::SharedLocalMemorySizeINTEL:
@@ -1302,8 +1304,8 @@ inline void EncodeParam(rdcarray<uint32_t> &words, const ExecutionModeAndParamDa
       words.push_back(param.maxNumWorkgroupsAMDX.ysize.value());
       words.push_back(param.maxNumWorkgroupsAMDX.zsize.value());
       break;
-    case ExecutionMode::OutputPrimitivesNV:
-      words.push_back((uint32_t)param.outputPrimitivesNV);
+    case ExecutionMode::OutputPrimitivesEXT:
+      words.push_back((uint32_t)param.outputPrimitivesEXT);
       break;
     case ExecutionMode::SharedLocalMemorySizeINTEL:
       words.push_back((uint32_t)param.sharedLocalMemorySizeINTEL);
@@ -1383,7 +1385,7 @@ inline uint16_t ExtraWordCount(const ExecutionMode executionMode)
     case ExecutionMode::StaticNumWorkgroupsAMDX: return 3;
     case ExecutionMode::ShaderIndexAMDX: return 1;
     case ExecutionMode::MaxNumWorkgroupsAMDX: return 3;
-    case ExecutionMode::OutputPrimitivesNV: return 1;
+    case ExecutionMode::OutputPrimitivesEXT: return 1;
     case ExecutionMode::SharedLocalMemorySizeINTEL: return 1;
     case ExecutionMode::RoundingModeRTPINTEL: return 1;
     case ExecutionMode::RoundingModeRTNINTEL: return 1;
@@ -13464,6 +13466,8 @@ struct OpSubgroupReadInvocationKHR
   Id index;
 };
 
+struct OpExtInstWithForwardRefsKHR; // has operands with variable sizes
+
 struct OpTraceRayKHR
 {
   OpTraceRayKHR(const ConstIter &it)
@@ -14085,6 +14089,78 @@ struct OpCooperativeMatrixLengthKHR
   IdResultType resultType;
   IdResult result;
   Id type;
+};
+
+struct OpConstantCompositeReplicateEXT
+{
+  OpConstantCompositeReplicateEXT(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpConstantCompositeReplicateEXT(IdResultType resultType, IdResult result, Id value)
+      : op(Op::ConstantCompositeReplicateEXT)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->value = value;
+  }
+
+  static constexpr Op OpCode = Op::ConstantCompositeReplicateEXT;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id value;
+};
+
+struct OpSpecConstantCompositeReplicateEXT
+{
+  OpSpecConstantCompositeReplicateEXT(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpSpecConstantCompositeReplicateEXT(IdResultType resultType, IdResult result, Id value)
+      : op(Op::SpecConstantCompositeReplicateEXT)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->value = value;
+  }
+
+  static constexpr Op OpCode = Op::SpecConstantCompositeReplicateEXT;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id value;
+};
+
+struct OpCompositeConstructReplicateEXT
+{
+  OpCompositeConstructReplicateEXT(const ConstIter &it)
+  {
+    memcpy(this, it.words(), sizeof(*this));
+  }
+  OpCompositeConstructReplicateEXT(IdResultType resultType, IdResult result, Id value)
+      : op(Op::CompositeConstructReplicateEXT)
+      , wordCount(FixedWordSize)
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->value = value;
+  }
+
+  static constexpr Op OpCode = Op::CompositeConstructReplicateEXT;
+  static constexpr uint16_t FixedWordSize = 4U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id value;
 };
 
 struct OpTypeRayQueryKHR
@@ -16754,6 +16830,61 @@ struct OpSamplerImageAddressingModeNV
   Op op;
   uint16_t wordCount;
   uint32_t bitWidth;
+};
+
+struct OpRawAccessChainNV
+{
+  OpRawAccessChainNV(const ConstIter &it)
+  {
+    uint32_t word = 0;(void)word;
+    this->op = OpCode;
+    this->wordCount = (uint16_t)it.size();
+    this->resultType = Id::fromWord(it.word(1));
+    this->result = Id::fromWord(it.word(2));
+    this->base = Id::fromWord(it.word(3));
+    this->bytestride = Id::fromWord(it.word(4));
+    this->elementindex = Id::fromWord(it.word(5));
+    this->byteoffset = Id::fromWord(it.word(6));
+    this->rawAccessChainOperands = (it.size() > 7) ? (RawAccessChainOperands)it.word(7) : RawAccessChainOperands::None;
+  }
+  OpRawAccessChainNV(IdResultType resultType, IdResult result, Id base, Id bytestride, Id elementindex, Id byteoffset, RawAccessChainOperands rawAccessChainOperands = RawAccessChainOperands::None)
+      : op(Op::RawAccessChainNV)
+      , wordCount(MinWordSize + OptionalWordCount(rawAccessChainOperands))
+  {
+    this->resultType = resultType;
+    this->result = result;
+    this->base = base;
+    this->bytestride = bytestride;
+    this->elementindex = elementindex;
+    this->byteoffset = byteoffset;
+    this->rawAccessChainOperands = rawAccessChainOperands;
+  }
+  operator Operation() const
+  {
+    rdcarray<uint32_t> words;
+    words.push_back(resultType.value());
+    words.push_back(result.value());
+    words.push_back(base.value());
+    words.push_back(bytestride.value());
+    words.push_back(elementindex.value());
+    words.push_back(byteoffset.value());
+    if(rawAccessChainOperands != RawAccessChainOperands::None) words.push_back((uint32_t)rawAccessChainOperands);
+    return Operation(OpCode, words);
+  }
+
+  static constexpr Op OpCode = Op::RawAccessChainNV;
+  static constexpr uint16_t MinWordSize = 7U;
+  Op op;
+  uint16_t wordCount;
+  IdResultType resultType;
+  IdResult result;
+  Id base;
+  Id bytestride;
+  Id elementindex;
+  Id byteoffset;
+  RawAccessChainOperands rawAccessChainOperands;
+
+  bool HasRawAccessChainOperands() const { return wordCount > 7; }
 };
 
 struct OpSubgroupShuffleINTEL

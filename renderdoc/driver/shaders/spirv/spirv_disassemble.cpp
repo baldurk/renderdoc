@@ -1563,6 +1563,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
         }
 
         case Op::ExtInst:
+        case Op::ExtInstWithForwardRefsKHR:
         {
           OpExtInst decoded(it);
 

@@ -130,6 +130,8 @@ enum class Generator : uint32_t
   NazaraShaderLangCompiler = 39,
   SlangCompiler = 40,
   ZigCompiler = 41,
+  spq = 42,
+  LLVMSPIRVBackend = 43,
 };
 
 enum class ImageOperands : uint32_t
@@ -322,6 +324,17 @@ enum class FragmentShadingRate : uint32_t
 
 BITMASK_OPERATORS(FragmentShadingRate);
 
+enum class RawAccessChainOperands : uint32_t
+{
+  None = 0x0000,
+  RobustnessPerComponentNV = 0x0001,
+  RobustnessPerElementNV = 0x0002,
+  Max,
+  Invalid = ~0U,
+};
+
+BITMASK_OPERATORS(RawAccessChainOperands);
+
 enum class SourceLanguage : uint32_t
 {
   Unknown = 0,
@@ -352,18 +365,18 @@ enum class ExecutionModel : uint32_t
   Kernel = 6,
   TaskNV = 5267,
   MeshNV = 5268,
-  RayGenerationNV = 5313,
   RayGenerationKHR = 5313,
-  IntersectionNV = 5314,
+  RayGenerationNV = 5313,
   IntersectionKHR = 5314,
-  AnyHitNV = 5315,
+  IntersectionNV = 5314,
   AnyHitKHR = 5315,
-  ClosestHitNV = 5316,
+  AnyHitNV = 5315,
   ClosestHitKHR = 5316,
-  MissNV = 5317,
+  ClosestHitNV = 5316,
   MissKHR = 5317,
-  CallableNV = 5318,
+  MissNV = 5317,
   CallableKHR = 5318,
+  CallableNV = 5318,
   TaskEXT = 5364,
   MeshEXT = 5365,
   Max,
@@ -457,14 +470,14 @@ enum class ExecutionMode : uint32_t
   StencilRefLessBackAMD = 5084,
   QuadDerivativesKHR = 5088,
   RequireFullQuadsKHR = 5089,
-  OutputLinesNV = 5269,
   OutputLinesEXT = 5269,
-  OutputPrimitivesNV = 5270,
+  OutputLinesNV = 5269,
   OutputPrimitivesEXT = 5270,
+  OutputPrimitivesNV = 5270,
   DerivativeGroupQuadsNV = 5289,
   DerivativeGroupLinearNV = 5290,
-  OutputTrianglesNV = 5298,
   OutputTrianglesEXT = 5298,
+  OutputTrianglesNV = 5298,
   PixelInterlockOrderedEXT = 5366,
   PixelInterlockUnorderedEXT = 5367,
   SampleInterlockOrderedEXT = 5368,
@@ -511,18 +524,18 @@ enum class StorageClass : uint32_t
   TileImageEXT = 4172,
   NodePayloadAMDX = 5068,
   NodeOutputPayloadAMDX = 5076,
-  CallableDataNV = 5328,
   CallableDataKHR = 5328,
-  IncomingCallableDataNV = 5329,
+  CallableDataNV = 5328,
   IncomingCallableDataKHR = 5329,
-  RayPayloadNV = 5338,
+  IncomingCallableDataNV = 5329,
   RayPayloadKHR = 5338,
-  HitAttributeNV = 5339,
+  RayPayloadNV = 5338,
   HitAttributeKHR = 5339,
-  IncomingRayPayloadNV = 5342,
+  HitAttributeNV = 5339,
   IncomingRayPayloadKHR = 5342,
-  ShaderRecordBufferNV = 5343,
+  IncomingRayPayloadNV = 5342,
   ShaderRecordBufferKHR = 5343,
+  ShaderRecordBufferNV = 5343,
   PhysicalStorageBuffer = 5349,
   PhysicalStorageBufferEXT = 5349,
   HitObjectAttributeNV = 5385,
@@ -822,8 +835,8 @@ enum class Decoration : uint32_t
   PassthroughNV = 5250,
   ViewportRelativeNV = 5252,
   SecondaryViewportRelativeNV = 5256,
-  PerPrimitiveNV = 5271,
   PerPrimitiveEXT = 5271,
+  PerPrimitiveNV = 5271,
   PerViewNV = 5272,
   PerTaskNV = 5273,
   PerVertexKHR = 5285,
@@ -1011,37 +1024,37 @@ enum class BuiltIn : uint32_t
   PrimitiveLineIndicesEXT = 5295,
   PrimitiveTriangleIndicesEXT = 5296,
   CullPrimitiveEXT = 5299,
-  LaunchIdNV = 5319,
   LaunchIdKHR = 5319,
-  LaunchSizeNV = 5320,
+  LaunchIdNV = 5319,
   LaunchSizeKHR = 5320,
-  WorldRayOriginNV = 5321,
+  LaunchSizeNV = 5320,
   WorldRayOriginKHR = 5321,
-  WorldRayDirectionNV = 5322,
+  WorldRayOriginNV = 5321,
   WorldRayDirectionKHR = 5322,
-  ObjectRayOriginNV = 5323,
+  WorldRayDirectionNV = 5322,
   ObjectRayOriginKHR = 5323,
-  ObjectRayDirectionNV = 5324,
+  ObjectRayOriginNV = 5323,
   ObjectRayDirectionKHR = 5324,
-  RayTminNV = 5325,
+  ObjectRayDirectionNV = 5324,
   RayTminKHR = 5325,
-  RayTmaxNV = 5326,
+  RayTminNV = 5325,
   RayTmaxKHR = 5326,
-  InstanceCustomIndexNV = 5327,
+  RayTmaxNV = 5326,
   InstanceCustomIndexKHR = 5327,
-  ObjectToWorldNV = 5330,
+  InstanceCustomIndexNV = 5327,
   ObjectToWorldKHR = 5330,
-  WorldToObjectNV = 5331,
+  ObjectToWorldNV = 5330,
   WorldToObjectKHR = 5331,
+  WorldToObjectNV = 5331,
   HitTNV = 5332,
-  HitKindNV = 5333,
   HitKindKHR = 5333,
+  HitKindNV = 5333,
   CurrentRayTimeNV = 5334,
   HitTriangleVertexPositionsKHR = 5335,
   HitMicroTriangleVertexPositionsNV = 5337,
   HitMicroTriangleVertexBarycentricsNV = 5344,
-  IncomingRayFlagsNV = 5351,
   IncomingRayFlagsKHR = 5351,
+  IncomingRayFlagsNV = 5351,
   RayGeometryIndexKHR = 5352,
   WarpsPerSMNV = 5374,
   SMCountNV = 5375,
@@ -1166,6 +1179,7 @@ enum class Capability : uint32_t
   TileImageColorReadAccessEXT = 4166,
   TileImageDepthReadAccessEXT = 4167,
   TileImageStencilReadAccessEXT = 4168,
+  CooperativeMatrixLayoutsARM = 4201,
   FragmentShadingRateKHR = 4422,
   SubgroupBallotKHR = 4423,
   DrawParameters = 4427,
@@ -1276,6 +1290,7 @@ enum class Capability : uint32_t
   RayQueryPositionFetchKHR = 5391,
   AtomicFloat16VectorNV = 5404,
   RayTracingDisplacementMicromapNV = 5409,
+  RawAccessChainsNV = 5414,
   SubgroupShuffleINTEL = 5568,
   SubgroupBufferBlockIOINTEL = 5569,
   SubgroupImageBlockIOINTEL = 5570,
@@ -1328,6 +1343,7 @@ enum class Capability : uint32_t
   DotProductKHR = 6019,
   RayCullMaskKHR = 6020,
   CooperativeMatrixKHR = 6022,
+  ReplicatedCompositesEXT = 6024,
   BitInstructions = 6025,
   GroupNonUniformRotateKHR = 6026,
   FloatControls2 = 6029,
@@ -1405,6 +1421,8 @@ enum class CooperativeMatrixLayout : uint32_t
 {
   RowMajorKHR = 0,
   ColumnMajorKHR = 1,
+  RowBlockedInterleavedARM = 4202,
+  ColumnBlockedInterleavedARM = 4203,
   Max,
   Invalid = ~0U,
 };
@@ -1716,8 +1734,8 @@ struct ExecutionModeAndParamData
     StaticNumWorkgroupsAMDXParams staticNumWorkgroupsAMDX;
     Id shaderIndexAMDX;
     MaxNumWorkgroupsAMDXParams maxNumWorkgroupsAMDX;
-    uint32_t outputPrimitivesNV;
     uint32_t outputPrimitivesEXT;
+    uint32_t outputPrimitivesNV;
     uint32_t sharedLocalMemorySizeINTEL;
     uint32_t roundingModeRTPINTEL;
     uint32_t roundingModeRTNINTEL;
@@ -2216,6 +2234,7 @@ enum class Op : uint16_t
   SubgroupAllEqualKHR = 4430,
   GroupNonUniformRotateKHR = 4431,
   SubgroupReadInvocationKHR = 4432,
+  ExtInstWithForwardRefsKHR = 4433,
   TraceRayKHR = 4445,
   ExecuteCallableKHR = 4446,
   ConvertUToAccelerationStructureKHR = 4447,
@@ -2238,6 +2257,9 @@ enum class Op : uint16_t
   CooperativeMatrixStoreKHR = 4458,
   CooperativeMatrixMulAddKHR = 4459,
   CooperativeMatrixLengthKHR = 4460,
+  ConstantCompositeReplicateEXT = 4461,
+  SpecConstantCompositeReplicateEXT = 4462,
+  CompositeConstructReplicateEXT = 4463,
   TypeRayQueryKHR = 4472,
   RayQueryInitializeKHR = 4473,
   RayQueryTerminateKHR = 4474,
@@ -2335,6 +2357,7 @@ enum class Op : uint16_t
   ConvertUToSampledImageNV = 5395,
   ConvertSampledImageToUNV = 5396,
   SamplerImageAddressingModeNV = 5397,
+  RawAccessChainNV = 5398,
   SubgroupShuffleINTEL = 5571,
   SubgroupShuffleDownINTEL = 5572,
   SubgroupShuffleUpINTEL = 5573,
@@ -2567,6 +2590,7 @@ DECLARE_STRINGISE_TYPE(rdcspv::MemoryAccess);
 DECLARE_STRINGISE_TYPE(rdcspv::KernelProfilingInfo);
 DECLARE_STRINGISE_TYPE(rdcspv::RayFlags);
 DECLARE_STRINGISE_TYPE(rdcspv::FragmentShadingRate);
+DECLARE_STRINGISE_TYPE(rdcspv::RawAccessChainOperands);
 DECLARE_STRINGISE_TYPE(rdcspv::SourceLanguage);
 DECLARE_STRINGISE_TYPE(rdcspv::ExecutionModel);
 DECLARE_STRINGISE_TYPE(rdcspv::AddressingModel);

@@ -1159,7 +1159,8 @@ void AnnotateShader(const ShaderReflection &refl, const SPIRVPatchData &patchDat
           functionPatchQueue[call.function] = patchArgs;
       }
 
-      if(it.opcode() == rdcspv::Op::ExtInst && Vulkan_PrintfFetch())
+      if((it.opcode() == rdcspv::Op::ExtInst || it.opcode() == rdcspv::Op::ExtInstWithForwardRefsKHR) &&
+         Vulkan_PrintfFetch())
       {
         rdcspv::OpExtInst extinst(it);
         // is this a printf extinst?
