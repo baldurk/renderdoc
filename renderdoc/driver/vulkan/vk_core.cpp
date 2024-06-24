@@ -43,6 +43,9 @@ RDOC_DEBUG_CONFIG(bool, Vulkan_Debug_SingleSubmitFlushing, false,
                   "Every command buffer is submitted and fully flushed to the GPU, to narrow down "
                   "the source of problems.");
 
+RDOC_DEBUG_CONFIG(bool, Vulkan_Experimental_EnableRTSupport, false,
+                  "Enable experimental Vulkan RT support");
+
 uint64_t VkInitParams::GetSerialiseSize()
 {
   // misc bytes and fixed integer members
@@ -1348,6 +1351,10 @@ static const VkExtensionProperties supportedExtensions[] = {
     },
 #endif
     {
+        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+        VK_KHR_ACCELERATION_STRUCTURE_SPEC_VERSION,
+    },
+    {
         VK_KHR_BIND_MEMORY_2_EXTENSION_NAME,
         VK_KHR_BIND_MEMORY_2_SPEC_VERSION,
     },
@@ -1370,6 +1377,10 @@ static const VkExtensionProperties supportedExtensions[] = {
     {
         VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
         VK_KHR_DEDICATED_ALLOCATION_SPEC_VERSION,
+    },
+    {
+        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+        VK_KHR_DEFERRED_HOST_OPERATIONS_SPEC_VERSION,
     },
     {
         VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME,
@@ -1564,6 +1575,14 @@ static const VkExtensionProperties supportedExtensions[] = {
     {
         VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
         VK_KHR_PUSH_DESCRIPTOR_SPEC_VERSION,
+    },
+    {
+        VK_KHR_RAY_QUERY_EXTENSION_NAME,
+        VK_KHR_RAY_QUERY_SPEC_VERSION,
+    },
+    {
+        VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+        VK_KHR_RAY_TRACING_PIPELINE_SPEC_VERSION,
     },
     {
         VK_KHR_RELAXED_BLOCK_LAYOUT_EXTENSION_NAME,
@@ -1973,6 +1992,10 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
 
       if(!strcmp(ext.extensionName, VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME))
       {
+        // remove unconditionally if the option isn't on
+        if(!Vulkan_Experimental_EnableRTSupport())
+          return true;
+
         // require GPDP2
         if(instDevInfo->ext_KHR_get_physical_device_properties2)
         {
@@ -1993,6 +2016,53 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
                 "VkPhysicalDeviceAccelerationStructureFeaturesKHR."
                 "accelerationStructureCaptureReplay "
                 "is false, can't support capture of VK_KHR_acceleration_structure");
+          }
+        }
+
+        // if it wasn't supported, remove the extension
+        return true;
+      }
+
+      // remove unconditionally if the option isn't on
+      if(!strcmp(ext.extensionName, VK_KHR_RAY_QUERY_EXTENSION_NAME))
+      {
+        if(!Vulkan_Experimental_EnableRTSupport())
+          return true;
+      }
+
+      if(!strcmp(ext.extensionName, VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME))
+      {
+        if(!Vulkan_Experimental_EnableRTSupport())
+          return true;
+      }
+
+      if(!strcmp(ext.extensionName, VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME))
+      {
+        // remove unconditionally if the option isn't on
+        if(!Vulkan_Experimental_EnableRTSupport())
+          return true;
+
+        // require GPDP2
+        if(instDevInfo->ext_KHR_get_physical_device_properties2)
+        {
+          VkPhysicalDeviceRayTracingPipelineFeaturesKHR rt = {
+              VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
+          VkPhysicalDeviceFeatures2 base = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+          base.pNext = &rt;
+          ObjDisp(physDev)->GetPhysicalDeviceFeatures2(Unwrap(physDev), &base);
+
+          if(!rt.rayTracingPipelineShaderGroupHandleCaptureReplay)
+          {
+            if(!filterWarned)
+              RDCWARN(
+                  "VkPhysicalDeviceRayTracingPipelineFeaturesKHR."
+                  "rayTracingPipelineShaderGroupHandleCaptureReplay "
+                  "is false, can't support capture of VK_KHR_ray_tracing_pipeline");
+          }
+          else
+          {
+            // supported, don't remove
+            return false;
           }
         }
 
@@ -4079,6 +4149,16 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
       return Serialise_vkCmdBindShadersEXT(ser, VK_NULL_HANDLE, 0, NULL, NULL);
     case VulkanChunk::vkCreateShadersEXT:
       return Serialise_vkCreateShadersEXT(ser, VK_NULL_HANDLE, 0, NULL, NULL, NULL);
+
+    case VulkanChunk::vkCmdSetRayTracingPipelineStackSizeKHR:
+      return Serialise_vkCmdSetRayTracingPipelineStackSizeKHR(ser, VK_NULL_HANDLE, 0);
+    case VulkanChunk::vkCmdTraceRaysIndirectKHR:
+      return Serialise_vkCmdTraceRaysIndirectKHR(ser, VK_NULL_HANDLE, NULL, NULL, NULL, NULL, 0);
+    case VulkanChunk::vkCmdTraceRaysKHR:
+      return Serialise_vkCmdTraceRaysKHR(ser, VK_NULL_HANDLE, NULL, NULL, NULL, NULL, 0, 0, 0);
+    case VulkanChunk::vkCreateRayTracingPipelinesKHR:
+      return Serialise_vkCreateRayTracingPipelinesKHR(ser, VK_NULL_HANDLE, VK_NULL_HANDLE,
+                                                      VK_NULL_HANDLE, 0, NULL, NULL, NULL);
 
     // chunks that are reserved but not yet serialised
     case VulkanChunk::vkResetCommandPool:

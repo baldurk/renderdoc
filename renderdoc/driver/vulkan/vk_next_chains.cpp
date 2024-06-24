@@ -414,6 +414,10 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkPhysicalDevicePushDescriptorPropertiesKHR);                                          \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RASTERIZATION_ORDER_ATTACHMENT_ACCESS_FEATURES_EXT,  \
               VkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT);                        \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR,                   \
+              VkPhysicalDeviceRayTracingPipelineFeaturesKHR);                                        \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR,                 \
+              VkPhysicalDeviceRayTracingPipelinePropertiesKHR);                                      \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR,                              \
               VkPhysicalDeviceRayQueryFeaturesKHR);                                                  \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RGBA10X6_FORMATS_FEATURES_EXT,                       \
@@ -588,6 +592,10 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_QUEUE_FAMILY_GLOBAL_PRIORITY_PROPERTIES_KHR,                         \
               VkQueueFamilyGlobalPriorityPropertiesKHR);                                             \
   COPY_STRUCT(VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2, VkQueueFamilyProperties2);                \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_INTERFACE_CREATE_INFO_KHR,                      \
+              VkRayTracingPipelineInterfaceCreateInfoKHR);                                           \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,                            \
+              VkRayTracingShaderGroupCreateInfoKHR);                                                 \
   COPY_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, VkRenderPassCreateInfo);                    \
   COPY_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2, VkRenderPassCreateInfo2);                 \
   COPY_STRUCT(VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_CREATE_INFO_EXT,                    \
@@ -1055,8 +1063,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_INVOCATION_REORDER_PROPERTIES_NV:      \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_MAINTENANCE_1_FEATURES_KHR:            \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_MOTION_BLUR_FEATURES_NV:               \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR:                 \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR:               \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_POSITION_FETCH_FEATURES_KHR:           \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV:                         \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_VALIDATION_FEATURES_NV:                \
@@ -1124,10 +1130,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_QUEUE_FAMILY_CHECKPOINT_PROPERTIES_NV:                             \
   case VK_STRUCTURE_TYPE_QUEUE_FAMILY_QUERY_RESULT_STATUS_PROPERTIES_KHR:                   \
   case VK_STRUCTURE_TYPE_QUEUE_FAMILY_VIDEO_PROPERTIES_KHR:                                 \
-  case VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR:                              \
   case VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_NV:                               \
-  case VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_INTERFACE_CREATE_INFO_KHR:                    \
-  case VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR:                          \
   case VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV:                           \
   case VK_STRUCTURE_TYPE_RENDER_PASS_CREATION_CONTROL_EXT:                                  \
   case VK_STRUCTURE_TYPE_RENDER_PASS_CREATION_FEEDBACK_CREATE_INFO_EXT:                     \
@@ -1528,6 +1531,37 @@ size_t GetNextPatchSize(const void *pNext)
         VkPresentInfoKHR *info = (VkPresentInfoKHR *)next;
         memSize += info->waitSemaphoreCount * sizeof(VkSemaphore);
         memSize += info->swapchainCount * sizeof(VkSwapchainKHR);
+        break;
+      }
+      case VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR:
+      {
+        memSize += sizeof(VkRayTracingPipelineCreateInfoKHR);
+
+        VkRayTracingPipelineCreateInfoKHR *info = (VkRayTracingPipelineCreateInfoKHR *)next;
+        memSize += info->stageCount * sizeof(VkPipelineShaderStageCreateInfo);
+        for(uint32_t s = 0; s < info->stageCount; s++)
+          memSize += GetNextPatchSize(info->pStages[s].pNext);
+        memSize += info->groupCount * sizeof(VkRayTracingShaderGroupCreateInfoKHR);
+        for(uint32_t g = 0; g < info->groupCount; g++)
+          memSize += GetNextPatchSize(info->pGroups[g].pNext);
+
+        // need to copy the base struct of each of these so we can potentially patch pNext inside it
+        if(info->pLibraryInfo)
+        {
+          memSize += sizeof(*info->pLibraryInfo);
+          memSize += info->pLibraryInfo->libraryCount * sizeof(VkPipeline);
+          memSize += GetNextPatchSize(info->pLibraryInfo->pNext);
+        }
+        if(info->pLibraryInterface)
+        {
+          memSize += sizeof(*info->pLibraryInterface);
+          memSize += GetNextPatchSize(info->pLibraryInterface->pNext);
+        }
+        if(info->pDynamicState)
+        {
+          memSize += sizeof(*info->pDynamicState);
+          memSize += GetNextPatchSize(info->pDynamicState->pNext);
+        }
         break;
       }
       case VK_STRUCTURE_TYPE_RENDERING_INFO:
@@ -2408,7 +2442,8 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
         out->pStages = outShaders;
         for(uint32_t i = 0; i < in->stageCount; i++)
         {
-          outShaders[i].module = Unwrap(in->pStages[i].module);
+          outShaders[i] = in->pStages[i];
+          UnwrapInPlace(outShaders[i].module);
           UnwrapNextChain(state, "VkPipelineShaderStageCreateInfo", tempMem,
                           (VkBaseInStructure *)&outShaders[i]);
         }
@@ -2537,6 +2572,67 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
           outSwapchains[i] = Unwrap(in->pSwapchains[i]);
         for(uint32_t i = 0; i < in->waitSemaphoreCount; i++)
           outWaitSemaphores[i] = Unwrap(in->pWaitSemaphores[i]);
+
+        break;
+      }
+      case VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR:
+      {
+        const VkRayTracingPipelineCreateInfoKHR *in =
+            (const VkRayTracingPipelineCreateInfoKHR *)nextInput;
+        VkRayTracingPipelineCreateInfoKHR *out = (VkRayTracingPipelineCreateInfoKHR *)tempMem;
+
+        // append immediately so tempMem is incremented
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
+
+        // allocate unwrapped array
+        VkPipelineShaderStageCreateInfo *outShaders = (VkPipelineShaderStageCreateInfo *)tempMem;
+        tempMem += sizeof(VkPipelineShaderStageCreateInfo) * in->stageCount;
+        VkRayTracingShaderGroupCreateInfoKHR *outGroups =
+            (VkRayTracingShaderGroupCreateInfoKHR *)tempMem;
+        tempMem += sizeof(VkRayTracingShaderGroupCreateInfoKHR) * in->groupCount;
+
+        *out = *in;
+        out->pStages = outShaders;
+        for(uint32_t i = 0; i < in->stageCount; i++)
+        {
+          outShaders[i] = in->pStages[i];
+          UnwrapInPlace(outShaders[i].module);
+          UnwrapNextChain(state, "VkPipelineShaderStageCreateInfo", tempMem,
+                          (VkBaseInStructure *)&outShaders[i]);
+        }
+        out->pGroups = outGroups;
+        for(uint32_t i = 0; i < in->groupCount; i++)
+        {
+          outGroups[i] = in->pGroups[i];
+          UnwrapNextChain(state, "VkRayTracingShaderGroupCreateInfoKHR", tempMem,
+                          (VkBaseInStructure *)&outGroups[i]);
+        }
+
+        out->pLibraryInfo = AllocStructCopy(tempMem, in->pLibraryInfo);
+        if(out->pLibraryInfo)
+        {
+          VkPipelineLibraryCreateInfoKHR *outLibraryInfo =
+              (VkPipelineLibraryCreateInfoKHR *)out->pLibraryInfo;
+          VkPipeline *outLibraries = (VkPipeline *)tempMem;
+          outLibraryInfo->pLibraries = outLibraries;
+          tempMem += sizeof(VkPipeline) * in->pLibraryInfo->libraryCount;
+          for(uint32_t i = 0; i < in->pLibraryInfo->libraryCount; i++)
+            outLibraries[i] = Unwrap(in->pLibraryInfo->pLibraries[i]);
+        }
+        UnwrapNextChain(state, "VkPipelineLibraryCreateInfoKHR", tempMem,
+                        (VkBaseInStructure *)out->pLibraryInfo);
+        out->pLibraryInterface = AllocStructCopy(tempMem, in->pLibraryInterface);
+        UnwrapNextChain(state, "VkRayTracingPipelineInterfaceCreateInfoKHR", tempMem,
+                        (VkBaseInStructure *)out->pLibraryInterface);
+        out->pDynamicState = AllocStructCopy(tempMem, in->pDynamicState);
+        UnwrapNextChain(state, "VkPipelineDynamicStateCreateInfo", tempMem,
+                        (VkBaseInStructure *)out->pDynamicState);
+        UnwrapInPlace(out->layout);
+        if(out->flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
+          UnwrapInPlace(out->basePipelineHandle);
+        else
+          out->basePipelineHandle = VK_NULL_HANDLE;
+        out->basePipelineIndex = in->basePipelineIndex;
 
         break;
       }
@@ -3166,6 +3262,10 @@ void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInSt
         break;
       case VK_STRUCTURE_TYPE_PRESENT_INFO_KHR:
         CopyNextChainedStruct(sizeof(VkPresentInfoKHR), tempMem, nextInput, nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR:
+        CopyNextChainedStruct(sizeof(VkRayTracingPipelineCreateInfoKHR), tempMem, nextInput,
+                              nextChainTail);
         break;
       case VK_STRUCTURE_TYPE_RENDERING_INFO:
         CopyNextChainedStruct(sizeof(VkRenderingInfo), tempMem, nextInput, nextChainTail);

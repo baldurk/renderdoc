@@ -3329,6 +3329,25 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         CHECK_PHYS_EXT_FEATURE(shaderRelaxedExtendedInstruction);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceRayTracingPipelineFeaturesKHR,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR);
+      {
+        CHECK_PHYS_EXT_FEATURE(rayTracingPipeline);
+        CHECK_PHYS_EXT_FEATURE(rayTracingPipelineShaderGroupHandleCaptureReplay);
+        CHECK_PHYS_EXT_FEATURE(rayTracingPipelineShaderGroupHandleCaptureReplayMixed);
+        CHECK_PHYS_EXT_FEATURE(rayTracingPipelineTraceRaysIndirect);
+        CHECK_PHYS_EXT_FEATURE(rayTraversalPrimitiveCulling);
+
+        VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayProps = {
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR,
+        };
+
+        VkPhysicalDeviceProperties2 availPropsBase = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+        availPropsBase.pNext = &rayProps;
+        ObjDisp(physicalDevice)->GetPhysicalDeviceProperties2(Unwrap(physicalDevice), &availPropsBase);
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)

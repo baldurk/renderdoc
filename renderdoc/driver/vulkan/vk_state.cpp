@@ -424,6 +424,9 @@ void VulkanRenderState::BindShaderObjects(WrappedVulkan *vk, VkCommandBuffer cmd
 
 void VulkanRenderState::BindDynamicState(WrappedVulkan *vk, VkCommandBuffer cmd)
 {
+  if(dynamicStates[VkDynamicRayTracingStackSizeKHR])
+    ObjDisp(cmd)->CmdSetRayTracingPipelineStackSizeKHR(Unwrap(cmd), rtStackSize);
+
   if(!views.empty() && dynamicStates[VkDynamicViewport])
     ObjDisp(cmd)->CmdSetViewport(Unwrap(cmd), 0, (uint32_t)views.size(), &views[0]);
   if(!scissors.empty() && dynamicStates[VkDynamicScissor])

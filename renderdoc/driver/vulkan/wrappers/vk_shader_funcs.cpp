@@ -138,6 +138,25 @@ VkPipelineLayoutCreateInfo WrappedVulkan::UnwrapInfo(const VkPipelineLayoutCreat
   return ret;
 }
 
+template <>
+VkRayTracingPipelineCreateInfoKHR *WrappedVulkan::UnwrapInfos(
+    CaptureState state, const VkRayTracingPipelineCreateInfoKHR *info, uint32_t count)
+{
+  size_t memSize = sizeof(VkRayTracingPipelineCreateInfoKHR) * count;
+  for(uint32_t i = 0; i < count; i++)
+    memSize += GetNextPatchSize(&info[i]);
+
+  byte *tempMem = GetTempMemory(memSize);
+
+  VkRayTracingPipelineCreateInfoKHR *unwrappedInfos = (VkRayTracingPipelineCreateInfoKHR *)tempMem;
+  tempMem = (byte *)(unwrappedInfos + count);
+
+  for(uint32_t i = 0; i < count; i++)
+    unwrappedInfos[i] = *UnwrapStructAndChain(state, tempMem, &info[i]);
+
+  return unwrappedInfos;
+}
+
 // Shader functions
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkCreatePipelineLayout(SerialiserType &ser, VkDevice device,
@@ -1133,6 +1152,30 @@ VkResult WrappedVulkan::vkCreateComputePipelines(VkDevice device, VkPipelineCach
   return ret;
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCreateRayTracingPipelinesKHR(
+    SerialiserType &ser, VkDevice device, VkDeferredOperationKHR deferredOperation,
+    VkPipelineCache pipelineCache, uint32_t createInfoCount,
+    const VkRayTracingPipelineCreateInfoKHR *pCreateInfos, const VkAllocationCallbacks *pAllocator,
+    VkPipeline *pPipelines)
+{
+  return true;
+}
+
+VkResult WrappedVulkan::vkCreateRayTracingPipelinesKHR(
+    VkDevice device, VkDeferredOperationKHR deferredOperation, VkPipelineCache pipelineCache,
+    uint32_t createInfoCount, const VkRayTracingPipelineCreateInfoKHR *pCreateInfos,
+    const VkAllocationCallbacks *pAllocator, VkPipeline *pPipelines)
+{
+  VkResult ret;
+  // deferred operations are currently not wrapped
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateRayTracingPipelinesKHR(
+                          Unwrap(device), deferredOperation, Unwrap(pipelineCache), createInfoCount,
+                          UnwrapInfos(m_State, pCreateInfos, createInfoCount), NULL, pPipelines));
+
+  return ret;
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreatePipelineLayout, VkDevice device,
                                 const VkPipelineLayoutCreateInfo *pCreateInfo,
                                 const VkAllocationCallbacks *, VkPipelineLayout *pPipelineLayout);
@@ -1158,3 +1201,9 @@ INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateComputePipelines, VkDevice dev
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateShadersEXT, VkDevice device,
                                 uint32_t createInfoCount, const VkShaderCreateInfoEXT *pCreateInfos,
                                 const VkAllocationCallbacks *, VkShaderEXT *pShaders);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateRayTracingPipelinesKHR, VkDevice device,
+                                VkDeferredOperationKHR deferredOperation,
+                                VkPipelineCache pipelineCache, uint32_t createInfoCount,
+                                const VkRayTracingPipelineCreateInfoKHR *pCreateInfos,
+                                const VkAllocationCallbacks *pAllocator, VkPipeline *pPipelines);

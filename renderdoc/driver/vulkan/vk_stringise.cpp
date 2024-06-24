@@ -28,7 +28,7 @@
 template <>
 rdcstr DoStringise(const VulkanChunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1209, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1213, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(VulkanChunk)
   {
@@ -241,6 +241,10 @@ rdcstr DoStringise(const VulkanChunk &el)
     STRINGISE_ENUM_CLASS(vkCreateAccelerationStructureKHR)
     STRINGISE_ENUM_CLASS(vkCmdBindShadersEXT)
     STRINGISE_ENUM_CLASS(vkCreateShadersEXT)
+    STRINGISE_ENUM_CLASS(vkCmdSetRayTracingPipelineStackSizeKHR)
+    STRINGISE_ENUM_CLASS(vkCmdTraceRaysIndirectKHR)
+    STRINGISE_ENUM_CLASS(vkCmdTraceRaysKHR)
+    STRINGISE_ENUM_CLASS(vkCreateRayTracingPipelinesKHR)
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()
@@ -3349,6 +3353,18 @@ rdcstr DoStringise(const VkProvokingVertexModeEXT &el)
   {
     STRINGISE_ENUM(VK_PROVOKING_VERTEX_MODE_FIRST_VERTEX_EXT)
     STRINGISE_ENUM(VK_PROVOKING_VERTEX_MODE_LAST_VERTEX_EXT)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+rdcstr DoStringise(const VkRayTracingShaderGroupTypeKHR &el)
+{
+  BEGIN_ENUM_STRINGISE(VkRayTracingShaderGroupTypeKHR);
+  {
+    STRINGISE_ENUM(VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR)
+    STRINGISE_ENUM(VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR)
+    STRINGISE_ENUM(VK_RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_KHR)
   }
   END_ENUM_STRINGISE();
 }

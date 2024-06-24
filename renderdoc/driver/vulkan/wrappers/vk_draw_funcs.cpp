@@ -5206,6 +5206,48 @@ void WrappedVulkan::vkCmdDrawMeshTasksIndirectCountEXT(VkCommandBuffer commandBu
   }
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdTraceRaysKHR(
+    SerialiserType &ser, VkCommandBuffer commandBuffer,
+    const VkStridedDeviceAddressRegionKHR *pRaygenShaderBindingTable,
+    const VkStridedDeviceAddressRegionKHR *pMissShaderBindingTable,
+    const VkStridedDeviceAddressRegionKHR *pHitShaderBindingTable,
+    const VkStridedDeviceAddressRegionKHR *pCallableShaderBindingTable, uint32_t width,
+    uint32_t height, uint32_t depth)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdTraceRaysKHR(
+    VkCommandBuffer commandBuffer, const VkStridedDeviceAddressRegionKHR *pRaygenShaderBindingTable,
+    const VkStridedDeviceAddressRegionKHR *pMissShaderBindingTable,
+    const VkStridedDeviceAddressRegionKHR *pHitShaderBindingTable,
+    const VkStridedDeviceAddressRegionKHR *pCallableShaderBindingTable, uint32_t width,
+    uint32_t height, uint32_t depth)
+{
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdTraceRaysIndirectKHR(
+    SerialiserType &ser, VkCommandBuffer commandBuffer,
+    const VkStridedDeviceAddressRegionKHR *pRaygenShaderBindingTable,
+    const VkStridedDeviceAddressRegionKHR *pMissShaderBindingTable,
+    const VkStridedDeviceAddressRegionKHR *pHitShaderBindingTable,
+    const VkStridedDeviceAddressRegionKHR *pCallableShaderBindingTable,
+    VkDeviceAddress indirectDeviceAddress)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdTraceRaysIndirectKHR(
+    VkCommandBuffer commandBuffer, const VkStridedDeviceAddressRegionKHR *pRaygenShaderBindingTable,
+    const VkStridedDeviceAddressRegionKHR *pMissShaderBindingTable,
+    const VkStridedDeviceAddressRegionKHR *pHitShaderBindingTable,
+    const VkStridedDeviceAddressRegionKHR *pCallableShaderBindingTable,
+    VkDeviceAddress indirectDeviceAddress)
+{
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDraw, VkCommandBuffer commandBuffer, uint32_t vertexCount,
                                 uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
 
@@ -5315,3 +5357,15 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDrawMeshTasksIndirectCountEXT,
                                 VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
                                 VkBuffer countBuffer, VkDeviceSize countBufferOffset,
                                 uint32_t maxDrawCount, uint32_t stride);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdTraceRaysKHR, VkCommandBuffer commandBuffer,
+                                const VkStridedDeviceAddressRegionKHR *pRaygenShaderBindingTable,
+                                const VkStridedDeviceAddressRegionKHR *pMissShaderBindingTable,
+                                const VkStridedDeviceAddressRegionKHR *pHitShaderBindingTable,
+                                const VkStridedDeviceAddressRegionKHR *pCallableShaderBindingTable,
+                                uint32_t width, uint32_t height, uint32_t depth);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdTraceRaysIndirectKHR, VkCommandBuffer commandBuffer,
+                                const VkStridedDeviceAddressRegionKHR *pRaygenShaderBindingTable,
+                                const VkStridedDeviceAddressRegionKHR *pMissShaderBindingTable,
+                                const VkStridedDeviceAddressRegionKHR *pHitShaderBindingTable,
+                                const VkStridedDeviceAddressRegionKHR *pCallableShaderBindingTable,
+                                VkDeviceAddress indirectDeviceAddress);

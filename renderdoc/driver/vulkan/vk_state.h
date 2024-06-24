@@ -116,6 +116,9 @@ struct VulkanRenderState
 
   rdcarray<VkRect2D> discardRectangles;
 
+  // raytracing stack size
+  uint32_t rtStackSize = 0;
+
   uint32_t stippleFactor = 0;
   uint16_t stipplePattern = 0;
 

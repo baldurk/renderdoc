@@ -2956,4 +2956,40 @@ public:
 
   VkResult vkGetShaderBinaryDataEXT(VkDevice device, VkShaderEXT shader, size_t *pDataSize,
                                     void *pData);
+
+  // VK_KHR_ray_tracing_pipeline
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdTraceRaysKHR, VkCommandBuffer commandBuffer,
+                                const VkStridedDeviceAddressRegionKHR *pRaygenShaderBindingTable,
+                                const VkStridedDeviceAddressRegionKHR *pMissShaderBindingTable,
+                                const VkStridedDeviceAddressRegionKHR *pHitShaderBindingTable,
+                                const VkStridedDeviceAddressRegionKHR *pCallableShaderBindingTable,
+                                uint32_t width, uint32_t height, uint32_t depth);
+
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateRayTracingPipelinesKHR, VkDevice device,
+                                VkDeferredOperationKHR deferredOperation,
+                                VkPipelineCache pipelineCache, uint32_t createInfoCount,
+                                const VkRayTracingPipelineCreateInfoKHR *pCreateInfos,
+                                const VkAllocationCallbacks *pAllocator, VkPipeline *pPipelines);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdTraceRaysIndirectKHR, VkCommandBuffer commandBuffer,
+                                const VkStridedDeviceAddressRegionKHR *pRaygenShaderBindingTable,
+                                const VkStridedDeviceAddressRegionKHR *pMissShaderBindingTable,
+                                const VkStridedDeviceAddressRegionKHR *pHitShaderBindingTable,
+                                const VkStridedDeviceAddressRegionKHR *pCallableShaderBindingTable,
+                                VkDeviceAddress indirectDeviceAddress);
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetRayTracingPipelineStackSizeKHR,
+                                VkCommandBuffer commandBuffer, uint32_t pipelineStackSize);
+
+  VkResult vkGetRayTracingShaderGroupHandlesKHR(VkDevice device, VkPipeline pipeline,
+                                                uint32_t firstGroup, uint32_t groupCount,
+                                                size_t dataSize, void *pData);
+
+  VkResult vkGetRayTracingCaptureReplayShaderGroupHandlesKHR(VkDevice device, VkPipeline pipeline,
+                                                             uint32_t firstGroup, uint32_t groupCount,
+                                                             size_t dataSize, void *pData);
+
+  VkDeviceSize vkGetRayTracingShaderGroupStackSizeKHR(VkDevice device, VkPipeline pipeline,
+                                                      uint32_t group,
+                                                      VkShaderGroupShaderKHR groupShader);
 };

@@ -1307,6 +1307,18 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR,                               \
                VkPhysicalDeviceRayQueryFeaturesKHR)                                                    \
                                                                                                        \
+  /* VK_KHR_ray_tracing_pipeline */                                                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR,                                 \
+               VkRayTracingPipelineCreateInfoKHR)                                                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_INTERFACE_CREATE_INFO_KHR,                       \
+               VkRayTracingPipelineInterfaceCreateInfoKHR)                                             \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,                             \
+               VkRayTracingShaderGroupCreateInfoKHR)                                                   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR,                    \
+               VkPhysicalDeviceRayTracingPipelineFeaturesKHR)                                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR,                  \
+               VkPhysicalDeviceRayTracingPipelinePropertiesKHR)                                        \
+                                                                                                       \
   /* VK_KHR_sampler_ycbcr_conversion */                                                                \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_CREATE_INFO,                                 \
                VkSamplerYcbcrConversionCreateInfo)                                                     \
@@ -1757,13 +1769,6 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_KHR_ray_tracing_maintenance1 */                                                                \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_MAINTENANCE_1_FEATURES_KHR)          \
-                                                                                                       \
-  /* VK_KHR_ray_tracing_pipeline */                                                                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR)                            \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_INTERFACE_CREATE_INFO_KHR)                  \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR)                        \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR)               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR)             \
                                                                                                        \
   /* VK_KHR_ray_tracing_position_fetch */                                                              \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_POSITION_FETCH_FEATURES_KHR)         \
@@ -12265,6 +12270,145 @@ void Deserialise(const VkPhysicalDeviceRayQueryFeaturesKHR &el)
   DeserialiseNext(el.pNext);
 }
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkRayTracingPipelineCreateInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_VKFLAGS(VkPipelineCreateFlags, flags);
+  SERIALISE_MEMBER(stageCount);
+  SERIALISE_MEMBER_ARRAY(pStages, stageCount);
+  SERIALISE_MEMBER(groupCount);
+  SERIALISE_MEMBER_ARRAY(pGroups, groupCount);
+  SERIALISE_MEMBER(maxPipelineRayRecursionDepth);
+  SERIALISE_MEMBER_OPT(pLibraryInfo);
+  SERIALISE_MEMBER_OPT(pLibraryInterface);
+  SERIALISE_MEMBER_OPT(pDynamicState);
+  SERIALISE_MEMBER(layout);
+
+  if(el.flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
+    SERIALISE_MEMBER(basePipelineHandle);
+  else
+    SERIALISE_MEMBER_EMPTY(basePipelineHandle);
+
+  SERIALISE_MEMBER(basePipelineIndex);
+}
+
+template <>
+void Deserialise(const VkRayTracingPipelineCreateInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pStages;
+  delete[] el.pGroups;
+  if(el.pLibraryInfo)
+  {
+    Deserialise(*el.pLibraryInfo);
+    delete el.pLibraryInfo;
+  }
+  if(el.pLibraryInterface)
+  {
+    Deserialise(*el.pLibraryInterface);
+    delete el.pLibraryInterface;
+  }
+  if(el.pDynamicState)
+  {
+    Deserialise(*el.pDynamicState);
+    delete el.pDynamicState;
+  }
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkRayTracingPipelineInterfaceCreateInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_INTERFACE_CREATE_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(maxPipelineRayPayloadSize);
+  SERIALISE_MEMBER(maxPipelineRayHitAttributeSize);
+}
+
+template <>
+void Deserialise(const VkRayTracingPipelineInterfaceCreateInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkRayTracingShaderGroupCreateInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(type);
+  SERIALISE_MEMBER(generalShader);
+  SERIALISE_MEMBER(closestHitShader);
+  SERIALISE_MEMBER(anyHitShader);
+  SERIALISE_MEMBER(intersectionShader);
+  // we will handle the serialisation of this externally in the function by grabbing all group handles as a batch
+  SERIALISE_MEMBER_ARRAY_EMPTY(pShaderGroupCaptureReplayHandle);
+}
+
+template <>
+void Deserialise(const VkRayTracingShaderGroupCreateInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pShaderGroupCaptureReplayHandle;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceRayTracingPipelineFeaturesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(rayTracingPipeline);
+  SERIALISE_MEMBER(rayTracingPipelineShaderGroupHandleCaptureReplay);
+  SERIALISE_MEMBER(rayTracingPipelineShaderGroupHandleCaptureReplayMixed);
+  SERIALISE_MEMBER(rayTracingPipelineTraceRaysIndirect);
+  SERIALISE_MEMBER(rayTraversalPrimitiveCulling);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceRayTracingPipelineFeaturesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceRayTracingPipelinePropertiesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(shaderGroupHandleSize);
+  SERIALISE_MEMBER(maxRayRecursionDepth);
+  SERIALISE_MEMBER(maxShaderGroupStride);
+  SERIALISE_MEMBER(shaderGroupBaseAlignment);
+  SERIALISE_MEMBER(shaderGroupHandleCaptureReplaySize);
+  SERIALISE_MEMBER(maxRayDispatchInvocationCount);
+  SERIALISE_MEMBER(shaderGroupHandleAlignment);
+  SERIALISE_MEMBER(maxRayHitAttributeSize);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceRayTracingPipelinePropertiesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkStridedDeviceAddressRegionKHR &el)
+{
+  SERIALISE_MEMBER(deviceAddress);
+  SERIALISE_MEMBER(stride);
+  SERIALISE_MEMBER(size);
+}
+
 // pNext structs - always have deserialise for the next chain
 INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureBuildGeometryInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureBuildSizesInfoKHR);
@@ -12522,14 +12666,16 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePresentWaitFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePrimitivesGeneratedQueryFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePrivateDataFeatures);
-INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceProvokingVertexFeaturesEXT);
-INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceProvokingVertexPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceProperties2);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceProtectedMemoryFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceProtectedMemoryProperties);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceProvokingVertexFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceProvokingVertexPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePushDescriptorPropertiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceRayQueryFeaturesKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceRayTracingPipelineFeaturesKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceRayTracingPipelinePropertiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceRGBA10X6FormatsFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceRobustness2FeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceRobustness2PropertiesEXT);
@@ -12632,6 +12778,9 @@ INSTANTIATE_SERIALISE_TYPE(VkQueryPoolCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkQueryPoolPerformanceCreateInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkQueueFamilyGlobalPriorityPropertiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkQueueFamilyProperties2);
+INSTANTIATE_SERIALISE_TYPE(VkRayTracingPipelineCreateInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkRayTracingPipelineInterfaceCreateInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkRayTracingShaderGroupCreateInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkRefreshCycleDurationGOOGLE);
 INSTANTIATE_SERIALISE_TYPE(VkReleaseSwapchainImagesInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkRenderingAttachmentInfo);
@@ -12775,6 +12924,7 @@ INSTANTIATE_SERIALISE_TYPE(VkSparseMemoryBind);
 INSTANTIATE_SERIALISE_TYPE(VkSpecializationInfo);
 INSTANTIATE_SERIALISE_TYPE(VkSpecializationMapEntry);
 INSTANTIATE_SERIALISE_TYPE(VkStencilOpState);
+INSTANTIATE_SERIALISE_TYPE(VkStridedDeviceAddressRegionKHR);
 INSTANTIATE_SERIALISE_TYPE(VkSubpassDependency);
 INSTANTIATE_SERIALISE_TYPE(VkSubpassDescription);
 INSTANTIATE_SERIALISE_TYPE(VkSurfaceCapabilitiesKHR);

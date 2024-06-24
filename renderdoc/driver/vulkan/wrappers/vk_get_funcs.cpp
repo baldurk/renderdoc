@@ -1268,3 +1268,26 @@ VkResult WrappedVulkan::vkGetShaderBinaryDataEXT(VkDevice device, VkShaderEXT sh
   // application should never provide an old binary.
   return VK_SUCCESS;
 }
+
+VkResult WrappedVulkan::vkGetRayTracingShaderGroupHandlesKHR(VkDevice device, VkPipeline pipeline,
+                                                             uint32_t firstGroup, uint32_t groupCount,
+                                                             size_t dataSize, void *pData)
+{
+  return ObjDisp(device)->GetRayTracingShaderGroupHandlesKHR(
+      Unwrap(device), Unwrap(pipeline), firstGroup, groupCount, dataSize, pData);
+}
+
+VkResult WrappedVulkan::vkGetRayTracingCaptureReplayShaderGroupHandlesKHR(
+    VkDevice device, VkPipeline pipeline, uint32_t firstGroup, uint32_t groupCount, size_t dataSize,
+    void *pData)
+{
+  return ObjDisp(device)->GetRayTracingCaptureReplayShaderGroupHandlesKHR(
+      Unwrap(device), Unwrap(pipeline), firstGroup, groupCount, dataSize, pData);
+}
+
+VkDeviceSize WrappedVulkan::vkGetRayTracingShaderGroupStackSizeKHR(
+    VkDevice device, VkPipeline pipeline, uint32_t group, VkShaderGroupShaderKHR groupShader)
+{
+  return ObjDisp(device)->GetRayTracingShaderGroupStackSizeKHR(Unwrap(device), Unwrap(pipeline),
+                                                               group, groupShader);
+}

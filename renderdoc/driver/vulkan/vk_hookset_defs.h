@@ -559,7 +559,8 @@
   DeclExt(KHR_acceleration_structure);                 \
   DeclExt(KHR_ray_query);                              \
   DeclExt(EXT_nested_command_buffer);                  \
-  DeclExt(EXT_shader_object);
+  DeclExt(EXT_shader_object);                          \
+  DeclExt(KHR_ray_tracing_pipeline);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -689,7 +690,8 @@
   CheckExt(KHR_deferred_host_operations, VKXX);               \
   CheckExt(KHR_acceleration_structure, VKXX);                 \
   CheckExt(KHR_ray_query, VKXX);                              \
-  CheckExt(EXT_shader_object, VKXX);
+  CheckExt(EXT_shader_object, VKXX);                          \
+  CheckExt(KHR_ray_tracing_pipeline, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
@@ -1048,6 +1050,13 @@
   HookInitExtension(EXT_shader_object, CreateShadersEXT);                                            \
   HookInitExtension(EXT_shader_object, DestroyShaderEXT);                                            \
   HookInitExtension(EXT_shader_object, GetShaderBinaryDataEXT);                                      \
+  HookInitExtension(KHR_ray_tracing_pipeline, CmdSetRayTracingPipelineStackSizeKHR);                 \
+  HookInitExtension(KHR_ray_tracing_pipeline, CmdTraceRaysIndirectKHR);                              \
+  HookInitExtension(KHR_ray_tracing_pipeline, CmdTraceRaysKHR);                                      \
+  HookInitExtension(KHR_ray_tracing_pipeline, CreateRayTracingPipelinesKHR);                         \
+  HookInitExtension(KHR_ray_tracing_pipeline, GetRayTracingCaptureReplayShaderGroupHandlesKHR);      \
+  HookInitExtension(KHR_ray_tracing_pipeline, GetRayTracingShaderGroupHandlesKHR);                   \
+  HookInitExtension(KHR_ray_tracing_pipeline, GetRayTracingShaderGroupStackSizeKHR);                 \
   HookInitExtension_Device_Win32();                                                                  \
   HookInitExtension_Device_Linux();                                                                  \
   HookInitExtension_Device_GGP();                                                                    \
@@ -1924,6 +1933,32 @@
               const VkAllocationCallbacks *, pAllocator);                                            \
   HookDefine4(VkResult, vkGetShaderBinaryDataEXT, VkDevice, device, VkShaderEXT, shader, size_t *,   \
               pDataSize, void *, pData);                                                             \
+  HookDefine8(void, vkCmdTraceRaysKHR, VkCommandBuffer, commandBuffer,                               \
+              const VkStridedDeviceAddressRegionKHR *, pRaygenShaderBindingTable,                    \
+              const VkStridedDeviceAddressRegionKHR *, pMissShaderBindingTable,                      \
+              const VkStridedDeviceAddressRegionKHR *, pHitShaderBindingTable,                       \
+              const VkStridedDeviceAddressRegionKHR *, pCallableShaderBindingTable, uint32_t,        \
+              width, uint32_t, height, uint32_t, depth);                                             \
+  HookDefine7(VkResult, vkCreateRayTracingPipelinesKHR, VkDevice, device, VkDeferredOperationKHR,    \
+              deferredOperation, VkPipelineCache, pipelineCache, uint32_t, createInfoCount,          \
+              const VkRayTracingPipelineCreateInfoKHR *, pCreateInfos,                               \
+              const VkAllocationCallbacks *, pAllocator, VkPipeline *, pPipelines);                  \
+  HookDefine6(VkResult, vkGetRayTracingCaptureReplayShaderGroupHandlesKHR, VkDevice, device,         \
+              VkPipeline, pipeline, uint32_t, firstGroup, uint32_t, groupCount, size_t, dataSize,    \
+              void *, pData);                                                                        \
+  HookDefine6(void, vkCmdTraceRaysIndirectKHR, VkCommandBuffer, commandBuffer,                       \
+              const VkStridedDeviceAddressRegionKHR *, pRaygenShaderBindingTable,                    \
+              const VkStridedDeviceAddressRegionKHR *, pMissShaderBindingTable,                      \
+              const VkStridedDeviceAddressRegionKHR *, pHitShaderBindingTable,                       \
+              const VkStridedDeviceAddressRegionKHR *, pCallableShaderBindingTable,                  \
+              VkDeviceAddress, indirectDeviceAddress);                                               \
+  HookDefine6(VkResult, vkGetRayTracingShaderGroupHandlesKHR, VkDevice, device, VkPipeline,          \
+              pipeline, uint32_t, firstGroup, uint32_t, groupCount, size_t, dataSize, void *,        \
+              pData);                                                                                \
+  HookDefine4(VkDeviceSize, vkGetRayTracingShaderGroupStackSizeKHR, VkDevice, device, VkPipeline,    \
+              pipeline, uint32_t, group, VkShaderGroupShaderKHR, groupShader);                       \
+  HookDefine2(void, vkCmdSetRayTracingPipelineStackSizeKHR, VkCommandBuffer, commandBuffer,          \
+              uint32_t, pipelineStackSize);                                                          \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
   HookDefine_GGP();                                                                                  \
