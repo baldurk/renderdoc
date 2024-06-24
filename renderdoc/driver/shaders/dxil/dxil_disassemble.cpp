@@ -3115,10 +3115,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 {
                   uint32_t index = 0;
                   if(getival<uint32_t>(inst.args[resIndexArgId], index))
-                  {
-                    if(index != resRef->resourceIndex)
-                      commentStr += " index = " + ToStr(index);
-                  }
+                    commentStr += " index = " + ToStr(index);
                 }
                 else
                 {
@@ -4778,91 +4775,111 @@ void Program::ParseReferences(const DXBC::Reflection *reflection)
                 }
                 else
                 {
+                  // bind is a structure
+                  // struct Bind
+                  // {
+                  //   int32_t rangeLowerBound;
+                  //   int32_t rangeUpperBound;
+                  //   int32_t spaceID;
+                  //   int8_t resourceClass;
+                  // };
                   resIndexArgId = 2;
                   nonUniformIndexArgId = 3;
-                  if(const Constant *props = cast<Constant>(inst.args[1]))
+                  if(const Constant *bind = cast<Constant>(inst.args[1]))
                   {
-                    if(props && !props->isNULL() && props->getMembers().size() >= 4)
+                    uint32_t lowerBound = ~0U;
+                    uint32_t upperBound = ~0U;
+                    uint32_t spaceID = ~0U;
+                    ResourceClass resClass = ResourceClass::Invalid;
+                    if(bind->isCompound())
                     {
-                      const rdcarray<Value *> &members = props->getMembers();
-                      uint32_t lowerBound;
-                      uint32_t upperBound;
-                      uint32_t spaceID;
-                      ResourceClass resClass;
-                      validBinding = getival<uint32_t>(members[0], lowerBound);
-                      validBinding &= getival<uint32_t>(members[1], upperBound);
-                      validBinding &= getival<uint32_t>(members[2], spaceID);
-                      validBinding &= getival<ResourceClass>(members[3], resClass);
-                      // Search through the resources to find the binding
-                      if(validBinding)
+                      if(bind->getMembers().size() >= 4)
                       {
-                        switch(resClass)
+                        const rdcarray<Value *> &members = bind->getMembers();
+                        validBinding = getival<uint32_t>(members[0], lowerBound);
+                        validBinding &= getival<uint32_t>(members[1], upperBound);
+                        validBinding &= getival<uint32_t>(members[2], spaceID);
+                        validBinding &= getival<ResourceClass>(members[3], resClass);
+                      }
+                    }
+                    else if(bind->isNULL())
+                    {
+                      lowerBound = 0;
+                      upperBound = 0;
+                      spaceID = 0;
+                      resClass = (ResourceClass)0;
+                      validBinding = true;
+                    }
+
+                    // Search through the resources to find the binding
+                    if(validBinding)
+                    {
+                      switch(resClass)
+                      {
+                        case ResourceClass::SRV:
                         {
-                          case ResourceClass::SRV:
+                          for(uint32_t r = 0; r < entryPoint->srvs.size(); ++r)
                           {
-                            for(uint32_t r = 0; r < entryPoint->srvs.size(); ++r)
+                            EntryPointInterface::ResourceBase *res = &entryPoint->srvs[r];
+                            if(res->MatchesBinding(lowerBound, upperBound, spaceID))
                             {
-                              EntryPointInterface::ResourceBase *res = &entryPoint->srvs[r];
-                              if(res->MatchesBinding(lowerBound, upperBound, spaceID))
-                              {
-                                resIndex = r;
-                                resourceBase = res;
-                                break;
-                              }
+                              resIndex = r;
+                              resourceBase = res;
+                              break;
                             }
-                            break;
                           }
-                          case ResourceClass::UAV:
-                          {
-                            for(uint32_t r = 0; r < entryPoint->uavs.size(); ++r)
-                            {
-                              EntryPointInterface::ResourceBase *res = &entryPoint->uavs[r];
-                              if(res->MatchesBinding(lowerBound, upperBound, spaceID))
-                              {
-                                resIndex = r;
-                                resourceBase = res;
-                                break;
-                              }
-                            }
-                            break;
-                          }
-                          case ResourceClass::CBuffer:
-                          {
-                            for(uint32_t r = 0; r < entryPoint->cbuffers.size(); ++r)
-                            {
-                              EntryPointInterface::ResourceBase *res = &entryPoint->cbuffers[r];
-                              if(res->MatchesBinding(lowerBound, upperBound, spaceID))
-                              {
-                                resIndex = r;
-                                resourceBase = res;
-                                break;
-                              }
-                            }
-                            break;
-                          }
-                          case ResourceClass::Sampler:
-                          {
-                            for(uint32_t r = 0; r < entryPoint->samplers.size(); ++r)
-                            {
-                              EntryPointInterface::ResourceBase *res = &entryPoint->samplers[r];
-                              if(res->MatchesBinding(lowerBound, upperBound, spaceID))
-                              {
-                                resIndex = r;
-                                resourceBase = res;
-                                break;
-                              }
-                            }
-                            break;
-                            default: break;
-                          }
+                          break;
                         }
-                        if(!resourceBase)
+                        case ResourceClass::UAV:
                         {
-                          resName = "ResourceClass:" + GetArgId(inst, 1);
-                          resName += "[" + GetArgId(inst, 2) + "]";
-                          resName += "[" + GetArgId(inst, resIndexArgId) + "]";
+                          for(uint32_t r = 0; r < entryPoint->uavs.size(); ++r)
+                          {
+                            EntryPointInterface::ResourceBase *res = &entryPoint->uavs[r];
+                            if(res->MatchesBinding(lowerBound, upperBound, spaceID))
+                            {
+                              resIndex = r;
+                              resourceBase = res;
+                              break;
+                            }
+                          }
+                          break;
+                        }
+                        case ResourceClass::CBuffer:
+                        {
+                          for(uint32_t r = 0; r < entryPoint->cbuffers.size(); ++r)
+                          {
+                            EntryPointInterface::ResourceBase *res = &entryPoint->cbuffers[r];
+                            if(res->MatchesBinding(lowerBound, upperBound, spaceID))
+                            {
+                              resIndex = r;
+                              resourceBase = res;
+                              break;
+                            }
+                          }
+                          break;
+                        }
+                        case ResourceClass::Sampler:
+                        {
+                          for(uint32_t r = 0; r < entryPoint->samplers.size(); ++r)
+                          {
+                            EntryPointInterface::ResourceBase *res = &entryPoint->samplers[r];
+                            if(res->MatchesBinding(lowerBound, upperBound, spaceID))
+                            {
+                              resIndex = r;
+                              resourceBase = res;
+                              break;
+                            }
+                          }
+                          break;
+                          default: break;
                         }
                       }
+                    }
+                    if(!resourceBase)
+                    {
+                      resName = "ResourceClass:" + GetArgId(inst, 1);
+                      resName += "[" + GetArgId(inst, 2) + "]";
+                      resName += "[" + GetArgId(inst, resIndexArgId) + "]";
                     }
                   }
                 }
