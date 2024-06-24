@@ -254,6 +254,8 @@ struct VulkanCreationInfo
               const VkGraphicsPipelineCreateInfo *pCreateInfo);
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, ResourceId id,
               const VkComputePipelineCreateInfo *pCreateInfo);
+    void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info, ResourceId id,
+              const VkRayTracingPipelineCreateInfoKHR *pCreateInfo);
 
     bool graphicsPipe = false;
 

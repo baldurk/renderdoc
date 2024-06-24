@@ -483,6 +483,8 @@ private:
   bool m_AccelerationStructures = false;
   bool m_ShaderObject = false;
 
+  uint32_t m_RTCaptureReplayHandleSize = 0;
+
   PFN_vkSetDeviceLoaderData m_SetDeviceLoaderData;
 
   InstanceDeviceInfo m_EnabledExtensions;

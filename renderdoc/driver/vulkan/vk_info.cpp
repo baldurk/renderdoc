@@ -1857,6 +1857,63 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
                                        setLayoutInfos);
 }
 
+void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
+                                        VulkanCreationInfo &info, ResourceId id,
+                                        const VkRayTracingPipelineCreateInfoKHR *pCreateInfo)
+{
+  flags = pCreateInfo->flags;
+
+  graphicsPipe = false;
+
+  compLayout = GetResID(pCreateInfo->layout);
+
+  descSetLayouts = info.m_PipelineLayout[compLayout].descSetLayouts;
+
+  topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+  primitiveRestartEnable = false;
+
+  patchControlPoints = 0;
+
+  tessellationDomainOrigin = VK_TESSELLATION_DOMAIN_ORIGIN_UPPER_LEFT;
+
+  viewportCount = 0;
+
+  // VkPipelineRasterStateCreateInfo
+  depthClampEnable = false;
+  rasterizerDiscardEnable = false;
+  polygonMode = VK_POLYGON_MODE_FILL;
+  cullMode = VK_CULL_MODE_NONE;
+  frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+
+  // VkPipelineRasterizationConservativeStateCreateInfoEXT
+  conservativeRasterizationMode = VK_CONSERVATIVE_RASTERIZATION_MODE_DISABLED_EXT;
+  extraPrimitiveOverestimationSize = 0.0f;
+
+  // VkPipelineMultisampleStateCreateInfo
+  rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+  sampleShadingEnable = false;
+  minSampleShading = 1.0f;
+  sampleMask = ~0U;
+
+  // VkPipelineDepthStencilStateCreateInfo
+  depthTestEnable = false;
+  depthWriteEnable = false;
+  depthCompareOp = VK_COMPARE_OP_ALWAYS;
+  depthBoundsEnable = false;
+  stencilTestEnable = false;
+  RDCEraseEl(front);
+  RDCEraseEl(back);
+
+  // VkPipelineColorBlendStateCreateInfo
+  alphaToCoverageEnable = false;
+  logicOpEnable = false;
+  logicOp = VK_LOGIC_OP_NO_OP;
+
+  rdcarray<const DescSetLayout *> setLayoutInfos;
+  for(ResourceId setLayout : descSetLayouts)
+    setLayoutInfos.push_back(&info.m_DescSetLayout[setLayout]);
+}
+
 void VulkanCreationInfo::PipelineLayout::Init(VulkanResourceManager *resourceMan,
                                               VulkanCreationInfo &info,
                                               const VkPipelineLayoutCreateInfo *pCreateInfo)
