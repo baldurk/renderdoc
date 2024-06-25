@@ -1190,6 +1190,8 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
           GetCmdRenderState().xfbcounters.clear();
           GetCmdRenderState().conditionalRendering.buffer = ResourceId();
 
+          m_PushCommandBuffer = m_LastCmdBufferID;
+
           rerecord = true;
         }
         else if(submit->beginEvent <= m_LastEventID)
