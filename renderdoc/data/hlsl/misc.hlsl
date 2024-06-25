@@ -139,6 +139,7 @@ cbuffer executepatchdata : register(b0)
   uint argCount;
   uint bufCount;
   uint argStride;
+  uint argpad;
   uint4 argOffsets[32];
 };
 

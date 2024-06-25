@@ -1095,6 +1095,7 @@ rdcpair<ID3D12Resource *, UINT64> D3D12DebugManager::PatchExecuteIndirect(
   argOffsets.insert(0, (uint32_t)argOffsets.size());
   argOffsets.insert(1, m_EIPatchBufferCount);
   argOffsets.insert(2, wrappedComSig->sig.ByteStride);
+  argOffsets.insert(3, 0);    // padding
   argOffsets.resize(128 + 3);
   // argOffsets is now the executepatchdata cbuffer
 
