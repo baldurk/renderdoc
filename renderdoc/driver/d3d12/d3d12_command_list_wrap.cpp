@@ -4142,6 +4142,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
         // when we have a callback, submit every action individually to the callback
         if(m_Cmd->m_ActionCallback)
         {
+          if(m_Cmd->m_FirstEventID <= 1)
+            count = RDCMIN(count, executesReplayed);
+          else
+            count = 1;
+
           D3D12MarkerRegion::Begin(
               list, StringFormat::Fmt("ExecuteIndirect callback replay (drawCount=%u)", count));
 
