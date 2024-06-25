@@ -95,6 +95,7 @@ public:
   D3D12Replay(WrappedID3D12Device *d);
 
   D3D12DevConfiguration *GetDevConfiguration() { return m_DevConfig; }
+  void SetDevConfiguration(D3D12DevConfiguration *config) { m_DevConfig = config; }
 
   D3D12DebugManager *GetDebugManager() { return m_DebugManager; }
   void SetRGP(AMDRGPControl *rgp) { m_RGP = rgp; }

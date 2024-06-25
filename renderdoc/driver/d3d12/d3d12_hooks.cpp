@@ -28,6 +28,8 @@
 #include "serialise/serialiser.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_device.h"
+#include "d3d12_replay.h"
+#include "d3d12_shader_cache.h"
 
 #include "driver/dx/official/D3D11On12On7.h"
 
@@ -396,12 +398,18 @@ public:
       }
     }
 
-    return CreateD3D12_Internal(
+    D3D12DevConfiguration devConfig;
+    devConfig.devfactory = this;
+    devConfig.devconfig = &config;
+
+    HRESULT ret = CreateD3D12_Internal(
         [this](IUnknown *pAdapter, D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid,
                void **ppDevice) {
           return m_pReal->CreateDevice(pAdapter, MinimumFeatureLevel, riid, ppDevice);
         },
-        adapter, FeatureLevel, riid, ppvDevice);
+        &devConfig, adapter, FeatureLevel, riid, ppvDevice);
+
+    return ret;
   }
 };
 
@@ -625,12 +633,13 @@ private:
     return true;
   }
 
-  friend HRESULT CreateD3D12_Internal(RealD3D12CreateFunction real, IUnknown *pAdapter,
-                                      D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid,
-                                      void **ppDevice);
+  friend HRESULT CreateD3D12_Internal(RealD3D12CreateFunction real, D3D12DevConfiguration *devConfig,
+                                      IUnknown *pAdapter, D3D_FEATURE_LEVEL MinimumFeatureLevel,
+                                      REFIID riid, void **ppDevice);
 
-  HRESULT Create_Internal(RealD3D12CreateFunction real, IUnknown *pAdapter,
-                          D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid, void **ppDevice)
+  HRESULT Create_Internal(RealD3D12CreateFunction real, D3D12DevConfiguration *devConfig,
+                          IUnknown *pAdapter, D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid,
+                          void **ppDevice)
   {
     // if we're already inside a wrapped create i.e. this function, then DON'T do anything
     // special. Just grab the trampolined function and call it.
@@ -739,6 +748,13 @@ private:
 
         WrappedID3D12Device *wrap = WrappedID3D12Device::Create(dev, params, EnableDebugLayer);
 
+        if(devConfig)
+        {
+          D3D12DevConfiguration *cfg = new D3D12DevConfiguration(*devConfig);
+          wrap->GetReplay()->SetDevConfiguration(cfg);
+          wrap->GetShaderCache()->SetDevConfiguration(cfg);
+        }
+
         RDCDEBUG("created wrapped device.");
 
         *ppDevice = (ID3D12Device *)wrap;
@@ -803,7 +819,8 @@ private:
       }
     }
 
-    return d3d12hooks.Create_Internal(createFunc, pAdapter, MinimumFeatureLevel, riid, ppDevice);
+    return d3d12hooks.Create_Internal(createFunc, NULL, pAdapter, MinimumFeatureLevel, riid,
+                                      ppDevice);
   }
 
   static HRESULT WINAPI D3D12EnableExperimentalFeatures_hook(UINT NumFeatures, const IID *pIIDs,
@@ -880,10 +897,12 @@ private:
 
 D3D12Hook D3D12Hook::d3d12hooks;
 
-HRESULT CreateD3D12_Internal(RealD3D12CreateFunction real, IUnknown *pAdapter,
-                             D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid, void **ppDevice)
+HRESULT CreateD3D12_Internal(RealD3D12CreateFunction real, D3D12DevConfiguration *devConfig,
+                             IUnknown *pAdapter, D3D_FEATURE_LEVEL MinimumFeatureLevel, REFIID riid,
+                             void **ppDevice)
 {
-  return D3D12Hook::d3d12hooks.Create_Internal(real, pAdapter, MinimumFeatureLevel, riid, ppDevice);
+  return D3D12Hook::d3d12hooks.Create_Internal(real, devConfig, pAdapter, MinimumFeatureLevel, riid,
+                                               ppDevice);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedID3D12DeviceFactory::GetConfigurationInterface(

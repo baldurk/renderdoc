@@ -4172,7 +4172,8 @@ void WrappedID3D12Device::CreateInternalResources()
 
   m_GPUSyncCounter = 0;
 
-  GetShaderCache()->SetDevConfiguration(m_Replay->GetDevConfiguration());
+  if(IsReplayMode(m_State))
+    GetShaderCache()->SetDevConfiguration(m_Replay->GetDevConfiguration());
 
   if(m_TextRenderer == NULL)
     m_TextRenderer = new D3D12TextRenderer(this);

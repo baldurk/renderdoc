@@ -325,7 +325,7 @@ private:
 
           return S_OK;
         },
-        creationParams->pAdapter, creationParams->FeatureLevel, __uuidof(ID3D12Device),
+        NULL, creationParams->pAdapter, creationParams->FeatureLevel, __uuidof(ID3D12Device),
         (void **)&dev);
     returnedParams->pDevice = dev;
 
