@@ -2802,10 +2802,19 @@ void CaptureContext::AddDockWindow(QWidget *newWindow, DockReference ref, QWidge
       BufferViewer *cb = BufferViewer::GetFirstCBufferView(buf);
       if(cb)
       {
-        manager->addToolWindow(newWindow, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
-                                                                           manager->areaOf(cb)));
+        if(manager->areaOf(buf) == NULL)
+          manager->addToolWindow(newWindow, ToolWindowManager::AreaReference(
+                                                ToolWindowManager::AddTo, manager->areaOf(cb)));
+        else
+          manager->moveToolWindow(newWindow, ToolWindowManager::AreaReference(
+                                                 ToolWindowManager::AddTo, manager->areaOf(cb)));
         return;
       }
+
+      // if we're re-adding the same cbuffer view again and it's the only one open, just leave it
+      // where it is without changing anything.
+      if(BufferViewer::GetFirstCBufferView(NULL) == buf && manager->areaOf(buf) != NULL)
+        return;
     }
 
     if(qobject_cast<PixelHistoryView *>(newWindow))
