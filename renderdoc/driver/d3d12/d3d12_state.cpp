@@ -80,12 +80,12 @@ void D3D12RenderState::ResolvePendingIndirectState(WrappedID3D12Device *device)
 
   {
     byte *data = mapPtr + indirectState.argsOffs;
-    mapPtr += comSig->sig.ByteStride;
 
     for(uint32_t argIdx = 0; argIdx < indirectState.argsToProcess; argIdx++)
     {
-      uint32_t a = argIdx % comSig->sig.arguments.size();
-      const D3D12_INDIRECT_ARGUMENT_DESC &arg = comSig->sig.arguments[a];
+      size_t execIdx = argIdx / comSig->sig.arguments.size();
+      uint32_t argWithinExecIdx = argIdx % comSig->sig.arguments.size();
+      const D3D12_INDIRECT_ARGUMENT_DESC &arg = comSig->sig.arguments[argWithinExecIdx];
 
       switch(arg.Type)
       {
@@ -93,7 +93,14 @@ void D3D12RenderState::ResolvePendingIndirectState(WrappedID3D12Device *device)
         case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED:
         case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH:
         case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH:
-        case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_RAYS: break;
+        case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_RAYS:
+        {
+          // we know this is the final argument in the signature. Set the data pointer to the start
+          // of the next execute with the proper stride. This may be unused if we are only
+          // processing one execute's worth of arguments
+          data = mapPtr + indirectState.argsOffs + comSig->sig.ByteStride * (execIdx + 1);
+          break;
+        }
         case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
         {
           size_t argSize = sizeof(uint32_t) * arg.Constant.Num32BitValuesToSet;
