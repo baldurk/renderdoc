@@ -1619,6 +1619,9 @@ void D3D12PipelineStateViewer::setState()
 
     for(const UsedDescriptor &used : descriptors)
     {
+      if(used.access.type == DescriptorType::Unknown || used.access.stage == ShaderStage::Count)
+        continue;
+
       const ShaderReflection *refl = shaderRefls[(uint32_t)used.access.stage];
 
       if(IsConstantBlockDescriptor(used.access.type))

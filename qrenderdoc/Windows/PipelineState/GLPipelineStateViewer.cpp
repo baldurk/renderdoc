@@ -1664,6 +1664,9 @@ void GLPipelineStateViewer::setState()
       DescriptorAccess stageAccesses[NumShaderStages];
       for(const DescriptorAccess &access : m_Ctx.CurPipelineState().GetDescriptorAccess())
       {
+        if(access.stage == ShaderStage::Count)
+          continue;
+
         if(access.byteOffset == i * state.descriptorByteSize)
         {
           if(stageAccesses[(uint32_t)access.stage].type == DescriptorType::Unknown ||
@@ -3085,6 +3088,9 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Shad
     {
       // filter only to accesses from this stage
       if(access.stage != sh.stage)
+        continue;
+
+      if(access.type == DescriptorType::Unknown)
         continue;
 
       const ShaderResource *shaderTex = NULL;

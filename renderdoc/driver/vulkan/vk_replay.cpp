@@ -2589,6 +2589,9 @@ rdcarray<DescriptorAccess> VulkanReplay::GetDescriptorAccess(uint32_t eventId)
   if(usage.valid)
     ret.append(usage.access);
 
+  // remove any invalid accesses
+  ret.removeIf([](const DescriptorAccess &access) { return access.descriptorStore == ResourceId(); });
+
   return ret;
 }
 
