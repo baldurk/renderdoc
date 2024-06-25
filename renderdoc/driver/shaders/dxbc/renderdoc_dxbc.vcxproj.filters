@@ -36,6 +36,7 @@
     <ClInclude Include="dxbc_bytecode.h" />
     <ClInclude Include="dxbc_bytecode_ops.h" />
     <ClInclude Include="dxbc_bytecode_editor.h" />
+    <ClInclude Include="dxbcdxil_debug.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="PCH">

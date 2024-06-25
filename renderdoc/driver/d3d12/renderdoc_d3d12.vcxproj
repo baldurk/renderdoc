@@ -172,6 +172,7 @@
     <ClInclude Include="d3d12_rendertext.h" />
     <ClInclude Include="d3d12_replay.h" />
     <ClInclude Include="d3d12_resources.h" />
+    <ClInclude Include="d3d12_shaderdebug.h" />
     <ClInclude Include="d3d12_shader_cache.h" />
     <ClInclude Include="d3d12_state.h" />
     <ClInclude Include="precompiled.h" />

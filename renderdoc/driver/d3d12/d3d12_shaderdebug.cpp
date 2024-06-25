@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "d3d12_shaderdebug.h"
 #include "driver/dx/official/d3dcompiler.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "driver/shaders/dxbc/dxbc_debug.h"
@@ -35,6 +36,8 @@
 #include "d3d12_shader_cache.h"
 
 #include "data/hlsl/hlsl_cbuffers.h"
+
+using namespace DXBCBytecode;
 
 struct DebugHit
 {
@@ -71,6 +74,489 @@ static bool IsShaderParameterVisible(DXBC::ShaderType shaderType,
   return false;
 }
 
+// Helpers used by DXBC and DXIL debuggers to interact with GPU and resources
+bool D3D12ShaderDebug::CalculateMathIntrinsic(bool dxil, WrappedID3D12Device *device, int mathOp,
+                                              const ShaderVariable &input, ShaderVariable &output1,
+                                              ShaderVariable &output2)
+{
+  D3D12MarkerRegion region(device->GetQueue()->GetReal(), "CalculateMathIntrinsic");
+
+  ID3D12Resource *pResultBuffer = device->GetDebugManager()->GetShaderDebugResultBuffer();
+  ID3D12Resource *pReadbackBuffer = device->GetDebugManager()->GetReadbackBuffer();
+
+  DebugMathOperation cbufferData = {};
+  memcpy(&cbufferData.mathInVal, input.value.f32v.data(), sizeof(Vec4f));
+  cbufferData.mathOp = mathOp;
+
+  // Set root signature & sig params on command list, then execute the shader
+  ID3D12GraphicsCommandListX *cmdList = device->GetDebugManager()->ResetDebugList();
+  device->GetDebugManager()->SetDescriptorHeaps(cmdList, true, false);
+  cmdList->SetPipelineState(dxil ? device->GetDebugManager()->GetDXILMathIntrinsicsPso()
+                                 : device->GetDebugManager()->GetMathIntrinsicsPso());
+  cmdList->SetComputeRootSignature(device->GetDebugManager()->GetShaderDebugRootSig());
+  cmdList->SetComputeRootConstantBufferView(
+      0, device->GetDebugManager()->UploadConstants(&cbufferData, sizeof(cbufferData)));
+  cmdList->SetComputeRootUnorderedAccessView(1, pResultBuffer->GetGPUVirtualAddress());
+  cmdList->Dispatch(1, 1, 1);
+
+  D3D12_RESOURCE_BARRIER barrier = {};
+  barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+  barrier.Transition.pResource = pResultBuffer;
+  barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+  barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+  cmdList->ResourceBarrier(1, &barrier);
+
+  cmdList->CopyBufferRegion(pReadbackBuffer, 0, pResultBuffer, 0, sizeof(Vec4f) * 6);
+
+  HRESULT hr = cmdList->Close();
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to close command list HRESULT: %s", ToStr(hr).c_str());
+    return false;
+  }
+
+  {
+    ID3D12CommandList *l = cmdList;
+    device->GetQueue()->ExecuteCommandLists(1, &l);
+    device->GPUSync();
+  }
+
+  D3D12_RANGE range = {0, sizeof(Vec4f) * 6};
+
+  byte *results = NULL;
+  hr = pReadbackBuffer->Map(0, &range, (void **)&results);
+
+  if(FAILED(hr))
+  {
+    pReadbackBuffer->Unmap(0, &range);
+    RDCERR("Failed to map readback buffer HRESULT: %s", ToStr(hr).c_str());
+    return false;
+  }
+
+  memcpy(output1.value.u32v.data(), results, sizeof(Vec4f));
+  memcpy(output2.value.u32v.data(), results + sizeof(Vec4f), sizeof(Vec4f));
+
+  range.End = 0;
+  pReadbackBuffer->Unmap(0, &range);
+
+  return true;
+}
+
+bool D3D12ShaderDebug::CalculateSampleGather(
+    bool dxil, WrappedID3D12Device *device, int sampleOp, SampleGatherResourceData resourceData,
+    SampleGatherSamplerData samplerData, const ShaderVariable &uvIn,
+    const ShaderVariable &ddxCalcIn, const ShaderVariable &ddyCalcIn, const int8_t texelOffsets[3],
+    int multisampleIndex, float lodOrCompareValue, const uint8_t swizzle[4],
+    GatherChannel gatherChannel, const DXBC::ShaderType shaderType, uint32_t instruction,
+    const char *opString, ShaderVariable &output)
+{
+  D3D12MarkerRegion region(device->GetQueue()->GetReal(), "CalculateSampleGather");
+
+  ShaderVariable uv(uvIn);
+  ShaderVariable ddxCalc(ddxCalcIn);
+  ShaderVariable ddyCalc(ddyCalcIn);
+
+  for(uint32_t i = 0; i < ddxCalc.columns; i++)
+  {
+    if(!RDCISFINITE(ddxCalc.value.f32v[i]))
+    {
+      RDCWARN("NaN or Inf in texlookup");
+      ddxCalc.value.f32v[i] = 0.0f;
+
+      device->AddDebugMessage(MessageCategory::Shaders, MessageSeverity::High,
+                              MessageSource::RuntimeWarning,
+                              StringFormat::Fmt("Shader debugging %d: %s\nNaN or Inf found in "
+                                                "texture lookup ddx - using 0.0 instead",
+                                                instruction, opString));
+    }
+    if(!RDCISFINITE(ddyCalc.value.f32v[i]))
+    {
+      RDCWARN("NaN or Inf in texlookup");
+      ddyCalc.value.f32v[i] = 0.0f;
+
+      device->AddDebugMessage(MessageCategory::Shaders, MessageSeverity::High,
+                              MessageSource::RuntimeWarning,
+                              StringFormat::Fmt("Shader debugging %d: %s\nNaN or Inf found in "
+                                                "texture lookup ddy - using 0.0 instead",
+                                                instruction, opString));
+    }
+  }
+
+  for(uint32_t i = 0; i < uv.columns; i++)
+  {
+    if(sampleOp != DEBUG_SAMPLE_TEX_LOAD && sampleOp != DEBUG_SAMPLE_TEX_LOAD_MS &&
+       (!RDCISFINITE(uv.value.f32v[i])))
+    {
+      RDCWARN("NaN or Inf in texlookup");
+      uv.value.f32v[i] = 0.0f;
+
+      device->AddDebugMessage(MessageCategory::Shaders, MessageSeverity::High,
+                              MessageSource::RuntimeWarning,
+                              StringFormat::Fmt("Shader debugging %d: %s\nNaN or Inf found in "
+                                                "texture lookup uv - using 0.0 instead",
+                                                instruction, opString));
+    }
+  }
+
+  // set array slice selection to 0 if the resource is declared non-arrayed
+
+  if(resourceData.dim == RESOURCE_DIMENSION_TEXTURE1D)
+    uv.value.f32v[1] = 0.0f;
+  else if(resourceData.dim == RESOURCE_DIMENSION_TEXTURE2D ||
+          resourceData.dim == RESOURCE_DIMENSION_TEXTURE2DMS ||
+          resourceData.dim == RESOURCE_DIMENSION_TEXTURECUBE)
+    uv.value.f32v[2] = 0.0f;
+
+  DebugSampleOperation cbufferData = {};
+
+  memcpy(&cbufferData.debugSampleUV, uv.value.u32v.data(), sizeof(Vec4f));
+  memcpy(&cbufferData.debugSampleDDX, ddxCalc.value.u32v.data(), sizeof(Vec4f));
+  memcpy(&cbufferData.debugSampleDDY, ddyCalc.value.u32v.data(), sizeof(Vec4f));
+  memcpy(&cbufferData.debugSampleUVInt, uv.value.u32v.data(), sizeof(Vec4f));
+
+  if(resourceData.dim == RESOURCE_DIMENSION_TEXTURE1D ||
+     resourceData.dim == RESOURCE_DIMENSION_TEXTURE1DARRAY)
+  {
+    cbufferData.debugSampleTexDim = DEBUG_SAMPLE_TEX1D;
+  }
+  else if(resourceData.dim == RESOURCE_DIMENSION_TEXTURE2D ||
+          resourceData.dim == RESOURCE_DIMENSION_TEXTURE2DARRAY)
+  {
+    cbufferData.debugSampleTexDim = DEBUG_SAMPLE_TEX2D;
+  }
+  else if(resourceData.dim == RESOURCE_DIMENSION_TEXTURE3D)
+  {
+    cbufferData.debugSampleTexDim = DEBUG_SAMPLE_TEX3D;
+  }
+  else if(resourceData.dim == RESOURCE_DIMENSION_TEXTURE2DMS ||
+          resourceData.dim == RESOURCE_DIMENSION_TEXTURE2DMSARRAY)
+  {
+    cbufferData.debugSampleTexDim = DEBUG_SAMPLE_TEXMS;
+  }
+  else if(resourceData.dim == RESOURCE_DIMENSION_TEXTURECUBE ||
+          resourceData.dim == RESOURCE_DIMENSION_TEXTURECUBEARRAY)
+  {
+    cbufferData.debugSampleTexDim = DEBUG_SAMPLE_TEXCUBE;
+  }
+  else
+  {
+    RDCERR("Unsupported resource type %d in sample operation", resourceData.dim);
+  }
+
+  int retTypes[DXBC::NUM_RETURN_TYPES] = {
+      0,                     // RETURN_TYPE_UNKNOWN
+      DEBUG_SAMPLE_UNORM,    // RETURN_TYPE_UNORM
+      DEBUG_SAMPLE_SNORM,    // RETURN_TYPE_UNORM
+      DEBUG_SAMPLE_INT,      // RETURN_TYPE_SINT
+      DEBUG_SAMPLE_UINT,     // RETURN_TYPE_UINT
+      DEBUG_SAMPLE_FLOAT,    // RETURN_TYPE_FLOAT
+      0,                     // RETURN_TYPE_MIXED
+      DEBUG_SAMPLE_FLOAT,    // RETURN_TYPE_DOUBLE (treat as floats)
+      0,                     // RETURN_TYPE_CONTINUED
+      0,                     // RETURN_TYPE_UNUSED
+  };
+
+  cbufferData.debugSampleRetType = retTypes[resourceData.retType];
+
+  cbufferData.debugSampleGatherChannel = (int)gatherChannel;
+  cbufferData.debugSampleSampleIndex = multisampleIndex;
+  cbufferData.debugSampleOperation = sampleOp;
+  cbufferData.debugSampleLodCompare = lodOrCompareValue;
+
+  D3D12RenderState &rs = device->GetQueue()->GetCommandData()->m_RenderState;
+  D3D12RenderState prevState = rs;
+
+  ID3D12RootSignature *sig = device->GetDebugManager()->GetShaderDebugRootSig();
+  ID3D12PipelineState *pso = dxil ? device->GetDebugManager()->GetDXILTexSamplePso(texelOffsets)
+                                  : device->GetDebugManager()->GetTexSamplePso(texelOffsets);
+
+  ID3D12GraphicsCommandListX *cmdList = device->GetDebugManager()->ResetDebugList();
+  rs.pipe = GetResID(pso);
+  rs.rts.clear();
+  // Set viewport/scissor unconditionally - we need to set this all the time for sampling for a
+  // compute shader, but also a graphics action might exclude pixel (0, 0) from its view or scissor
+  rs.views.clear();
+  rs.views.push_back({0, 0, 1, 1, 0, 1});
+  rs.scissors.clear();
+  rs.scissors.push_back({0, 0, 1, 1});
+
+  D3D12_CPU_DESCRIPTOR_HANDLE srv = device->GetDebugManager()->GetCPUHandle(FIRST_SHADDEBUG_SRV);
+  srv.ptr += ((cbufferData.debugSampleTexDim - 1) + 5 * (cbufferData.debugSampleRetType - 1)) *
+             sizeof(D3D12Descriptor);
+  {
+    D3D12Descriptor descriptor =
+        FindDescriptor(device, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, resourceData.binding, shaderType);
+
+    descriptor.Create(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, device, srv);
+  }
+
+  if(samplerData.mode != SamplerMode::NUM_SAMPLERS)
+  {
+    D3D12Descriptor descriptor =
+        FindDescriptor(device, D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, samplerData.binding, shaderType);
+
+    D3D12_CPU_DESCRIPTOR_HANDLE samp = device->GetDebugManager()->GetCPUHandle(SHADDEBUG_SAMPLER0);
+
+    if(sampleOp == DEBUG_SAMPLE_TEX_SAMPLE_CMP || sampleOp == DEBUG_SAMPLE_TEX_SAMPLE_CMP_LEVEL_ZERO ||
+       sampleOp == DEBUG_SAMPLE_TEX_GATHER4_CMP || sampleOp == DEBUG_SAMPLE_TEX_GATHER4_PO_CMP)
+      samp.ptr += sizeof(D3D12Descriptor);
+
+    descriptor.Create(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, device, samp);
+  }
+
+  device->GetDebugManager()->SetDescriptorHeaps(rs.heaps, true, true);
+
+  // Set our modified root signature, and transfer sigelems if we're debugging a compute shader
+  rs.graphics.rootsig = GetResID(sig);
+  rs.graphics.sigelems.clear();
+  rs.compute.rootsig = ResourceId();
+  rs.compute.sigelems.clear();
+
+  ID3D12Resource *pResultBuffer = device->GetDebugManager()->GetShaderDebugResultBuffer();
+  ID3D12Resource *pReadbackBuffer = device->GetDebugManager()->GetReadbackBuffer();
+
+  rs.graphics.sigelems = {
+      D3D12RenderState::SignatureElement(
+          eRootCBV, device->GetDebugManager()->UploadConstants(&cbufferData, sizeof(cbufferData))),
+      D3D12RenderState::SignatureElement(eRootUAV, pResultBuffer->GetGPUVirtualAddress()),
+      D3D12RenderState::SignatureElement(
+          eRootTable, device->GetDebugManager()->GetCPUHandle(FIRST_SHADDEBUG_SRV)),
+      D3D12RenderState::SignatureElement(
+          eRootTable, device->GetDebugManager()->GetCPUHandle(SHADDEBUG_SAMPLER0)),
+  };
+
+  rs.topo = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+  rs.ApplyState(device, cmdList);
+
+  D3D12_CPU_DESCRIPTOR_HANDLE rtv = device->GetDebugManager()->GetCPUHandle(PICK_PIXEL_RTV);
+  cmdList->OMSetRenderTargets(1, &rtv, FALSE, NULL);
+  cmdList->DrawInstanced(3, 1, 0, 0);
+
+  D3D12_RESOURCE_BARRIER barrier = {};
+  barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+  barrier.Transition.pResource = pResultBuffer;
+  barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+  barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+  cmdList->ResourceBarrier(1, &barrier);
+
+  cmdList->CopyBufferRegion(pReadbackBuffer, 0, pResultBuffer, 0, sizeof(Vec4f) * 6);
+
+  HRESULT hr = cmdList->Close();
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to close command list HRESULT: %s", ToStr(hr).c_str());
+    return false;
+  }
+
+  {
+    ID3D12CommandList *l = cmdList;
+    device->GetQueue()->ExecuteCommandLists(1, &l);
+    device->GPUSync();
+  }
+
+  rs = prevState;
+
+  D3D12_RANGE range = {0, sizeof(Vec4f) * 6};
+
+  void *results = NULL;
+  hr = pReadbackBuffer->Map(0, &range, &results);
+
+  if(FAILED(hr))
+  {
+    pReadbackBuffer->Unmap(0, &range);
+    RDCERR("Failed to map readback buffer HRESULT: %s", ToStr(hr).c_str());
+    return false;
+  }
+
+  ShaderVariable lookupResult("tex", 0.0f, 0.0f, 0.0f, 0.0f);
+
+  float *retFloats = (float *)results;
+  uint32_t *retUInts = (uint32_t *)(retFloats + 8);
+  int32_t *retSInts = (int32_t *)(retUInts + 8);
+
+  if(cbufferData.debugSampleRetType == DEBUG_SAMPLE_UINT)
+  {
+    for(int i = 0; i < 4; i++)
+      lookupResult.value.u32v[i] = retUInts[swizzle[i]];
+  }
+  else if(cbufferData.debugSampleRetType == DEBUG_SAMPLE_INT)
+  {
+    for(int i = 0; i < 4; i++)
+      lookupResult.value.s32v[i] = retSInts[swizzle[i]];
+  }
+  else
+  {
+    for(int i = 0; i < 4; i++)
+      lookupResult.value.f32v[i] = retFloats[swizzle[i]];
+  }
+
+  range.End = 0;
+  pReadbackBuffer->Unmap(0, &range);
+
+  output = lookupResult;
+
+  return true;
+}
+
+D3D12Descriptor D3D12ShaderDebug::FindDescriptor(WrappedID3D12Device *device,
+                                                 D3D12_DESCRIPTOR_RANGE_TYPE type,
+                                                 const BindingSlot &slot,
+                                                 const DXBC::ShaderType shaderType)
+{
+  D3D12Descriptor descriptor;
+
+  const D3D12RenderState &rs = device->GetQueue()->GetCommandData()->m_RenderState;
+  D3D12ResourceManager *rm = device->GetResourceManager();
+
+  // Get the root signature
+  const D3D12RenderState::RootSignature *pRootSignature = NULL;
+  if(shaderType == DXBC::ShaderType::Compute)
+  {
+    if(rs.compute.rootsig != ResourceId())
+    {
+      pRootSignature = &rs.compute;
+    }
+  }
+  else if(rs.graphics.rootsig != ResourceId())
+  {
+    pRootSignature = &rs.graphics;
+  }
+
+  if(pRootSignature)
+  {
+    WrappedID3D12RootSignature *pD3D12RootSig =
+        rm->GetCurrentAs<WrappedID3D12RootSignature>(pRootSignature->rootsig);
+
+    D3D12_DESCRIPTOR_RANGE_TYPE searchRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+
+    if(type == DXBCBytecode::TYPE_SAMPLER)
+      searchRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+    else if(type == DXBCBytecode::TYPE_RESOURCE)
+      searchRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+    else if(type == DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW)
+      searchRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+    else if(type == DXBCBytecode::TYPE_CONSTANT_BUFFER)
+      searchRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+
+    if(searchRangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
+    {
+      for(const D3D12_STATIC_SAMPLER_DESC1 &samp : pD3D12RootSig->sig.StaticSamplers)
+      {
+        if(samp.RegisterSpace == slot.registerSpace && samp.ShaderRegister == slot.shaderRegister)
+        {
+          D3D12_SAMPLER_DESC2 desc = ConvertStaticSampler(samp);
+          descriptor.Init(&desc);
+          return descriptor;
+        }
+      }
+    }
+
+    size_t numParams = RDCMIN(pD3D12RootSig->sig.Parameters.size(), pRootSignature->sigelems.size());
+    for(size_t i = 0; i < numParams; ++i)
+    {
+      const D3D12RootSignatureParameter &param = pD3D12RootSig->sig.Parameters[i];
+      const D3D12RenderState::SignatureElement &element = pRootSignature->sigelems[i];
+      if(IsShaderParameterVisible(shaderType, param.ShaderVisibility))
+      {
+        if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV && element.type == eRootSRV &&
+           type == DXBCBytecode::TYPE_RESOURCE)
+        {
+          if(param.Descriptor.ShaderRegister == slot.shaderRegister &&
+             param.Descriptor.RegisterSpace == slot.registerSpace)
+          {
+            ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(element.id);
+
+            D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+            srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+            srvDesc.Buffer.FirstElement = 0;
+            // we don't know the real length or structure stride from a root descriptor, so set
+            // defaults. This behaviour seems undefined in drivers, so returning 1 as the number of
+            // elements is as sensible as anything else
+            srvDesc.Buffer.NumElements = 1;
+            srvDesc.Buffer.StructureByteStride = 4;
+            srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+            descriptor.Init(pResource, &srvDesc);
+            return descriptor;
+          }
+        }
+        else if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV && element.type == eRootUAV &&
+                type == DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW)
+        {
+          if(param.Descriptor.ShaderRegister == slot.shaderRegister &&
+             param.Descriptor.RegisterSpace == slot.registerSpace)
+          {
+            ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(element.id);
+
+            D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+            uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+            uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+            uavDesc.Buffer.FirstElement = 0;
+            // we don't know the real length or structure stride from a root descriptor, so set
+            // defaults. This behaviour seems undefined in drivers, so returning 1 as the number of
+            // elements is as sensible as anything else
+            uavDesc.Buffer.NumElements = 1;
+            uavDesc.Buffer.StructureByteStride = 4;
+            uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+            descriptor.Init(pResource, NULL, &uavDesc);
+            return descriptor;
+          }
+        }
+        else if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE &&
+                element.type == eRootTable)
+        {
+          UINT prevTableOffset = 0;
+          WrappedID3D12DescriptorHeap *heap =
+              rm->GetCurrentAs<WrappedID3D12DescriptorHeap>(element.id);
+
+          size_t numRanges = param.ranges.size();
+          for(size_t r = 0; r < numRanges; ++r)
+          {
+            const D3D12_DESCRIPTOR_RANGE1 &range = param.ranges[r];
+
+            // For every range, check the number of descriptors so that we are accessing the
+            // correct data for append descriptor tables, even if the range type doesn't match
+            // what we need to fetch
+            UINT offset = range.OffsetInDescriptorsFromTableStart;
+            if(range.OffsetInDescriptorsFromTableStart == D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND)
+              offset = prevTableOffset;
+
+            UINT numDescriptors = range.NumDescriptors;
+            if(numDescriptors == UINT_MAX)
+            {
+              // Find out how many descriptors are left after
+              numDescriptors = heap->GetNumDescriptors() - offset - (UINT)element.offset;
+
+              // TODO: Should we look up the bind point in the D3D12 state to try to get
+              // a better guess at the number of descriptors?
+            }
+
+            prevTableOffset = offset + numDescriptors;
+
+            if(range.RangeType != searchRangeType)
+              continue;
+
+            D3D12Descriptor *desc = (D3D12Descriptor *)heap->GetCPUDescriptorHandleForHeapStart().ptr;
+            desc += element.offset;
+            desc += offset;
+
+            // Check if the slot we want is contained
+            if(slot.shaderRegister >= range.BaseShaderRegister &&
+               slot.shaderRegister < range.BaseShaderRegister + numDescriptors &&
+               range.RegisterSpace == slot.registerSpace)
+            {
+              desc += slot.shaderRegister - range.BaseShaderRegister;
+              return *desc;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return descriptor;
+}
+
 class D3D12DebugAPIWrapper : public DXBCDebug::DebugAPIWrapper
 {
 public:
@@ -98,13 +584,13 @@ public:
                                  uint32_t mipLevel, int &dim);
 
   bool CalculateSampleGather(DXBCBytecode::OpcodeType opcode,
-                             DXBCDebug::SampleGatherResourceData resourceData,
-                             DXBCDebug::SampleGatherSamplerData samplerData, ShaderVariable uv,
-                             ShaderVariable ddxCalc, ShaderVariable ddyCalc,
-                             const int8_t texelOffsets[3], int multisampleIndex,
-                             float lodOrCompareValue, const uint8_t swizzle[4],
-                             DXBCDebug::GatherChannel gatherChannel, const char *opString,
-                             ShaderVariable &output);
+                             DXBCDXILDebug::SampleGatherResourceData resourceData,
+                             DXBCDXILDebug::SampleGatherSamplerData samplerData,
+                             const ShaderVariable &uv, const ShaderVariable &ddxCalc,
+                             const ShaderVariable &ddyCalc, const int8_t texelOffsets[3],
+                             int multisampleIndex, float lodOrCompareValue,
+                             const uint8_t swizzle[4], DXBCDXILDebug::GatherChannel gatherChannel,
+                             const char *opString, ShaderVariable &output);
 
 private:
   DXBC::ShaderType GetShaderType() { return m_dxbc ? m_dxbc->m_Type : DXBC::ShaderType::Pixel; }
@@ -493,244 +979,41 @@ bool D3D12DebugAPIWrapper::CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcod
                                                   const ShaderVariable &input,
                                                   ShaderVariable &output1, ShaderVariable &output2)
 {
-  D3D12MarkerRegion region(m_pDevice->GetQueue()->GetReal(), "CalculateMathIntrinsic");
-
-  RDCCOMPILE_ASSERT((int)DXBCBytecode::OPCODE_RCP == DEBUG_SAMPLE_MATH_RCP,
-                    "Opcode enum doesn't match shader define");
-  RDCCOMPILE_ASSERT((int)DXBCBytecode::OPCODE_RSQ == DEBUG_SAMPLE_MATH_RSQ,
-                    "Opcode enum doesn't match shader define");
-  RDCCOMPILE_ASSERT((int)DXBCBytecode::OPCODE_EXP == DEBUG_SAMPLE_MATH_EXP,
-                    "Opcode enum doesn't match shader define");
-  RDCCOMPILE_ASSERT((int)DXBCBytecode::OPCODE_LOG == DEBUG_SAMPLE_MATH_LOG,
-                    "Opcode enum doesn't match shader define");
-  RDCCOMPILE_ASSERT((int)DXBCBytecode::OPCODE_SINCOS == DEBUG_SAMPLE_MATH_SINCOS,
-                    "Opcode enum doesn't match shader define");
-
-  if(opcode != DXBCBytecode::OPCODE_RCP && opcode != DXBCBytecode::OPCODE_RSQ &&
-     opcode != DXBCBytecode::OPCODE_EXP && opcode != DXBCBytecode::OPCODE_LOG &&
-     opcode != DXBCBytecode::OPCODE_SINCOS)
+  int mathOp;
+  switch(opcode)
   {
-    // To support a new instruction, the shader created in
-    // D3D12DebugManager::CreateShaderDebugResources will need updated
-    RDCERR("Unsupported instruction for CalculateMathIntrinsic: %u", opcode);
-    return false;
+    case DXBCBytecode::OPCODE_RCP: mathOp = DEBUG_SAMPLE_MATH_DXBC_RCP; break;
+    case DXBCBytecode::OPCODE_RSQ: mathOp = DEBUG_SAMPLE_MATH_DXBC_RSQ; break;
+    case DXBCBytecode::OPCODE_EXP: mathOp = DEBUG_SAMPLE_MATH_DXBC_EXP; break;
+    case DXBCBytecode::OPCODE_LOG: mathOp = DEBUG_SAMPLE_MATH_DXBC_LOG; break;
+    case DXBCBytecode::OPCODE_SINCOS: mathOp = DEBUG_SAMPLE_MATH_DXBC_SINCOS; break;
+    default:
+      // To support a new instruction, the shader created in
+      // D3D12DebugManager::CreateShaderDebugResources will need updating
+      RDCERR("Unsupported instruction for CalculateMathIntrinsic: %u", opcode);
+      return false;
   }
 
-  ID3D12Resource *pResultBuffer = m_pDevice->GetDebugManager()->GetShaderDebugResultBuffer();
-  ID3D12Resource *pReadbackBuffer = m_pDevice->GetDebugManager()->GetReadbackBuffer();
-
-  DebugMathOperation cbufferData = {};
-  memcpy(&cbufferData.mathInVal, input.value.f32v.data(), sizeof(Vec4f));
-  cbufferData.mathOp = (int)opcode;
-
-  // Set root signature & sig params on command list, then execute the shader
-  ID3D12GraphicsCommandListX *cmdList = m_pDevice->GetDebugManager()->ResetDebugList();
-  m_pDevice->GetDebugManager()->SetDescriptorHeaps(cmdList, true, false);
-  cmdList->SetPipelineState(m_pDevice->GetDebugManager()->GetMathIntrinsicsPso());
-  cmdList->SetComputeRootSignature(m_pDevice->GetDebugManager()->GetShaderDebugRootSig());
-  cmdList->SetComputeRootConstantBufferView(
-      0, m_pDevice->GetDebugManager()->UploadConstants(&cbufferData, sizeof(cbufferData)));
-  cmdList->SetComputeRootUnorderedAccessView(1, pResultBuffer->GetGPUVirtualAddress());
-  cmdList->Dispatch(1, 1, 1);
-
-  D3D12_RESOURCE_BARRIER barrier = {};
-  barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-  barrier.Transition.pResource = pResultBuffer;
-  barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-  barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
-  cmdList->ResourceBarrier(1, &barrier);
-
-  cmdList->CopyBufferRegion(pReadbackBuffer, 0, pResultBuffer, 0, sizeof(Vec4f) * 6);
-
-  HRESULT hr = cmdList->Close();
-  if(FAILED(hr))
-  {
-    RDCERR("Failed to close command list HRESULT: %s", ToStr(hr).c_str());
-    return false;
-  }
-
-  {
-    ID3D12CommandList *l = cmdList;
-    m_pDevice->GetQueue()->ExecuteCommandLists(1, &l);
-    m_pDevice->GPUSync();
-  }
-
-  D3D12_RANGE range = {0, sizeof(Vec4f) * 6};
-
-  byte *results = NULL;
-  hr = pReadbackBuffer->Map(0, &range, (void **)&results);
-
-  if(FAILED(hr))
-  {
-    pReadbackBuffer->Unmap(0, &range);
-    RDCERR("Failed to map readback buffer HRESULT: %s", ToStr(hr).c_str());
-    return false;
-  }
-
-  memcpy(output1.value.u32v.data(), results, sizeof(Vec4f));
-  memcpy(output2.value.u32v.data(), results + sizeof(Vec4f), sizeof(Vec4f));
-
-  range.End = 0;
-  pReadbackBuffer->Unmap(0, &range);
-
-  return true;
+  return D3D12ShaderDebug::CalculateMathIntrinsic(false, m_pDevice, mathOp, input, output1, output2);
 }
 
 D3D12Descriptor D3D12DebugAPIWrapper::FindDescriptor(DXBCBytecode::OperandType type,
                                                      const DXBCDebug::BindingSlot &slot)
 {
-  D3D12Descriptor descriptor;
+  D3D12_DESCRIPTOR_RANGE_TYPE descType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 
-  const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
-  D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
-
-  // Get the root signature
-  const D3D12RenderState::RootSignature *pRootSignature = NULL;
-  if(GetShaderType() == DXBC::ShaderType::Compute)
+  switch(type)
   {
-    if(rs.compute.rootsig != ResourceId())
-    {
-      pRootSignature = &rs.compute;
-    }
-  }
-  else if(rs.graphics.rootsig != ResourceId())
-  {
-    pRootSignature = &rs.graphics;
-  }
+    case DXBCBytecode::TYPE_SAMPLER: descType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER; break;
+    case DXBCBytecode::TYPE_RESOURCE: descType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; break;
+    case DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW:
+      descType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+      break;
+    case DXBCBytecode::TYPE_CONSTANT_BUFFER: descType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV; break;
+    default: RDCERR("Unknown descriptor type %s", ToStr(type).c_str());
+  };
 
-  if(pRootSignature)
-  {
-    WrappedID3D12RootSignature *pD3D12RootSig =
-        rm->GetCurrentAs<WrappedID3D12RootSignature>(pRootSignature->rootsig);
-
-    D3D12_DESCRIPTOR_RANGE_TYPE searchRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-
-    if(type == DXBCBytecode::TYPE_SAMPLER)
-      searchRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-    else if(type == DXBCBytecode::TYPE_RESOURCE)
-      searchRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-    else if(type == DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW)
-      searchRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-    else if(type == DXBCBytecode::TYPE_CONSTANT_BUFFER)
-      searchRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-
-    if(searchRangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
-    {
-      for(const D3D12_STATIC_SAMPLER_DESC1 &samp : pD3D12RootSig->sig.StaticSamplers)
-      {
-        if(samp.RegisterSpace == slot.registerSpace && samp.ShaderRegister == slot.shaderRegister)
-        {
-          D3D12_SAMPLER_DESC2 desc = ConvertStaticSampler(samp);
-          descriptor.Init(&desc);
-          return descriptor;
-        }
-      }
-    }
-
-    size_t numParams = RDCMIN(pD3D12RootSig->sig.Parameters.size(), pRootSignature->sigelems.size());
-    for(size_t i = 0; i < numParams; ++i)
-    {
-      const D3D12RootSignatureParameter &param = pD3D12RootSig->sig.Parameters[i];
-      const D3D12RenderState::SignatureElement &element = pRootSignature->sigelems[i];
-      if(IsShaderParameterVisible(GetShaderType(), param.ShaderVisibility))
-      {
-        if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV && element.type == eRootSRV &&
-           type == DXBCBytecode::TYPE_RESOURCE)
-        {
-          if(param.Descriptor.ShaderRegister == slot.shaderRegister &&
-             param.Descriptor.RegisterSpace == slot.registerSpace)
-          {
-            ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(element.id);
-
-            D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-            srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-            srvDesc.Buffer.FirstElement = 0;
-            // we don't know the real length or structure stride from a root descriptor, so set
-            // defaults. This behaviour seems undefined in drivers, so returning 1 as the number of
-            // elements is as sensible as anything else
-            srvDesc.Buffer.NumElements = 1;
-            srvDesc.Buffer.StructureByteStride = 4;
-            srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-            descriptor.Init(pResource, &srvDesc);
-            return descriptor;
-          }
-        }
-        else if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV && element.type == eRootUAV &&
-                type == DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW)
-        {
-          if(param.Descriptor.ShaderRegister == slot.shaderRegister &&
-             param.Descriptor.RegisterSpace == slot.registerSpace)
-          {
-            ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(element.id);
-
-            D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-            uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
-            uavDesc.Format = DXGI_FORMAT_UNKNOWN;
-            uavDesc.Buffer.FirstElement = 0;
-            // we don't know the real length or structure stride from a root descriptor, so set
-            // defaults. This behaviour seems undefined in drivers, so returning 1 as the number of
-            // elements is as sensible as anything else
-            uavDesc.Buffer.NumElements = 1;
-            uavDesc.Buffer.StructureByteStride = 4;
-            uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
-            descriptor.Init(pResource, NULL, &uavDesc);
-            return descriptor;
-          }
-        }
-        else if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE &&
-                element.type == eRootTable)
-        {
-          UINT prevTableOffset = 0;
-          WrappedID3D12DescriptorHeap *heap =
-              rm->GetCurrentAs<WrappedID3D12DescriptorHeap>(element.id);
-
-          size_t numRanges = param.ranges.size();
-          for(size_t r = 0; r < numRanges; ++r)
-          {
-            const D3D12_DESCRIPTOR_RANGE1 &range = param.ranges[r];
-
-            // For every range, check the number of descriptors so that we are accessing the
-            // correct data for append descriptor tables, even if the range type doesn't match
-            // what we need to fetch
-            UINT offset = range.OffsetInDescriptorsFromTableStart;
-            if(range.OffsetInDescriptorsFromTableStart == D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND)
-              offset = prevTableOffset;
-
-            UINT numDescriptors = range.NumDescriptors;
-            if(numDescriptors == UINT_MAX)
-            {
-              // Find out how many descriptors are left after
-              numDescriptors = heap->GetNumDescriptors() - offset - (UINT)element.offset;
-
-              // TODO: Should we look up the bind point in the D3D12 state to try to get
-              // a better guess at the number of descriptors?
-            }
-
-            prevTableOffset = offset + numDescriptors;
-
-            if(range.RangeType != searchRangeType)
-              continue;
-
-            D3D12Descriptor *desc = (D3D12Descriptor *)heap->GetCPUDescriptorHandleForHeapStart().ptr;
-            desc += element.offset;
-            desc += offset;
-
-            // Check if the slot we want is contained
-            if(slot.shaderRegister >= range.BaseShaderRegister &&
-               slot.shaderRegister < range.BaseShaderRegister + numDescriptors &&
-               range.RegisterSpace == slot.registerSpace)
-            {
-              desc += slot.shaderRegister - range.BaseShaderRegister;
-              return *desc;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  return descriptor;
+  return D3D12ShaderDebug::FindDescriptor(m_pDevice, descType, slot, GetShaderType());
 }
 
 ShaderVariable D3D12DebugAPIWrapper::GetSampleInfo(DXBCBytecode::OperandType type,
@@ -1104,279 +1387,41 @@ ShaderVariable D3D12DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
 }
 
 bool D3D12DebugAPIWrapper::CalculateSampleGather(
-    DXBCBytecode::OpcodeType opcode, DXBCDebug::SampleGatherResourceData resourceData,
-    DXBCDebug::SampleGatherSamplerData samplerData, ShaderVariable uv, ShaderVariable ddxCalc,
-    ShaderVariable ddyCalc, const int8_t texelOffsets[3], int multisampleIndex,
-    float lodOrCompareValue, const uint8_t swizzle[4], DXBCDebug::GatherChannel gatherChannel,
-    const char *opString, ShaderVariable &output)
+    DXBCBytecode::OpcodeType opcode, DXBCDXILDebug::SampleGatherResourceData resourceData,
+    DXBCDXILDebug::SampleGatherSamplerData samplerData, const ShaderVariable &uv,
+    const ShaderVariable &ddxCalc, const ShaderVariable &ddyCalc, const int8_t texelOffsets[3],
+    int multisampleIndex, float lodOrCompareValue, const uint8_t swizzle[4],
+    DXBCDXILDebug::GatherChannel gatherChannel, const char *opString, ShaderVariable &output)
 {
   using namespace DXBCBytecode;
 
-  RDCCOMPILE_ASSERT((int)DXBCBytecode::OPCODE_SAMPLE == DEBUG_SAMPLE_TEX_SAMPLE,
-                    "Opcode enum doesn't match shader define");
-  RDCCOMPILE_ASSERT((int)DXBCBytecode::OPCODE_SAMPLE_L == DEBUG_SAMPLE_TEX_SAMPLE_L,
-                    "Opcode enum doesn't match shader define");
-  RDCCOMPILE_ASSERT((int)DXBCBytecode::OPCODE_SAMPLE_B == DEBUG_SAMPLE_TEX_SAMPLE_B,
-                    "Opcode enum doesn't match shader define");
-  RDCCOMPILE_ASSERT((int)DXBCBytecode::OPCODE_SAMPLE_C == DEBUG_SAMPLE_TEX_SAMPLE_C,
-                    "Opcode enum doesn't match shader define");
-  RDCCOMPILE_ASSERT((int)DXBCBytecode::OPCODE_SAMPLE_D == DEBUG_SAMPLE_TEX_SAMPLE_D,
-                    "Opcode enum doesn't match shader define");
-  RDCCOMPILE_ASSERT((int)DXBCBytecode::OPCODE_SAMPLE_C_LZ == DEBUG_SAMPLE_TEX_SAMPLE_C_LZ,
-                    "Opcode enum doesn't match shader define");
-  RDCCOMPILE_ASSERT((int)DXBCBytecode::OPCODE_GATHER4 == DEBUG_SAMPLE_TEX_GATHER4,
-                    "Opcode enum doesn't match shader define");
-  RDCCOMPILE_ASSERT((int)DXBCBytecode::OPCODE_GATHER4_C == DEBUG_SAMPLE_TEX_GATHER4_C,
-                    "Opcode enum doesn't match shader define");
-  RDCCOMPILE_ASSERT((int)DXBCBytecode::OPCODE_GATHER4_PO == DEBUG_SAMPLE_TEX_GATHER4_PO,
-                    "Opcode enum doesn't match shader define");
-  RDCCOMPILE_ASSERT((int)DXBCBytecode::OPCODE_GATHER4_PO_C == DEBUG_SAMPLE_TEX_GATHER4_PO_C,
-                    "Opcode enum doesn't match shader define");
-  RDCCOMPILE_ASSERT((int)DXBCBytecode::OPCODE_LOD == DEBUG_SAMPLE_TEX_LOD,
-                    "Opcode enum doesn't match shader define");
-  RDCCOMPILE_ASSERT((int)DXBCBytecode::OPCODE_LD == DEBUG_SAMPLE_TEX_LD,
-                    "Opcode enum doesn't match shader define");
-  RDCCOMPILE_ASSERT((int)DXBCBytecode::OPCODE_LD_MS == DEBUG_SAMPLE_TEX_LD_MS,
-                    "Opcode enum doesn't match shader define");
-
-  D3D12MarkerRegion region(m_pDevice->GetQueue()->GetReal(), "CalculateSampleGather");
-
-  for(uint32_t i = 0; i < ddxCalc.columns; i++)
+  int sampleOp;
+  switch(opcode)
   {
-    if(!RDCISFINITE(ddxCalc.value.f32v[i]))
-    {
-      RDCWARN("NaN or Inf in texlookup");
-      ddxCalc.value.f32v[i] = 0.0f;
-
-      m_pDevice->AddDebugMessage(MessageCategory::Shaders, MessageSeverity::High,
-                                 MessageSource::RuntimeWarning,
-                                 StringFormat::Fmt("Shader debugging %d: %s\nNaN or Inf found in "
-                                                   "texture lookup ddx - using 0.0 instead",
-                                                   m_instruction, opString));
-    }
-    if(!RDCISFINITE(ddyCalc.value.f32v[i]))
-    {
-      RDCWARN("NaN or Inf in texlookup");
-      ddyCalc.value.f32v[i] = 0.0f;
-
-      m_pDevice->AddDebugMessage(MessageCategory::Shaders, MessageSeverity::High,
-                                 MessageSource::RuntimeWarning,
-                                 StringFormat::Fmt("Shader debugging %d: %s\nNaN or Inf found in "
-                                                   "texture lookup ddy - using 0.0 instead",
-                                                   m_instruction, opString));
-    }
+    case OPCODE_SAMPLE: sampleOp = DEBUG_SAMPLE_TEX_SAMPLE; break;
+    case OPCODE_SAMPLE_L: sampleOp = DEBUG_SAMPLE_TEX_SAMPLE_LEVEL; break;
+    case OPCODE_SAMPLE_B: sampleOp = DEBUG_SAMPLE_TEX_SAMPLE_BIAS; break;
+    case OPCODE_SAMPLE_C: sampleOp = DEBUG_SAMPLE_TEX_SAMPLE_CMP; break;
+    case OPCODE_SAMPLE_D: sampleOp = DEBUG_SAMPLE_TEX_SAMPLE_GRAD; break;
+    case OPCODE_SAMPLE_C_LZ: sampleOp = DEBUG_SAMPLE_TEX_SAMPLE_CMP_LEVEL_ZERO; break;
+    case OPCODE_GATHER4: sampleOp = DEBUG_SAMPLE_TEX_GATHER4; break;
+    case OPCODE_GATHER4_C: sampleOp = DEBUG_SAMPLE_TEX_GATHER4_CMP; break;
+    case OPCODE_GATHER4_PO: sampleOp = DEBUG_SAMPLE_TEX_GATHER4_PO; break;
+    case OPCODE_GATHER4_PO_C: sampleOp = DEBUG_SAMPLE_TEX_GATHER4_PO_CMP; break;
+    case OPCODE_LOD: sampleOp = DEBUG_SAMPLE_TEX_LOD; break;
+    case OPCODE_LD: sampleOp = DEBUG_SAMPLE_TEX_LOAD; break;
+    case OPCODE_LD_MS: sampleOp = DEBUG_SAMPLE_TEX_LOAD_MS; break;
+    default:
+      // To support a new instruction, the shader created in
+      // D3D12DebugManager::CreateShaderDebugResources will need updating
+      RDCERR("Unsupported instruction for CalculateSampleGather: %u", opcode);
+      return false;
   }
 
-  for(uint32_t i = 0; i < uv.columns; i++)
-  {
-    if(opcode != OPCODE_LD && opcode != OPCODE_LD_MS && (!RDCISFINITE(uv.value.f32v[i])))
-    {
-      RDCWARN("NaN or Inf in texlookup");
-      uv.value.f32v[i] = 0.0f;
-
-      m_pDevice->AddDebugMessage(MessageCategory::Shaders, MessageSeverity::High,
-                                 MessageSource::RuntimeWarning,
-                                 StringFormat::Fmt("Shader debugging %d: %s\nNaN or Inf found in "
-                                                   "texture lookup uv - using 0.0 instead",
-                                                   m_instruction, opString));
-    }
-  }
-
-  // set array slice selection to 0 if the resource is declared non-arrayed
-
-  if(resourceData.dim == RESOURCE_DIMENSION_TEXTURE1D)
-    uv.value.f32v[1] = 0.0f;
-  else if(resourceData.dim == RESOURCE_DIMENSION_TEXTURE2D ||
-          resourceData.dim == RESOURCE_DIMENSION_TEXTURE2DMS ||
-          resourceData.dim == RESOURCE_DIMENSION_TEXTURECUBE)
-    uv.value.f32v[2] = 0.0f;
-
-  DebugSampleOperation cbufferData = {};
-
-  memcpy(&cbufferData.debugSampleUV, uv.value.u32v.data(), sizeof(Vec4f));
-  memcpy(&cbufferData.debugSampleDDX, ddxCalc.value.u32v.data(), sizeof(Vec4f));
-  memcpy(&cbufferData.debugSampleDDY, ddyCalc.value.u32v.data(), sizeof(Vec4f));
-  memcpy(&cbufferData.debugSampleUVInt, uv.value.u32v.data(), sizeof(Vec4f));
-
-  if(resourceData.dim == RESOURCE_DIMENSION_TEXTURE1D ||
-     resourceData.dim == RESOURCE_DIMENSION_TEXTURE1DARRAY)
-  {
-    cbufferData.debugSampleTexDim = DEBUG_SAMPLE_TEX1D;
-  }
-  else if(resourceData.dim == RESOURCE_DIMENSION_TEXTURE2D ||
-          resourceData.dim == RESOURCE_DIMENSION_TEXTURE2DARRAY)
-  {
-    cbufferData.debugSampleTexDim = DEBUG_SAMPLE_TEX2D;
-  }
-  else if(resourceData.dim == RESOURCE_DIMENSION_TEXTURE3D)
-  {
-    cbufferData.debugSampleTexDim = DEBUG_SAMPLE_TEX3D;
-  }
-  else if(resourceData.dim == RESOURCE_DIMENSION_TEXTURE2DMS ||
-          resourceData.dim == RESOURCE_DIMENSION_TEXTURE2DMSARRAY)
-  {
-    cbufferData.debugSampleTexDim = DEBUG_SAMPLE_TEXMS;
-  }
-  else if(resourceData.dim == RESOURCE_DIMENSION_TEXTURECUBE ||
-          resourceData.dim == RESOURCE_DIMENSION_TEXTURECUBEARRAY)
-  {
-    cbufferData.debugSampleTexDim = DEBUG_SAMPLE_TEXCUBE;
-  }
-  else
-  {
-    RDCERR("Unsupported resource type %d in sample operation", resourceData.dim);
-  }
-
-  int retTypes[DXBC::NUM_RETURN_TYPES] = {
-      0,                     // RETURN_TYPE_UNKNOWN
-      DEBUG_SAMPLE_UNORM,    // RETURN_TYPE_UNORM
-      DEBUG_SAMPLE_SNORM,    // RETURN_TYPE_UNORM
-      DEBUG_SAMPLE_INT,      // RETURN_TYPE_SINT
-      DEBUG_SAMPLE_UINT,     // RETURN_TYPE_UINT
-      DEBUG_SAMPLE_FLOAT,    // RETURN_TYPE_FLOAT
-      0,                     // RETURN_TYPE_MIXED
-      DEBUG_SAMPLE_FLOAT,    // RETURN_TYPE_DOUBLE (treat as floats)
-      0,                     // RETURN_TYPE_CONTINUED
-      0,                     // RETURN_TYPE_UNUSED
-  };
-
-  cbufferData.debugSampleRetType = retTypes[resourceData.retType];
-
-  cbufferData.debugSampleGatherChannel = (int)gatherChannel;
-  cbufferData.debugSampleSampleIndex = multisampleIndex;
-  cbufferData.debugSampleOperation = (int)opcode;
-  cbufferData.debugSampleLodCompare = lodOrCompareValue;
-
-  D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
-  D3D12RenderState prevState = rs;
-
-  ID3D12RootSignature *sig = m_pDevice->GetDebugManager()->GetShaderDebugRootSig();
-  ID3D12PipelineState *pso = m_pDevice->GetDebugManager()->GetTexSamplePso(texelOffsets);
-
-  ID3D12GraphicsCommandListX *cmdList = m_pDevice->GetDebugManager()->ResetDebugList();
-  rs.pipe = GetResID(pso);
-  rs.rts.clear();
-  // Set viewport/scissor unconditionally - we need to set this all the time for sampling for a
-  // compute shader, but also a graphics action might exclude pixel (0, 0) from its view or scissor
-  rs.views.clear();
-  rs.views.push_back({0, 0, 1, 1, 0, 1});
-  rs.scissors.clear();
-  rs.scissors.push_back({0, 0, 1, 1});
-
-  D3D12_CPU_DESCRIPTOR_HANDLE srv = m_pDevice->GetDebugManager()->GetCPUHandle(FIRST_SHADDEBUG_SRV);
-  srv.ptr += ((cbufferData.debugSampleTexDim - 1) + 5 * (cbufferData.debugSampleRetType - 1)) *
-             sizeof(D3D12Descriptor);
-  {
-    D3D12Descriptor descriptor = FindDescriptor(DXBCBytecode::TYPE_RESOURCE, resourceData.binding);
-
-    descriptor.Create(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, m_pDevice, srv);
-  }
-
-  if(samplerData.mode != NUM_SAMPLERS)
-  {
-    D3D12Descriptor descriptor = FindDescriptor(DXBCBytecode::TYPE_SAMPLER, samplerData.binding);
-
-    D3D12_CPU_DESCRIPTOR_HANDLE samp = m_pDevice->GetDebugManager()->GetCPUHandle(SHADDEBUG_SAMPLER0);
-
-    if(opcode == OPCODE_SAMPLE_C || opcode == OPCODE_SAMPLE_C_LZ || opcode == OPCODE_GATHER4_C ||
-       opcode == OPCODE_GATHER4_PO_C)
-      samp.ptr += sizeof(D3D12Descriptor);
-
-    descriptor.Create(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, m_pDevice, samp);
-  }
-
-  m_pDevice->GetDebugManager()->SetDescriptorHeaps(rs.heaps, true, true);
-
-  // Set our modified root signature, and transfer sigelems if we're debugging a compute shader
-  rs.graphics.rootsig = GetResID(sig);
-  rs.graphics.sigelems.clear();
-  rs.compute.rootsig = ResourceId();
-  rs.compute.sigelems.clear();
-
-  ID3D12Resource *pResultBuffer = m_pDevice->GetDebugManager()->GetShaderDebugResultBuffer();
-  ID3D12Resource *pReadbackBuffer = m_pDevice->GetDebugManager()->GetReadbackBuffer();
-
-  rs.graphics.sigelems = {
-      D3D12RenderState::SignatureElement(eRootCBV, m_pDevice->GetDebugManager()->UploadConstants(
-                                                       &cbufferData, sizeof(cbufferData))),
-      D3D12RenderState::SignatureElement(eRootUAV, pResultBuffer->GetGPUVirtualAddress()),
-      D3D12RenderState::SignatureElement(
-          eRootTable, m_pDevice->GetDebugManager()->GetCPUHandle(FIRST_SHADDEBUG_SRV)),
-      D3D12RenderState::SignatureElement(
-          eRootTable, m_pDevice->GetDebugManager()->GetCPUHandle(SHADDEBUG_SAMPLER0)),
-  };
-
-  rs.topo = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-  rs.ApplyState(m_pDevice, cmdList);
-
-  D3D12_CPU_DESCRIPTOR_HANDLE rtv = m_pDevice->GetDebugManager()->GetCPUHandle(PICK_PIXEL_RTV);
-  cmdList->OMSetRenderTargets(1, &rtv, FALSE, NULL);
-  cmdList->DrawInstanced(3, 1, 0, 0);
-
-  D3D12_RESOURCE_BARRIER barrier = {};
-  barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-  barrier.Transition.pResource = pResultBuffer;
-  barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-  barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
-  cmdList->ResourceBarrier(1, &barrier);
-
-  cmdList->CopyBufferRegion(pReadbackBuffer, 0, pResultBuffer, 0, sizeof(Vec4f) * 6);
-
-  HRESULT hr = cmdList->Close();
-  if(FAILED(hr))
-  {
-    RDCERR("Failed to close command list HRESULT: %s", ToStr(hr).c_str());
-    return false;
-  }
-
-  {
-    ID3D12CommandList *l = cmdList;
-    m_pDevice->GetQueue()->ExecuteCommandLists(1, &l);
-    m_pDevice->GPUSync();
-  }
-
-  rs = prevState;
-
-  D3D12_RANGE range = {0, sizeof(Vec4f) * 6};
-
-  void *results = NULL;
-  hr = pReadbackBuffer->Map(0, &range, &results);
-
-  if(FAILED(hr))
-  {
-    pReadbackBuffer->Unmap(0, &range);
-    RDCERR("Failed to map readback buffer HRESULT: %s", ToStr(hr).c_str());
-    return false;
-  }
-
-  ShaderVariable lookupResult("tex", 0.0f, 0.0f, 0.0f, 0.0f);
-
-  float *retFloats = (float *)results;
-  uint32_t *retUInts = (uint32_t *)(retFloats + 8);
-  int32_t *retSInts = (int32_t *)(retUInts + 8);
-
-  if(cbufferData.debugSampleRetType == DEBUG_SAMPLE_UINT)
-  {
-    for(int i = 0; i < 4; i++)
-      lookupResult.value.u32v[i] = retUInts[swizzle[i]];
-  }
-  else if(cbufferData.debugSampleRetType == DEBUG_SAMPLE_INT)
-  {
-    for(int i = 0; i < 4; i++)
-      lookupResult.value.s32v[i] = retSInts[swizzle[i]];
-  }
-  else
-  {
-    for(int i = 0; i < 4; i++)
-      lookupResult.value.f32v[i] = retFloats[swizzle[i]];
-  }
-
-  range.End = 0;
-  pReadbackBuffer->Unmap(0, &range);
-
-  output = lookupResult;
-
-  return true;
+  return D3D12ShaderDebug::CalculateSampleGather(
+      false, m_pDevice, sampleOp, resourceData, samplerData, uv, ddxCalc, ddyCalc, texelOffsets,
+      multisampleIndex, lodOrCompareValue, swizzle, gatherChannel, GetShaderType(), m_instruction,
+      opString, output);
 }
 
 void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Program &program,

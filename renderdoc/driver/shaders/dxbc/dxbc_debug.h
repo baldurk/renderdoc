@@ -27,6 +27,7 @@
 
 #include "common/common.h"
 #include "dxbc_bytecode.h"
+#include "dxbcdxil_debug.h"
 
 namespace DXBC
 {
@@ -47,22 +48,12 @@ enum DXGI_FORMAT;
 
 namespace DXBCDebug
 {
-struct BindingSlot
-{
-  BindingSlot() : shaderRegister(UINT32_MAX), registerSpace(UINT32_MAX) {}
-  BindingSlot(uint32_t shaderReg, uint32_t regSpace)
-      : shaderRegister(shaderReg), registerSpace(regSpace)
-  {
-  }
-  bool operator<(const BindingSlot &o) const
-  {
-    if(registerSpace != o.registerSpace)
-      return registerSpace < o.registerSpace;
-    return shaderRegister < o.shaderRegister;
-  }
-  uint32_t shaderRegister;
-  uint32_t registerSpace;
-};
+using namespace DXBCDXILDebug;
+
+typedef DXBCDXILDebug::SampleGatherResourceData SampleGatherResourceData;
+typedef DXBCDXILDebug::SampleGatherSamplerData SampleGatherSamplerData;
+typedef DXBCDXILDebug::BindingSlot BindingSlot;
+typedef DXBCDXILDebug::GatherChannel GatherChannel;
 
 BindingSlot GetBindingSlotForDeclaration(const DXBCBytecode::Program &program,
                                          const DXBCBytecode::Declaration &decl);
@@ -213,29 +204,6 @@ void GatherPSInputDataForInitialValues(const DXBC::DXBCContainer *dxbc,
                                        rdcarray<rdcstr> &floatInputs, rdcarray<rdcstr> &inputVarNames,
                                        rdcstr &psInputDefinition, int &structureStride);
 
-struct SampleGatherResourceData
-{
-  DXBCBytecode::ResourceDimension dim;
-  DXBC::ResourceRetType retType;
-  int sampleCount;
-  BindingSlot binding;
-};
-
-struct SampleGatherSamplerData
-{
-  DXBCBytecode::SamplerMode mode;
-  float bias;
-  BindingSlot binding;
-};
-
-enum class GatherChannel : uint8_t
-{
-  Red = 0,
-  Green = 1,
-  Blue = 2,
-  Alpha = 3,
-};
-
 class DebugAPIWrapper
 {
 public:
@@ -261,12 +229,12 @@ public:
 
   virtual bool CalculateSampleGather(DXBCBytecode::OpcodeType opcode,
                                      SampleGatherResourceData resourceData,
-                                     SampleGatherSamplerData samplerData, ShaderVariable uv,
-                                     ShaderVariable ddxCalc, ShaderVariable ddyCalc,
-                                     const int8_t texelOffsets[3], int multisampleIndex,
-                                     float lodOrCompareValue, const uint8_t swizzle[4],
-                                     GatherChannel gatherChannel, const char *opString,
-                                     ShaderVariable &output) = 0;
+                                     SampleGatherSamplerData samplerData,
+                                     const ShaderVariable &uvIn, const ShaderVariable &ddxCalcIn,
+                                     const ShaderVariable &ddyCalcIn, const int8_t texelOffsets[3],
+                                     int multisampleIndex, float lodOrCompareValue,
+                                     const uint8_t swizzle[4], GatherChannel gatherChannel,
+                                     const char *opString, ShaderVariable &output) = 0;
 };
 
 class ThreadState

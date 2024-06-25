@@ -3903,8 +3903,8 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       if(op.operation != OPCODE_LOD && state)
         state->flags |= ShaderEvents::SampleLoadGather;
 
-      SamplerMode samplerMode = NUM_SAMPLERS;
-      ResourceDimension resourceDim = RESOURCE_DIMENSION_UNKNOWN;
+      DXBCBytecode::SamplerMode samplerMode = NUM_SAMPLERS;
+      DXBCBytecode::ResourceDimension resourceDim = RESOURCE_DIMENSION_UNKNOWN;
       DXBC::ResourceRetType resourceRetType = DXBC::RETURN_TYPE_UNKNOWN;
       int sampleCount = 0;
 

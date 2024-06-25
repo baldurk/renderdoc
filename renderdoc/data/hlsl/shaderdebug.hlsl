@@ -36,11 +36,26 @@ RWStructuredBuffer<OutStruct> outBuf : register(u1);
 [numthreads(1, 1, 1)] void RENDERDOC_DebugMathOp() {
   switch(mathOp)
   {
-    case DEBUG_SAMPLE_MATH_RCP: outBuf[0].outf[0] = rcp(mathInVal); break;
-    case DEBUG_SAMPLE_MATH_RSQ: outBuf[0].outf[0] = rsqrt(mathInVal); break;
-    case DEBUG_SAMPLE_MATH_EXP: outBuf[0].outf[0] = exp2(mathInVal); break;
-    case DEBUG_SAMPLE_MATH_LOG: outBuf[0].outf[0] = log2(mathInVal); break;
-    case DEBUG_SAMPLE_MATH_SINCOS: sincos(mathInVal, outBuf[0].outf[0], outBuf[0].outf[1]); break;
+    case DEBUG_SAMPLE_MATH_DXBC_RCP: outBuf[0].outf[0] = rcp(mathInVal); break;
+    case DEBUG_SAMPLE_MATH_DXBC_RSQ: outBuf[0].outf[0] = rsqrt(mathInVal); break;
+    case DEBUG_SAMPLE_MATH_DXBC_EXP: outBuf[0].outf[0] = exp2(mathInVal); break;
+    case DEBUG_SAMPLE_MATH_DXBC_LOG: outBuf[0].outf[0] = log2(mathInVal); break;
+    case DEBUG_SAMPLE_MATH_DXBC_SINCOS:
+      sincos(mathInVal, outBuf[0].outf[0], outBuf[0].outf[1]);
+      break;
+    case DEBUG_SAMPLE_MATH_DXIL_COS: outBuf[0].outf[0] = cos(mathInVal); break;
+    case DEBUG_SAMPLE_MATH_DXIL_SIN: outBuf[0].outf[0] = sin(mathInVal); break;
+    case DEBUG_SAMPLE_MATH_DXIL_TAN: outBuf[0].outf[0] = tan(mathInVal); break;
+    case DEBUG_SAMPLE_MATH_DXIL_ACOS: outBuf[0].outf[0] = acos(mathInVal); break;
+    case DEBUG_SAMPLE_MATH_DXIL_ASIN: outBuf[0].outf[0] = asin(mathInVal); break;
+    case DEBUG_SAMPLE_MATH_DXIL_ATAN: outBuf[0].outf[0] = atan(mathInVal); break;
+    case DEBUG_SAMPLE_MATH_DXIL_HCOS: outBuf[0].outf[0] = cosh(mathInVal); break;
+    case DEBUG_SAMPLE_MATH_DXIL_HSIN: outBuf[0].outf[0] = sinh(mathInVal); break;
+    case DEBUG_SAMPLE_MATH_DXIL_HTAN: outBuf[0].outf[0] = tanh(mathInVal); break;
+    case DEBUG_SAMPLE_MATH_DXIL_EXP: outBuf[0].outf[0] = exp(mathInVal); break;
+    case DEBUG_SAMPLE_MATH_DXIL_LOG: outBuf[0].outf[0] = log(mathInVal); break;
+    case DEBUG_SAMPLE_MATH_DXIL_SQRT: outBuf[0].outf[0] = sqrt(mathInVal); break;
+    case DEBUG_SAMPLE_MATH_DXIL_RSQRT: outBuf[0].outf[0] = rsqrt(mathInVal); break;
     default: break;
   }
 }
@@ -112,8 +127,8 @@ float4 DoFloatOpcode(float4 uv)
   float lod = debugSampleLodCompare;
   float compare = debugSampleLodCompare;
 
-  if(opcode == DEBUG_SAMPLE_TEX_SAMPLE || opcode == DEBUG_SAMPLE_TEX_SAMPLE_B ||
-     opcode == DEBUG_SAMPLE_TEX_SAMPLE_D)
+  if(opcode == DEBUG_SAMPLE_TEX_SAMPLE || opcode == DEBUG_SAMPLE_TEX_SAMPLE_BIAS ||
+     opcode == DEBUG_SAMPLE_TEX_SAMPLE_GRAD)
   {
     switch(debugSampleTexDim)
     {
@@ -160,7 +175,7 @@ float4 DoFloatOpcode(float4 uv)
       }
     }
   }
-  else if(opcode == DEBUG_SAMPLE_TEX_SAMPLE_L)
+  else if(opcode == DEBUG_SAMPLE_TEX_SAMPLE_LEVEL)
   {
     switch(debugSampleTexDim)
     {
@@ -203,7 +218,7 @@ float4 DoFloatOpcode(float4 uv)
       }
     }
   }
-  else if(opcode == DEBUG_SAMPLE_TEX_LD || opcode == DEBUG_SAMPLE_TEX_LD_MS)
+  else if(opcode == DEBUG_SAMPLE_TEX_LOAD || opcode == DEBUG_SAMPLE_TEX_LOAD_MS)
   {
     switch(debugSampleTexDim)
     {
@@ -248,7 +263,7 @@ float4 DoFloatOpcode(float4 uv)
       }
     }
   }
-  else if(opcode == DEBUG_SAMPLE_TEX_SAMPLE_C)
+  else if(opcode == DEBUG_SAMPLE_TEX_SAMPLE_CMP)
   {
     switch(debugSampleTexDim)
     {
@@ -282,7 +297,7 @@ float4 DoFloatOpcode(float4 uv)
       }
     }
   }
-  else if(opcode == DEBUG_SAMPLE_TEX_SAMPLE_C_LZ)
+  else if(opcode == DEBUG_SAMPLE_TEX_SAMPLE_CMP_LEVEL_ZERO)
   {
     switch(debugSampleTexDim)
     {
@@ -514,7 +529,7 @@ float4 DoFloatOpcode(float4 uv)
       }
     }
   }
-  else if(opcode == DEBUG_SAMPLE_TEX_GATHER4_C || opcode == DEBUG_SAMPLE_TEX_GATHER4_PO_C)
+  else if(opcode == DEBUG_SAMPLE_TEX_GATHER4_CMP || opcode == DEBUG_SAMPLE_TEX_GATHER4_PO_CMP)
   {
     if(debugSampleGatherChannel == 0)
     {
@@ -654,7 +669,7 @@ int4 DoIntOpcode(float4 uv)
   int4 offsets = debugSampleOffsets;
   float lod = debugSampleLodCompare;
 
-  if(opcode == DEBUG_SAMPLE_TEX_LD || opcode == DEBUG_SAMPLE_TEX_LD_MS)
+  if(opcode == DEBUG_SAMPLE_TEX_LOAD || opcode == DEBUG_SAMPLE_TEX_LOAD_MS)
   {
     switch(debugSampleTexDim)
     {
@@ -719,7 +734,7 @@ uint4 DoUIntOpcode(float4 uv)
   int4 offsets = debugSampleOffsets;
   float lod = debugSampleLodCompare;
 
-  if(opcode == DEBUG_SAMPLE_TEX_LD || opcode == DEBUG_SAMPLE_TEX_LD_MS)
+  if(opcode == DEBUG_SAMPLE_TEX_LOAD || opcode == DEBUG_SAMPLE_TEX_LOAD_MS)
   {
     switch(debugSampleTexDim)
     {
@@ -779,14 +794,15 @@ void RENDERDOC_DebugSamplePS(in float4 pos : SV_Position, in float4 uv : UVS)
 {
   int opcode = debugSampleOperation;
 
-  if(opcode != DEBUG_SAMPLE_TEX_SAMPLE_C && opcode != DEBUG_SAMPLE_TEX_LOD)
+  if(opcode != DEBUG_SAMPLE_TEX_SAMPLE_CMP && opcode != DEBUG_SAMPLE_TEX_LOD)
   {
     uv = debugSampleUV;
   }
 
-  bool forceFloat = (opcode == DEBUG_SAMPLE_TEX_SAMPLE_C || opcode == DEBUG_SAMPLE_TEX_SAMPLE_C_LZ ||
-                     opcode == DEBUG_SAMPLE_TEX_GATHER4_C ||
-                     opcode == DEBUG_SAMPLE_TEX_GATHER4_PO_C || opcode == DEBUG_SAMPLE_TEX_LOD);
+  bool forceFloat =
+      (opcode == DEBUG_SAMPLE_TEX_SAMPLE_CMP || opcode == DEBUG_SAMPLE_TEX_SAMPLE_CMP_LEVEL_ZERO ||
+       opcode == DEBUG_SAMPLE_TEX_GATHER4_CMP || opcode == DEBUG_SAMPLE_TEX_GATHER4_PO_CMP ||
+       opcode == DEBUG_SAMPLE_TEX_LOD);
 
   if(!forceFloat && debugSampleRetType == DEBUG_SAMPLE_INT)
   {

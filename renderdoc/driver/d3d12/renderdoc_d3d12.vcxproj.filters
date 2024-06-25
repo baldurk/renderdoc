@@ -81,6 +81,9 @@
     <ClInclude Include="d3d12_dxil_debug.h">
       <Filter>Util</Filter>
     </ClInclude>
+    <ClInclude Include="d3d12_shaderdebug.h">
+      <Filter>Replay</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="d3d12_common.cpp">
