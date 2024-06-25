@@ -53,10 +53,23 @@ rdcstr GetTempRootPath();
 
 rdcstr GetHomeFolderFilename()
 {
-  passwd *pw = getpwuid(getuid());
-  const char *homedir = pw->pw_dir;
+  errno = 0;
+  const uid_t uid = getuid();
+  const passwd *pw = getpwuid(uid);
+  if(pw != NULL)
+  {
+    return pw->pw_dir;
+  }
 
-  return homedir;
+  RDCERR("Cannot find password file entry for %u: %s, falling back to $HOME", uid, strerror(errno));
+  const rdcstr homeEnv = Process::GetEnvVariable("HOME");
+  if(!homeEnv.empty())
+  {
+    return homeEnv;
+  }
+
+  RDCERR("$HOME is empty, returning temp path");
+  return GetTempFolderFilename();
 }
 
 rdcstr GetTempFolderFilename()
