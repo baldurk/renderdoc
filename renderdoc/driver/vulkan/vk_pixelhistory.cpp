@@ -274,6 +274,16 @@ struct PixelHistoryShaderCache
       m_pDriver->vkDestroyShaderModule(m_pDriver->GetDev(), it->second, NULL);
     for(auto it = m_PrimIDFS.begin(); it != m_PrimIDFS.end(); it++)
       m_pDriver->vkDestroyShaderModule(m_pDriver->GetDev(), it->second, NULL);
+
+    for(auto it = m_ShaderObjectReplacements.begin(); it != m_ShaderObjectReplacements.end(); ++it)
+    {
+      if(it->second != VK_NULL_HANDLE)
+        m_pDriver->vkDestroyShaderEXT(m_pDriver->GetDev(), it->second, NULL);
+    }
+    for(auto it = m_FixedColFSObject.begin(); it != m_FixedColFSObject.end(); it++)
+      m_pDriver->vkDestroyShaderEXT(m_pDriver->GetDev(), it->second, NULL);
+    for(auto it = m_PrimIDFSObject.begin(); it != m_PrimIDFSObject.end(); it++)
+      m_pDriver->vkDestroyShaderEXT(m_pDriver->GetDev(), it->second, NULL);
   }
 
   // Returns a fragment shader module that outputs a fixed color to the given
@@ -289,6 +299,18 @@ struct PixelHistoryShaderCache
     return sh;
   }
 
+  VkShaderEXT GetFixedColShaderObject(ResourceId shaderId, uint32_t framebufferIndex)
+  {
+    ShaderObjectKey shaderKey = make_rdcpair(shaderId, framebufferIndex);
+    auto it = m_FixedColFSObject.find(shaderKey);
+    if(it != m_FixedColFSObject.end())
+      return it->second;
+    VkShaderEXT sh;
+    PatchOutputLocation(sh, shaderId, BuiltinShader::FixedColFS, framebufferIndex);
+    m_FixedColFSObject.insert(std::make_pair(shaderKey, sh));
+    return sh;
+  }
+
   // Returns a fragment shader module that outputs primitive ID to the given
   // color attachment.
   VkShaderModule GetPrimitiveIdShader(uint32_t framebufferIndex)
@@ -299,6 +321,18 @@ struct PixelHistoryShaderCache
     VkShaderModule sh;
     PatchOutputLocation(sh, BuiltinShader::PixelHistoryPrimIDFS, framebufferIndex);
     m_PrimIDFS.insert(std::make_pair(framebufferIndex, sh));
+    return sh;
+  }
+
+  VkShaderEXT GetPrimitiveIdShaderObject(ResourceId shaderId, uint32_t framebufferIndex)
+  {
+    ShaderObjectKey shaderKey = make_rdcpair(shaderId, framebufferIndex);
+    auto it = m_PrimIDFSObject.find(shaderKey);
+    if(it != m_PrimIDFSObject.end())
+      return it->second;
+    VkShaderEXT sh;
+    PatchOutputLocation(sh, shaderId, BuiltinShader::PixelHistoryPrimIDFS, framebufferIndex);
+    m_PrimIDFSObject.insert(std::make_pair(shaderKey, sh));
     return sh;
   }
 
@@ -317,6 +351,23 @@ struct PixelHistoryShaderCache
     VkShaderModule shaderModule = CreateShaderReplacement(shaderId, entryPoint, stage);
     m_ShaderReplacements.insert(std::make_pair(shaderKey, shaderModule));
     return shaderModule;
+  }
+
+  VkShaderEXT GetShaderObjectWithoutSideEffects(ResourceId shaderId)
+  {
+    const VulkanCreationInfo::ShaderObject &shadInfo =
+        m_pDriver->GetDebugManager()->GetShaderObjectInfo(shaderId);
+
+    ShaderKey shaderKey = make_rdcpair(shaderId, shadInfo.shad.entryPoint);
+    auto it = m_ShaderObjectReplacements.find(shaderKey);
+    // Check if we processed this shader before.
+    if(it != m_ShaderObjectReplacements.end())
+      return it->second;
+
+    VkShaderEXT shader =
+        CreateShaderObjectReplacement(shaderId, shadInfo.shad.entryPoint, shadInfo.shad.stage);
+    m_ShaderObjectReplacements.insert(std::make_pair(shaderKey, shader));
+    return shader;
   }
 
 private:
@@ -369,9 +420,95 @@ private:
     return VK_NULL_HANDLE;
   }
 
+  VkShaderEXT CreateShaderObjectReplacement(ResourceId shaderId, const rdcstr &entryName,
+                                            ShaderStage stage)
+  {
+    const VulkanCreationInfo::ShaderModule &moduleInfo =
+        m_pDriver->GetDebugManager()->GetShaderInfo(shaderId);
+    rdcarray<uint32_t> modSpirv = moduleInfo.spirv.GetSPIRV();
+
+    bool modified = false;
+    bool found = false;
+
+    {
+      rdcspv::Editor editor(modSpirv);
+      editor.Prepare();
+
+      for(const rdcspv::EntryPoint &entry : editor.GetEntries())
+      {
+        if(entry.name == entryName && MakeShaderStage(entry.executionModel) == stage)
+        {
+          // In some cases a shader might just be binding a RW resource but not writing to it.
+          // If there are no writes (shader was not modified), no need to replace the shader,
+          // just insert VK_NULL_HANDLE to indicate that this shader has been processed.
+          found = true;
+          modified = StripShaderSideEffects(editor, entry.id);
+          break;
+        }
+      }
+    }
+
+    if(found)
+    {
+      VkShaderEXT shader = VK_NULL_HANDLE;
+      if(modified)
+      {
+        VkShaderCreateInfoEXT shadCreateInfo = {};
+        m_pDriver->GetShaderCache()->MakeShaderObjectInfo(shadCreateInfo, shaderId);
+        shadCreateInfo.pCode = modSpirv.data();
+        shadCreateInfo.codeSize = modSpirv.byteSize();
+        VkResult vkr =
+            m_pDriver->vkCreateShadersEXT(m_pDriver->GetDev(), 1, &shadCreateInfo, NULL, &shader);
+        m_pDriver->CheckVkResult(vkr);
+      }
+
+      return shader;
+    }
+
+    RDCERR("Entry point %s not found", entryName.c_str());
+    return VK_NULL_HANDLE;
+  }
+
   void PatchOutputLocation(VkShaderModule &mod, BuiltinShader shaderType, uint32_t framebufferIndex)
   {
-    rdcarray<uint32_t> spv = *m_pDriver->GetShaderCache()->GetBuiltinBlob(shaderType);
+    rdcarray<uint32_t> spv;
+
+    PatchOutputLocationSpirv(spv, shaderType, framebufferIndex);
+
+    VkShaderModuleCreateInfo modinfo = {
+        VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+        NULL,
+        0,
+        spv.size() * sizeof(uint32_t),
+        spv.data(),
+    };
+
+    VkResult vkr = m_pDriver->vkCreateShaderModule(m_pDriver->GetDev(), &modinfo, NULL, &mod);
+    m_pDriver->CheckVkResult(vkr);
+  }
+
+  void PatchOutputLocation(VkShaderEXT &shad, ResourceId shaderId, BuiltinShader shaderType,
+                           uint32_t framebufferIndex)
+  {
+    rdcarray<uint32_t> spv;
+
+    PatchOutputLocationSpirv(spv, shaderType, framebufferIndex);
+
+    VkShaderCreateInfoEXT shadinfo = {};
+    m_pDriver->GetShaderCache()->MakeShaderObjectInfo(shadinfo, shaderId);
+
+    shadinfo.codeSize = spv.size() * sizeof(uint32_t);
+    shadinfo.pCode = spv.data();
+    shadinfo.pName = "main";
+
+    VkResult vkr = m_pDriver->vkCreateShadersEXT(m_pDriver->GetDev(), 1, &shadinfo, NULL, &shad);
+    m_pDriver->CheckVkResult(vkr);
+  }
+
+  void PatchOutputLocationSpirv(rdcarray<uint32_t> &spv, BuiltinShader shaderType,
+                                uint32_t framebufferIndex)
+  {
+    spv = *m_pDriver->GetShaderCache()->GetBuiltinBlob(shaderType);
 
     bool patched = false;
 
@@ -474,17 +611,6 @@ private:
 
     if(!patched)
       RDCERR("Didn't patch the output location");
-
-    VkShaderModuleCreateInfo modinfo = {
-        VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-        NULL,
-        0,
-        spv.size() * sizeof(uint32_t),
-        spv.data(),
-    };
-
-    VkResult vkr = m_pDriver->vkCreateShaderModule(m_pDriver->GetDev(), &modinfo, NULL, &mod);
-    m_pDriver->CheckVkResult(vkr);
   }
 
   // Removes instructions from the shader that would produce side effects (writing
@@ -597,6 +723,12 @@ private:
   // ShaderKey consists of original shader module ID and entry point name.
   typedef rdcpair<ResourceId, rdcstr> ShaderKey;
   std::map<ShaderKey, VkShaderModule> m_ShaderReplacements;
+  std::map<ShaderKey, VkShaderEXT> m_ShaderObjectReplacements;
+
+  // ShaderObjectKey consists of original shader object ID and framebuffer index
+  typedef rdcpair<ResourceId, uint32_t> ShaderObjectKey;
+  std::map<ShaderObjectKey, VkShaderEXT> m_FixedColFSObject;
+  std::map<ShaderObjectKey, VkShaderEXT> m_PrimIDFSObject;
 
   GPUBuffer dummybuf;
 };
@@ -846,6 +978,83 @@ protected:
     pipeCreateInfo.pStages = stages.data();
   }
 
+  void SetIncrementStencilStateForEXTShaderObject(VulkanRenderState &state, bool disableTests)
+  {
+    // ensure state we want to control is dynamic
+    {
+      // may have been omitted if the app set stencilTestEnable to false
+      state.dynamicStates[VkDynamicStencilOp] = true;
+      state.dynamicStates[VkDynamicStencilReference] = true;
+      state.dynamicStates[VkDynamicStencilCompareMask] = true;
+      state.dynamicStates[VkDynamicStencilWriteMask] = true;
+
+      // may have been omitted if the app set depthTestEnable to false
+      state.dynamicStates[VkDynamicDepthCompareOp] = true;
+
+      // may have been omitted if app set blend enables to false
+      state.dynamicStates[VkDynamicColorBlendEquationEXT] = true;
+    }
+
+    // TODO: should leave in the original state.
+    state.depthTestEnable = false;
+    state.depthWriteEnable = false;
+    state.depthBoundsTestEnable = false;
+
+    if(disableTests)
+    {
+      state.cullMode = VK_CULL_MODE_NONE;
+      state.rastDiscardEnable = false;
+      if(m_pDriver->GetDeviceEnabledFeatures().depthClamp)
+        state.depthClampEnable = true;
+    }
+
+    // Set up the stencil state.
+    {
+      state.stencilTestEnable = true;
+      state.front.compareOp = VK_COMPARE_OP_ALWAYS;
+      state.front.failOp = VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+      state.front.passOp = VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+      state.front.depthFailOp = VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+      state.front.compare = 0xff;
+      state.front.write = 0xff;
+      state.front.ref = 0;
+      state.back = state.front;
+    }
+
+    // Narrow on the specific pixel and sample.
+    {
+      // Existing logic caps this to 32-bit
+      state.sampleMask.assign(&m_CallbackInfo.sampleMask, 1);
+      if(state.rastSamples > VK_SAMPLE_COUNT_32_BIT)
+        state.rastSamples = VK_SAMPLE_COUNT_32_BIT;
+    }
+
+    // Turn off all color modifications.
+    {
+      for(uint32_t i = 0; i < state.colorWriteMask.size(); i++)
+        state.colorWriteMask[i] = 0;
+    }
+  }
+
+  void RemoveShaderObjectSideEffects(VulkanRenderState &state, uint32_t eid)
+  {
+    EventFlags eventFlags = m_pDriver->GetEventFlags(eid);
+
+    // Clean shaders
+    for(uint32_t i = 0; i < NumShaderStages; i++)
+    {
+      if(state.shaderObjects[i] != ResourceId() &&
+         (eventFlags & PipeStageRWEventFlags(StageFromIndex(i))) != EventFlags::NoFlags)
+      {
+        VkShaderEXT replacement =
+            m_ShaderCache->GetShaderObjectWithoutSideEffects(state.shaderObjects[i]);
+
+        if(replacement != VK_NULL_HANDLE)
+          state.shaderObjects[i] = GetResID(replacement);
+      }
+    }
+  }
+
   // ensures the state we want to control is dynamic, whether or not it was dynamic in the original
   // pipeline
   void SetupDynamicStates(VkGraphicsPipelineCreateInfo &pipeCreateInfo)
@@ -935,6 +1144,9 @@ protected:
 
         dyn.color.push_back(c);
       }
+
+      // in case depth/stencil were not originally specified
+      dyn.depth.sType = dyn.stencil.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
 
       dyn.depth.resolveMode = VK_RESOLVE_MODE_NONE;
       dyn.depth.resolveImageView = VK_NULL_HANDLE;
@@ -1518,11 +1730,24 @@ struct VulkanOcclusionCallback : public VulkanPixelHistoryCallback
     VulkanRenderState prevState = m_pDriver->GetCmdRenderState();
     VulkanRenderState &pipestate = m_pDriver->GetCmdRenderState();
 
-    if(prevState.graphics.shaderObject)
-      return;
+    VkPipeline pipe = VK_NULL_HANDLE;
+    VkShaderEXT shad = VK_NULL_HANDLE;
 
-    VkPipeline pipe = GetPixelOcclusionPipeline(eid, prevState.graphics.pipeline,
-                                                GetColorAttachmentIndex(prevState));
+    // create modified pipeline or shader object
+    if(!prevState.graphics.shaderObject)
+    {
+      pipe = GetPixelOcclusionPipeline(eid, prevState.graphics.pipeline,
+                                       GetColorAttachmentIndex(prevState));
+    }
+    else
+    {
+      SetIncrementStencilStateForEXTShaderObject(pipestate, true);
+      RemoveShaderObjectSideEffects(pipestate, eid);
+      ResourceId fragId = prevState.shaderObjects[(uint32_t)ShaderStage::Fragment];
+      if(fragId != ResourceId())
+        shad = m_ShaderCache->GetFixedColShaderObject(fragId, GetColorAttachmentIndex(prevState));
+    }
+
     // set the scissor
     for(uint32_t i = 0; i < pipestate.views.size(); i++)
       ScissorToPixel(pipestate.views[i], pipestate.scissors[i]);
@@ -1531,13 +1756,19 @@ struct VulkanOcclusionCallback : public VulkanPixelHistoryCallback
     pipestate.front.ref = 0;
     pipestate.back = pipestate.front;
     pipestate.graphics.pipeline = GetResID(pipe);
+    pipestate.shaderObjects[(uint32_t)ShaderStage::Fragment] = GetResID(shad);
     // ensure the render state sets any dynamic state the pipeline needs
-    pipestate.SetDynamicStatesFromPipeline(m_pDriver);
+    if(!prevState.graphics.shaderObject)
+      pipestate.SetDynamicStatesFromPipeline(m_pDriver);
     ReplayDrawWithQuery(cmd, eid);
 
-    m_pDriver->GetCmdRenderState() = prevState;
-    m_pDriver->GetCmdRenderState().BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics,
-                                                false);
+    // rebind the original state
+    pipestate = prevState;
+
+    if(!prevState.graphics.shaderObject)
+      pipestate.BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
+    else
+      pipestate.BindShaderObjects(m_pDriver, cmd, VulkanRenderState::BindGraphics);
   }
 
   bool PostDraw(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) { return false; }
@@ -1591,8 +1822,12 @@ private:
   void ReplayDrawWithQuery(VkCommandBuffer cmd, uint32_t eventId)
   {
     const ActionDescription *action = m_pDriver->GetAction(eventId);
-    m_pDriver->GetCmdRenderState().BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics,
-                                                false);
+    if(!m_pDriver->GetCmdRenderState().graphics.shaderObject)
+      m_pDriver->GetCmdRenderState().BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics,
+                                                  false);
+    else
+      m_pDriver->GetCmdRenderState().BindShaderObjects(m_pDriver, cmd,
+                                                       VulkanRenderState::BindGraphics);
 
     uint32_t occlIndex = (uint32_t)m_OcclusionQueries.size();
     ObjDisp(cmd)->CmdBeginQuery(Unwrap(cmd), m_OcclusionPool, occlIndex, m_QueryFlags);
@@ -1691,8 +1926,25 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
       VkRenderPass newRp = PatchRenderPass(pipestate, multiview);
       PatchFramebuffer(pipestate, newRp);
 
-      PipelineReplacements replacements = GetPipelineReplacements(
-          eid, pipestate.graphics.pipeline, newRp, GetColorAttachmentIndex(prevState));
+      PipelineReplacements replacements = {};
+      ResourceId originalShad = ResourceId();
+      ResourceId fixedShad = ResourceId();
+
+      if(!pipestate.graphics.shaderObject)
+      {
+        replacements = GetPipelineReplacements(eid, pipestate.graphics.pipeline, newRp,
+                                               GetColorAttachmentIndex(prevState));
+      }
+      else
+      {
+        SetIncrementStencilStateForEXTShaderObject(pipestate, false);
+        RemoveShaderObjectSideEffects(pipestate, eid);
+        originalShad = pipestate.shaderObjects[(uint32_t)ShaderStage::Fragment];
+        if(originalShad != ResourceId())
+          fixedShad = GetResID(m_ShaderCache->GetFixedColShaderObject(
+              prevState.shaderObjects[(uint32_t)ShaderStage::Fragment],
+              GetColorAttachmentIndex(prevState)));
+      }
 
       for(uint32_t i = 0; i < pipestate.views.size(); i++)
         ScissorToPixel(pipestate.views[i], pipestate.scissors[i]);
@@ -1706,8 +1958,12 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
       pipestate.front.compare = pipestate.front.write = 0xff;
       pipestate.front.ref = 0;
       pipestate.back = pipestate.front;
-      // ensure the render state sets any dynamic state the pipeline needs
-      pipestate.SetDynamicStatesFromPipeline(m_pDriver);
+      pipestate.shaderObjects[(uint32_t)ShaderStage::Fragment] = fixedShad;
+      if(!pipestate.graphics.shaderObject)
+      {
+        // ensure the render state sets any dynamic state the pipeline needs
+        pipestate.SetDynamicStatesFromPipeline(m_pDriver);
+      }
       ReplayDraw(cmd, eid, true);
 
       VkCopyPixelParams params = {};
@@ -1726,8 +1982,12 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
       // Replay the draw with the original fragment shader to get the actual number
       // of fragments, accounting for potential shader discard.
       pipestate.graphics.pipeline = GetResID(replacements.originalShaderStencil);
-      // ensure the render state sets any dynamic state the pipeline needs
-      pipestate.SetDynamicStatesFromPipeline(m_pDriver);
+      pipestate.shaderObjects[(uint32_t)ShaderStage::Fragment] = originalShad;
+      if(!pipestate.graphics.shaderObject)
+      {
+        // ensure the render state sets any dynamic state the pipeline needs
+        pipestate.SetDynamicStatesFromPipeline(m_pDriver);
+      }
       ReplayDraw(cmd, eid, true);
 
       CopyImagePixel(cmd, params, storeOffset + offsetof(struct EventInfo, dsWithShaderDiscard));
@@ -1737,7 +1997,7 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
     pipestate = prevState;
 
     // TODO: Need to re-start on the correct subpass.
-    if(pipestate.graphics.pipeline != ResourceId())
+    if(pipestate.graphics.pipeline != ResourceId() || pipestate.graphics.shaderObject)
       pipestate.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics, true);
   }
 
@@ -2161,10 +2421,16 @@ struct TestsFailedCallback : public VulkanPixelHistoryCallback
     if(!m_Events.contains(eid))
       return;
 
+    VulkanRenderState prevState = m_pDriver->GetCmdRenderState();
     VulkanRenderState &pipestate = m_pDriver->GetCmdRenderState();
-    const VulkanCreationInfo::Pipeline &p =
-        m_pDriver->GetDebugManager()->GetPipelineInfo(pipestate.graphics.pipeline);
-    uint32_t eventFlags = CalculateEventFlags(p, pipestate);
+    ResourceId curPipeline = pipestate.graphics.pipeline;
+    ResourceId fragShader = pipestate.graphics.shaderObject
+                                ? pipestate.shaderObjects[(uint32_t)ShaderStage::Fragment]
+                                : m_pDriver->GetDebugManager()
+                                      ->GetPipelineInfo(curPipeline)
+                                      .shaders[StageIndex(VK_SHADER_STAGE_FRAGMENT_BIT)]
+                                      .module;
+    uint32_t eventFlags = CalculateEventFlags(fragShader, pipestate);
     m_EventFlags[eid] = eventFlags;
     if(pipestate.depthBoundsTestEnable)
       m_EventDepthBounds[eid] = {pipestate.mindepth, pipestate.maxdepth};
@@ -2176,14 +2442,13 @@ struct TestsFailedCallback : public VulkanPixelHistoryCallback
     bool earlyFragmentTests = false;
     m_HasEarlyFragments[eid] = earlyFragmentTests;
 
-    ResourceId curPipeline = pipestate.graphics.pipeline;
-    VulkanRenderState prevState = m_pDriver->GetCmdRenderState();
-
     ReplayDrawWithTests(cmd, eid, eventFlags, curPipeline, GetColorAttachmentIndex(prevState));
+    pipestate = prevState;
 
-    m_pDriver->GetCmdRenderState() = prevState;
-    m_pDriver->GetCmdRenderState().BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics,
-                                                false);
+    if(!prevState.graphics.shaderObject)
+      pipestate.BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
+    else
+      pipestate.BindShaderObjects(m_pDriver, cmd, VulkanRenderState::BindGraphics);
   }
 
   bool PostDraw(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) { return false; }
@@ -2269,14 +2534,13 @@ struct TestsFailedCallback : public VulkanPixelHistoryCallback
   }
 
 private:
-  uint32_t CalculateEventFlags(const VulkanCreationInfo::Pipeline &p,
-                               const VulkanRenderState &pipestate)
+  uint32_t CalculateEventFlags(ResourceId fragShader, const VulkanRenderState &pipestate)
   {
     uint32_t flags = 0;
 
     // Culling
     {
-      if(p.depthClipEnable && !p.depthClampEnable)
+      if(pipestate.depthClipEnable && !pipestate.depthClampEnable)
         flags |= TestEnabled_DepthClipping;
 
       if(pipestate.cullMode != VK_CULL_MODE_NONE)
@@ -2386,9 +2650,9 @@ private:
     {
       if(m_pDriver->GetDeviceEnabledFeatures().independentBlend)
       {
-        for(size_t i = 0; i < p.attachments.size(); i++)
+        for(size_t i = 0; i < pipestate.colorBlendEnable.size(); i++)
         {
-          if(p.attachments[i].blendEnable)
+          if(pipestate.colorBlendEnable[i])
           {
             flags |= Blending_Enabled;
             break;
@@ -2398,12 +2662,12 @@ private:
       else
       {
         // Might not have attachments if rasterization is disabled
-        if(p.attachments.size() > 0 && p.attachments[0].blendEnable)
+        if(pipestate.colorBlendEnable.size() > 0 && pipestate.colorBlendEnable[0])
           flags |= Blending_Enabled;
       }
     }
 
-    if(p.shaders[StageIndex(VK_SHADER_STAGE_FRAGMENT_BIT)].module == ResourceId())
+    if(fragShader == ResourceId())
       flags |= UnboundFragmentShader;
 
     // Samples
@@ -2412,7 +2676,7 @@ private:
       flags |= TestEnabled_SampleMask;
 
       // compare to ms->pSampleMask
-      if((p.sampleMask & m_CallbackInfo.sampleMask) == 0)
+      if((pipestate.sampleMask[0] & m_CallbackInfo.sampleMask) == 0)
         flags |= TestMustFail_SampleMask;
     }
 
@@ -2441,27 +2705,55 @@ private:
     if(eventFlags & TestMustFail_Culling)
       return;
 
-    const VulkanCreationInfo::Pipeline &p =
-        m_pDriver->GetDebugManager()->GetPipelineInfo(basePipeline);
     EventFlags eventShaderFlags = m_pDriver->GetEventFlags(eid);
-    rdcarray<VkShaderModule> replacementShaders;
-    replacementShaders.resize(NumShaderStages);
-    // Replace fragment shader because it might have early fragments
-    for(size_t i = 0; i < replacementShaders.size(); i++)
-    {
-      if(p.shaders[i].module == ResourceId())
-        continue;
-      ShaderStage stage = StageFromIndex(i);
-      bool rwInStage = (eventShaderFlags & PipeStageRWEventFlags(stage)) != EventFlags::NoFlags;
-      if(rwInStage || (stage == ShaderStage::Fragment))
-        replacementShaders[i] = m_ShaderCache->GetShaderWithoutSideEffects(
-            p.shaders[i].module, p.shaders[i].entryPoint, p.shaders[i].stage);
-    }
-
     VulkanRenderState &pipestate = m_pDriver->GetCmdRenderState();
     rdcarray<VkRect2D> prevScissors = pipestate.scissors;
     for(uint32_t i = 0; i < pipestate.views.size(); i++)
       ScissorToPixel(pipestate.views[i], pipestate.scissors[i]);
+
+    // Replace shaders
+    rdcarray<VkShaderModule> replacementShaders;
+    replacementShaders.resize(NumShaderStages);
+
+    if(!pipestate.graphics.shaderObject)
+    {
+      const VulkanCreationInfo::Pipeline &p =
+          m_pDriver->GetDebugManager()->GetPipelineInfo(basePipeline);
+
+      // Replace fragment shader because it might have early fragments
+      for(size_t i = 0; i < replacementShaders.size(); i++)
+      {
+        if(p.shaders[i].module == ResourceId())
+          continue;
+        ShaderStage stage = StageFromIndex(i);
+        bool rwInStage = (eventShaderFlags & PipeStageRWEventFlags(stage)) != EventFlags::NoFlags;
+        if(rwInStage || (stage == ShaderStage::Fragment))
+          replacementShaders[i] = m_ShaderCache->GetShaderWithoutSideEffects(
+              p.shaders[i].module, p.shaders[i].entryPoint, p.shaders[i].stage);
+      }
+    }
+    else
+    {
+      // Replace fragment shader because it might have early fragments
+      for(uint32_t i = 0; i < (uint32_t)ShaderStage::RayGen; i++)
+      {
+        ResourceId origShadId = pipestate.shaderObjects[i];
+        if(origShadId == ResourceId())
+          continue;
+        ShaderStage stage = StageFromIndex(i);
+        bool rwInStage = (eventShaderFlags & PipeStageRWEventFlags(stage)) != EventFlags::NoFlags;
+        if(rwInStage || (stage == ShaderStage::Fragment))
+        {
+          ResourceId replacementId =
+              GetResID(m_ShaderCache->GetShaderObjectWithoutSideEffects(origShadId));
+          if(replacementId != ResourceId())
+            pipestate.shaderObjects[i] = replacementId;
+        }
+      }
+    }
+
+    VulkanRenderState baseState = pipestate;
+    ResourceId pipe = ResourceId();
 
     if(eventFlags & TestEnabled_Culling)
     {
@@ -2469,9 +2761,13 @@ private:
           PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_DisableDepthClipping |
           PipelineCreationFlags_DisableDepthBoundsTest | PipelineCreationFlags_DisableStencilTest |
           PipelineCreationFlags_FixedColorShader;
-      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      if(!pipestate.graphics.shaderObject)
+        pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      else
+        SetShaderObjectState(pipeFlags, pipestate, outputIndex);
       VkMarkerRegion::Set(StringFormat::Fmt("Test culling on %u", eid), cmd);
       ReplayDraw(cmd, pipe, eid, TestEnabled_Culling);
+      pipestate = baseState;
     }
 
     if(eventFlags & TestEnabled_DepthClipping)
@@ -2479,9 +2775,13 @@ private:
       uint32_t pipeFlags =
           PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_DisableDepthBoundsTest |
           PipelineCreationFlags_DisableStencilTest | PipelineCreationFlags_FixedColorShader;
-      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      if(!pipestate.graphics.shaderObject)
+        pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      else
+        SetShaderObjectState(pipeFlags, pipestate, outputIndex);
       VkMarkerRegion::Set(StringFormat::Fmt("Test depth clipping on %u", eid), cmd);
       ReplayDraw(cmd, pipe, eid, TestEnabled_DepthClipping);
+      pipestate = baseState;
     }
 
     // Scissor
@@ -2494,13 +2794,17 @@ private:
           PipelineCreationFlags_IntersectOriginalScissor | PipelineCreationFlags_DisableDepthTest |
           PipelineCreationFlags_DisableDepthBoundsTest | PipelineCreationFlags_DisableStencilTest |
           PipelineCreationFlags_FixedColorShader;
-      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      if(!pipestate.graphics.shaderObject)
+        pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      else
+        SetShaderObjectState(pipeFlags, pipestate, outputIndex);
       // This will change the scissor for the later tests, but since those
       // tests happen later in the pipeline, it does not matter.
       for(uint32_t i = 0; i < pipestate.views.size(); i++)
         IntersectScissors(prevScissors[i], pipestate.scissors[i]);
       VkMarkerRegion::Set(StringFormat::Fmt("Test scissor on %u", eid), cmd);
       ReplayDraw(cmd, pipe, eid, TestEnabled_Scissor);
+      pipestate = baseState;
     }
 
     // Sample mask
@@ -2512,9 +2816,13 @@ private:
       uint32_t pipeFlags =
           PipelineCreationFlags_DisableDepthBoundsTest | PipelineCreationFlags_DisableStencilTest |
           PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_FixedColorShader;
-      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      if(!pipestate.graphics.shaderObject)
+        pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      else
+        SetShaderObjectState(pipeFlags, pipestate, outputIndex);
       VkMarkerRegion::Set(StringFormat::Fmt("Test sample mask on %u", eid), cmd);
       ReplayDraw(cmd, pipe, eid, TestEnabled_SampleMask);
+      pipestate = baseState;
     }
 
     // Depth bounds
@@ -2523,9 +2831,13 @@ private:
       uint32_t pipeFlags = PipelineCreationFlags_DisableStencilTest |
                            PipelineCreationFlags_DisableDepthTest |
                            PipelineCreationFlags_FixedColorShader;
-      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      if(!pipestate.graphics.shaderObject)
+        pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      else
+        SetShaderObjectState(pipeFlags, pipestate, outputIndex);
       VkMarkerRegion::Set(StringFormat::Fmt("Test depth bounds on %u", eid), cmd);
       ReplayDraw(cmd, pipe, eid, TestEnabled_DepthBounds);
+      pipestate = baseState;
     }
 
     // Stencil test
@@ -2536,9 +2848,13 @@ private:
     {
       uint32_t pipeFlags =
           PipelineCreationFlags_DisableDepthTest | PipelineCreationFlags_FixedColorShader;
-      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      if(!pipestate.graphics.shaderObject)
+        pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      else
+        SetShaderObjectState(pipeFlags, pipestate, outputIndex);
       VkMarkerRegion::Set(StringFormat::Fmt("Test stencil on %u", eid), cmd);
       ReplayDraw(cmd, pipe, eid, TestEnabled_StencilTesting);
+      pipestate = baseState;
     }
 
     // Depth test
@@ -2552,9 +2868,13 @@ private:
       uint32_t pipeFlags =
           PipelineCreationFlags_DisableStencilTest | PipelineCreationFlags_FixedColorShader;
 
-      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      if(!pipestate.graphics.shaderObject)
+        pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      else
+        SetShaderObjectState(pipeFlags, pipestate, outputIndex);
       VkMarkerRegion::Set(StringFormat::Fmt("Test depth on %u", eid), cmd);
       ReplayDraw(cmd, pipe, eid, TestEnabled_DepthTesting);
+      pipestate = baseState;
     }
 
     // Shader discard
@@ -2566,23 +2886,27 @@ private:
       uint32_t pipeFlags = PipelineCreationFlags_DisableDepthBoundsTest |
                            PipelineCreationFlags_DisableStencilTest |
                            PipelineCreationFlags_DisableDepthTest;
-      VkPipeline pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      if(!pipestate.graphics.shaderObject)
+        pipe = CreatePipeline(basePipeline, pipeFlags, replacementShaders, outputIndex);
+      else
+        SetShaderObjectState(pipeFlags, pipestate, outputIndex);
       VkMarkerRegion::Set(StringFormat::Fmt("Test shader discard on %u", eid), cmd);
       ReplayDraw(cmd, pipe, eid, TestEnabled_FragmentDiscard);
+      pipestate = baseState;
     }
   }
 
   // Creates a pipeline that is based on the given pipeline and the given
   // pipeline flags. Modifies the base pipeline according to the flags, and
   // leaves the original pipeline behavior if a flag is not set.
-  VkPipeline CreatePipeline(ResourceId basePipeline, uint32_t pipeCreateFlags,
+  ResourceId CreatePipeline(ResourceId basePipeline, uint32_t pipeCreateFlags,
                             const rdcarray<VkShaderModule> &replacementShaders, uint32_t outputIndex)
   {
     rdcpair<ResourceId, uint32_t> pipeKey(basePipeline, pipeCreateFlags);
     auto it = m_PipeCache.find(pipeKey);
     // Check if we processed this pipeline before.
     if(it != m_PipeCache.end())
-      return it->second;
+      return GetResID(it->second);
 
     VkGraphicsPipelineCreateInfo ci = {};
     m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(ci, basePipeline);
@@ -2651,17 +2975,26 @@ private:
                                                         NULL, &pipe);
     m_pDriver->CheckVkResult(vkr);
     m_PipeCache.insert(std::make_pair(pipeKey, pipe));
-    return pipe;
+    return GetResID(pipe);
   }
 
-  void ReplayDraw(VkCommandBuffer cmd, VkPipeline pipe, int eventId, uint32_t test)
+  void ReplayDraw(VkCommandBuffer cmd, ResourceId pipe, int eventId, uint32_t test)
   {
-    m_pDriver->GetCmdRenderState().graphics.pipeline = GetResID(pipe);
-    // ensure the render state sets any dynamic state the pipeline needs
-    m_pDriver->GetCmdRenderState().SetDynamicStatesFromPipeline(m_pDriver);
-    m_pDriver->GetCmdRenderState().BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics,
-                                                false);
+    // bind state for test
+    VulkanRenderState &pipestate = m_pDriver->GetCmdRenderState();
+    if(!pipestate.graphics.shaderObject)
+    {
+      pipestate.graphics.pipeline = pipe;
+      // ensure the render state sets any dynamic state the pipeline needs
+      pipestate.SetDynamicStatesFromPipeline(m_pDriver);
+      pipestate.BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
+    }
+    else
+    {
+      pipestate.BindShaderObjects(m_pDriver, cmd, VulkanRenderState::BindGraphics);
+    }
 
+    // query test results
     uint32_t index = (uint32_t)m_OcclusionQueries.size();
     if(m_OcclusionQueries.find(rdcpair<uint32_t, uint32_t>(eventId, test)) != m_OcclusionQueries.end())
       RDCERR("A query already exist for event id %u and test %u", eventId, test);
@@ -2673,6 +3006,36 @@ private:
     m_pDriver->ReplayDraw(cmd, *action);
 
     ObjDisp(cmd)->CmdEndQuery(Unwrap(cmd), m_OcclusionPool, index);
+  }
+
+  // Creates a shader object that is based on the given shader.
+  // Modifies dynamic state according to the given pipeline flags.
+  void SetShaderObjectState(uint32_t pipeCreateFlags, VulkanRenderState &state, uint32_t outputIndex)
+  {
+    // Only interested in a single sample.
+    state.sampleMask.assign(&m_CallbackInfo.sampleMask, 1);
+    // We are going to replay a draw multiple times, don't want to modify the
+    // depth value, not to influence later tests.
+    state.depthWriteEnable = false;
+
+    if(pipeCreateFlags & PipelineCreationFlags_DisableCulling)
+      state.cullMode = VK_CULL_MODE_NONE;
+    if(pipeCreateFlags & PipelineCreationFlags_DisableDepthTest)
+      state.depthTestEnable = false;
+    if(pipeCreateFlags & PipelineCreationFlags_DisableStencilTest)
+      state.stencilTestEnable = false;
+    if(pipeCreateFlags & PipelineCreationFlags_DisableDepthBoundsTest)
+      state.depthBoundsTestEnable = false;
+    if(pipeCreateFlags & PipelineCreationFlags_DisableDepthClipping)
+      state.depthClampEnable = true;
+
+    if(state.shaderObjects[(uint32_t)ShaderStage::Fragment] != ResourceId() &&
+       pipeCreateFlags & PipelineCreationFlags_FixedColorShader)
+    {
+      state.shaderObjects[(uint32_t)ShaderStage::Fragment] =
+          GetResID(m_ShaderCache->GetFixedColShaderObject(
+              state.shaderObjects[(uint32_t)ShaderStage::Fragment], outputIndex));
+    }
   }
 
   rdcarray<uint32_t> m_Events;
@@ -2716,6 +3079,14 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     VkPipeline shaderOutPipe;
     // Enable blending to get post event values.
     VkPipeline postModPipe;
+  };
+
+  struct ShaderObjects
+  {
+    // Fragment shader that outputs primitive ID.
+    ResourceId primitiveIdGSObject;
+    // Cleaned up but otherwise unmodified shaders.
+    ResourceId cleanShaderObjects[NumShaderStages];
   };
 
   void PreDraw(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd)
@@ -2767,8 +3138,20 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     PatchFramebuffer(state, newRp, m_CallbackInfo.subImageView, VK_FORMAT_R32G32B32A32_SFLOAT,
                      framebufferIndex, colorOutputIndex);
 
-    Pipelines pipes = CreatePerFragmentPipelines(curPipeline, newRp, origRpWithDepth, eid, 0,
-                                                 VK_FORMAT_R32G32B32A32_SFLOAT, colorOutputIndex);
+    Pipelines pipes = {};
+    ShaderObjects shads = {};
+
+    if(!prevState.graphics.shaderObject)
+    {
+      pipes = CreatePerFragmentPipelines(curPipeline, newRp, origRpWithDepth, eid, 0,
+                                         VK_FORMAT_R32G32B32A32_SFLOAT, colorOutputIndex);
+    }
+    else
+    {
+      // state that applies to all passes
+      SetOneFragStencilStateForEXTShaderObject(state);
+      shads = CreatePerFragmentShaders(state, eid, colorOutputIndex);
+    }
 
     for(uint32_t i = 0; i < state.views.size(); i++)
     {
@@ -2782,6 +3165,10 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     VkPipeline pipesIter[2];
     pipesIter[0] = pipes.primitiveIdPipe;
     pipesIter[1] = pipes.shaderOutPipe;
+
+    ResourceId shadsIter[2];
+    shadsIter[0] = shads.primitiveIdGSObject;
+    shadsIter[1] = shads.cleanShaderObjects[(uint32_t)ShaderStage::Fragment];
 
     VkCopyPixelParams colourCopyParams = {};
     colourCopyParams.srcImage = m_CallbackInfo.subImage;
@@ -2807,6 +3194,24 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     VkMarkerRegion::Set(StringFormat::Fmt("Event %u has %u fragments", eid, numFragmentsInEvent),
                         cmd);
 
+    // shader object defaults
+    if(prevState.graphics.shaderObject)
+    {
+      // cleaned shaders
+      for(uint32_t s = 0; s < NumShaderStages; s++)
+        m_pDriver->GetCmdRenderState().shaderObjects[s] = shads.cleanShaderObjects[s];
+
+      // color blend state
+      for(uint32_t j = 0; j < state.colorBlendEnable.size(); j++)
+        state.colorBlendEnable[j] = false;
+      for(uint32_t j = 0; j < state.colorWriteMask.size(); j++)
+        state.colorWriteMask[j] = 0xf;
+
+      // depth state
+      state.depthBoundsTestEnable = false;
+      state.depthCompareOp = VK_COMPARE_OP_ALWAYS;
+    }
+
     // Get primitive ID and shader output value for each fragment.
     for(uint32_t f = 0; f < numFragmentsInEvent; f++)
     {
@@ -2827,7 +3232,8 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
           continue;
         }
 
-        if(pipesIter[i] == VK_NULL_HANDLE)
+        if(prevState.graphics.shaderObject ? shadsIter[i] == ResourceId()
+                                           : pipesIter[i] == VK_NULL_HANDLE)
         {
           // without one of the pipelines (e.g. if there was a geometry shader in use and we can't
           // read primitive ID in the fragment shader) we can't continue.
@@ -2884,9 +3290,32 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
         barrier.newLayout = colourCopyParams.srcImageLayout;
         DoPipelineBarrier(cmd, 1, &barrier);
 
-        m_pDriver->GetCmdRenderState().graphics.pipeline = GetResID(pipesIter[i]);
-        // ensure the render state sets any dynamic state the pipeline needs
-        m_pDriver->GetCmdRenderState().SetDynamicStatesFromPipeline(m_pDriver);
+        // modify bound state
+        if(!prevState.graphics.shaderObject)
+        {
+          m_pDriver->GetCmdRenderState().graphics.pipeline = GetResID(pipesIter[i]);
+          // ensure the render state sets any dynamic state the pipeline needs
+          m_pDriver->GetCmdRenderState().SetDynamicStatesFromPipeline(m_pDriver);
+        }
+        else
+        {
+          // set the fragment shader
+          state.shaderObjects[(uint32_t)ShaderStage::Fragment] = shadsIter[i];
+
+          // set dynamic state
+          if(i == 0)
+          {
+            // first pass - fragment shader which outputs primitive ID
+            state.depthTestEnable = false;
+            state.depthWriteEnable = false;
+          }
+          else
+          {
+            // second pass - blending OFF, to get shader output value
+            state.depthTestEnable = prevState.depthTestEnable;
+            state.depthWriteEnable = true;
+          }
+        }
 
         m_pDriver->GetCmdRenderState().BeginRenderPassAndApplyState(
             m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
@@ -2981,9 +3410,29 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       VkMarkerRegion region(cmd, StringFormat::Fmt("Getting postmod for fragment %u in %u", f, eid));
 
       // Get post-modification value, use the original framebuffer attachment.
-      state.graphics.pipeline = GetResID(pipes.postModPipe);
-      // ensure the render state sets any dynamic state the pipeline needs
-      state.SetDynamicStatesFromPipeline(m_pDriver);
+      if(!prevState.graphics.shaderObject)
+      {
+        state.graphics.pipeline = GetResID(pipes.postModPipe);
+        // ensure the render state sets any dynamic state the pipeline needs
+        state.SetDynamicStatesFromPipeline(m_pDriver);
+      }
+      else
+      {
+        // revert modified state
+        state.colorBlendEnable = prevState.colorBlendEnable;
+        state.colorWriteMask = prevState.colorWriteMask;
+
+        state.depthTestEnable = prevState.depthTestEnable;
+        state.depthWriteEnable = prevState.depthWriteEnable;
+        state.depthCompareOp = prevState.depthCompareOp;
+
+        // set the default cleaned shaders
+        for(uint32_t s = 0; s < NumShaderStages; s++)
+          m_pDriver->GetCmdRenderState().shaderObjects[s] = shads.cleanShaderObjects[s];
+
+        // set the necessary dynamic state
+        SetOneFragStencilStateForEXTShaderObject(state);
+      }
       state.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
       // Have to reset stencil.
       VkClearAttachment att = {};
@@ -3256,6 +3705,57 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     return pipes;
   }
 
+  ShaderObjects CreatePerFragmentShaders(VulkanRenderState &state, uint32_t eid,
+                                         uint32_t colorOutputIndex)
+  {
+    ShaderObjects shads = {};
+    RemoveShaderObjectSideEffects(state, eid);
+
+    // save the clean shaders so we can use them for each renderpass as necessary
+    for(uint32_t i = 0; i < NumShaderStages; i++)
+      shads.cleanShaderObjects[i] = state.shaderObjects[i];
+
+    // output the primitive ID
+    if(state.shaderObjects[(uint32_t)ShaderStage::Fragment] != ResourceId())
+      shads.primitiveIdGSObject = GetResID(m_ShaderCache->GetPrimitiveIdShaderObject(
+          state.shaderObjects[(uint32_t)ShaderStage::Fragment], colorOutputIndex));
+
+    bool gsFound = state.shaderObjects[(uint32_t)ShaderStage::Geometry] != ResourceId();
+    bool meshFound = state.shaderObjects[(uint32_t)ShaderStage::Mesh] != ResourceId();
+
+    if(gsFound || meshFound)
+    {
+      shads.primitiveIdGSObject = ResourceId();
+      RDCWARN("Can't get primitive ID at event %u due to geometry shader usage", eid);
+    }
+
+    return shads;
+  }
+
+  // Enable dynamic state we want to control for shader objects.
+  void SetOneFragStencilStateForEXTShaderObject(VulkanRenderState &state)
+  {
+    // may have been omitted if the app set stencilTestEnable to false
+    state.dynamicStates[VkDynamicStencilOp] = true;
+    state.dynamicStates[VkDynamicStencilCompareMask] = true;
+    state.dynamicStates[VkDynamicStencilWriteMask] = true;
+    state.dynamicStates[VkDynamicStencilReference] = true;
+
+    // may have been omitted if the app set depthTestEnable to false
+    state.dynamicStates[VkDynamicDepthCompareOp] = true;
+
+    // set dynamic stencil state to only let one fragment pass
+    state.stencilTestEnable = true;
+    state.front.compareOp = VK_COMPARE_OP_EQUAL;
+    state.front.failOp = VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+    state.front.passOp = VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+    state.front.depthFailOp = VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+    state.front.compare = 0xff;
+    state.front.write = 0xff;
+    state.front.ref = 0;
+    state.back = state.front;
+  }
+
   void PreDispatch(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) {}
   bool PostDispatch(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) { return false; }
   void PostRedispatch(uint32_t eid, ActionFlags flags, VkCommandBuffer cmd) {}
@@ -3327,16 +3827,25 @@ struct VulkanPixelHistoryDiscardedFragmentsCallback : VulkanPixelHistoryCallback
     VulkanRenderState prevState = m_pDriver->GetCmdRenderState();
     VulkanRenderState &state = m_pDriver->GetCmdRenderState();
     // Create a pipeline with a scissor and colorWriteMask = 0, and disable all tests.
-    VkPipeline newPipe = CreatePipeline(state.graphics.pipeline, eid);
+    VkPipeline newPipe = VK_NULL_HANDLE;
     for(uint32_t i = 0; i < state.views.size(); i++)
       ScissorToPixel(state.views[i], state.scissors[i]);
-    state.graphics.pipeline = GetResID(newPipe);
-    // ensure the render state sets any dynamic state the pipeline needs
-    state.SetDynamicStatesFromPipeline(m_pDriver);
-    const VulkanCreationInfo::Pipeline &p =
-        m_pDriver->GetDebugManager()->GetPipelineInfo(state.graphics.pipeline);
-    Topology topo = MakePrimitiveTopology(state.primitiveTopology, p.patchControlPoints);
-    state.BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
+    Topology topo = MakePrimitiveTopology(state.primitiveTopology, state.patchControlPoints);
+    if(!prevState.graphics.shaderObject)
+    {
+      newPipe = CreatePipeline(state.graphics.pipeline, eid);
+      state.graphics.pipeline = GetResID(newPipe);
+      // ensure the render state sets any dynamic state the pipeline needs
+      state.SetDynamicStatesFromPipeline(m_pDriver);
+      state.BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
+    }
+    else
+    {
+      SetIncrementStencilStateForEXTShaderObject(state, true);
+      RemoveShaderObjectSideEffects(state, eid);
+      state.stencilTestEnable = false;
+      state.BindShaderObjects(m_pDriver, cmd, VulkanRenderState::BindGraphics);
+    }
     for(uint32_t i = 0; i < primIds.size(); i++)
     {
       uint32_t queryId = (uint32_t)m_OcclusionIndices.size();
@@ -3355,9 +3864,11 @@ struct VulkanPixelHistoryDiscardedFragmentsCallback : VulkanPixelHistoryCallback
 
       m_OcclusionIndices[make_rdcpair<uint32_t, uint32_t>(eid, primId)] = queryId;
     }
-    m_pDriver->GetCmdRenderState() = prevState;
-    m_pDriver->GetCmdRenderState().BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics,
-                                                false);
+    state = prevState;
+    if(!prevState.graphics.shaderObject)
+      state.BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
+    else
+      state.BindShaderObjects(m_pDriver, cmd, VulkanRenderState::BindGraphics);
   }
 
   VkPipeline CreatePipeline(ResourceId pipe, uint32_t eid)
