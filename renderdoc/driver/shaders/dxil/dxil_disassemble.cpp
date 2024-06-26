@@ -2764,6 +2764,28 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
           }
           DisassemblyAddNewLine();
         }
+        else if(reflection && !reflection->InputSig.empty())
+        {
+          m_Disassembly += "Inputs";
+          DisassemblyAddNewLine();
+          for(size_t j = 0; j < reflection->InputSig.size(); ++j)
+          {
+            if(needBlankLine)
+              DisassemblyAddNewLine();
+
+            const SigParameter &sig = reflection->InputSig[j];
+
+            m_Disassembly += "  ";
+            m_Disassembly += ToStr(sig.varType).c_str();
+            if(sig.compCount > 1)
+              m_Disassembly += ToStr(sig.compCount);
+
+            m_Disassembly += " " + sig.semanticIdxName;
+            m_Disassembly += ";";
+            needBlankLine = true;
+          }
+          DisassemblyAddNewLine();
+        }
 
         if(!entryPoint->outputs.empty())
         {
@@ -2802,6 +2824,34 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
             m_Disassembly += " " + sig.name;
             if(sig.rows > 1)
               m_Disassembly += "[" + ToStr(sig.rows) + "]";
+            m_Disassembly += ";";
+            needBlankLine = true;
+          }
+          DisassemblyAddNewLine();
+        }
+        else if(reflection && !reflection->OutputSig.empty())
+        {
+          if(needBlankLine)
+          {
+            DisassemblyAddNewLine();
+            needBlankLine = false;
+          }
+
+          m_Disassembly += "Outputs";
+          DisassemblyAddNewLine();
+          for(size_t j = 0; j < reflection->OutputSig.size(); ++j)
+          {
+            if(needBlankLine)
+              DisassemblyAddNewLine();
+
+            const SigParameter &sig = reflection->OutputSig[j];
+
+            m_Disassembly += "  ";
+            m_Disassembly += ToStr(sig.varType).c_str();
+            if(sig.compCount > 1)
+              m_Disassembly += ToStr(sig.compCount);
+
+            m_Disassembly += " " + sig.semanticIdxName;
             m_Disassembly += ";";
             needBlankLine = true;
           }
@@ -2950,9 +3000,18 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
           DisassemblyAddNewLine();
       }
 
+      // Show the compute shader thread group size
+      if(reflection && m_Type == DXBC::ShaderType::Compute)
+      {
+        m_Disassembly += StringFormat::Fmt(
+            "[numthreads(%u, %u, %u)]", reflection->DispatchThreadsDimension[0],
+            reflection->DispatchThreadsDimension[1], reflection->DispatchThreadsDimension[2]);
+        DisassemblyAddNewLine();
+      }
+
       if(func.internalLinkage)
         m_Disassembly += "internal ";
-      m_Disassembly += func.type->declFunction("@" + escapeStringIfNeeded(func.name), func.args,
+      m_Disassembly += func.type->declFunction(escapeStringIfNeeded(func.name), func.args,
                                                func.attrs, dxcStyleFormatting);
 
       if(func.comdatIdx < m_Comdats.size())
