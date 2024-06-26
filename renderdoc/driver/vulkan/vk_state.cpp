@@ -375,6 +375,31 @@ void VulkanRenderState::BindPipeline(WrappedVulkan *vk, VkCommandBuffer cmd,
       BindDescriptorSetsWithoutPipeline(vk, cmd, compute, VK_PIPELINE_BIND_POINT_COMPUTE);
     }
   }
+
+  if(binding == BindRT || binding == BindInitial)
+  {
+    if(rt.pipeline != ResourceId())
+    {
+      ObjDisp(cmd)->CmdBindPipeline(
+          Unwrap(cmd), VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
+          Unwrap(vk->GetResourceManager()->GetCurrentHandle<VkPipeline>(rt.pipeline)));
+
+      ResourceId pipeLayoutId = vk->GetDebugManager()->GetPipelineInfo(rt.pipeline).compLayout;
+      VkPipelineLayout layout =
+          vk->GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayoutId);
+
+      const rdcarray<VkPushConstantRange> &pushRanges =
+          vk->GetDebugManager()->GetPipelineLayoutInfo(pipeLayoutId).pushRanges;
+
+      // only set push constant ranges that the layout uses
+      for(size_t i = 0; i < pushRanges.size(); i++)
+        ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(layout), pushRanges[i].stageFlags,
+                                       pushRanges[i].offset, pushRanges[i].size,
+                                       pushconsts + pushRanges[i].offset);
+
+      BindDescriptorSetsForPipeline(vk, cmd, rt, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR);
+    }
+  }
 }
 
 void VulkanRenderState::BindShaderObjects(WrappedVulkan *vk, VkCommandBuffer cmd,
@@ -1025,12 +1050,8 @@ void VulkanRenderState::BindDescriptorSet(WrappedVulkan *vk, const DescSetLayout
                                           VkCommandBuffer cmd, VkPipelineBindPoint bindPoint,
                                           uint32_t setIndex, uint32_t *dynamicOffsets)
 {
-  ResourceId descSet = (bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
-                           ? graphics.descSets[setIndex].descSet
-                           : compute.descSets[setIndex].descSet;
-  ResourceId pipeLayout = (bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
-                              ? graphics.descSets[setIndex].pipeLayout
-                              : compute.descSets[setIndex].pipeLayout;
+  ResourceId descSet = GetPipeline(bindPoint).descSets[setIndex].descSet;
+  ResourceId pipeLayout = GetPipeline(bindPoint).descSets[setIndex].pipeLayout;
   VkPipelineLayout layout = vk->GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeLayout);
 
   if((descLayout.flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR) == 0)

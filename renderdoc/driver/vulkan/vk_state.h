@@ -58,7 +58,8 @@ struct VulkanRenderState
     BindNone = 0x0,
     BindGraphics = 0x1,
     BindCompute = 0x2,
-    BindInitial = 0x4,
+    BindRT = 0x4,
+    BindInitial = 0x8,
   };
 
   VulkanRenderState();
@@ -163,7 +164,16 @@ struct VulkanRenderState
   bool ActiveRenderPass() const { return renderPass != ResourceId() || dynamicRendering.active; }
   VkRect2D renderArea = {};
 
-  VulkanStatePipeline compute, graphics;
+  VulkanStatePipeline compute, graphics, rt;
+
+  VulkanStatePipeline &GetPipeline(VkPipelineBindPoint pipelineBindPoint)
+  {
+    if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
+      return graphics;
+    else if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR)
+      return rt;
+    return compute;
+  }
 
   struct IdxBuffer
   {

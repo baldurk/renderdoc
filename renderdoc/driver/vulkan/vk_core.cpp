@@ -4407,6 +4407,8 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 
           if(m_RenderState.compute.pipeline != ResourceId())
             m_RenderState.BindPipeline(this, cmd, VulkanRenderState::BindCompute, false);
+          if(m_RenderState.rt.pipeline != ResourceId())
+            m_RenderState.BindPipeline(this, cmd, VulkanRenderState::BindRT, false);
           if(m_RenderState.graphics.pipeline != ResourceId())
             m_RenderState.BindPipeline(this, cmd, VulkanRenderState::BindGraphics, false);
         }

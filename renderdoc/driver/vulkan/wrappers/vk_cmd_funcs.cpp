@@ -3103,6 +3103,10 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
             // disturb compute shader bound via vkCmdBindShadersEXT, if any
             renderstate.shaderObjects[(uint32_t)ShaderStage::Compute] = ResourceId();
           }
+          else if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR)
+          {
+            renderstate.rt.pipeline = liveid;
+          }
           else
           {
             renderstate.graphics.pipeline = liveid;
@@ -3433,6 +3437,11 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.pipeline = liveid;
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.shaderObject = false;
       }
+      else if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR)
+      {
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.rt.pipeline = liveid;
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.rt.shaderObject = false;
+      }
       else
       {
         m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.pipeline = liveid;
@@ -3515,18 +3524,14 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
 
-          rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
-              (pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS) ? renderstate.graphics.descSets
-                                                                     : renderstate.compute.descSets;
+          VulkanStatePipeline &pipeline = renderstate.GetPipeline(pipelineBindPoint);
+          rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets = pipeline.descSets;
 
           // expand as necessary
           if(descsets.size() < firstSet + setCount)
             descsets.resize(firstSet + setCount);
 
-          if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
-            renderstate.graphics.lastBoundSet = firstSet;
-          else
-            renderstate.compute.lastBoundSet = firstSet;
+          pipeline.lastBoundSet = firstSet;
 
           const rdcarray<ResourceId> &descSetLayouts =
               m_CreationInfo.m_PipelineLayout[GetResID(layout)].descSetLayouts;
@@ -3558,9 +3563,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
     {
       // track while reading, as we need to track resource usage
       rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
-          (pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
-              ? m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.descSets
-              : m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.descSets;
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetPipeline(pipelineBindPoint).descSets;
 
       // expand as necessary
       if(descsets.size() < firstSet + setCount)
@@ -5477,18 +5480,14 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetKHR(SerialiserType &ser,
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
-          rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
-              (pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS) ? renderstate.graphics.descSets
-                                                                     : renderstate.compute.descSets;
+          VulkanStatePipeline &pipeline = renderstate.GetPipeline(pipelineBindPoint);
+          rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets = pipeline.descSets;
 
           // expand as necessary
           if(descsets.size() < set + 1)
             descsets.resize(set + 1);
 
-          if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
-            renderstate.graphics.lastBoundSet = set;
-          else
-            renderstate.compute.lastBoundSet = set;
+          pipeline.lastBoundSet = set;
 
           descsets[set].pipeLayout = GetResID(layout);
           descsets[set].descSet = setId;
@@ -5505,9 +5504,7 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetKHR(SerialiserType &ser,
     {
       // track while reading, as we need to track resource usage
       rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
-          (pipelineBindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
-              ? m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.descSets
-              : m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.descSets;
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetPipeline(pipelineBindPoint).descSets;
 
       // expand as necessary
       if(descsets.size() < set + 1)
@@ -5767,18 +5764,14 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetWithTemplateKHR(
 
         {
           VulkanRenderState &renderstate = GetCmdRenderState();
-          rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
-              (bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS) ? renderstate.graphics.descSets
-                                                             : renderstate.compute.descSets;
+          VulkanStatePipeline &pipeline = renderstate.GetPipeline(bindPoint);
+          rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets = pipeline.descSets;
 
           // expand as necessary
           if(descsets.size() < set + 1)
             descsets.resize(set + 1);
 
-          if(bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
-            renderstate.graphics.lastBoundSet = set;
-          else
-            renderstate.compute.lastBoundSet = set;
+          pipeline.lastBoundSet = set;
 
           descsets[set].pipeLayout = GetResID(layout);
           descsets[set].descSet = setId;
@@ -5795,10 +5788,7 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetWithTemplateKHR(
     {
       // track while reading, as we need to track resource usage
       rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
-          (m_CreationInfo.m_DescUpdateTemplate[GetResID(descriptorUpdateTemplate)].bindPoint ==
-           VK_PIPELINE_BIND_POINT_GRAPHICS)
-              ? m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.descSets
-              : m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.descSets;
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetPipeline(bindPoint).descSets;
 
       // expand as necessary
       if(descsets.size() < set + 1)
