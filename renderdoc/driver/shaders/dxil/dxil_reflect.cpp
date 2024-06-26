@@ -576,7 +576,17 @@ void Program::FetchComputeProperties(DXBC::Reflection *reflection)
   {
     const Function &f = *m_Functions[i];
 
-    if(f.name.beginsWith("dx.op.threadId"))
+    // Match "dx.op.threadIdGroup" before "dx.op.threadId"
+    if(f.name.beginsWith("dx.op.threadIdInGroup"))
+    {
+      SigParameter param;
+      param.systemValue = ShaderBuiltin::GroupThreadIndex;
+      param.compCount = 3;
+      param.regChannelMask = param.channelUsedMask = 0x7;
+      param.semanticIdxName = param.semanticName = "threadIdInGroup";
+      reflection->InputSig.push_back(param);
+    }
+    else if(f.name.beginsWith("dx.op.threadId"))
     {
       SigParameter param;
       param.systemValue = ShaderBuiltin::DispatchThreadIndex;
@@ -592,15 +602,6 @@ void Program::FetchComputeProperties(DXBC::Reflection *reflection)
       param.compCount = 3;
       param.regChannelMask = param.channelUsedMask = 0x7;
       param.semanticIdxName = param.semanticName = "groupID";
-      reflection->InputSig.push_back(param);
-    }
-    else if(f.name.beginsWith("dx.op.threadIdInGroup"))
-    {
-      SigParameter param;
-      param.systemValue = ShaderBuiltin::GroupThreadIndex;
-      param.compCount = 3;
-      param.regChannelMask = param.channelUsedMask = 0x7;
-      param.semanticIdxName = param.semanticName = "threadIdInGroup";
       reflection->InputSig.push_back(param);
     }
     else if(f.name.beginsWith("dx.op.flattenedThreadIdInGroup"))
