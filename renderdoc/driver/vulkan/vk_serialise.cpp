@@ -12355,7 +12355,6 @@ template <>
 void Deserialise(const VkRayTracingShaderGroupCreateInfoKHR &el)
 {
   DeserialiseNext(el.pNext);
-  delete[] el.pShaderGroupCaptureReplayHandle;
 }
 
 template <typename SerialiserType>
