@@ -2328,7 +2328,7 @@ HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pF
     opts->SamplerFeedbackTier = D3D12_SAMPLER_FEEDBACK_TIER_NOT_SUPPORTED;
 
     if(dolog)
-      RDCLOG("Forcing no mesh shading or sampler feedback tier support");
+      RDCLOG("Forcing no sampler feedback tier support");
 
     return S_OK;
   }
