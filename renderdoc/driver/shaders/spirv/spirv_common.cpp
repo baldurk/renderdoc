@@ -102,13 +102,13 @@ ShaderStage MakeShaderStage(rdcspv::ExecutionModel model)
     case rdcspv::ExecutionModel::GLCompute: return ShaderStage::Compute;
     case rdcspv::ExecutionModel::TaskEXT: return ShaderStage::Task;
     case rdcspv::ExecutionModel::MeshEXT: return ShaderStage::Mesh;
+    case rdcspv::ExecutionModel::RayGenerationKHR: return ShaderStage::RayGen;
+    case rdcspv::ExecutionModel::IntersectionKHR: return ShaderStage::Intersection;
+    case rdcspv::ExecutionModel::AnyHitKHR: return ShaderStage::AnyHit;
+    case rdcspv::ExecutionModel::ClosestHitKHR: return ShaderStage::ClosestHit;
+    case rdcspv::ExecutionModel::MissKHR: return ShaderStage::Miss;
+    case rdcspv::ExecutionModel::CallableKHR: return ShaderStage::Callable;
     case rdcspv::ExecutionModel::Kernel:
-    case rdcspv::ExecutionModel::RayGenerationKHR:
-    case rdcspv::ExecutionModel::IntersectionKHR:
-    case rdcspv::ExecutionModel::AnyHitKHR:
-    case rdcspv::ExecutionModel::ClosestHitKHR:
-    case rdcspv::ExecutionModel::MissKHR:
-    case rdcspv::ExecutionModel::CallableKHR:
     case rdcspv::ExecutionModel::TaskNV:
     case rdcspv::ExecutionModel::MeshNV:
       // all of these are currently unsupported

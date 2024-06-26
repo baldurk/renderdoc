@@ -552,6 +552,12 @@ int StageIndex(VkShaderStageFlagBits stageFlag)
     case VK_SHADER_STAGE_COMPUTE_BIT: return 5;
     case VK_SHADER_STAGE_TASK_BIT_EXT: return 6;
     case VK_SHADER_STAGE_MESH_BIT_EXT: return 7;
+    case VK_SHADER_STAGE_RAYGEN_BIT_KHR: return 8;
+    case VK_SHADER_STAGE_INTERSECTION_BIT_KHR: return 9;
+    case VK_SHADER_STAGE_ANY_HIT_BIT_KHR: return 10;
+    case VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR: return 11;
+    case VK_SHADER_STAGE_MISS_BIT_KHR: return 12;
+    case VK_SHADER_STAGE_CALLABLE_BIT_KHR: return 13;
     default: RDCERR("Unrecognised/not single flag %x", stageFlag); break;
   }
 
