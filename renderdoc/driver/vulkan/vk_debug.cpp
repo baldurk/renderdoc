@@ -1770,6 +1770,13 @@ const VulkanCreationInfo::Pipeline &VulkanDebugManager::GetPipelineInfo(Resource
   return it->second;
 }
 
+const VulkanCreationInfo::ShaderObject &VulkanDebugManager::GetShaderObjectInfo(ResourceId shader) const
+{
+  auto it = m_pDriver->m_CreationInfo.m_ShaderObject.find(shader);
+  RDCASSERT(it != m_pDriver->m_CreationInfo.m_ShaderObject.end());
+  return it->second;
+}
+
 const VulkanCreationInfo::ShaderModule &VulkanDebugManager::GetShaderInfo(ResourceId shader) const
 {
   auto it = m_pDriver->m_CreationInfo.m_ShaderModule.find(shader);
