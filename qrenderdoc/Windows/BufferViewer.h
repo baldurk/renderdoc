@@ -77,6 +77,7 @@ struct CBufferData
 {
   bool valid = false;
   bool bytesBacked = false;
+  bool compileConstants = false;
   ResourceId pipe;
   ResourceId shader;
   rdcstr entryPoint;

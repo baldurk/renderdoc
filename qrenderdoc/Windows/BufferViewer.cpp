@@ -3329,6 +3329,8 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       {
         bufdata->cb.bytesBacked = reflection->constantBlocks[m_CBufferSlot.slot].bufferBacked ||
                                   reflection->constantBlocks[m_CBufferSlot.slot].inlineDataBytes;
+        bufdata->cb.compileConstants =
+            reflection->constantBlocks[m_CBufferSlot.slot].compileConstants;
       }
 
       ui->setFormat->setEnabled(bufdata->cb.bytesBacked);
@@ -4192,6 +4194,9 @@ void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOff
           QFormatStr(" (bits %1:%2)").arg(c.bitFieldOffset).arg(c.bitFieldOffset + c.bitFieldSize);
     }
 
+    if(m_CurCBuffer.compileConstants)
+      offsetStr = lit("-");
+
     RDTreeWidgetItem *n =
         new RDTreeWidgetItem({v.name, VarString(v, c), offsetStr, TypeString(v, c)});
 
@@ -4218,7 +4223,8 @@ void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOff
         RDTreeWidgetItem *el = new RDTreeWidgetItem({
             v.members[e].name,
             VarString(v.members[e], c),
-            Formatter::HumanFormat(elOffset, Formatter::OffsetSize),
+            m_CurCBuffer.compileConstants ? lit("-")
+                                          : Formatter::HumanFormat(elOffset, Formatter::OffsetSize),
             TypeString(v.members[e], c),
         });
 
