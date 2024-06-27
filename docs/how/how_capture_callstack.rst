@@ -46,6 +46,6 @@ By default a symbol server will be used, as well as a few default locations such
 
 	PDB locate prompt: Prompt to locate a PDB that cannot be found.
 
-If a PDB cannot be located then you have the option of permanently ignoring that PDB. This can be useful for third party libraries for which no PDB will ever be available. If you don't ignore the PDB you will be prompted to locate it the next time you open a capture that references it.
+If a PDB cannot be located then you have the option of permanently ignoring that PDB. This can be useful for third party libraries for which no PDB will ever be available. If you don't ignore the PDB you will be prompted to locate it the next time you open a capture that references it. The list of ignored PDBs is given in the settings window in the UI, where you can remove a PDB from it.
 
 Once the symbols have been successfully resolved the callstack section of the API inspector will contain any callstack that was collected for the given action or API call. You can select and copy any levels and paste them elsewhere if you wish.

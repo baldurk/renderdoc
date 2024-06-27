@@ -28,11 +28,12 @@
 
 class QToolButton;
 
-enum class BrowseMode
+enum class ItemButton
 {
   None,
-  Folder,
-  File,
+  BrowseFolder,
+  BrowseFile,
+  Delete,
 };
 
 class OrderedListEditor : public RDTableWidget
@@ -40,22 +41,27 @@ class OrderedListEditor : public RDTableWidget
   Q_OBJECT
 
 public:
-  explicit OrderedListEditor(const QString &itemName, BrowseMode browse, QWidget *parent = 0);
+  explicit OrderedListEditor(const QString &itemName, ItemButton button, QWidget *parent = 0);
   ~OrderedListEditor();
 
   void setItems(const QStringList &strings);
   QStringList getItems();
 
+  bool allowAddition() { return m_allowAddition; }
+  void setAllowAddition(bool allow) { m_allowAddition = allow; }
+
 private slots:
   // manual slots
   void cellChanged(int row, int column);
-  void browse();
+  void buttonActivate();
 
 private:
   void keyPressEvent(QKeyEvent *e) override;
 
-  BrowseMode m_BrowseMode;
+  ItemButton m_ButtonMode;
+
+  bool m_allowAddition = true;
 
   void addNewItemRow();
-  QToolButton *makeBrowseButton();
+  QToolButton *makeButton();
 };

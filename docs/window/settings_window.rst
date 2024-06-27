@@ -175,6 +175,12 @@ The complete details of the analytics can be found in the page about :doc:`../be
 Core options
 ------------
 
+  | :guilabel:`Ignored DLLs for callstack symbol resolution` Default: ``Empty``
+
+Here you can see a list of DLLs (on windows only) which have been permanently ignored for callstack symbol resolution. You can remove any or all of the items on the list and you will be prompted to locate them again the next time symbols are resolved which needs them.
+
+For more information you can consult :doc:`../how/how_capture_callstack`.
+
   | :guilabel:`Shader debug search paths` Default: ``Empty``
 
 Here you can choose which locations to search in, and in which order, when looking up a relative path for unstripped debug info.

@@ -297,11 +297,11 @@ e.g. 1000 * 10 = 1e4</string>
            </widget>
           </item>
           <item row="10" column="1">
-            <widget class="QComboBox" name="Formatter_OffsetSizeDisplayMode">
-              <property name="toolTip">
-                <string>Auto: decimal by default and hexadecimal if above a certain threshold, Decimal: always use decimal, Hexadecimal: always use hexadecimal.</string>
-              </property>
-            </widget>
+           <widget class="QComboBox" name="Formatter_OffsetSizeDisplayMode">
+            <property name="toolTip">
+             <string>Auto: decimal by default and hexadecimal if above a certain threshold, Decimal: always use decimal, Hexadecimal: always use hexadecimal.</string>
+            </property>
+           </widget>
           </item>
           <item row="11" column="0">
            <widget class="QLabel" name="label_5">
@@ -569,7 +569,27 @@ This option overrides that and will always replay locally if the local context i
            </widget>
           </item>
           <item row="1" column="0">
-           <widget class="QLabel" name="label_11">
+           <widget class="QLabel" name="chooseIgnoresLabel">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Ignored DLLs for callstack symbol resolution</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QPushButton" name="chooseIgnores">
+            <property name="text">
+             <string>Ignored DLLs list</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_31">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
               <horstretch>0</horstretch>
@@ -581,14 +601,14 @@ This option overrides that and will always replay locally if the local context i
             </property>
            </widget>
           </item>
-          <item row="1" column="1">
+          <item row="2" column="1">
            <widget class="QPushButton" name="chooseSearchPaths">
             <property name="text">
              <string>Choose paths</string>
             </property>
            </widget>
           </item>
-          <item row="2" column="0">
+          <item row="3" column="0">
            <widget class="QLabel" name="label_18">
             <property name="toolTip">
              <string>RenderDoc can optionally have integration with AMD's Radeon GPU Profiler, to allow capturing RGP from RenderDoc and allowing interop between the two.
@@ -600,7 +620,7 @@ After interop is enabled you will need to reload any capture.</string>
             </property>
            </widget>
           </item>
-          <item row="2" column="1">
+          <item row="3" column="1">
            <widget class="QCheckBox" name="ExternalTool_RGPIntegration">
             <property name="toolTip">
              <string>RenderDoc can optionally have integration with AMD's Radeon GPU Profiler, to allow capturing RGP from RenderDoc and allowing interop between the two.
@@ -612,7 +632,7 @@ After interop is enabled you will need to reload any capture.</string>
             </property>
            </widget>
           </item>
-          <item row="3" column="0" colspan="2">
+          <item row="4" column="0" colspan="2">
            <widget class="QLabel" name="label_17">
             <property name="toolTip">
              <string>Locates the RadeonGPUProfiler.exe which will be used to interop with when generating and opening RGP profiles.</string>
@@ -622,14 +642,14 @@ After interop is enabled you will need to reload any capture.</string>
             </property>
            </widget>
           </item>
-          <item row="4" column="0">
+          <item row="5" column="0">
            <widget class="QLineEdit" name="ExternalTool_RadeonGPUProfiler">
             <property name="toolTip">
              <string>Locates the RadeonGPUProfiler.exe which will be used to interop with when generating and opening RGP profiles.</string>
             </property>
            </widget>
           </item>
-          <item row="4" column="1">
+          <item row="5" column="1">
            <widget class="QPushButton" name="browseRGPPath">
             <property name="toolTip">
              <string>Locates the RadeonGPUProfiler.exe which will be used to interop with when generating and opening RGP profiles.</string>
@@ -639,7 +659,7 @@ After interop is enabled you will need to reload any capture.</string>
             </property>
            </widget>
           </item>
-          <item row="5" column="0" colspan="2">
+          <item row="6" column="0" colspan="2">
            <spacer name="verticalSpacer_2">
             <property name="orientation">
              <enum>Qt::Vertical</enum>

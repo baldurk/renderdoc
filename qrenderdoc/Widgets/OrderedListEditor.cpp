@@ -29,12 +29,12 @@
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 
-OrderedListEditor::OrderedListEditor(const QString &itemName, BrowseMode browse, QWidget *parent)
+OrderedListEditor::OrderedListEditor(const QString &itemName, ItemButton mode, QWidget *parent)
     : RDTableWidget(parent)
 {
   setFont(Formatter::PreferredFont());
 
-  m_BrowseMode = browse;
+  m_ButtonMode = mode;
 
   setDragEnabled(true);
   setDragDropOverwriteMode(false);
@@ -49,7 +49,7 @@ OrderedListEditor::OrderedListEditor(const QString &itemName, BrowseMode browse,
   horizontalHeader()->setMinimumSectionSize(50);
   verticalHeader()->setHighlightSections(false);
 
-  if(m_BrowseMode == BrowseMode::None)
+  if(m_ButtonMode == ItemButton::None)
   {
     setColumnCount(1);
     setHorizontalHeaderLabels({itemName});
@@ -58,7 +58,14 @@ OrderedListEditor::OrderedListEditor(const QString &itemName, BrowseMode browse,
   else
   {
     QStringList labels;
-    labels << itemName << tr("Browse");
+    labels << itemName;
+    switch(m_ButtonMode)
+    {
+      case ItemButton::None: labels << lit("????"); break;
+      case ItemButton::BrowseFile:
+      case ItemButton::BrowseFolder: labels << tr("Browse"); break;
+      case ItemButton::Delete: labels << tr("Delete"); break;
+    }
     setColumnCount(2);
     setHorizontalHeaderLabels(labels);
 
@@ -73,14 +80,17 @@ OrderedListEditor::~OrderedListEditor()
 {
 }
 
-QToolButton *OrderedListEditor::makeBrowseButton()
+QToolButton *OrderedListEditor::makeButton()
 {
   QToolButton *ret = new QToolButton(this);
 
-  ret->setIcon(Icons::folder_page_white());
+  if(m_ButtonMode == ItemButton::Delete)
+    ret->setIcon(Icons::del());
+  else
+    ret->setIcon(Icons::folder_page_white());
   ret->setAutoRaise(true);
 
-  QObject::connect(ret, &QToolButton::clicked, this, &OrderedListEditor::browse);
+  QObject::connect(ret, &QToolButton::clicked, this, &OrderedListEditor::buttonActivate);
 
   return ret;
 }
@@ -96,8 +106,8 @@ void OrderedListEditor::setItems(const QStringList &strings)
   {
     setItem(i, 0, new QTableWidgetItem(strings[i]));
 
-    if(m_BrowseMode != BrowseMode::None)
-      setCellWidget(i, 1, makeBrowseButton());
+    if(m_ButtonMode != ItemButton::None)
+      setCellWidget(i, 1, makeButton());
   }
 
   // if we added any strings above the new item row was automatically
@@ -106,7 +116,7 @@ void OrderedListEditor::setItems(const QStringList &strings)
     addNewItemRow();
 
   resizeColumnToContents(0);
-  if(m_BrowseMode != BrowseMode::None)
+  if(m_ButtonMode != ItemButton::None)
     resizeColumnToContents(1);
 
   setUpdatesEnabled(true);
@@ -114,19 +124,22 @@ void OrderedListEditor::setItems(const QStringList &strings)
 
 void OrderedListEditor::addNewItemRow()
 {
+  if(!allowAddition())
+    return;
+
   insertRow(rowCount());
 
   QTableWidgetItem *item = new QTableWidgetItem(QString());
   item->setFlags(item->flags() & ~(Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled));
   setItem(rowCount() - 1, 0, item);
 
-  if(m_BrowseMode != BrowseMode::None)
+  if(m_ButtonMode != ItemButton::None)
   {
     item = new QTableWidgetItem(QString());
     item->setFlags(item->flags() & ~(Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled));
     setItem(rowCount() - 1, 1, item);
 
-    setCellWidget(rowCount() - 1, 1, makeBrowseButton());
+    setCellWidget(rowCount() - 1, 1, makeButton());
   }
 }
 
@@ -134,8 +147,11 @@ QStringList OrderedListEditor::getItems()
 {
   QStringList ret;
 
+  int count = rowCount();
   // don't include the last 'new item' entry
-  for(int i = 0; i < rowCount() - 1; i++)
+  if(allowAddition())
+    count--;
+  for(int i = 0; i < count; i++)
     ret << item(i, 0)->text();
 
   return ret;
@@ -158,7 +174,7 @@ void OrderedListEditor::cellChanged(int row, int column)
     {
       // enable dragging
       item(row, 0)->setFlags(item(row, 0)->flags() | (Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled));
-      if(m_BrowseMode != BrowseMode::None)
+      if(m_ButtonMode != ItemButton::None)
         delete takeItem(row, 1);
 
       addNewItemRow();
@@ -173,7 +189,7 @@ void OrderedListEditor::cellChanged(int row, int column)
   recurse = false;
 }
 
-void OrderedListEditor::browse()
+void OrderedListEditor::buttonActivate()
 {
   QWidget *tool = qobject_cast<QWidget *>(QObject::sender());
 
@@ -184,10 +200,16 @@ void OrderedListEditor::browse()
       QWidget *rowButton = cellWidget(i, 1);
       if(rowButton == tool)
       {
+        if(m_ButtonMode == ItemButton::Delete)
+        {
+          this->removeRow(i);
+          return;
+        }
+
         QString sel;
-        if(m_BrowseMode == BrowseMode::Folder)
+        if(m_ButtonMode == ItemButton::BrowseFolder)
           sel = RDDialog::getExistingDirectory(this, tr("Browse for a folder"));
-        else
+        else if(m_ButtonMode == ItemButton::BrowseFile)
           sel = RDDialog::getOpenFileName(this, tr("Browse for a file"));
 
         if(!sel.isEmpty())

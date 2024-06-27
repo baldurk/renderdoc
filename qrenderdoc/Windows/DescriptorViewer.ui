@@ -66,7 +66,7 @@
      <item>
       <widget class="QLabel" name="pipeLabel">
        <property name="text">
-        <string></string>
+        <string/>
        </property>
        <property name="alignment">
         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>

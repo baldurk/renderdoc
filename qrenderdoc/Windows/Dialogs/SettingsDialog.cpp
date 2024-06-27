@@ -207,6 +207,19 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
     }
   }
 
+#if !defined(Q_OS_WIN32)
+  ui->chooseIgnoresLabel->hide();
+  ui->chooseIgnores->hide();
+#endif
+
+  {
+    const SDObject *getPaths = RENDERDOC_GetConfigSetting("Win32.Callstacks.IgnoreList");
+    if(!getPaths)
+    {
+      ui->chooseIgnores->setEnabled(false);
+    }
+  }
+
   if(const SDObject *setting = RENDERDOC_GetConfigSetting("DXBC.Disassembly.FriendlyNaming"))
   {
     ui->ShaderViewer_FriendlyNaming->setChecked(setting->AsBool());
@@ -605,7 +618,7 @@ void SettingsDialog::on_chooseSearchPaths_clicked()
   listEditor.setWindowTitle(tr("Shader debug info search paths"));
   listEditor.setWindowFlags(listEditor.windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
-  OrderedListEditor list(tr("Search Path"), BrowseMode::Folder);
+  OrderedListEditor list(tr("Search Path"), ItemButton::BrowseFolder);
 
   QVBoxLayout layout;
   QDialogButtonBox okCancel;
@@ -634,6 +647,55 @@ void SettingsDialog::on_chooseSearchPaths_clicked()
     items = list.getItems();
 
     SDObject *setPaths = RENDERDOC_SetConfigSetting("DXBC.Debug.SearchDirPaths");
+
+    setPaths->DeleteChildren();
+    setPaths->ReserveChildren(items.size());
+
+    for(int i = 0; i < items.size(); i++)
+      setPaths->AddAndOwnChild(makeSDString("$el"_lit, items[i]));
+
+    RENDERDOC_SaveConfigSettings();
+  }
+}
+
+void SettingsDialog::on_chooseIgnores_clicked()
+{
+  QDialog listEditor;
+
+  listEditor.setWindowTitle(tr("Ignored DLLs for callstack symbol resolution"));
+  listEditor.setWindowFlags(listEditor.windowFlags() & ~Qt::WindowContextHelpButtonHint);
+
+  OrderedListEditor list(tr("Ignored DLL"), ItemButton::Delete);
+
+  list.setAllowAddition(false);
+
+  QVBoxLayout layout;
+  QDialogButtonBox okCancel;
+  okCancel.setStandardButtons(QDialogButtonBox::Cancel | QDialogButtonBox::Ok);
+  layout.addWidget(&list);
+  layout.addWidget(&okCancel);
+
+  QObject::connect(&okCancel, &QDialogButtonBox::accepted, &listEditor, &QDialog::accept);
+  QObject::connect(&okCancel, &QDialogButtonBox::rejected, &listEditor, &QDialog::reject);
+
+  listEditor.setLayout(&layout);
+
+  const SDObject *getPaths = RENDERDOC_GetConfigSetting("Win32.Callstacks.IgnoreList");
+
+  QStringList items;
+
+  for(const SDObject *c : *getPaths)
+    items << c->data.str;
+
+  list.setItems(items);
+
+  int res = RDDialog::show(&listEditor);
+
+  if(res)
+  {
+    items = list.getItems();
+
+    SDObject *setPaths = RENDERDOC_SetConfigSetting("Win32.Callstacks.IgnoreList");
 
     setPaths->DeleteChildren();
     setPaths->ReserveChildren(items.size());
@@ -699,7 +761,7 @@ void SettingsDialog::on_TextureViewer_ChooseShaderDirectories_clicked()
   listEditor.setWindowTitle(tr("Custom shaders search directories"));
   listEditor.setWindowFlags(listEditor.windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
-  OrderedListEditor list(tr("Shaders Directory"), BrowseMode::Folder);
+  OrderedListEditor list(tr("Shaders Directory"), ItemButton::BrowseFolder);
 
   QVBoxLayout layout;
   QDialogButtonBox okCancel;
