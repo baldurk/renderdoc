@@ -107,6 +107,9 @@ struct Rules
   Rules() = default;
   Rules(APIConfig config)
   {
+    // no packing allows this by default, it is only enabled manually
+    tight_bitfield_packing = false;
+
     // default to the most conservative packing ruleset
 
     switch(config)
@@ -180,6 +183,10 @@ struct Rules
   // trailing padding and members after a struct are not packed in that padding). For arrays it does
   // not apply since C arrays are packed.
   bool trailing_overlap = false;
+
+  // whether bitfields will allow themselves to straddle their base type, or be aligned to stay
+  // within it. Equivalent to #pragma pack(1) in C++
+  bool tight_bitfield_packing = false;
 };
 
 };    // namespace Packing

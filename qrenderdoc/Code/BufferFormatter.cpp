@@ -813,6 +813,11 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
         else if(packrule == lit("no_trailing_overlap"))
           pack.trailing_overlap = false;
 
+        else if(packrule == lit("tight_bitfield_packing"))
+          pack.tight_bitfield_packing = true;
+        else if(packrule == lit("no_tight_bitfield_packing"))
+          pack.tight_bitfield_packing = false;
+
         else
           packrule = QString();
 
@@ -1925,9 +1930,9 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
     if(el.bitFieldSize > 0)
     {
-      // we can use the arrayByteStride since this is a scalar so no vector/arrays, this is just the
+      // we can use the elAlignment since this is a scalar so no vector/arrays, this is just the
       // base size. It also works for enums as this is the byte size of the declared underlying type
-      const uint32_t elemScalarBitSize = el.type.arrayByteStride * 8;
+      const uint32_t elemScalarBitSize = elAlignment * 8;
 
       // bitfields can't be larger than the base type
       if(el.bitFieldSize > elemScalarBitSize)
@@ -1972,11 +1977,22 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
       //  unsigned int c : 4;
       if(start + el.bitFieldSize > elemScalarBitSize)
       {
-        // align the offset up to where this bitfield needs to start
-        cur->offset += ((bitfieldCurPos + (elemScalarBitSize - 1)) / elemScalarBitSize) *
-                       (elemScalarBitSize / 8);
-        // reset the current bitfield pos
-        bitfieldCurPos = 0;
+        if(pack.tight_bitfield_packing)
+        {
+          while(bitfieldCurPos >= 8)
+          {
+            bitfieldCurPos -= 8;
+            cur->offset++;
+          }
+        }
+        else
+        {
+          // align the offset up to where this bitfield needs to start
+          cur->offset += ((bitfieldCurPos + (elemScalarBitSize - 1)) / elemScalarBitSize) *
+                         (elemScalarBitSize / 8);
+          // reset the current bitfield pos
+          bitfieldCurPos = 0;
+        }
       }
 
       // if there's no previous bitpacking, nothing much to do
@@ -2062,7 +2078,8 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
 
   fixed = root.structDef;
   uint32_t end = root.offset;
-  if(!fixed.type.members.isEmpty())
+  if(!fixed.type.members.isEmpty() &&
+     (!pack.tight_bitfield_packing || fixed.type.members.back().bitFieldSize == 0))
     end = qMax(
         end, fixed.type.members.back().byteOffset + GetVarSizeAndTrail(fixed.type.members.back()));
 
@@ -5003,6 +5020,38 @@ unsigned char highbit : 1;
     CHECK(parsed.fixed.type.members[4].name == "highbit");
     CHECK(parsed.fixed.type.members[4].bitFieldOffset == 7);
     CHECK(parsed.fixed.type.members[4].bitFieldSize == 1);
+
+    def = R"(
+uint infirst : 16;
+uint infirstalso : 14;
+// this will be forced to the second uint, leaving 2 bits of trailing padding in the first
+uint overflow : 20;
+// this then also can't be packed into the second uint and will be packed into a third, leaving 12 bits of padding
+uint inthird : 14;
+
+// result: total of 64 bits but packed into 3 uints due to padding
+)";
+    parsed = BufferFormatter::ParseFormatString(def, 0, true);
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 4);
+    CHECK(parsed.fixed.type.arrayByteStride == 12);
+    CHECK(parsed.fixed.type.members[0].name == "infirst");
+    CHECK(parsed.fixed.type.members[0].byteOffset == 0);
+    CHECK(parsed.fixed.type.members[0].bitFieldOffset == 0);
+    CHECK(parsed.fixed.type.members[0].bitFieldSize == 16);
+    CHECK(parsed.fixed.type.members[1].name == "infirstalso");
+    CHECK(parsed.fixed.type.members[1].byteOffset == 0);
+    CHECK(parsed.fixed.type.members[1].bitFieldOffset == 16);
+    CHECK(parsed.fixed.type.members[1].bitFieldSize == 14);
+    CHECK(parsed.fixed.type.members[2].name == "overflow");
+    CHECK(parsed.fixed.type.members[2].byteOffset == 4);
+    CHECK(parsed.fixed.type.members[2].bitFieldOffset == 0);
+    CHECK(parsed.fixed.type.members[2].bitFieldSize == 20);
+    CHECK(parsed.fixed.type.members[3].name == "inthird");
+    CHECK(parsed.fixed.type.members[3].byteOffset == 8);
+    CHECK(parsed.fixed.type.members[3].bitFieldOffset == 0);
+    CHECK(parsed.fixed.type.members[3].bitFieldSize == 14);
   };
 
   SECTION("pointers")
@@ -5787,6 +5836,44 @@ struct s
 
       CHECK(parsed.fixed.type.members[6].byteOffset == 160);    // g
       CHECK(parsed.fixed.type.members[7].byteOffset == 165);    // h
+    };
+
+    SECTION("Additional packing rules")
+    {
+      rdcstr def = R"(
+#pack(tight_bitfield_packing)
+
+uint infirst : 16;
+uint infirstalso : 14;
+// this will span 2 bits in the first uint and 18 bits in the second
+uint overflow : 20;
+uint insecond : 14;
+)";
+      for(rdcstr ruleset :
+          {"", "#pack(c)", "#pack(scalar)", "#pack(std430)", "#pack(std140)", "#pack(cbuffer)"})
+      {
+        parsed = BufferFormatter::ParseFormatString(ruleset + "\n" + def, 0, true);
+
+        CHECK(parsed.errors.isEmpty());
+        REQUIRE(parsed.fixed.type.members.size() == 4);
+        CHECK(parsed.fixed.type.arrayByteStride == 8);
+        CHECK(parsed.fixed.type.members[0].name == "infirst");
+        CHECK(parsed.fixed.type.members[0].byteOffset == 0);
+        CHECK(parsed.fixed.type.members[0].bitFieldOffset == 0);
+        CHECK(parsed.fixed.type.members[0].bitFieldSize == 16);
+        CHECK(parsed.fixed.type.members[1].name == "infirstalso");
+        CHECK(parsed.fixed.type.members[1].byteOffset == 0);
+        CHECK(parsed.fixed.type.members[1].bitFieldOffset == 16);
+        CHECK(parsed.fixed.type.members[1].bitFieldSize == 14);
+        CHECK(parsed.fixed.type.members[2].name == "overflow");
+        CHECK(parsed.fixed.type.members[2].byteOffset == 3);
+        CHECK(parsed.fixed.type.members[2].bitFieldOffset == 6);
+        CHECK(parsed.fixed.type.members[2].bitFieldSize == 20);
+        CHECK(parsed.fixed.type.members[3].name == "insecond");
+        CHECK(parsed.fixed.type.members[3].byteOffset == 6);
+        CHECK(parsed.fixed.type.members[3].bitFieldOffset == 2);
+        CHECK(parsed.fixed.type.members[3].bitFieldSize == 14);
+      }
     };
 
     SECTION("Testing trailing member alignments")

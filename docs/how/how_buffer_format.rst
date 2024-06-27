@@ -154,6 +154,10 @@ The available packing properties are:
 * ``tight_arrays`` - If enabled, arrays elements are only aligned to the element size. If disabled, each array element is aligned to a 16-byte boundary. This is disabled for ``std140`` and ``cbuffer`` by default.
 * ``trailing_overlap`` - If enabled, elements can be placed in trailing padding from a previous element such as an array or struct. If disabled, each element's padding is reserved and the next element must come after the padding. This disabled for ``std140``, ``std430``, and ``structured`` by default.
 
+Some additional properties are available to go beyond the normal packing rules:
+
+* ``tight_bitfield_packing`` - If enabled, bitfields consume bits tightly packed no matter what their base type or offset. This would allow a ``uint`` bitfield to be placed at 30 bits into a buffer and span more than 2 bits, crossing multiple uints. If disabled, padding is added to ensure each bitfield member remains within an instance of its base type. This is disabled by default, and is equivalent to ``#pragma pack(1)`` behaviour.
+
 Annotations
 -----------
 
