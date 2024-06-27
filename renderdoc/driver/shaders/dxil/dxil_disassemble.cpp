@@ -1018,12 +1018,6 @@ static rdcstr GetResourceTypeName(const Type *type)
   return "UNHANDLED RESOURCE TYPE";
 };
 
-rdcstr GetCBufferVariableTypeName(const DXBC::CBufferVariableType &type)
-{
-  rdcstr ret;
-  return ret;
-}
-
 rdcstr Program::GetHandleAlias(const rdcstr &handleStr) const
 {
   auto it = m_SsaAliases.find(handleStr);
@@ -2585,7 +2579,7 @@ static rdcstr MakeCBufferRegisterStr(uint32_t reg, uint32_t bytesPerElement,
     if(var)
     {
       ret += handleStr + "." + prefix + var->name;
-      uint32_t varOffset = regOffset - baseOffset;
+      int32_t varOffset = baseOffset - regOffset;
 
       // if it's an array, add the index based on the relative index to the base offset
       if(var->type.elements > 1)
@@ -2596,19 +2590,19 @@ static rdcstr MakeCBufferRegisterStr(uint32_t reg, uint32_t bytesPerElement,
         byteSize = AlignUp16(byteSize);
 
         const uint32_t elementSize = byteSize / var->type.elements;
-        const uint32_t elementIndex = varOffset / elementSize;
+        const uint32_t elementIndex = abs(varOffset) / elementSize;
 
         ret += StringFormat::Fmt("[%u]", elementIndex);
 
-        // subtract off so that if there's any further offset, it can be processed
-        varOffset -= elementIndex;
+        // add on so that if there's any further offset, it can be processed
+        varOffset += elementIndex * elementSize;
       }
 
       // or if it's a matrix
       if((var->type.varClass == DXBC::CLASS_MATRIX_ROWS && var->type.cols > 1) ||
          (var->type.varClass == DXBC::CLASS_MATRIX_COLUMNS && var->type.rows > 1))
       {
-        ret += StringFormat::Fmt("[%u]", varOffset / 16);
+        ret += StringFormat::Fmt("[%u]", abs(varOffset) / 16);
       }
       // or if it's a vector
       if((var->type.varClass == DXBC::CLASS_VECTOR && var->type.cols > 1) ||
@@ -2620,6 +2614,7 @@ static rdcstr MakeCBufferRegisterStr(uint32_t reg, uint32_t bytesPerElement,
         uint32_t byteSize = var->type.bytesize;
         const uint32_t elementSize = byteSize / var->type.cols;
         const char *swizzle = "xyzw";
+        // TODO: handle double vectors : the load might start part way through
         ret += ".x";
         offset += elementSize;
         for(uint32_t c = 1; c < var->type.cols; ++c)
@@ -2632,9 +2627,7 @@ static rdcstr MakeCBufferRegisterStr(uint32_t reg, uint32_t bytesPerElement,
           offset += elementSize;
         }
       }
-
-      offset = var->offset + var->type.bytesize;
-      offset -= regOffset;
+      offset = varOffset + var->type.bytesize;
     }
     else
     {
