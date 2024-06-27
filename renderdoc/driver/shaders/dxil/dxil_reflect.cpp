@@ -1191,8 +1191,14 @@ static DXBC::CBufferVariableType MakeCBufferVariableType(const TypeInfo &typeInf
       var.type.name += "x";
       var.type.name += ToStr(var.type.cols);
 
-      var.type.bytesize =
-          VarTypeByteSize(var.type.varType) * var.type.rows * var.type.cols * var.type.elements;
+      // D3D matrices in cbuffers always take up a float4 per row/column.
+      uint32_t matrixByteStride = AlignUp16(VarTypeByteSize(var.type.varType));
+      if(var.type.varClass == CLASS_MATRIX_ROWS)
+        matrixByteStride *= var.type.rows;
+      else
+        matrixByteStride *= var.type.cols;
+
+      var.type.bytesize = matrixByteStride * var.type.elements;
     }
     else
     {
