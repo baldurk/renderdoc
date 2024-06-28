@@ -1053,8 +1053,6 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const Repla
 
 #elif defined(RENDERDOC_PLATFORM_APPLE)
     m_CurWinSystem = WindowingSystem::MacOS;
-#elif defined(RENDERDOC_PLATFORM_GGP)
-    m_CurWinSystem = WindowingSystem::GGP;
 #endif
 
     m_StructuredFile = &r->GetStructuredFile();
@@ -2197,11 +2195,6 @@ WindowingData CaptureContext::CreateWindowingData(QWidget *window)
   void *layer = makeNSViewMetalCompatible(view);
 
   return CreateMacOSWindowingData(view, layer);
-
-#elif defined(RENDERDOC_PLATFORM_GGP)
-
-  WindowingData ret = {WindowingSystem::GGP};
-  return ret;
 
 #else
 

@@ -185,11 +185,6 @@ struct VkInstDispatchTable
   PFN_vkDestroyDebugReportCallbackEXT DestroyDebugReportCallbackEXT;
   PFN_vkDebugReportMessageEXT DebugReportMessageEXT;
 
-  // VK_GGP_stream_descriptor_surface
-#ifdef VK_USE_PLATFORM_GGP
-  PFN_vkCreateStreamDescriptorSurfaceGGP CreateStreamDescriptorSurfaceGGP;
-#endif // VK_USE_PLATFORM_GGP
-
   // VK_NV_external_memory_capabilities
   PFN_vkGetPhysicalDeviceExternalImageFormatPropertiesNV GetPhysicalDeviceExternalImageFormatPropertiesNV;
 

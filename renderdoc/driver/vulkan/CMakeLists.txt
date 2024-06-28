@@ -49,7 +49,6 @@ set(sources
     official/vulkan.h
     official/vulkan_android.h
     official/vulkan_core.h
-    official/vulkan_ggp.h
     official/vulkan_ios.h
     official/vulkan_macos.h
     official/vulkan_fuchsia.h
@@ -98,19 +97,6 @@ elseif(APPLE)
     list(APPEND sources vk_posix.cpp vk_apple.cpp vk_apple_helpers.mm)
 
     add_definitions(-DVK_USE_PLATFORM_MACOS_MVK -DVK_USE_PLATFORM_METAL_EXT)
-elseif(ENABLE_GGP)
-    list(APPEND sources vk_posix.cpp vk_ggp.cpp)
-    add_definitions(-DVK_USE_PLATFORM_GGP)
-
-    set(VULKAN_LAYER_MODULE_PATH "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}/${LIB_SUBFOLDER_TRAIL_SLASH}lib${RDOC_BASE_NAME}.so")
-    set(VULKAN_ENABLE_VAR "ENABLE_VULKAN_${RDOC_BASE_NAME_UPPER}_CAPTURE")
-
-    set(json_in ${CMAKE_CURRENT_SOURCE_DIR}/renderdoc.json)
-    set(json_out ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${RDOC_BASE_NAME}_capture.json)
-    
-    configure_file(${json_in} ${json_out})
-
-    install (FILES ${json_out} DESTINATION ${VULKAN_LAYER_FOLDER})
 elseif(UNIX)
     list(APPEND sources vk_posix.cpp vk_linux.cpp)
 

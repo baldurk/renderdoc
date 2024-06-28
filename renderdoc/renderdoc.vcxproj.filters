@@ -127,9 +127,6 @@
     <Filter Include="3rdparty\miniz">
       <UniqueIdentifier>{5994c355-880b-45b9-b17a-2e9e1fc2044a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="OS\Posix\GGP">
-      <UniqueIdentifier>{b76c42f4-d523-4417-a474-56d278d35a36}</UniqueIdentifier>
-    </Filter>
     <Filter Include="3rdparty\compressonator">
       <UniqueIdentifier>{3d212b9b-bf42-40db-84a3-b94e064fd281}</UniqueIdentifier>
     </Filter>
@@ -913,24 +910,6 @@
     </ClCompile>
     <ClCompile Include="core\intervals_tests.cpp">
       <Filter>Core</Filter>
-    </ClCompile>
-    <ClCompile Include="os\posix\ggp\ggp_callstack.cpp">
-      <Filter>OS\Posix\GGP</Filter>
-    </ClCompile>
-    <ClCompile Include="os\posix\ggp\ggp_hook.cpp">
-      <Filter>OS\Posix\GGP</Filter>
-    </ClCompile>
-    <ClCompile Include="os\posix\ggp\ggp_network.cpp">
-      <Filter>OS\Posix\GGP</Filter>
-    </ClCompile>
-    <ClCompile Include="os\posix\ggp\ggp_process.cpp">
-      <Filter>OS\Posix\GGP</Filter>
-    </ClCompile>
-    <ClCompile Include="os\posix\ggp\ggp_stringio.cpp">
-      <Filter>OS\Posix\GGP</Filter>
-    </ClCompile>
-    <ClCompile Include="os\posix\ggp\ggp_threading.cpp">
-      <Filter>OS\Posix\GGP</Filter>
     </ClCompile>
     <ClCompile Include="core\bit_flag_iterator_tests.cpp">
       <Filter>Core</Filter>

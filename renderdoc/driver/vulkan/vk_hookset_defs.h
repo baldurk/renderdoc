@@ -175,25 +175,6 @@
 
 #define HookInitExtension_PhysDev_Android()
 
-#if defined(VK_USE_PLATFORM_GGP)
-
-#define HookInitExtension_Instance_GGP() \
-  HookInitExtension(VK_GGP_stream_descriptor_surface, CreateStreamDescriptorSurfaceGGP);
-#define HookDefine_GGP()                                                          \
-  HookDefine4(VkResult, vkCreateStreamDescriptorSurfaceGGP, VkInstance, instance, \
-              const VkStreamDescriptorSurfaceCreateInfoGGP *, pCreateInfo,        \
-              const VkAllocationCallbacks *, pAllocator, VkSurfaceKHR *, pSurface);
-
-#else    // defined(VK_USE_PLATFORM_GGP)
-
-#define HookInitExtension_Instance_GGP()
-#define HookDefine_GGP()
-
-#endif    // defined(VK_USE_PLATFORM_GGP)
-
-#define HookInitExtension_PhysDev_GGP()
-#define HookInitExtension_Device_GGP()
-
 #if defined(VK_USE_PLATFORM_XCB_KHR)
 
 #define HookInitExtension_Instance_XCB()                      \
@@ -445,7 +426,6 @@
   DeclExt(KHR_android_surface);                        \
   DeclExt(MVK_macos_surface);                          \
   DeclExt(KHR_surface);                                \
-  DeclExt(GGP_stream_descriptor_surface);              \
   DeclExt(EXT_debug_report);                           \
   DeclExt(KHR_display);                                \
   DeclExt(NV_external_memory_capabilities);            \
@@ -467,7 +447,6 @@
   DeclExt(EXT_acquire_drm_display);                    \
   /* device extensions */                              \
   DeclExt(EXT_debug_marker);                           \
-  DeclExt(GGP_frame_token);                            \
   DeclExt(KHR_swapchain);                              \
   DeclExt(KHR_display_swapchain);                      \
   DeclExt(NV_external_memory);                         \
@@ -571,7 +550,6 @@
   CheckExt(KHR_android_surface, VKXX);                 \
   CheckExt(MVK_macos_surface, VKXX);                   \
   CheckExt(KHR_surface, VKXX);                         \
-  CheckExt(GGP_stream_descriptor_surface, VKXX);       \
   CheckExt(EXT_debug_report, VKXX);                    \
   CheckExt(KHR_display, VKXX);                         \
   CheckExt(NV_external_memory_capabilities, VKXX);     \
@@ -600,7 +578,6 @@
 
 #define CheckDeviceExts()                                     \
   CheckExt(EXT_debug_marker, VKXX);                           \
-  CheckExt(GGP_frame_token, VKXX);                            \
   CheckExt(KHR_swapchain, VKXX);                              \
   CheckExt(KHR_display_swapchain, VKXX);                      \
   CheckExt(NV_external_memory, VKXX);                         \
@@ -743,7 +720,6 @@
   HookInitExtension(KHR_calibrated_timestamps, GetPhysicalDeviceCalibrateableTimeDomainsKHR);        \
   HookInitExtension_PhysDev_Win32();                                                                 \
   HookInitExtension_PhysDev_Linux();                                                                 \
-  HookInitExtension_PhysDev_GGP();                                                                   \
   HookInitExtension_PhysDev_Android();                                                               \
   HookInitExtension_PhysDev_Mac();
 
@@ -812,7 +788,6 @@
   HookInitExtension(KHR_calibrated_timestamps, GetPhysicalDeviceCalibrateableTimeDomainsKHR);        \
   HookInitExtension_Instance_Win32();                                                                \
   HookInitExtension_Instance_Linux();                                                                \
-  HookInitExtension_Instance_GGP();                                                                  \
   HookInitExtension_Instance_Android();                                                              \
   HookInitExtension_Instance_Mac();
 
@@ -1059,7 +1034,6 @@
   HookInitExtension(KHR_ray_tracing_pipeline, GetRayTracingShaderGroupStackSizeKHR);                 \
   HookInitExtension_Device_Win32();                                                                  \
   HookInitExtension_Device_Linux();                                                                  \
-  HookInitExtension_Device_GGP();                                                                    \
   HookInitExtension_Device_Android();                                                                \
   HookInitExtension_Device_Mac();
 
@@ -1961,6 +1935,5 @@
               uint32_t, pipelineStackSize);                                                          \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
-  HookDefine_GGP();                                                                                  \
   HookDefine_Android();                                                                              \
   HookDefine_Mac();

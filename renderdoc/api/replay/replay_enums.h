@@ -4490,10 +4490,6 @@ DOCUMENT(R"(Specifies a windowing system to use for creating an output window.
   The windowing data refers to a MacOS / OS X NSView & CALayer that is Metal/GL compatible.
   See :func:`CreateMacOSWindowingData`.
 
-.. data:: GGP
-
-  The windowing data refers to an GGP surface. See :func:`CreateGgpWindowingData`.
-
 .. data:: Wayland
 
   The windowing data refers to an Wayland window. See :func:`CreateWaylandWindowingData`.
@@ -4507,7 +4503,6 @@ enum class WindowingSystem : uint32_t
   XCB,
   Android,
   MacOS,
-  GGP,
   Wayland,
 };
 

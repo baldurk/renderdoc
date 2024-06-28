@@ -116,7 +116,6 @@ rdcstr DoStringise(const WindowingSystem &el)
     STRINGISE_ENUM_CLASS(XCB);
     STRINGISE_ENUM_CLASS(Android);
     STRINGISE_ENUM_CLASS(MacOS);
-    STRINGISE_ENUM_CLASS(GGP);
     STRINGISE_ENUM_CLASS(Wayland);
   }
   END_ENUM_STRINGISE();

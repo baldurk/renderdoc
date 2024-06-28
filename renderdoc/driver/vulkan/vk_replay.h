@@ -119,11 +119,6 @@
 
 #define WINDOW_HANDLE_INIT RDCEraseEl(cocoa);
 
-#elif ENABLED(RDOC_GGP)
-
-#define WINDOW_HANDLE_DECL void *wnd;
-#define WINDOW_HANDLE_INIT wnd = NULL;
-
 #else
 
 #error "Unknown platform"

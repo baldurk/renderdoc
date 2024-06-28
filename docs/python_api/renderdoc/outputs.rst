@@ -30,7 +30,6 @@ Window Configuration
 .. autofunction:: renderdoc.CreateXlibWindowingData
 .. autofunction:: renderdoc.CreateXCBWindowingData
 .. autofunction:: renderdoc.CreateWaylandWindowingData
-.. autofunction:: renderdoc.CreateGgpWindowingData
 .. autofunction:: renderdoc.CreateAndroidWindowingData
 .. autofunction:: renderdoc.CreateMacOSWindowingData
 

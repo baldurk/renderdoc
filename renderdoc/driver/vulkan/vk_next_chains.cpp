@@ -813,7 +813,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_IOS_SURFACE_CREATE_INFO_MVK:                                       \
   case VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK:                                     \
   case VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT:                                     \
-  case VK_STRUCTURE_TYPE_STREAM_DESCRIPTOR_SURFACE_CREATE_INFO_GGP:                         \
   case VK_STRUCTURE_TYPE_VI_SURFACE_CREATE_INFO_NN:                                         \
   case VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR:                                   \
   case VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR:                                     \
@@ -1120,6 +1119,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_SHADING_RATE_IMAGE_STATE_CREATE_INFO_NV:         \
   case VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_SWIZZLE_STATE_CREATE_INFO_NV:                    \
   case VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_W_SCALING_STATE_CREATE_INFO_NV:                  \
+  case VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP:                                           \
   case VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO_KHR:                                           \
   case VK_STRUCTURE_TYPE_PUSH_DESCRIPTOR_SET_INFO_KHR:                                      \
   case VK_STRUCTURE_TYPE_PUSH_DESCRIPTOR_SET_WITH_TEMPLATE_INFO_KHR:                        \
@@ -1153,6 +1153,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_SET_DESCRIPTOR_BUFFER_OFFSETS_INFO_EXT:                            \
   case VK_STRUCTURE_TYPE_SET_LATENCY_MARKER_INFO_NV:                                        \
   case VK_STRUCTURE_TYPE_SHADER_MODULE_IDENTIFIER_EXT:                                      \
+  case VK_STRUCTURE_TYPE_STREAM_DESCRIPTOR_SURFACE_CREATE_INFO_GGP:                         \
   case VK_STRUCTURE_TYPE_SUBPASS_SHADING_PIPELINE_CREATE_INFO_HUAWEI:                       \
   case VK_STRUCTURE_TYPE_SUBRESOURCE_HOST_MEMCPY_SIZE_EXT:                                  \
   case VK_STRUCTURE_TYPE_SUBRESOURCE_LAYOUT_2_EXT:                                          \
@@ -1718,16 +1719,6 @@ size_t GetNextPatchSize(const void *pNext)
       case VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_PROPERTIES_ANDROID:
       {
         RDCERR("Support for android external memory buffer extension not compiled in");
-        break;
-      }
-#endif
-
-#if ENABLED(RDOC_GGP)
-        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP, VkPresentFrameTokenGGP);
-#else
-      case VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP:
-      {
-        RDCERR("Support for GGP frame token extension not compiled in");
         break;
       }
 #endif
@@ -2999,16 +2990,6 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
       }
 #endif
 
-#if ENABLED(RDOC_GGP)
-        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP, VkPresentFrameTokenGGP);
-#else
-      case VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP:
-      {
-        RDCERR("Support for GGP frame token extension not compiled in");
-        break;
-      }
-#endif
-
 // NV win32 external memory extensions
 #if ENABLED(RDOC_WIN32)
         // Structs that can be copied into place
@@ -3324,16 +3305,6 @@ void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInSt
       case VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_PROPERTIES_ANDROID:
       {
         RDCERR("Support for android external memory buffer extension not compiled in");
-        break;
-      }
-#endif
-
-#if ENABLED(RDOC_GGP)
-        COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP, VkPresentFrameTokenGGP);
-#else
-      case VK_STRUCTURE_TYPE_PRESENT_FRAME_TOKEN_GGP:
-      {
-        RDCERR("Support for GGP frame token extension not compiled in");
         break;
       }
 #endif

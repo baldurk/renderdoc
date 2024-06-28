@@ -119,8 +119,6 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_vertex_input_dynamic_state`
 * `VK_EXT_ycbcr_2plane_444_formats`
 * `VK_EXT_ycbcr_image_arrays`
-* `VK_GGP_frame_token`
-* `VK_GGP_stream_descriptor_surface`
 * `VK_GOOGLE_decorate_string`
 * `VK_GOOGLE_display_timing`
 * `VK_GOOGLE_hlsl_functionality1`
@@ -456,6 +454,8 @@ These are expected to never be implemented in their current form.
 
 * `VK_AMD_draw_indirect_count`
 * `VK_AMDX_shader_enqueue`
+* `VK_GGP_frame_token`
+* `VK_GGP_stream_descriptor_surface`
 * `VK_KHR_video_encode_queue`
 * `VK_EXT_video_encode_h264`
 * `VK_EXT_video_encode_h265`

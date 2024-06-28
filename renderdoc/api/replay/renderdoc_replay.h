@@ -173,20 +173,6 @@ inline const WindowingData CreateWaylandWindowingData(wl_display *display, wl_su
   return ret;
 }
 
-DOCUMENT(R"(Create a :class:`WindowingData` for a GGP application.
-
-:return: A :class:`WindowingData` corresponding to the given system.
-:rtype: WindowingData
-)");
-inline const WindowingData CreateGgpWindowingData()
-{
-  WindowingData ret = {};
-
-  ret.system = WindowingSystem::GGP;
-
-  return ret;
-}
-
 DOCUMENT(R"(Create a :class:`WindowingData` for an Android ``ANativeWindow`` handle.
 
 :param ANativeWindow window: The native ``ANativeWindow`` handle for this window.

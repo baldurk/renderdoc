@@ -2106,12 +2106,6 @@ public:
 
 #endif
 
-#if defined(VK_USE_PLATFORM_GGP)
-  VkResult vkCreateStreamDescriptorSurfaceGGP(VkInstance instance,
-                                              const VkStreamDescriptorSurfaceCreateInfoGGP *pCreateInfo,
-                                              const VkAllocationCallbacks *, VkSurfaceKHR *pSurface);
-#endif
-
 #if defined(VK_USE_PLATFORM_WAYLAND_KHR)
   // VK_KHR_wayland_surface
   VkResult vkCreateWaylandSurfaceKHR(VkInstance instance,
