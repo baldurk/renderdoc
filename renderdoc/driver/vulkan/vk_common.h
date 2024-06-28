@@ -2178,13 +2178,6 @@ DECLARE_DESERIALISE_TYPE(VkExternalFormatANDROID);
 DECLARE_DESERIALISE_TYPE(VkAndroidHardwareBufferFormatProperties2ANDROID);
 #endif
 
-// GGP only structs
-#ifdef VK_USE_PLATFORM_GGP
-DECLARE_REFLECTION_STRUCT(VkPresentFrameTokenGGP);
-
-DECLARE_DESERIALISE_TYPE(VkPresentFrameTokenGGP);
-#endif
-
 // we add these fake enums so we have a type for type-dispatch in the serialiser. Due to C ABI rules
 // the vulkan API doesn't define native 64-bit enums itself
 //

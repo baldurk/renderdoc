@@ -591,24 +591,6 @@
     <ClCompile Include="os\posix\apple\apple_threading.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="os\posix\ggp\ggp_callstack.cpp">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="os\posix\ggp\ggp_hook.cpp">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="os\posix\ggp\ggp_network.cpp">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="os\posix\ggp\ggp_process.cpp">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="os\posix\ggp\ggp_stringio.cpp">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="os\posix\ggp\ggp_threading.cpp">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="os\posix\linux\linux_callstack.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>

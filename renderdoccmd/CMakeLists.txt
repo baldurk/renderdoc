@@ -41,12 +41,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set_property(SOURCE renderdoccmd_android.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-shadow")
 endif()
 
-elseif(ENABLE_GGP)
-    list(APPEND sources renderdoccmd_ggp.cpp)
-    find_library(GGP_LIBRARY ggp)
-    list(APPEND libraries PRIVATE ${GGP_LIBRARY})
-    set(LINKER_FLAGS "-Wl,--no-as-needed -Wl,--hash-style=gnu -Wl,--build-id=sha1")
-    set_property(SOURCE renderdoccmd_ggp.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-shadow")
 elseif(UNIX)
     list(APPEND sources renderdoccmd_linux.cpp)
 

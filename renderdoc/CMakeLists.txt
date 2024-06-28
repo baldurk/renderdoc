@@ -42,14 +42,6 @@ elseif(APPLE)
         find_library(METAL_LIBRARY Metal)
         list(APPEND RDOC_LIBRARIES PRIVATE ${METAL_LIBRARY})
     endif()
-elseif(ENABLE_GGP)
-    find_package(PkgConfig REQUIRED)
-    find_package(Threads REQUIRED)
-
-    list(APPEND RDOC_LIBRARIES
-        PRIVATE -lm
-        PRIVATE -ldl
-        PRIVATE -lrt)
 elseif(UNIX)
     find_package(PkgConfig REQUIRED)
     find_package(Threads REQUIRED)
@@ -315,23 +307,6 @@ elseif(APPLE)
         os/posix/apple/apple_threading.cpp
         os/posix/apple/apple_hook.cpp
         os/posix/apple/apple_network.cpp
-        os/posix/posix_network.h
-        os/posix/posix_network.cpp
-        os/posix/posix_process.cpp
-        os/posix/posix_stringio.cpp
-        os/posix/posix_threading.cpp
-        os/posix/posix_specific.h)
-elseif(ENABLE_GGP)
-    list(APPEND sources
-        data/embedded_files.h
-        os/posix/ggp/ggp_stringio.cpp
-        os/posix/ggp/ggp_callstack.cpp
-        os/posix/ggp/ggp_process.cpp
-        os/posix/ggp/ggp_threading.cpp
-        os/posix/ggp/ggp_hook.cpp
-        os/posix/ggp/ggp_network.cpp
-        3rdparty/plthook/plthook.h
-        3rdparty/plthook/plthook_elf.c
         os/posix/posix_network.h
         os/posix/posix_network.cpp
         os/posix/posix_process.cpp
@@ -653,10 +628,6 @@ if(UNIX AND NOT ANDROID AND NOT APPLE)
 
     if(NOT ENABLE_ASAN AND NOT ENABLE_TSAN)
         set(RDOC_LINK_FLAGS "${RDOC_LINK_FLAGS} -Wl,--no-undefined")
-    endif()
-
-    if(ENABLE_GGP)
-        set(RDOC_LINK_FLAGS "${RDOC_LINK_FLAGS} -Wl,--hash-style=gnu -Wl,--build-id=sha1")
     endif()
 
     if(NOT RELEASE_MODE)

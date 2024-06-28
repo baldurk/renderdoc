@@ -208,7 +208,6 @@ option(ENABLE_PYRENDERDOC "Enable renderdoc python modules" ON)
 option(ENABLE_XLIB "Enable xlib windowing support" ON)
 option(ENABLE_XCB "Enable xcb windowing support" ON)
 option(ENABLE_UNSUPPORTED_EXPERIMENTAL_POSSIBLY_BROKEN_WAYLAND "Enable EXPERIMENTAL, POSSIBLY BROKEN, UNSUPPORTED wayland windowing support" OFF)
-option(ENABLE_GGP "Enable GGP support" OFF)
 
 option(ENABLE_ASAN "Enable address sanitizer" OFF)
 option(ENABLE_TSAN "Enable thread sanitizer" OFF)
@@ -307,20 +306,6 @@ if(ANDROID)
     message(STATUS "Using Android native API level ${ANDROID_NATIVE_API_LEVEL}")
 endif()
 
-if(ENABLE_GGP)
-    message(STATUS "Disabling GL, GLES driver on ggp")
-    set(ENABLE_GL OFF CACHE BOOL "" FORCE)
-    set(ENABLE_GLES OFF CACHE BOOL "" FORCE)
-    set(ENABLE_EGL OFF CACHE BOOL "" FORCE)
-
-    # GGP doesn't support the Qt UI
-    message(STATUS "Disabling qrenderdoc for ggp build")
-    set(ENABLE_QRENDERDOC OFF CACHE BOOL "" FORCE)
-
-    message(STATUS "Disabling renderdoc python modules for ggp build")
-    set(ENABLE_PYRENDERDOC OFF CACHE BOOL "" FORCE)
-endif()
-
 if(ENABLE_GLES AND NOT ENABLE_EGL)
     message(FATAL_ERROR "EGL is required for GLES")
 endif()
@@ -397,9 +382,6 @@ endif ()
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
-    if(ENABLE_GGP)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -gline-tables-only -fno-omit-frame-pointer")
-    endif()
 
     set(warning_flags
         -Wall
@@ -462,9 +444,6 @@ if(ANDROID)
     add_definitions(-DRENDERDOC_PLATFORM_ANDROID)
 elseif(APPLE)
     add_definitions(-DRENDERDOC_PLATFORM_APPLE)
-elseif(ENABLE_GGP)
-    add_definitions(-DRENDERDOC_PLATFORM_GGP)
-    add_definitions(-DRENDERDOC_WINDOWING_GGP)
 elseif(UNIX)
     add_definitions(-DRENDERDOC_PLATFORM_LINUX)
 
@@ -540,7 +519,7 @@ if(ENABLE_METAL)
     message(STATUS "  - Metal")
 endif()
 
-if(UNIX AND NOT ANDROID AND NOT APPLE AND NOT ENABLE_GGP)
+if(UNIX AND NOT ANDROID AND NOT APPLE)
     message(STATUS "Enabled Window System Support:")
 
     if(ENABLE_XLIB)

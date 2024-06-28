@@ -1296,18 +1296,6 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_YCBCR_IMAGE_ARRAYS_EXTENSION_NAME,
         VK_EXT_YCBCR_IMAGE_ARRAYS_SPEC_VERSION,
     },
-#ifdef VK_GGP_frame_token
-    {
-        VK_GGP_FRAME_TOKEN_EXTENSION_NAME,
-        VK_GGP_FRAME_TOKEN_SPEC_VERSION,
-    },
-#endif
-#ifdef VK_GGP_stream_descriptor_surface
-    {
-        VK_GGP_STREAM_DESCRIPTOR_SURFACE_EXTENSION_NAME,
-        VK_GGP_STREAM_DESCRIPTOR_SURFACE_SPEC_VERSION,
-    },
-#endif
     {
         VK_GOOGLE_DECORATE_STRING_EXTENSION_NAME,
         VK_GOOGLE_DECORATE_STRING_SPEC_VERSION,
