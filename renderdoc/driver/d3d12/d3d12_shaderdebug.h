@@ -51,7 +51,7 @@ bool CalculateSampleGather(bool dxil, WrappedID3D12Device *device, int sampleOp,
                            GatherChannel gatherChannel, const DXBC::ShaderType shaderType,
                            uint32_t instruction, const char *opString, ShaderVariable &output);
 
-D3D12Descriptor FindDescriptor(WrappedID3D12Device *device, D3D12_DESCRIPTOR_RANGE_TYPE type,
+D3D12Descriptor FindDescriptor(WrappedID3D12Device *device, D3D12_DESCRIPTOR_RANGE_TYPE descRangeType,
                                const DXBCDXILDebug::BindingSlot &slot,
                                const DXBC::ShaderType shaderType);
 };

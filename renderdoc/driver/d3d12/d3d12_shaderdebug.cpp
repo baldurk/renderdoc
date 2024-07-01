@@ -399,7 +399,7 @@ bool D3D12ShaderDebug::CalculateSampleGather(
 }
 
 D3D12Descriptor D3D12ShaderDebug::FindDescriptor(WrappedID3D12Device *device,
-                                                 D3D12_DESCRIPTOR_RANGE_TYPE type,
+                                                 D3D12_DESCRIPTOR_RANGE_TYPE descRangeType,
                                                  const BindingSlot &slot,
                                                  const DXBC::ShaderType shaderType)
 {
@@ -427,18 +427,7 @@ D3D12Descriptor D3D12ShaderDebug::FindDescriptor(WrappedID3D12Device *device,
     WrappedID3D12RootSignature *pD3D12RootSig =
         rm->GetCurrentAs<WrappedID3D12RootSignature>(pRootSignature->rootsig);
 
-    D3D12_DESCRIPTOR_RANGE_TYPE searchRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-
-    if(type == DXBCBytecode::TYPE_SAMPLER)
-      searchRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-    else if(type == DXBCBytecode::TYPE_RESOURCE)
-      searchRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-    else if(type == DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW)
-      searchRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-    else if(type == DXBCBytecode::TYPE_CONSTANT_BUFFER)
-      searchRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-
-    if(searchRangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
+    if(descRangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
     {
       for(const D3D12_STATIC_SAMPLER_DESC1 &samp : pD3D12RootSig->sig.StaticSamplers)
       {
@@ -459,7 +448,7 @@ D3D12Descriptor D3D12ShaderDebug::FindDescriptor(WrappedID3D12Device *device,
       if(IsShaderParameterVisible(shaderType, param.ShaderVisibility))
       {
         if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV && element.type == eRootSRV &&
-           type == DXBCBytecode::TYPE_RESOURCE)
+           descRangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
         {
           if(param.Descriptor.ShaderRegister == slot.shaderRegister &&
              param.Descriptor.RegisterSpace == slot.registerSpace)
@@ -481,7 +470,7 @@ D3D12Descriptor D3D12ShaderDebug::FindDescriptor(WrappedID3D12Device *device,
           }
         }
         else if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV && element.type == eRootUAV &&
-                type == DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW)
+                descRangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
         {
           if(param.Descriptor.ShaderRegister == slot.shaderRegister &&
              param.Descriptor.RegisterSpace == slot.registerSpace)
@@ -533,7 +522,7 @@ D3D12Descriptor D3D12ShaderDebug::FindDescriptor(WrappedID3D12Device *device,
 
             prevTableOffset = offset + numDescriptors;
 
-            if(range.RangeType != searchRangeType)
+            if(range.RangeType != descRangeType)
               continue;
 
             D3D12Descriptor *desc = (D3D12Descriptor *)heap->GetCPUDescriptorHandleForHeapStart().ptr;
