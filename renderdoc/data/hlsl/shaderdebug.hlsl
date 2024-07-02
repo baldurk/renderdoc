@@ -52,8 +52,14 @@ RWStructuredBuffer<OutStruct> outBuf : register(u1);
     case DEBUG_SAMPLE_MATH_DXIL_HCOS: outBuf[0].outf[0] = cosh(mathInVal); break;
     case DEBUG_SAMPLE_MATH_DXIL_HSIN: outBuf[0].outf[0] = sinh(mathInVal); break;
     case DEBUG_SAMPLE_MATH_DXIL_HTAN: outBuf[0].outf[0] = tanh(mathInVal); break;
-    case DEBUG_SAMPLE_MATH_DXIL_EXP: outBuf[0].outf[0] = exp(mathInVal); break;
-    case DEBUG_SAMPLE_MATH_DXIL_LOG: outBuf[0].outf[0] = log(mathInVal); break;
+    case DEBUG_SAMPLE_MATH_DXIL_EXP:
+      // DXIL EXP is exp2. HLSL is exp. exp2(x) = exp(x * ln(2))
+      outBuf[0].outf[0] = exp(mathInVal * log(2.0));
+      break;
+    case DEBUG_SAMPLE_MATH_DXIL_LOG:
+      // DXIL LOG is log2. HLSL is ln. log2(x) = ln(x) / ln(2))
+      outBuf[0].outf[0] = log(mathInVal) / log(2.0);
+      break;
     case DEBUG_SAMPLE_MATH_DXIL_SQRT: outBuf[0].outf[0] = sqrt(mathInVal); break;
     case DEBUG_SAMPLE_MATH_DXIL_RSQRT: outBuf[0].outf[0] = rsqrt(mathInVal); break;
     default: break;
