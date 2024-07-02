@@ -15,6 +15,7 @@
     <ClCompile Include="dxbc_stringise.cpp" />
     <ClCompile Include="dxbc_bytecode_vendorext.cpp" />
     <ClCompile Include="dxbc_bytecode_editor.cpp" />
+    <ClCompile Include="dxbcdxil_debug.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dxbc_debug.h" />

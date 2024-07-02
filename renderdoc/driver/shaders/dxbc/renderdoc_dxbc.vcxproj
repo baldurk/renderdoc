@@ -101,6 +101,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="dxbcdxil_debug.cpp" />
     <ClCompile Include="dxbc_bytecode.cpp" />
     <ClCompile Include="dxbc_bytecode_editor.cpp" />
     <ClCompile Include="dxbc_bytecode_vendorext.cpp" />

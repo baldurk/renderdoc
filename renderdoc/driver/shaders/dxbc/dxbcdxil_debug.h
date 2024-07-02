@@ -81,4 +81,11 @@ struct SampleGatherSamplerData
   BindingSlot binding;
 };
 
+float dxbc_min(float a, float b);
+double dxbc_min(double a, double b);
+float dxbc_max(float a, float b);
+double dxbc_max(double a, double b);
+float round_ne(float x);
+float flush_denorm(const float f);
+
 };

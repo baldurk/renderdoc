@@ -33,35 +33,10 @@
 #include "dxbc_container.h"
 
 using namespace DXBCBytecode;
+using namespace DXBCDXILDebug;
 
 namespace DXBCDebug
 {
-static float round_ne(float x)
-{
-  if(!RDCISFINITE(x))
-    return x;
-
-  float rem = remainderf(x, 1.0f);
-
-  return x - rem;
-}
-
-static float flush_denorm(const float f)
-{
-  uint32_t x;
-  memcpy(&x, &f, sizeof(f));
-
-  // if any bit is set in the exponent, it's not denormal
-  if(x & 0x7F800000)
-    return f;
-
-  // keep only the sign bit
-  x &= 0x80000000;
-  float ret;
-  memcpy(&ret, &x, sizeof(ret));
-  return ret;
-}
-
 VarType OperationType(const DXBCBytecode::OpcodeType &op)
 {
   switch(op)
@@ -776,54 +751,6 @@ ShaderVariable TypedUAVLoad(GlobalState::ViewFmt &fmt, const byte *d)
   }
 
   return result;
-}
-
-// "NaN has special handling. If one source operand is NaN, then the other source operand is
-// returned and the choice is made per-component. If both are NaN, any NaN representation is
-// returned."
-
-float dxbc_min(float a, float b)
-{
-  if(RDCISNAN(a))
-    return b;
-
-  if(RDCISNAN(b))
-    return a;
-
-  return a < b ? a : b;
-}
-
-double dxbc_min(double a, double b)
-{
-  if(RDCISNAN(a))
-    return b;
-
-  if(RDCISNAN(b))
-    return a;
-
-  return a < b ? a : b;
-}
-
-float dxbc_max(float a, float b)
-{
-  if(RDCISNAN(a))
-    return b;
-
-  if(RDCISNAN(b))
-    return a;
-
-  return a >= b ? a : b;
-}
-
-double dxbc_max(double a, double b)
-{
-  if(RDCISNAN(a))
-    return b;
-
-  if(RDCISNAN(b))
-    return a;
-
-  return a >= b ? a : b;
 }
 
 ShaderVariable sat(const ShaderVariable &v, const VarType type)
@@ -5820,37 +5747,6 @@ TEST_CASE("DXBC debugging helpers", "[program]")
     CHECK(RDCISNAN(v2.value.f32v[1]));
     CHECK(v2.value.f32v[2] == posinf);
     CHECK(v2.value.f32v[3] == posinf);
-  };
-
-  SECTION("test denorm flushing")
-  {
-    float foo = 3.141f;
-
-    // check normal values
-    CHECK(flush_denorm(0.0f) == 0.0f);
-    CHECK(flush_denorm(foo) == foo);
-    CHECK(flush_denorm(-foo) == -foo);
-
-    // check NaN/inf values
-    CHECK(RDCISNAN(flush_denorm(nan)));
-    CHECK(flush_denorm(neginf) == neginf);
-    CHECK(flush_denorm(posinf) == posinf);
-
-    // check zero sign bit - bit more complex
-    uint32_t negzero = 0x80000000U;
-    float negzerof;
-    memcpy(&negzerof, &negzero, sizeof(negzero));
-
-    float flushed = flush_denorm(negzerof);
-    CHECK(memcmp(&flushed, &negzerof, sizeof(negzerof)) == 0);
-
-    // check that denormal values are flushed, preserving sign
-    foo = 1.12104e-44f;
-    CHECK(flush_denorm(foo) != foo);
-    CHECK(flush_denorm(-foo) != -foo);
-    CHECK(flush_denorm(foo) == 0.0f);
-    flushed = flush_denorm(-foo);
-    CHECK(memcmp(&flushed, &negzerof, sizeof(negzerof)) == 0);
   };
 };
 
