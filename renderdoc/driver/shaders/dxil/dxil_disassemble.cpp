@@ -1065,7 +1065,7 @@ void Program::SettleIDs()
   {
     m_Accum.processFunction(m_Functions[i]);
 
-    const Function &func = *m_Functions[i];
+    Function &func = *m_Functions[i];
 
     auto argMetaSlot = [this, &metaSlots, &nextMetaSlot](const Value *v) {
       if(const Metadata *meta = cast<Metadata>(v))
@@ -1094,6 +1094,15 @@ void Program::SettleIDs()
 
     if(!func.external)
     {
+      func.labelToBlockIndex.clear();
+      func.blockIndexToLabel.clear();
+
+      size_t curBlock = 0;
+      RDCASSERT(!func.blocks.empty());
+      rdcstr labelName = StringFormat::Fmt("_label%u", func.blocks[curBlock]->slot);
+      func.labelToBlockIndex[labelName] = (uint32_t)curBlock;
+      func.blocks[curBlock]->startInstructionIdx = 0;
+      func.blockIndexToLabel.push_back(labelName);
       for(size_t funcIdx = 0; funcIdx < func.instructions.size(); funcIdx++)
       {
         Instruction &inst = *func.instructions[funcIdx];
@@ -1233,6 +1242,19 @@ void Program::SettleIDs()
         {
           for(size_t m = 0; m < attachedMeta.size(); m++)
             AssignMetaSlot(metaSlots, nextMetaSlot, attachedMeta[m].second);
+        }
+        // add labels before the final instruction in the function
+        if(funcIdx < func.instructions.size() - 1)
+        {
+          if(inst.op == Operation::Branch || inst.op == Operation::Unreachable ||
+             inst.op == Operation::Switch || inst.op == Operation::Ret)
+          {
+            curBlock++;
+            labelName = StringFormat::Fmt("_label%u", func.blocks[curBlock]->slot);
+            func.labelToBlockIndex[labelName] = (uint32_t)curBlock;
+            func.blocks[curBlock]->startInstructionIdx = (uint32_t)(funcIdx + 1);
+            func.blockIndexToLabel.push_back(labelName);
+          }
         }
       }
     }

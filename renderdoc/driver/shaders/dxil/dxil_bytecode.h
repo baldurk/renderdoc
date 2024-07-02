@@ -1327,6 +1327,7 @@ struct Block : public ForwardReferencableValue<Block>
   rdcinflexiblestr name;
   rdcarray<const Block *> preds;
   uint32_t slot = ~0U;
+  uint32_t startInstructionIdx = ~0U;
 };
 
 struct UselistEntry
@@ -1360,6 +1361,8 @@ struct Function : public Value
   rdcarray<Block *> blocks;
 
   rdcarray<UselistEntry> uselist;
+  std::map<rdcstr, uint32_t> labelToBlockIndex;
+  rdcarray<rdcstr> blockIndexToLabel;
 
   AttachedMetadata attachedMeta;
 };
