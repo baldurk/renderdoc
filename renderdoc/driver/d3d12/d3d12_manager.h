@@ -326,6 +326,7 @@ union DescriptorData
   {
     nonsamp.resource = ResourceId();
     nonsamp.counterResource = ResourceId();
+    nonsamp.type = D3D12DescriptorType::Undefined;
   }
   SamplerDescriptorData samp;
   NonSamplerDescriptorData nonsamp;
