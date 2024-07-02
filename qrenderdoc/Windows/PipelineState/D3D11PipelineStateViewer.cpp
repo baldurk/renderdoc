@@ -1737,7 +1737,7 @@ void D3D11PipelineStateViewer::setState()
             }
           }
 
-          addResourceRow(D3D11ViewTag(D3D11ViewTag::SRV, reg, m_Descriptors[i]), shaderBind,
+          addResourceRow(D3D11ViewTag(D3D11ViewTag::UAV, reg, m_Descriptors[i]), shaderBind,
                          usedSlot, ui->csUAVs);
         }
         else
