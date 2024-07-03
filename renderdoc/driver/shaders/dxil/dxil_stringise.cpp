@@ -509,3 +509,15 @@ rdcstr DoStringise(const DXIL::Type::TypeKind &el)
   }
   END_ENUM_STRINGISE();
 }
+
+template <>
+rdcstr DoStringise(const DXIL::Type::ScalarKind &el)
+{
+  BEGIN_ENUM_STRINGISE(DXIL::Type::ScalarKind);
+  {
+    STRINGISE_ENUM_CLASS(Void);
+    STRINGISE_ENUM_CLASS(Float);
+    STRINGISE_ENUM_CLASS(Int);
+  }
+  END_ENUM_STRINGISE();
+}
