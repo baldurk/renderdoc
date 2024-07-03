@@ -881,6 +881,31 @@ ShaderVariable D3D12ShaderDebug::GetSampleInfo(WrappedID3D12Device *device,
   return result;
 }
 
+ShaderVariable D3D12ShaderDebug::GetRenderTargetSampleInfo(WrappedID3D12Device *device,
+                                                           const DXBC::ShaderType shaderType,
+                                                           const char *opString)
+{
+  ShaderVariable result("", 0U, 0U, 0U, 0U);
+  if(shaderType != DXBC::ShaderType::Compute)
+  {
+    D3D12ResourceManager *rm = device->GetResourceManager();
+    const D3D12RenderState &rs = device->GetQueue()->GetCommandData()->m_RenderState;
+
+    // try depth first - both should match sample count though to be valid
+    ResourceId res = rs.GetDSVID();
+    if(res == ResourceId() && !rs.rts.empty())
+      res = rs.rts[0].GetResResourceId();
+
+    ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(res);
+    D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
+    result.value.u32v[0] = resDesc.SampleDesc.Count;
+    result.value.u32v[1] = 0;
+    result.value.u32v[2] = 0;
+    result.value.u32v[3] = 0;
+  }
+  return result;
+}
+
 class D3D12DebugAPIWrapper : public DXBCDebug::DebugAPIWrapper
 {
 public:
@@ -1335,28 +1360,7 @@ ShaderVariable D3D12DebugAPIWrapper::GetSampleInfo(DXBCBytecode::OperandType typ
 {
   DXBC::ShaderType shaderType = GetShaderType();
   if(type == DXBCBytecode::TYPE_RASTERIZER)
-  {
-    ShaderVariable result("", 0U, 0U, 0U, 0U);
-    if(shaderType != DXBC::ShaderType::Compute)
-    {
-      D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
-
-      const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
-
-      // try depth first - both should match sample count though to be valid
-      ResourceId res = rs.GetDSVID();
-      if(res == ResourceId() && !rs.rts.empty())
-        res = rs.rts[0].GetResResourceId();
-
-      ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(res);
-      D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
-      result.value.u32v[0] = resDesc.SampleDesc.Count;
-      result.value.u32v[1] = 0;
-      result.value.u32v[2] = 0;
-      result.value.u32v[3] = 0;
-    }
-    return result;
-  }
+    return D3D12ShaderDebug::GetRenderTargetSampleInfo(m_pDevice, shaderType, opString);
 
   D3D12_DESCRIPTOR_RANGE_TYPE descType = ConvertOperandTypeToDescriptorType(type);
   return D3D12ShaderDebug::GetSampleInfo(m_pDevice, descType, slot, shaderType, opString);

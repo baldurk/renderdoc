@@ -62,4 +62,7 @@ ShaderVariable GetResourceInfo(WrappedID3D12Device *device, D3D12_DESCRIPTOR_RAN
 ShaderVariable GetSampleInfo(WrappedID3D12Device *device, D3D12_DESCRIPTOR_RANGE_TYPE descType,
                              const DXBCDXILDebug::BindingSlot &slot,
                              const DXBC::ShaderType shaderType, const char *opString);
+
+ShaderVariable GetRenderTargetSampleInfo(WrappedID3D12Device *device,
+                                         const DXBC::ShaderType shaderType, const char *opString);
 };
