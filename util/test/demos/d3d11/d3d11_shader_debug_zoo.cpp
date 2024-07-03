@@ -1026,7 +1026,7 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
     ID3D11Texture2DPtr testTex = MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, 16, 16).Mips(3).SRV();
     ID3D11ShaderResourceViewPtr testSRV = MakeSRV(testTex);
 
-    ID3D11Texture2DPtr msTex = MakeTexture(DXGI_FORMAT_R32_FLOAT, 16, 16).Multisampled(4).RTV().SRV();
+    ID3D11Texture2DPtr msTex = MakeTexture(DXGI_FORMAT_R32_FLOAT, 32, 32).Multisampled(4).RTV().SRV();
     ID3D11ShaderResourceViewPtr msSRV = MakeSRV(msTex);
 
     ID3D11BufferPtr rawBuf = MakeBuffer().SRV().ByteAddressed().Data(testdata);

@@ -976,7 +976,7 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
         .NumElements(12)
         .CreateGPU(1);
 
-    ID3D12ResourcePtr msTex = MakeTexture(DXGI_FORMAT_R32_FLOAT, 16, 16).Multisampled(4).RTV();
+    ID3D12ResourcePtr msTex = MakeTexture(DXGI_FORMAT_R32_FLOAT, 32, 32).Multisampled(4).RTV();
     MakeSRV(msTex).CreateGPU(4);
 
     Texture rgba8;
