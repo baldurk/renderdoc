@@ -733,7 +733,7 @@ static const char *funcNameSigs[] = {
 "TextureGather(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,channel)",
 "TextureGatherCmp(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,channel,compareValue)",
 "Texture2DMSGetSamplePosition(srv,index)",
-"GetRenderTargetSamplePosition(index)",
+"GetRenderTargetSamplePosition()",
 "GetRenderTargetSampleCount()",
 "AtomicBinOp(handle,atomicOp,offset0,offset1,offset2,newValue)",
 "AtomicCompareExchange(handle,offset0,offset1,offset2,compareValue,newValue)",
@@ -3470,24 +3470,10 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 break;
               }
               case DXOp::BufferLoad:
-              {
-                // BufferLoad(srv,index,wot)
-                // wot is unused
-                rdcstr handleStr = GetArgId(inst, 1);
-                rdcstr resName = GetHandleAlias(handleStr);
-                if(!resName.isEmpty())
-                {
-                  lineStr += resName;
-                  lineStr += "[" + GetArgId(inst, 2) + "]";
-                }
-                else
-                {
-                  showDxFuncName = true;
-                }
-                break;
-              }
               case DXOp::RawBufferLoad:
               {
+                // BufferLoad(srv,index,wot)
+                // "wot" is a byte offset
                 // RawBufferLoad(srv,index,elementOffset,mask,alignment)
                 rdcstr handleStr = GetArgId(inst, 1);
                 rdcstr resName = GetHandleAlias(handleStr);
@@ -3495,31 +3481,18 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 {
                   if(!isUndef(inst.args[2]))
                   {
-                    rdcstr arrayStr = resName + "[" + GetArgId(inst, 2) + "]";
-                    if(!isUndef(inst.args[3]))
+                    lineStr += resName + ".Load(" + GetArgId(inst, 2);
+                    uint32_t elementOffset;
+                    if(getival<uint32_t>(inst.args[3], elementOffset))
                     {
-                      // *(&<resName>[<index>] + <elementOffset> bytes)
-                      uint32_t elementOffset;
-                      if(getival<uint32_t>(inst.args[3], elementOffset))
-                      {
-                        if(elementOffset > 0)
-                          lineStr += "*(&" + arrayStr + " + " + ToStr(elementOffset) + " bytes)";
-                        else
-                          lineStr += arrayStr;
-                      }
-                      else
-                      {
-                        lineStr += "*(&" + arrayStr + " + " + GetArgId(inst, 3) + " bytes)";
-                      }
+                      if(elementOffset > 0)
+                        lineStr += ", byteOffset = " + ToStr(elementOffset);
                     }
-                    else
-                    {
-                      lineStr += arrayStr;
-                    }
+                    lineStr += ")";
                   }
                   else
                   {
-                    lineStr += resName + "[" + GetArgId(inst, 3) + "]";
+                    showDxFuncName = true;
                   }
                 }
                 else
@@ -3537,41 +3510,25 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 rdcstr resName = GetHandleAlias(handleStr);
                 if(!resName.isEmpty())
                 {
-                  uint32_t offset = 0;
-                  bool validElementOffset = !isUndef(inst.args[3]);
-                  bool constantElementOffset = validElementOffset && getival(inst.args[3], offset);
-
-                  rdcstr arrayStr = resName;
-                  uint32_t index;
-                  if(getival(inst.args[2], index))
+                  if(!isUndef(inst.args[2]))
                   {
-                    arrayStr += "[" + ToStr(index) + "]";
-                  }
-                  else
-                  {
-                    arrayStr += "[" + GetArgId(inst, 2) + "]";
-                  }
-                  if(validElementOffset)
-                  {
-                    // *(&<resName>[<index>] + <elementOffset> bytes)
-                    if(constantElementOffset)
+                    lineStr += resName + ".Store(" + GetArgId(inst, 2);
+                    if(dxOpCode == DXOp::BufferStore)
                     {
-                      if(offset > 0)
-                        lineStr = "*(&" + arrayStr + " + " + ToStr(offset) + " bytes)";
-                      else
-                        lineStr += arrayStr;
+                      if(!isUndef(inst.args[3]))
+                        lineStr += ", byteOffset = " + GetArgId(inst, 3);
                     }
                     else
                     {
-                      lineStr += "*(&" + arrayStr + " + " + GetArgId(inst, 3) + " bytes)";
+                      uint32_t elementOffset;
+                      if(getival<uint32_t>(inst.args[3], elementOffset))
+                      {
+                        if(elementOffset > 0)
+                          lineStr += ", byteOffset = " + ToStr(elementOffset);
+                      }
                     }
                   }
-                  else
-                  {
-                    lineStr += arrayStr;
-                  }
-                  lineStr += " = ";
-                  lineStr += "{";
+                  lineStr += ", {";
                   bool needComma = false;
                   for(uint32_t a = 4; a < 8; ++a)
                   {
@@ -3583,7 +3540,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                       needComma = true;
                     }
                   }
-                  lineStr += "}";
+                  lineStr += "})";
                 }
                 else
                 {
@@ -3810,6 +3767,42 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                       lineStr += GetArgId(inst, a);
                     }
                   }
+                  lineStr += ")";
+                }
+                else
+                {
+                  showDxFuncName = true;
+                }
+                break;
+              }
+              case DXOp::GetDimensions:
+              {
+                // GetDimensions(handle,mipLevel)
+                rdcstr handleStr = GetArgId(inst, 1);
+                rdcstr resName = GetHandleAlias(handleStr);
+                if(!resName.isEmpty())
+                {
+                  lineStr += resName;
+                  lineStr += ".GetDimensions(";
+                  lineStr += GetArgId(inst, 2);
+                  lineStr += ")";
+                }
+                else
+                {
+                  showDxFuncName = true;
+                }
+                break;
+              }
+              case DXOp::Texture2DMSGetSamplePosition:
+              {
+                // Texture2DMSGetSamplePosition(srv,index)
+                rdcstr handleStr = GetArgId(inst, 1);
+                rdcstr resName = GetHandleAlias(handleStr);
+                if(!resName.isEmpty())
+                {
+                  lineStr += resName;
+                  lineStr += ".GetSamplePosition(";
+                  lineStr += GetArgId(inst, 2);
                   lineStr += ")";
                 }
                 else
