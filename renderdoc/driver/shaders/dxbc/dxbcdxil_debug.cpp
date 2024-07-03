@@ -99,6 +99,94 @@ float flush_denorm(const float f)
   return ret;
 }
 
+void get_sample_position(uint32_t sampleIndex, uint32_t sampleCount, float *position)
+{
+  // assume standard sample pattern - this might not hold in all cases
+  // http://msdn.microsoft.com/en-us/library/windows/desktop/ff476218(v=vs.85).aspx
+
+  if(sampleIndex >= sampleCount)
+  {
+    // Per HLSL docs, if sampleIndex is out of bounds a zero vector is returned
+    RDCWARN("sample index %u is out of bounds on resource bound to sample_pos (%u samples)",
+            sampleIndex, sampleCount);
+    position[0] = 0.0f;
+    position[1] = 0.0f;
+    position[2] = 0.0f;
+    position[3] = 0.0f;
+  }
+  else
+  {
+    const float *sample_pattern = NULL;
+
+// co-ordinates are given as (i,j) in 16ths of a pixel
+#define _SMP(c) ((c) / 16.0f)
+
+    if(sampleCount == 1)
+    {
+      sample_pattern = NULL;
+    }
+    else if(sampleCount == 2)
+    {
+      static const float pattern_2x[] = {
+          _SMP(4.0f),
+          _SMP(4.0f),
+          _SMP(-4.0f),
+          _SMP(-4.0f),
+      };
+
+      sample_pattern = &pattern_2x[0];
+    }
+    else if(sampleCount == 4)
+    {
+      static const float pattern_4x[] = {
+          _SMP(-2.0f), _SMP(-6.0f), _SMP(6.0f), _SMP(-2.0f),
+          _SMP(-6.0f), _SMP(2.0f),  _SMP(2.0f), _SMP(6.0f),
+      };
+
+      sample_pattern = &pattern_4x[0];
+    }
+    else if(sampleCount == 8)
+    {
+      static const float pattern_8x[] = {
+          _SMP(1.0f),  _SMP(-3.0f), _SMP(-1.0f), _SMP(3.0f),  _SMP(5.0f),  _SMP(1.0f),
+          _SMP(-3.0f), _SMP(-5.0f), _SMP(-5.0f), _SMP(5.0f),  _SMP(-7.0f), _SMP(-1.0f),
+          _SMP(3.0f),  _SMP(7.0f),  _SMP(7.0f),  _SMP(-7.0f),
+      };
+
+      sample_pattern = &pattern_8x[0];
+    }
+    else if(sampleCount == 16)
+    {
+      static const float pattern_16x[] = {
+          _SMP(1.0f),  _SMP(1.0f),  _SMP(-1.0f), _SMP(-3.0f), _SMP(-3.0f), _SMP(2.0f),  _SMP(4.0f),
+          _SMP(-1.0f), _SMP(-5.0f), _SMP(-2.0f), _SMP(2.0f),  _SMP(5.0f),  _SMP(5.0f),  _SMP(3.0f),
+          _SMP(3.0f),  _SMP(-5.0f), _SMP(-2.0f), _SMP(6.0f),  _SMP(0.0f),  _SMP(-7.0f), _SMP(-4.0f),
+          _SMP(-6.0f), _SMP(-6.0f), _SMP(4.0f),  _SMP(-8.0f), _SMP(0.0f),  _SMP(7.0f),  _SMP(-4.0f),
+          _SMP(6.0f),  _SMP(7.0f),  _SMP(-7.0f), _SMP(-8.0f),
+      };
+
+      sample_pattern = &pattern_16x[0];
+    }
+    else    // unsupported sample count
+    {
+      RDCERR("Unsupported sample count on resource for sample_pos: %u", sampleCount);
+      sample_pattern = NULL;
+    }
+
+    if(sample_pattern == NULL)
+    {
+      position[0] = 0.0f;
+      position[1] = 0.0f;
+    }
+    else
+    {
+      position[0] = sample_pattern[sampleIndex * 2 + 0];
+      position[1] = sample_pattern[sampleIndex * 2 + 1];
+    }
+  }
+#undef _SMP
+}
+
 };    // namespace DXBCDXILDebug
 
 #if ENABLED(ENABLE_UNIT_TESTS)

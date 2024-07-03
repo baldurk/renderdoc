@@ -3516,104 +3516,20 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       if(op.operation == OPCODE_SAMPLE_POS && result.value.u32v[0] > 0 &&
          (op.operands[2].type == TYPE_IMMEDIATE32 || op.operands[2].type == TYPE_TEMP))
       {
-        // assume standard sample pattern - this might not hold in all cases
-        // http://msdn.microsoft.com/en-us/library/windows/desktop/ff476218(v=vs.85).aspx
-
         uint32_t sampleIndex = srcOpers[1].value.u32v[0];
         uint32_t sampleCount = result.value.u32v[0];
 
-        if(sampleIndex >= sampleCount)
+        if(sampleCount == 1)
         {
-          // Per HLSL docs, if sampleIndex is out of bounds a zero vector is returned
-          RDCWARN("sample index %u is out of bounds on resource bound to sample_pos (%u samples)",
-                  sampleIndex, sampleCount);
-          result.value.f32v[0] = 0.0f;
-          result.value.f32v[1] = 0.0f;
-          result.value.f32v[2] = 0.0f;
-          result.value.f32v[3] = 0.0f;
+          RDCWARN("Non-multisampled texture being passed to sample_pos");
+
+          apiWrapper->AddDebugMessage(
+              MessageCategory::Shaders, MessageSeverity::Medium, MessageSource::RuntimeWarning,
+              StringFormat::Fmt(
+                  "Shader debugging %d: %s\nNon-multisampled texture being passed to sample_pos",
+                  nextInstruction - 1, op.str.c_str()));
         }
-        else
-        {
-          const float *sample_pattern = NULL;
-
-// co-ordinates are given as (i,j) in 16ths of a pixel
-#define _SMP(c) ((c) / 16.0f)
-
-          if(sampleCount == 1)
-          {
-            RDCWARN("Non-multisampled texture being passed to sample_pos");
-
-            apiWrapper->AddDebugMessage(
-                MessageCategory::Shaders, MessageSeverity::Medium, MessageSource::RuntimeWarning,
-                StringFormat::Fmt(
-                    "Shader debugging %d: %s\nNon-multisampled texture being passed to sample_pos",
-                    nextInstruction - 1, op.str.c_str()));
-
-            sample_pattern = NULL;
-          }
-          else if(sampleCount == 2)
-          {
-            static const float pattern_2x[] = {
-                _SMP(4.0f),
-                _SMP(4.0f),
-                _SMP(-4.0f),
-                _SMP(-4.0f),
-            };
-
-            sample_pattern = &pattern_2x[0];
-          }
-          else if(sampleCount == 4)
-          {
-            static const float pattern_4x[] = {
-                _SMP(-2.0f), _SMP(-6.0f), _SMP(6.0f), _SMP(-2.0f),
-                _SMP(-6.0f), _SMP(2.0f),  _SMP(2.0f), _SMP(6.0f),
-            };
-
-            sample_pattern = &pattern_4x[0];
-          }
-          else if(sampleCount == 8)
-          {
-            static const float pattern_8x[] = {
-                _SMP(1.0f),  _SMP(-3.0f), _SMP(-1.0f), _SMP(3.0f),  _SMP(5.0f),  _SMP(1.0f),
-                _SMP(-3.0f), _SMP(-5.0f), _SMP(-5.0f), _SMP(5.0f),  _SMP(-7.0f), _SMP(-1.0f),
-                _SMP(3.0f),  _SMP(7.0f),  _SMP(7.0f),  _SMP(-7.0f),
-            };
-
-            sample_pattern = &pattern_8x[0];
-          }
-          else if(sampleCount == 16)
-          {
-            static const float pattern_16x[] = {
-                _SMP(1.0f),  _SMP(1.0f),  _SMP(-1.0f), _SMP(-3.0f), _SMP(-3.0f), _SMP(2.0f),
-                _SMP(4.0f),  _SMP(-1.0f), _SMP(-5.0f), _SMP(-2.0f), _SMP(2.0f),  _SMP(5.0f),
-                _SMP(5.0f),  _SMP(3.0f),  _SMP(3.0f),  _SMP(-5.0f), _SMP(-2.0f), _SMP(6.0f),
-                _SMP(0.0f),  _SMP(-7.0f), _SMP(-4.0f), _SMP(-6.0f), _SMP(-6.0f), _SMP(4.0f),
-                _SMP(-8.0f), _SMP(0.0f),  _SMP(7.0f),  _SMP(-4.0f), _SMP(6.0f),  _SMP(7.0f),
-                _SMP(-7.0f), _SMP(-8.0f),
-            };
-
-            sample_pattern = &pattern_16x[0];
-          }
-          else    // unsupported sample count
-          {
-            RDCERR("Unsupported sample count on resource for sample_pos: %u", result.value.u32v[0]);
-
-            sample_pattern = NULL;
-          }
-
-          if(sample_pattern == NULL)
-          {
-            result.value.f32v[0] = 0.0f;
-            result.value.f32v[1] = 0.0f;
-          }
-          else
-          {
-            result.value.f32v[0] = sample_pattern[sampleIndex * 2 + 0];
-            result.value.f32v[1] = sample_pattern[sampleIndex * 2 + 1];
-          }
-        }
-
-#undef _SMP
+        DXBCDXILDebug::get_sample_position(sampleIndex, sampleCount, result.value.f32v.data());
       }
 
       // apply swizzle

@@ -88,4 +88,5 @@ double dxbc_max(double a, double b);
 float round_ne(float x);
 float flush_denorm(const float f);
 
+void get_sample_position(uint32_t sampleIndex, uint32_t sampleCount, float *position);
 };
