@@ -58,4 +58,8 @@ D3D12Descriptor FindDescriptor(WrappedID3D12Device *device, D3D12_DESCRIPTOR_RAN
 ShaderVariable GetResourceInfo(WrappedID3D12Device *device, D3D12_DESCRIPTOR_RANGE_TYPE descType,
                                const DXBCDXILDebug::BindingSlot &slot, uint32_t mipLevel,
                                const DXBC::ShaderType shaderType, int &dim, bool isDXIL);
+
+ShaderVariable GetSampleInfo(WrappedID3D12Device *device, D3D12_DESCRIPTOR_RANGE_TYPE descType,
+                             const DXBCDXILDebug::BindingSlot &slot,
+                             const DXBC::ShaderType shaderType, const char *opString);
 };

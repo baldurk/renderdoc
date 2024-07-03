@@ -843,6 +843,44 @@ ShaderVariable D3D12ShaderDebug::GetResourceInfo(WrappedID3D12Device *device,
   return result;
 }
 
+ShaderVariable D3D12ShaderDebug::GetSampleInfo(WrappedID3D12Device *device,
+                                               D3D12_DESCRIPTOR_RANGE_TYPE descType,
+                                               const DXBCDXILDebug::BindingSlot &slot,
+                                               const DXBC::ShaderType shaderType,
+                                               const char *opString)
+{
+  ShaderVariable result("", 0U, 0U, 0U, 0U);
+
+  D3D12Descriptor descriptor = FindDescriptor(device, descType, slot, shaderType);
+
+  if(descriptor.GetType() == D3D12DescriptorType::SRV && descType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
+  {
+    D3D12ResourceManager *rm = device->GetResourceManager();
+
+    ResourceId srvId = descriptor.GetResResourceId();
+    ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(srvId);
+    D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = descriptor.GetSRV();
+    if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_UNKNOWN)
+      srvDesc = MakeSRVDesc(resDesc);
+
+    if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DMS ||
+       srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY)
+    {
+      result.value.u32v[0] = resDesc.SampleDesc.Count;
+      result.value.u32v[1] = 0;
+      result.value.u32v[2] = 0;
+      result.value.u32v[3] = 0;
+    }
+    else
+    {
+      RDCERR("Invalid resource dimension for GetSampleInfo");
+    }
+  }
+
+  return result;
+}
+
 class D3D12DebugAPIWrapper : public DXBCDebug::DebugAPIWrapper
 {
 public:
@@ -1295,14 +1333,14 @@ ShaderVariable D3D12DebugAPIWrapper::GetSampleInfo(DXBCBytecode::OperandType typ
                                                    const DXBCDebug::BindingSlot &slot,
                                                    const char *opString)
 {
-  ShaderVariable result("", 0U, 0U, 0U, 0U);
-
-  D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
-
+  DXBC::ShaderType shaderType = GetShaderType();
   if(type == DXBCBytecode::TYPE_RASTERIZER)
   {
-    if(GetShaderType() != DXBC::ShaderType::Compute)
+    ShaderVariable result("", 0U, 0U, 0U, 0U);
+    if(shaderType != DXBC::ShaderType::Compute)
     {
+      D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
+
       const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
 
       // try depth first - both should match sample count though to be valid
@@ -1320,33 +1358,8 @@ ShaderVariable D3D12DebugAPIWrapper::GetSampleInfo(DXBCBytecode::OperandType typ
     return result;
   }
 
-  D3D12Descriptor descriptor = FindDescriptor(type, slot);
-
-  if(descriptor.GetType() == D3D12DescriptorType::SRV &&
-     type != DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW)
-  {
-    ResourceId srvId = descriptor.GetResResourceId();
-    ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(srvId);
-    D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
-    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = descriptor.GetSRV();
-    if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_UNKNOWN)
-      srvDesc = MakeSRVDesc(resDesc);
-
-    if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DMS ||
-       srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY)
-    {
-      result.value.u32v[0] = resDesc.SampleDesc.Count;
-      result.value.u32v[1] = 0;
-      result.value.u32v[2] = 0;
-      result.value.u32v[3] = 0;
-    }
-    else
-    {
-      RDCERR("Invalid resource dimension for GetSampleInfo");
-    }
-  }
-
-  return result;
+  D3D12_DESCRIPTOR_RANGE_TYPE descType = ConvertOperandTypeToDescriptorType(type);
+  return D3D12ShaderDebug::GetSampleInfo(m_pDevice, descType, slot, shaderType, opString);
 }
 
 ShaderVariable D3D12DebugAPIWrapper::GetBufferInfo(DXBCBytecode::OperandType type,
