@@ -74,6 +74,23 @@ static bool IsShaderParameterVisible(DXBC::ShaderType shaderType,
   return false;
 }
 
+static D3D12_DESCRIPTOR_RANGE_TYPE ConvertOperandTypeToDescriptorType(DXBCBytecode::OperandType type)
+{
+  D3D12_DESCRIPTOR_RANGE_TYPE descType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+
+  switch(type)
+  {
+    case DXBCBytecode::TYPE_SAMPLER: descType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER; break;
+    case DXBCBytecode::TYPE_RESOURCE: descType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; break;
+    case DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW:
+      descType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+      break;
+    case DXBCBytecode::TYPE_CONSTANT_BUFFER: descType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV; break;
+    default: RDCERR("Unknown operand type %s", ToStr(type).c_str());
+  };
+  return descType;
+}
+
 // Helpers used by DXBC and DXIL debuggers to interact with GPU and resources
 bool D3D12ShaderDebug::CalculateMathIntrinsic(bool dxil, WrappedID3D12Device *device, int mathOp,
                                               const ShaderVariable &input, ShaderVariable &output1,
@@ -399,7 +416,7 @@ bool D3D12ShaderDebug::CalculateSampleGather(
 }
 
 D3D12Descriptor D3D12ShaderDebug::FindDescriptor(WrappedID3D12Device *device,
-                                                 D3D12_DESCRIPTOR_RANGE_TYPE descRangeType,
+                                                 D3D12_DESCRIPTOR_RANGE_TYPE descType,
                                                  const BindingSlot &slot,
                                                  const DXBC::ShaderType shaderType)
 {
@@ -427,7 +444,7 @@ D3D12Descriptor D3D12ShaderDebug::FindDescriptor(WrappedID3D12Device *device,
     WrappedID3D12RootSignature *pD3D12RootSig =
         rm->GetCurrentAs<WrappedID3D12RootSignature>(pRootSignature->rootsig);
 
-    if(descRangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
+    if(descType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
     {
       for(const D3D12_STATIC_SAMPLER_DESC1 &samp : pD3D12RootSig->sig.StaticSamplers)
       {
@@ -448,7 +465,7 @@ D3D12Descriptor D3D12ShaderDebug::FindDescriptor(WrappedID3D12Device *device,
       if(IsShaderParameterVisible(shaderType, param.ShaderVisibility))
       {
         if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV && element.type == eRootSRV &&
-           descRangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
+           descType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
         {
           if(param.Descriptor.ShaderRegister == slot.shaderRegister &&
              param.Descriptor.RegisterSpace == slot.registerSpace)
@@ -470,7 +487,7 @@ D3D12Descriptor D3D12ShaderDebug::FindDescriptor(WrappedID3D12Device *device,
           }
         }
         else if(param.ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV && element.type == eRootUAV &&
-                descRangeType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
+                descType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
         {
           if(param.Descriptor.ShaderRegister == slot.shaderRegister &&
              param.Descriptor.RegisterSpace == slot.registerSpace)
@@ -522,7 +539,7 @@ D3D12Descriptor D3D12ShaderDebug::FindDescriptor(WrappedID3D12Device *device,
 
             prevTableOffset = offset + numDescriptors;
 
-            if(range.RangeType != descRangeType)
+            if(range.RangeType != descType)
               continue;
 
             D3D12Descriptor *desc = (D3D12Descriptor *)heap->GetCPUDescriptorHandleForHeapStart().ptr;
@@ -544,6 +561,286 @@ D3D12Descriptor D3D12ShaderDebug::FindDescriptor(WrappedID3D12Device *device,
   }
 
   return descriptor;
+}
+
+ShaderVariable D3D12ShaderDebug::GetResourceInfo(WrappedID3D12Device *device,
+                                                 D3D12_DESCRIPTOR_RANGE_TYPE descType,
+                                                 const DXBCDXILDebug::BindingSlot &slot,
+                                                 uint32_t mipLevel, const DXBC::ShaderType shaderType,
+                                                 int &dim, bool isDXIL)
+{
+  ShaderVariable result("", 0U, 0U, 0U, 0U);
+
+  D3D12ResourceManager *rm = device->GetResourceManager();
+
+  D3D12Descriptor descriptor = FindDescriptor(device, descType, slot, shaderType);
+
+  if(descriptor.GetType() == D3D12DescriptorType::UAV && descType == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
+  {
+    ResourceId uavId = descriptor.GetResResourceId();
+    ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(uavId);
+    D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
+    D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = descriptor.GetUAV();
+
+    if(uavDesc.ViewDimension == D3D12_UAV_DIMENSION_UNKNOWN)
+      uavDesc = MakeUAVDesc(resDesc);
+
+    switch(uavDesc.ViewDimension)
+    {
+      case D3D12_UAV_DIMENSION_BUFFER:
+      {
+        if(isDXIL)
+        {
+          result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] =
+              result.value.u32v[3] = (uint32_t)uavDesc.Buffer.NumElements;
+          break;
+        }
+      }
+      case D3D12_UAV_DIMENSION_UNKNOWN:
+      {
+        RDCWARN("Invalid view dimension for GetResourceInfo");
+        break;
+      }
+      case D3D12_UAV_DIMENSION_TEXTURE1D:
+      case D3D12_UAV_DIMENSION_TEXTURE1DARRAY:
+      {
+        dim = 1;
+
+        bool isarray = uavDesc.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
+
+        result.value.u32v[0] = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
+        result.value.u32v[1] = isarray ? uavDesc.Texture1DArray.ArraySize : 0;
+        result.value.u32v[2] = 0;
+
+        // spec says "For UAVs (u#), the number of mip levels is always 1."
+        result.value.u32v[3] = 1;
+
+        if(mipLevel >= result.value.u32v[3])
+          result.value.u32v[0] = result.value.u32v[1] = 0;
+
+        break;
+      }
+      case D3D12_UAV_DIMENSION_TEXTURE2D:
+      case D3D12_UAV_DIMENSION_TEXTURE2DARRAY:
+      {
+        dim = 2;
+
+        result.value.u32v[0] = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
+        result.value.u32v[1] = RDCMAX(1U, (uint32_t)(resDesc.Height >> mipLevel));
+
+        if(uavDesc.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE2D)
+          result.value.u32v[2] = 0;
+        else if(uavDesc.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE2DARRAY)
+          result.value.u32v[2] = uavDesc.Texture2DArray.ArraySize;
+
+        // spec says "For UAVs (u#), the number of mip levels is always 1."
+        result.value.u32v[3] = 1;
+
+        if(mipLevel >= result.value.u32v[3])
+          result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
+
+        break;
+      }
+      case D3D12_UAV_DIMENSION_TEXTURE2DMS:
+      case D3D12_UAV_DIMENSION_TEXTURE2DMSARRAY:
+      {
+        // note, DXBC doesn't support MSAA UAVs so this is here mostly for completeness and sanity
+        dim = 2;
+
+        result.value.u32v[0] = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
+        result.value.u32v[1] = RDCMAX(1U, (uint32_t)(resDesc.Height >> mipLevel));
+
+        if(uavDesc.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE2DMS)
+          result.value.u32v[2] = 0;
+        else if(uavDesc.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE2DMSARRAY)
+          result.value.u32v[2] = uavDesc.Texture2DMSArray.ArraySize;
+
+        // spec says "For UAVs (u#), the number of mip levels is always 1."
+        result.value.u32v[3] = 1;
+
+        if(mipLevel >= result.value.u32v[3])
+          result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
+
+        break;
+      }
+      case D3D12_UAV_DIMENSION_TEXTURE3D:
+      {
+        dim = 3;
+
+        result.value.u32v[0] = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
+        result.value.u32v[1] = RDCMAX(1U, (uint32_t)(resDesc.Height >> mipLevel));
+        result.value.u32v[2] = RDCMAX(1U, (uint32_t)(resDesc.DepthOrArraySize >> mipLevel));
+
+        // spec says "For UAVs (u#), the number of mip levels is always 1."
+        result.value.u32v[3] = 1;
+
+        if(mipLevel >= result.value.u32v[3])
+          result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
+
+        break;
+      }
+    }
+
+    return result;
+  }
+  else if(descriptor.GetType() == D3D12DescriptorType::SRV &&
+          descType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
+  {
+    ResourceId srvId = descriptor.GetResResourceId();
+    ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(srvId);
+    D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = descriptor.GetSRV();
+    if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_UNKNOWN)
+      srvDesc = MakeSRVDesc(resDesc);
+    switch(srvDesc.ViewDimension)
+    {
+      case D3D12_SRV_DIMENSION_BUFFER:
+      {
+        if(isDXIL)
+        {
+          result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] =
+              result.value.u32v[3] = (uint32_t)srvDesc.Buffer.NumElements;
+          break;
+        }
+      }
+      case D3D12_SRV_DIMENSION_UNKNOWN:
+      {
+        RDCWARN("Invalid view dimension for GetResourceInfo");
+        break;
+      }
+      case D3D12_SRV_DIMENSION_TEXTURE1D:
+      case D3D12_SRV_DIMENSION_TEXTURE1DARRAY:
+      {
+        dim = 1;
+
+        bool isarray = srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
+
+        result.value.u32v[0] = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
+        result.value.u32v[1] = isarray ? srvDesc.Texture1DArray.ArraySize : 0;
+        result.value.u32v[2] = 0;
+        result.value.u32v[3] =
+            isarray ? srvDesc.Texture1DArray.MipLevels : srvDesc.Texture1D.MipLevels;
+
+        if(isarray && (result.value.u32v[1] == 0 || result.value.u32v[1] == ~0U))
+          result.value.u32v[1] = resDesc.DepthOrArraySize;
+
+        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+          result.value.u32v[3] = resDesc.MipLevels;
+        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+          result.value.u32v[3] = CalcNumMips((int)resDesc.Width, resDesc.Height, 1);
+
+        if(mipLevel >= result.value.u32v[3])
+          result.value.u32v[0] = result.value.u32v[1] = 0;
+
+        break;
+      }
+      case D3D12_SRV_DIMENSION_TEXTURE2D:
+      case D3D12_SRV_DIMENSION_TEXTURE2DARRAY:
+      case D3D12_SRV_DIMENSION_TEXTURE2DMS:
+      case D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY:
+      {
+        dim = 2;
+        result.value.u32v[0] = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
+        result.value.u32v[1] = RDCMAX(1U, (uint32_t)(resDesc.Height >> mipLevel));
+
+        if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2D)
+        {
+          result.value.u32v[2] = 0;
+          result.value.u32v[3] = srvDesc.Texture2D.MipLevels;
+        }
+        else if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DARRAY)
+        {
+          result.value.u32v[2] = srvDesc.Texture2DArray.ArraySize;
+          result.value.u32v[3] = srvDesc.Texture2DArray.MipLevels;
+
+          if(result.value.u32v[2] == 0 || result.value.u32v[2] == ~0U)
+            result.value.u32v[2] = resDesc.DepthOrArraySize;
+        }
+        else if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DMS)
+        {
+          result.value.u32v[2] = 0;
+          result.value.u32v[3] = resDesc.SampleDesc.Count;
+        }
+        else if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY)
+        {
+          result.value.u32v[2] = srvDesc.Texture2DMSArray.ArraySize;
+          result.value.u32v[3] = resDesc.SampleDesc.Count;
+
+          if(result.value.u32v[2] == 0 || result.value.u32v[2] == ~0U)
+            result.value.u32v[2] = resDesc.DepthOrArraySize;
+        }
+
+        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+          result.value.u32v[3] = resDesc.MipLevels;
+        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+          result.value.u32v[3] = CalcNumMips((int)resDesc.Width, resDesc.Height, 1);
+
+        if(mipLevel >= result.value.u32v[3])
+          result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
+
+        break;
+      }
+      case D3D12_SRV_DIMENSION_TEXTURE3D:
+      {
+        dim = 3;
+
+        result.value.u32v[0] = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
+        result.value.u32v[1] = RDCMAX(1U, (uint32_t)(resDesc.Height >> mipLevel));
+        result.value.u32v[2] = RDCMAX(1U, (uint32_t)(resDesc.DepthOrArraySize >> mipLevel));
+        result.value.u32v[3] = srvDesc.Texture3D.MipLevels;
+
+        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+          result.value.u32v[3] = resDesc.MipLevels;
+        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+          result.value.u32v[3] =
+              CalcNumMips((int)resDesc.Width, resDesc.Height, resDesc.DepthOrArraySize);
+
+        if(mipLevel >= result.value.u32v[3])
+          result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
+
+        break;
+      }
+      case D3D12_SRV_DIMENSION_TEXTURECUBE:
+      case D3D12_SRV_DIMENSION_TEXTURECUBEARRAY:
+      {
+        // Even though it's a texture cube, an individual face's dimensions are
+        // returned
+        dim = 2;
+
+        bool isarray = srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
+
+        result.value.u32v[0] = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
+        result.value.u32v[1] = RDCMAX(1U, (uint32_t)(resDesc.Height >> mipLevel));
+
+        // the spec says "If srcResource is a TextureCubeArray, [...]. dest.z is set
+        // to an undefined value."
+        // but that's stupid, and implementations seem to return the number of cubes
+        result.value.u32v[2] = isarray ? srvDesc.TextureCubeArray.NumCubes : 0;
+        result.value.u32v[3] =
+            isarray ? srvDesc.TextureCubeArray.MipLevels : srvDesc.TextureCube.MipLevels;
+
+        if(result.value.u32v[2] == 0 || result.value.u32v[2] == ~0U)
+          result.value.u32v[2] = resDesc.DepthOrArraySize / 6;
+
+        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+          result.value.u32v[3] = resDesc.MipLevels;
+        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
+          result.value.u32v[3] = CalcNumMips((int)resDesc.Width, resDesc.Height, 1);
+
+        if(mipLevel >= result.value.u32v[3])
+          result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
+
+        break;
+      }
+      case D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE:
+      {
+        RDCERR("Raytracing is unsupported");
+        break;
+      }
+    }
+  }
+
+  return result;
 }
 
 class D3D12DebugAPIWrapper : public DXBCDebug::DebugAPIWrapper
@@ -989,19 +1286,7 @@ bool D3D12DebugAPIWrapper::CalculateMathIntrinsic(DXBCBytecode::OpcodeType opcod
 D3D12Descriptor D3D12DebugAPIWrapper::FindDescriptor(DXBCBytecode::OperandType type,
                                                      const DXBCDebug::BindingSlot &slot)
 {
-  D3D12_DESCRIPTOR_RANGE_TYPE descType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-
-  switch(type)
-  {
-    case DXBCBytecode::TYPE_SAMPLER: descType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER; break;
-    case DXBCBytecode::TYPE_RESOURCE: descType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; break;
-    case DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW:
-      descType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-      break;
-    case DXBCBytecode::TYPE_CONSTANT_BUFFER: descType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV; break;
-    default: RDCERR("Unknown descriptor type %s", ToStr(type).c_str());
-  };
-
+  D3D12_DESCRIPTOR_RANGE_TYPE descType = ConvertOperandTypeToDescriptorType(type);
   return D3D12ShaderDebug::FindDescriptor(m_pDevice, descType, slot, GetShaderType());
 }
 
@@ -1116,263 +1401,9 @@ ShaderVariable D3D12DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
                                                      const DXBCDebug::BindingSlot &slot,
                                                      uint32_t mipLevel, int &dim)
 {
-  ShaderVariable result("", 0U, 0U, 0U, 0U);
-
-  D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
-
-  D3D12Descriptor descriptor = FindDescriptor(type, slot);
-
-  if(descriptor.GetType() == D3D12DescriptorType::UAV &&
-     type == DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW)
-  {
-    ResourceId uavId = descriptor.GetResResourceId();
-    ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(uavId);
-    D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
-    D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = descriptor.GetUAV();
-
-    if(uavDesc.ViewDimension == D3D12_UAV_DIMENSION_UNKNOWN)
-      uavDesc = MakeUAVDesc(resDesc);
-
-    switch(uavDesc.ViewDimension)
-    {
-      case D3D12_UAV_DIMENSION_UNKNOWN:
-      case D3D12_UAV_DIMENSION_BUFFER:
-      {
-        RDCWARN("Invalid view dimension for GetResourceInfo");
-        break;
-      }
-      case D3D12_UAV_DIMENSION_TEXTURE1D:
-      case D3D12_UAV_DIMENSION_TEXTURE1DARRAY:
-      {
-        dim = 1;
-
-        bool isarray = uavDesc.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
-
-        result.value.u32v[0] = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
-        result.value.u32v[1] = isarray ? uavDesc.Texture1DArray.ArraySize : 0;
-        result.value.u32v[2] = 0;
-
-        // spec says "For UAVs (u#), the number of mip levels is always 1."
-        result.value.u32v[3] = 1;
-
-        if(mipLevel >= result.value.u32v[3])
-          result.value.u32v[0] = result.value.u32v[1] = 0;
-
-        break;
-      }
-      case D3D12_UAV_DIMENSION_TEXTURE2D:
-      case D3D12_UAV_DIMENSION_TEXTURE2DARRAY:
-      {
-        dim = 2;
-
-        result.value.u32v[0] = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
-        result.value.u32v[1] = RDCMAX(1U, (uint32_t)(resDesc.Height >> mipLevel));
-
-        if(uavDesc.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE2D)
-          result.value.u32v[2] = 0;
-        else if(uavDesc.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE2DARRAY)
-          result.value.u32v[2] = uavDesc.Texture2DArray.ArraySize;
-
-        // spec says "For UAVs (u#), the number of mip levels is always 1."
-        result.value.u32v[3] = 1;
-
-        if(mipLevel >= result.value.u32v[3])
-          result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
-
-        break;
-      }
-      case D3D12_UAV_DIMENSION_TEXTURE2DMS:
-      case D3D12_UAV_DIMENSION_TEXTURE2DMSARRAY:
-      {
-        // note, DXBC doesn't support MSAA UAVs so this is here mostly for completeness and sanity
-        dim = 2;
-
-        result.value.u32v[0] = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
-        result.value.u32v[1] = RDCMAX(1U, (uint32_t)(resDesc.Height >> mipLevel));
-
-        if(uavDesc.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE2DMS)
-          result.value.u32v[2] = 0;
-        else if(uavDesc.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE2DMSARRAY)
-          result.value.u32v[2] = uavDesc.Texture2DMSArray.ArraySize;
-
-        // spec says "For UAVs (u#), the number of mip levels is always 1."
-        result.value.u32v[3] = 1;
-
-        if(mipLevel >= result.value.u32v[3])
-          result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
-
-        break;
-      }
-      case D3D12_UAV_DIMENSION_TEXTURE3D:
-      {
-        dim = 3;
-
-        result.value.u32v[0] = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
-        result.value.u32v[1] = RDCMAX(1U, (uint32_t)(resDesc.Height >> mipLevel));
-        result.value.u32v[2] = RDCMAX(1U, (uint32_t)(resDesc.DepthOrArraySize >> mipLevel));
-
-        // spec says "For UAVs (u#), the number of mip levels is always 1."
-        result.value.u32v[3] = 1;
-
-        if(mipLevel >= result.value.u32v[3])
-          result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
-
-        break;
-      }
-    }
-
-    return result;
-  }
-  else if(descriptor.GetType() == D3D12DescriptorType::SRV &&
-          type != DXBCBytecode::TYPE_UNORDERED_ACCESS_VIEW)
-  {
-    ResourceId srvId = descriptor.GetResResourceId();
-    ID3D12Resource *pResource = rm->GetCurrentAs<ID3D12Resource>(srvId);
-    D3D12_RESOURCE_DESC resDesc = pResource->GetDesc();
-    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = descriptor.GetSRV();
-    if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_UNKNOWN)
-      srvDesc = MakeSRVDesc(resDesc);
-    switch(srvDesc.ViewDimension)
-    {
-      case D3D12_SRV_DIMENSION_UNKNOWN:
-      case D3D12_SRV_DIMENSION_BUFFER:
-      {
-        RDCWARN("Invalid view dimension for GetResourceInfo");
-        break;
-      }
-      case D3D12_SRV_DIMENSION_TEXTURE1D:
-      case D3D12_SRV_DIMENSION_TEXTURE1DARRAY:
-      {
-        dim = 1;
-
-        bool isarray = srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
-
-        result.value.u32v[0] = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
-        result.value.u32v[1] = isarray ? srvDesc.Texture1DArray.ArraySize : 0;
-        result.value.u32v[2] = 0;
-        result.value.u32v[3] =
-            isarray ? srvDesc.Texture1DArray.MipLevels : srvDesc.Texture1D.MipLevels;
-
-        if(isarray && (result.value.u32v[1] == 0 || result.value.u32v[1] == ~0U))
-          result.value.u32v[1] = resDesc.DepthOrArraySize;
-
-        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
-          result.value.u32v[3] = resDesc.MipLevels;
-        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
-          result.value.u32v[3] = CalcNumMips((int)resDesc.Width, resDesc.Height, 1);
-
-        if(mipLevel >= result.value.u32v[3])
-          result.value.u32v[0] = result.value.u32v[1] = 0;
-
-        break;
-      }
-      case D3D12_SRV_DIMENSION_TEXTURE2D:
-      case D3D12_SRV_DIMENSION_TEXTURE2DARRAY:
-      case D3D12_SRV_DIMENSION_TEXTURE2DMS:
-      case D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY:
-      {
-        dim = 2;
-        result.value.u32v[0] = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
-        result.value.u32v[1] = RDCMAX(1U, (uint32_t)(resDesc.Height >> mipLevel));
-
-        if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2D)
-        {
-          result.value.u32v[2] = 0;
-          result.value.u32v[3] = srvDesc.Texture2D.MipLevels;
-        }
-        else if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DARRAY)
-        {
-          result.value.u32v[2] = srvDesc.Texture2DArray.ArraySize;
-          result.value.u32v[3] = srvDesc.Texture2DArray.MipLevels;
-
-          if(result.value.u32v[2] == 0 || result.value.u32v[2] == ~0U)
-            result.value.u32v[2] = resDesc.DepthOrArraySize;
-        }
-        else if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DMS)
-        {
-          result.value.u32v[2] = 0;
-          result.value.u32v[3] = 1;
-        }
-        else if(srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY)
-        {
-          result.value.u32v[2] = srvDesc.Texture2DMSArray.ArraySize;
-          result.value.u32v[3] = 1;
-
-          if(result.value.u32v[2] == 0 || result.value.u32v[2] == ~0U)
-            result.value.u32v[2] = resDesc.DepthOrArraySize;
-        }
-
-        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
-          result.value.u32v[3] = resDesc.MipLevels;
-        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
-          result.value.u32v[3] = CalcNumMips((int)resDesc.Width, resDesc.Height, 1);
-
-        if(mipLevel >= result.value.u32v[3])
-          result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
-
-        break;
-      }
-      case D3D12_SRV_DIMENSION_TEXTURE3D:
-      {
-        dim = 3;
-
-        result.value.u32v[0] = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
-        result.value.u32v[1] = RDCMAX(1U, (uint32_t)(resDesc.Height >> mipLevel));
-        result.value.u32v[2] = RDCMAX(1U, (uint32_t)(resDesc.DepthOrArraySize >> mipLevel));
-        result.value.u32v[3] = srvDesc.Texture3D.MipLevels;
-
-        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
-          result.value.u32v[3] = resDesc.MipLevels;
-        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
-          result.value.u32v[3] =
-              CalcNumMips((int)resDesc.Width, resDesc.Height, resDesc.DepthOrArraySize);
-
-        if(mipLevel >= result.value.u32v[3])
-          result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
-
-        break;
-      }
-      case D3D12_SRV_DIMENSION_TEXTURECUBE:
-      case D3D12_SRV_DIMENSION_TEXTURECUBEARRAY:
-      {
-        // Even though it's a texture cube, an individual face's dimensions are
-        // returned
-        dim = 2;
-
-        bool isarray = srvDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
-
-        result.value.u32v[0] = RDCMAX(1U, (uint32_t)(resDesc.Width >> mipLevel));
-        result.value.u32v[1] = RDCMAX(1U, (uint32_t)(resDesc.Height >> mipLevel));
-
-        // the spec says "If srcResource is a TextureCubeArray, [...]. dest.z is set
-        // to an undefined value."
-        // but that's stupid, and implementations seem to return the number of cubes
-        result.value.u32v[2] = isarray ? srvDesc.TextureCubeArray.NumCubes : 0;
-        result.value.u32v[3] =
-            isarray ? srvDesc.TextureCubeArray.MipLevels : srvDesc.TextureCube.MipLevels;
-
-        if(result.value.u32v[2] == 0 || result.value.u32v[2] == ~0U)
-          result.value.u32v[2] = resDesc.DepthOrArraySize / 6;
-
-        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
-          result.value.u32v[3] = resDesc.MipLevels;
-        if(result.value.u32v[3] == 0 || result.value.u32v[3] == ~0U)
-          result.value.u32v[3] = CalcNumMips((int)resDesc.Width, resDesc.Height, 1);
-
-        if(mipLevel >= result.value.u32v[3])
-          result.value.u32v[0] = result.value.u32v[1] = result.value.u32v[2] = 0;
-
-        break;
-      }
-      case D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE:
-      {
-        RDCERR("Raytracing is unsupported");
-        break;
-      }
-    }
-  }
-
-  return result;
+  D3D12_DESCRIPTOR_RANGE_TYPE descType = ConvertOperandTypeToDescriptorType(type);
+  return D3D12ShaderDebug::GetResourceInfo(m_pDevice, descType, slot, mipLevel, GetShaderType(),
+                                           dim, false);
 }
 
 bool D3D12DebugAPIWrapper::CalculateSampleGather(
