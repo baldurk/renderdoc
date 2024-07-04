@@ -287,89 +287,88 @@ EntryPointInterface::Signature::Signature(const Metadata *signature)
   startCol = getival<int8_t>(signature->children[SignatureElement::StartCol]);
 }
 
-EntryPointInterface::ResourceBase::ResourceBase(ResourceClass resourceClass,
-                                                const Metadata *resourceBase)
+EntryPointInterface::ResourceBase::ResourceBase(ResourceClass resourceClass, const Metadata *md)
     : resClass(resourceClass)
 {
-  id = getival<uint32_t>(resourceBase->children[(size_t)ResField::ID]);
-  type = resourceBase->children[(size_t)ResField::VarDecl]->type;
-  name = resourceBase->children[(size_t)ResField::Name]->str;
-  space = getival<uint32_t>(resourceBase->children[(size_t)ResField::Space]);
-  regBase = getival<uint32_t>(resourceBase->children[(size_t)ResField::RegBase]);
-  regCount = getival<uint32_t>(resourceBase->children[(size_t)ResField::RegCount]);
-}
-
-EntryPointInterface::SRV::SRV(const Metadata *srv) : ResourceBase(ResourceClass::SRV, srv)
-{
-  shape = getival<ResourceKind>(srv->children[(size_t)ResField::SRVShape]);
-  sampleCount = getival<uint32_t>(srv->children[(size_t)ResField::SRVSampleCount]);
-  const Metadata *tags = srv->children[(size_t)ResField::SRVTags];
-  for(size_t t = 0; tags && t < tags->children.size(); t += 2)
+  id = getival<uint32_t>(md->children[(size_t)ResField::ID]);
+  type = md->children[(size_t)ResField::VarDecl]->type;
+  name = md->children[(size_t)ResField::Name]->str;
+  space = getival<uint32_t>(md->children[(size_t)ResField::Space]);
+  regBase = getival<uint32_t>(md->children[(size_t)ResField::RegBase]);
+  regCount = getival<uint32_t>(md->children[(size_t)ResField::RegCount]);
+  if(resourceClass == ResourceClass::SRV)
   {
-    RDCASSERT(tags->children[t]->isConstant);
-    ResourcesTag tag = getival<ResourcesTag>(tags->children[t]);
-    switch(tag)
+    SRV &srv = srvData;
+    srv.shape = getival<ResourceKind>(md->children[(size_t)ResField::SRVShape]);
+    srv.sampleCount = getival<uint32_t>(md->children[(size_t)ResField::SRVSampleCount]);
+    const Metadata *tags = md->children[(size_t)ResField::SRVTags];
+    for(size_t t = 0; tags && t < tags->children.size(); t += 2)
     {
-      case ResourcesTag::ElementType:
-        compType = getival<ComponentType>(tags->children[t + 1]);
-        break;
-      case ResourcesTag::StructStride:
-        elementStride = getival<uint32_t>(tags->children[t + 1]);
-        break;
-      default: break;
+      RDCASSERT(tags->children[t]->isConstant);
+      ResourcesTag tag = getival<ResourcesTag>(tags->children[t]);
+      switch(tag)
+      {
+        case ResourcesTag::ElementType:
+          srv.compType = getival<ComponentType>(tags->children[t + 1]);
+          break;
+        case ResourcesTag::StructStride:
+          srv.elementStride = getival<uint32_t>(tags->children[t + 1]);
+          break;
+        default: break;
+      }
     }
   }
-}
-
-EntryPointInterface::UAV::UAV(const Metadata *uav) : ResourceBase(ResourceClass::UAV, uav)
-{
-  shape = getival<ResourceKind>(uav->children[(size_t)ResField::UAVShape]);
-  globallCoherent = (getival<uint32_t>(uav->children[(size_t)ResField::UAVGloballyCoherent]) == 1);
-  hasCounter = (getival<uint32_t>(uav->children[(size_t)ResField::UAVHiddenCounter]) == 1);
-  rasterizerOrderedView = (getival<uint32_t>(uav->children[(size_t)ResField::UAVRasterOrder]) == 1);
-  const Metadata *tags = uav->children[(size_t)ResField::UAVTags];
-  for(size_t t = 0; tags && t < tags->children.size(); t += 2)
+  else if(resourceClass == ResourceClass::UAV)
   {
-    RDCASSERT(tags->children[t]->isConstant);
-    ResourcesTag tag = getival<ResourcesTag>(tags->children[t]);
-    switch(tag)
+    UAV &uav = uavData;
+    uav.shape = getival<ResourceKind>(md->children[(size_t)ResField::UAVShape]);
+    uav.globallCoherent =
+        (getival<uint32_t>(md->children[(size_t)ResField::UAVGloballyCoherent]) == 1);
+    uav.hasCounter = (getival<uint32_t>(md->children[(size_t)ResField::UAVHiddenCounter]) == 1);
+    uav.rasterizerOrderedView =
+        (getival<uint32_t>(md->children[(size_t)ResField::UAVRasterOrder]) == 1);
+    const Metadata *tags = md->children[(size_t)ResField::UAVTags];
+    for(size_t t = 0; tags && t < tags->children.size(); t += 2)
     {
-      case ResourcesTag::ElementType:
-        compType = getival<ComponentType>(tags->children[t + 1]);
-        break;
-      case ResourcesTag::StructStride:
-        elementStride = getival<uint32_t>(tags->children[t + 1]);
-        break;
-      case ResourcesTag::SamplerFeedbackKind:
-        samplerFeedback = getival<SamplerFeedbackType>(tags->children[t + 1]);
-        break;
-      case ResourcesTag::Atomic64Use:
-        atomic64Use = (getival<uint32_t>(tags->children[t + 1]) == 1);
-        break;
-      default: break;
+      RDCASSERT(tags->children[t]->isConstant);
+      ResourcesTag tag = getival<ResourcesTag>(tags->children[t]);
+      switch(tag)
+      {
+        case ResourcesTag::ElementType:
+          uav.compType = getival<ComponentType>(tags->children[t + 1]);
+          break;
+        case ResourcesTag::StructStride:
+          uav.elementStride = getival<uint32_t>(tags->children[t + 1]);
+          break;
+        case ResourcesTag::SamplerFeedbackKind:
+          uav.samplerFeedback = getival<SamplerFeedbackType>(tags->children[t + 1]);
+          break;
+        case ResourcesTag::Atomic64Use:
+          uav.atomic64Use = (getival<uint32_t>(tags->children[t + 1]) == 1);
+          break;
+        default: break;
+      }
     }
   }
-}
-
-EntryPointInterface::CBuffer::CBuffer(const Metadata *cbuffer)
-    : ResourceBase(ResourceClass::CBuffer, cbuffer)
-{
-  sizeInBytes = getival<uint32_t>(cbuffer->children[(size_t)ResField::CBufferByteSize]);
-  const Metadata *tags = cbuffer->children[(size_t)ResField::CBufferTags];
-  for(size_t t = 0; tags && t < tags->children.size(); t += 2)
+  else if(resourceClass == ResourceClass::CBuffer)
   {
-    RDCASSERT(tags->children[t]->isConstant);
-    ResourcesTag tag = getival<ResourcesTag>(tags->children[t]);
-    if(tag == ResourcesTag::IsTBufferTag)
-      isTBuffer = (getival<uint32_t>(tags->children[t + 1]) == 1);
+    CBuffer &cbuffer = cbufferData;
+    cbuffer.sizeInBytes = getival<uint32_t>(md->children[(size_t)ResField::CBufferByteSize]);
+    const Metadata *tags = md->children[(size_t)ResField::CBufferTags];
+    for(size_t t = 0; tags && t < tags->children.size(); t += 2)
+    {
+      RDCASSERT(tags->children[t]->isConstant);
+      ResourcesTag tag = getival<ResourcesTag>(tags->children[t]);
+      if(tag == ResourcesTag::IsTBufferTag)
+        cbuffer.isTBuffer = (getival<uint32_t>(tags->children[t + 1]) == 1);
+    }
+    cbuffer.cbufferRefl = NULL;
   }
-  cbufferRefl = NULL;
-}
-
-EntryPointInterface::Sampler::Sampler(const Metadata *sampler)
-    : ResourceBase(ResourceClass::Sampler, sampler)
-{
-  samplerType = getival<SamplerKind>(sampler->children[(size_t)ResField::SamplerType]);
+  else if(resourceClass == ResourceClass::Sampler)
+  {
+    Sampler &sampler = samplerData;
+    sampler.samplerType = getival<SamplerKind>(md->children[(size_t)ResField::SamplerType]);
+  }
 }
 
 EntryPointInterface::EntryPointInterface(const Metadata *entryPoint)
@@ -411,26 +410,26 @@ EntryPointInterface::EntryPointInterface(const Metadata *entryPoint)
     if(srvsMeta)
     {
       for(size_t i = 0; i < srvsMeta->children.size(); ++i)
-        srvs.push_back(srvsMeta->children[i]);
+        srvs.push_back(ResourceBase(ResourceClass::SRV, srvsMeta->children[i]));
     }
 
     const Metadata *uavsMeta = resources->children[1];
     if(uavsMeta)
     {
       for(size_t i = 0; i < uavsMeta->children.size(); ++i)
-        uavs.push_back(uavsMeta->children[i]);
+        uavs.push_back(ResourceBase(ResourceClass::UAV, uavsMeta->children[i]));
     }
     const Metadata *cbuffersMeta = resources->children[2];
     if(cbuffersMeta)
     {
       for(size_t i = 0; i < cbuffersMeta->children.size(); ++i)
-        cbuffers.push_back(cbuffersMeta->children[i]);
+        cbuffers.push_back(ResourceBase(ResourceClass::CBuffer, cbuffersMeta->children[i]));
     }
     const Metadata *samplersMeta = resources->children[3];
     if(samplersMeta)
     {
       for(size_t i = 0; i < samplersMeta->children.size(); ++i)
-        samplers.push_back(samplersMeta->children[i]);
+        samplers.push_back(ResourceBase(ResourceClass::Sampler, samplersMeta->children[i]));
     }
   }
   /*

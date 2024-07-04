@@ -2574,7 +2574,7 @@ static const DXBC::CBufferVariable *FindCBufferVar(const uint32_t minOffset, con
 }
 
 static rdcstr MakeCBufferRegisterStr(uint32_t reg, uint32_t bytesPerElement,
-                                     DXIL::EntryPointInterface::CBuffer cbuffer,
+                                     const DXIL::EntryPointInterface::CBuffer &cbuffer,
                                      const rdcstr &handleStr)
 {
   rdcstr ret = "{";
@@ -2872,20 +2872,21 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
           {
             if(needBlankLine)
               DisassemblyAddNewLine();
-            EntryPointInterface::SRV &srv = entryPoint->srvs[j];
+            const DXIL::EntryPointInterface::ResourceBase &resource = entryPoint->srvs[j];
+            const DXIL::EntryPointInterface::SRV &srv = resource.srvData;
             m_Disassembly += GetResourceShapeName(srv.shape, false);
             if(srv.shape != DXIL::ResourceKind::RTAccelerationStructure)
-              m_Disassembly += "<" + GetResourceTypeName(srv.type) + ">";
-            m_Disassembly += " " + srv.name;
-            if(srv.regCount > 1)
+              m_Disassembly += "<" + GetResourceTypeName(resource.type) + ">";
+            m_Disassembly += " " + resource.name;
+            if(resource.regCount > 1)
             {
               m_Disassembly += "[";
-              if(srv.regCount != ~0U)
-                m_Disassembly += ToStr(srv.regCount);
+              if(resource.regCount != ~0U)
+                m_Disassembly += ToStr(resource.regCount);
               m_Disassembly += "]";
             }
             m_Disassembly +=
-                " : register(t" + ToStr(srv.regBase) + ", space" + ToStr(srv.space) + ")";
+                " : register(t" + ToStr(resource.regBase) + ", space" + ToStr(resource.space) + ")";
             m_Disassembly += ";";
             needBlankLine = true;
           }
@@ -2898,19 +2899,20 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
           {
             if(needBlankLine)
               DisassemblyAddNewLine();
-            EntryPointInterface::UAV &uav = entryPoint->uavs[j];
+            const DXIL::EntryPointInterface::ResourceBase &resource = entryPoint->uavs[j];
+            const DXIL::EntryPointInterface::UAV &uav = resource.uavData;
             m_Disassembly += GetResourceShapeName(uav.shape, true);
-            m_Disassembly += "<" + GetResourceTypeName(uav.type) + ">";
-            m_Disassembly += " " + uav.name;
-            if(uav.regCount > 1)
+            m_Disassembly += "<" + GetResourceTypeName(resource.type) + ">";
+            m_Disassembly += " " + resource.name;
+            if(resource.regCount > 1)
             {
               m_Disassembly += "[";
-              if(uav.regCount != ~0U)
-                m_Disassembly += ToStr(uav.regCount);
+              if(resource.regCount != ~0U)
+                m_Disassembly += ToStr(resource.regCount);
               m_Disassembly += "]";
             }
             m_Disassembly +=
-                " : register(u" + ToStr(uav.regBase) + ", space" + ToStr(uav.space) + ")";
+                " : register(u" + ToStr(resource.regBase) + ", space" + ToStr(resource.space) + ")";
             m_Disassembly += ";";
             needBlankLine = true;
           }
@@ -2921,14 +2923,15 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
         {
           for(size_t j = 0; j < entryPoint->cbuffers.size(); ++j)
           {
-            EntryPointInterface::CBuffer &cbuffer = entryPoint->cbuffers[j];
+            DXIL::EntryPointInterface::ResourceBase &resource = entryPoint->cbuffers[j];
+            DXIL::EntryPointInterface::CBuffer &cbuffer = resource.cbufferData;
             if(reflection)
             {
               for(size_t cbIdx = 0; cbIdx < reflection->CBuffers.size(); ++cbIdx)
               {
                 const DXBC::CBuffer &cb = reflection->CBuffers[cbIdx];
-                if((cb.space == cbuffer.space) && (cb.reg == cbuffer.regBase) &&
-                   (cb.bindCount == cbuffer.regCount))
+                if((cb.space == resource.space) && (cb.reg == resource.regBase) &&
+                   (cb.bindCount == resource.regCount))
                 {
                   if(!cbuffer.cbufferRefl)
                     cbuffer.cbufferRefl = &reflection->CBuffers[cbIdx];
@@ -2937,16 +2940,16 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
             }
             if(needBlankLine)
               DisassemblyAddNewLine();
-            m_Disassembly += "cbuffer " + cbuffer.name;
-            if(cbuffer.regCount > 1)
+            m_Disassembly += "cbuffer " + resource.name;
+            if(resource.regCount > 1)
             {
               m_Disassembly += "[";
-              if(cbuffer.regCount != ~0U)
-                m_Disassembly += ToStr(cbuffer.regCount);
+              if(resource.regCount != ~0U)
+                m_Disassembly += ToStr(resource.regCount);
               m_Disassembly += "]";
             }
             m_Disassembly +=
-                " : register(b" + ToStr(cbuffer.regBase) + ", space" + ToStr(cbuffer.space) + ")";
+                " : register(b" + ToStr(resource.regBase) + ", space" + ToStr(resource.space) + ")";
             // Ignore cbuffer's which don't have reflection data
             if(cbuffer.cbufferRefl && cbuffer.cbufferRefl->hasReflectionData)
             {
@@ -2986,18 +2989,18 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
           {
             if(needBlankLine)
               DisassemblyAddNewLine();
-            EntryPointInterface::Sampler &sampler = entryPoint->samplers[j];
-            m_Disassembly += GetSamplerTypeName(sampler.type);
-            m_Disassembly += " " + sampler.name;
-            if(sampler.regCount > 1)
+            const DXIL::EntryPointInterface::ResourceBase &resource = entryPoint->samplers[j];
+            m_Disassembly += GetSamplerTypeName(resource.type);
+            m_Disassembly += " " + resource.name;
+            if(resource.regCount > 1)
             {
               m_Disassembly += "[";
-              if(sampler.regCount != ~0U)
-                m_Disassembly += ToStr(sampler.regCount);
+              if(resource.regCount != ~0U)
+                m_Disassembly += ToStr(resource.regCount);
               m_Disassembly += "]";
             }
             m_Disassembly +=
-                " : register(s" + ToStr(sampler.regBase) + ", space" + ToStr(sampler.space) + ")";
+                " : register(s" + ToStr(resource.regBase) + ", space" + ToStr(resource.space) + ")";
             m_Disassembly += ";";
             needBlankLine = true;
           }
@@ -3416,8 +3419,9 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                       regIndex = regIndex / 16;
                       // uint32_t alignment = getival<uint32_t>(inst.args[3]);
                     }
-                    const EntryPointInterface::CBuffer &cbuffer =
+                    const DXIL::EntryPointInterface::ResourceBase &resource =
                         entryPoint->cbuffers[resRef->resourceIndex];
+                    const DXIL::EntryPointInterface::CBuffer &cbuffer = resource.cbufferData;
                     if(cbuffer.cbufferRefl && cbuffer.cbufferRefl->hasReflectionData)
                     {
                       const Type *retType = inst.type;
@@ -3431,7 +3435,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                       }
                       lineStr +=
                           MakeCBufferRegisterStr(regIndex, bytesPerElement, cbuffer, handleStr);
-                      commentStr += " cbuffer = " + cbuffer.name;
+                      commentStr += " cbuffer = " + resource.name;
                       commentStr += ", byte_offset = " + ToStr(regIndex * 16);
                     }
                     else
@@ -3551,9 +3555,10 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 if(entryPoint && resRef)
                 {
                   uint32_t resourceIndex = resRef->resourceIndex;
-                  const EntryPointInterface::SRV *texture = resourceIndex < entryPoint->srvs.size()
-                                                                ? &entryPoint->srvs[resourceIndex]
-                                                                : NULL;
+                  const EntryPointInterface::SRV *texture =
+                      resourceIndex < entryPoint->srvs.size()
+                          ? &entryPoint->srvs[resourceIndex].srvData
+                          : NULL;
                   if(texture)
                     sampleCount = texture->sampleCount;
                 }
@@ -4724,7 +4729,7 @@ void Program::ParseReferences(const DXBC::Reflection *reflection)
     // Use resource names from the reflection data if the resource name data is empty
     if(reflection)
     {
-      for(EntryPointInterface::CBuffer &cbuffer : entryPoint->cbuffers)
+      for(EntryPointInterface::ResourceBase &cbuffer : entryPoint->cbuffers)
       {
         if(cbuffer.name.empty())
         {
@@ -4737,7 +4742,7 @@ void Program::ParseReferences(const DXBC::Reflection *reflection)
         }
       }
 
-      for(EntryPointInterface::SRV &srv : entryPoint->srvs)
+      for(EntryPointInterface::ResourceBase &srv : entryPoint->srvs)
       {
         if(srv.name.empty())
         {
@@ -4750,7 +4755,7 @@ void Program::ParseReferences(const DXBC::Reflection *reflection)
         }
       }
 
-      for(EntryPointInterface::UAV &uav : entryPoint->uavs)
+      for(EntryPointInterface::ResourceBase &uav : entryPoint->uavs)
       {
         if(uav.name.empty())
         {
@@ -4765,7 +4770,7 @@ void Program::ParseReferences(const DXBC::Reflection *reflection)
 
       for(size_t j = 0; j < entryPoint->samplers.size(); ++j)
       {
-        EntryPointInterface::Sampler &sampler = entryPoint->samplers[j];
+        EntryPointInterface::ResourceBase &sampler = entryPoint->samplers[j];
         if(sampler.name.empty())
         {
           for(DXBC::ShaderInputBind bind : reflection->Samplers)

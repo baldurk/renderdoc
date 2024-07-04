@@ -1425,6 +1425,42 @@ struct EntryPointInterface
     int32_t startCol;
   };
 
+  struct SRV
+  {
+    SRV(const Metadata *srv);
+    ResourceKind shape;
+    uint32_t sampleCount;
+    ComponentType compType;
+    uint32_t elementStride;
+  };
+
+  struct UAV
+  {
+    UAV(const Metadata *uav);
+    ResourceKind shape;
+    bool globallCoherent;
+    bool hasCounter;
+    bool rasterizerOrderedView;
+    ComponentType compType;
+    uint32_t elementStride;
+    SamplerFeedbackType samplerFeedback;
+    bool atomic64Use;
+  };
+
+  struct CBuffer
+  {
+    CBuffer(const Metadata *cbuffer);
+    uint32_t sizeInBytes;
+    bool isTBuffer;
+    const DXBC::CBuffer *cbufferRefl;
+  };
+
+  struct Sampler
+  {
+    Sampler(const Metadata *sampler);
+    SamplerKind samplerType;
+  };
+
   struct ResourceBase
   {
     ResourceBase(ResourceClass resourceClass, const Metadata *resourceBase);
@@ -1445,42 +1481,13 @@ struct EntryPointInterface
     uint32_t regBase;
     uint32_t regCount;
     const ResourceClass resClass;
-  };
-
-  struct SRV : ResourceBase
-  {
-    SRV(const Metadata *srv);
-    ResourceKind shape;
-    uint32_t sampleCount;
-    ComponentType compType;
-    uint32_t elementStride;
-  };
-
-  struct UAV : ResourceBase
-  {
-    UAV(const Metadata *uav);
-    ResourceKind shape;
-    bool globallCoherent;
-    bool hasCounter;
-    bool rasterizerOrderedView;
-    ComponentType compType;
-    uint32_t elementStride;
-    SamplerFeedbackType samplerFeedback;
-    bool atomic64Use;
-  };
-
-  struct CBuffer : ResourceBase
-  {
-    CBuffer(const Metadata *cbuffer);
-    uint32_t sizeInBytes;
-    bool isTBuffer;
-    const DXBC::CBuffer *cbufferRefl;
-  };
-
-  struct Sampler : ResourceBase
-  {
-    Sampler(const Metadata *sampler);
-    SamplerKind samplerType;
+    union
+    {
+      SRV srvData;
+      UAV uavData;
+      CBuffer cbufferData;
+      Sampler samplerData;
+    };
   };
 
   rdcstr name;
@@ -1488,10 +1495,10 @@ struct EntryPointInterface
   rdcarray<Signature> inputs;
   rdcarray<Signature> outputs;
   rdcarray<Signature> patchConstants;
-  rdcarray<SRV> srvs;
-  rdcarray<UAV> uavs;
-  rdcarray<CBuffer> cbuffers;
-  rdcarray<Sampler> samplers;
+  rdcarray<ResourceBase> srvs;
+  rdcarray<ResourceBase> uavs;
+  rdcarray<ResourceBase> cbuffers;
+  rdcarray<ResourceBase> samplers;
 };
 
 struct ResourceReference
