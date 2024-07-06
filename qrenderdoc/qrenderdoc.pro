@@ -37,7 +37,6 @@ DEFINES += QT_NO_DEPRECATED_WARNINGS
 
 # HA HA good joke, QT_NO_DEPRECATED_WARNINGS only covers SOME warnings, not all
 QMAKE_CXXFLAGS += -Wno-deprecated-declarations
-QMAKE_CXXFLAGS += -Wno-error=template-id-cdtor
 
 # Different output folders per platform
 win32 {
