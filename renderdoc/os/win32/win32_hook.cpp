@@ -280,8 +280,6 @@ struct CachedHookData
     if(ignores.find(lowername) != ignores.end())
       return;
 
-    byte *baseAddress = (byte *)module;
-
     // the module could have been unloaded after our toolhelp snapshot, especially if we spent a
     // long time
     // dealing with a previous module (like adding our hooks).
@@ -296,6 +294,7 @@ struct CachedHookData
     // and FreeLibrary that I want to avoid. Worst case, we load a dll, hook it, then unload it
     // again.
     HMODULE refcountModHandle = LoadLibraryW(modpath);
+    byte *baseAddress = (byte *)refcountModHandle;
 
     PIMAGE_DOS_HEADER dosheader = (PIMAGE_DOS_HEADER)baseAddress;
 
