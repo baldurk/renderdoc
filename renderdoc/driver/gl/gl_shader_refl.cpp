@@ -2415,14 +2415,6 @@ void EvaluateVertexAttributeBinds(GLuint curProg, const ShaderReflection *refl, 
   if(!refl)
     return;
 
-  if(spirv)
-  {
-    for(size_t i = 0; i < refl->inputSignature.size(); i++)
-      if(refl->inputSignature[i].systemValue == ShaderBuiltin::Undefined)
-
-        return;
-  }
-
   for(int32_t i = 0; i < refl->inputSignature.count(); i++)
   {
     // skip system inputs, as some drivers will return a location for them
