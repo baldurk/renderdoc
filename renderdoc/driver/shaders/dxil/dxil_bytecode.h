@@ -1361,9 +1361,6 @@ struct Function : public Value
   rdcarray<Block *> blocks;
 
   rdcarray<UselistEntry> uselist;
-  std::map<rdcstr, uint32_t> labelToBlockIndex;
-  rdcarray<rdcstr> blockIndexToLabel;
-
   AttachedMetadata attachedMeta;
 };
 

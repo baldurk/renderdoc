@@ -1094,15 +1094,10 @@ void Program::SettleIDs()
 
     if(!func.external)
     {
-      func.labelToBlockIndex.clear();
-      func.blockIndexToLabel.clear();
-
       size_t curBlock = 0;
       RDCASSERT(!func.blocks.empty());
-      rdcstr labelName = StringFormat::Fmt("_label%u", func.blocks[curBlock]->slot);
-      func.labelToBlockIndex[labelName] = (uint32_t)curBlock;
       func.blocks[curBlock]->startInstructionIdx = 0;
-      func.blockIndexToLabel.push_back(labelName);
+      RDCASSERTEQUAL(curBlock, func.blocks[curBlock]->id);
       for(size_t funcIdx = 0; funcIdx < func.instructions.size(); funcIdx++)
       {
         Instruction &inst = *func.instructions[funcIdx];
@@ -1250,10 +1245,8 @@ void Program::SettleIDs()
              inst.op == Operation::Switch || inst.op == Operation::Ret)
           {
             curBlock++;
-            labelName = StringFormat::Fmt("_label%u", func.blocks[curBlock]->slot);
-            func.labelToBlockIndex[labelName] = (uint32_t)curBlock;
             func.blocks[curBlock]->startInstructionIdx = (uint32_t)(funcIdx + 1);
-            func.blockIndexToLabel.push_back(labelName);
+            RDCASSERTEQUAL(curBlock, func.blocks[curBlock]->id);
           }
         }
       }
@@ -1375,7 +1368,7 @@ rdcstr Program::ArgToString(const Value *v, bool withTypes, const rdcstr &attrSt
     else
     {
       if(block->name.empty())
-        ret += StringFormat::Fmt("%clabel%u", dxilIdentifier, block->slot);
+        ret += StringFormat::Fmt("%clabel%u", dxilIdentifier, block->id);
       else
         ret += StringFormat::Fmt("%clabel_%s%u", dxilIdentifier,
                                  DXBC::BasicDemangle(block->name).c_str(), block->id);
@@ -3046,13 +3039,14 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
       size_t curBlock = 0;
 
-      // if the first block has a name, use it
-      if(!func.blocks[curBlock]->name.empty())
-      {
-        m_Disassembly +=
-            StringFormat::Fmt("%s:", escapeStringIfNeeded(func.blocks[curBlock]->name).c_str());
-        DisassemblyAddNewLine(2);
-      }
+      // Show the first label because it might be referenced in a phi node
+      if(func.blocks[curBlock]->name.empty())
+        m_Disassembly += StringFormat::Fmt("%clabel%u: ", dxilIdentifier, func.blocks[curBlock]->id);
+      else
+        m_Disassembly += StringFormat::Fmt("%clabel_%s%u:", dxilIdentifier,
+                                           DXBC::BasicDemangle(func.blocks[curBlock]->name).c_str(),
+                                           func.blocks[curBlock]->id);
+      DisassemblyAddNewLine(1);
 
       for(size_t funcIdx = 0; funcIdx < func.instructions.size(); funcIdx++)
       {
@@ -4641,7 +4635,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
           rdcstr labelName;
 
           if(func.blocks[curBlock]->name.empty())
-            labelName = StringFormat::Fmt("%clabel%u: ", dxilIdentifier, func.blocks[curBlock]->slot);
+            labelName = StringFormat::Fmt("%clabel%u: ", dxilIdentifier, func.blocks[curBlock]->id);
           else
             labelName = StringFormat::Fmt("%clabel_%s%u: ", dxilIdentifier,
                                           DXBC::BasicDemangle(func.blocks[curBlock]->name).c_str(),
@@ -4663,7 +4657,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 if(!first)
                   predicates += ", ";
                 first = false;
-                predicates += StringFormat::Fmt("%clabel%u", dxilIdentifier, pred->slot);
+                predicates += StringFormat::Fmt("%clabel%u", dxilIdentifier, pred->id);
               }
             }
             else
