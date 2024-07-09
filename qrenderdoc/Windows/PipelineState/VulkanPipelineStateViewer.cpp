@@ -1841,12 +1841,14 @@ void VulkanPipelineStateViewer::setState()
 
         if(state.vertexShader.resourceId != ResourceId())
         {
-          uint32_t attrib = a.location;
-
-          if(attrib < state.vertexShader.reflection->inputSignature.size())
+          for(SigParameter &sigParam : state.vertexShader.reflection->inputSignature)
           {
-            name = state.vertexShader.reflection->inputSignature[attrib].varName;
-            usedSlot = true;
+            if(sigParam.regIndex == a.location)
+            {
+              name = sigParam.varName;
+              usedSlot = true;
+              break;
+            }
           }
         }
 
