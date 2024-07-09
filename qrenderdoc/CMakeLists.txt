@@ -213,6 +213,11 @@ if(CMAKE_COMPILER_IS_GNUCXX)
     file(APPEND
         ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
         "QMAKE_CXXFLAGS+=-Wno-unknown-warning -Wno-cast-function-type -Wno-stringop-truncation\n")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 14.0)
+        file(APPEND
+            ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
+            "QMAKE_CXXFLAGS += -Wno-error=template-id-cdtor\n")
+    endif()
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -227,11 +232,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_
         "QMAKE_CXXFLAGS+=-Wno-comma\n")
 endif()
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 14.0)
-    file(APPEND
-        ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
-        "QMAKE_CXXFLAGS += -Wno-error=template-id-cdtor\n")
-endif()
 
 if(ENABLE_UNSUPPORTED_EXPERIMENTAL_POSSIBLY_BROKEN_WAYLAND)
     message(WARNING "!!!! Using the Wayland Qt platform in qrenderdoc is NOT SUPPORTED !!!!")
