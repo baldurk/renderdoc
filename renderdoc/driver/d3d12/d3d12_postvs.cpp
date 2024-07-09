@@ -99,8 +99,20 @@ static void PayloadBufferCopy(PayloadCopyDir dir, DXIL::ProgramEditor &editor, D
     const uint32_t alignment = RDCMAX(4U, memberType->bitWidth / 8);
     Constant *align = editor.CreateConstant(alignment);
 
-    Constant *payloadGep = editor.CreateConstantGEP(
-        editor.GetPointerType(memberType, gepChain[0]->type->addrSpace), gepChain);
+    Value *payloadGep = NULL;
+    if(cast<GlobalVar>(gepChain[0]))
+    {
+      payloadGep = editor.CreateConstantGEP(
+          editor.GetPointerType(memberType, gepChain[0]->type->addrSpace), gepChain);
+    }
+    else
+    {
+      payloadGep = editor.InsertInstruction(
+          f, curInst++,
+          editor.CreateInstruction(Operation::GetElementPtr,
+                                   editor.GetPointerType(memberType, gepChain[0]->type->addrSpace),
+                                   gepChain));
+    }
 
     Instruction *offset = editor.CreateInstruction(
         Operation::Add, i32, {baseOffset, editor.CreateConstant(uavByteOffset)});
@@ -409,7 +421,7 @@ static void AddDXILAmpShaderPayloadStores(const DXBC::DXBCContainer *dxbc, uint3
   }
 
   // find the dispatchMesh call, and from there the global groupshared variable that's the payload
-  GlobalVar *payloadVariable = NULL;
+  Value *payloadVariable = NULL;
   Type *payloadType = NULL;
   for(size_t i = 0; i < f->instructions.size(); i++)
   {
@@ -422,13 +434,7 @@ static void AddDXILAmpShaderPayloadStores(const DXBC::DXBCContainer *dxbc, uint3
         RDCERR("Unexpected number of arguments to dispatchMesh");
         continue;
       }
-      payloadVariable = cast<GlobalVar>(inst.args[4]);
-      if(!payloadVariable)
-      {
-        RDCERR("Unexpected non-variable payload argument to dispatchMesh");
-        continue;
-      }
-
+      payloadVariable = inst.args[4];
       payloadType = (Type *)payloadVariable->type;
 
       RDCASSERT(payloadType->type == Type::Pointer);
@@ -913,7 +919,7 @@ static void ConvertToFixedDXILAmpFeeder(const DXBC::DXBCContainer *dxbc, uint32_
   }
 
   // find the dispatchMesh call, and from there the global groupshared variable that's the payload
-  GlobalVar *payloadVariable = NULL;
+  Value *payloadVariable = NULL;
   Type *payloadType = NULL;
   for(size_t i = 0; i < f->instructions.size(); i++)
   {
@@ -926,13 +932,7 @@ static void ConvertToFixedDXILAmpFeeder(const DXBC::DXBCContainer *dxbc, uint32_
         RDCERR("Unexpected number of arguments to dispatchMesh");
         continue;
       }
-      payloadVariable = cast<GlobalVar>(inst.args[4]);
-      if(!payloadVariable)
-      {
-        RDCERR("Unexpected non-variable payload argument to dispatchMesh");
-        continue;
-      }
-
+      payloadVariable = inst.args[4];
       payloadType = (Type *)payloadVariable->type;
 
       RDCASSERT(payloadType->type == Type::Pointer);
@@ -1064,6 +1064,10 @@ static void ConvertToFixedDXILAmpFeeder(const DXBC::DXBCContainer *dxbc, uint32_
       editor.AddInstruction(f, editor.CreateInstruction(Operation::ExtractVal, i32,
                                                         {dimAndOffset, editor.CreateLiteral(3)}));
 
+  // If the payload variable is not a globalvar, need to add the instruction that creates it
+  if(!cast<GlobalVar>(payloadVariable))
+    editor.AddInstruction(f, cast<Instruction>(payloadVariable));
+
   size_t curInst = f->instructions.size();
   // start at 16 bytes, to account for our own data
   uint32_t uavByteOffset = 16;
@@ -1077,11 +1081,23 @@ static void ConvertToFixedDXILAmpFeeder(const DXBC::DXBCContainer *dxbc, uint32_
   for(size_t i = 0; i < 4; i++)
   {
     Value *srcs[] = {dimX, dimY, dimZ, offset};
-
-    Constant *dst = editor.CreateConstantGEP(
-        editor.GetPointerType(i32, payloadVariable->type->addrSpace),
-        {payloadVariable, i32_0,
-         editor.CreateConstant(uint32_t(payloadType->members.size() - 4 + i))});
+    Value *dst = NULL;
+    if(cast<GlobalVar>(payloadVariable))
+    {
+      dst = editor.CreateConstantGEP(
+          editor.GetPointerType(i32, payloadVariable->type->addrSpace),
+          {payloadVariable, i32_0,
+           editor.CreateConstant(uint32_t(payloadType->members.size() - 4 + i))});
+    }
+    else
+    {
+      dst = editor.AddInstruction(
+          f, editor.CreateInstruction(
+                 Operation::GetElementPtr,
+                 editor.GetPointerType(i32, payloadVariable->type->addrSpace),
+                 {payloadVariable, i32_0,
+                  editor.CreateConstant(uint32_t(payloadType->members.size() - 4 + i))}));
+    }
 
     DXIL::Instruction *store = editor.CreateInstruction(Operation::Store);
 
