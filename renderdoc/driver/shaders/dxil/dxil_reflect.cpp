@@ -584,6 +584,7 @@ void Program::FetchComputeProperties(DXBC::Reflection *reflection)
       param.compCount = 3;
       param.regChannelMask = param.channelUsedMask = 0x7;
       param.semanticIdxName = param.semanticName = "threadIdInGroup";
+      param.varType = VarType::UInt;
       reflection->InputSig.push_back(param);
     }
     else if(f.name.beginsWith("dx.op.threadId"))
@@ -593,6 +594,7 @@ void Program::FetchComputeProperties(DXBC::Reflection *reflection)
       param.compCount = 3;
       param.regChannelMask = param.channelUsedMask = 0x7;
       param.semanticIdxName = param.semanticName = "threadId";
+      param.varType = VarType::UInt;
       reflection->InputSig.push_back(param);
     }
     else if(f.name.beginsWith("dx.op.groupId"))
@@ -602,6 +604,7 @@ void Program::FetchComputeProperties(DXBC::Reflection *reflection)
       param.compCount = 3;
       param.regChannelMask = param.channelUsedMask = 0x7;
       param.semanticIdxName = param.semanticName = "groupID";
+      param.varType = VarType::UInt;
       reflection->InputSig.push_back(param);
     }
     else if(f.name.beginsWith("dx.op.flattenedThreadIdInGroup"))
@@ -611,6 +614,7 @@ void Program::FetchComputeProperties(DXBC::Reflection *reflection)
       param.compCount = 1;
       param.regChannelMask = param.channelUsedMask = 0x1;
       param.semanticIdxName = param.semanticName = "flattenedThreadIdInGroup";
+      param.varType = VarType::UInt;
       reflection->InputSig.push_back(param);
     }
 
