@@ -872,7 +872,7 @@ static RDResult XML2Structured(const rdcstr &xml, const ThumbTypeAndData &thumb,
     SDChunk *chunk = new SDChunk(rdcstr(xChunk.attribute("name").as_string()));
 
     chunk->metadata.chunkID = xChunk.attribute("id").as_uint();
-    chunk->metadata.length = xChunk.attribute("length").as_uint();
+    chunk->metadata.length = xChunk.attribute("length").as_ullong();
     if(xChunk.attribute("threadID"))
       chunk->metadata.threadID = xChunk.attribute("threadID").as_ullong();
     if(xChunk.attribute("timestamp"))
