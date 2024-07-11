@@ -415,6 +415,10 @@ void VulkanRenderState::BindShaderObjects(WrappedVulkan *vk, VkCommandBuffer cmd
         if(i == (uint32_t)ShaderStage::Compute)
           continue;
 
+        // Workaround for driver bug found in NVIDIA 10 series cards
+        if(i == (uint32_t)ShaderStage::Mesh && !vk->MeshShaders())
+          continue;
+
         const VkShaderStageFlagBits stage = (VkShaderStageFlagBits)(1 << (uint32_t)i);
         const VkShaderEXT shader =
             Unwrap(vk->GetResourceManager()->GetCurrentHandle<VkShaderEXT>(shaderObjects[i]));
