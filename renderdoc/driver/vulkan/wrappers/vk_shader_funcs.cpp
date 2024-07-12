@@ -1337,7 +1337,7 @@ VkResult WrappedVulkan::vkCreateRayTracingPipelinesKHR(
 
   // deferred operations are currently not wrapped
   SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateRayTracingPipelinesKHR(
-                          Unwrap(device), deferredOperation, Unwrap(pipelineCache), createInfoCount,
+                          Unwrap(device), VK_NULL_HANDLE, Unwrap(pipelineCache), createInfoCount,
                           UnwrapInfos(m_State, pCreateInfos, createInfoCount), NULL, pPipelines));
 
   if(ret == VK_SUCCESS || ret == VK_PIPELINE_COMPILE_REQUIRED)
@@ -1438,6 +1438,9 @@ VkResult WrappedVulkan::vkCreateRayTracingPipelinesKHR(
       }
     }
   }
+
+  if(ret == VK_SUCCESS && deferredOperation)
+    ret = VK_OPERATION_NOT_DEFERRED_KHR;
 
   return ret;
 }
