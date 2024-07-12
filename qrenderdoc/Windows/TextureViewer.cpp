@@ -97,10 +97,12 @@ static Descriptor MakeDescriptor(ResourceId res, Subresource sub = Subresource()
   return ret;
 }
 
-static UsedDescriptor MakeUsedDescriptor(ResourceId res, Subresource sub = Subresource())
+static UsedDescriptor MakeUsedDescriptor(ShaderStage stage, ResourceId res,
+                                         Subresource sub = Subresource())
 {
   UsedDescriptor ret;
   ret.descriptor = MakeDescriptor(res, sub);
+  ret.access.stage = stage;
   ret.access.type = ret.descriptor.type;
   ret.access.index = DescriptorAccess::NoShaderBinding;
   ret.access.byteSize = 1;
@@ -336,7 +338,8 @@ rdcarray<UsedDescriptor> Following::GetReadOnlyResources(ICaptureContext &ctx, S
 
     // only return copy source for one stage
     if(copy && stage == ShaderStage::Pixel)
-      ret.push_back(MakeUsedDescriptor(curAction->copySource, curAction->copySourceSubresource));
+      ret.push_back(
+          MakeUsedDescriptor(stage, curAction->copySource, curAction->copySourceSubresource));
 
     return ret;
   }
