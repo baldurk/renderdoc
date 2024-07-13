@@ -1439,7 +1439,7 @@ VkResult WrappedVulkan::vkCreateRayTracingPipelinesKHR(
     }
   }
 
-  if(ret == VK_SUCCESS && deferredOperation)
+  if(ret == VK_SUCCESS && deferredOperation != VK_NULL_HANDLE)
     ret = VK_OPERATION_NOT_DEFERRED_KHR;
 
   return ret;
