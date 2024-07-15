@@ -301,6 +301,13 @@ void PythonContext::GlobalInit()
     PyErr_Clear();
   }
 
+  // try to import threading library to make debuggers happier
+  if(!PyImport_ImportModule("threading"))
+  {
+    // ignore a failed import
+    PyErr_Clear();
+  }
+
   // sysobj = sys
   PyObject *sysobj = PyDict_GetItemString(main_dict, "sys");
 
