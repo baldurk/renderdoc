@@ -731,9 +731,9 @@ void D3D12PipelineStateViewer::setViewDetails(RDTreeWidgetItem *node, const D3D1
                "elements).\n")
                 .arg(res.byteOffset)
                 .arg(res.byteOffset + res.byteSize)
-                .arg(res.byteSize / res.elementByteSize)
+                .arg(res.byteSize / qMax(1U, res.elementByteSize))
                 .arg(buf->length)
-                .arg(buf->length / res.elementByteSize);
+                .arg(buf->length / qMax(1U, res.elementByteSize));
 
     viewdetails = true;
   }
