@@ -435,9 +435,16 @@ HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreateWindowSurface_renderdoc_hooked(EGLDi
   return ret;
 }
 
+HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreateWindowSurfaceEXT_renderdoc_hooked(
+    EGLDisplay dpy, EGLConfig config, EGLNativeWindowType win, const EGLint *attrib_list)
+{
+  return eglCreateWindowSurface_renderdoc_hooked(dpy, config, win, attrib_list);
+}
+
 HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurface_renderdoc_hooked(
     EGLDisplay dpy, EGLConfig config, void *native_window, const EGLAttrib *attrib_list)
 {
+  RDCLOG("eglCreatePlatformWindowSurface_renderdoc_hooked called");
   if(RenderDoc::Inst().IsReplayApp())
   {
     if(!EGL.CreatePlatformWindowSurface)
@@ -447,9 +454,17 @@ HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurface_renderdoc_hook
   }
 
   EnsureRealLibraryLoaded();
-
-  EGLSurface ret = EGL.CreatePlatformWindowSurface(dpy, config, native_window, attrib_list);
-
+  EGLSurface ret;
+  if(!EGL.CreatePlatformWindowSurfaceEXT)
+  {
+    RDCLOG("HERE1");
+    ret = EGL.CreatePlatformWindowSurface(dpy, config, native_window, attrib_list);
+  }
+  else
+  {
+    RDCLOG("HERE2");
+    ret = EGL.CreatePlatformWindowSurfaceEXT(dpy, config, native_window, attrib_list);
+  }
   if(ret)
   {
     SCOPED_LOCK(glLock);
@@ -459,6 +474,13 @@ HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurface_renderdoc_hook
   }
 
   return ret;
+}
+
+HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurfaceEXT_renderdoc_hooked(
+    EGLDisplay dpy, EGLConfig config, void *native_window, const EGLAttrib *attrib_list)
+{
+  RDCLOG("eglCreatePlatformWindowSurfaceEXT_renderdoc_hooked called");
+  return eglCreatePlatformWindowSurface_renderdoc_hooked(dpy, config, native_window, attrib_list);
 }
 
 HOOK_EXPORT EGLBoolean EGLAPIENTRY eglMakeCurrent_renderdoc_hooked(EGLDisplay display,
@@ -792,6 +814,12 @@ HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreateWindowSurface(EGLDisplay dpy, EGLCon
 {
   return eglCreateWindowSurface_renderdoc_hooked(dpy, config, win, attrib_list);
 }
+HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreateWindowSurfaceEXT(EGLDisplay dpy, EGLConfig config,
+                                                             EGLNativeWindowType win,
+                                                             const EGLint *attrib_list)
+{
+  return eglCreateWindowSurface_renderdoc_hooked(dpy, config, win, attrib_list);
+}
 
 HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurface(EGLDisplay dpy, EGLConfig config,
                                                                   void *native_window,
@@ -799,7 +827,12 @@ HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurface(EGLDisplay dpy
 {
   return eglCreatePlatformWindowSurface_renderdoc_hooked(dpy, config, native_window, attrib_list);
 }
-
+HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurfaceEXT(EGLDisplay dpy, EGLConfig config,
+                                                                     void *native_window,
+                                                                     const EGLAttrib *attrib_list)
+{
+  return eglCreatePlatformWindowSurface_renderdoc_hooked(dpy, config, native_window, attrib_list);
+}
 HOOK_EXPORT EGLBoolean EGLAPIENTRY eglMakeCurrent(EGLDisplay display, EGLSurface draw,
                                                   EGLSurface read, EGLContext ctx)
 {
