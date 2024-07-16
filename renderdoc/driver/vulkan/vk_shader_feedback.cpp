@@ -1702,7 +1702,7 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
       key.index.index = index;
       key.index.arrayElement = 0;
 
-      if(bindset >= descLayouts.size() || !descLayouts[bindset] || bindset > descSets.size() ||
+      if(bindset >= descLayouts.size() || !descLayouts[bindset] || bindset >= descSets.size() ||
          descSets[bindset].descSet == ResourceId())
       {
         RDCERR("Invalid set %u referenced by %s shader", bindset, ToStr(key.stage).c_str());
