@@ -1791,7 +1791,7 @@ static void AddTaskShaderPayloadStores(const rdcarray<SpecConstant> &specInfo,
     {
       rdcspv::OpEmitMeshTasksEXT emit(it);
       // only patch emits to our payload. Other shaders may reference other payloads
-      if(emit.payload == payloadId)
+      if(emit.payload == payloadId || !emit.HasPayload())
       {
         rdcspv::OperationList ops;
 
