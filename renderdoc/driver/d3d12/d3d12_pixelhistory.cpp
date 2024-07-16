@@ -896,7 +896,8 @@ struct D3D12OcclusionCallback : public D3D12PixelHistoryCallback
     list->Close();
 
     m_pDevice->ExecuteLists();
-    m_pDevice->FlushLists();
+    m_pDevice->FlushLists(true);
+    m_pDevice->GPUSyncAllQueues();
 
     D3D12_RANGE range;
     range.Begin = 0;
@@ -1486,7 +1487,8 @@ struct D3D12TestsFailedCallback : public D3D12PixelHistoryCallback
     list->Close();
 
     m_pDevice->ExecuteLists();
-    m_pDevice->FlushLists();
+    m_pDevice->FlushLists(true);
+    m_pDevice->GPUSyncAllQueues();
 
     D3D12_RANGE range;
     range.Begin = 0;
@@ -2530,7 +2532,8 @@ struct D3D12PixelHistoryDiscardedFragmentsCallback : D3D12PixelHistoryCallback
     list->Close();
 
     m_pDevice->ExecuteLists();
-    m_pDevice->FlushLists();
+    m_pDevice->FlushLists(true);
+    m_pDevice->GPUSyncAllQueues();
 
     D3D12_RANGE range;
     range.Begin = 0;
@@ -2848,7 +2851,9 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
     D3D12MarkerRegion occlRegion(m_pDevice->GetQueue()->GetReal(), "D3D12OcclusionCallback");
     m_pDevice->ReplayLog(0, events.back().eventId, eReplay_Full);
     m_pDevice->FlushLists(true);
+    m_pDevice->GPUSyncAllQueues();
     occlCb.FetchOcclusionResults();
+    SAFE_RELEASE(pOcclusionQueryHeap);
   }
 
   // Gather all draw events that could have written to pixel for another replay pass,
@@ -2894,6 +2899,7 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
                                          "D3D12ColorAndStencilCallback");
     m_pDevice->ReplayLog(0, events.back().eventId, eReplay_Full);
     m_pDevice->FlushLists(true);
+    m_pDevice->GPUSyncAllQueues();
   }
 
   // If there are any draw events, do another replay pass, in order to figure
@@ -2907,7 +2913,6 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
     if(!CreateOcclusionPool(m_pDevice, (uint32_t)drawEvents.size() * 6, &pTfOcclusionQueryHeap))
     {
       GetDebugManager()->PixelHistoryDestroyResources(resources);
-      SAFE_RELEASE(pOcclusionQueryHeap);
       SAFE_DELETE(shaderCache);
       return history;
     }
@@ -2916,6 +2921,7 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
                                         drawEvents);
     m_pDevice->ReplayLog(0, events.back().eventId, eReplay_Full);
     m_pDevice->FlushLists(true);
+    m_pDevice->GPUSyncAllQueues();
     tfCb->FetchOcclusionResults();
     SAFE_RELEASE(pTfOcclusionQueryHeap);
   }
@@ -3054,6 +3060,7 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
                                       "D3D12PixelHistoryPerFragmentCallback");
       m_pDevice->ReplayLog(0, eventsWithFrags.rbegin()->first, eReplay_Full);
       m_pDevice->FlushLists(true);
+      m_pDevice->GPUSyncAllQueues();
     }
 
     bytebuf fragData;
@@ -3089,7 +3096,6 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
       if(!CreateOcclusionPool(m_pDevice, primitivesToCheck, &pDiscardedFragsOcclusionQueryHeap))
       {
         GetDebugManager()->PixelHistoryDestroyResources(resources);
-        SAFE_RELEASE(pOcclusionQueryHeap);
         SAFE_DELETE(shaderCache);
         return history;
       }
@@ -3100,6 +3106,7 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
 
       m_pDevice->ReplayLog(0, events.back().eventId, eReplay_Full);
       m_pDevice->FlushLists(true);
+      m_pDevice->GPUSyncAllQueues();
       discardedCb.FetchOcclusionResults();
       SAFE_RELEASE(pDiscardedFragsOcclusionQueryHeap);
 
@@ -3215,8 +3222,6 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
   }
 
   SAFE_DELETE(tfCb);
-
-  SAFE_RELEASE(pOcclusionQueryHeap);
 
   GetDebugManager()->PixelHistoryDestroyResources(resources);
   SAFE_DELETE(shaderCache);
