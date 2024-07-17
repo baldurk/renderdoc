@@ -46,9 +46,6 @@ typedef EGLSurface(EGLAPIENTRY *PFN_eglCreatePbufferSurface)(EGLDisplay dpy, EGL
 typedef EGLSurface(EGLAPIENTRY *PFN_eglCreateWindowSurface)(EGLDisplay dpy, EGLConfig config,
                                                             EGLNativeWindowType win,
                                                             const EGLint *attrib_list);
-typedef EGLSurface(EGLAPIENTRY *PFN_eglCreateWindowSurfaceEXT)(EGLDisplay dpy, EGLConfig config,
-                                                               EGLNativeWindowType win,
-                                                               const EGLint *attrib_list);
 typedef EGLSurface(EGLAPIENTRY *PFN_eglCreatePlatformWindowSurface)(EGLDisplay dpy, EGLConfig config,
                                                                     void *native_window,
                                                                     const EGLAttrib *attrib_list);
@@ -84,7 +81,6 @@ typedef PFNEGLSWAPBUFFERSWITHDAMAGEKHRPROC PFN_eglSwapBuffersWithDamageKHR;
   FUNC(DestroyContext, false, true);                  \
   FUNC(CreateWindowSurface, false, true);             \
   FUNC(CreatePlatformWindowSurface, false, false);    \
-  FUNC(CreateWindowSurfaceEXT, false, true);          \
   FUNC(CreatePlatformWindowSurfaceEXT, false, false); \
   FUNC(MakeCurrent, false, true);                     \
   FUNC(SwapBuffers, false, true);                     \

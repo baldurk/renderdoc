@@ -435,16 +435,9 @@ HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreateWindowSurface_renderdoc_hooked(EGLDi
   return ret;
 }
 
-HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreateWindowSurfaceEXT_renderdoc_hooked(
-    EGLDisplay dpy, EGLConfig config, EGLNativeWindowType win, const EGLint *attrib_list)
-{
-  return eglCreateWindowSurface_renderdoc_hooked(dpy, config, win, attrib_list);
-}
-
 HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurface_renderdoc_hooked(
     EGLDisplay dpy, EGLConfig config, void *native_window, const EGLAttrib *attrib_list)
 {
-  RDCLOG("eglCreatePlatformWindowSurface_renderdoc_hooked called");
   if(RenderDoc::Inst().IsReplayApp())
   {
     if(!EGL.CreatePlatformWindowSurface)
@@ -479,7 +472,6 @@ HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurface_renderdoc_hook
 HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurfaceEXT_renderdoc_hooked(
     EGLDisplay dpy, EGLConfig config, void *native_window, const EGLAttrib *attrib_list)
 {
-  RDCLOG("eglCreatePlatformWindowSurfaceEXT_renderdoc_hooked called");
   return eglCreatePlatformWindowSurface_renderdoc_hooked(dpy, config, native_window, attrib_list);
 }
 
@@ -811,12 +803,6 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglDestroyContext(EGLDisplay dpy, EGLContext 
 HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreateWindowSurface(EGLDisplay dpy, EGLConfig config,
                                                           EGLNativeWindowType win,
                                                           const EGLint *attrib_list)
-{
-  return eglCreateWindowSurface_renderdoc_hooked(dpy, config, win, attrib_list);
-}
-HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreateWindowSurfaceEXT(EGLDisplay dpy, EGLConfig config,
-                                                             EGLNativeWindowType win,
-                                                             const EGLint *attrib_list)
 {
   return eglCreateWindowSurface_renderdoc_hooked(dpy, config, win, attrib_list);
 }
