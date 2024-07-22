@@ -378,6 +378,23 @@ class TestCase:
 
         return analyse.decode_mesh_data(self.controller, indices, in_indices, attrs, 0, mesh.baseVertex)
 
+    def check_task_data(self, task_ref, task_data):
+        for idx in task_ref:
+            ref = task_ref[idx]
+            if idx >= len(task_data):
+                raise TestFailureException('Task data doesn\'t have expected element {}'.format(idx))
+
+            data = task_data[idx]
+
+            for key in ref:
+                if key not in data:
+                    raise TestFailureException('Task data[{}] doesn\'t contain data {} as expected. Data is: {}'.format(idx, key, list(data.keys())))
+
+                if not util.value_compare(ref[key], data[key]):
+                    raise TestFailureException('Task data[{}] \'{}\': {} is not as expected: {}'.format(idx, key, data[key], ref[key]))
+
+        log.success("Task data is identical to reference")
+
     def check_mesh_data(self, mesh_ref, mesh_data):
         for idx in mesh_ref:
             ref = mesh_ref[idx]
