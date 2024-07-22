@@ -77,6 +77,10 @@ class D3D12_Descriptor_Indexing(rdtest.TestCase):
                     'loc': (1, 80),
                     'elems': [19, 23]
                 },
+                (rd.DescriptorCategory.Sampler, 1): {
+                    'loc': (1, 0),
+                    'elems': [19, 20, 21]
+                },
             }
 
             ro = pipe.GetReadOnlyResources(rd.ShaderStage.Pixel)
@@ -84,23 +88,26 @@ class D3D12_Descriptor_Indexing(rdtest.TestCase):
             rw = pipe.GetReadWriteResources(rd.ShaderStage.Pixel)
 
             self.check_eq(len(ro), 2 + 8)
-            self.check_eq(len(samp), 1)
+            self.check_eq(len(samp), 1 + 3)
             self.check_eq(len(rw), 0)
 
             refl = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
 
             for a in samp + ro:
                 idx = (rd.CategoryForDescriptorType(a.access.type), a.access.index)
-                if a.access.type == rd.DescriptorType.Sampler:  # static sampler
+                if a.access.type == rd.DescriptorType.Sampler and a.access.index == 0:  # static sampler
                     # descriptor store should not be a heap, but we don't verify exactly where it comes from
                     self.check(a.access.descriptorStore not in d3d12pipe.descriptorHeaps)
-                    self.check_eq(a.access.index, 0)
                     continue
 
+                heapName = "ResourceDescriptorHeap"
                 if rd.IsReadOnlyDescriptor(a.access.type):
                     res = refl.readOnlyResources[a.access.index]
+                elif rd.IsReadWriteDescriptor(a.access.type):
+                    res = refl.readOnlyResources[a.access.index]
                 else:
-                    res = refl.readWriteResources[a.access.index]
+                    res = refl.samplers[a.access.index]
+                    heapName = "SamplerDescriptorHeap"
 
                 if idx not in bind_info.keys():
                     raise rdtest.TestFailureException(
@@ -121,12 +128,13 @@ class D3D12_Descriptor_Indexing(rdtest.TestCase):
                 loc = self.controller.GetDescriptorLocations(a.access.descriptorStore,
                                                              [rd.DescriptorRange(a.access)])[0]
                 if loc.fixedBindNumber != bind_info[idx]['loc'][1] + a.access.arrayElement:
-                    raise rdtest.TestFailureException("Location {} not expected for space,reg {} array element {}".format(
-                        loc.fixedBindNumber, bind_info[idx]['loc'], a.access.arrayElement))
-                if loc.logicalBindName != "ResourceDescriptorHeap[{}]".format(bind_info[idx]['loc'][1] +
-                                                                              a.access.arrayElement):
-                    raise rdtest.TestFailureException("Location {} not expected for space,reg {} array element {}".format(
-                        loc.logicalBindName, bind_info[idx]['loc'], a.access.arrayElement))
+                    raise rdtest.TestFailureException(
+                        "Location {} not expected for {} at space,reg {} array element {}".format(
+                            loc.fixedBindNumber, str(a.access.type), bind_info[idx]['loc'], a.access.arrayElement))
+                if loc.logicalBindName != "{}[{}]".format(heapName, bind_info[idx]['loc'][1] + a.access.arrayElement):
+                    raise rdtest.TestFailureException(
+                        "Location {} not expected for space,reg {} array element {}".format(
+                            loc.logicalBindName, bind_info[idx]['loc'], a.access.arrayElement))
 
                 bind_info[idx]['elems'].remove(a.access.arrayElement)
 
@@ -152,7 +160,7 @@ class D3D12_Descriptor_Indexing(rdtest.TestCase):
             #   - UAV resources
             bind_info = {
                 rd.DescriptorCategory.ConstantBlock: [9],
-                rd.DescriptorCategory.Sampler: [0, 1, 2, 4, 5, 6, 7],
+                rd.DescriptorCategory.Sampler: [0, 1, 2, 19, 20, 21, 25],
                 rd.DescriptorCategory.ReadOnlyResource: [8, 12, 19, 20, 21, 49, 59, 6, 99, 103, 156, 162],
                 rd.DescriptorCategory.ReadWriteResource: [10],
             }
