@@ -629,11 +629,11 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
                                         sizeof(m_D3D12Opts14));
     if(hr != S_OK)
       RDCEraseEl(m_D3D12Opts14);
-    hr = m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS14, &m_D3D12Opts15,
+    hr = m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS15, &m_D3D12Opts15,
                                         sizeof(m_D3D12Opts15));
     if(hr != S_OK)
       RDCEraseEl(m_D3D12Opts15);
-    hr = m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS14, &m_D3D12Opts16,
+    hr = m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS16, &m_D3D12Opts16,
                                         sizeof(m_D3D12Opts16));
     if(hr != S_OK)
       RDCEraseEl(m_D3D12Opts16);
