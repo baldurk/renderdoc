@@ -633,6 +633,8 @@ void RenderDoc::InitialiseReplay(GlobalEnvironment env, const rdcarray<rdcstr> &
   if(env.enumerateGPUs)
   {
     m_AvailableGPUThread = Threading::CreateThread([this]() {
+      rdcarray<rdcstr> driverFilePaths;
+
       for(GraphicsAPI api : {GraphicsAPI::D3D11, GraphicsAPI::D3D12, GraphicsAPI::Vulkan})
       {
         RDCDriver driverType = RDCDriver::Unknown;
@@ -654,6 +656,51 @@ void RenderDoc::InitialiseReplay(GlobalEnvironment env, const rdcarray<rdcstr> &
         if(result == ResultCode::Succeeded)
         {
           rdcarray<GPUDevice> gpus = driver->GetAvailableGPUs();
+
+#if ENABLED(RDOC_WIN32)
+          for(const char *driverDLL : {
+                  "amdvlk32.dll",
+                  "amdvlk64.dll",
+                  "atiadlxx.dll",
+                  "atig6pxx.dll",
+                  "atig6txx.dll",
+                  "atigktxx.dll",
+                  "atiglpxx.dll",
+                  "atimuixx.dll",
+                  "atio6axx.dll",
+                  "atioglxx.dll",
+                  "ControlLib.dll",
+                  "ControlLib32.dll",
+                  "igc32.dll",
+                  "igc64.dll",
+                  "igvk32.dll",
+                  "igvk64.dll"
+                  "igxelpgicd32.dll",
+                  "igxelpgicd64.dll",
+                  "igxelpicd32.dll",
+                  "igxelpicd32.dll",
+                  "igxelpicd64.dll",
+                  "igxelpicd64.dll",
+                  "nvoglv32.dll",
+                  "nvoglv64.dll",
+                  "nvwgf2um.dll",
+                  "nvwgf2umx.dll",
+              })
+          {
+            HMODULE mod = GetModuleHandleA(driverDLL);
+
+            if(mod)
+            {
+              wchar_t curFile[512] = {0};
+              GetModuleFileNameW(mod, curFile, 511);
+
+              rdcstr path = StringFormat::Wide2UTF8(curFile);
+
+              if(!driverFilePaths.contains(path))
+                driverFilePaths.push_back(path);
+            }
+          }
+#endif
 
           for(const GPUDevice &newgpu : gpus)
           {
@@ -735,7 +782,68 @@ void RenderDoc::InitialiseReplay(GlobalEnvironment env, const rdcarray<rdcstr> &
       for(GPUDevice &dev : m_AvailableGPUs)
       {
         std::sort(dev.apis.begin(), dev.apis.end());
+
+        RDCLOG("GPU: %s - %s (driver: %s)", ToStr(dev.vendor).c_str(), dev.name.c_str(),
+               dev.driver.empty() ? "--" : dev.driver.c_str());
       }
+
+#if ENABLED(RDOC_WIN32)
+      {
+        using PFN_GetFileVersionInfoSizeW = decltype(&GetFileVersionInfoSizeW);
+        using PFN_GetFileVersionInfoW = decltype(&GetFileVersionInfoW);
+        using PFN_VerQueryValueA = decltype(&VerQueryValueA);
+
+        PFN_GetFileVersionInfoSizeW getSize = NULL;
+        PFN_GetFileVersionInfoW getData = NULL;
+        PFN_VerQueryValueA queryValue = NULL;
+
+        HMODULE version = LoadLibraryA("version.dll");
+        getSize = (PFN_GetFileVersionInfoSizeW)GetProcAddress(version, "GetFileVersionInfoSizeW");
+        getData = (PFN_GetFileVersionInfoW)GetProcAddress(version, "GetFileVersionInfoW");
+        queryValue = (PFN_VerQueryValueA)GetProcAddress(version, "VerQueryValueA");
+
+        if(getSize && getData && queryValue)
+        {
+          // only print unique versions to avoid the case of loading multiple driver files and printing redundantly.
+          rdcarray<uint64_t> versions;
+
+          for(rdcstr &path : driverFilePaths)
+          {
+            rdcwstr wpath = StringFormat::UTF82Wide(path);
+            DWORD bytesNeeded = getSize(wpath.c_str(), NULL);
+
+            if(bytesNeeded > 0)
+            {
+              bytebuf blockData;
+              blockData.resize(bytesNeeded);
+
+              VS_FIXEDFILEINFO *verInfo = NULL;
+              UINT size = 0;
+              if(getData(wpath.c_str(), 0, bytesNeeded, blockData.data()) &&
+                 queryValue(blockData.data(), "\\", (void **)&verInfo, &size))
+              {
+                if(size > 0 && verInfo->dwSignature == 0xFEEF04BD)
+                {
+                  uint64_t ver = uint64_t(verInfo->dwFileVersionMS) << 32 | verInfo->dwFileVersionLS;
+
+                  if(!versions.contains(ver))
+                  {
+                    versions.push_back(ver);
+                    RDCLOG(
+                        "Driver: '%s' %u.%u.%u.%u %s", path.c_str(), verInfo->dwFileVersionMS >> 16,
+                        verInfo->dwFileVersionMS & 0xffff, verInfo->dwFileVersionLS >> 16,
+                        verInfo->dwFileVersionLS & 0xffff,
+                        StringFormat::sntimef(FileIO::GetModifiedTimestamp(path), "%Y-%m-%d").c_str());
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        FreeLibrary(version);
+      }
+#endif
     });
   }
 }
