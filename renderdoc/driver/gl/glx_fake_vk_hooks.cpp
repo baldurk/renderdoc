@@ -30,6 +30,9 @@
 class FakeVkHook : LibraryHook
 {
 public:
+  FakeVkHook() { m_nameLibraryHook = "FakeVkHook"; }
+
+public:
   void RegisterHooks()
   {
     LibraryHooks::RegisterLibraryHook("libGL.so", &FakeVkHooked);

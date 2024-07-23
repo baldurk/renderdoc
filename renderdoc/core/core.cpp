@@ -380,6 +380,7 @@ void RenderDoc::UnregisterMemoryRegion(void *mem)
 RenderDoc::RenderDoc()
 {
   m_CaptureFileTemplate = "";
+  RDCLOG("====> RenderDoc::RenderDoc()");
   m_MarkerIndentLevel = 0;
 
   m_CapturesActive = 0;
@@ -1379,6 +1380,7 @@ RDCFile *RenderDoc::CreateRDC(RDCDriver driver, uint32_t frameNum, const FramePi
     suffix = "_capture";
 
   m_CurrentLogFile = StringFormat::Fmt("%s%s.rdc", m_CaptureFileTemplate.c_str(), suffix.c_str());
+  RDCLOG("====> [CreateRDC] 1 Template=%s suffix=%s LogFile=%s",  m_CaptureFileTemplate.c_str(), suffix.c_str(), m_CurrentLogFile.c_str());
 
   // make sure we don't stomp another capture if we make multiple captures in the same frame.
   {
@@ -1407,6 +1409,12 @@ RDCFile *RenderDoc::CreateRDC(RDCDriver driver, uint32_t frameNum, const FramePi
 
   FileIO::CreateParentDirectory(m_CurrentLogFile);
 
+  RDCLOG("====> [CreateRDC] 2 Template=%s suffix=%s LogFile=%s", m_CaptureFileTemplate.c_str(), suffix.c_str(), m_CurrentLogFile.c_str());
+  if (m_CurrentLogFile.size() < 20)
+  {
+    m_CurrentLogFile = "/sdcard/Android/data/rdc-forcing-20240717.rdc";
+    RDCLOG("====> [CreateRDC] length < 20, Forcing=%s", m_CurrentLogFile.c_str());
+  }
   ret->Create(m_CurrentLogFile.c_str());
 
   if(ret->Error() != ResultCode::Succeeded)
@@ -1838,10 +1846,13 @@ void RenderDoc::SetCaptureFileTemplate(const rdcstr &pathtemplate)
     return;
 
   m_CaptureFileTemplate = pathtemplate;
+  RDCLOG("====> [SetCaptureFileTemplate] 1 m_CaptureFileTemplate=%s", m_CaptureFileTemplate.c_str());
 
   if(m_CaptureFileTemplate.length() > 4 &&
      m_CaptureFileTemplate.substr(m_CaptureFileTemplate.length() - 4) == ".rdc")
     m_CaptureFileTemplate = m_CaptureFileTemplate.substr(0, m_CaptureFileTemplate.length() - 4);
+
+  RDCLOG("====> [SetCaptureFileTemplate] 2 m_CaptureFileTemplate=%s", m_CaptureFileTemplate.c_str());
 
   FileIO::CreateParentDirectory(m_CaptureFileTemplate);
 }

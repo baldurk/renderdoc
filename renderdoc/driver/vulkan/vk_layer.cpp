@@ -67,7 +67,7 @@ void KeepLayerAlive()
   // would be unloaded. That could cause us to drop target control connections etc.
   // we create our own instance, which increases the refcount on the layer, then leak it to prevent
   // the layer being unloaded.
-  RDCLOG("Creating internal instance to bump layer refcount");
+  RDCLOG("====> [KeepLayerAlive] dlopen(libvulkan.so) Creating internal instance to bump layer refcount");
   void *module = dlopen("libvulkan.so.1", RTLD_NOW | RTLD_LOCAL);
   if(!module)
     module = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
@@ -86,11 +86,11 @@ void KeepLayerAlive()
     };
     VkInstance forceLiveInstance = VK_NULL_HANDLE;
     VkResult vkr = create(&info, NULL, &forceLiveInstance);
-    RDCLOG("Created own instance %p: %s", forceLiveInstance, ToStr(vkr).c_str());
+    RDCLOG("[KeepLayerAlive] Created own instance %p: %s", forceLiveInstance, ToStr(vkr).c_str());
   }
   else
   {
-    RDCERR("Couldn't load libvulkan - can't force layer to stay alive");
+    RDCERR("[KeepLayerAlive] Couldn't load libvulkan - can't force layer to stay alive");
   }
 }
 #else
@@ -104,10 +104,16 @@ void KeepLayerAlive()
 // set environment variables
 class VulkanHook : LibraryHook
 {
-  VulkanHook() {}
+  VulkanHook() { m_nameLibraryHook = "VulkanHook"; }
   void RegisterHooks()
   {
-    RDCLOG("Registering Vulkan hooks");
+    if(false)
+    {
+      RDCLOG("====> Force disable vulkan!");
+      return;
+    }
+
+    RDCLOG("====> [RegisterHooks] Registering Vulkan hooks");
 
     // we don't register any library or function hooks because we use the layer system
 
@@ -168,6 +174,8 @@ class VulkanHook : LibraryHook
 
   void RemoveHooks()
   {
+    RDCLOG("====> RemoveHooks");
+
     // unset the vulkan layer environment variable
     Process::RegisterEnvironmentModification(
         EnvironmentModification(EnvMod::Set, EnvSep::NoSep, RENDERDOC_VULKAN_LAYER_VAR, "0"));
@@ -274,15 +282,19 @@ VKAPI_ATTR VkResult VKAPI_CALL hooked_vkCreateInstance(const VkInstanceCreateInf
                                                        const VkAllocationCallbacks *,
                                                        VkInstance *pInstance)
 {
+  RDCLOG("====> hooked_vkCreateInstance ......................................................");
+
   KeepLayerAlive();
 
   WrappedVulkan *core = new WrappedVulkan();
+  RDCLOG("====> new WrappedVulkan=%p, VkInstance=%p", core, pInstance);
   return core->vkCreateInstance(pCreateInfo, NULL, pInstance);
 }
 
 VKAPI_ATTR void VKAPI_CALL hooked_vkDestroyInstance(VkInstance instance, const VkAllocationCallbacks *)
 {
   WrappedVulkan *core = CoreDisp(instance);
+  RDCLOG("====> hooked_vkDestroyInstance, WrappedVulkan=%p, instance=%p ......................", core, &instance);
   core->vkDestroyInstance(instance, NULL);
   delete core;
 }
@@ -315,6 +327,8 @@ extern "C" {
 VK_LAYER_EXPORT VKAPI_ATTR VkResult VKAPI_CALL VK_LAYER_RENDERDOC_CaptureEnumerateDeviceLayerProperties(
     VkPhysicalDevice physicalDevice, uint32_t *pPropertyCount, VkLayerProperties *pProperties)
 {
+  RDCLOG("====> VK_LAYER_RENDERDOC_CaptureEnumerateDeviceLayerProperties");
+
   // must have a property count, either to fill out or use as a size
   if(pPropertyCount == NULL)
     return VK_INCOMPLETE;
@@ -351,6 +365,8 @@ VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExtensionProperties(VkPhysicalDevice ph
                                                              uint32_t *pPropertyCount,
                                                              VkExtensionProperties *pProperties)
 {
+  RDCLOG("====> VK_LAYER_RENDERDOC_CaptureEnumerateDeviceExtensionProperties");
+
   // if pLayerName is NULL or not ours we're calling down through the layer chain to the ICD.
   // This is our chance to filter out any reported extensions that we don't support
   if(physicalDevice != NULL &&
@@ -412,6 +428,8 @@ VK_LAYER_RENDERDOC_CaptureEnumerateInstanceExtensionProperties(
 VK_LAYER_EXPORT VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr(VkDevice device, const char *pName)
 {
+  RDCLOG("====> VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr, device=%p, name=%s", device, pName);
+
   if(!strcmp("vkGetDeviceProcAddr", pName))
     return (PFN_vkVoidFunction)&VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr;
   if(!strcmp("vkCreateDevice", pName))
@@ -452,6 +470,8 @@ VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr(VkInstance instance, const char *p
   // if name is NULL undefined is returned, let's return NULL
   if(pName == NULL)
     return NULL;
+
+  RDCLOG("====> VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr, instance=%p, name=%s", instance, pName);
 
   // a NULL instance can return vkGetInstanceProcAddr or a global function, handle that here
 
@@ -534,6 +554,8 @@ VK_LAYER_RENDERDOC_CaptureGetInstanceProcAddr(VkInstance instance, const char *p
 VK_LAYER_EXPORT VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr(VkInstance instance, const char *pName)
 {
+  RDCLOG("====> VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr, instance=%p, name=%s", instance, pName);
+
   // GetPhysicalDeviceProcAddr acts like GetInstanceProcAddr but it returns NULL for any functions
   // which are known but aren't physical device functions
   if(!strcmp("vkGetInstanceProcAddr", pName))
@@ -623,6 +645,8 @@ VK_LAYER_RENDERDOC_Capture_layerGetPhysicalDeviceProcAddr(VkInstance instance, c
 VK_LAYER_EXPORT VKAPI_ATTR VkResult VKAPI_CALL
 VK_LAYER_RENDERDOC_CaptureNegotiateLoaderLayerInterfaceVersion(VkNegotiateLayerInterface *pVersionStruct)
 {
+  RDCLOG("====> VK_LAYER_RENDERDOC_CaptureNegotiateLoaderLayerInterfaceVersion, sType=%d, version=%d", pVersionStruct->sType, pVersionStruct->loaderLayerInterfaceVersion);
+
   if(pVersionStruct->sType != LAYER_NEGOTIATE_INTERFACE_STRUCT)
     return VK_ERROR_INITIALIZATION_FAILED;
 

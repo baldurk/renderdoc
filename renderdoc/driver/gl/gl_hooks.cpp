@@ -47,6 +47,8 @@ class GLHook : LibraryHook
 public:
   GLHook()
   {
+    m_nameLibraryHook = "GLHook";
+
 #if ENABLED(RDOC_POSIX)
     // default to RTLD_NEXT for GL lookups if we haven't gotten a more specific library handle
     handle = RTLD_NEXT;

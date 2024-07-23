@@ -189,6 +189,8 @@ struct LibraryHook
   virtual void RegisterHooks() = 0;
   virtual void OptionsUpdated() {}
   virtual void RemoveHooks() {}
+public:
+  rdcstr m_nameLibraryHook;
 private:
   friend class LibraryHooks;
 

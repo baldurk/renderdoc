@@ -31,6 +31,8 @@ VkResult WrappedVulkan::vkCreateAndroidSurfaceKHR(VkInstance instance,
                                                   const VkAllocationCallbacks *,
                                                   VkSurfaceKHR *pSurface)
 {
+  RDCLOG("====> WrappedVulkan::vkCreateAndroidSurfaceKHR(), instance=%p, pSurface=%p", instance, pSurface);
+
   // should not come in here at all on replay
   RDCASSERT(IsCaptureMode(m_State));
 
@@ -78,6 +80,8 @@ void VulkanReplay::OutputWindow::SetWindowHandle(WindowingData window)
 
 void VulkanReplay::OutputWindow::CreateSurface(WrappedVulkan *driver, VkInstance inst)
 {
+  RDCLOG("====> VulkanReplay::OutputWindow::CreateSurface(), driver=%p", driver);
+
   VkAndroidSurfaceCreateInfoKHR createInfo;
 
   createInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
@@ -109,5 +113,7 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
 
 void *LoadVulkanLibrary()
 {
-  return Process::LoadModule("libvulkan.so");
+  void* mod = Process::LoadModule("libvulkan.so");
+  RDCLOG("====> LoadVulkanLibrary libvulkan.so = %p", mod);
+  return mod;
 }

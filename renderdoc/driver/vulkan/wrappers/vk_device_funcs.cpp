@@ -554,6 +554,8 @@ RDResult WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVersion
 VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo,
                                          const VkAllocationCallbacks *, VkInstance *pInstance)
 {
+  RDCLOG("====> WrappedVulkan::vkCreateInstance, pInstance=%p", pInstance);
+
   RDCASSERT(pCreateInfo);
 
   // don't support any extensions for this createinfo
@@ -1666,6 +1668,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
   SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Important();
   SERIALISE_ELEMENT_OPT(pAllocator);
   SERIALISE_ELEMENT_LOCAL(Device, GetResID(*pDevice)).TypedAs("VkDevice"_lit);
+
+  RDCLOG("====> Serialise_vkCreateDevice, VkPhysicalDevice=%p, VkDevice=%p", physicalDevice, pDevice);
 
   if(ser.VersionLess(0xD))
   {
@@ -4164,6 +4168,8 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
                                        const VkDeviceCreateInfo *pCreateInfo,
                                        const VkAllocationCallbacks *, VkDevice *pDevice)
 {
+  RDCLOG("====> WrappedVulkan::vkCreateDevice, VkPhysicalDevice=%p, VkDevice=%p", physicalDevice, pDevice);
+
   VkDeviceCreateInfo createInfo = *pCreateInfo;
 
   for(uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)

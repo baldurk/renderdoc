@@ -39,6 +39,9 @@ ID3DDevice *GetD3D11DeviceIfAlloc(IUnknown *dev)
 class D3D11Hook : LibraryHook
 {
 public:
+  D3D11Hook() { m_nameLibraryHook = "D3D11Hook"; }
+
+public:
   void RegisterHooks()
   {
     RDCLOG("Registering D3D11 hooks");

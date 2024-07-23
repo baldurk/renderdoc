@@ -92,6 +92,8 @@ void VulkanReplay::OutputWindow::SetWindowHandle(WindowingData window)
 
 void VulkanReplay::OutputWindow::CreateSurface(WrappedVulkan *driver, VkInstance inst)
 {
+  RDCLOG("====> VulkanReplay::OutputWindow::CreateSurface(), driver=%p", driver);
+
 #if defined(VK_USE_PLATFORM_METAL_EXT)
   if(driver->GetExtensions(GetRecord(inst)).ext_EXT_metal_surface)
   {

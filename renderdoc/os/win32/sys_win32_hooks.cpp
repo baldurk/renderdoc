@@ -75,6 +75,8 @@ class SysHook : LibraryHook
 public:
   SysHook()
   {
+    m_nameLibraryHook = "SysHook";
+
     // we start with a refcount of 1 because we initialise WSA ourselves for our own sockets.
     m_WSARefCount = 1;
   }

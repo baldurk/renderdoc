@@ -34,6 +34,7 @@ static rdcarray<LibraryHook *> &LibList()
 
 LibraryHook::LibraryHook()
 {
+  RDCDEBUG("====> LibraryHook.LibList().push_back: %s", this->m_nameLibraryHook.c_str());
   LibList().push_back(this);
 }
 
@@ -42,7 +43,10 @@ void LibraryHooks::RegisterHooks()
   BeginHookRegistration();
 
   for(LibraryHook *lib : LibList())
+  {
+    RDCDEBUG("====> before lib->RegisterHooks: %s", lib->m_nameLibraryHook.c_str());
     lib->RegisterHooks();
+  }
 
   EndHookRegistration();
 }

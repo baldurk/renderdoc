@@ -731,7 +731,7 @@ void RDCFile::Create(const rdcstr &filename)
 {
   m_File = FileIO::fopen(filename, FileIO::WriteBinary);
   m_Filename = filename;
-
+  RDCLOG("====> [RDCFile::Create] fopen(%s) writeBin, fp=%p", filename.c_str(), m_File); 
   RDCDEBUG("creating RDC file.");
 
   if(!m_File)

@@ -494,6 +494,9 @@ public:
 class D3D12Hook : LibraryHook
 {
 public:
+  D3D12Hook() { m_nameLibraryHook = "D3D12Hook"; }
+
+public:
   void RegisterHooks()
   {
     RDCLOG("Registering D3D12 hooks");

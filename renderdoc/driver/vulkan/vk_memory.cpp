@@ -171,7 +171,7 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
   // invalidate/flush safely. This is at most 256 bytes which is likely already satisfied.
   ret.size = AlignUp(ret.size, nonCoherentAtomSize);
 
-  if(Vulkan_Debug_MemoryAllocationLogging())
+  if(true/*Vulkan_Debug_MemoryAllocationLogging()*/)
   {
     RDCLOG("Allocating 0x%llx (0x%llx requested) with alignment 0x%llx in 0x%x for a %s (%s in %s)",
            ret.size, mrq.size, mrq.alignment, mrq.memoryTypeBits, buffer ? "buffer" : "image",
@@ -184,7 +184,7 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
   int i = 0;
   for(MemoryAllocation &block : blockList)
   {
-    if(Vulkan_Debug_MemoryAllocationLogging())
+    if(true/*Vulkan_Debug_MemoryAllocationLogging()*/)
     {
       RDCLOG(
           "Considering block %d: memory type %u and type %s. Total size 0x%llx, current offset "
@@ -197,7 +197,7 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
     // skip this block if it's not the memory type we want
     if(ret.type != block.type || (mrq.memoryTypeBits & (1 << block.memoryTypeIndex)) == 0)
     {
-      if(Vulkan_Debug_MemoryAllocationLogging())
+      if(true/*Vulkan_Debug_MemoryAllocationLogging()*/)
       {
         RDCLOG("block type %d or memory type %d is incompatible", block.type, block.memoryTypeIndex);
       }
@@ -220,7 +220,7 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
 
     if(offs > block.size)
     {
-      if(Vulkan_Debug_MemoryAllocationLogging())
+      if(true/*Vulkan_Debug_MemoryAllocationLogging()*/)
       {
         RDCLOG("Next offset 0x%llx would be off the end of the memory (size 0x%llx).", offs,
                block.size);
@@ -230,7 +230,7 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
 
     VkDeviceSize avail = block.size - offs;
 
-    if(Vulkan_Debug_MemoryAllocationLogging())
+    if(true/*Vulkan_Debug_MemoryAllocationLogging()*/)
     {
       RDCLOG("At next offset 0x%llx, there's 0x%llx bytes available for 0x%llx bytes requested",
              offs, avail, ret.size);
@@ -247,7 +247,7 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
       ret.offs = offs;
       ret.mem = block.mem;
 
-      if(Vulkan_Debug_MemoryAllocationLogging())
+      if(true/*Vulkan_Debug_MemoryAllocationLogging()*/)
       {
         RDCLOG("Allocating using this block: 0x%llx -> 0x%llx", ret.offs, block.offs);
       }
@@ -259,7 +259,7 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
 
   if(ret.mem == VK_NULL_HANDLE)
   {
-    if(Vulkan_Debug_MemoryAllocationLogging())
+    if(true/*Vulkan_Debug_MemoryAllocationLogging()*/)
     {
       RDCLOG("No available block found - allocating new block");
     }
@@ -297,7 +297,7 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
         {
           if(mrq.memoryTypeBits > (1U << m))
           {
-            if(Vulkan_Debug_MemoryAllocationLogging())
+            if(true/*Vulkan_Debug_MemoryAllocationLogging()*/)
             {
               RDCLOG("Avoiding memory type %u due to small heap size (%llu)", m,
                      m_PhysicalDeviceData.memProps.memoryHeaps[heap].size);
@@ -346,7 +346,7 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
       // if it's still over-sized, just allocate precisely enough and give it a dedicated allocation
       if(ret.size > info.allocationSize)
       {
-        if(Vulkan_Debug_MemoryAllocationLogging())
+        if(true/*Vulkan_Debug_MemoryAllocationLogging()*/)
         {
           RDCLOG("Over-sized allocation for 0x%llx bytes", ret.size);
         }
@@ -354,7 +354,7 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
       }
     }
 
-    if(Vulkan_Debug_MemoryAllocationLogging())
+    if(true/*Vulkan_Debug_MemoryAllocationLogging()*/)
     {
       RDCLOG("Creating new allocation of 0x%llx bytes", info.allocationSize);
     }

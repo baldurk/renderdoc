@@ -149,6 +149,9 @@ using PFN_agsDriverExtensionsDX11_NotifyResourceEndAllAccess =
 class AMDHook : LibraryHook
 {
 public:
+  AMDHook() { m_nameLibraryHook = "AMDHook"; }
+
+public:
   void RegisterHooks()
   {
     RDCLOG("Registering AMD hooks");

@@ -419,6 +419,12 @@ RDResult InstallRenderDocServer(const rdcstr &deviceID)
   FileIO::GetLibraryFilename(libPath);
   rdcstr libDir = get_dirname(FileIO::GetFullPathname(libPath));
 
+/*#ifdef _WIN32
+  char curPath[260];
+  GetCurrentDirectoryA(260, curPath);
+  libDir = curPath;
+#endif*/
+
   rdcarray<rdcstr> paths;
 
 #if defined(RENDERDOC_APK_PATH)

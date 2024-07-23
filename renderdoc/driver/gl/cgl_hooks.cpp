@@ -30,7 +30,7 @@
 class CGLHook : LibraryHook
 {
 public:
-  CGLHook() : driver(GetGLPlatform()) {}
+  CGLHook() : driver(GetGLPlatform()) { m_nameLibraryHook = "CGLHook"; }
   void RegisterHooks();
 
   // default to RTLD_NEXT for CGL lookups if we haven't gotten a more specific library handle
@@ -44,6 +44,8 @@ public:
 CGLError GL_EXPORT_NAME(CGLCreateContext)(CGLPixelFormatObj pix, CGLContextObj share,
                                           CGLContextObj *ctx)
 {
+  RDCLOG("====> CGLCreateContext %p", ctx);
+
   if(RenderDoc::Inst().IsReplayApp())
   {
     if(!CGL.CGLCreateContext)

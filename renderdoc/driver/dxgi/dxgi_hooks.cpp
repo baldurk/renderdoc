@@ -245,6 +245,9 @@ public:
 class DXGIHook : LibraryHook
 {
 public:
+  DXGIHook() { m_nameLibraryHook = "DXGIHook"; }
+
+public:
   void RegisterHooks()
   {
     RDCLOG("Registering DXGI hooks");

@@ -1211,7 +1211,7 @@ void WrappedOpenGL::ContextData::CreateResourceRecord(WrappedOpenGL *driver, voi
 void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext,
                                   GLInitParams initParams, bool core, bool attribsCreate)
 {
-  RDCLOG("%s context %p created %s, sharing with context %p", core ? "Core" : "Compatibility",
+  RDCLOG("[WrappedOpenGL::CreateContext] %s context %p created %s, sharing with context %p", core ? "Core" : "Compatibility",
          winData.ctx, attribsCreate ? "with attribs" : "without attribs", shareContext);
 
   ContextData &ctxdata = m_ContextData[winData.ctx];

@@ -136,6 +136,9 @@ typedef NVENCSTATUS(NVENCAPI *PFN_NvEncodeAPICreateInstance)(NV_ENCODE_API_FUNCT
 class NVHook : LibraryHook
 {
 public:
+  NVHook() { m_nameLibraryHook = "NVHook"; }
+
+public:
   void RegisterHooks()
   {
     RDCLOG("Registering nvidia hooks");

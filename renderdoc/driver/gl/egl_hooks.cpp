@@ -65,7 +65,7 @@ struct DisplayConfig
 class EGLHook : LibraryHook
 {
 public:
-  EGLHook() : driver(GetEGLPlatform()) {}
+  EGLHook() : driver(GetEGLPlatform()) { m_nameLibraryHook = "EGLHook"; }
   ~EGLHook()
   {
     for(auto it : extStrings)
@@ -251,6 +251,8 @@ HOOK_EXPORT EGLContext EGLAPIENTRY eglCreateContext_renderdoc_hooked(EGLDisplay 
                                                                      EGLContext shareContext,
                                                                      EGLint const *attribList)
 {
+  RDCLOG("====> eglCreateContext_renderdoc_hooked %p", display);
+
   if(RenderDoc::Inst().IsReplayApp())
   {
     if(!EGL.CreateContext)

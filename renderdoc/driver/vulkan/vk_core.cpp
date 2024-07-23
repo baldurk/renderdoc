@@ -105,6 +105,8 @@ void VkInitParams::Set(const VkInstanceCreateInfo *pCreateInfo, ResourceId inst)
 
 WrappedVulkan::WrappedVulkan()
 {
+  RDCLOG("====> WrappedVulkan::WrappedVulkan()");
+
   RenderDoc::Inst().RegisterMemoryRegion(this, sizeof(WrappedVulkan));
 
   if(RenderDoc::Inst().IsReplayApp())
@@ -178,6 +180,8 @@ WrappedVulkan::WrappedVulkan()
 
 WrappedVulkan::~WrappedVulkan()
 {
+  RDCLOG("====> WrappedVulkan::~WrappedVulkan()");
+
   // records must be deleted before resource manager shutdown
   if(m_FrameCaptureRecord)
   {
@@ -2710,7 +2714,7 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
       // otherwise order must be preserved (vs. queue submits and desc set updates)
       for(size_t i = 0; i < m_CmdBufferRecords.size(); i++)
       {
-        if(Vulkan_Debug_VerboseCommandRecording())
+        if(true/*Vulkan_Debug_VerboseCommandRecording()*/)
         {
           RDCLOG("Adding chunks from command buffer %s",
                  ToStr(m_CmdBufferRecords[i]->GetResourceID()).c_str());
@@ -3647,6 +3651,7 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     case VulkanChunk::vkEnumeratePhysicalDevices:
       return Serialise_vkEnumeratePhysicalDevices(ser, NULL, NULL, NULL);
     case VulkanChunk::vkCreateDevice:
+      RDCLOG("====> ProcessChunk, chunk=vkCreateDevice");
       return Serialise_vkCreateDevice(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
     case VulkanChunk::vkGetDeviceQueue:
       return Serialise_vkGetDeviceQueue(ser, VK_NULL_HANDLE, 0, 0, NULL);

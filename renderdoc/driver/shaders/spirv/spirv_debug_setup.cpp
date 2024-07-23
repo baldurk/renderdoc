@@ -4218,7 +4218,7 @@ void Debugger::RegisterOp(Iter it)
         {
           m_CurLineCol.lineStart = EvaluateConstant(dbg.arg<Id>(1), {}).value.u32v[0];
           m_CurLineCol.lineEnd = EvaluateConstant(dbg.arg<Id>(2), {}).value.u32v[0];
-          if(Vulkan_Debug_UseDebugColumnInformation())
+          if(true/*Vulkan_Debug_UseDebugColumnInformation()*/)
           {
             m_CurLineCol.colStart = EvaluateConstant(dbg.arg<Id>(3), {}).value.u32v[0];
             m_CurLineCol.colEnd = EvaluateConstant(dbg.arg<Id>(4), {}).value.u32v[0];

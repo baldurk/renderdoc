@@ -784,7 +784,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 {
   AdvanceFrame();
 
-  if(Vulkan_Debug_VerboseCommandRecording())
+  if(true/*Vulkan_Debug_VerboseCommandRecording()*/)
   {
     RDCLOG("vkQueuePresentKHR() to queue %s", ToStr(GetResID(queue)).c_str());
   }

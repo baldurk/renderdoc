@@ -29,7 +29,7 @@
 class WGLHook : LibraryHook
 {
 public:
-  WGLHook() : driver(GetGLPlatform()) {}
+  WGLHook() : driver(GetGLPlatform()) { m_nameLibraryHook = "WGLHook"; }
   void RegisterHooks();
 
   WrappedOpenGL driver;
@@ -235,6 +235,8 @@ void WGLHook::ProcessContextActivate(HGLRC rc, HDC dc)
 
 static HGLRC WINAPI wglCreateContext_hooked(HDC dc)
 {
+  RDCLOG("====> wglCreateContext_hooked %p", dc);
+
   SCOPED_LOCK(glLock);
 
   if(wglhook.createRecurse || wglhook.eglDisabled)
@@ -286,6 +288,7 @@ static BOOL WINAPI wglDeleteContext_hooked(HGLRC rc)
 static HGLRC WINAPI wglCreateLayerContext_hooked(HDC dc, int iLayerPlane)
 {
   SCOPED_LOCK(glLock);
+  RDCLOG("====> wglCreateLayerContext_hooked %p", dc);
 
   if(wglhook.createRecurse || wglhook.eglDisabled)
     return WGL.wglCreateLayerContext(dc, iLayerPlane);
@@ -323,6 +326,7 @@ static HGLRC WINAPI wglCreateContextAttribsARB_hooked(HDC dc, HGLRC hShareContex
                                                       const int *attribList)
 {
   SCOPED_LOCK(glLock);
+  RDCLOG("====> wglCreateContextAttribsARB_hooked %p", dc);
 
   // don't recurse
   if(wglhook.createRecurse || wglhook.eglDisabled)

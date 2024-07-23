@@ -35,7 +35,7 @@ void UseXlibDisplay(Display *dpy);
 class GLXHook : LibraryHook
 {
 public:
-  GLXHook() : driver(GetGLPlatform()) {}
+  GLXHook() : driver(GetGLPlatform()) { m_nameLibraryHook = "GLXHook"; }
   void RegisterHooks();
 
   void UpdateWindowSize(GLWindowingData data, Display *dpy, GLXDrawable drawable)
@@ -84,6 +84,8 @@ static void EnsureRealLibraryLoaded()
 HOOK_EXPORT GLXContext glXCreateContext_renderdoc_hooked(Display *dpy, XVisualInfo *vis,
                                                          GLXContext shareList, Bool direct)
 {
+  RDCLOG("====> glXCreateContext_renderdoc_hooked %p", dpy);
+
   if(RenderDoc::Inst().IsReplayApp())
   {
     if(!GLX.glXCreateContext)
@@ -142,6 +144,8 @@ HOOK_EXPORT GLXContext glXCreateNewContext_renderdoc_hooked(Display *dpy, GLXFBC
                                                             int renderType, GLXContext shareList,
                                                             Bool direct)
 {
+  RDCLOG("====> glXCreateNewContext_renderdoc_hooked %p", dpy);
+
   if(RenderDoc::Inst().IsReplayApp())
   {
     if(!GLX.glXCreateNewContext)
@@ -225,6 +229,8 @@ HOOK_EXPORT GLXContext glXCreateContextAttribsARB_renderdoc_hooked(Display *dpy,
                                                                    GLXContext shareList, Bool direct,
                                                                    const int *attribList)
 {
+  RDCLOG("====> glXCreateContextAttribsARB_renderdoc_hooked %p", dpy);
+
   if(RenderDoc::Inst().IsReplayApp())
   {
     if(!GLX.glXCreateContextAttribsARB)
