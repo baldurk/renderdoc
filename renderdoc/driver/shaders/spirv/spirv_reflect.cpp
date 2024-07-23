@@ -1128,8 +1128,10 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
             if(topLevelChildChain.find(access.base) != topLevelChildChain.end())
               globalId = topLevelChildChain[access.base];
 
-            usedStructChildren[globalId].insert(
-                EvaluateConstant(access.indexes[0], specInfo).value.u32v[0]);
+            // It is legal to have zero indexes
+            if(!access.indexes.empty())
+              usedStructChildren[globalId].insert(
+                  EvaluateConstant(access.indexes[0], specInfo).value.u32v[0]);
           }
         }
 
