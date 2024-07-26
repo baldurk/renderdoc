@@ -166,14 +166,17 @@
       <Optimization>Disabled</Optimization>
     </ClCompile>
     <PostBuildEvent>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Development|x64'">copy /Y D:\work_my\debug\renderdoc_a\x64\Development\*.json "D:\Program Files\RenderDoc\"
-copy /Y D:\work_my\debug\renderdoc_a\x64\Development\*.dll "D:\Program Files\RenderDoc\"
-copy /Y D:\work_my\debug\renderdoc_a\x64\Development\*.exe "D:\Program Files\RenderDoc\"
-copy /Y D:\work_my\debug\renderdoc_a\x64\Development\*.pdb "D:\Program Files\RenderDoc\"
-xcopy /E /H /C /I /Y /R "D:\work_my\debug\renderdoc_a\x64\Development\pymodules" "D:\Program Files\RenderDoc\pymodules\"
-xcopy /E /H /C /I /Y /R "D:\work_my\debug\renderdoc_a\x64\Development\qtplugins" "D:\Program Files\RenderDoc\qtplugins\"
-copy /Y D:\work_my\debug\renderdoc_a\build32\bin\org.renderdoc.renderdoccmd.arm32.apk "D:\Program Files\RenderDoc\plugins\android\"
-copy /Y D:\work_my\debug\renderdoc_a\build64\bin\org.renderdoc.renderdoccmd.arm64.apk "D:\Program Files\RenderDoc\plugins\android\"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Development|x64'">Setlocal ENABLEDELAYEDEXPANSION
+SET DstDir=D:\Program Files\RenderDoc\
+
+copy /Y $(OutputDirectory)*.json "%DstDir%"
+copy /Y $(OutputDirectory)*.dll "%DstDir%"
+copy /Y $(OutputDirectory)*.exe "%DstDir%"
+copy /Y $(OutputDirectory)*.pdb "%DstDir%"
+xcopy /E /H /C /I /Y /R "$(OutputDirectory)pymodules" "%DstDir%pymodules\"
+xcopy /E /H /C /I /Y /R "$(OutputDirectory)qtplugins" "%DstDir%qtplugins\"
+copy /Y $(OutputDirectory)..\..\build32\bin\org.renderdoc.renderdoccmd.arm32.apk "%DstDir%plugins\android\"
+copy /Y $(OutputDirectory)..\..\build64\bin\org.renderdoc.renderdoccmd.arm64.apk "%DstDir%plugins\android\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='QTDebug'">
