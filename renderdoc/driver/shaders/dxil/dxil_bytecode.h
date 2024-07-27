@@ -1263,7 +1263,10 @@ struct Instruction : public ForwardReferencableValue<Instruction>
   uint32_t debugLoc = ~0U;
   Operation op = Operation::NoOp;
   uint8_t align = 0;
-  // number assigned to instructions that don't have names and return a value, for disassembly
+  // For DXC Compatibility mode: slot contains a number assigned to instructions that don't have
+  // names and return a value, used for disassembly
+
+  // Otherwise a unique global ID used by the debugger and disassemvbly
   uint32_t slot = ~0U;
   InstructionFlags &opFlags() { return (InstructionFlags &)flags; }
   InstructionFlags opFlags() const { return (InstructionFlags)flags; }
@@ -1384,7 +1387,7 @@ public:
   size_t firstFuncConst;
   size_t numFuncConsts;
 
-  void processFunction(const Function *f);
+  void processFunction(const Function *f, uint32_t *nextSSAId = NULL);
   void exitFunction();
 
 private:
@@ -1645,6 +1648,7 @@ protected:
   rdcarray<Metadata *> m_MetaSlots;
   rdcarray<const AttributeGroup *> m_FuncAttrGroups;
   uint32_t m_NextMetaSlot = 0;
+  uint32_t m_NextSSAId = 0;
 
   bool m_Uselists = false;
   bool m_DXCStyle = false;

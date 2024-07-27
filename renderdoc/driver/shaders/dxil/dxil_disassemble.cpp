@@ -1043,6 +1043,7 @@ void Program::Parse(const DXBC::Reflection *reflection)
 
 void Program::SettleIDs()
 {
+  RDCASSERTEQUAL(m_NextSSAId, 0);
   RDCASSERTEQUAL(m_NextMetaSlot, 0);
   RDCASSERT(m_MetaSlots.isEmpty());
 
@@ -1063,7 +1064,7 @@ void Program::SettleIDs()
   uint32_t &nextMetaSlot = m_NextMetaSlot;
   for(size_t i = 0; i < m_Functions.size(); i++)
   {
-    m_Accum.processFunction(m_Functions[i]);
+    m_Accum.processFunction(m_Functions[i], &m_NextSSAId);
 
     Function &func = *m_Functions[i];
 
