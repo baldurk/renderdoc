@@ -1064,7 +1064,7 @@ void Program::SettleIDs()
   uint32_t &nextMetaSlot = m_NextMetaSlot;
   for(size_t i = 0; i < m_Functions.size(); i++)
   {
-    m_Accum.processFunction(m_Functions[i], &m_NextSSAId);
+    m_Accum.processFunction(m_Functions[i], m_NextSSAId);
 
     Function &func = *m_Functions[i];
 
@@ -1636,11 +1636,13 @@ void Program::MakeDXCDisassemblyString()
   m_Disassembly += DisassembleTypes(m_DisassemblyInstructionLine);
   m_Disassembly += DisassembleGlobalVars(m_DisassemblyInstructionLine);
 
+  uint32_t ssaID = 0;
+
   for(size_t i = 0; i < m_Functions.size(); i++)
   {
     const Function &func = *m_Functions[i];
 
-    m_Accum.processFunction(m_Functions[i]);
+    m_Accum.processFunction(m_Functions[i], ssaID);
 
     if(func.attrs && func.attrs->functionSlot)
     {
@@ -2709,11 +2711,13 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
   const char *swizzle = "xyzw";
 
+  uint32_t ssaID = 0;
+
   for(size_t i = 0; i < m_Functions.size(); i++)
   {
     const Function &func = *m_Functions[i];
 
-    m_Accum.processFunction(m_Functions[i]);
+    m_Accum.processFunction(m_Functions[i], ssaID);
 
     if(func.external)
       continue;
@@ -4705,11 +4709,13 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
 
 void Program::ParseReferences(const DXBC::Reflection *reflection)
 {
+  uint32_t ssaID = 0;
+
   for(size_t i = 0; i < m_Functions.size(); i++)
   {
     const Function &func = *m_Functions[i];
 
-    m_Accum.processFunction(m_Functions[i]);
+    m_Accum.processFunction(m_Functions[i], ssaID);
 
     if(func.external)
       continue;

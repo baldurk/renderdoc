@@ -2580,7 +2580,7 @@ void LLVMOrderAccumulator::processGlobals(Program *prog, bool doLiveChecking)
   }
 }
 
-void LLVMOrderAccumulator::processFunction(const Function *f, uint32_t *nextSSAId)
+void LLVMOrderAccumulator::processFunction(const Function *f, uint32_t &nextSSAId)
 {
   const Function &func = *f;
 
@@ -2637,8 +2637,8 @@ void LLVMOrderAccumulator::processFunction(const Function *f, uint32_t *nextSSAI
 #if DISABLED(DXC_COMPATIBLE_DISASM)
     if(arg->slot == ~0U)
     {
-      arg->slot = *nextSSAId;
-      (*nextSSAId)++;
+      arg->slot = nextSSAId;
+      nextSSAId++;
     }
 #else
     if(arg->getName().isEmpty())
@@ -2671,8 +2671,8 @@ void LLVMOrderAccumulator::processFunction(const Function *f, uint32_t *nextSSAI
 #if DISABLED(DXC_COMPATIBLE_DISASM)
       if(inst->slot == ~0U)
       {
-        inst->slot = *nextSSAId;
-        (*nextSSAId)++;
+        inst->slot = nextSSAId;
+        nextSSAId++;
       }
 #else
       if(inst->getName().isEmpty())

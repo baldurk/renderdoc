@@ -89,9 +89,11 @@ ProgramEditor::ProgramEditor(const DXBC::DXBCContainer *container, bytebuf &outB
   for(size_t idx = accum.firstConst; idx < accum.firstConst + accum.numConsts; idx++)
     m_Constants.push_back((Constant *)cast<const Constant>(accum.values[idx]));
 
+  uint32_t ssaID = 0;
+
   for(Function *f : m_Functions)
   {
-    accum.processFunction(f);
+    accum.processFunction(f, ssaID);
     for(size_t idx = accum.firstFuncConst; idx < accum.firstFuncConst + accum.numFuncConsts; idx++)
       m_Constants.push_back((Constant *)cast<const Constant>(accum.values[idx]));
     accum.exitFunction();
@@ -105,11 +107,13 @@ ProgramEditor::~ProgramEditor()
   LLVMOrderAccumulator accum;
   accum.processGlobals(this, true);
 
+  uint32_t ssaID = 0;
+
   // delete any functions that aren't referenced by call instructions
   rdcarray<const Function *> keep;
   for(Function *f : m_Functions)
   {
-    accum.processFunction(f);
+    accum.processFunction(f, ssaID);
     accum.exitFunction();
   }
 
@@ -1065,6 +1069,8 @@ bytebuf ProgramEditor::EncodeProgram()
     }                                                            \
   }
 
+  uint32_t ssaID = 0;
+
   for(Function *f : m_Functions)
   {
     if(f->external)
@@ -1074,7 +1080,7 @@ bytebuf ProgramEditor::EncodeProgram()
 
     writer.Record(LLVMBC::FunctionRecord::DECLAREBLOCKS, f->blocks.size());
 
-    accum.processFunction(f);
+    accum.processFunction(f, ssaID);
 
     if(accum.numFuncConsts)
     {
