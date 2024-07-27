@@ -2197,6 +2197,9 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
 
   modsig = ((WrappedID3D12RootSignature *)rootsig)->sig;
 
+  modsig.Flags &= ~(D3D12_ROOT_SIGNATURE_FLAG_DENY_AMPLIFICATION_SHADER_ROOT_ACCESS |
+                    D3D12_ROOT_SIGNATURE_FLAG_DENY_MESH_SHADER_ROOT_ACCESS);
+
   uint32_t space = modsig.maxSpaceIndex;
 
   // add root UAV elements
