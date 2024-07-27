@@ -4112,7 +4112,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
             bool first = true;
             for(const Value *s : inst.args)
             {
-              lineStr += ArgToString(s, false);
+              lineStr += GetArgId(s);
               if(first)
               {
                 lineStr += opStr;
@@ -4241,7 +4241,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 if(!first)
                   lineStr += ", ";
 
-                lineStr += ArgToString(s, false);
+                lineStr += GetArgId(s);
                 first = false;
               }
             }
@@ -4261,7 +4261,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               if(!first)
                 lineStr += ", ";
 
-              lineStr += ArgToString(s, false);
+              lineStr += GetArgId(s);
               first = false;
             }
             if(inst.align > 0)
@@ -4527,7 +4527,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               if(!first)
                 lineStr += ", ";
 
-              lineStr += ArgToString(s, false);
+              lineStr += GetArgId(s);
               first = false;
             }
 
@@ -4594,7 +4594,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
               if(!first)
                 lineStr += ", ";
 
-              lineStr += ArgToString(s, false);
+              lineStr += GetArgId(s);
               first = false;
             }
 
@@ -4788,9 +4788,6 @@ void Program::ParseReferences(const DXBC::Reflection *reflection)
     for(size_t funcIdx = 0; funcIdx < func.instructions.size(); funcIdx++)
     {
       Instruction &inst = *func.instructions[funcIdx];
-      rdcstr resultIdStr;
-      MakeResultId(inst, resultIdStr);
-
       switch(inst.op)
       {
         case Operation::Call:
@@ -4798,6 +4795,9 @@ void Program::ParseReferences(const DXBC::Reflection *reflection)
           rdcstr funcCallName = inst.getFuncCall()->name;
           if(funcCallName.beginsWith("dx.op."))
           {
+            rdcstr resultIdStr;
+            MakeResultId(inst, resultIdStr);
+
             DXOp dxOpCode;
             RDCASSERT(getival<DXOp>(inst.args[0], dxOpCode));
             switch(dxOpCode)
@@ -5687,9 +5687,16 @@ rdcstr Constant::toString(bool dxcStyleFormatting, bool withType) const
   return ret;
 }
 
+// Formatting used by RD disassembly and the DXIL debugger
 rdcstr Program::GetArgId(const Instruction &inst, uint32_t arg) const
 {
-  return ArgToString(inst.args[arg], false);
+  return GetArgId(inst.args[arg]);
+}
+
+rdcstr Program::GetArgId(const Value *v) const
+{
+  rdcstr ret = ArgToString(v, false);
+  return ret;
 }
 
 void Program::MakeResultId(const DXIL::Instruction &inst, rdcstr &resultId)

@@ -1587,6 +1587,7 @@ protected:
   rdcstr GetHandleAlias(const rdcstr &handleStr) const;
   static void MakeResultId(const Instruction &inst, rdcstr &resultId);
   rdcstr GetArgId(const Instruction &inst, uint32_t arg) const;
+  rdcstr GetArgId(const Value *v) const;
 
   const Metadata *FindMetadata(uint32_t slot) const;
   rdcstr ArgToString(const Value *v, bool withTypes, const rdcstr &attrString = "") const;
