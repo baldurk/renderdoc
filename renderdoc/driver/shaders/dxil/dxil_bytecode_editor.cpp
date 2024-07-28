@@ -93,7 +93,7 @@ ProgramEditor::ProgramEditor(const DXBC::DXBCContainer *container, bytebuf &outB
 
   for(Function *f : m_Functions)
   {
-    accum.processFunction(f, ssaID);
+    accum.processFunction(f, &ssaID);
     for(size_t idx = accum.firstFuncConst; idx < accum.firstFuncConst + accum.numFuncConsts; idx++)
       m_Constants.push_back((Constant *)cast<const Constant>(accum.values[idx]));
     accum.exitFunction();
@@ -113,7 +113,7 @@ ProgramEditor::~ProgramEditor()
   rdcarray<const Function *> keep;
   for(Function *f : m_Functions)
   {
-    accum.processFunction(f, ssaID);
+    accum.processFunction(f, &ssaID);
     accum.exitFunction();
   }
 
@@ -1080,7 +1080,7 @@ bytebuf ProgramEditor::EncodeProgram()
 
     writer.Record(LLVMBC::FunctionRecord::DECLAREBLOCKS, f->blocks.size());
 
-    accum.processFunction(f, ssaID);
+    accum.processFunction(f, &ssaID);
 
     if(accum.numFuncConsts)
     {
