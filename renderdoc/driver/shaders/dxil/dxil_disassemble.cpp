@@ -1064,9 +1064,38 @@ void Program::SettleIDs()
   uint32_t &nextMetaSlot = m_NextMetaSlot;
   for(size_t i = 0; i < m_Functions.size(); i++)
   {
-    m_Accum.processFunction(m_Functions[i], &m_NextSSAId);
-
+    // Generating the global SSA Id must be done before calling processFunction
+#if ENABLED(DXC_COMPATIBLE_DISASM)
+    uint32_t slot = 0;
+#endif
+    size_t curBlock = 0;
     Function &func = *m_Functions[i];
+    for(Instruction *inst : func.instructions)
+    {
+      RDCASSERT(curBlock < func.blocks.size());
+      for(Instruction *arg : func.args)
+      {
+#if DISABLED(DXC_COMPATIBLE_DISASM)
+        if(arg->slot == ~0U)
+          arg->slot = m_NextSSAId++;
+#else
+        if(arg->getName().isEmpty())
+          arg->slot = slot++;
+#endif
+      }
+      if(!inst->type->isVoid())
+      {
+#if DISABLED(DXC_COMPATIBLE_DISASM)
+        if(inst->slot == ~0U)
+          inst->slot = m_NextSSAId++;
+#else
+        if(inst->getName().isEmpty())
+          inst->slot = slot++;
+#endif
+      }
+    }
+
+    m_Accum.processFunction(m_Functions[i]);
 
     auto argMetaSlot = [this, &metaSlots, &nextMetaSlot](const Value *v) {
       if(const Metadata *meta = cast<Metadata>(v))
@@ -1095,7 +1124,7 @@ void Program::SettleIDs()
 
     if(!func.external)
     {
-      size_t curBlock = 0;
+      curBlock = 0;
       RDCASSERT(!func.blocks.empty());
       func.blocks[curBlock]->startInstructionIdx = 0;
       RDCASSERTEQUAL(curBlock, func.blocks[curBlock]->id);

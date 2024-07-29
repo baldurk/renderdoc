@@ -1387,7 +1387,7 @@ public:
   size_t firstFuncConst;
   size_t numFuncConsts;
 
-  void processFunction(const Function *f, uint32_t *nextSSAId = NULL);
+  void processFunction(const Function *f);
   void exitFunction();
 
 private:
