@@ -2014,12 +2014,23 @@ void Reflector::MakeConstantBlockVariables(rdcspv::StorageClass storage, const D
       // expect at least the scalar size to be available otherwise this struct seems to overlap
       RDCASSERT(sizes.scalarSize <= availSize, sizes.scalarSize, availSize);
 
-      if(sizes.extendedSize <= availSize)
-        cblock[i].type.arrayByteStride = sizes.extendedSize;
-      else if(sizes.baseSize <= availSize)
-        cblock[i].type.arrayByteStride = sizes.baseSize;
+      // If there is no next member, use the base size as do not know how much trailing padding the shader expected.
+      if(i + 1 == cblock.size())
+      {
+        if(sizes.baseSize <= availSize)
+          cblock[i].type.arrayByteStride = sizes.baseSize;
+        else
+          cblock[i].type.arrayByteStride = sizes.scalarSize;
+      }
       else
-        cblock[i].type.arrayByteStride = sizes.scalarSize;
+      {
+        if(sizes.extendedSize <= availSize)
+          cblock[i].type.arrayByteStride = sizes.extendedSize;
+        else if(sizes.baseSize <= availSize)
+          cblock[i].type.arrayByteStride = sizes.baseSize;
+        else
+          cblock[i].type.arrayByteStride = sizes.scalarSize;
+      }
     }
   }
 }
