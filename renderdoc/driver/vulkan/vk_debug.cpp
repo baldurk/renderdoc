@@ -2074,6 +2074,10 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
   {
     WrappedVulkan *driver = m_pDriver;
 
+    // MSAA requires a graphics queue
+    if((driver->GetCommandType() & VK_QUEUE_GRAPHICS_BIT) == 0)
+      return;
+
     bool depth = false;
     if(IsDepthOrStencilFormat(imInfo.format))
       depth = true;
