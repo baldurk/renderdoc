@@ -3459,9 +3459,12 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                       if(retType)
                       {
                         RDCASSERTEQUAL(retType->type, Type::TypeKind::Struct);
-                        const Type *baseType = retType->members[0];
-                        RDCASSERTEQUAL(baseType->type, Type::TypeKind::Scalar);
-                        bytesPerElement = baseType->bitWidth / 8;
+                        if(retType->type == Type::TypeKind::Struct)
+                        {
+                          const Type *baseType = retType->members[0];
+                          RDCASSERTEQUAL(baseType->type, Type::TypeKind::Scalar);
+                          bytesPerElement = baseType->bitWidth / 8;
+                        }
                       }
                       lineStr +=
                           MakeCBufferRegisterStr(regIndex, bytesPerElement, cbuffer, handleStr);
