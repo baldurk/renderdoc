@@ -355,7 +355,7 @@ rdcpair<ResultDetails, IReplayController *> CaptureFile::OpenCapture(const Repla
   ReplayController *render = NULL;
 
   if(!m_RDC)
-    ret = RDResult(ResultCode::InternalError, "RDC file unexpectedly NULL");
+    return {RDResult(ResultCode::InternalError, "RDC file unexpectedly NULL"), render};
 
   ret = m_RDC->Error();
 
