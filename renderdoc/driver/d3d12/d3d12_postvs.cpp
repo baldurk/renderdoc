@@ -947,6 +947,10 @@ static void ConvertToFixedDXILAmpFeeder(const DXBC::DXBCContainer *dxbc, uint32_
   RDCASSERT(payloadType && payloadType->type == Type::Struct);
   payloadType->members.append({i32, i32, i32, i32});
 
+  f->valueSymtabOrder.removeIf([](const Value *v) {
+    return v->kind() == ValueKind::Instruction || v->kind() == ValueKind::BasicBlock;
+  });
+
   // recreate the function with our own instructions
   f->instructions.clear();
   f->blocks.resize(1);
