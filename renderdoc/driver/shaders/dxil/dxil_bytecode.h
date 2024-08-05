@@ -1263,7 +1263,10 @@ struct Instruction : public ForwardReferencableValue<Instruction>
   uint32_t debugLoc = ~0U;
   Operation op = Operation::NoOp;
   uint8_t align = 0;
-  // number assigned to instructions that don't have names and return a value, for disassembly
+  // For DXC Compatibility mode: slot contains a number assigned to instructions that don't have
+  // names and return a value, used for disassembly
+
+  // Otherwise a unique global ID used by the debugger and disassemvbly
   uint32_t slot = ~0U;
   InstructionFlags &opFlags() { return (InstructionFlags &)flags; }
   InstructionFlags opFlags() const { return (InstructionFlags)flags; }
@@ -1425,6 +1428,42 @@ struct EntryPointInterface
     int32_t startCol;
   };
 
+  struct SRV
+  {
+    SRV(const Metadata *srv);
+    ResourceKind shape;
+    uint32_t sampleCount;
+    ComponentType compType;
+    uint32_t elementStride;
+  };
+
+  struct UAV
+  {
+    UAV(const Metadata *uav);
+    ResourceKind shape;
+    bool globallCoherent;
+    bool hasCounter;
+    bool rasterizerOrderedView;
+    ComponentType compType;
+    uint32_t elementStride;
+    SamplerFeedbackType samplerFeedback;
+    bool atomic64Use;
+  };
+
+  struct CBuffer
+  {
+    CBuffer(const Metadata *cbuffer);
+    uint32_t sizeInBytes;
+    bool isTBuffer;
+    const DXBC::CBuffer *cbufferRefl;
+  };
+
+  struct Sampler
+  {
+    Sampler(const Metadata *sampler);
+    SamplerKind samplerType;
+  };
+
   struct ResourceBase
   {
     ResourceBase(ResourceClass resourceClass, const Metadata *resourceBase);
@@ -1445,42 +1484,13 @@ struct EntryPointInterface
     uint32_t regBase;
     uint32_t regCount;
     const ResourceClass resClass;
-  };
-
-  struct SRV : ResourceBase
-  {
-    SRV(const Metadata *srv);
-    ResourceKind shape;
-    uint32_t sampleCount;
-    ComponentType compType;
-    uint32_t elementStride;
-  };
-
-  struct UAV : ResourceBase
-  {
-    UAV(const Metadata *uav);
-    ResourceKind shape;
-    bool globallCoherent;
-    bool hasCounter;
-    bool rasterizerOrderedView;
-    ComponentType compType;
-    uint32_t elementStride;
-    SamplerFeedbackType samplerFeedback;
-    bool atomic64Use;
-  };
-
-  struct CBuffer : ResourceBase
-  {
-    CBuffer(const Metadata *cbuffer);
-    uint32_t sizeInBytes;
-    bool isTBuffer;
-    const DXBC::CBuffer *cbufferRefl;
-  };
-
-  struct Sampler : ResourceBase
-  {
-    Sampler(const Metadata *sampler);
-    SamplerKind samplerType;
+    union
+    {
+      SRV srvData;
+      UAV uavData;
+      CBuffer cbufferData;
+      Sampler samplerData;
+    };
   };
 
   rdcstr name;
@@ -1488,10 +1498,10 @@ struct EntryPointInterface
   rdcarray<Signature> inputs;
   rdcarray<Signature> outputs;
   rdcarray<Signature> patchConstants;
-  rdcarray<SRV> srvs;
-  rdcarray<UAV> uavs;
-  rdcarray<CBuffer> cbuffers;
-  rdcarray<Sampler> samplers;
+  rdcarray<ResourceBase> srvs;
+  rdcarray<ResourceBase> uavs;
+  rdcarray<ResourceBase> cbuffers;
+  rdcarray<ResourceBase> samplers;
 };
 
 struct ResourceReference
@@ -1577,6 +1587,7 @@ protected:
   rdcstr GetHandleAlias(const rdcstr &handleStr) const;
   static void MakeResultId(const Instruction &inst, rdcstr &resultId);
   rdcstr GetArgId(const Instruction &inst, uint32_t arg) const;
+  rdcstr GetArgId(const Value *v) const;
 
   const Metadata *FindMetadata(uint32_t slot) const;
   rdcstr ArgToString(const Value *v, bool withTypes, const rdcstr &attrString = "") const;
@@ -1638,6 +1649,7 @@ protected:
   rdcarray<Metadata *> m_MetaSlots;
   rdcarray<const AttributeGroup *> m_FuncAttrGroups;
   uint32_t m_NextMetaSlot = 0;
+  uint32_t m_NextSSAId = 0;
 
   bool m_Uselists = false;
   bool m_DXCStyle = false;

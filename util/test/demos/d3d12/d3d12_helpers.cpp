@@ -1087,6 +1087,36 @@ D3D12PSOCreator &D3D12PSOCreator::VS(ID3DBlobPtr blob)
   return *this;
 }
 
+D3D12PSOCreator &D3D12PSOCreator::AS(ID3DBlobPtr blob)
+{
+  if(blob)
+  {
+    m_AS.pShaderBytecode = blob->GetBufferPointer();
+    m_AS.BytecodeLength = blob->GetBufferSize();
+  }
+  else
+  {
+    m_AS.pShaderBytecode = NULL;
+    m_AS.BytecodeLength = 0;
+  }
+  return *this;
+}
+
+D3D12PSOCreator &D3D12PSOCreator::MS(ID3DBlobPtr blob)
+{
+  if(blob)
+  {
+    m_MS.pShaderBytecode = blob->GetBufferPointer();
+    m_MS.BytecodeLength = blob->GetBufferSize();
+  }
+  else
+  {
+    m_MS.pShaderBytecode = NULL;
+    m_MS.BytecodeLength = 0;
+  }
+  return *this;
+}
+
 D3D12PSOCreator &D3D12PSOCreator::HS(ID3DBlobPtr blob)
 {
   if(blob)
@@ -1223,6 +1253,10 @@ D3D12PSOCreator &D3D12PSOCreator::SampleCount(UINT Samples)
 D3D12PSOCreator::operator ID3D12PipelineStatePtr() const
 {
   ID3D12PipelineStatePtr pso;
+  if((m_MS.BytecodeLength > 0) || (m_AS.BytecodeLength > 0))
+  {
+    return NULL;
+  }
   if(ComputeDesc.CS.BytecodeLength > 0)
   {
     CHECK_HR(m_Dev->CreateComputePipelineState(&ComputeDesc, __uuidof(ID3D12PipelineState),

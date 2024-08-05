@@ -88,6 +88,8 @@ public:
   D3D12PSOCreator(ID3D12DevicePtr dev);
 
   D3D12PSOCreator &VS(ID3DBlobPtr blob);
+  D3D12PSOCreator &AS(ID3DBlobPtr blob);
+  D3D12PSOCreator &MS(ID3DBlobPtr blob);
   D3D12PSOCreator &HS(ID3DBlobPtr blob);
   D3D12PSOCreator &DS(ID3DBlobPtr blob);
   D3D12PSOCreator &GS(ID3DBlobPtr blob);
@@ -113,7 +115,12 @@ public:
   D3D12_GRAPHICS_PIPELINE_STATE_DESC GraphicsDesc = {};
   D3D12_COMPUTE_PIPELINE_STATE_DESC ComputeDesc = {};
 
+  const D3D12_SHADER_BYTECODE &GetAS() const { return m_AS; };
+  const D3D12_SHADER_BYTECODE &GetMS() const { return m_MS; };
+
 private:
+  D3D12_SHADER_BYTECODE m_AS = {};
+  D3D12_SHADER_BYTECODE m_MS = {};
   ID3D12DevicePtr m_Dev;
 };
 

@@ -90,6 +90,8 @@ Texture2D<float4> texArray1[32] : register(t0, space1);
 Texture2D<float4> texArray2[32] : register(t40, space1);
 Texture2D<float4> texArray3[32] : register(t80, space1);
 
+SamplerState sArray1[32] : register(s0, space1);
+
 struct alias1
 {
   float4 Color;
@@ -126,9 +128,9 @@ float4 main(v2f IN) : SV_Target0
 
       if(t.tex == 0)
       {
-        ret *= texArray1[t.binding].SampleLevel(s, uv.xy, 0);
-        ret *= texArray1[t.binding+1].SampleLevel(s, uv.xy, 0);
-        ret *= texArray1[t.binding+2].SampleLevel(s, uv.xy, 0);
+        ret *= texArray1[t.binding].SampleLevel(sArray1[t.binding], uv.xy, 0);
+        ret *= texArray1[t.binding+1].SampleLevel(sArray1[t.binding+1], uv.xy, 0);
+        ret *= texArray1[t.binding+2].SampleLevel(sArray1[t.binding+2], uv.xy, 0);
       }
       else if(t.tex == 1)
       {
@@ -219,9 +221,9 @@ float4 main(v2f IN) : SV_Target0
       }
       else if(t.tex == 1)
       {
-        SamplerState s1 = SamplerDescriptorHeap[4];
-        SamplerState s2 = SamplerDescriptorHeap[5];
-        SamplerState s3 = SamplerDescriptorHeap[6];
+        SamplerState s1 = SamplerDescriptorHeap[19];
+        SamplerState s2 = SamplerDescriptorHeap[20];
+        SamplerState s3 = SamplerDescriptorHeap[21];
         Texture2D<float4> tex1 = ResourceDescriptorHeap[40+t.binding];
         Texture2D<float4> tex2 = ResourceDescriptorHeap[40+t.binding+10];
         ConstantBuffer<CBuffer> cbv = ResourceDescriptorHeap[9];
@@ -232,7 +234,7 @@ float4 main(v2f IN) : SV_Target0
       }
       else if(t.tex == 2)
       {
-        SamplerState s = SamplerDescriptorHeap[7];
+        SamplerState s = SamplerDescriptorHeap[25];
         Texture2D<float4> tex = ResourceDescriptorHeap[80+t.binding];
         ret *= tex.SampleLevel(s, uv.xy, 0);
       }
@@ -302,6 +304,7 @@ float4 main(v2f IN) : SV_Target0
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 20, 0),
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 150, 0),
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 15, 32, 150),
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0, 32, 0),
         },
         D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 1, &staticSamp);
     ID3D12PipelineStatePtr graphicspso[4];
@@ -479,7 +482,7 @@ float4 main(v2f IN) : SV_Target0
         D3D12_TEXTURE_ADDRESS_MODE_WRAP;
     UINT increment = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
     D3D12_CPU_DESCRIPTOR_HANDLE samplerStart = m_Sampler->GetCPUDescriptorHandleForHeapStart();
-    for(int i = 0; i < 8; ++i)
+    for(int i = 0; i < 128; ++i)
       dev->CreateSampler(&samplerDesc, {samplerStart.ptr + increment * i});
 
     while(Running())
@@ -525,6 +528,7 @@ float4 main(v2f IN) : SV_Target0
         {
           cmd->SetGraphicsRootDescriptorTable(0, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
           cmd->SetGraphicsRootDescriptorTable(1, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+          cmd->SetGraphicsRootDescriptorTable(3, m_Sampler->GetGPUDescriptorHandleForHeapStart());
         }
 
         RSSetViewport(cmd, {0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});

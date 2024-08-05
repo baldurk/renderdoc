@@ -5883,6 +5883,9 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
             bufViewFrameRefs.push_back(make_rdcpair(*bufView, ref));
 
             *bufView = Unwrap(*bufView);
+
+            dst += entry.stride;
+            src += entry.stride;
           }
         }
       }
@@ -5918,12 +5921,34 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
             imgViewFrameRefs.push_back(make_rdcpair(info->imageView, ref));
             info->imageView = Unwrap(info->imageView);
           }
+
+          dst += entry.stride;
+          src += entry.stride;
         }
       }
       else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
       {
         // memcpy the data
         memcpy(dst, src, entry.descriptorCount);
+      }
+      else if(entry.descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+      {
+        for(uint32_t d = 0; d < entry.descriptorCount; d++)
+        {
+          memcpy(dst, src, sizeof(VkAccelerationStructureKHR));
+
+          VkAccelerationStructureKHR *as = (VkAccelerationStructureKHR *)dst;
+
+          if(*as != VK_NULL_HANDLE)
+          {
+            frameRefs.push_back(make_rdcpair(GetResID(*as), ref));
+
+            *as = Unwrap(*as);
+
+            dst += entry.stride;
+            src += entry.stride;
+          }
+        }
       }
       else
       {
@@ -5938,6 +5963,9 @@ void WrappedVulkan::vkCmdPushDescriptorSetWithTemplateKHR(
             bufFrameRefs.push_back(make_rdcpair(*info, ref));
 
             info->buffer = Unwrap(info->buffer);
+
+            dst += entry.stride;
+            src += entry.stride;
           }
         }
       }

@@ -1830,21 +1830,28 @@ void WrappedID3D11Device::ReportDeath(ID3D11DeviceChild *obj)
 
   ID3D11DeviceChild *texObj = obj;
 
-  ResourceRange range = ResourceRange::Null;
-
   // backbuffers and their views are destroyed immediately to accommodate D3D's refcounting rules for
   // backbuffers. For views, get the resource to check and for everything else check the object directly
   if(WrappedID3D11ShaderResourceView1::IsAlloc(obj))
-    range = ResourceRange((WrappedID3D11ShaderResourceView1 *)obj);
+  {
+    WrappedID3D11ShaderResourceView1 *view = (WrappedID3D11ShaderResourceView1 *)obj;
+    texObj = view->GetResourceRange().GetResource();
+  }
   else if(WrappedID3D11UnorderedAccessView1::IsAlloc(obj))
-    range = ResourceRange((WrappedID3D11UnorderedAccessView1 *)obj);
+  {
+    WrappedID3D11UnorderedAccessView1 *view = (WrappedID3D11UnorderedAccessView1 *)obj;
+    texObj = view->GetResourceRange().GetResource();
+  }
   else if(WrappedID3D11RenderTargetView1::IsAlloc(obj))
-    range = ResourceRange((WrappedID3D11RenderTargetView1 *)obj);
+  {
+    WrappedID3D11RenderTargetView1 *view = (WrappedID3D11RenderTargetView1 *)obj;
+    texObj = view->GetResourceRange().GetResource();
+  }
   else if(WrappedID3D11DepthStencilView::IsAlloc(obj))
-    range = ResourceRange((WrappedID3D11DepthStencilView *)obj);
-
-  if(range.GetResource() != NULL)
-    texObj = range.GetResource();
+  {
+    WrappedID3D11DepthStencilView *view = (WrappedID3D11DepthStencilView *)obj;
+    texObj = view->GetResourceRange().GetResource();
+  }
 
   // if this is a wrapped 2D texture and is a backbuffer, destroy whatever object we were reporting
   // the death of and stop

@@ -216,7 +216,7 @@ if(CMAKE_COMPILER_IS_GNUCXX)
     if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 14.0)
         file(APPEND
             ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
-            "QMAKE_CXXFLAGS += -Wno-error=template-id-cdtor\n")
+            "QMAKE_CXXFLAGS += -Wno-template-id-cdtor\n")
     endif()
 endif()
 

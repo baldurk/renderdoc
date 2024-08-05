@@ -149,6 +149,10 @@ def get_postvs_attrs(controller: rd.ReplayController, mesh: rd.MeshFormat, data_
 
     if data_stage == rd.MeshDataStage.VSOut:
         shader = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
+    elif data_stage == rd.MeshDataStage.TaskOut:
+        raise RuntimeError("Use get_postts_attrs to get TaskOut attributes!")
+    elif data_stage == rd.MeshDataStage.MeshOut:
+        shader = pipe.GetShaderReflection(rd.ShaderStage.Mesh)
     else:
         shader = pipe.GetShaderReflection(rd.ShaderStage.Geometry)
         if shader is None:

@@ -1093,7 +1093,7 @@ rdcstr PIX3DecodeEventString(const UINT64 *pData, UINT64 &color)
 
 D3D12_SAMPLER_DESC2 ConvertStaticSampler(const D3D12_STATIC_SAMPLER_DESC1 &samp)
 {
-  D3D12_SAMPLER_DESC2 desc;
+  D3D12_SAMPLER_DESC2 desc = {};
   desc.Filter = samp.Filter;
   desc.AddressU = samp.AddressU;
   desc.AddressV = samp.AddressV;

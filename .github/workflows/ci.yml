@@ -26,23 +26,23 @@ jobs:
     - name: Check commit messages (PR)
       if: ${{ github.event_name == 'pull_request' }}
       run: |
-        if git log --oneline | tail -n +2 | head -n 100 | grep -v 76f9176 | cut -d ' ' -f2- | grep -q '.\{73\}'; then
+        if git log --oneline | tail -n +2 | head -n 100 | cut -d ' ' -f2- | grep -q '.\{73\}'; then
           (echo -n "::error::";
            echo "Some commit message summary lines are too long. See CONTRIBUTING.md for more information.";
            echo "Invalid commits:";
            echo;
-           git log --oneline | tail -n +2 | head -n 100 | grep -v 76f9176 | cut -d ' ' -f2- | grep '.\{73\}';) | tr '\n' '\001' | sed -e 's#\x01#%0A#g';
+           git log --oneline | tail -n +2 | head -n 100 | cut -d ' ' -f2- | grep '.\{73\}';) | tr '\n' '\001' | sed -e 's#\x01#%0A#g';
           exit 1;
         fi
     - name: Check commit messages (Push)
       if: ${{ github.event_name == 'push' }}
       run: |
-        if git log --oneline | head -n 100 | grep -v 76f9176 | cut -d ' ' -f2- | grep -q '.\{73\}'; then
+        if git log --oneline | head -n 100 | cut -d ' ' -f2- | grep -q '.\{73\}'; then
           (echo -n "::error::";
            echo "Some commit message summary lines are too long. See CONTRIBUTING.md for more information.";
            echo "Invalid commits:";
            echo;
-           git log --oneline | head -n 100 | grep -v 76f9176 | cut -d ' ' -f2- | grep '.\{73\}';) | tr '\n' '\001' | sed -e 's#\x01#%0A#g';
+           git log --oneline | head -n 100 | cut -d ' ' -f2- | grep '.\{73\}';) | tr '\n' '\001' | sed -e 's#\x01#%0A#g';
           exit 1;
         fi
   clang-format:
@@ -268,6 +268,10 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 5
+    - uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '8'
     - name: Install Android SDK 3859397 and NDK r14b
       run: |
         export ARCH=`uname -m`
@@ -282,6 +286,8 @@ jobs:
         pushd $GITHUB_WORKSPACE/tools/bin
         (yes 2>/dev/null | ./sdkmanager --sdk_root=$GITHUB_WORKSPACE "build-tools;26.0.1" "platforms;android-23") || echo
         popd
+
+        sudo rm -rf /usr/local/lib/android
     - name: Build
       run: |
         mkdir build-android-arm32
