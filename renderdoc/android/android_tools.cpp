@@ -324,10 +324,53 @@ Process::ProcessResult execCommand(const rdcstr &exe, const rdcstr &args, const 
   Process::LaunchProcess(exe, workDir, args, true, &result);
   return result;
 }
+
+namespace PcEmulatorCustomAdb
+{
+enum ANDROID_EMULATOR_BRAND
+{
+  INVALID = 0,
+  MUMU = 1,
+  NOX = 2,
+  LEIDIAN = 3,
+  XIAOYAO = 4,
+};
+
+static ANDROID_EMULATOR_BRAND emuBrand = INVALID;
+static rdcstr getNewAdbPath(const rdcstr &adb, const rdcstr &device, const rdcstr &workDir,
+                            bool silent)
+{
+  if(emuBrand == INVALID && !device.empty())
+  {
+    rdcstr deviceArgs = StringFormat::Fmt("-s %s shell getprop ro.product.model", device.c_str());
+    Process::ProcessResult result = execCommand(adb, deviceArgs, workDir, silent);
+    if(strstr(result.strStdout.c_str(), "NOX") || strstr(result.strStdout.c_str(), "Nox") ||
+       strstr(result.strStdout.c_str(), "nox"))
+    {
+      emuBrand = NOX;
+    }
+  }
+
+  rdcstr newADB = adb;
+  switch(emuBrand)
+  {
+    case Android::PcEmulatorCustomAdb::INVALID: break;
+    case Android::PcEmulatorCustomAdb::MUMU: break;
+    case Android::PcEmulatorCustomAdb::NOX: newADB = "E:\\Program Files\\Nox\\bin\\adb.exe"; break;
+    case Android::PcEmulatorCustomAdb::LEIDIAN: break;
+    case Android::PcEmulatorCustomAdb::XIAOYAO: break;
+    default: break;
+  }
+  return newADB;
+}
+}
+
 Process::ProcessResult adbExecCommand(const rdcstr &device, const rdcstr &args,
                                       const rdcstr &workDir, bool silent)
 {
   rdcstr adb = getToolPath(ToolDir::PlatformTools, "adb", false);
+  rdcstr adb2 = PcEmulatorCustomAdb::getNewAdbPath(adb, device, workDir, silent); // todo.ksh
+
   Process::ProcessResult result;
   rdcstr deviceArgs;
   if(device.empty())
