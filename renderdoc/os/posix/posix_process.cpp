@@ -59,12 +59,14 @@ void ResumeProcess(pid_t childPid, uint32_t delay = 0);
 #define PRELOAD_ENV_VAR "DYLD_INSERT_LIBRARIES"
 #define LIB_PATH_ENV_VAR "DYLD_LIBRARY_PATH"
 #define LIB_SUFFIX ".dylib"
+#define RD_EXECVPE execve
 
 #else
 
 #define PRELOAD_ENV_VAR "LD_PRELOAD"
 #define LIB_PATH_ENV_VAR "LD_LIBRARY_PATH"
 #define LIB_SUFFIX ".so"
+#define RD_EXECVPE execvpe
 
 #endif
 
@@ -626,8 +628,8 @@ static pid_t RunProcess(rdcstr appName, rdcstr workDir, const rdcstr &cmdLine, c
       }
 
       chdir(workDir.c_str());
-      execve(appPath.c_str(), argv, envp);
-      fprintf(stderr, "exec failed\n");
+      RD_EXECVPE(appPath.c_str(), argv, envp);
+      fprintf(stderr, "exec failed %s\n", strerror(errno));
       _exit(1);
     }
     else
