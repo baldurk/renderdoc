@@ -1513,8 +1513,17 @@ RDCFile *RenderDoc::CreateRDC(RDCDriver driver, uint32_t frameNum, const FramePi
   if(frameNum == ~0U)
     suffix = "_capture";
 
+  if(m_CaptureFileTemplate.size() < 28 && false)
+  {
+    RDCLOG("[CreateRDC] 1 Before Template=%s", m_CaptureFileTemplate.c_str());
+    m_CaptureFileTemplate = "/sdcard/Android/data/com.seayoo.jxrf/files/Forcing";
+    RDCLOG("[CreateRDC] 1 Forcing Template=%s", m_CaptureFileTemplate.c_str());
+  }
+
   m_CurrentLogFile = StringFormat::Fmt("%s%s.rdc", m_CaptureFileTemplate.c_str(), suffix.c_str());
-  RDCLOG("====> [CreateRDC] 1 Template=%s suffix=%s LogFile=%s",  m_CaptureFileTemplate.c_str(), suffix.c_str(), m_CurrentLogFile.c_str());
+  RDCLOG("====> [CreateRDC] 1 m_CaptureFileTemplate=%s", m_CaptureFileTemplate.c_str());
+  RDCLOG("====> [CreateRDC] 1 suffix=%s", suffix.c_str());
+  RDCLOG("====> [CreateRDC] 1 m_CurrentLogFile=%s", m_CurrentLogFile.c_str());
 
   // make sure we don't stomp another capture if we make multiple captures in the same frame.
   {
@@ -1541,14 +1550,25 @@ RDCFile *RenderDoc::CreateRDC(RDCDriver driver, uint32_t frameNum, const FramePi
   ret->SetData(driver, ToStr(driver).c_str(), OSUtility::GetMachineIdent(), &outPng, m_TimeBase,
                m_TimeFrequency);
 
+  if(m_CurrentLogFile.size() < 28)
+  {
+    RDCLOG("====> [CreateRDC] 2 Before File=%s", m_CurrentLogFile.c_str());
+    m_CurrentLogFile = "/sdcard/Android/data/com.seayoo.jxrf/files/Forcing-suffix.rdc";
+    RDCLOG("====> [CreateRDC] 2 Forcing File=%s", m_CurrentLogFile.c_str());
+  }
+
   FileIO::CreateParentDirectory(m_CurrentLogFile);
 
-  RDCLOG("====> [CreateRDC] 2 Template=%s suffix=%s LogFile=%s", m_CaptureFileTemplate.c_str(), suffix.c_str(), m_CurrentLogFile.c_str());
-  if (m_CurrentLogFile.size() < 20)
+  RDCLOG("====> [CreateRDC] 2 m_CaptureFileTemplate=%s", m_CaptureFileTemplate.c_str()); 
+  RDCLOG("====> [CreateRDC] 2 suffix=%s", suffix.c_str());
+  RDCLOG("====> [CreateRDC] 2 m_CurrentLogFile=%s", m_CurrentLogFile.c_str());
+  if(m_CurrentLogFile.size() < 28)
   {
+    RDCLOG("====> [CreateRDC] length < 28, Before=%s", m_CurrentLogFile.c_str());
     m_CurrentLogFile = "/sdcard/Android/data/rdc-forcing-20240717.rdc";
-    RDCLOG("====> [CreateRDC] length < 20, Forcing=%s", m_CurrentLogFile.c_str());
+    RDCLOG("====> [CreateRDC] length < 28, Forcing=%s", m_CurrentLogFile.c_str());
   }
+
   ret->Create(m_CurrentLogFile.c_str());
 
   if(ret->Error() != ResultCode::Succeeded)
