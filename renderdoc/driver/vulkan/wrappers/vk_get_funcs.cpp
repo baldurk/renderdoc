@@ -1220,7 +1220,7 @@ void WrappedVulkan::vkGetAccelerationStructureBuildSizesKHR(
   unwrapped.srcAccelerationStructure = Unwrap(unwrapped.srcAccelerationStructure);
   unwrapped.dstAccelerationStructure = Unwrap(unwrapped.dstAccelerationStructure);
 
-  ObjDisp(device)->GetAccelerationStructureBuildSizesKHR(Unwrap(device), buildType, pBuildInfo,
+  ObjDisp(device)->GetAccelerationStructureBuildSizesKHR(Unwrap(device), buildType, &unwrapped,
                                                          pMaxPrimitiveCounts, pSizeInfo);
 }
 
