@@ -113,7 +113,8 @@ struct VkInitialContents
     SAFE_DELETE(sparseTables);
     SAFE_DELETE(sparseBind);
 
-    // MemoryAllocation and serialised ASes are not free'd here
+    // MemoryAllocation is not free'd here
+    // accelerationStructureInfo is owned by VkResourceRecord
   }
 
   // for descriptor heaps, when capturing we save the slots, when replaying we store direct writes
@@ -140,6 +141,7 @@ struct VkInitialContents
   SparseBinding *sparseBind;
 
   bool isTLAS;    // If the contents are an AS, this determines if it is a TLAS or BLAS
+  VkAccelerationStructureInfo *accelerationStructureInfo;
 };
 
 struct VulkanResourceManagerConfiguration

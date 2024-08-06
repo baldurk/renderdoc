@@ -28,6 +28,63 @@
 
 class WrappedVulkan;
 
+struct VkAccelerationStructureInfo
+{
+  struct GeometryData
+  {
+    VkGeometryTypeKHR geometryType;
+    VkGeometryFlagsKHR flags;
+
+    VkDeviceMemory readbackMem;
+    VkDeviceSize memSize;
+    VkDeviceSize memAlignment;
+
+    VkBuffer replayBuf;
+
+    struct Triangles
+    {
+      VkFormat vertexFormat;
+      VkDeviceSize vertexStride;
+      uint32_t maxVertex;
+      VkIndexType indexType;
+      bool hasTransformData;
+    };
+
+    struct Aabbs
+    {
+      VkDeviceSize stride;
+    };
+
+    struct Instances
+    {
+      // arrayOfPointers TODO
+    };
+
+    union
+    {
+      Triangles tris;
+      Aabbs aabbs;
+      Instances instances;
+    };
+  };
+
+  ~VkAccelerationStructureInfo();
+
+  rdcarray<VkAccelerationStructureGeometryKHR> convertGeometryData() const;
+
+  VkDevice device;
+
+  VkAccelerationStructureTypeKHR type =
+      VkAccelerationStructureTypeKHR::VK_ACCELERATION_STRUCTURE_TYPE_GENERIC_KHR;
+  VkBuildAccelerationStructureFlagsKHR flags = 0;
+  VkAccelerationStructureKHR accelerationStructure = VK_NULL_HANDLE;
+
+  rdcarray<GeometryData> geometryData;
+  rdcarray<VkAccelerationStructureBuildRangeInfoKHR> buildRangeInfo;
+
+  bool accelerationStructureBuilt = false;
+};
+
 class VulkanAccelerationStructureManager
 {
 public:
@@ -37,23 +94,89 @@ public:
     bool isTLAS;
   };
 
-  VulkanAccelerationStructureManager(WrappedVulkan *driver) : m_pDriver(driver) {}
+  explicit VulkanAccelerationStructureManager(WrappedVulkan *driver);
 
-  // Called when the initial state is prepared.  Any TLAS and BLAS data is copied into temporary
-  // buffers and the handles for that memory and the buffers is stored in the init state
-  bool Prepare(VkAccelerationStructureKHR unwrappedAs, const rdcarray<uint32_t> &queueFamilyIndices,
-               ASMemory &result);
+  void Shutdown();
+
+  // During background capture we can't know in advance which input buffers will be used for AS
+  // building, so we need to track all of them in order to map the device address back to a
+  // ResourceId.  BDA isn't known at creation time and the usage flags aren't known at bind time so
+  // initialise is a two-step process.  These should only be called when capturing
+  void TrackInputBuffer(VkDevice device, VkResourceRecord *record);
+  void UntrackInputBuffer(VkResourceRecord *record);
+
+  // Allocates readback mem and injects commands into the command buffer so that the iput buffers
+  // are copied.
+  void CopyInputBuffers(VkCommandBuffer commandBuffer,
+                        const VkAccelerationStructureBuildGeometryInfoKHR &info,
+                        const VkAccelerationStructureBuildRangeInfoKHR *buildRange);
+
+  // Compaction is ignored but the copy is still performed so the dst handle is valid on replay
+  void CopyAccelerationStructure(VkCommandBuffer commandBuffer,
+                                 const VkCopyAccelerationStructureInfoKHR &pInfo);
+
+  VkFence DeleteReadbackMemOnCompletion(uint32_t submitCount, const VkSubmitInfo *pSubmits,
+                                        VkFence fence);
+
+  uint64_t GetSize_InitialState(ResourceId id, const VkInitialContents &initial);
 
   template <typename SerialiserType>
   bool Serialise(SerialiserType &ser, ResourceId id, const VkInitialContents *initial,
                  CaptureState state);
 
-  // Called when the initial state is applied.  The AS data is deserialised from the upload buffer
-  // into the acceleration structure
   void Apply(ResourceId id, const VkInitialContents &initial);
 
 private:
-  VkDeviceSize SerialisedASSize(VkAccelerationStructureKHR unwrappedAs);
+  struct Allocation
+  {
+    Allocation(VkDeviceMemory m = VK_NULL_HANDLE, VkDeviceSize s = 0, VkBuffer b = VK_NULL_HANDLE)
+        : mem(m), size(s), buf(b)
+    {
+    }
+
+    VkDeviceMemory mem;
+    VkDeviceSize size;
+    VkBuffer buf;
+  };
+
+  struct RecordAndOffset
+  {
+    RecordAndOffset(VkResourceRecord *r = NULL, VkDeviceAddress a = 0x0, VkDeviceSize o = 0)
+        : record(r), address(a), offset(o)
+    {
+    }
+
+    VkResourceRecord *record;
+    VkDeviceAddress address;
+    VkDeviceSize offset;
+  };
+
+  template <typename SerialiserType>
+  bool SerialiseASBuildData(SerialiserType &ser, ResourceId id, const VkInitialContents *initial,
+                            CaptureState state);
+
+  VkBuffer CreateReadBackBuffer(VkDevice device, VkDeviceSize size);
+  Allocation CreateReadBackMemory(VkDevice device, VkDeviceSize size, VkDeviceSize alignment = 0);
+  Allocation CreateReplayMemory(MemoryType memType, VkDeviceSize size, VkDeviceSize alignment = 0,
+                                VkBufferUsageFlags extraUsageFlags = 0);
+
+  bool FixUpReplayBDAs(VkAccelerationStructureInfo *asInfo,
+                       rdcarray<VkAccelerationStructureGeometryKHR> &geoms);
+
+  RecordAndOffset GetDeviceAddressData(VkDeviceAddress address) const;
 
   WrappedVulkan *m_pDriver;
+
+  Threading::CriticalSection m_DeviceAddressLock;
+  std::map<VkDeviceAddress, VkResourceRecord *> m_DeviceAddressToRecord;
+
+  Threading::CriticalSection m_ReadbackMemDeleteLock;
+  std::multimap<VkCommandBuffer, VkAccelerationStructureInfo *> m_ReadbackMemToDelete;
+  std::map<VkFence, rdcarray<VkAccelerationStructureInfo *>> m_ReadbackMemDeleteSync;
+  rdcarray<VkFence> m_DeleteFence;
+  Threading::ThreadHandle m_ReadbackDeleteThread;
+  int32_t m_ExitReadbackDeleteThread;
+
+  Allocation scratch;
+  VkDeviceOrHostAddressKHR scratchAddressUnion;
 };

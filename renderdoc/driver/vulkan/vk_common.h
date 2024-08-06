@@ -305,9 +305,6 @@ public:
   // If we do have a pipeline to bind, we should never be perturbing dynamic state in between static
   // pipeline binds.
   bool NVStaticPipelineRebindStates() const { return nvidiaStaticPipelineRebindStates; }
-  // On Mali there are some known issues regarding acceleration structure serialisation to device
-  // memory, for the affected driver versions we switch to the host command variants
-  bool MaliBrokenASDeviceSerialisation() const { return maliBrokenASDeviceSerialisation; }
 private:
   GPUVendor m_Vendor;
 
@@ -323,7 +320,6 @@ private:
   bool qualcommLineWidthCrash = false;
   bool intelBrokenOcclusionQueries = false;
   bool nvidiaStaticPipelineRebindStates = false;
-  bool maliBrokenASDeviceSerialisation = false;
 };
 
 enum

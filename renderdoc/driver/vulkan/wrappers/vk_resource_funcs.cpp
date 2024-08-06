@@ -1525,6 +1525,9 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
     // memory that has been allocated but not used, but that will be skipped or postponed as
     // appropriate.
     GetResourceManager()->MarkDirtyResource(GetResID(memory));
+
+    if(m_DeviceAddressResources.IDs.contains(record->GetResourceID()))
+      GetAccelerationStructureManager()->TrackInputBuffer(device, record);
   }
 
   return ret;
@@ -3026,6 +3029,9 @@ VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCo
       // memory that has been allocated but not used, but that will be skipped or postponed as
       // appropriate.
       GetResourceManager()->MarkDirtyResource(GetResID(pBindInfos[i].memory));
+
+      if(m_DeviceAddressResources.IDs.contains(bufrecord->GetResourceID()))
+        GetAccelerationStructureManager()->TrackInputBuffer(device, bufrecord);
     }
   }
 

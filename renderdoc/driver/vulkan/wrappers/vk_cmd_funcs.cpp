@@ -7870,6 +7870,10 @@ void WrappedVulkan::vkCmdBuildAccelerationStructuresKHR(
 
       // Add to the command buffer metadata, so we can know when it has been submitted
       record->cmdInfo->accelerationStructures.push_back(GetRecord(geomInfo.dstAccelerationStructure));
+
+      if(IsBackgroundCapturing(m_State))
+        GetAccelerationStructureManager()->CopyInputBuffers(commandBuffer, geomInfo,
+                                                            ppBuildRangeInfos[i]);
     }
   }
 }
@@ -7921,6 +7925,9 @@ void WrappedVulkan::vkCmdCopyAccelerationStructureKHR(VkCommandBuffer commandBuf
 
     // Add to the command buffer metadata, so we can know when it has been submitted
     record->cmdInfo->accelerationStructures.push_back(GetRecord(pInfo->dst));
+
+    if(IsBackgroundCapturing(m_State))
+      GetAccelerationStructureManager()->CopyAccelerationStructure(commandBuffer, *pInfo);
   }
 }
 

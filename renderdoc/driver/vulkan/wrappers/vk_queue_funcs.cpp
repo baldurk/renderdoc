@@ -1337,7 +1337,8 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
 
   for(VkResourceRecord *asRecord : accelerationStructures)
   {
-    asRecord->accelerationStructureBuilt = true;
+    RDCASSERT(asRecord->accelerationStructureInfo);
+    asRecord->accelerationStructureInfo->accelerationStructureBuilt = true;
   }
 }
 
@@ -1460,6 +1461,13 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
     m_SubmitCounter++;
   }
 
+  // If the target has provided a fence, then use it, otherwise create it.  But if creating one,
+  // do not serialise it
+  VkFence asFence = VK_NULL_HANDLE;
+  if(IsBackgroundCapturing(m_State))
+    asFence = GetAccelerationStructureManager()->DeleteReadbackMemOnCompletion(submitCount,
+                                                                               pSubmits, fence);
+
   VkResult ret = VK_SUCCESS;
   bool present = false;
   bool beginCapture = false;
@@ -1505,8 +1513,9 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
     for(uint32_t i = 0; i < submitCount; i++)
       unwrappedSubmits[i] = *UnwrapStructAndChain(m_State, memory, &pSubmits[i]);
 
-    SERIALISE_TIME_CALL(ret = ObjDisp(queue)->QueueSubmit(Unwrap(queue), submitCount,
-                                                          unwrappedSubmits, Unwrap(fence)));
+    SERIALISE_TIME_CALL(
+        ret = ObjDisp(queue)->QueueSubmit(Unwrap(queue), submitCount, unwrappedSubmits,
+                                          asFence == VK_NULL_HANDLE ? Unwrap(fence) : asFence));
 
     if(capframe)
     {

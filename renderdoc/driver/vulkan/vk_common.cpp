@@ -1178,19 +1178,6 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps,
       qualcommLeakingUBOOffsets = true;
     }
   }
-
-  if(driverProps.driverID == VK_DRIVER_ID_ARM_PROPRIETARY)
-  {
-    if(Major() >= 36 && Major() < 43)
-    {
-      if(active)
-        RDCLOG(
-            "Using host acceleration structure deserialisation commands on Mali - update to a "
-            "newer "
-            "driver for fix");
-      maliBrokenASDeviceSerialisation = true;
-    }
-  }
 }
 
 FrameRefType GetRefType(DescriptorSlotType descType)

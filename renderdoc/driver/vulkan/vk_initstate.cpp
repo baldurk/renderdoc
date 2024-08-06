@@ -92,6 +92,16 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     if(imageInfo.levelCount > 1)
       estimatedSize *= 2;
   }
+  else if(type == eResAccelerationStructureKHR)
+  {
+    VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
+    if(record)
+    {
+      for(const VkAccelerationStructureInfo::GeometryData &geom :
+          record->accelerationStructureInfo->geometryData)
+        estimatedSize += geom.memSize;
+    }
+  }
 
   uint32_t softMemoryLimit = RenderDoc::Inst().GetCaptureOptions().softMemoryLimit;
   if(softMemoryLimit > 0 && !m_PreparedNotSerialisedInitStates.empty() &&
@@ -577,24 +587,22 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
   else if(type == eResAccelerationStructureKHR)
   {
     VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
-    if(!record->accelerationStructureBuilt)
+
+    if(!record->accelerationStructureInfo ||
+       !record->accelerationStructureInfo->accelerationStructureBuilt)
     {
       RDCDEBUG("Skipping AS %s as it has not been built", ToStr(id).c_str());
       return true;
     }
 
-    VulkanAccelerationStructureManager::ASMemory result;
-    VkAccelerationStructureKHR as = ToUnwrappedHandle<VkAccelerationStructureKHR>(res);
-    if(!GetAccelerationStructureManager()->Prepare(as, m_QueueFamilyIndices, result))
-    {
-      SET_ERROR_RESULT(m_LastCaptureError, ResultCode::OutOfMemory,
-                       "Couldn't allocate readback memory");
-      m_CaptureFailure = true;
-      return false;
-    }
-
-    VkInitialContents ic = VkInitialContents(type, result.alloc);
-    ic.isTLAS = result.isTLAS;
+    // The input buffers have already been copied, so we just need to create the IC and point it at
+    // VkAccelerationStructureInfo from the record
+    VkInitialContents ic = VkInitialContents();
+    ic.type = type;
+    ic.isTLAS =
+        record->accelerationStructureInfo->type == VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR ||
+        record->accelerationStructureInfo->type == VK_ACCELERATION_STRUCTURE_TYPE_GENERIC_KHR;
+    ic.accelerationStructureInfo = record->accelerationStructureInfo;
 
     GetResourceManager()->SetInitialContents(id, ic);
     m_PreparedNotSerialisedInitStates.push_back(id);
@@ -638,11 +646,14 @@ uint64_t WrappedVulkan::GetSize_InitialState(ResourceId id, const VkInitialConte
     // buffers only have initial states when they're sparse
     return ret;
   }
-  else if(initial.type == eResImage || initial.type == eResDeviceMemory ||
-          initial.type == eResAccelerationStructureKHR)
+  else if(initial.type == eResImage || initial.type == eResDeviceMemory)
   {
     // the size primarily comes from the buffer, the size of which we conveniently have stored.
     return ret + uint64_t(128 + initial.mem.size + WriteSerialiser::GetChunkAlignment());
+  }
+  else if(initial.type == eResAccelerationStructureKHR)
+  {
+    return GetAccelerationStructureManager()->GetSize_InitialState(id, initial);
   }
 
   RDCERR("Unhandled resource type %s", ToStr(initial.type).c_str());

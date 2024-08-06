@@ -259,6 +259,8 @@ void WrappedVulkan::vkDestroyBuffer(VkDevice device, VkBuffer buffer, const VkAl
 
     if(record->resInfo && record->resInfo->dedicatedMemory != ResourceId())
       GetResourceManager()->PreFreeMemory(record->resInfo->dedicatedMemory);
+
+    GetAccelerationStructureManager()->UntrackInputBuffer(record);
   }
 
   {
