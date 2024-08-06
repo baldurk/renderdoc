@@ -1123,10 +1123,6 @@ void ToolWindowManager::updateDragPosition()
       m_dropHotspots[RightWindowSide]->hide();
       m_dropHotspots[BottomWindowSide]->hide();
     }
-
-    for(QWidget *hotspot : m_dropHotspots)
-      if(hotspot)
-        hotspot->show();
   }
   else
   {
