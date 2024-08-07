@@ -198,12 +198,9 @@ private:
 template <>
 struct OptionalResources<Serialiser<SerialiserMode::Writing>>
 {
-  OptionalResources<Serialiser<SerialiserMode::Writing>>(Serialiser<SerialiserMode::Writing> &ser)
-  {
-  }
-  ~OptionalResources<Serialiser<SerialiserMode::Writing>>() {}
-  OptionalResources<Serialiser<SerialiserMode::Writing>>(
-      const OptionalResources<Serialiser<SerialiserMode::Writing>> &) = default;
+  OptionalResources(Serialiser<SerialiserMode::Writing> &ser) {}
+  ~OptionalResources() {}
+  OptionalResources(const OptionalResources<Serialiser<SerialiserMode::Writing>> &) = default;
   OptionalResources<Serialiser<SerialiserMode::Writing>> &operator=(
       const OptionalResources<Serialiser<SerialiserMode::Writing>> &) = default;
 };
@@ -211,13 +208,9 @@ struct OptionalResources<Serialiser<SerialiserMode::Writing>>
 template <>
 struct OptionalResources<Serialiser<SerialiserMode::Reading>>
 {
-  OptionalResources<Serialiser<SerialiserMode::Reading>>(Serialiser<SerialiserMode::Reading> &ser)
-  {
-    Counter++;
-  }
-  ~OptionalResources<Serialiser<SerialiserMode::Reading>>() { Counter--; }
-  OptionalResources<Serialiser<SerialiserMode::Reading>>(
-      const OptionalResources<Serialiser<SerialiserMode::Reading>> &) = default;
+  OptionalResources(Serialiser<SerialiserMode::Reading> &ser) { Counter++; }
+  ~OptionalResources() { Counter--; }
+  OptionalResources(const OptionalResources<Serialiser<SerialiserMode::Reading>> &) = default;
   OptionalResources<Serialiser<SerialiserMode::Reading>> &operator=(
       const OptionalResources<Serialiser<SerialiserMode::Reading>> &) = default;
   static int Counter;
