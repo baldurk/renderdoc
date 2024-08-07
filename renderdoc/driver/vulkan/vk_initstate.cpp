@@ -122,7 +122,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
       uint64_t start = ser.GetWriter()->GetOffset();
       {
-        uint64_t size = GetSize_InitialState(id, initData);
+        uint64_t size = GetSize_InitialState(flushId, initData);
 
         SCOPED_SERIALISE_CHUNK(SystemChunk::InitialContents, size);
 

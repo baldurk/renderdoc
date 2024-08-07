@@ -1070,8 +1070,15 @@ void ToolWindowManager::updateDragPosition()
 
       QPoint c = areaClientRect.center();
 
-      m_dropHotspots[AddTo]->move(c + QPoint(-hsize, -hsize));
-      m_dropHotspots[AddTo]->show();
+      if(m_hoverArea->allowUserDrop())
+      {
+        m_dropHotspots[AddTo]->move(c + QPoint(-hsize, -hsize));
+        m_dropHotspots[AddTo]->show();
+      }
+      else
+      {
+        m_dropHotspots[AddTo]->hide();
+      }
 
       m_dropHotspots[TopOf]->move(c + QPoint(-hsize, -hsize - margin - size));
       m_dropHotspots[TopOf]->show();
@@ -1116,10 +1123,6 @@ void ToolWindowManager::updateDragPosition()
       m_dropHotspots[RightWindowSide]->hide();
       m_dropHotspots[BottomWindowSide]->hide();
     }
-
-    for(QWidget *hotspot : m_dropHotspots)
-      if(hotspot)
-        hotspot->show();
   }
   else
   {
@@ -1322,9 +1325,12 @@ void ToolWindowManager::finishDrag()
   {
     if(m_hoverArea)
     {
-      AreaReference ref(hotspot, m_hoverArea);
-      ref.dragResult = true;
-      moveToolWindows(draggedToolWindows, ref);
+      if(m_hoverArea->allowUserDrop() || hotspot != AreaReferenceType::AddTo)
+      {
+        AreaReference ref(hotspot, m_hoverArea);
+        ref.dragResult = true;
+        moveToolWindows(draggedToolWindows, ref);
+      }
     }
     else
     {
@@ -1387,7 +1393,9 @@ void ToolWindowManager::drawHotspotPixmaps()
         QPointF tip = fullRect.center() + QPointF(4, 0);
 
         path.addPolygon(QPolygonF({
-            tip, tip + QPoint(3, 3), tip + QPoint(3, -3),
+            tip,
+            tip + QPoint(3, 3),
+            tip + QPoint(3, -3),
         }));
       }
       else if(ref == TopOf)
@@ -1395,7 +1403,9 @@ void ToolWindowManager::drawHotspotPixmaps()
         QPointF tip = fullRect.center() + QPointF(0, 4);
 
         path.addPolygon(QPolygonF({
-            tip, tip + QPointF(-3, 3), tip + QPointF(3, 3),
+            tip,
+            tip + QPointF(-3, 3),
+            tip + QPointF(3, 3),
         }));
       }
       else if(ref == RightOf)
@@ -1403,7 +1413,9 @@ void ToolWindowManager::drawHotspotPixmaps()
         QPointF tip = fullRect.center() + QPointF(-4, 0);
 
         path.addPolygon(QPolygonF({
-            tip, tip + QPointF(-3, 3), tip + QPointF(-3, -3),
+            tip,
+            tip + QPointF(-3, 3),
+            tip + QPointF(-3, -3),
         }));
       }
       else if(ref == BottomOf)
@@ -1411,7 +1423,9 @@ void ToolWindowManager::drawHotspotPixmaps()
         QPointF tip = fullRect.center() + QPointF(0, -4);
 
         path.addPolygon(QPolygonF({
-            tip, tip + QPointF(-3, -3), tip + QPointF(3, -3),
+            tip,
+            tip + QPointF(-3, -3),
+            tip + QPointF(3, -3),
         }));
       }
 
