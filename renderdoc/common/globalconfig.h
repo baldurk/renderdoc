@@ -207,7 +207,7 @@ enum
 
 // normally only in a debug build do we
 // include debug logs. This prints them all the time
-#define FORCE_DEBUG_LOGS OPTION_ON
+#define FORCE_DEBUG_LOGS OPTION_ON // todo.ksh: I forced ON.
 // this strips them completely
 #define STRIP_DEBUG_LOGS OPTION_OFF
 

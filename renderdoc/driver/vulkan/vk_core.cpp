@@ -2714,7 +2714,7 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
       // otherwise order must be preserved (vs. queue submits and desc set updates)
       for(size_t i = 0; i < m_CmdBufferRecords.size(); i++)
       {
-        if(true/*Vulkan_Debug_VerboseCommandRecording()*/)
+        if(Vulkan_Debug_VerboseCommandRecording())
         {
           RDCLOG("Adding chunks from command buffer %s",
                  ToStr(m_CmdBufferRecords[i]->GetResourceID()).c_str());

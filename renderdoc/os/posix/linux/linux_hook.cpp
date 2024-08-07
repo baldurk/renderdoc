@@ -221,6 +221,10 @@ __attribute__((visibility("default"))) int execve(const char *pathname, char *co
       RDCLOG("unhooked execve(%s)", pathname);
 
     GetUnhookedEnvp(envp, envpStr, modifiedEnv);
+
+    /*for(size_t i = 0; i < modifiedEnv.size(); i++)
+      RDCLOG("====> modifiedEnv[%d]=%s", i, modifiedEnv[i] ? modifiedEnv[i] : "n/a");*/
+
     return realexecve(pathname, argv, modifiedEnv.data());
   }
 
@@ -228,6 +232,10 @@ __attribute__((visibility("default"))) int execve(const char *pathname, char *co
     RDCLOG("hooked execve(%s)", pathname);
 
   GetHookedEnvp(envp, envpStr, modifiedEnv);
+
+  /*for(size_t i = 0; i < modifiedEnv.size(); i++)
+    RDCLOG("====> modifiedEnv[%d]=%s", i, modifiedEnv[i] ? modifiedEnv[i] : "n/a");*/
+
   return realexecve(pathname, argv, modifiedEnv.data());
 }
 

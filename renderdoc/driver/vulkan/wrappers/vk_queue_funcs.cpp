@@ -989,7 +989,7 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
 
     VkResourceRecord *record = GetRecord(commandBuffers[i]);
 
-    if(true/*Vulkan_Debug_VerboseCommandRecording()*/)
+    if(Vulkan_Debug_VerboseCommandRecording())
     {
       RDCLOG("vkQueueSubmit() to queue %s, cmd %zu of %zu: %s baked to %s",
              ToStr(GetResID(queue)).c_str(), i, commandBuffers.size(),

@@ -859,7 +859,7 @@ VkResult WrappedVulkan::vkCreateCommandPool(VkDevice device,
 VkResult WrappedVulkan::vkResetCommandPool(VkDevice device, VkCommandPool cmdPool,
                                            VkCommandPoolResetFlags flags)
 {
-  if(true/*Vulkan_Debug_VerboseCommandRecording()*/)
+  if(Vulkan_Debug_VerboseCommandRecording())
   {
     RDCLOG("Reset command pool %s", ToStr(GetResID(cmdPool)).c_str());
   }
@@ -1003,7 +1003,7 @@ VkResult WrappedVulkan::vkAllocateCommandBuffers(VkDevice device,
         record->pool = GetRecord(pAllocateInfo->commandPool);
         allocRecord->AddParent(record->pool);
 
-        if(true/*Vulkan_Debug_VerboseCommandRecording()*/)
+        if(Vulkan_Debug_VerboseCommandRecording())
         {
           RDCLOG("Allocate command buffer %s from pool %s", ToStr(record->GetResourceID()).c_str(),
                  ToStr(record->pool->GetResourceID()).c_str());
@@ -1397,7 +1397,7 @@ VkResult WrappedVulkan::vkBeginCommandBuffer(VkCommandBuffer commandBuffer,
     record->bakedCommands->cmdInfo->beginCapture = false;
     record->bakedCommands->cmdInfo->endCapture = false;
 
-    if(true/*Vulkan_Debug_VerboseCommandRecording()*/)
+    if(Vulkan_Debug_VerboseCommandRecording())
     {
       RDCLOG("Begin command buffer %s baked to %s", ToStr(record->GetResourceID()).c_str(),
              ToStr(record->bakedCommands->GetResourceID()).c_str());
@@ -1678,7 +1678,7 @@ VkResult WrappedVulkan::vkEndCommandBuffer(VkCommandBuffer commandBuffer)
     // ensure that we have a matching begin
     RDCASSERT(record->bakedCommands);
 
-    if(true/*Vulkan_Debug_VerboseCommandRecording()*/)
+    if(Vulkan_Debug_VerboseCommandRecording())
     {
       RDCLOG("End command buffer %s baked to %s", ToStr(record->GetResourceID()).c_str(),
              ToStr(record->bakedCommands->GetResourceID()).c_str());
@@ -1707,7 +1707,7 @@ VkResult WrappedVulkan::vkResetCommandBuffer(VkCommandBuffer commandBuffer,
 
   if(record)
   {
-    if(true/*Vulkan_Debug_VerboseCommandRecording()*/)
+    if(Vulkan_Debug_VerboseCommandRecording())
     {
       RDCLOG(
           "Reset command buffer %s (baked was %s)", ToStr(record->GetResourceID()).c_str(),
@@ -5090,7 +5090,7 @@ void WrappedVulkan::vkCmdExecuteCommands(VkCommandBuffer commandBuffer, uint32_t
             execRecord->bakedCommands->cmdInfo->boundDescSets.end());
         record->cmdInfo->subcmds.push_back(execRecord);
 
-        if(true/*Vulkan_Debug_VerboseCommandRecording()*/)
+        if(Vulkan_Debug_VerboseCommandRecording())
         {
           RDCLOG("Execute command buffer %s (baked was %s) in %s (baked to %s)",
                  ToStr(execRecord->GetResourceID()).c_str(),
@@ -5173,7 +5173,7 @@ void WrappedVulkan::vkCmdDebugMarkerBeginEXT(VkCommandBuffer commandBuffer,
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdDebugMarkerBeginEXT);
     Serialise_vkCmdDebugMarkerBeginEXT(ser, commandBuffer, pMarker);
 
-    if(true/*Vulkan_Debug_VerboseCommandRecording()*/)
+    if(Vulkan_Debug_VerboseCommandRecording())
     {
       RDCLOG(
           "Begin marker %s in %s (baked to %s)", pMarker->pMarkerName,
@@ -6205,7 +6205,7 @@ void WrappedVulkan::vkCmdBeginDebugUtilsLabelEXT(VkCommandBuffer commandBuffer,
     SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdBeginDebugUtilsLabelEXT);
     Serialise_vkCmdBeginDebugUtilsLabelEXT(ser, commandBuffer, pLabelInfo);
 
-    if(true/*Vulkan_Debug_VerboseCommandRecording()*/)
+    if(Vulkan_Debug_VerboseCommandRecording())
     {
       RDCLOG(
           "End marker %s in %s (baked to %s)", pLabelInfo->pLabelName,

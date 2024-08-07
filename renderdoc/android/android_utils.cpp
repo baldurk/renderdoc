@@ -126,7 +126,8 @@ rdcstr GetPlainABIName(ABI abi)
 
 rdcarray<ABI> GetSupportedABIs(const rdcstr &deviceID)
 {
-#if 0
+  // todo.ksh android7.1的模拟器，可以运行arm版apk？回头试试并分析为什么
+#if 1
   rdcstr adbAbi = adbExecCommand(deviceID, "shell getprop ro.product.cpu.abi").strStdout.trimmed();
 #else
   rdcstr adbAbi = adbExecCommand(deviceID, "shell getprop ro.product.cpu.abilist").strStdout.trimmed();

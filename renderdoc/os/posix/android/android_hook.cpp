@@ -40,7 +40,8 @@
 #include <set>
 
 // uncomment the following to print (very verbose) debugging prints for the android PLT hooking
- #define HOOK_DEBUG_PRINT(...) RDCLOG(__VA_ARGS__)
+// todo.ksh: OK, I uncommented it
+#define HOOK_DEBUG_PRINT(...) RDCLOG(__VA_ARGS__)
 
 #if !defined(HOOK_DEBUG_PRINT)
 #define HOOK_DEBUG_PRINT(...) \

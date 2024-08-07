@@ -1333,6 +1333,7 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const rdcstr &packageAndActi
 
   RDResult result;
   uint32_t ident = RenderDoc_FirstTargetControlPort;
+  RDCLOG("ExecuteAndInject, before AndroidController.Invoke, packageAndActivity=%s, intentArgs=%s", packageAndActivity.c_str(), intentArgs.c_str());
 
   AndroidController::m_Inst.Invoke([this, &result, &ident, packageAndActivity, intentArgs, opts]() {
     rdcstr packageName = Android::GetPackageName(packageAndActivity);    // Remove leading '/' if any

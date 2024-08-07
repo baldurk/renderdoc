@@ -588,11 +588,16 @@ static pid_t RunProcess(rdcstr appName, rdcstr workDir, const rdcstr &cmdLine, c
     return 0;
 
   char **argv = new char *[argvList.size() + 1];
-  for(size_t i = 0; i < argvList.size(); i++)
+  for (size_t i = 0; i < argvList.size(); i++)
+  {
     argv[i] = argvList[i].data();
+    RDCLOG("====> argvList[i]=%s", i, argv[i] ? argv[i] : "n/a");
+  }
+    
   argv[argvList.size()] = NULL;
 
   const rdcstr appPath(GetAbsoluteAppPathFromName(appName));
+  RDCLOG("====> appName=%s, appPath=%s", appName.c_str(), appPath.c_str());
 
   pid_t childPid = 0;
 
@@ -626,6 +631,8 @@ static pid_t RunProcess(rdcstr appName, rdcstr workDir, const rdcstr &cmdLine, c
       }
 
       chdir(workDir.c_str());
+      RDCLOG("====> workDir=%s, appPath=%s", workDir.c_str(), appPath.c_str());
+
       execve(appPath.c_str(), argv, envp);
       fprintf(stderr, "exec failed\n");
       _exit(1);
@@ -697,6 +704,12 @@ uint32_t Process::LaunchProcess(const rdcstr &app, const rdcstr &workingDir, con
   }
 
   char **currentEnvironment = GetCurrentEnvironment();
+  if (currentEnvironment)
+  {
+    /*for(int i = 0; i < 10; i++)
+      RDCLOG("====> currentEnvironment[%d]=%s", i, currentEnvironment[i] ? currentEnvironment[i] : "n/a");*/
+  }
+
   pid_t ret = RunProcess(app, workingDir, cmdLine, currentEnvironment, false,
                          result ? stdoutPipe : NULL, result ? stderrPipe : NULL);
 

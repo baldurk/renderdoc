@@ -175,8 +175,10 @@ copy /Y $(OutputDirectory)*.exe "%DstDir%"
 copy /Y $(OutputDirectory)*.pdb "%DstDir%"
 xcopy /E /H /C /I /Y /R "$(OutputDirectory)pymodules" "%DstDir%pymodules\"
 xcopy /E /H /C /I /Y /R "$(OutputDirectory)qtplugins" "%DstDir%qtplugins\"
-copy /Y $(OutputDirectory)..\..\build32\bin\org.renderdoc.renderdoccmd.arm32.apk "%DstDir%plugins\android\"
-copy /Y $(OutputDirectory)..\..\build64\bin\org.renderdoc.renderdoccmd.arm64.apk "%DstDir%plugins\android\"</Command>
+copy /Y $(OutputDirectory)..\..\build_armeabi-v7a\bin\org.renderdoc.renderdoccmd.arm32.apk "%DstDir%plugins\android\"
+copy /Y $(OutputDirectory)..\..\build_arm64-v8a\bin\org.renderdoc.renderdoccmd.arm64.apk "%DstDir%plugins\android\"
+copy /Y $(OutputDirectory)..\..\build_x86\bin\org.renderdoc.renderdoccmd.x86.apk "%DstDir%plugins\android\"
+copy /Y $(OutputDirectory)..\..\build_x86_64\bin\org.renderdoc.renderdoccmd.x64.apk "%DstDir%plugins\android\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='QTDebug'">
