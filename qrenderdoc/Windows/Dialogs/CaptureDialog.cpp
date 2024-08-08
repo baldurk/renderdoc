@@ -1204,10 +1204,12 @@ void CaptureDialog::TriggerCapture()
     // for non-remote captures, check the executable locally
     if(!m_Ctx.Replay().CurrentRemote().IsValid())
     {
-      if(!QFileInfo::exists(exe))
+      if(!QFileInfo::exists(exe) && QStandardPaths::findExecutable(exe).isEmpty())
       {
-        RDDialog::critical(this, tr("Invalid executable"),
-                           tr("Invalid application executable: %1").arg(exe));
+        RDDialog::critical(
+            this, tr("Invalid executable"),
+            tr("Invalid executable: %1\nCan't locate this path or a matching executable in PATH")
+                .arg(exe));
         return;
       }
     }
