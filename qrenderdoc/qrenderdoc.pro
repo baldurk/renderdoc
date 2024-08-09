@@ -114,6 +114,9 @@ win32 {
 
 	DESTDIR=$$CMAKE_DIR/bin
 
+	# Archlinux broke Qt builds by forcing on lto, so we have to re-override that here
+	CONFIG -= lto
+
 	include($$CMAKE_DIR/qrenderdoc/qrenderdoc_cmake.pri)
 
 	# Temp files into .obj
