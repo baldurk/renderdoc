@@ -4871,26 +4871,6 @@ void VulkanReplay::BuildTargetShader(ShaderEncoding sourceEncoding, const bytebu
     memcpy(&spirv[0], source.data(), source.size());
   }
 
-  // check for shader module or shader object
-  const VulkanRenderState state = m_pDriver->GetCmdRenderState();
-
-  if(type == ShaderStage::Compute ? state.compute.shaderObject : state.graphics.shaderObject)
-  {
-    VkShaderCreateInfoEXT shadinfo;
-    m_pDriver->GetShaderCache()->MakeShaderObjectInfo(shadinfo, state.shaderObjects[(uint32_t)type]);
-
-    shadinfo.codeSize = spirv.size() * sizeof(uint32_t);
-    shadinfo.pCode = spirv.data();
-
-    VkShaderEXT shader;
-    VkResult vkr = m_pDriver->vkCreateShadersEXT(m_pDriver->GetDev(), 1, &shadinfo, NULL, &shader);
-    CheckVkResult(vkr);
-
-    id = GetResID(shader);
-
-    return;
-  }
-
   VkShaderModuleCreateInfo modinfo = {
       VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
       NULL,
@@ -4911,12 +4891,26 @@ void VulkanReplay::FreeTargetResource(ResourceId id)
   if(id == ResourceId())
     return;
 
+  // destroy associated shader object if it exists, remove map entry
+  auto it = m_ModuleIDToShaderObject.find(id);
+  if(it != m_ModuleIDToShaderObject.end())
+  {
+    m_pDriver->ReleaseResource(GetResourceManager()->GetCurrentResource(GetResID(it->second)));
+    m_ModuleIDToShaderObject.erase(it);
+  }
+
   m_pDriver->ReleaseResource(GetResourceManager()->GetCurrentResource(id));
 }
 
 void VulkanReplay::ReplaceResource(ResourceId from, ResourceId to)
 {
-  // replace the shader module
+  // remove existing shader replacement
+  m_pDriver->GetResourceManager()->RemoveReplacement(from);
+
+  // if replacing a shader object, create replacement now and override the provided module ID
+  ModifyReplacementIfShaderEXT(from, to);
+
+  // replace the shader module or shader object
   m_pDriver->GetResourceManager()->ReplaceResource(from, to);
 
   // now update any derived resources
@@ -5115,6 +5109,65 @@ void VulkanReplay::RefreshDerivedReplacements()
 
   for(VkPipeline pipe : deletequeue)
     m_pDriver->vkDestroyPipeline(dev, pipe, NULL);
+}
+
+void VulkanReplay::ModifyReplacementIfShaderEXT(ResourceId from, ResourceId &to)
+{
+  // identify whether the original resource is a shader object
+  ResourceId shaderId = GetLiveID(from);
+  auto shadObj = m_pDriver->m_CreationInfo.m_ShaderObject.find(shaderId);
+
+  if(shaderId != ResourceId() && shadObj != m_pDriver->m_CreationInfo.m_ShaderObject.end())
+  {
+    // use existing replacement when available
+    auto it = m_ModuleIDToShaderObject.find(to);
+    if(it != m_ModuleIDToShaderObject.end())
+    {
+      to = GetResID(it->second);
+      return;
+    }
+
+    // get original shader object create info
+    VkShaderCreateInfoEXT shadCreateInfo = {};
+    m_pDriver->GetShaderCache()->MakeShaderObjectInfo(shadCreateInfo, shaderId);
+
+    // use the module SPIR-V
+    rdcspv::Reflector &spirv = m_pDriver->m_CreationInfo.m_ShaderModule[to].spirv;
+    rdcarray<ShaderEntryPoint> entries = spirv.EntryPoints();
+
+    if(entries.size() > 1)
+    {
+      if(entries.contains({shadCreateInfo.pName, ShaderStage(StageIndex(shadCreateInfo.stage))}))
+      {
+        // nothing to do!
+      }
+      else
+      {
+        RDCWARN(
+            "Multiple entry points in edited shader, none matching original, using first "
+            "one '%s'",
+            entries[0].name.c_str());
+        shadCreateInfo.pName = entries[0].name.c_str();
+      }
+    }
+    else
+    {
+      shadCreateInfo.pName = entries[0].name.c_str();
+    }
+
+    shadCreateInfo.pCode = spirv.GetSPIRV().data();
+    shadCreateInfo.codeSize = spirv.GetSPIRV().byteSize();
+
+    // create the new shader object
+    VkShaderEXT shad = VK_NULL_HANDLE;
+    VkResult vkr =
+        m_pDriver->vkCreateShadersEXT(m_pDriver->GetDev(), 1, &shadCreateInfo, NULL, &shad);
+    CheckVkResult(vkr);
+
+    // overwrite the replacement resource ID
+    m_ModuleIDToShaderObject[to] = shad;
+    to = GetResID(shad);
+  }
 }
 
 ResourceId VulkanReplay::CreateProxyTexture(const TextureDescription &templateTex)

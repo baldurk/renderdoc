@@ -510,6 +510,7 @@ private:
   void ClearPostVSCache();
 
   void RefreshDerivedReplacements();
+  void ModifyReplacementIfShaderEXT(ResourceId from, ResourceId &to);
 
   bool RenderTextureInternal(TextureDisplay cfg, const ImageState &imageState,
                              VkRenderPassBeginInfo rpbegin, int flags);
@@ -823,6 +824,9 @@ private:
   rdcarray<ResourceDescription> m_Resources;
   rdcarray<DescriptorStoreDescription> m_DescriptorStores;
   std::map<ResourceId, size_t> m_ResourceIdx;
+
+  // tracks VkShaderEXT replacements for shader modules from BuildTargetShader
+  std::map<ResourceId, VkShaderEXT> m_ModuleIDToShaderObject;
 
   VKPipe::State *m_VulkanPipelineState = NULL;
 
