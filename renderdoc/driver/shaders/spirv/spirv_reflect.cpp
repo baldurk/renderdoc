@@ -1386,9 +1386,12 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
         Decorations::Flags flags = Decorations::Flags(
             decorations[global.id].flags & (Decorations::HasLocation | Decorations::HasBinding));
 
+        bindset = 0;
+
         if(flags == Decorations::HasLocation)
         {
           bind = decorations[global.id].location;
+          bindset = 1;
         }
         else if(flags == Decorations::NoFlags)
         {
@@ -1422,7 +1425,7 @@ void Reflector::MakeReflection(const GraphicsAPI sourceAPI, const ShaderStage st
         res.variableType.baseType = VarType::UInt;
         res.variableType.name = varType->name;
 
-        res.fixedBindSetOrSpace = 0;
+        res.fixedBindSetOrSpace = bindset;
         res.fixedBindNumber = GetBinding(decorations[global.id].binding);
         res.bindArraySize = arraySize;
 

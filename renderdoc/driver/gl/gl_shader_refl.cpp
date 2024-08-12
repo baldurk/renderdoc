@@ -2485,11 +2485,25 @@ void GetCurrentBinding(GLuint curProg, ShaderReflection *refl, const ShaderResou
 
   if(refl->encoding == ShaderEncoding::OpenGLSPIRV)
   {
-    if(resource.isTexture && resource.fixedBindNumber != ~0U)
+    slot = 0;
+    if(resource.isTexture)
     {
-      GL.glGetUniformiv(curProg, resource.fixedBindNumber, dummyReadback);
-      slot = dummyReadback[0];
-      used = true;
+      if(resource.fixedBindNumber == ~0U)
+      {
+        slot = 0;
+      }
+      // the fixedBindSetOrSpace is set to 1 if a location is provided (whether or not there's a fixed binding)
+      else if(resource.fixedBindSetOrSpace == 0)
+      {
+        slot = resource.fixedBindNumber;
+        used = true;
+      }
+      else
+      {
+        GL.glGetUniformiv(curProg, resource.fixedBindNumber, dummyReadback);
+        slot = dummyReadback[0];
+        used = true;
+      }
     }
   }
   else if(resource.isReadOnly)
@@ -2669,6 +2683,8 @@ void GetCurrentBinding(GLuint curProg, ShaderReflection *refl, const ConstantBlo
   {
     // It's fuzzy on whether UBOs can be remapped with glUniformBlockBinding so for now we hope that
     // anyone using UBOs and SPIR-V will at least specify immutable bindings in the SPIR-V.
+    slot = cblock.fixedBindNumber;
+    used = true;
     return;
   }
 
