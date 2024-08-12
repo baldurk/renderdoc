@@ -561,6 +561,9 @@
     <ClInclude Include="common\result.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="core\gpu_address_range_tracker.h">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -955,6 +958,9 @@
     </ClCompile>
     <ClCompile Include="replay\dummy_driver.cpp">
       <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="core\gpu_address_range_tracker.cpp">
+      <Filter>Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

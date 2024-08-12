@@ -191,13 +191,13 @@ WrappedVulkan::~WrappedVulkan()
 
   SAFE_DELETE(m_StoredStructuredData);
 
+  SAFE_DELETE(m_ASManager);
+
   // in case the application leaked some objects, avoid crashing trying
   // to release them ourselves by clearing the resource manager.
   // In a well-behaved application, this should be a no-op.
   m_ResourceManager->ClearWithoutReleasing();
   SAFE_DELETE(m_ResourceManager);
-
-  SAFE_DELETE(m_ASManager);
 
   SAFE_DELETE(m_FrameReader);
 
@@ -1332,16 +1332,16 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_KHR_8BIT_STORAGE_EXTENSION_NAME,
         VK_KHR_8BIT_STORAGE_SPEC_VERSION,
     },
+    {
+        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+        VK_KHR_ACCELERATION_STRUCTURE_SPEC_VERSION,
+    },
 #ifdef VK_KHR_android_surface
     {
         VK_KHR_ANDROID_SURFACE_EXTENSION_NAME,
         VK_KHR_ANDROID_SURFACE_SPEC_VERSION,
     },
 #endif
-    {
-        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-        VK_KHR_ACCELERATION_STRUCTURE_SPEC_VERSION,
-    },
     {
         VK_KHR_BIND_MEMORY_2_EXTENSION_NAME,
         VK_KHR_BIND_MEMORY_2_SPEC_VERSION,

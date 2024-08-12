@@ -24,6 +24,7 @@
 
 #include "vk_resources.h"
 #include "maths/vec.h"
+#include "vk_acceleration_structure.h"
 #include "vk_info.h"
 
 WRAPPED_POOL_INST(WrappedVkInstance)
@@ -3981,6 +3982,9 @@ VkResourceRecord::~VkResourceRecord()
 
   if(resType == eResCommandPool)
     SAFE_DELETE(cmdPoolInfo);
+
+  if(resType == eResAccelerationStructureKHR)
+    SAFE_DELETE(accelerationStructureInfo);
 }
 
 void VkResourceRecord::MarkImageFrameReferenced(VkResourceRecord *img, const ImageRange &range,

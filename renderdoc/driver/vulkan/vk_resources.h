@@ -2194,6 +2194,7 @@ inline FrameRefType MarkMemoryReferenced(std::unordered_map<ResourceId, MemRefs>
 
 struct DescUpdateTemplate;
 struct ImageLayouts;
+struct VkAccelerationStructureInfo;
 
 struct VkResourceRecord : public ResourceRecord
 {
@@ -2285,7 +2286,7 @@ public:
     DescPoolInfo *descPoolInfo;              // only for descriptor pools
     CmdPoolInfo *cmdPoolInfo;                // only for command pools
     uint32_t queueFamilyIndex;               // only for queues
-    bool accelerationStructureBuilt;         // only for acceleration structures
+    VkAccelerationStructureInfo *accelerationStructureInfo;    // only for acceleration structures
   };
 
   VkResourceRecord *bakedCommands;

@@ -577,7 +577,8 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
   else if(type == eResAccelerationStructureKHR)
   {
     VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
-    if(!record->accelerationStructureBuilt)
+
+    if(!record->accelerationStructureInfo->accelerationStructureBuilt)
     {
       RDCDEBUG("Skipping AS %s as it has not been built", ToStr(id).c_str());
       return true;

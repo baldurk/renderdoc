@@ -1525,6 +1525,8 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
     // memory that has been allocated but not used, but that will be skipped or postponed as
     // appropriate.
     GetResourceManager()->MarkDirtyResource(GetResID(memory));
+
+    TrackBufferAddress(device, buffer);
   }
 
   return ret;
@@ -3026,6 +3028,8 @@ VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCo
       // memory that has been allocated but not used, but that will be skipped or postponed as
       // appropriate.
       GetResourceManager()->MarkDirtyResource(GetResID(pBindInfos[i].memory));
+
+      TrackBufferAddress(device, pBindInfos[i].buffer);
     }
   }
 
@@ -3378,6 +3382,8 @@ VkResult WrappedVulkan::vkCreateAccelerationStructureKHR(
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pAccelerationStructure);
       record->AddChunk(chunk);
       record->AddParent(bufferRecord);
+
+      record->accelerationStructureInfo = new VkAccelerationStructureInfo();
 
       // store the base resource
       record->baseResource = bufferRecord->GetResourceID();
