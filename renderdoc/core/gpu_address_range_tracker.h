@@ -24,42 +24,40 @@
 
 #pragma once
 
-#include "vk_manager.h"
+#include <functional>
 
-class WrappedVulkan;
+#include "api/replay/resourceid.h"
+#include "common/threading.h"
 
-// Just holds the built flag, will eventually hold all the AS build data
-struct VkAccelerationStructureInfo
+struct GPUAddressRange
 {
-  bool accelerationStructureBuilt = false;
+  using Address = uint64_t;
+
+  Address start, realEnd, oobEnd;
+  ResourceId id;
+
+  bool operator<(const Address &o) const
+  {
+    if(o < start)
+      return true;
+
+    return false;
+  }
 };
 
-class VulkanAccelerationStructureManager
+struct GPUAddressRangeTracker
 {
-public:
-  struct ASMemory
-  {
-    MemoryAllocation alloc;
-    bool isTLAS;
-  };
+  GPUAddressRangeTracker() {}
+  // no copying
+  GPUAddressRangeTracker(const GPUAddressRangeTracker &) = delete;
+  GPUAddressRangeTracker &operator=(const GPUAddressRangeTracker &) = delete;
 
-  explicit VulkanAccelerationStructureManager(WrappedVulkan *driver);
+  rdcarray<GPUAddressRange> addresses;
+  Threading::RWLock addressLock;
 
-  // Called when the initial state is prepared.  Any TLAS and BLAS data is copied into temporary
-  // buffers and the handles for that memory and the buffers is stored in the init state
-  bool Prepare(VkAccelerationStructureKHR unwrappedAs, const rdcarray<uint32_t> &queueFamilyIndices,
-               ASMemory &result);
-
-  template <typename SerialiserType>
-  bool Serialise(SerialiserType &ser, ResourceId id, const VkInitialContents *initial,
-                 CaptureState state);
-
-  // Called when the initial state is applied.  The AS data is deserialised from the upload buffer
-  // into the acceleration structure
-  void Apply(ResourceId id, const VkInitialContents &initial);
-
-private:
-  VkDeviceSize SerialisedASSize(VkAccelerationStructureKHR unwrappedAs);
-
-  WrappedVulkan *m_pDriver;
+  void AddTo(const GPUAddressRange &range);
+  void RemoveFrom(const GPUAddressRange &range);
+  void GetResIDFromAddr(GPUAddressRange::Address addr, ResourceId &id, uint64_t &offs);
+  void GetResIDFromAddrAllowOutOfBounds(GPUAddressRange::Address addr, ResourceId &id,
+                                        uint64_t &offs);
 };

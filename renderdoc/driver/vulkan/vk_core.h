@@ -25,6 +25,7 @@
 #pragma once
 
 #include "common/timing.h"
+#include "core/gpu_address_range_tracker.h"
 #include "serialise/serialiser.h"
 #include "vk_acceleration_structure.h"
 #include "vk_common.h"
@@ -978,6 +979,9 @@ private:
 
   bytebuf m_MaskedMapData;
 
+  GPUAddressRangeTracker m_AddressTracker;
+  GPUAddressRange CreateAddressRange(VkDevice device, VkBuffer buffer);
+
   // on replay we may need to allocate several bits of temporary memory, so the single-region
   // doesn't work as well. We're not quite as performance-sensitive so we allocate 4MB per thread
   // and use it in a ring-buffer fashion. This allows multiple allocations to live at once as long
@@ -1131,8 +1135,8 @@ private:
                                       const VulkanRenderState &renderState);
 
   // no copy semantics
-  WrappedVulkan(const WrappedVulkan &);
-  WrappedVulkan &operator=(const WrappedVulkan &);
+  WrappedVulkan(const WrappedVulkan &) = delete;
+  WrappedVulkan &operator=(const WrappedVulkan &) = delete;
 
   VkBool32 DebugCallback(MessageSeverity severity, MessageCategory category, int messageCode,
                          const char *pMessageId, const char *pMessage);
@@ -1253,6 +1257,9 @@ public:
   void FreeMemoryAllocation(MemoryAllocation alloc);
 
   void ChooseMemoryIndices();
+
+  void TrackBufferAddress(VkDevice device, VkBuffer buffer);
+  void UntrackBufferAddress(VkDevice device, VkBuffer buffer);
 
   EventFlags GetEventFlags(uint32_t eid) { return m_EventFlags[eid]; }
   rdcarray<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }

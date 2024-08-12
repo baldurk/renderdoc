@@ -26,6 +26,7 @@
 
 #include "common/wrapped_pool.h"
 #include "core/core.h"
+#include "core/gpu_address_range_tracker.h"
 #include "core/intervals.h"
 #include "core/resource_manager.h"
 #include "core/sparse_page_table.h"
@@ -509,36 +510,6 @@ struct CmdListRecordingInfo
 
 class WrappedID3D12Resource;
 using D3D12BufferOffset = UINT64;
-
-struct GPUAddressRange
-{
-  D3D12_GPU_VIRTUAL_ADDRESS start, realEnd, oobEnd;
-  ResourceId id;
-
-  bool operator<(const D3D12_GPU_VIRTUAL_ADDRESS &o) const
-  {
-    if(o < start)
-      return true;
-
-    return false;
-  }
-};
-
-struct GPUAddressRangeTracker
-{
-  GPUAddressRangeTracker() {}
-  // no copying
-  GPUAddressRangeTracker(const GPUAddressRangeTracker &);
-  GPUAddressRangeTracker &operator=(const GPUAddressRangeTracker &);
-
-  rdcarray<GPUAddressRange> addresses;
-  Threading::RWLock addressLock;
-
-  void AddTo(const GPUAddressRange &range);
-  void RemoveFrom(const GPUAddressRange &range);
-  void GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs);
-  void GetResIDFromAddrAllowOutOfBounds(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs);
-};
 
 struct MapState
 {

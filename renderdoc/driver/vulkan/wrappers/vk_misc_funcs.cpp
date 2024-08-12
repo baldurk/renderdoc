@@ -238,6 +238,9 @@ void WrappedVulkan::vkDestroyBuffer(VkDevice device, VkBuffer buffer, const VkAl
   if(buffer == VK_NULL_HANDLE)
     return;
 
+  if(IsCaptureMode(m_State))
+    UntrackBufferAddress(device, buffer);
+
   // artificially extend the lifespan of buffer device address memory or buffers, to ensure their
   // opaque capture address isn't re-used before the capture completes
   {

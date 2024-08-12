@@ -39,6 +39,11 @@ constexpr VkDeviceSize handleCountSize = 8;
 constexpr VkDeviceSize asBufferAlignment = 256;
 }
 
+VulkanAccelerationStructureManager::VulkanAccelerationStructureManager(WrappedVulkan *driver)
+    : m_pDriver(driver)
+{
+}
+
 bool VulkanAccelerationStructureManager::Prepare(VkAccelerationStructureKHR unwrappedAs,
                                                  const rdcarray<uint32_t> &queueFamilyIndices,
                                                  ASMemory &result)

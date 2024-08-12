@@ -28,6 +28,55 @@
 RDOC_CONFIG(bool, Vulkan_Debug_MemoryAllocationLogging, false,
             "Output verbose debug logging messages when allocating internal memory.");
 
+GPUAddressRange WrappedVulkan::CreateAddressRange(VkDevice device, VkBuffer buffer)
+{
+  bool isBDA = false;
+  {
+    SCOPED_LOCK(m_DeviceAddressResourcesLock);
+    isBDA = m_DeviceAddressResources.IDs.contains(GetResID(buffer));
+  }
+
+  if(!isBDA)
+    return {};
+
+  VkResourceRecord *record = GetRecord(buffer);
+  VkResourceRecord *memrecord = GetResourceManager()->GetResourceRecord(record->baseResourceMem);
+
+  const VkBufferDeviceAddressInfo addrInfo = {
+      VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+      NULL,
+      Unwrap(buffer),
+  };
+
+  const VkDeviceAddress address =
+      ObjDisp(device)->GetBufferDeviceAddressKHR(Unwrap(device), &addrInfo);
+
+  return {
+      address,
+      address + record->memSize,
+      address + (memrecord->memSize - record->memOffset),
+      record->GetResourceID(),
+  };
+}
+
+void WrappedVulkan::TrackBufferAddress(VkDevice device, VkBuffer buffer)
+{
+  const GPUAddressRange rng = CreateAddressRange(device, buffer);
+  if(rng.id == ResourceId())
+    return;
+
+  m_AddressTracker.AddTo(rng);
+}
+
+void WrappedVulkan::UntrackBufferAddress(VkDevice device, VkBuffer buffer)
+{
+  const GPUAddressRange rng = CreateAddressRange(device, buffer);
+  if(rng.id == ResourceId())
+    return;
+
+  m_AddressTracker.RemoveFrom(rng);
+}
+
 void WrappedVulkan::ChooseMemoryIndices()
 {
   // we need to do this little dance because Get*MemoryIndex checks to see if the existing

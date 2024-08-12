@@ -1336,9 +1336,7 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
   capDescriptors.clear();
 
   for(VkResourceRecord *asRecord : accelerationStructures)
-  {
-    asRecord->accelerationStructureBuilt = true;
-  }
+    asRecord->accelerationStructureInfo->accelerationStructureBuilt = true;
 }
 
 template <typename SerialiserType>
