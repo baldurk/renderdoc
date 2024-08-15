@@ -1701,12 +1701,13 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
     }
     else if(*fourcc == FOURCC_RDAT)
     {
-      // runtime data
+      m_RDATOffset = chunkContents - data;
+      m_RDATSize = *chunkSize;
     }
     else if(*fourcc == FOURCC_PSV0)
     {
-      // this chunk contains some information we could use for reflection but it doesn't contain
-      // enough, and doesn't have anything else interesting so we skip it
+      m_PSVOffset = chunkContents - data;
+      m_PSVSize = *chunkSize;
     }
     else if(*fourcc == FOURCC_ISGN || *fourcc == FOURCC_OSGN || *fourcc == FOURCC_ISG1 ||
             *fourcc == FOURCC_OSG1 || *fourcc == FOURCC_OSG5 || *fourcc == FOURCC_PCSG ||

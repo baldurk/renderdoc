@@ -24,6 +24,12 @@
 
 #pragma once
 
+namespace DXBC
+{
+enum class ShaderType : uint32_t;
+enum class GlobalShaderFlags : int64_t;
+};
+
 namespace DXIL
 {
 enum class ResourceClass

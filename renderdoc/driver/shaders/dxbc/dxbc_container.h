@@ -45,6 +45,13 @@ bool IsPDBFile(void *data, size_t length);
 void UnwrapEmbeddedPDBData(bytebuf &bytes);
 };
 
+namespace DXIL
+{
+// defined in dxil_metadata.h as these have heavy dependency on dxil enums
+struct PSVData;
+struct RDATData;
+};
+
 // many thanks to winehq for information of format of RDEF, STAT and SIGN chunks:
 // http://source.winehq.org/git/wine.git/blob/HEAD:/dlls/d3dcompiler_43/reflection.c
 namespace DXBC
@@ -238,6 +245,12 @@ public:
   static rdcstr GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength);
   static D3D_PRIMITIVE_TOPOLOGY GetOutputTopology(const void *ByteCode, size_t ByteCodeLength);
 
+  bool GetPipelineValidation(DXIL::PSVData &psv) const;
+  bool GetRuntimeData(DXIL::RDATData &rdat) const;
+
+  static void SetPipelineValidation(bytebuf &ByteCode, const DXIL::PSVData &psv);
+  static void SetRuntimeData(bytebuf &ByteCode, const DXIL::RDATData &rdat);
+
 private:
   void TryFetchSeparateDebugInfo(bytebuf &byteCode, const rdcstr &debugInfoPath);
 
@@ -261,6 +274,11 @@ private:
 
   size_t m_NonDebugDXILByteCodeOffset = 0;
   size_t m_NonDebugDXILByteCodeSize = 0;
+
+  size_t m_RDATOffset = 0;
+  size_t m_RDATSize = 0;
+  size_t m_PSVOffset = 0;
+  size_t m_PSVSize = 0;
 
   rdcflatmap<ShaderEntryPoint, rdcpair<CBufferVariableType, CBufferVariableType>> m_RayPayloads;
 

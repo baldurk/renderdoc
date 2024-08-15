@@ -56,7 +56,7 @@ struct CountOffset
 };
 
 // matches D3D11_SHADER_VERSION_TYPE from d3d11shader.h
-enum class ShaderType
+enum class ShaderType : uint32_t
 {
   // D3D10 Shaders
   Pixel = 0,
