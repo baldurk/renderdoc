@@ -286,11 +286,484 @@ bool DXBCContainer::GetRuntimeData(DXIL::RDATData &rdat) const
   if(m_RDATOffset == 0)
     return false;
 
+  const byte *in = m_ShaderBlob.data() + m_RDATOffset;
+
+  // RDAT Header
+  uint32_t *ver = (uint32_t *)in;
+  if(ver[0] != RDATData::Version1_0)
+    return false;
+
+  uint32_t numParts = ver[1];
+  rdcarray<uint32_t> partOffsets;
+  partOffsets.resize(numParts);
+  for(uint32_t i = 0; i < numParts; i++)
+    partOffsets[i] = ver[2 + i];
+
+  rdcstr stringbuffer;
+  rdcarray<uint32_t> indexArrays;
+  bytebuf rawbytes;
+
+  // we need to do this in two passes to first find the index arrays etc which can be referenced
+  // before they have appeared :(
+  for(uint32_t partOffset : partOffsets)
+  {
+    RuntimePartHeader *part = (RuntimePartHeader *)(in + partOffset);
+    byte *data = (byte *)(part + 1);
+
+    switch(part->part)
+    {
+      case RDATData::Part::StringBuffer: stringbuffer.assign((char *)data, part->size); break;
+      case RDATData::Part::IndexArrays:
+        indexArrays.assign((uint32_t *)data, part->size / sizeof(uint32_t));
+        break;
+      case RDATData::Part::RawBytes: rawbytes.assign(data, part->size); break;
+      default: break;    // ignore others for now
+    }
+  }
+
+  for(uint32_t partOffset : partOffsets)
+  {
+    RuntimePartHeader *part = (RuntimePartHeader *)(in + partOffset);
+    byte *data = (byte *)(part + 1);
+    RuntimePartTableHeader *tableHeader = (RuntimePartTableHeader *)data;
+
+    switch(part->part)
+    {
+      case RDATData::Part::StringBuffer: break;
+      case RDATData::Part::IndexArrays: break;
+      case RDATData::Part::RawBytes: break;
+      case RDATData::Part::ResourceTable:
+      {
+        EncodedResourceInfo *infos = (EncodedResourceInfo *)(tableHeader + 1);
+
+        RDCASSERT(tableHeader->stride == sizeof(EncodedResourceInfo));
+
+        rdat.resourceInfo.reserve(tableHeader->count);
+        for(uint32_t i = 0; i < tableHeader->count; i++)
+        {
+          EncodedResourceInfo &info = infos[i];
+          rdat.resourceInfo.push_back({
+              info.nspace,
+              info.kind,
+              info.LinearID,
+              info.space,
+              info.regStart,
+              info.regEnd,
+              stringbuffer.c_str() + info.name.offset,
+              info.flags,
+          });
+        }
+
+        break;
+      }
+      case RDATData::Part::FunctionTable:
+      {
+        data = (byte *)(tableHeader + 1);
+
+        RDCASSERT(tableHeader->stride == sizeof(EncodedFunctionInfo2) ||
+                  tableHeader->stride == sizeof(EncodedFunctionInfo));
+
+        rdat.functionVersion = RDATData::FunctionInfoVersion::Version1;
+        if(tableHeader->stride == sizeof(EncodedFunctionInfo2))
+          rdat.functionVersion = RDATData::FunctionInfoVersion::Version2;
+
+        rdat.functionInfo.reserve(tableHeader->count);
+        for(uint32_t i = 0; i < tableHeader->count; i++)
+        {
+          EncodedFunctionInfo &info = (EncodedFunctionInfo &)*data;
+          EncodedFunctionInfo2 &info2 = (EncodedFunctionInfo2 &)*data;
+
+          RDATData::FunctionInfo out = {
+              stringbuffer.c_str() + info.name.offset,
+              stringbuffer.c_str() + info.unmangledName.offset,
+              {},
+              {},
+              info.type,
+              info.payloadBytes,
+              info.attribBytes,
+              DXBC::GlobalShaderFlags(uint64_t(info.featureFlags[0]) |
+                                      uint64_t(info.featureFlags[1]) << 32),
+              info.shaderCompatMask,
+              info.minShaderModel,
+              info.minType,
+          };
+
+          rdat.functionInfo.push_back(out);
+
+          RDATData::FunctionInfo2 &func = rdat.functionInfo.back();
+
+          if(info.globalResourcesIndexArrayRef.offset != ~0U)
+          {
+            uint32_t *idxArray = indexArrays.data() + info.globalResourcesIndexArrayRef.offset;
+            uint32_t len = *idxArray;
+            idxArray++;
+            func.globalResources.reserve(len);
+            for(uint32_t j = 0; j < len; j++)
+              func.globalResources.push_back({rdat.resourceInfo[idxArray[j]].nspace,
+                                              rdat.resourceInfo[idxArray[j]].resourceIndex});
+          }
+
+          if(info.functionDependenciesArrayRef.offset != ~0U)
+          {
+            uint32_t *idxArray = indexArrays.data() + info.functionDependenciesArrayRef.offset;
+            uint32_t len = *idxArray;
+            idxArray++;
+            func.functionDependencies.reserve(len);
+            for(uint32_t j = 0; j < len; j++)
+              func.functionDependencies.push_back(stringbuffer.c_str() + idxArray[j]);
+          }
+
+          if(rdat.functionVersion == RDATData::FunctionInfoVersion::Version2)
+          {
+            func.minWaveCount = info2.minWaveCount;
+            func.maxWaveCount = info2.maxWaveCount;
+            func.shaderBehaviourFlags = info2.shaderBehaviourFlags;
+
+            // below here is a stage-specific set of data containing e.g. signature elements.
+            // Currently DXC does not emit RDAT except for in library targets, so this will be
+            // unused. It would be an index into a table elsewhere of VSInfo, PSInfo, etc.
+            RDCASSERT(info2.extraInfoRef.offset == ~0U);
+            func.extraInfoRef = ~0U;
+          }
+
+          data += tableHeader->stride;
+        }
+
+        break;
+      }
+      case RDATData::Part::SubobjectTable:
+      {
+        data = (byte *)(tableHeader + 1);
+
+        EncodedSubobjectInfo *subobjects = (EncodedSubobjectInfo *)data;
+
+        RDCASSERT(tableHeader->stride == sizeof(EncodedSubobjectInfo));
+
+        rdat.subobjectsInfo.reserve(tableHeader->count);
+        for(uint32_t i = 0; i < tableHeader->count; i++)
+        {
+          EncodedSubobjectInfo &info = subobjects[i];
+
+          rdat.subobjectsInfo.push_back({
+              info.type,
+              stringbuffer.c_str() + info.name.offset,
+          });
+
+          RDATData::SubobjectInfo &sub = rdat.subobjectsInfo.back();
+
+          switch(info.type)
+          {
+            case RDATData::SubobjectInfo::SubobjectType::StateConfig:
+            {
+              sub.config = info.config;
+              break;
+            }
+              // these are only differentiated by the enum, the data is the same
+            case RDATData::SubobjectInfo::SubobjectType::GlobalRS:
+            case RDATData::SubobjectInfo::SubobjectType::LocalRS:
+              sub.rs.data = bytebuf(rawbytes.data() + info.rs.data.offset, info.rs.data.size);
+              break;
+            case RDATData::SubobjectInfo::SubobjectType::SubobjectToExportsAssoc:
+            {
+              sub.assoc.subobject = stringbuffer.c_str() + info.assoc.subobject.offset;
+
+              if(info.assoc.exports.offset != ~0U)
+              {
+                uint32_t *idxArray = indexArrays.data() + info.assoc.exports.offset;
+                uint32_t len = *idxArray;
+                idxArray++;
+                sub.assoc.exports.reserve(len);
+                for(uint32_t j = 0; j < len; j++)
+                  sub.assoc.exports.push_back(stringbuffer.c_str() + idxArray[j]);
+              }
+
+              break;
+            }
+            case RDATData::SubobjectInfo::SubobjectType::RTShaderConfig:
+            {
+              sub.rtshaderconfig = info.rtshaderconfig;
+              break;
+            }
+              // we can treat these unions identically - in the old config case the flags will be
+              // ignored and should be 0 but the struct is effective padded to the largest union
+              // size because of the fixed stride anyway
+            case RDATData::SubobjectInfo::SubobjectType::RTPipeConfig:
+            {
+              RDCASSERT(info.rtpipeconfig.flags == RDATData::RTPipeFlags::None);
+              DELIBERATE_FALLTHROUGH();
+            }
+            case RDATData::SubobjectInfo::SubobjectType::RTPipeConfig1:
+            {
+              sub.rtpipeconfig = info.rtpipeconfig;
+              break;
+            }
+            case RDATData::SubobjectInfo::SubobjectType::Hitgroup:
+            {
+              sub.hitgroup.type = info.hitgroup.type;
+              sub.hitgroup.anyHit = stringbuffer.c_str() + info.hitgroup.anyHit.offset;
+              sub.hitgroup.closestHit = stringbuffer.c_str() + info.hitgroup.closestHit.offset;
+              sub.hitgroup.intersection = stringbuffer.c_str() + info.hitgroup.intersection.offset;
+              break;
+            }
+            default:
+            {
+              RDCWARN("Unhandled subobject type %d", info.type);
+              break;
+            }
+          }
+        }
+
+        break;
+      }
+      default: RDCWARN("Unhandled RDAT part %d, will not round-trip", part->part);
+    }
+  }
+
   return true;
 }
 
 void DXBCContainer::SetRuntimeData(bytebuf &ByteCode, const DXIL::RDATData &rdat)
 {
+  using namespace DXIL;
+
+  rdcstr stringblob;
+  // initialise string blob with empty string at 0 offset
+  stringblob.push_back('\0');
+
+  rdcarray<uint32_t> indexarrays;
+  // due to how these are stored and deduplicated (and we have to deduplicate because DXC does so we
+  // don't know if it's necessary) we have to store byte buffers individually or have some kind of
+  // lookup which amounts to the same thing. This will get baked into rawbytes at the end
+  rdcarray<bytebuf> rawbyteLookups;
+  bytebuf rawbytes;
+
+  rdcarray<EncodedResourceInfo> resourceInfo;
+  rdcarray<EncodedFunctionInfo> functionInfo;
+  rdcarray<EncodedFunctionInfo2> functionInfo2;
+  rdcarray<EncodedSubobjectInfo> subobjectsInfo;
+
+  resourceInfo.reserve(rdat.resourceInfo.size());
+  for(const RDATData::ResourceInfo &info : rdat.resourceInfo)
+  {
+    resourceInfo.push_back({
+        info.nspace,
+        info.kind,
+        info.resourceIndex,
+        info.space,
+        info.regStart,
+        info.regEnd,
+        MakeStringRef(stringblob, info.name),
+        info.flags,
+    });
+  }
+
+  // LLVM processes function dependencies first here which puts them into the string buffer in a different
+  // order than if we just process all functions as we encode them.
+  // That means we need to iterate function dependencies first too, to solidify string buffer
+  // offsets in order to exactly match RDAT contents to what dxc produces
+  for(const RDATData::FunctionInfo2 &info : rdat.functionInfo)
+    for(const rdcstr &f : info.functionDependencies)
+      MakeStringRef(stringblob, f);
+
+  if(rdat.functionVersion == RDATData::FunctionInfoVersion::Version1)
+  {
+    rdcarray<uint32_t> functionDependenciesArray;
+    rdcarray<uint32_t> globalResourcesIndexArray;
+
+    functionInfo.reserve(rdat.functionInfo.size());
+    for(const RDATData::FunctionInfo2 &info : rdat.functionInfo)
+    {
+      globalResourcesIndexArray.clear();
+      functionDependenciesArray.clear();
+
+      globalResourcesIndexArray.reserve(info.globalResources.size());
+      for(const rdcpair<DXIL::ResourceClass, uint32_t> &res : info.globalResources)
+      {
+        int32_t idx = rdat.resourceInfo.indexOf(res);
+        RDCASSERT(idx >= 0);
+        globalResourcesIndexArray.push_back(idx);
+      }
+
+      functionDependenciesArray.reserve(info.functionDependencies.size());
+      for(const rdcstr &f : info.functionDependencies)
+        functionDependenciesArray.push_back(MakeStringRef(stringblob, f).offset);
+
+      functionInfo.push_back({
+          MakeStringRef(stringblob, info.name),
+          MakeStringRef(stringblob, info.unmangledName),
+          MakeIndexArrayRef(indexarrays, globalResourcesIndexArray, true),
+          MakeIndexArrayRef(indexarrays, functionDependenciesArray, true),
+          info.type,
+          info.payloadBytes,
+          info.attribBytes,
+          {uint32_t(info.featureFlags) & 0xffffffff, uint64_t(info.featureFlags) >> 32},
+          info.shaderCompatMask,
+          info.minShaderModel,
+          info.minType,
+      });
+    }
+  }
+  else if(rdat.functionVersion == RDATData::FunctionInfoVersion::Version2)
+  {
+    rdcarray<uint32_t> functionDependenciesArray;
+    rdcarray<uint32_t> globalResourcesIndexArray;
+
+    functionInfo2.reserve(rdat.functionInfo.size());
+    for(const RDATData::FunctionInfo2 &info : rdat.functionInfo)
+    {
+      globalResourcesIndexArray.clear();
+      functionDependenciesArray.clear();
+
+      globalResourcesIndexArray.reserve(info.globalResources.size());
+      for(const rdcpair<DXIL::ResourceClass, uint32_t> &res : info.globalResources)
+      {
+        int32_t idx = rdat.resourceInfo.indexOf(res);
+        RDCASSERT(idx >= 0);
+        globalResourcesIndexArray.push_back(idx);
+      }
+
+      functionDependenciesArray.reserve(info.functionDependencies.size());
+      for(const rdcstr &f : info.functionDependencies)
+        functionDependenciesArray.push_back(MakeStringRef(stringblob, f).offset);
+
+      // don't expect any extra info currently
+      RDCASSERT(info.extraInfoRef == ~0U);
+      functionInfo2.push_back({
+          {
+              MakeStringRef(stringblob, info.name),
+              MakeStringRef(stringblob, info.unmangledName),
+              MakeIndexArrayRef(indexarrays, globalResourcesIndexArray, true),
+              MakeIndexArrayRef(indexarrays, functionDependenciesArray, true),
+              info.type,
+              info.payloadBytes,
+              info.attribBytes,
+              {uint32_t(info.featureFlags) & 0xffffffff, uint64_t(info.featureFlags) >> 32},
+              info.shaderCompatMask,
+              info.minShaderModel,
+              info.minType,
+          },
+          info.minWaveCount,
+          info.maxWaveCount,
+          info.shaderBehaviourFlags,
+
+          // below here is a stage-specific set of data containing e.g. signature elements.
+          // Currently DXC does not emit RDAT except for in library targets, so this will be
+          // unused. It would be an index into a table elsewhere of VSInfo, PSInfo, etc.
+          {~0U},
+      });
+    }
+  }
+
+  rdcarray<uint32_t> tmpIdxArray;
+  subobjectsInfo.reserve(rdat.subobjectsInfo.size());
+  for(const RDATData::SubobjectInfo &info : rdat.subobjectsInfo)
+  {
+    EncodedSubobjectInfo sub = {
+        info.type,
+        MakeStringRef(stringblob, info.name),
+    };
+
+    switch(info.type)
+    {
+      case RDATData::SubobjectInfo::SubobjectType::StateConfig:
+      {
+        sub.config = info.config;
+        break;
+      }
+        // these are only differentiated by the enum, the data is the same
+      case RDATData::SubobjectInfo::SubobjectType::GlobalRS:
+      case RDATData::SubobjectInfo::SubobjectType::LocalRS:
+        sub.rs.data = MakeBytesRef(rawbyteLookups, info.rs.data);
+        break;
+      case RDATData::SubobjectInfo::SubobjectType::SubobjectToExportsAssoc:
+      {
+        sub.assoc.subobject = MakeStringRef(stringblob, info.assoc.subobject);
+
+        tmpIdxArray.clear();
+        tmpIdxArray.reserve(info.assoc.exports.size());
+        for(const rdcstr &f : info.assoc.exports)
+          tmpIdxArray.push_back(MakeStringRef(stringblob, f).offset);
+
+        sub.assoc.exports = MakeIndexArrayRef(indexarrays, tmpIdxArray, false);
+        break;
+      }
+      case RDATData::SubobjectInfo::SubobjectType::RTShaderConfig:
+      {
+        sub.rtshaderconfig = info.rtshaderconfig;
+        break;
+      }
+        // we can treat these unions identically - in the old config case the flags will be ignored
+        // and should be 0 but the struct is effective padded to the largest union size because of
+        // the fixed stride anyway
+      case RDATData::SubobjectInfo::SubobjectType::RTPipeConfig:
+      {
+        RDCASSERT(info.rtpipeconfig.flags == RDATData::RTPipeFlags::None);
+        DELIBERATE_FALLTHROUGH();
+      }
+      case RDATData::SubobjectInfo::SubobjectType::RTPipeConfig1:
+      {
+        sub.rtpipeconfig = info.rtpipeconfig;
+        break;
+      }
+      case RDATData::SubobjectInfo::SubobjectType::Hitgroup:
+      {
+        sub.hitgroup.type = info.hitgroup.type;
+        sub.hitgroup.anyHit = MakeStringRef(stringblob, info.hitgroup.anyHit);
+        sub.hitgroup.closestHit = MakeStringRef(stringblob, info.hitgroup.closestHit);
+        sub.hitgroup.intersection = MakeStringRef(stringblob, info.hitgroup.intersection);
+        break;
+      }
+      default:
+      {
+        RDCWARN("Unhandled subobject type %d", info.type);
+        break;
+      }
+    }
+
+    subobjectsInfo.push_back(sub);
+  }
+
+  // concatenate bytes together now
+  for(bytebuf &b : rawbyteLookups)
+    rawbytes.append(b);
+
+  // the order of these parts is important and matches dxc
+
+  rdcarray<bytebuf> parts;
+
+  BakeRuntimePart(parts, RDATData::Part::StringBuffer, stringblob.data(), stringblob.count());
+  BakeRuntimeTablePart(parts, RDATData::Part::ResourceTable, resourceInfo);
+  if(!functionInfo.empty())
+    BakeRuntimeTablePart(parts, RDATData::Part::FunctionTable, functionInfo);
+  else
+    BakeRuntimeTablePart(parts, RDATData::Part::FunctionTable, functionInfo2);
+  BakeRuntimePart(parts, RDATData::Part::IndexArrays, indexarrays.data(),
+                  (uint32_t)indexarrays.byteSize());
+  BakeRuntimePart(parts, RDATData::Part::RawBytes, rawbytes.data(), (uint32_t)rawbytes.byteSize());
+  BakeRuntimeTablePart(parts, RDATData::Part::SubobjectTable, subobjectsInfo);
+
+  // write the header last now that the parts are complete
+
+  // part offsets start immediately after the header which includes the part offsets themselves
+  uint32_t offset = sizeof(RDATData::Version1_0) + sizeof(uint32_t) * (1 + parts.count());
+
+  StreamWriter total(256);
+  total.Write(RDATData::Version1_0);
+  total.Write<uint32_t>(parts.count());
+  for(size_t i = 0; i < parts.size(); i++)
+  {
+    total.Write(offset);
+    // parts should already be uint32 aligned
+    offset += (uint32_t)parts[i].byteSize();
+  }
+  // now write the parts themselves
+  for(size_t i = 0; i < parts.size(); i++)
+  {
+    total.Write(parts[i].data(), parts[i].byteSize());
+  }
+
+  DXBC::DXBCContainer::ReplaceChunk(ByteCode, DXBC::FOURCC_RDAT, total.GetData(),
+                                    (size_t)total.GetOffset());
 }
 
 };    // namespace DXBC
