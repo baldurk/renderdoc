@@ -3405,6 +3405,13 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                     {
                       VarType varType = VarTypeForComponentType(compType);
                       typeStr += "<";
+                      if(compType == ComponentType::UNormF64 ||
+                         compType == ComponentType::UNormF32 || compType == ComponentType::UNormF16)
+                        typeStr += "unorm ";
+                      else if(compType == ComponentType::SNormF64 ||
+                              compType == ComponentType::SNormF32 ||
+                              compType == ComponentType::SNormF16)
+                        typeStr += "snorm ";
                       typeStr += ToStr(varType);
                       if(compCount > 1)
                         typeStr += StringFormat::Fmt("%d", compCount);

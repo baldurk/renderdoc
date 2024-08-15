@@ -988,29 +988,11 @@ VarType VarTypeForComponentType(ComponentType compType)
     case ComponentType::F32: varType = VarType::Float; break;
     case ComponentType::F64: varType = VarType::Double; break;
     case ComponentType::SNormF16:
-      varType = VarType::Half;
-      RDCERR("Unexpected type in cbuffer annotations");
-      break;
-    case ComponentType::UNormF16:
-      varType = VarType::Half;
-      RDCERR("Unexpected type in cbuffer annotations");
-      break;
+    case ComponentType::UNormF16: varType = VarType::Half; break;
     case ComponentType::SNormF32:
-      varType = VarType::Float;
-      RDCERR("Unexpected type in cbuffer annotations");
-      break;
-    case ComponentType::UNormF32:
-      varType = VarType::Float;
-      RDCERR("Unexpected type in cbuffer annotations");
-      break;
+    case ComponentType::UNormF32: varType = VarType::Float; break;
     case ComponentType::SNormF64:
-      varType = VarType::Double;
-      RDCERR("Unexpected type in cbuffer annotations");
-      break;
-    case ComponentType::UNormF64:
-      varType = VarType::Double;
-      RDCERR("Unexpected type in cbuffer annotations");
-      break;
+    case ComponentType::UNormF64: varType = VarType::Double; break;
   }
   return varType;
 }
