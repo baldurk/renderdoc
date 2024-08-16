@@ -55,29 +55,147 @@ struct BytesReference
   uint32_t size;
 };
 
-static IndexReference MakeStringRef(rdcstr &stringblob, const rdcstr &str)
+struct StringBuffer
 {
-  // not efficient, we don't cache anything but do a straight linear search.
-  uint32_t offs = 0;
-
-  while(offs < stringblob.length())
+  StringBuffer(bool deduplicating) : dedup(deduplicating)
   {
-    const char *curstr = stringblob.c_str() + offs;
-    uint32_t curlen = (uint32_t)strlen(curstr);
-
-    if(curlen == str.length() && strcmp(curstr, str.c_str()) == 0)
-      return {offs};
-
-    // skip past the NULL terminator to the start of the next string
-    offs += curlen + 1;
+    stringblob.push_back('\0');    // starts with an empty string
   }
 
-  uint32_t ret = (uint32_t)stringblob.length();
-  stringblob.append(str);
-  // we need to explicitly include the NULL terminators
-  stringblob.push_back('\0');
-  return {ret};
-}
+  void Load(const void *data, size_t size) { stringblob.assign((const char *)data, size); }
+  const char *GetString(IndexReference offs) { return stringblob.c_str() + offs.offset; }
+
+  const rdcstr &GetBlob() { return stringblob; }
+
+  IndexReference MakeRef(const rdcstr &str)
+  {
+    if(dedup)
+    {
+      // not efficient, we don't cache anything but do a straight linear search.
+      uint32_t offs = 0;
+
+      while(offs < stringblob.length())
+      {
+        const char *curstr = stringblob.c_str() + offs;
+        uint32_t curlen = (uint32_t)strlen(curstr);
+
+        if(curlen == str.length() && strcmp(curstr, str.c_str()) == 0)
+          return {offs};
+
+        // skip past the NULL terminator to the start of the next string
+        offs += curlen + 1;
+      }
+    }
+
+    uint32_t ret = (uint32_t)stringblob.length();
+    stringblob.append(str);
+    // we need to explicitly include the NULL terminators
+    stringblob.push_back('\0');
+    return {ret};
+  }
+
+private:
+  bool dedup;
+  rdcstr stringblob;
+};
+
+struct IndexArrays
+{
+  IndexArrays(bool deduplicating, bool lengthprefixing)
+      : dedup(deduplicating), prefix(lengthprefixing)
+  {
+  }
+
+  void Load(const void *data, size_t size)
+  {
+    idxArrays.assign((const uint32_t *)data, size / sizeof(uint32_t));
+  }
+
+  template <typename T>
+  struct Span
+  {
+    uint32_t length;
+    T *idxs;
+
+    size_t size() const { return length; }
+    T &operator[](size_t i) { return idxs[i]; }
+  };
+
+  template <typename T>
+  Span<T> GetSpan(IndexReference offs)
+  {
+    if(prefix)
+      return {idxArrays[offs.offset], (T *)&idxArrays[offs.offset + 1]};
+    else
+      return {idxArrays.count() - offs.offset, (T *)&idxArrays[offs.offset]};
+  }
+
+  const rdcarray<uint32_t> &GetBlob() { return idxArrays; }
+
+  IndexReference MakeRef(const rdcarray<uint32_t> &idxs, bool emptyIsNull)
+  {
+    // ~0U indicates NULL, in some cases replaces an empty array
+    if(emptyIsNull && idxs.empty())
+      return {~0U};
+
+    if(dedup)
+    {
+      // not efficient, we don't cache anything but do a straight linear search.
+      uint32_t offs = 0;
+
+      while(offs < idxArrays.size())
+      {
+        const uint32_t *curarray = idxArrays.data() + offs;
+        uint32_t curlen;
+
+        if(prefix)
+        {
+          // length-prefix on array
+          curlen = *curarray;
+          curarray++;
+        }
+        else
+        {
+          // no length, consider everything else feasible and look for a subset match
+          curlen = idxArrays.count() - offs;
+        }
+
+        if((prefix && curlen == idxs.size()) || (!prefix && curlen >= idxs.size()))
+        {
+          bool allsame = true;
+          for(uint32_t i = 0; i < idxs.size() && allsame; i++)
+            allsame &= idxs[i] == curarray[i];
+
+          if(allsame)
+            return {offs};
+        }
+
+        // if length prefixing, skip past the length and the current array
+        // otherwise if not just try at the next possible offset
+        if(prefix)
+        {
+          offs += 1 + curlen;
+        }
+        else
+        {
+          offs++;
+        }
+      }
+    }
+
+    uint32_t ret = (uint32_t)idxArrays.size();
+    // idx arrays are length prefixed
+    if(prefix)
+      idxArrays.push_back((uint32_t)idxs.size());
+    idxArrays.append(idxs);
+    return {ret};
+  }
+
+private:
+  bool dedup;
+  bool prefix;
+  rdcarray<uint32_t> idxArrays;
+};
 
 static BytesReference MakeBytesRef(rdcarray<bytebuf> &bytesblobs, const bytebuf &bytes)
 {
@@ -101,44 +219,6 @@ static BytesReference MakeBytesRef(rdcarray<bytebuf> &bytesblobs, const bytebuf 
   for(int32_t i = 0; i < idx; i++)
     offs += bytesblobs[i].size();
   return {(uint32_t)offs, (uint32_t)bytes.size()};
-}
-
-static IndexReference MakeIndexArrayRef(rdcarray<uint32_t> &idxArrays,
-                                        const rdcarray<uint32_t> &idxs, bool emptyIsNull)
-{
-  // ~0U indicates NULL, in some cases replaces an empty array
-  if(emptyIsNull && idxs.empty())
-    return {~0U};
-
-  // not efficient, we don't cache anything but do a straight linear search.
-  uint32_t offs = 0;
-
-  while(offs < idxArrays.size())
-  {
-    const uint32_t *curarray = idxArrays.data() + offs;
-    // length-prefix on array
-    uint32_t curlen = *curarray;
-    curarray++;
-
-    if(curlen == idxs.size())
-    {
-      bool allsame = true;
-      for(uint32_t i = 0; i < curlen && allsame; i++)
-        allsame &= idxs[i] == curarray[i];
-
-      if(allsame)
-        return {offs};
-    }
-
-    // skip past the length and the current array
-    offs += 1 + curlen;
-  }
-
-  uint32_t ret = (uint32_t)idxArrays.size();
-  // idx arrays are length prefixed
-  idxArrays.push_back((uint32_t)idxs.size());
-  idxArrays.append(idxs);
-  return {ret};
 }
 
 // serialised equivalent to RDAT::ResourceInfo
@@ -227,7 +307,7 @@ struct EncodedSubobjectInfo
   };
 };
 
-static void BakeRuntimePart(rdcarray<bytebuf> &parts, DXIL::RDATData::Part part, void *data,
+static void BakeRuntimePart(rdcarray<bytebuf> &parts, DXIL::RDATData::Part part, const void *data,
                             uint32_t byteSize)
 {
   // empty parts are skipped
@@ -311,8 +391,8 @@ bool DXBCContainer::GetRuntimeData(DXIL::RDATData &rdat) const
   for(uint32_t i = 0; i < numParts; i++)
     partOffsets[i] = ver[2 + i];
 
-  rdcstr stringbuffer;
-  rdcarray<uint32_t> indexArrays;
+  StringBuffer stringbuffer(true);
+  IndexArrays indexArrays(true, true);
   bytebuf rawbytes;
 
   // we need to do this in two passes to first find the index arrays etc which can be referenced
@@ -324,10 +404,8 @@ bool DXBCContainer::GetRuntimeData(DXIL::RDATData &rdat) const
 
     switch(part->part)
     {
-      case RDATData::Part::StringBuffer: stringbuffer.assign((char *)data, part->size); break;
-      case RDATData::Part::IndexArrays:
-        indexArrays.assign((uint32_t *)data, part->size / sizeof(uint32_t));
-        break;
+      case RDATData::Part::StringBuffer: stringbuffer.Load(data, part->size); break;
+      case RDATData::Part::IndexArrays: indexArrays.Load(data, part->size); break;
       case RDATData::Part::RawBytes: rawbytes.assign(data, part->size); break;
       default: break;    // ignore others for now
     }
@@ -361,7 +439,7 @@ bool DXBCContainer::GetRuntimeData(DXIL::RDATData &rdat) const
               info.space,
               info.regStart,
               info.regEnd,
-              stringbuffer.c_str() + info.name.offset,
+              stringbuffer.GetString(info.name),
               info.flags,
           });
         }
@@ -386,8 +464,8 @@ bool DXBCContainer::GetRuntimeData(DXIL::RDATData &rdat) const
           EncodedFunctionInfo2 &info2 = (EncodedFunctionInfo2 &)*data;
 
           RDATData::FunctionInfo out = {
-              stringbuffer.c_str() + info.name.offset,
-              stringbuffer.c_str() + info.unmangledName.offset,
+              stringbuffer.GetString(info.name),
+              stringbuffer.GetString(info.unmangledName),
               {},
               {},
               info.type,
@@ -406,23 +484,21 @@ bool DXBCContainer::GetRuntimeData(DXIL::RDATData &rdat) const
 
           if(info.globalResourcesIndexArrayRef.offset != ~0U)
           {
-            uint32_t *idxArray = indexArrays.data() + info.globalResourcesIndexArrayRef.offset;
-            uint32_t len = *idxArray;
-            idxArray++;
-            func.globalResources.reserve(len);
-            for(uint32_t j = 0; j < len; j++)
-              func.globalResources.push_back({rdat.resourceInfo[idxArray[j]].nspace,
-                                              rdat.resourceInfo[idxArray[j]].resourceIndex});
+            IndexArrays::Span<uint32_t> resources =
+                indexArrays.GetSpan<uint32_t>(info.globalResourcesIndexArrayRef);
+            func.globalResources.reserve(resources.size());
+            for(uint32_t j = 0; j < resources.size(); j++)
+              func.globalResources.push_back({rdat.resourceInfo[resources[j]].nspace,
+                                              rdat.resourceInfo[resources[j]].resourceIndex});
           }
 
           if(info.functionDependenciesArrayRef.offset != ~0U)
           {
-            uint32_t *idxArray = indexArrays.data() + info.functionDependenciesArrayRef.offset;
-            uint32_t len = *idxArray;
-            idxArray++;
-            func.functionDependencies.reserve(len);
-            for(uint32_t j = 0; j < len; j++)
-              func.functionDependencies.push_back(stringbuffer.c_str() + idxArray[j]);
+            IndexArrays::Span<IndexReference> deps =
+                indexArrays.GetSpan<IndexReference>(info.functionDependenciesArrayRef);
+            func.functionDependencies.reserve(deps.size());
+            for(uint32_t j = 0; j < deps.size(); j++)
+              func.functionDependencies.push_back(stringbuffer.GetString(deps[j]));
           }
 
           if(rdat.functionVersion == RDATData::FunctionInfoVersion::Version2)
@@ -458,7 +534,7 @@ bool DXBCContainer::GetRuntimeData(DXIL::RDATData &rdat) const
 
           rdat.subobjectsInfo.push_back({
               info.type,
-              stringbuffer.c_str() + info.name.offset,
+              stringbuffer.GetString(info.name),
           });
 
           RDATData::SubobjectInfo &sub = rdat.subobjectsInfo.back();
@@ -477,16 +553,15 @@ bool DXBCContainer::GetRuntimeData(DXIL::RDATData &rdat) const
               break;
             case RDATData::SubobjectInfo::SubobjectType::SubobjectToExportsAssoc:
             {
-              sub.assoc.subobject = stringbuffer.c_str() + info.assoc.subobject.offset;
+              sub.assoc.subobject = stringbuffer.GetString(info.assoc.subobject);
 
               if(info.assoc.exports.offset != ~0U)
               {
-                uint32_t *idxArray = indexArrays.data() + info.assoc.exports.offset;
-                uint32_t len = *idxArray;
-                idxArray++;
-                sub.assoc.exports.reserve(len);
-                for(uint32_t j = 0; j < len; j++)
-                  sub.assoc.exports.push_back(stringbuffer.c_str() + idxArray[j]);
+                IndexArrays::Span<IndexReference> exports =
+                    indexArrays.GetSpan<IndexReference>(info.assoc.exports);
+                sub.assoc.exports.reserve(exports.size());
+                for(uint32_t j = 0; j < exports.size(); j++)
+                  sub.assoc.exports.push_back(stringbuffer.GetString(exports[j]));
               }
 
               break;
@@ -512,9 +587,9 @@ bool DXBCContainer::GetRuntimeData(DXIL::RDATData &rdat) const
             case RDATData::SubobjectInfo::SubobjectType::Hitgroup:
             {
               sub.hitgroup.type = info.hitgroup.type;
-              sub.hitgroup.anyHit = stringbuffer.c_str() + info.hitgroup.anyHit.offset;
-              sub.hitgroup.closestHit = stringbuffer.c_str() + info.hitgroup.closestHit.offset;
-              sub.hitgroup.intersection = stringbuffer.c_str() + info.hitgroup.intersection.offset;
+              sub.hitgroup.anyHit = stringbuffer.GetString(info.hitgroup.anyHit);
+              sub.hitgroup.closestHit = stringbuffer.GetString(info.hitgroup.closestHit);
+              sub.hitgroup.intersection = stringbuffer.GetString(info.hitgroup.intersection);
               break;
             }
             default:
@@ -538,11 +613,9 @@ void DXBCContainer::SetRuntimeData(bytebuf &ByteCode, const DXIL::RDATData &rdat
 {
   using namespace DXIL;
 
-  rdcstr stringblob;
-  // initialise string blob with empty string at 0 offset
-  stringblob.push_back('\0');
+  StringBuffer stringblob(true);
 
-  rdcarray<uint32_t> indexarrays;
+  IndexArrays indexarrays(true, true);
   // due to how these are stored and deduplicated (and we have to deduplicate because DXC does so we
   // don't know if it's necessary) we have to store byte buffers individually or have some kind of
   // lookup which amounts to the same thing. This will get baked into rawbytes at the end
@@ -564,7 +637,7 @@ void DXBCContainer::SetRuntimeData(bytebuf &ByteCode, const DXIL::RDATData &rdat
         info.space,
         info.regStart,
         info.regEnd,
-        MakeStringRef(stringblob, info.name),
+        stringblob.MakeRef(info.name),
         info.flags,
     });
   }
@@ -575,7 +648,7 @@ void DXBCContainer::SetRuntimeData(bytebuf &ByteCode, const DXIL::RDATData &rdat
   // offsets in order to exactly match RDAT contents to what dxc produces
   for(const RDATData::FunctionInfo2 &info : rdat.functionInfo)
     for(const rdcstr &f : info.functionDependencies)
-      MakeStringRef(stringblob, f);
+      stringblob.MakeRef(f);
 
   if(rdat.functionVersion == RDATData::FunctionInfoVersion::Version1)
   {
@@ -598,13 +671,13 @@ void DXBCContainer::SetRuntimeData(bytebuf &ByteCode, const DXIL::RDATData &rdat
 
       functionDependenciesArray.reserve(info.functionDependencies.size());
       for(const rdcstr &f : info.functionDependencies)
-        functionDependenciesArray.push_back(MakeStringRef(stringblob, f).offset);
+        functionDependenciesArray.push_back(stringblob.MakeRef(f).offset);
 
       functionInfo.push_back({
-          MakeStringRef(stringblob, info.name),
-          MakeStringRef(stringblob, info.unmangledName),
-          MakeIndexArrayRef(indexarrays, globalResourcesIndexArray, true),
-          MakeIndexArrayRef(indexarrays, functionDependenciesArray, true),
+          stringblob.MakeRef(info.name),
+          stringblob.MakeRef(info.unmangledName),
+          indexarrays.MakeRef(globalResourcesIndexArray, true),
+          indexarrays.MakeRef(functionDependenciesArray, true),
           info.type,
           info.payloadBytes,
           info.attribBytes,
@@ -636,16 +709,16 @@ void DXBCContainer::SetRuntimeData(bytebuf &ByteCode, const DXIL::RDATData &rdat
 
       functionDependenciesArray.reserve(info.functionDependencies.size());
       for(const rdcstr &f : info.functionDependencies)
-        functionDependenciesArray.push_back(MakeStringRef(stringblob, f).offset);
+        functionDependenciesArray.push_back(stringblob.MakeRef(f).offset);
 
       // don't expect any extra info currently
       RDCASSERT(info.extraInfoRef == ~0U);
       functionInfo2.push_back({
           {
-              MakeStringRef(stringblob, info.name),
-              MakeStringRef(stringblob, info.unmangledName),
-              MakeIndexArrayRef(indexarrays, globalResourcesIndexArray, true),
-              MakeIndexArrayRef(indexarrays, functionDependenciesArray, true),
+              stringblob.MakeRef(info.name),
+              stringblob.MakeRef(info.unmangledName),
+              indexarrays.MakeRef(globalResourcesIndexArray, true),
+              indexarrays.MakeRef(functionDependenciesArray, true),
               info.type,
               info.payloadBytes,
               info.attribBytes,
@@ -672,7 +745,7 @@ void DXBCContainer::SetRuntimeData(bytebuf &ByteCode, const DXIL::RDATData &rdat
   {
     EncodedSubobjectInfo sub = {
         info.type,
-        MakeStringRef(stringblob, info.name),
+        stringblob.MakeRef(info.name),
     };
 
     switch(info.type)
@@ -689,14 +762,14 @@ void DXBCContainer::SetRuntimeData(bytebuf &ByteCode, const DXIL::RDATData &rdat
         break;
       case RDATData::SubobjectInfo::SubobjectType::SubobjectToExportsAssoc:
       {
-        sub.assoc.subobject = MakeStringRef(stringblob, info.assoc.subobject);
+        sub.assoc.subobject = stringblob.MakeRef(info.assoc.subobject);
 
         tmpIdxArray.clear();
         tmpIdxArray.reserve(info.assoc.exports.size());
         for(const rdcstr &f : info.assoc.exports)
-          tmpIdxArray.push_back(MakeStringRef(stringblob, f).offset);
+          tmpIdxArray.push_back(stringblob.MakeRef(f).offset);
 
-        sub.assoc.exports = MakeIndexArrayRef(indexarrays, tmpIdxArray, false);
+        sub.assoc.exports = indexarrays.MakeRef(tmpIdxArray, false);
         break;
       }
       case RDATData::SubobjectInfo::SubobjectType::RTShaderConfig:
@@ -720,9 +793,9 @@ void DXBCContainer::SetRuntimeData(bytebuf &ByteCode, const DXIL::RDATData &rdat
       case RDATData::SubobjectInfo::SubobjectType::Hitgroup:
       {
         sub.hitgroup.type = info.hitgroup.type;
-        sub.hitgroup.anyHit = MakeStringRef(stringblob, info.hitgroup.anyHit);
-        sub.hitgroup.closestHit = MakeStringRef(stringblob, info.hitgroup.closestHit);
-        sub.hitgroup.intersection = MakeStringRef(stringblob, info.hitgroup.intersection);
+        sub.hitgroup.anyHit = stringblob.MakeRef(info.hitgroup.anyHit);
+        sub.hitgroup.closestHit = stringblob.MakeRef(info.hitgroup.closestHit);
+        sub.hitgroup.intersection = stringblob.MakeRef(info.hitgroup.intersection);
         break;
       }
       default:
@@ -743,14 +816,15 @@ void DXBCContainer::SetRuntimeData(bytebuf &ByteCode, const DXIL::RDATData &rdat
 
   rdcarray<bytebuf> parts;
 
-  BakeRuntimePart(parts, RDATData::Part::StringBuffer, stringblob.data(), stringblob.count());
+  BakeRuntimePart(parts, RDATData::Part::StringBuffer, stringblob.GetBlob().data(),
+                  stringblob.GetBlob().count());
   BakeRuntimeTablePart(parts, RDATData::Part::ResourceTable, resourceInfo);
   if(!functionInfo.empty())
     BakeRuntimeTablePart(parts, RDATData::Part::FunctionTable, functionInfo);
   else
     BakeRuntimeTablePart(parts, RDATData::Part::FunctionTable, functionInfo2);
-  BakeRuntimePart(parts, RDATData::Part::IndexArrays, indexarrays.data(),
-                  (uint32_t)indexarrays.byteSize());
+  BakeRuntimePart(parts, RDATData::Part::IndexArrays, indexarrays.GetBlob().data(),
+                  (uint32_t)indexarrays.GetBlob().byteSize());
   BakeRuntimePart(parts, RDATData::Part::RawBytes, rawbytes.data(), (uint32_t)rawbytes.byteSize());
   BakeRuntimeTablePart(parts, RDATData::Part::SubobjectTable, subobjectsInfo);
 
