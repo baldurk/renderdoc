@@ -26,7 +26,7 @@
 
 namespace DXBC
 {
-enum class ShaderType : uint32_t;
+enum class ShaderType : uint8_t;
 enum class GlobalShaderFlags : int64_t;
 };
 
@@ -87,6 +87,58 @@ enum class ResourceKind
   FeedbackTexture2DArray,
   StructuredBufferWithCounter,
   SamplerComparison,
+};
+
+// different semantic enum
+enum class SigSemantic : uint8_t
+{
+  Undefined = 0,
+  VertexIndex,
+  InstanceIndex,
+  Position,
+  RTIndex,
+  ViewportIndex,
+  ClipDistance,
+  CullDistance,
+  OutputControlPointIndex,
+  DomainLocation,
+  PrimitiveIndex,
+  GSInstanceIndex,
+  MSAASampleIndex,
+  IsFrontFace,
+  MSAACoverage,
+  IsFullyCovered,
+  ColorOutput,
+  DepthOutput,
+  DepthOutputLessEqual,
+  DepthOutputGreaterEqual,
+  StencilReference,
+  DispatchThreadIndex,
+  GroupIndex,
+  GroupFlatIndex,
+  GroupThreadIndex,
+  OuterTessFactor,
+  InsideTessFactor,
+  MultiViewIndex,
+  Barycentrics,
+  PackedFragRate,
+  CullPrimitive,
+  BaseVertex,
+  BaseInstance,
+};
+
+enum class DXILResourceType : uint32_t
+{
+  Unknown,
+  Sampler,
+  CBuffer,
+  TypedSRV,
+  ByteAddressSRV,
+  StructuredSRV,
+  TypedUAV,
+  ByteAddressUAV,
+  StructuredUAV,
+  StructuredUAVWithCounter,
 };
 
 enum class SamplerKind

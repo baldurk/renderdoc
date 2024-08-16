@@ -434,9 +434,9 @@ rdcstr DoStringise(const DXBCBytecode::ResinfoRetType &el)
 }
 
 template <>
-rdcstr DoStringise(const DXBCBytecode::InterpolationMode &el)
+rdcstr DoStringise(const DXBC::InterpolationMode &el)
 {
-  BEGIN_ENUM_STRINGISE(DXBCBytecode::InterpolationMode)
+  BEGIN_ENUM_STRINGISE(DXBC::InterpolationMode)
   {
     STRINGISE_ENUM_CLASS_NAMED(INTERPOLATION_UNDEFINED, "undefined");
     // differs slightly from fxc but it's very convenient to use the hlsl terms, which are used in

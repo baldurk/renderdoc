@@ -2218,11 +2218,11 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
     retDecl.tessDomain = Decl::TessDomain.Get(OpcodeToken0);
 
     retDecl.str += " ";
-    if(retDecl.tessDomain == DOMAIN_ISOLINE)
+    if(retDecl.tessDomain == DXBC::TessellatorDomain::DOMAIN_ISOLINE)
       retDecl.str += "domain_isoline";
-    else if(retDecl.tessDomain == DOMAIN_TRI)
+    else if(retDecl.tessDomain == DXBC::TessellatorDomain::DOMAIN_TRI)
       retDecl.str += "domain_tri";
-    else if(retDecl.tessDomain == DOMAIN_QUAD)
+    else if(retDecl.tessDomain == DXBC::TessellatorDomain::DOMAIN_QUAD)
       retDecl.str += "domain_quad";
     else
       RDCERR("Unexpected Tessellation domain");
@@ -2232,13 +2232,13 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
     retDecl.tessPartition = Decl::TessPartitioning.Get(OpcodeToken0);
 
     retDecl.str += " ";
-    if(retDecl.tessPartition == PARTITIONING_INTEGER)
+    if(retDecl.tessPartition == DXBC::PARTITIONING_INTEGER)
       retDecl.str += "partitioning_integer";
-    else if(retDecl.tessPartition == PARTITIONING_POW2)
+    else if(retDecl.tessPartition == DXBC::PARTITIONING_POW2)
       retDecl.str += "partitioning_pow2";
-    else if(retDecl.tessPartition == PARTITIONING_FRACTIONAL_ODD)
+    else if(retDecl.tessPartition == DXBC::PARTITIONING_FRACTIONAL_ODD)
       retDecl.str += "partitioning_fractional_odd";
-    else if(retDecl.tessPartition == PARTITIONING_FRACTIONAL_EVEN)
+    else if(retDecl.tessPartition == DXBC::PARTITIONING_FRACTIONAL_EVEN)
       retDecl.str += "partitioning_fractional_even";
     else
       RDCERR("Unexpected Partitioning");
@@ -2248,22 +2248,22 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
     retDecl.geomInputPrimitive = Decl::InputPrimitive.Get(OpcodeToken0);
 
     retDecl.str += " ";
-    if(retDecl.geomInputPrimitive == PRIMITIVE_POINT)
+    if(retDecl.geomInputPrimitive == DXBC::PRIMITIVE_POINT)
       retDecl.str += "point";
-    else if(retDecl.geomInputPrimitive == PRIMITIVE_LINE)
+    else if(retDecl.geomInputPrimitive == DXBC::PRIMITIVE_LINE)
       retDecl.str += "line";
-    else if(retDecl.geomInputPrimitive == PRIMITIVE_TRIANGLE)
+    else if(retDecl.geomInputPrimitive == DXBC::PRIMITIVE_TRIANGLE)
       retDecl.str += "triangle";
-    else if(retDecl.geomInputPrimitive == PRIMITIVE_LINE_ADJ)
+    else if(retDecl.geomInputPrimitive == DXBC::PRIMITIVE_LINE_ADJ)
       retDecl.str += "line_adj";
-    else if(retDecl.geomInputPrimitive == PRIMITIVE_TRIANGLE_ADJ)
+    else if(retDecl.geomInputPrimitive == DXBC::PRIMITIVE_TRIANGLE_ADJ)
       retDecl.str += "triangle_adj";
-    else if(retDecl.geomInputPrimitive >= PRIMITIVE_1_CONTROL_POINT_PATCH &&
-            retDecl.geomInputPrimitive <= PRIMITIVE_32_CONTROL_POINT_PATCH)
+    else if(retDecl.geomInputPrimitive >= DXBC::PRIMITIVE_1_CONTROL_POINT_PATCH &&
+            retDecl.geomInputPrimitive <= DXBC::PRIMITIVE_32_CONTROL_POINT_PATCH)
     {
-      retDecl.str +=
-          StringFormat::Fmt("control_point_patch_%u",
-                            1 + int(retDecl.geomInputPrimitive - PRIMITIVE_1_CONTROL_POINT_PATCH));
+      retDecl.str += StringFormat::Fmt(
+          "control_point_patch_%u",
+          1 + int(retDecl.geomInputPrimitive - DXBC::PRIMITIVE_1_CONTROL_POINT_PATCH));
     }
     else
       RDCERR("Unexpected primitive type");
@@ -2299,13 +2299,13 @@ bool Program::DecodeDecl(uint32_t *&tokenStream, Declaration &retDecl, bool frie
     retDecl.tessOutputPrimitive = Decl::OutputPrimitive.Get(OpcodeToken0);
 
     retDecl.str += " ";
-    if(retDecl.tessOutputPrimitive == OUTPUT_PRIMITIVE_POINT)
+    if(retDecl.tessOutputPrimitive == DXBC::OUTPUT_PRIMITIVE_POINT)
       retDecl.str += "output_point";
-    else if(retDecl.tessOutputPrimitive == OUTPUT_PRIMITIVE_LINE)
+    else if(retDecl.tessOutputPrimitive == DXBC::OUTPUT_PRIMITIVE_LINE)
       retDecl.str += "output_line";
-    else if(retDecl.tessOutputPrimitive == OUTPUT_PRIMITIVE_TRIANGLE_CW)
+    else if(retDecl.tessOutputPrimitive == DXBC::OUTPUT_PRIMITIVE_TRIANGLE_CW)
       retDecl.str += "output_triangle_cw";
-    else if(retDecl.tessOutputPrimitive == OUTPUT_PRIMITIVE_TRIANGLE_CCW)
+    else if(retDecl.tessOutputPrimitive == DXBC::OUTPUT_PRIMITIVE_TRIANGLE_CCW)
       retDecl.str += "output_triangle_ccw";
     else
       RDCERR("Unexpected output primitive");

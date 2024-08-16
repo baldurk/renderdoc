@@ -40,20 +40,6 @@ class BitcodeWriter;
 
 namespace DXIL
 {
-enum class DXILResourceType
-{
-  Unknown,
-  Sampler,
-  CBuffer,
-  TypedSRV,
-  ByteAddressSRV,
-  StructuredSRV,
-  TypedUAV,
-  ByteAddressUAV,
-  StructuredUAV,
-  StructuredUAVWithCounter,
-};
-
 enum class HandleKind
 {
   SRV = 0,

@@ -166,26 +166,26 @@ static MaskedElement<DXBC::ResourceRetType, 0x0000F000> ReturnTypeW;
 
 // OPCODE_DCL_INPUT_PS
 // OPCODE_DCL_INPUT_PS_SIV
-static MaskedElement<InterpolationMode, 0x00007800> InterpolationMode;
+static MaskedElement<DXBC::InterpolationMode, 0x00007800> InterpolationMode;
 
 // OPCODE_DCL_INPUT_CONTROL_POINT_COUNT
 // OPCODE_DCL_OUTPUT_CONTROL_POINT_COUNT
 static MaskedElement<uint32_t, 0x0001F800> ControlPointCount;
 
 // OPCODE_DCL_TESS_DOMAIN
-static MaskedElement<TessellatorDomain, 0x00001800> TessDomain;
+static MaskedElement<DXBC::TessellatorDomain, 0x00001800> TessDomain;
 
 // OPCODE_DCL_TESS_PARTITIONING
-static MaskedElement<TessellatorPartitioning, 0x00003800> TessPartitioning;
+static MaskedElement<DXBC::TessellatorPartitioning, 0x00003800> TessPartitioning;
 
 // OPCODE_DCL_GS_INPUT_PRIMITIVE
-static MaskedElement<PrimitiveType, 0x0001F800> InputPrimitive;
+static MaskedElement<DXBC::PrimitiveType, 0x0001F800> InputPrimitive;
 
 // OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY
 static MaskedElement<D3D_PRIMITIVE_TOPOLOGY, 0x0001F800> OutputPrimitiveTopology;
 
 // OPCODE_DCL_TESS_OUTPUT_PRIMITIVE
-static MaskedElement<TessellatorOutputPrimitive, 0x00003800> OutputPrimitive;
+static MaskedElement<DXBC::TessellatorOutputPrimitive, 0x00003800> OutputPrimitive;
 
 // OPCODE_DCL_UNORDERED_ACCESS_VIEW_TYPED
 static MaskedElement<bool, 0x00010000> GloballyCoherent;

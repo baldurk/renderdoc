@@ -161,7 +161,11 @@ struct EncodedFunctionInfo
   IndexReference unmangledName;
   IndexReference globalResourcesIndexArrayRef;
   IndexReference functionDependenciesArrayRef;
-  DXBC::ShaderType type;
+  union
+  {
+    DXBC::ShaderType type;
+    uint32_t type_padding_;    // pad to 32-bit so the enum can be 8-bit
+  };
   uint32_t payloadBytes;
   uint32_t attribBytes;
   // extremely annoyingly this is two 32-bit integers which is relevant since 64-bit alignment
@@ -267,6 +271,14 @@ namespace DXBC
 {
 bool DXBCContainer::GetPipelineValidation(DXIL::PSVData &psv) const
 {
+  RDCCOMPILE_ASSERT(sizeof(DXIL::PSVData0) == DXIL::PSVData0::ExpectedSize,
+                    "PSVData0 is not sized/packed correctly");
+  RDCCOMPILE_ASSERT(sizeof(DXIL::PSVData1) == DXIL::PSVData1::ExpectedSize,
+                    "PSVData1 is not sized/packed correctly");
+  RDCCOMPILE_ASSERT(sizeof(DXIL::PSVData2) == DXIL::PSVData2::ExpectedSize,
+                    "PSVData2 is not sized/packed correctly");
+  RDCCOMPILE_ASSERT(offsetof(DXIL::PSVData1, inputSigElems) == sizeof(DXIL::PSVData0) + 4, "!!!");
+
   using namespace DXIL;
 
   if(m_PSVOffset == 0)

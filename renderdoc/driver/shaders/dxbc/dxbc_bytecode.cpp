@@ -577,7 +577,7 @@ D3D_PRIMITIVE_TOPOLOGY Program::GetOutputTopology()
       return decl.geomOutputTopology;
     if(decl.declaration == DXBCBytecode::OPCODE_DCL_TESS_DOMAIN)
     {
-      if(decl.tessDomain == DXBCBytecode::DOMAIN_ISOLINE)
+      if(decl.tessDomain == DXBC::TessellatorDomain::DOMAIN_ISOLINE)
         return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
       else
         return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;

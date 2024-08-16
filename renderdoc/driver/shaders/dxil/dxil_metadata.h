@@ -24,19 +24,222 @@
 
 #pragma once
 
+#include "driver/dx/official/d3dcommon.h"
+#include "driver/shaders/dxbc/dxbc_common.h"
 #include "dxil_common.h"
 
 namespace DXBC
 {
-enum class ShaderType : uint32_t;
+enum class ShaderType : uint8_t;
 enum class GlobalShaderFlags : int64_t;
 };
 
 namespace DXIL
 {
 
-struct PSVData
+struct PSVData0
 {
+  struct VSInfo
+  {
+    bool SVPositionOutput;
+  };
+
+  struct HSInfo
+  {
+    uint32_t inputCPs;
+    uint32_t outputCPs;
+    DXBC::TessellatorDomain tessDomain;
+    DXBC::TessellatorOutputPrimitive outPrim;
+  };
+
+  struct DSInfo
+  {
+    uint32_t inputCPs;
+    bool SVPositionOutput;
+    DXBC::TessellatorDomain tessDomain;
+  };
+
+  struct GSInfo
+  {
+    DXBC::PrimitiveType inputPrim;
+    D3D_PRIMITIVE_TOPOLOGY outputTopo;
+    uint32_t outputStreams;
+    bool SVPositionOutput;
+  };
+
+  struct PSInfo
+  {
+    bool SVDepthOutput;
+    bool SampleRate;
+  };
+
+  struct ASInfo
+  {
+    uint32_t payloadBytes;
+  };
+
+  struct MSInfo
+  {
+    uint32_t groupsharedBytes;
+    uint32_t groupsharedViewIDDepBytes;
+    uint32_t payloadBytes;
+    uint16_t maxVerts;
+    uint16_t maxPrims;
+  };
+
+  union
+  {
+    VSInfo vs;
+    HSInfo hs;
+    DSInfo ds;
+    GSInfo gs;
+    PSInfo ps;
+    ASInfo as;
+    MSInfo ms;
+  };
+  uint32_t minWaveCount;
+  uint32_t maxWaveCount;
+
+  static const size_t ExpectedSize = sizeof(uint32_t) * 6;
+};
+
+struct PSVData1 : public PSVData0
+{
+  static const uint32_t NumOutputStreams = 4;
+
+  DXBC::ShaderType shaderType;
+  bool useViewID;
+
+  union
+  {
+    struct
+    {
+      uint16_t maxVerts;
+    } gs1;
+
+    struct
+    {
+      uint8_t sigPatchConstVectors;
+    } hs, gs;
+
+    struct
+    {
+      uint8_t sigPrimVectors;
+      DXBC::TessellatorDomain topology;
+    } ms;
+  };
+
+  uint8_t inputSigElems;
+  uint8_t outputSigElems;
+  uint8_t patchConstPrimSigElems;
+
+  uint8_t inputSigVectors;
+  uint8_t outputSigVectors[NumOutputStreams];    // one per geometry stream
+
+  static const size_t ExpectedSize = sizeof(PSVData0) + sizeof(uint16_t) + 10 * sizeof(uint8_t);
+};
+
+struct PSVData2 : public PSVData1
+{
+  uint32_t threadCount[3];
+
+  static const size_t ExpectedSize = sizeof(PSVData1) + 3 * sizeof(uint32_t);
+};
+
+struct PSVResource0
+{
+  DXILResourceType type;
+  uint32_t space;       // register space
+  uint32_t regStart;    // start register (inclusive - for single register bind it's == reg)
+  uint32_t regEnd;      // end register (inclusive - for single register bind it's == reg)
+};
+
+enum class PSVResourceFlags
+{
+  None = 0x0,
+  Atomic64 = 0x1,
+};
+
+struct PSVResource1 : public PSVResource0
+{
+  DXIL::ResourceKind kind;
+  PSVResourceFlags flags;
+};
+
+using PSVResource = PSVResource1;
+
+struct PSVSignature0
+{
+  rdcstr name;
+  rdcarray<uint32_t> semIndices;
+  uint8_t rows;
+  uint8_t firstRow;
+  uint8_t cols;        // : 4
+  uint8_t startCol;    // :2
+  uint8_t alloc;       // :2
+  SigSemantic semantic;
+  DXBC::SigCompType compType;
+  DXBC::InterpolationMode interpMode;
+  uint8_t dynamicMask;    // :4
+  uint8_t stream;         // :2
+  uint8_t padding;
+};
+
+using PSVSignature = PSVSignature0;
+
+inline const uint32_t VectorBitmaskBitSize(uint32_t numVectors)
+{
+  return AlignUp(numVectors * 4, 64U);
+}
+
+struct PSVData : public PSVData2
+{
+  enum class Version
+  {
+    Version0 = 0,
+    Version1,
+    Version2,
+    VersionLatest = Version2,
+  } version = Version::VersionLatest;
+
+  rdcarray<PSVResource> resources;
+
+  // stringtable
+  // semanticindexs
+
+  rdcarray<PSVSignature> inputSig;
+  rdcarray<PSVSignature> outputSig;
+  rdcarray<PSVSignature> patchConstPrimSig;
+
+  // in the tables below we assume no more than 64 dwords in any signature (16 vectors) so store
+  // bitmasks as 64-bit.
+
+  // if view ID is used, a bitmask per output stream, the bitmask containing one bit per dword as
+  // in PSVData1::outputSigVectors indicating if that output vector depends on view ID
+  struct
+  {
+    uint64_t outputMask;
+    uint64_t patchConstMask;
+  } viewIDAffects[PSVData1::NumOutputStreams];
+
+  // for each stream, a bitmask for each input vector with the bitmask containing which output
+  // vectors have a dependency on the input vector.
+  struct
+  {
+    rdcarray<uint64_t> dependentOutputsForInput;
+  } IODependencies[PSVData1::NumOutputStreams];
+
+  // same as above, but for patch constant outputs on inputs - HS only
+  struct
+  {
+    rdcarray<uint64_t> dependentPCOutputsForInput;
+  } PCOutDependencies;
+
+  // same as above, but for outputs on patch constant inputs - DS only
+  struct
+  {
+    rdcarray<uint64_t> dependentOutputsForPCInput;
+  } PCInDependencies;
 };
 
 struct RDATData
@@ -116,7 +319,7 @@ struct RDATData
     uint16_t minType;    // looks to always be equal to type above
   };
 
-  struct FunctionInfo2 : FunctionInfo
+  struct FunctionInfo2 : public FunctionInfo
   {
     FunctionInfo2(FunctionInfo &info) : FunctionInfo(info)
     {
@@ -233,5 +436,6 @@ struct RDATData
 
 };
 
+BITMASK_OPERATORS(DXIL::PSVResourceFlags);
 BITMASK_OPERATORS(DXIL::RDATData::ResourceFlags);
 BITMASK_OPERATORS(DXIL::RDATData::ShaderBehaviourFlags);

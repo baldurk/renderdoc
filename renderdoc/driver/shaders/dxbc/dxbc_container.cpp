@@ -1949,23 +1949,23 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
 
         SigCompType compType = (SigCompType)el->componentType;
         desc.varType = VarType::Float;
-        if(compType == COMPONENT_TYPE_UINT32)
+        if(compType == DXBC::SigCompType::COMPONENT_TYPE_UINT32)
           desc.varType = VarType::UInt;
-        else if(compType == COMPONENT_TYPE_SINT32)
+        else if(compType == DXBC::SigCompType::COMPONENT_TYPE_SINT32)
           desc.varType = VarType::SInt;
-        else if(compType == COMPONENT_TYPE_FLOAT32)
+        else if(compType == DXBC::SigCompType::COMPONENT_TYPE_FLOAT32)
           desc.varType = VarType::Float;
-        else if(compType == COMPONENT_TYPE_UINT16)
+        else if(compType == DXBC::SigCompType::COMPONENT_TYPE_UINT16)
           desc.varType = VarType::UShort;
-        else if(compType == COMPONENT_TYPE_SINT16)
+        else if(compType == DXBC::SigCompType::COMPONENT_TYPE_SINT16)
           desc.varType = VarType::SShort;
-        else if(compType == COMPONENT_TYPE_FLOAT16)
+        else if(compType == DXBC::SigCompType::COMPONENT_TYPE_FLOAT16)
           desc.varType = VarType::Half;
-        else if(compType == COMPONENT_TYPE_UINT64)
+        else if(compType == DXBC::SigCompType::COMPONENT_TYPE_UINT64)
           desc.varType = VarType::ULong;
-        else if(compType == COMPONENT_TYPE_SINT64)
+        else if(compType == DXBC::SigCompType::COMPONENT_TYPE_SINT64)
           desc.varType = VarType::SLong;
-        else if(compType == COMPONENT_TYPE_FLOAT64)
+        else if(compType == DXBC::SigCompType::COMPONENT_TYPE_FLOAT64)
           desc.varType = VarType::Double;
 
         desc.regChannelMask = (uint8_t)(el->mask & 0xff);
