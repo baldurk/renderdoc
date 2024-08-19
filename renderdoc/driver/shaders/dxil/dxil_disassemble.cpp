@@ -102,7 +102,7 @@ bool DXIL::IsDXCNop(const Instruction &inst)
 
 bool DXIL::IsLLVMDebugCall(const Instruction &inst)
 {
-  return ((inst.op == Operation::Call) && (inst.getFuncCall()->name.beginsWith("llvm.dbg.")));
+  return ((inst.op == Operation::Call) && (inst.getFuncCall()->family == FunctionFamily::LLVMDbg));
 }
 
 // true if the Value is an SSA value i.e. from an instruction, not a constant etc.
@@ -1092,6 +1092,34 @@ void Program::SettleIDs()
         if(inst->getName().isEmpty())
           inst->slot = slot++;
 #endif
+      }
+      if(inst->op == Operation::Call)
+      {
+        Function *callFunc = (Function *)inst->getFuncCall();
+        callFunc->family = FunctionFamily::LLVM;
+        rdcstr funcCallName = inst->getFuncCall()->name;
+        if(funcCallName.beginsWith("dx.op."))
+        {
+          DXOp dxOpCode = DXOp::NumOpCodes;
+          RDCASSERT(getival<DXOp>(inst->args[0], dxOpCode));
+          RDCASSERT(dxOpCode < DXOp::NumOpCodes, dxOpCode, DXOp::NumOpCodes);
+          // Have to use beginsWith to include the function names which a type suffix ie. ".f32"
+          RDCASSERT(funcCallName.beginsWith(dxOpFunctionNames[(uint32_t)dxOpCode]));
+          callFunc->family = FunctionFamily::DXOp;
+        }
+        else if(funcCallName.beginsWith("llvm.dbg."))
+        {
+          LLVMDbgOp dbgOpCode = LLVMDbgOp::Unknown;
+          if(funcCallName == "llvm.dbg.declare")
+            dbgOpCode = LLVMDbgOp::Declare;
+          else if(funcCallName == "llvm.dbg.value")
+            dbgOpCode = LLVMDbgOp::Value;
+          else
+            RDCERR("Unknown llv.dbg call: ", funcCallName.c_str());
+
+          callFunc->family = FunctionFamily::LLVMDbg;
+          callFunc->llvmDbgOp = dbgOpCode;
+        }
       }
     }
 
@@ -3108,764 +3136,811 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
           case Operation::NoOp: lineStr += "nop"; break;
           case Operation::Call:
           {
-            rdcstr funcCallName = inst.getFuncCall()->name;
-            DXOp dxOpCode = DXOp::NumOpCodes;
-            if(funcCallName.beginsWith("dx.op."))
+            const Function *callFunc = inst.getFuncCall();
+            if(callFunc->family == FunctionFamily::DXOp)
             {
+              DXOp dxOpCode = DXOp::NumOpCodes;
               RDCASSERT(getival<DXOp>(inst.args[0], dxOpCode));
-              // Have to use beginsWith to include the function names which a type suffix ie. ".f32"
-              RDCASSERT(funcCallName.beginsWith(dxOpFunctionNames[(uint32_t)dxOpCode]));
-            }
-
-            switch(dxOpCode)
-            {
-              case DXOp::LoadInput:
+              RDCASSERT(dxOpCode < DXOp::NumOpCodes, dxOpCode, DXOp::NumOpCodes);
+              switch(dxOpCode)
               {
-                // LoadInput(inputSigId,rowIndex,colIndex,gsVertexAxis)
-                rdcstr name;
-                rdcstr rowStr;
-                rdcstr componentStr;
-                uint32_t inputIdx;
-                uint32_t rowIdx;
-                bool hasRowIdx = getival<uint32_t>(inst.args[2], rowIdx);
-                if(entryPoint && getival<uint32_t>(inst.args[1], inputIdx))
+                case DXOp::LoadInput:
                 {
-                  EntryPointInterface::Signature &sig = entryPoint->inputs[inputIdx];
-                  name = sig.name;
-                  if(hasRowIdx)
+                  // LoadInput(inputSigId,rowIndex,colIndex,gsVertexAxis)
+                  rdcstr name;
+                  rdcstr rowStr;
+                  rdcstr componentStr;
+                  uint32_t inputIdx;
+                  uint32_t rowIdx;
+                  bool hasRowIdx = getival<uint32_t>(inst.args[2], rowIdx);
+                  if(entryPoint && getival<uint32_t>(inst.args[1], inputIdx))
                   {
-                    if(sig.rows > 1)
-                      rowStr = "[" + ToStr(rowIdx) + "]";
+                    EntryPointInterface::Signature &sig = entryPoint->inputs[inputIdx];
+                    name = sig.name;
+                    if(hasRowIdx)
+                    {
+                      if(sig.rows > 1)
+                        rowStr = "[" + ToStr(rowIdx) + "]";
+                    }
                   }
-                }
-                else
-                {
-                  name = GetArgId(inst, 1);
-                  rowStr = "[";
-                  if(hasRowIdx)
-                    rowStr += ToStr(rowIdx);
                   else
-                    rowStr += GetArgId(inst, 2);
-                  rowStr += +"]";
-                }
-                uint32_t componentIdx;
-                if(getival<uint32_t>(inst.args[3], componentIdx))
-                  componentStr = StringFormat::Fmt("%c", swizzle[componentIdx & 0x3]);
-                else
-                  componentStr = GetArgId(inst, 3);
-
-                lineStr += DXIL_FAKE_INPUT_STRUCT_NAME + "." + name + rowStr + "." + componentStr;
-                break;
-              }
-              case DXOp::StoreOutput:
-              {
-                // StoreOutput(outputSigId,rowIndex,colIndex,value)
-                rdcstr name;
-                rdcstr rowStr;
-                rdcstr componentStr;
-                uint32_t outputIdx;
-                uint32_t rowIdx;
-                bool hasRowIdx = getival<uint32_t>(inst.args[2], rowIdx);
-                if(entryPoint && getival<uint32_t>(inst.args[1], outputIdx))
-                {
-                  EntryPointInterface::Signature &sig = entryPoint->outputs[outputIdx];
-                  name = sig.name;
-                  if(hasRowIdx)
                   {
-                    if(sig.rows > 1)
-                      rowStr = "[" + ToStr(rowIdx) + "]";
+                    name = GetArgId(inst, 1);
+                    rowStr = "[";
+                    if(hasRowIdx)
+                      rowStr += ToStr(rowIdx);
+                    else
+                      rowStr += GetArgId(inst, 2);
+                    rowStr += +"]";
                   }
-                }
-                else
-                {
-                  name = GetArgId(inst, 1);
-                  rowStr = "[";
-                  if(hasRowIdx)
-                    rowStr += ToStr(rowIdx);
+                  uint32_t componentIdx;
+                  if(getival<uint32_t>(inst.args[3], componentIdx))
+                    componentStr = StringFormat::Fmt("%c", swizzle[componentIdx & 0x3]);
                   else
-                    rowStr += GetArgId(inst, 2);
-                  rowStr += +"]";
+                    componentStr = GetArgId(inst, 3);
+
+                  lineStr += DXIL_FAKE_INPUT_STRUCT_NAME + "." + name + rowStr + "." + componentStr;
+                  break;
                 }
-                uint32_t componentIdx;
-                if(getival<uint32_t>(inst.args[3], componentIdx))
-                  componentStr = StringFormat::Fmt("%c", swizzle[componentIdx & 0x3]);
-                else
-                  componentStr = GetArgId(inst, 3);
-
-                lineStr += DXIL_FAKE_OUTPUT_STRUCT_NAME + "." + name + rowStr + "." + componentStr;
-                lineStr += " = " + GetArgId(inst, 4);
-                break;
-              }
-              case DXOp::CreateHandle:
-              case DXOp::CreateHandleFromBinding:
-              {
-                // CreateHandle(resourceClass,rangeId,index,nonUniformIndex)
-                // CreateHandleFromBinding(bind,index,nonUniformIndex)
-                showDxFuncName = false;
-
-                uint32_t resIndexArgId = 3;
-                uint32_t nonUniformIndexArgId = 4;
-                if(dxOpCode == DXOp::CreateHandleFromBinding)
+                case DXOp::StoreOutput:
                 {
-                  resIndexArgId = 2;
-                  nonUniformIndexArgId = 3;
+                  // StoreOutput(outputSigId,rowIndex,colIndex,value)
+                  rdcstr name;
+                  rdcstr rowStr;
+                  rdcstr componentStr;
+                  uint32_t outputIdx;
+                  uint32_t rowIdx;
+                  bool hasRowIdx = getival<uint32_t>(inst.args[2], rowIdx);
+                  if(entryPoint && getival<uint32_t>(inst.args[1], outputIdx))
+                  {
+                    EntryPointInterface::Signature &sig = entryPoint->outputs[outputIdx];
+                    name = sig.name;
+                    if(hasRowIdx)
+                    {
+                      if(sig.rows > 1)
+                        rowStr = "[" + ToStr(rowIdx) + "]";
+                    }
+                  }
+                  else
+                  {
+                    name = GetArgId(inst, 1);
+                    rowStr = "[";
+                    if(hasRowIdx)
+                      rowStr += ToStr(rowIdx);
+                    else
+                      rowStr += GetArgId(inst, 2);
+                    rowStr += +"]";
+                  }
+                  uint32_t componentIdx;
+                  if(getival<uint32_t>(inst.args[3], componentIdx))
+                    componentStr = StringFormat::Fmt("%c", swizzle[componentIdx & 0x3]);
+                  else
+                    componentStr = GetArgId(inst, 3);
+
+                  lineStr += DXIL_FAKE_OUTPUT_STRUCT_NAME + "." + name + rowStr + "." + componentStr;
+                  lineStr += " = " + GetArgId(inst, 4);
+                  break;
                 }
-
-                const ResourceReference *resRef = GetResourceReference(resultIdStr);
-                if(resRef)
+                case DXOp::CreateHandle:
+                case DXOp::CreateHandleFromBinding:
                 {
-                  uint32_t index = 0;
-                  if(getival<uint32_t>(inst.args[resIndexArgId], index))
-                    commentStr += " index = " + ToStr(index);
-                }
-                else
-                {
-                  commentStr += " index = " + GetArgId(inst, resIndexArgId);
-                }
+                  // CreateHandle(resourceClass,rangeId,index,nonUniformIndex)
+                  // CreateHandleFromBinding(bind,index,nonUniformIndex)
+                  showDxFuncName = false;
 
-                lineStr = "InitialiseHandle(";
-                lineStr += GetHandleAlias(resultIdStr);
+                  uint32_t resIndexArgId = 3;
+                  uint32_t nonUniformIndexArgId = 4;
+                  if(dxOpCode == DXOp::CreateHandleFromBinding)
+                  {
+                    resIndexArgId = 2;
+                    nonUniformIndexArgId = 3;
+                  }
 
-                uint32_t value;
-                if(getival<uint32_t>(inst.args[nonUniformIndexArgId], value))
-                {
-                  if(value != 0)
-                    lineStr += ", nonUniformIndex = true";
-                }
+                  const ResourceReference *resRef = GetResourceReference(resultIdStr);
+                  if(resRef)
+                  {
+                    uint32_t index = 0;
+                    if(getival<uint32_t>(inst.args[resIndexArgId], index))
+                      commentStr += " index = " + ToStr(index);
+                  }
+                  else
+                  {
+                    commentStr += " index = " + GetArgId(inst, resIndexArgId);
+                  }
 
-                lineStr += ")";
-                resultIdStr.clear();
-                break;
-              }
-              case DXOp::CreateHandleFromHeap:
-              {
-                // CreateHandleFromHeap(index,samplerHeap,nonUniformIndex)
-                uint32_t samplerHeap;
-                resultIdStr = GetHandleAlias(resultIdStr);
-                if(getival<uint32_t>(inst.args[2], samplerHeap))
-                {
+                  lineStr = "InitialiseHandle(";
                   lineStr += GetHandleAlias(resultIdStr);
 
                   uint32_t value;
-                  if(getival<uint32_t>(inst.args[3], value))
+                  if(getival<uint32_t>(inst.args[nonUniformIndexArgId], value))
                   {
                     if(value != 0)
-                      commentStr += " nonUniformIndex = true";
+                      lineStr += ", nonUniformIndex = true";
                   }
-                }
-                else
-                {
-                  showDxFuncName = true;
-                }
-                break;
-              }
-              case DXOp::AnnotateHandle:
-              {
-                // AnnotateHandle(res,props)
-                showDxFuncName = false;
 
-                if(const Constant *props = cast<Constant>(inst.args[2]))
-                {
-                  const Constant *packed[2];
-                  if(props && !props->isNULL() && props->getMembers().size() == 2 &&
-                     (packed[0] = cast<Constant>(props->getMembers()[0])) != NULL &&
-                     (packed[1] = cast<Constant>(props->getMembers()[1])) != NULL)
-                  {
-                    uint32_t packedProps[2] = {};
-                    packedProps[0] = packed[0]->getU32();
-                    packedProps[1] = packed[1]->getU32();
-
-                    bool uav = (packedProps[0] & (1 << 12)) != 0;
-                    bool rov = (packedProps[0] & (1 << 13)) != 0;
-                    bool globallyCoherent = (packedProps[0] & (1 << 14)) != 0;
-                    bool sampelCmpOrCounter = (packedProps[0] & (1 << 15)) != 0;
-                    ResourceKind resKind = (ResourceKind)(packedProps[0] & 0xFF);
-                    ResourceClass resClass;
-                    if(sampelCmpOrCounter && resKind == ResourceKind::Sampler)
-                      resKind = ResourceKind::SamplerComparison;
-                    if(resKind == ResourceKind::Sampler || resKind == ResourceKind::SamplerComparison)
-                      resClass = ResourceClass::Sampler;
-                    else if(resKind == ResourceKind::CBuffer)
-                      resClass = ResourceClass::CBuffer;
-                    else if(uav)
-                      resClass = ResourceClass::UAV;
-                    else
-                      resClass = ResourceClass::SRV;
-
-                    rdcstr typeStr;
-
-                    bool srv = (resClass == ResourceClass::SRV);
-
-                    ComponentType compType = ComponentType(packedProps[1] & 0xFF);
-                    uint8_t compCount = (packedProps[1] & 0xFF00) >> 8;
-
-                    uint8_t feedbackType = packedProps[1] & 0xFF;
-
-                    uint32_t structStride = packedProps[1];
-
-                    switch(resKind)
-                    {
-                      case ResourceKind::Unknown: typeStr += "Unknown"; break;
-                      case ResourceKind::Texture1D:
-                      case ResourceKind::Texture2D:
-                      case ResourceKind::Texture2DMS:
-                      case ResourceKind::Texture3D:
-                      case ResourceKind::TextureCube:
-                      case ResourceKind::Texture1DArray:
-                      case ResourceKind::Texture2DArray:
-                      case ResourceKind::Texture2DMSArray:
-                      case ResourceKind::TextureCubeArray:
-                      case ResourceKind::TypedBuffer:
-                        if(globallyCoherent)
-                          typeStr += "globallycoherent ";
-                        if(!srv && rov)
-                          typeStr += "ROV";
-                        else if(!srv)
-                          typeStr += "RW";
-                        switch(resKind)
-                        {
-                          case ResourceKind::Texture1D: typeStr += "Texture1D"; break;
-                          case ResourceKind::Texture2D: typeStr += "Texture2D"; break;
-                          case ResourceKind::Texture2DMS: typeStr += "Texture2DMS"; break;
-                          case ResourceKind::Texture3D: typeStr += "Texture3D"; break;
-                          case ResourceKind::TextureCube: typeStr += "TextureCube"; break;
-                          case ResourceKind::Texture1DArray: typeStr += "Texture1DArray"; break;
-                          case ResourceKind::Texture2DArray: typeStr += "Texture2DArray"; break;
-                          case ResourceKind::Texture2DMSArray: typeStr += "Texture2DMSArray"; break;
-                          case ResourceKind::TextureCubeArray: typeStr += "TextureCubeArray"; break;
-                          case ResourceKind::TypedBuffer: typeStr += "TypedBuffer"; break;
-                          default: break;
-                        }
-                        break;
-                      case ResourceKind::RTAccelerationStructure:
-                        typeStr += "RTAccelerationStructure";
-                        break;
-                      case ResourceKind::FeedbackTexture2D: typeStr += "FeedbackTexture2D"; break;
-                      case ResourceKind::FeedbackTexture2DArray:
-                        typeStr += "FeedbackTexture2DArray";
-                        break;
-                      case ResourceKind::StructuredBuffer:
-                        if(globallyCoherent)
-                          typeStr += "globallycoherent ";
-                        typeStr += srv ? "StructuredBuffer" : "RWStructuredBuffer";
-                        typeStr += StringFormat::Fmt("<stride=%u", structStride);
-                        if(sampelCmpOrCounter)
-                          typeStr += ", counter";
-                        typeStr += ">";
-                        break;
-                      case ResourceKind::StructuredBufferWithCounter:
-                        if(globallyCoherent)
-                          typeStr += "globallycoherent ";
-                        typeStr +=
-                            srv ? "StructuredBufferWithCounter" : "RWStructuredBufferWithCounter";
-                        typeStr += StringFormat::Fmt("<stride=%u>", structStride);
-                        break;
-                      case ResourceKind::RawBuffer:
-                        if(globallyCoherent)
-                          typeStr += "globallycoherent ";
-                        typeStr += srv ? "ByteAddressBuffer" : "RWByteAddressBuffer";
-                        break;
-                      case ResourceKind::CBuffer:
-                        RDCASSERTEQUAL(resClass, ResourceClass::CBuffer);
-                        typeStr += "CBuffer";
-                        break;
-                      case ResourceKind::Sampler:
-                        RDCASSERTEQUAL(resClass, ResourceClass::Sampler);
-                        typeStr += "SamplerState";
-                        break;
-                      case ResourceKind::TBuffer:
-                        RDCASSERTEQUAL(resClass, ResourceClass::SRV);
-                        typeStr += "TBuffer";
-                        break;
-                      case ResourceKind::SamplerComparison:
-                        RDCASSERTEQUAL(resClass, ResourceClass::Sampler);
-                        typeStr += "SamplerComparisonState";
-                        break;
-                    }
-
-                    if(resKind == ResourceKind::FeedbackTexture2D ||
-                       resKind == ResourceKind::FeedbackTexture2DArray)
-                    {
-                      if(feedbackType == 0)
-                        typeStr += "<MinMip>";
-                      else if(feedbackType == 1)
-                        typeStr += "<MipRegionUsed>";
-                      else
-                        typeStr += "<Invalid>";
-                    }
-                    else if(resKind == ResourceKind::Texture1D ||
-                            resKind == ResourceKind::Texture2D || resKind == ResourceKind::Texture3D ||
-                            resKind == ResourceKind::TextureCube ||
-                            resKind == ResourceKind::Texture1DArray ||
-                            resKind == ResourceKind::Texture2DArray ||
-                            resKind == ResourceKind::TextureCubeArray ||
-                            resKind == ResourceKind::TypedBuffer ||
-                            resKind == ResourceKind::Texture2DMS ||
-                            resKind == ResourceKind::Texture2DMSArray)
-                    {
-                      VarType varType = VarTypeForComponentType(compType);
-                      typeStr += "<";
-                      if(compType == ComponentType::UNormF64 ||
-                         compType == ComponentType::UNormF32 || compType == ComponentType::UNormF16)
-                        typeStr += "unorm ";
-                      else if(compType == ComponentType::SNormF64 ||
-                              compType == ComponentType::SNormF32 ||
-                              compType == ComponentType::SNormF16)
-                        typeStr += "snorm ";
-                      typeStr += ToStr(varType);
-                      if(compCount > 1)
-                        typeStr += StringFormat::Fmt("%d", compCount);
-                      typeStr += ">";
-                    }
-                    lineStr += "(";
-                    lineStr += typeStr;
-                    lineStr += ")";
-                    rdcstr ssaStr = GetArgId(inst, 1);
-                    lineStr += GetHandleAlias(ssaStr);
-                    resultIdStr = GetHandleAlias(resultIdStr);
-                  }
-                  else
-                  {
-                    showDxFuncName = true;
-                  }
-                }
-                else
-                {
-                  showDxFuncName = true;
-                }
-                break;
-              }
-              case DXOp::CBufferLoad:
-              case DXOp::CBufferLoadLegacy:
-              {
-                // CBufferLoad(handle,byteOffset,alignment)
-                // CBufferLoadLegacy(handle,regIndex)
-                rdcstr handleStr = GetArgId(inst, 1);
-                const ResourceReference *resRef = GetResourceReference(handleStr);
-                bool useFallback = true;
-                if(entryPoint && resRef)
-                {
-                  uint32_t regIndex;
-                  if(getival<uint32_t>(inst.args[2], regIndex))
-                  {
-                    useFallback = false;
-                    if(dxOpCode == DXOp::CBufferLoad)
-                    {
-                      // TODO: handle non 16-byte aligned offsets
-                      // Convert byte offset to a register index
-                      regIndex = regIndex / 16;
-                      // uint32_t alignment = getival<uint32_t>(inst.args[3]);
-                    }
-                    const DXIL::EntryPointInterface::ResourceBase &resource =
-                        entryPoint->cbuffers[resRef->resourceIndex];
-                    const DXIL::EntryPointInterface::CBuffer &cbuffer = resource.cbufferData;
-                    if(cbuffer.cbufferRefl && cbuffer.cbufferRefl->hasReflectionData)
-                    {
-                      const Type *retType = inst.type;
-                      uint32_t bytesPerElement = 4;
-                      if(retType)
-                      {
-                        RDCASSERTEQUAL(retType->type, Type::TypeKind::Struct);
-                        if(retType->type == Type::TypeKind::Struct)
-                        {
-                          const Type *baseType = retType->members[0];
-                          RDCASSERTEQUAL(baseType->type, Type::TypeKind::Scalar);
-                          bytesPerElement = baseType->bitWidth / 8;
-                        }
-                      }
-                      lineStr +=
-                          MakeCBufferRegisterStr(regIndex, bytesPerElement, cbuffer, handleStr);
-                      commentStr += " cbuffer = " + resource.name;
-                      commentStr += ", byte_offset = " + ToStr(regIndex * 16);
-                    }
-                    else
-                    {
-                      lineStr += handleStr;
-                      lineStr += ".Load4(";
-                      lineStr += "byte_offset = " + ToStr(regIndex * 16);
-                      lineStr += ")";
-                    }
-                  }
-                }
-                if(useFallback)
-                {
-                  lineStr += GetHandleAlias(handleStr);
-                  lineStr += ".Load4(";
-                  lineStr += "byte_offset = ";
-                  uint32_t regIndex;
-                  if(getival<uint32_t>(inst.args[2], regIndex))
-                  {
-                    lineStr += ToStr(regIndex * 16);
-                  }
-                  else
-                  {
-                    lineStr += GetArgId(inst, 2);
-                    if(dxOpCode == DXOp::CBufferLoadLegacy)
-                      lineStr += " * 16";
-                  }
                   lineStr += ")";
+                  resultIdStr.clear();
+                  break;
                 }
-                break;
-              }
-              case DXOp::BufferLoad:
-              case DXOp::RawBufferLoad:
-              {
-                // BufferLoad(srv,index,wot)
-                // "wot" is a byte offset
-                // RawBufferLoad(srv,index,elementOffset,mask,alignment)
-                rdcstr handleStr = GetArgId(inst, 1);
-                rdcstr resName = GetHandleAlias(handleStr);
-                if(!resName.isEmpty())
+                case DXOp::CreateHandleFromHeap:
                 {
-                  if(!isUndef(inst.args[2]))
+                  // CreateHandleFromHeap(index,samplerHeap,nonUniformIndex)
+                  uint32_t samplerHeap;
+                  resultIdStr = GetHandleAlias(resultIdStr);
+                  if(getival<uint32_t>(inst.args[2], samplerHeap))
                   {
-                    lineStr += resName + ".Load(" + GetArgId(inst, 2);
-                    uint32_t elementOffset;
-                    if(getival<uint32_t>(inst.args[3], elementOffset))
+                    lineStr += GetHandleAlias(resultIdStr);
+
+                    uint32_t value;
+                    if(getival<uint32_t>(inst.args[3], value))
                     {
-                      if(elementOffset > 0)
-                        lineStr += ", byteOffset = " + ToStr(elementOffset);
+                      if(value != 0)
+                        commentStr += " nonUniformIndex = true";
                     }
-                    lineStr += ")";
                   }
                   else
                   {
                     showDxFuncName = true;
                   }
+                  break;
                 }
-                else
+                case DXOp::AnnotateHandle:
                 {
-                  showDxFuncName = true;
-                }
-                break;
-              }
-              case DXOp::BufferStore:
-              case DXOp::RawBufferStore:
-              {
-                // BufferStore(uav,coord0,coord1,value0,value1,value2,value3,mask)
-                // RawBufferStore(uav,index,elementOffset,value0,value1,value2,value3,mask,alignment)
-                rdcstr handleStr = GetArgId(inst, 1);
-                rdcstr resName = GetHandleAlias(handleStr);
-                if(!resName.isEmpty())
-                {
-                  if(!isUndef(inst.args[2]))
+                  // AnnotateHandle(res,props)
+                  showDxFuncName = false;
+
+                  if(const Constant *props = cast<Constant>(inst.args[2]))
                   {
-                    lineStr += resName + ".Store(" + GetArgId(inst, 2);
-                    if(dxOpCode == DXOp::BufferStore)
+                    const Constant *packed[2];
+                    if(props && !props->isNULL() && props->getMembers().size() == 2 &&
+                       (packed[0] = cast<Constant>(props->getMembers()[0])) != NULL &&
+                       (packed[1] = cast<Constant>(props->getMembers()[1])) != NULL)
                     {
-                      if(!isUndef(inst.args[3]))
-                        lineStr += ", byteOffset = " + GetArgId(inst, 3);
+                      uint32_t packedProps[2] = {};
+                      packedProps[0] = packed[0]->getU32();
+                      packedProps[1] = packed[1]->getU32();
+
+                      bool uav = (packedProps[0] & (1 << 12)) != 0;
+                      bool rov = (packedProps[0] & (1 << 13)) != 0;
+                      bool globallyCoherent = (packedProps[0] & (1 << 14)) != 0;
+                      bool sampelCmpOrCounter = (packedProps[0] & (1 << 15)) != 0;
+                      ResourceKind resKind = (ResourceKind)(packedProps[0] & 0xFF);
+                      ResourceClass resClass;
+                      if(sampelCmpOrCounter && resKind == ResourceKind::Sampler)
+                        resKind = ResourceKind::SamplerComparison;
+                      if(resKind == ResourceKind::Sampler ||
+                         resKind == ResourceKind::SamplerComparison)
+                        resClass = ResourceClass::Sampler;
+                      else if(resKind == ResourceKind::CBuffer)
+                        resClass = ResourceClass::CBuffer;
+                      else if(uav)
+                        resClass = ResourceClass::UAV;
+                      else
+                        resClass = ResourceClass::SRV;
+
+                      rdcstr typeStr;
+
+                      bool srv = (resClass == ResourceClass::SRV);
+
+                      ComponentType compType = ComponentType(packedProps[1] & 0xFF);
+                      uint8_t compCount = (packedProps[1] & 0xFF00) >> 8;
+
+                      uint8_t feedbackType = packedProps[1] & 0xFF;
+
+                      uint32_t structStride = packedProps[1];
+
+                      switch(resKind)
+                      {
+                        case ResourceKind::Unknown: typeStr += "Unknown"; break;
+                        case ResourceKind::Texture1D:
+                        case ResourceKind::Texture2D:
+                        case ResourceKind::Texture2DMS:
+                        case ResourceKind::Texture3D:
+                        case ResourceKind::TextureCube:
+                        case ResourceKind::Texture1DArray:
+                        case ResourceKind::Texture2DArray:
+                        case ResourceKind::Texture2DMSArray:
+                        case ResourceKind::TextureCubeArray:
+                        case ResourceKind::TypedBuffer:
+                          if(globallyCoherent)
+                            typeStr += "globallycoherent ";
+                          if(!srv && rov)
+                            typeStr += "ROV";
+                          else if(!srv)
+                            typeStr += "RW";
+                          switch(resKind)
+                          {
+                            case ResourceKind::Texture1D: typeStr += "Texture1D"; break;
+                            case ResourceKind::Texture2D: typeStr += "Texture2D"; break;
+                            case ResourceKind::Texture2DMS: typeStr += "Texture2DMS"; break;
+                            case ResourceKind::Texture3D: typeStr += "Texture3D"; break;
+                            case ResourceKind::TextureCube: typeStr += "TextureCube"; break;
+                            case ResourceKind::Texture1DArray: typeStr += "Texture1DArray"; break;
+                            case ResourceKind::Texture2DArray: typeStr += "Texture2DArray"; break;
+                            case ResourceKind::Texture2DMSArray:
+                              typeStr += "Texture2DMSArray";
+                              break;
+                            case ResourceKind::TextureCubeArray:
+                              typeStr += "TextureCubeArray";
+                              break;
+                            case ResourceKind::TypedBuffer: typeStr += "TypedBuffer"; break;
+                            default: break;
+                          }
+                          break;
+                        case ResourceKind::RTAccelerationStructure:
+                          typeStr += "RTAccelerationStructure";
+                          break;
+                        case ResourceKind::FeedbackTexture2D: typeStr += "FeedbackTexture2D"; break;
+                        case ResourceKind::FeedbackTexture2DArray:
+                          typeStr += "FeedbackTexture2DArray";
+                          break;
+                        case ResourceKind::StructuredBuffer:
+                          if(globallyCoherent)
+                            typeStr += "globallycoherent ";
+                          typeStr += srv ? "StructuredBuffer" : "RWStructuredBuffer";
+                          typeStr += StringFormat::Fmt("<stride=%u", structStride);
+                          if(sampelCmpOrCounter)
+                            typeStr += ", counter";
+                          typeStr += ">";
+                          break;
+                        case ResourceKind::StructuredBufferWithCounter:
+                          if(globallyCoherent)
+                            typeStr += "globallycoherent ";
+                          typeStr +=
+                              srv ? "StructuredBufferWithCounter" : "RWStructuredBufferWithCounter";
+                          typeStr += StringFormat::Fmt("<stride=%u>", structStride);
+                          break;
+                        case ResourceKind::RawBuffer:
+                          if(globallyCoherent)
+                            typeStr += "globallycoherent ";
+                          typeStr += srv ? "ByteAddressBuffer" : "RWByteAddressBuffer";
+                          break;
+                        case ResourceKind::CBuffer:
+                          RDCASSERTEQUAL(resClass, ResourceClass::CBuffer);
+                          typeStr += "CBuffer";
+                          break;
+                        case ResourceKind::Sampler:
+                          RDCASSERTEQUAL(resClass, ResourceClass::Sampler);
+                          typeStr += "SamplerState";
+                          break;
+                        case ResourceKind::TBuffer:
+                          RDCASSERTEQUAL(resClass, ResourceClass::SRV);
+                          typeStr += "TBuffer";
+                          break;
+                        case ResourceKind::SamplerComparison:
+                          RDCASSERTEQUAL(resClass, ResourceClass::Sampler);
+                          typeStr += "SamplerComparisonState";
+                          break;
+                      }
+
+                      if(resKind == ResourceKind::FeedbackTexture2D ||
+                         resKind == ResourceKind::FeedbackTexture2DArray)
+                      {
+                        if(feedbackType == 0)
+                          typeStr += "<MinMip>";
+                        else if(feedbackType == 1)
+                          typeStr += "<MipRegionUsed>";
+                        else
+                          typeStr += "<Invalid>";
+                      }
+                      else if(resKind == ResourceKind::Texture1D ||
+                              resKind == ResourceKind::Texture2D ||
+                              resKind == ResourceKind::Texture3D ||
+                              resKind == ResourceKind::TextureCube ||
+                              resKind == ResourceKind::Texture1DArray ||
+                              resKind == ResourceKind::Texture2DArray ||
+                              resKind == ResourceKind::TextureCubeArray ||
+                              resKind == ResourceKind::TypedBuffer ||
+                              resKind == ResourceKind::Texture2DMS ||
+                              resKind == ResourceKind::Texture2DMSArray)
+                      {
+                        VarType varType = VarTypeForComponentType(compType);
+                        typeStr += "<";
+                        if(compType == ComponentType::UNormF64 ||
+                           compType == ComponentType::UNormF32 || compType == ComponentType::UNormF16)
+                          typeStr += "unorm ";
+                        else if(compType == ComponentType::SNormF64 ||
+                                compType == ComponentType::SNormF32 ||
+                                compType == ComponentType::SNormF16)
+                          typeStr += "snorm ";
+                        typeStr += ToStr(varType);
+                        if(compCount > 1)
+                          typeStr += StringFormat::Fmt("%d", compCount);
+                        typeStr += ">";
+                      }
+                      lineStr += "(";
+                      lineStr += typeStr;
+                      lineStr += ")";
+                      rdcstr ssaStr = GetArgId(inst, 1);
+                      lineStr += GetHandleAlias(ssaStr);
+                      resultIdStr = GetHandleAlias(resultIdStr);
                     }
                     else
                     {
+                      showDxFuncName = true;
+                    }
+                  }
+                  else
+                  {
+                    showDxFuncName = true;
+                  }
+                  break;
+                }
+                case DXOp::CBufferLoad:
+                case DXOp::CBufferLoadLegacy:
+                {
+                  // CBufferLoad(handle,byteOffset,alignment)
+                  // CBufferLoadLegacy(handle,regIndex)
+                  rdcstr handleStr = GetArgId(inst, 1);
+                  const ResourceReference *resRef = GetResourceReference(handleStr);
+                  bool useFallback = true;
+                  if(entryPoint && resRef)
+                  {
+                    uint32_t regIndex;
+                    if(getival<uint32_t>(inst.args[2], regIndex))
+                    {
+                      useFallback = false;
+                      if(dxOpCode == DXOp::CBufferLoad)
+                      {
+                        // TODO: handle non 16-byte aligned offsets
+                        // Convert byte offset to a register index
+                        regIndex = regIndex / 16;
+                        // uint32_t alignment = getival<uint32_t>(inst.args[3]);
+                      }
+                      const DXIL::EntryPointInterface::ResourceBase &resource =
+                          entryPoint->cbuffers[resRef->resourceIndex];
+                      const DXIL::EntryPointInterface::CBuffer &cbuffer = resource.cbufferData;
+                      if(cbuffer.cbufferRefl && cbuffer.cbufferRefl->hasReflectionData)
+                      {
+                        const Type *retType = inst.type;
+                        uint32_t bytesPerElement = 4;
+                        if(retType)
+                        {
+                          RDCASSERTEQUAL(retType->type, Type::TypeKind::Struct);
+                          if(retType->type == Type::TypeKind::Struct)
+                          {
+                            const Type *baseType = retType->members[0];
+                            RDCASSERTEQUAL(baseType->type, Type::TypeKind::Scalar);
+                            bytesPerElement = baseType->bitWidth / 8;
+                          }
+                        }
+                        lineStr +=
+                            MakeCBufferRegisterStr(regIndex, bytesPerElement, cbuffer, handleStr);
+                        commentStr += " cbuffer = " + resource.name;
+                        commentStr += ", byte_offset = " + ToStr(regIndex * 16);
+                      }
+                      else
+                      {
+                        lineStr += handleStr;
+                        lineStr += ".Load4(";
+                        lineStr += "byte_offset = " + ToStr(regIndex * 16);
+                        lineStr += ")";
+                      }
+                    }
+                  }
+                  if(useFallback)
+                  {
+                    lineStr += GetHandleAlias(handleStr);
+                    lineStr += ".Load4(";
+                    lineStr += "byte_offset = ";
+                    uint32_t regIndex;
+                    if(getival<uint32_t>(inst.args[2], regIndex))
+                    {
+                      lineStr += ToStr(regIndex * 16);
+                    }
+                    else
+                    {
+                      lineStr += GetArgId(inst, 2);
+                      if(dxOpCode == DXOp::CBufferLoadLegacy)
+                        lineStr += " * 16";
+                    }
+                    lineStr += ")";
+                  }
+                  break;
+                }
+                case DXOp::BufferLoad:
+                case DXOp::RawBufferLoad:
+                {
+                  // BufferLoad(srv,index,wot)
+                  // "wot" is a byte offset
+                  // RawBufferLoad(srv,index,elementOffset,mask,alignment)
+                  rdcstr handleStr = GetArgId(inst, 1);
+                  rdcstr resName = GetHandleAlias(handleStr);
+                  if(!resName.isEmpty())
+                  {
+                    if(!isUndef(inst.args[2]))
+                    {
+                      lineStr += resName + ".Load(" + GetArgId(inst, 2);
                       uint32_t elementOffset;
                       if(getival<uint32_t>(inst.args[3], elementOffset))
                       {
                         if(elementOffset > 0)
                           lineStr += ", byteOffset = " + ToStr(elementOffset);
                       }
+                      lineStr += ")";
+                    }
+                    else
+                    {
+                      showDxFuncName = true;
                     }
                   }
-                  lineStr += ", {";
-                  bool needComma = false;
-                  for(uint32_t a = 4; a < 8; ++a)
+                  else
                   {
-                    if(!isUndef(inst.args[a]))
-                    {
-                      if(needComma)
-                        lineStr += ", ";
-                      lineStr += GetArgId(inst, a);
-                      needComma = true;
-                    }
+                    showDxFuncName = true;
                   }
-                  lineStr += "})";
+                  break;
                 }
-                else
+                case DXOp::BufferStore:
+                case DXOp::RawBufferStore:
                 {
-                  showDxFuncName = true;
-                }
-                break;
-              }
-              case DXOp::TextureLoad:
-              {
-                // TextureLoad(srv,mipLevelOrSampleCount,coord0,coord1,coord2,offset0,offset1,offset2)
-                rdcstr handleStr = GetArgId(inst, 1);
-                const ResourceReference *resRef = GetResourceReference(handleStr);
-                uint32_t sampleCount = 0;
-                if(entryPoint && resRef)
-                {
-                  uint32_t resourceIndex = resRef->resourceIndex;
-                  const EntryPointInterface::SRV *texture =
-                      resourceIndex < entryPoint->srvs.size()
-                          ? &entryPoint->srvs[resourceIndex].srvData
-                          : NULL;
-                  if(texture)
-                    sampleCount = texture->sampleCount;
-                }
-                rdcstr resName = GetHandleAlias(handleStr);
-                if(!resName.isEmpty())
-                {
-                  lineStr += resName;
-                  lineStr += ".Load(";
-                  bool needComma = false;
-                  for(uint32_t a = 3; a < 6; ++a)
+                  // BufferStore(uav,coord0,coord1,value0,value1,value2,value3,mask)
+                  // RawBufferStore(uav,index,elementOffset,value0,value1,value2,value3,mask,alignment)
+                  rdcstr handleStr = GetArgId(inst, 1);
+                  rdcstr resName = GetHandleAlias(handleStr);
+                  if(!resName.isEmpty())
                   {
-                    if(!isUndef(inst.args[a]))
+                    if(!isUndef(inst.args[2]))
                     {
-                      if(needComma)
-                        lineStr += ", ";
-                      lineStr += GetArgId(inst, a);
-                      needComma = true;
-                    }
-                  }
-                  bool needText = true;
-                  if(!isUndef(inst.args[2]))
-                  {
-                    rdcstr prefix;
-                    bool showArg = true;
-                    if(needText)
-                    {
-                      if(sampleCount > 1)
+                      lineStr += resName + ".Store(" + GetArgId(inst, 2);
+                      if(dxOpCode == DXOp::BufferStore)
                       {
-                        prefix = "SampleIndex = ";
+                        if(!isUndef(inst.args[3]))
+                          lineStr += ", byteOffset = " + GetArgId(inst, 3);
                       }
                       else
                       {
-                        prefix = "MipSlice = ";
-                        uint32_t mipSlice;
-                        if(getival<uint32_t>(inst.args[2], mipSlice))
-                          showArg = mipSlice > 0;
+                        uint32_t elementOffset;
+                        if(getival<uint32_t>(inst.args[3], elementOffset))
+                        {
+                          if(elementOffset > 0)
+                            lineStr += ", byteOffset = " + ToStr(elementOffset);
+                        }
                       }
                     }
-                    if(showArg)
+                    lineStr += ", {";
+                    bool needComma = false;
+                    for(uint32_t a = 4; a < 8; ++a)
                     {
-                      needText = false;
-                      lineStr += ", ";
-                      lineStr += prefix;
-                      lineStr += GetArgId(inst, 2);
-                    }
-                  }
-                  needText = true;
-                  for(uint32_t a = 6; a < 9; ++a)
-                  {
-                    if(!isUndef(inst.args[a]))
-                    {
-                      lineStr += ", ";
-                      if(needText)
+                      if(!isUndef(inst.args[a]))
                       {
-                        lineStr += "Offset = ";
-                        needText = false;
+                        if(needComma)
+                          lineStr += ", ";
+                        lineStr += GetArgId(inst, a);
+                        needComma = true;
                       }
-                      lineStr += GetArgId(inst, a);
                     }
+                    lineStr += "})";
                   }
-                  lineStr += ")";
-                }
-                else
-                {
-                  showDxFuncName = true;
-                }
-                break;
-              }
-              case DXOp::TextureStore:
-              {
-                // TextureStore(srv,coord0,coord1,coord2,value0,value1,value2,value3,mask)
-                rdcstr handleStr = GetArgId(inst, 1);
-                rdcstr resName = GetHandleAlias(handleStr);
-                if(!resName.isEmpty())
-                {
-                  lineStr += resName;
-                  lineStr += "[";
-                  bool needComma = false;
-                  for(uint32_t a = 2; a < 5; ++a)
-                  {
-                    if(!isUndef(inst.args[a]))
-                    {
-                      if(needComma)
-                        lineStr += ", ";
-                      lineStr += GetArgId(inst, a);
-                      needComma = true;
-                    }
-                  }
-                  lineStr += "]";
-                  lineStr += " = ";
-                  lineStr += "{";
-                  needComma = false;
-                  for(uint32_t a = 5; a < 9; ++a)
-                  {
-                    if(!isUndef(inst.args[a]))
-                    {
-                      if(needComma)
-                        lineStr += ", ";
-                      lineStr += GetArgId(inst, a);
-                      needComma = true;
-                    }
-                  }
-                  lineStr += "}";
-                }
-                else
-                {
-                  showDxFuncName = true;
-                }
-                break;
-              }
-              case DXOp::Sample:
-              case DXOp::SampleBias:
-              case DXOp::SampleLevel:
-              case DXOp::SampleGrad:
-              case DXOp::SampleCmp:
-              case DXOp::SampleCmpLevelZero:
-              case DXOp::SampleCmpLevel:
-              case DXOp::SampleCmpGrad:
-              case DXOp::SampleCmpBias:
-              {
-                // Sample(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,clamp)
-                // SampleBias(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,bias,clamp)
-                // SampleLevel(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,LOD)
-                // SampleGrad(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,ddx0,ddx1,ddx2,ddy0,ddy1,ddy2,clamp)
-                // SampleCmp(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,clamp)
-                // SampleCmpLevelZero(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue)
-                // SampleCmpLevel(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,lod)
-                // SampleCmpGrad(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,ddx0,ddx1,ddx2,ddy0,ddy1,ddy2,clamp)
-                // SampleCmpBias(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,bias,clamp)
-                rdcstr handleStr = GetArgId(inst, 1);
-                rdcstr resName = GetHandleAlias(handleStr);
-                if(!resName.isEmpty())
-                {
-                  lineStr += resName;
-                  lineStr += ".";
-                  rdcstr dxFuncSig = funcNameSigs[(uint32_t)dxOpCode];
-                  int paramStart = dxFuncSig.find('(') + 1;
-                  if(paramStart > 0)
-                    lineStr += dxFuncSig.substr(0, paramStart);
                   else
-                    lineStr += "UNKNOWN DX FUNCTION";
-
-                  // sampler is 2
-                  rdcstr samplerStr = GetArgId(inst, 2);
-                  samplerStr = GetHandleAlias(samplerStr);
-                  lineStr += samplerStr;
-
-                  for(uint32_t a = 3; a < 7; ++a)
                   {
-                    if(!isUndef(inst.args[a]))
-                    {
-                      lineStr += ", ";
-                      lineStr += GetArgId(inst, a);
-                    }
+                    showDxFuncName = true;
                   }
-                  bool needText = true;
-                  for(uint32_t a = 7; a < 10; ++a)
+                  break;
+                }
+                case DXOp::TextureLoad:
+                {
+                  // TextureLoad(srv,mipLevelOrSampleCount,coord0,coord1,coord2,offset0,offset1,offset2)
+                  rdcstr handleStr = GetArgId(inst, 1);
+                  const ResourceReference *resRef = GetResourceReference(handleStr);
+                  uint32_t sampleCount = 0;
+                  if(entryPoint && resRef)
                   {
-                    if(!isUndef(inst.args[a]))
+                    uint32_t resourceIndex = resRef->resourceIndex;
+                    const EntryPointInterface::SRV *texture =
+                        resourceIndex < entryPoint->srvs.size()
+                            ? &entryPoint->srvs[resourceIndex].srvData
+                            : NULL;
+                    if(texture)
+                      sampleCount = texture->sampleCount;
+                  }
+                  rdcstr resName = GetHandleAlias(handleStr);
+                  if(!resName.isEmpty())
+                  {
+                    lineStr += resName;
+                    lineStr += ".Load(";
+                    bool needComma = false;
+                    for(uint32_t a = 3; a < 6; ++a)
                     {
-                      lineStr += ", ";
+                      if(!isUndef(inst.args[a]))
+                      {
+                        if(needComma)
+                          lineStr += ", ";
+                        lineStr += GetArgId(inst, a);
+                        needComma = true;
+                      }
+                    }
+                    bool needText = true;
+                    if(!isUndef(inst.args[2]))
+                    {
+                      rdcstr prefix;
+                      bool showArg = true;
                       if(needText)
                       {
-                        lineStr += "Offset = {";
-                        needText = false;
+                        if(sampleCount > 1)
+                        {
+                          prefix = "SampleIndex = ";
+                        }
+                        else
+                        {
+                          prefix = "MipSlice = ";
+                          uint32_t mipSlice;
+                          if(getival<uint32_t>(inst.args[2], mipSlice))
+                            showArg = mipSlice > 0;
+                        }
                       }
-                      lineStr += GetArgId(inst, a);
-                    }
-                  }
-                  if(!needText)
-                    lineStr += "}";
-
-                  int paramStrCount = (int)dxFuncSig.size();
-                  for(size_t a = 1; a < 10; ++a)
-                  {
-                    if(paramStart < paramStrCount)
-                    {
-                      int paramEnd = dxFuncSig.find(',', paramStart);
-                      if(paramEnd == -1)
-                        paramEnd = paramStrCount;
-                      paramStart = paramEnd + 1;
-                    }
-                  }
-                  for(uint32_t a = 10; a < inst.args.size(); ++a)
-                  {
-                    rdcstr paramNameStr;
-                    if(paramStart < paramStrCount)
-                    {
-                      int paramEnd = dxFuncSig.find(',', paramStart);
-                      if(paramEnd == -1)
-                        paramEnd = paramStrCount - 1;
-                      if(paramEnd > paramStart)
+                      if(showArg)
                       {
-                        rdcstr dxParamName = dxFuncSig.substr(paramStart, paramEnd - paramStart);
-                        paramStart = paramEnd + 1;
-                        paramNameStr = "/*";
-                        paramNameStr += dxParamName;
-                        paramNameStr += "*/ ";
+                        needText = false;
+                        lineStr += ", ";
+                        lineStr += prefix;
+                        lineStr += GetArgId(inst, 2);
                       }
                     }
-                    if(!isUndef(inst.args[a]))
+                    needText = true;
+                    for(uint32_t a = 6; a < 9; ++a)
+                    {
+                      if(!isUndef(inst.args[a]))
+                      {
+                        lineStr += ", ";
+                        if(needText)
+                        {
+                          lineStr += "Offset = ";
+                          needText = false;
+                        }
+                        lineStr += GetArgId(inst, a);
+                      }
+                    }
+                    lineStr += ")";
+                  }
+                  else
+                  {
+                    showDxFuncName = true;
+                  }
+                  break;
+                }
+                case DXOp::TextureStore:
+                {
+                  // TextureStore(srv,coord0,coord1,coord2,value0,value1,value2,value3,mask)
+                  rdcstr handleStr = GetArgId(inst, 1);
+                  rdcstr resName = GetHandleAlias(handleStr);
+                  if(!resName.isEmpty())
+                  {
+                    lineStr += resName;
+                    lineStr += "[";
+                    bool needComma = false;
+                    for(uint32_t a = 2; a < 5; ++a)
+                    {
+                      if(!isUndef(inst.args[a]))
+                      {
+                        if(needComma)
+                          lineStr += ", ";
+                        lineStr += GetArgId(inst, a);
+                        needComma = true;
+                      }
+                    }
+                    lineStr += "]";
+                    lineStr += " = ";
+                    lineStr += "{";
+                    needComma = false;
+                    for(uint32_t a = 5; a < 9; ++a)
+                    {
+                      if(!isUndef(inst.args[a]))
+                      {
+                        if(needComma)
+                          lineStr += ", ";
+                        lineStr += GetArgId(inst, a);
+                        needComma = true;
+                      }
+                    }
+                    lineStr += "}";
+                  }
+                  else
+                  {
+                    showDxFuncName = true;
+                  }
+                  break;
+                }
+                case DXOp::Sample:
+                case DXOp::SampleBias:
+                case DXOp::SampleLevel:
+                case DXOp::SampleGrad:
+                case DXOp::SampleCmp:
+                case DXOp::SampleCmpLevelZero:
+                case DXOp::SampleCmpLevel:
+                case DXOp::SampleCmpGrad:
+                case DXOp::SampleCmpBias:
+                {
+                  // Sample(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,clamp)
+                  // SampleBias(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,bias,clamp)
+                  // SampleLevel(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,LOD)
+                  // SampleGrad(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,ddx0,ddx1,ddx2,ddy0,ddy1,ddy2,clamp)
+                  // SampleCmp(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,clamp)
+                  // SampleCmpLevelZero(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue)
+                  // SampleCmpLevel(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,lod)
+                  // SampleCmpGrad(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,ddx0,ddx1,ddx2,ddy0,ddy1,ddy2,clamp)
+                  // SampleCmpBias(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,bias,clamp)
+                  rdcstr handleStr = GetArgId(inst, 1);
+                  rdcstr resName = GetHandleAlias(handleStr);
+                  if(!resName.isEmpty())
+                  {
+                    lineStr += resName;
+                    lineStr += ".";
+                    rdcstr dxFuncSig = funcNameSigs[(uint32_t)dxOpCode];
+                    int paramStart = dxFuncSig.find('(') + 1;
+                    if(paramStart > 0)
+                      lineStr += dxFuncSig.substr(0, paramStart);
+                    else
+                      lineStr += "UNKNOWN DX FUNCTION";
+
+                    // sampler is 2
+                    rdcstr samplerStr = GetArgId(inst, 2);
+                    samplerStr = GetHandleAlias(samplerStr);
+                    lineStr += samplerStr;
+
+                    for(uint32_t a = 3; a < 7; ++a)
+                    {
+                      if(!isUndef(inst.args[a]))
+                      {
+                        lineStr += ", ";
+                        lineStr += GetArgId(inst, a);
+                      }
+                    }
+                    bool needText = true;
+                    for(uint32_t a = 7; a < 10; ++a)
+                    {
+                      if(!isUndef(inst.args[a]))
+                      {
+                        lineStr += ", ";
+                        if(needText)
+                        {
+                          lineStr += "Offset = {";
+                          needText = false;
+                        }
+                        lineStr += GetArgId(inst, a);
+                      }
+                    }
+                    if(!needText)
+                      lineStr += "}";
+
+                    int paramStrCount = (int)dxFuncSig.size();
+                    for(size_t a = 1; a < 10; ++a)
+                    {
+                      if(paramStart < paramStrCount)
+                      {
+                        int paramEnd = dxFuncSig.find(',', paramStart);
+                        if(paramEnd == -1)
+                          paramEnd = paramStrCount;
+                        paramStart = paramEnd + 1;
+                      }
+                    }
+                    for(uint32_t a = 10; a < inst.args.size(); ++a)
+                    {
+                      rdcstr paramNameStr;
+                      if(paramStart < paramStrCount)
+                      {
+                        int paramEnd = dxFuncSig.find(',', paramStart);
+                        if(paramEnd == -1)
+                          paramEnd = paramStrCount - 1;
+                        if(paramEnd > paramStart)
+                        {
+                          rdcstr dxParamName = dxFuncSig.substr(paramStart, paramEnd - paramStart);
+                          paramStart = paramEnd + 1;
+                          paramNameStr = "/*";
+                          paramNameStr += dxParamName;
+                          paramNameStr += "*/ ";
+                        }
+                      }
+                      if(!isUndef(inst.args[a]))
+                      {
+                        lineStr += ", ";
+                        lineStr += paramNameStr;
+                        lineStr += GetArgId(inst, a);
+                      }
+                    }
+                    lineStr += ")";
+                  }
+                  else
+                  {
+                    showDxFuncName = true;
+                  }
+                  break;
+                }
+                case DXOp::GetDimensions:
+                {
+                  // GetDimensions(handle,mipLevel)
+                  rdcstr handleStr = GetArgId(inst, 1);
+                  rdcstr resName = GetHandleAlias(handleStr);
+                  if(!resName.isEmpty())
+                  {
+                    lineStr += resName;
+                    lineStr += ".GetDimensions(";
+                    lineStr += GetArgId(inst, 2);
+                    lineStr += ")";
+                  }
+                  else
+                  {
+                    showDxFuncName = true;
+                  }
+                  break;
+                }
+                case DXOp::Texture2DMSGetSamplePosition:
+                {
+                  // Texture2DMSGetSamplePosition(srv,index)
+                  rdcstr handleStr = GetArgId(inst, 1);
+                  rdcstr resName = GetHandleAlias(handleStr);
+                  if(!resName.isEmpty())
+                  {
+                    lineStr += resName;
+                    lineStr += ".GetSamplePosition(";
+                    lineStr += GetArgId(inst, 2);
+                    lineStr += ")";
+                  }
+                  else
+                  {
+                    showDxFuncName = true;
+                  }
+                  break;
+                }
+                case DXOp::AtomicBinOp:
+                {
+                  // AtomicBinOp(handle, atomicOp, offset0, offset1, offset2, newValue)
+                  rdcstr handleStr = GetArgId(inst, 1);
+                  AtomicBinOpCode atomicBinOpCode;
+                  rdcstr resName = GetHandleAlias(handleStr);
+                  if(!resName.isEmpty() && getival<AtomicBinOpCode>(inst.args[2], atomicBinOpCode))
+                  {
+                    lineStr += resName;
+                    lineStr += ".";
+                    lineStr += "Interlocked";
+                    lineStr += ToStr(atomicBinOpCode);
+                    lineStr += "(";
+                    lineStr += "{";
+                    bool needComma = false;
+                    for(uint32_t a = 3; a < 6; ++a)
+                    {
+                      if(!isUndef(inst.args[a]))
+                      {
+                        if(needComma)
+                          lineStr += ", ";
+                        lineStr += GetArgId(inst, a);
+                        needComma = true;
+                      }
+                    }
+                    lineStr += "}";
+                    if(!isUndef(inst.args[6]))
                     {
                       lineStr += ", ";
-                      lineStr += paramNameStr;
-                      lineStr += GetArgId(inst, a);
+                      lineStr += GetArgId(inst, 6);
                     }
+                    lineStr += ")";
                   }
-                  lineStr += ")";
+                  else
+                  {
+                    showDxFuncName = true;
+                  }
+                  break;
                 }
-                else
+                case DXOp::Dot2:
+                case DXOp::Dot3:
+                case DXOp::Dot4:
                 {
-                  showDxFuncName = true;
-                }
-                break;
-              }
-              case DXOp::GetDimensions:
-              {
-                // GetDimensions(handle,mipLevel)
-                rdcstr handleStr = GetArgId(inst, 1);
-                rdcstr resName = GetHandleAlias(handleStr);
-                if(!resName.isEmpty())
-                {
-                  lineStr += resName;
-                  lineStr += ".GetDimensions(";
-                  lineStr += GetArgId(inst, 2);
-                  lineStr += ")";
-                }
-                else
-                {
-                  showDxFuncName = true;
-                }
-                break;
-              }
-              case DXOp::Texture2DMSGetSamplePosition:
-              {
-                // Texture2DMSGetSamplePosition(srv,index)
-                rdcstr handleStr = GetArgId(inst, 1);
-                rdcstr resName = GetHandleAlias(handleStr);
-                if(!resName.isEmpty())
-                {
-                  lineStr += resName;
-                  lineStr += ".GetSamplePosition(";
-                  lineStr += GetArgId(inst, 2);
-                  lineStr += ")";
-                }
-                else
-                {
-                  showDxFuncName = true;
-                }
-                break;
-              }
-              case DXOp::AtomicBinOp:
-              {
-                // AtomicBinOp(handle, atomicOp, offset0, offset1, offset2, newValue)
-                rdcstr handleStr = GetArgId(inst, 1);
-                AtomicBinOpCode atomicBinOpCode;
-                rdcstr resName = GetHandleAlias(handleStr);
-                if(!resName.isEmpty() && getival<AtomicBinOpCode>(inst.args[2], atomicBinOpCode))
-                {
-                  lineStr += resName;
-                  lineStr += ".";
-                  lineStr += "Interlocked";
-                  lineStr += ToStr(atomicBinOpCode);
-                  lineStr += "(";
+                  // Dot4(ax,ay,az,aw,bx,by,bz,bw)
+                  // Dot3(ax,ay,az,bx,by,bz)
+                  // Dot2(ax,ay,bx,by)
+                  uint32_t countComponents = 0;
+                  if(dxOpCode == DXOp::Dot4)
+                    countComponents = 4;
+                  else if(dxOpCode == DXOp::Dot3)
+                    countComponents = 3;
+                  else if(dxOpCode == DXOp::Dot2)
+                    countComponents = 2;
+
+                  lineStr += "dot(";
                   lineStr += "{";
                   bool needComma = false;
-                  for(uint32_t a = 3; a < 6; ++a)
+                  uint32_t aVecStart = 1;
+                  uint32_t aVecEnd = 1 + countComponents;
+                  for(uint32_t a = aVecStart; a < aVecEnd; ++a)
                   {
                     if(!isUndef(inst.args[a]))
                     {
@@ -3876,73 +3951,27 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                     }
                   }
                   lineStr += "}";
-                  if(!isUndef(inst.args[6]))
+                  needComma = false;
+                  uint32_t bVecStart = aVecEnd;
+                  uint32_t bVecEnd = bVecStart + countComponents;
+                  lineStr += ", {";
+                  for(uint32_t a = bVecStart; a < bVecEnd; ++a)
                   {
-                    lineStr += ", ";
-                    lineStr += GetArgId(inst, 6);
+                    if(!isUndef(inst.args[a]))
+                    {
+                      if(needComma)
+                        lineStr += ", ";
+                      lineStr += GetArgId(inst, a);
+                      needComma = true;
+                    }
                   }
+                  lineStr += "}";
                   lineStr += ")";
+                  break;
                 }
-                else
-                {
-                  showDxFuncName = true;
-                }
-                break;
+                case DXOp::NumOpCodes: showDxFuncName = false; break;
+                default: showDxFuncName = true; break;
               }
-              case DXOp::Dot2:
-              case DXOp::Dot3:
-              case DXOp::Dot4:
-              {
-                // Dot4(ax,ay,az,aw,bx,by,bz,bw)
-                // Dot3(ax,ay,az,bx,by,bz)
-                // Dot2(ax,ay,bx,by)
-                uint32_t countComponents = 0;
-                if(dxOpCode == DXOp::Dot4)
-                  countComponents = 4;
-                else if(dxOpCode == DXOp::Dot3)
-                  countComponents = 3;
-                else if(dxOpCode == DXOp::Dot2)
-                  countComponents = 2;
-
-                lineStr += "dot(";
-                lineStr += "{";
-                bool needComma = false;
-                uint32_t aVecStart = 1;
-                uint32_t aVecEnd = 1 + countComponents;
-                for(uint32_t a = aVecStart; a < aVecEnd; ++a)
-                {
-                  if(!isUndef(inst.args[a]))
-                  {
-                    if(needComma)
-                      lineStr += ", ";
-                    lineStr += GetArgId(inst, a);
-                    needComma = true;
-                  }
-                }
-                lineStr += "}";
-                needComma = false;
-                uint32_t bVecStart = aVecEnd;
-                uint32_t bVecEnd = bVecStart + countComponents;
-                lineStr += ", {";
-                for(uint32_t a = bVecStart; a < bVecEnd; ++a)
-                {
-                  if(!isUndef(inst.args[a]))
-                  {
-                    if(needComma)
-                      lineStr += ", ";
-                    lineStr += GetArgId(inst, a);
-                    needComma = true;
-                  }
-                }
-                lineStr += "}";
-                lineStr += ")";
-                break;
-              }
-              case DXOp::NumOpCodes: showDxFuncName = false; break;
-              default: showDxFuncName = true; break;
-            }
-            if(dxOpCode != DXOp::NumOpCodes)
-            {
               if(showDxFuncName)
               {
                 rdcstr dxFuncSig;
@@ -3959,7 +3988,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 }
                 else
                 {
-                  lineStr += escapeStringIfNeeded(funcCallName);
+                  lineStr += escapeStringIfNeeded(callFunc->name);
                 }
                 bool first = true;
                 int paramStrCount = (int)dxFuncSig.size();
@@ -3995,12 +4024,12 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                 lineStr += ")";
               }
             }
-            else if(funcCallName.beginsWith("llvm.dbg."))
+            else if(callFunc->family == FunctionFamily::LLVMDbg)
             {
             }
             else
             {
-              lineStr += escapeStringIfNeeded(funcCallName);
+              lineStr += escapeStringIfNeeded(callFunc->name);
               lineStr += "(";
               bool first = true;
 
@@ -4831,14 +4860,15 @@ void Program::ParseReferences(const DXBC::Reflection *reflection)
       {
         case Operation::Call:
         {
-          rdcstr funcCallName = inst.getFuncCall()->name;
-          if(funcCallName.beginsWith("dx.op."))
+          const Function *callFunc = inst.getFuncCall();
+          if(callFunc->family == FunctionFamily::DXOp)
           {
             rdcstr resultIdStr;
             MakeResultId(inst, resultIdStr);
 
-            DXOp dxOpCode;
+            DXOp dxOpCode = DXOp::NumOpCodes;
             RDCASSERT(getival<DXOp>(inst.args[0], dxOpCode));
+            RDCASSERT(dxOpCode < DXOp::NumOpCodes, dxOpCode, DXOp::NumOpCodes);
             switch(dxOpCode)
             {
               case DXOp::CreateHandle:

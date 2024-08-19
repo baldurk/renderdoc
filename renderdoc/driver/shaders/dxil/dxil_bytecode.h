@@ -52,6 +52,20 @@ namespace DXIL
 static const rdcstr DXIL_FAKE_OUTPUT_STRUCT_NAME("_OUT");
 static const rdcstr DXIL_FAKE_INPUT_STRUCT_NAME("_IN");
 
+enum class FunctionFamily : uint8_t
+{
+  LLVM,
+  DXOp,
+  LLVMDbg,
+};
+
+enum class LLVMDbgOp : uint8_t
+{
+  Unknown = 0,
+  Declare,
+  Value,
+};
+
 struct BumpAllocator
 {
   BumpAllocator(size_t totalSize);
@@ -1365,6 +1379,9 @@ struct Function : public Value
 
   rdcarray<UselistEntry> uselist;
   AttachedMetadata attachedMeta;
+
+  FunctionFamily family = FunctionFamily::LLVM;
+  LLVMDbgOp llvmDbgOp = LLVMDbgOp::Unknown;
 };
 
 class LLVMOrderAccumulator
