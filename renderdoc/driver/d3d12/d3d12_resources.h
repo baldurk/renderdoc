@@ -1025,7 +1025,7 @@ struct D3D12ShaderExportDatabase : public RefCounter12<IUnknown>
 {
 public:
   D3D12ShaderExportDatabase(ResourceId id, D3D12RaytracingResourceAndUtilHandler *rayManager,
-                            ID3D12StateObjectProperties *obj);
+                            D3D12ShaderCache *cache, ID3D12StateObjectProperties *obj);
   ~D3D12ShaderExportDatabase();
 
   ResourceId GetResourceId() { return objectOriginalId; }
@@ -1073,6 +1073,7 @@ private:
 
   ID3D12StateObjectProperties *m_StateObjectProps = NULL;
   D3D12RaytracingResourceAndUtilHandler *m_RayManager = NULL;
+  D3D12ShaderCache *m_ShaderCache = NULL;
 
   struct ExportLookup
   {

@@ -161,7 +161,7 @@ bool WrappedID3D12Device::Serialise_CreateStateObject(SerialiserType &ser,
 
       wrapped->exports = new D3D12ShaderExportDatabase(
           pStateObject, GetResourceManager()->GetRaytracingResourceAndUtilHandler(),
-          wrapped->GetProperties());
+          GetShaderCache(), wrapped->GetProperties());
 
       wrapped->exports->PopulateDatabase(Descriptor.NumSubobjects, subs);
 
@@ -229,7 +229,7 @@ WrappedID3D12Device::CreateStateObject(const D3D12_STATE_OBJECT_DESC *pDesc, REF
 
       wrapped->exports = new D3D12ShaderExportDatabase(
           wrapped->GetResourceID(), GetResourceManager()->GetRaytracingResourceAndUtilHandler(),
-          wrapped->GetProperties());
+          GetShaderCache(), wrapped->GetProperties());
 
       wrapped->exports->PopulateDatabase(pDesc->NumSubobjects, pDesc->pSubobjects);
 

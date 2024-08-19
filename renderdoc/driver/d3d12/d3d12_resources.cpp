@@ -24,6 +24,7 @@
 
 #include "d3d12_resources.h"
 #include "driver/shaders/dxbc/dxbc_reflect.h"
+#include "driver/shaders/dxil/dxil_metadata.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_shader_cache.h"
@@ -839,8 +840,13 @@ void WrappedID3D12PipelineState::ProcessDescriptorAccess()
 
 D3D12ShaderExportDatabase::D3D12ShaderExportDatabase(ResourceId id,
                                                      D3D12RaytracingResourceAndUtilHandler *rayManager,
+                                                     D3D12ShaderCache *cache,
                                                      ID3D12StateObjectProperties *obj)
-    : RefCounter12(NULL), objectOriginalId(id), m_RayManager(rayManager), m_StateObjectProps(obj)
+    : RefCounter12(NULL),
+      objectOriginalId(id),
+      m_RayManager(rayManager),
+      m_ShaderCache(cache),
+      m_StateObjectProps(obj)
 {
   m_RayManager->RegisterExportDatabase(this);
 }
@@ -863,6 +869,7 @@ void D3D12ShaderExportDatabase::PopulateDatabase(size_t NumSubobjects,
   bool unassocDefaultValid = false;
   bool explicitDefault = false;
   bool unassocDXILDefaultValid = false;
+  bool explicitDXILDefault = false;
   uint32_t dxilDefaultRoot = ~0U;
 
   rdcarray<rdcpair<rdcstr, uint32_t>> explicitRootSigAssocs;
@@ -902,6 +909,11 @@ void D3D12ShaderExportDatabase::PopulateDatabase(size_t NumSubobjects,
     {
       D3D12_DXIL_LIBRARY_DESC *dxil = (D3D12_DXIL_LIBRARY_DESC *)subobjects[i].pDesc;
 
+      DXBC::DXBCContainer container(
+          bytebuf((byte *)dxil->DXILLibrary.pShaderBytecode, dxil->DXILLibrary.BytecodeLength),
+          rdcstr(), GraphicsAPI::D3D12, ~0U, ~0U);
+
+      rdcarray<rdcstr> exports;
       if(dxil->NumExports > 0)
       {
         for(UINT e = 0; e < dxil->NumExports; e++)
@@ -909,23 +921,57 @@ void D3D12ShaderExportDatabase::PopulateDatabase(size_t NumSubobjects,
           // Name is always the name used for exports - if renaming then the renamed-from name
           // is only used to lookup in the dxil library and not for any associations-by-name
           AddExport(StringFormat::Wide2UTF8(dxil->pExports[e].Name));
+          exports.push_back(StringFormat::Wide2UTF8(dxil->pExports[e].Name));
         }
       }
       else
       {
         // hard part, we need to parse the DXIL to get the entry points
-        DXBC::DXBCContainer container(
-            bytebuf((byte *)dxil->DXILLibrary.pShaderBytecode, dxil->DXILLibrary.BytecodeLength),
-            rdcstr(), GraphicsAPI::D3D12, ~0U, ~0U);
-
         rdcarray<ShaderEntryPoint> entries = container.GetEntryPoints();
 
         for(const ShaderEntryPoint &e : entries)
           AddExport(e.name);
       }
 
-      // TODO: register local root signature subobjects into dxilLocalRootSigs. Override
-      // anything in there, unlike the import from a collection below.
+      // import local root signature subobjects
+      DXIL::RDATData rdat;
+      rdcarray<rdcstr> localRSs;
+      if(container.GetRuntimeData(rdat))
+      {
+        for(const DXIL::RDATData::SubobjectInfo &sub : rdat.subobjectsInfo)
+        {
+          if(sub.type == DXIL::RDATData::SubobjectInfo::SubobjectType::LocalRS)
+          {
+            if(exports.contains(sub.name) || exports.empty())
+            {
+              localRSs.push_back(sub.name);
+              dxilLocalRootSigs[sub.name] = m_RayManager->RegisterLocalRootSig(
+                  m_ShaderCache->GetRootSig(sub.rs.data.data(), sub.rs.data.size()));
+
+              // ignore these if an explicit default association has been made
+              if(!explicitDXILDefault)
+              {
+                // if multiple root signatures are defined, then there can't be an unspecified default
+                unassocDXILDefaultValid = explicitDefaultDxilAssocs.empty();
+                dxilDefaultRoot = dxilLocalRootSigs[sub.assoc.subobject];
+              }
+            }
+          }
+          else if(sub.type == DXIL::RDATData::SubobjectInfo::SubobjectType::SubobjectToExportsAssoc)
+          {
+            // only care about local RS associations
+            if(localRSs.contains(sub.assoc.subobject))
+            {
+              if(sub.assoc.exports.empty())
+              {
+                explicitDXILDefault = true;
+                // TODO do we need a different level of priority for this vs an explicit default in code?
+                explicitDefaultDxilAssocs.push_back(sub.assoc.subobject);
+              }
+            }
+          }
+        }
+      }
     }
     else if(subobjects[i].Type == D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION)
     {
