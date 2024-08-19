@@ -62,6 +62,11 @@ struct StringBuffer
     stringblob.push_back('\0');    // starts with an empty string
   }
 
+  void Reset()
+  {
+    stringblob.clear();
+    stringblob.push_back('\0');
+  }
   void Load(const void *data, size_t size) { stringblob.assign((const char *)data, size); }
   const char *GetString(IndexReference offs) { return stringblob.c_str() + offs.offset; }
 
@@ -85,6 +90,12 @@ struct StringBuffer
         // skip past the NULL terminator to the start of the next string
         offs += curlen + 1;
       }
+    }
+    else
+    {
+      // note: empty strings are deduplicated (unlike full strings) to offset 0 even in PSV...
+      if(str.empty())
+        return {0};
     }
 
     uint32_t ret = (uint32_t)stringblob.length();
@@ -119,6 +130,8 @@ struct IndexArrays
 
     size_t size() const { return length; }
     T &operator[](size_t i) { return idxs[i]; }
+
+    operator rdcarray<T>() { return rdcarray<T>(idxs, length); }
   };
 
   template <typename T>
@@ -347,6 +360,11 @@ static void BakeRuntimeTablePart(rdcarray<bytebuf> &parts, DXIL::RDATData::Part 
 
 };
 
+void DXIL::PSVData::Bitmask::WriteTable(StreamWriter &writer, uint32_t numVectors) const
+{
+  writer.Write(bitmask, TableByteSize(numVectors));
+}
+
 namespace DXBC
 {
 bool DXBCContainer::GetPipelineValidation(DXIL::PSVData &psv) const
@@ -364,11 +382,409 @@ bool DXBCContainer::GetPipelineValidation(DXIL::PSVData &psv) const
   if(m_PSVOffset == 0)
     return false;
 
+  const byte *in = m_ShaderBlob.data() + m_PSVOffset;
+  const byte *end = in + m_PSVSize;
+
+  const uint32_t headerSize = *(uint32_t *)in;
+  in += sizeof(uint32_t);
+  DXIL::PSVData0 *header = (DXIL::PSVData0 *)in;
+  in += headerSize;
+
+  if(headerSize == sizeof(DXIL::PSVData0))
+  {
+    memcpy(&psv, header, headerSize);
+    psv.version = PSVData::Version::Version0;
+
+    psv.shaderType = m_Type;
+  }
+  else if(headerSize == sizeof(DXIL::PSVData1))
+  {
+    memcpy(&psv, header, headerSize);
+    psv.version = PSVData::Version::Version1;
+  }
+  else if(headerSize == sizeof(DXIL::PSVData2))
+  {
+    memcpy(&psv, header, headerSize);
+    psv.version = PSVData::Version::Version2;
+  }
+  else if(headerSize > sizeof(DXIL::PSVData2))
+  {
+    RDCWARN("Unexpected PSV header size %u, only reading ver2", headerSize);
+    memcpy(&psv, header, sizeof(DXIL::PSVData2));
+    psv.version = PSVData::Version::Version2;
+  }
+  else
+  {
+    // size is not larger than ver2, which means it's invalid
+    RDCERR("Invalid PSV header size %u", headerSize);
+    return false;
+  }
+
+  // resources are always present
+  const uint32_t resourceCount = *(uint32_t *)in;
+  in += sizeof(uint32_t);
+
+  if(resourceCount)
+  {
+    const uint32_t resourceStride = *(uint32_t *)in;
+    in += sizeof(uint32_t);
+
+    if(resourceStride > sizeof(PSVResource1))
+    {
+      RDCWARN("Unexpected PSV resource stride %u, only reading ver1", resourceStride);
+    }
+    else if(resourceStride != sizeof(PSVResource0) && resourceStride != sizeof(PSVResource1))
+    {
+      RDCERR("Invalid PSV resource stride %u", resourceStride);
+      return false;
+    }
+
+    psv.resourceVersion = PSVData::ResourceVersion::Version0;
+    if(resourceStride >= sizeof(PSVResource1))
+      psv.resourceVersion = PSVData::ResourceVersion::Version1;
+
+    const byte *resources = in;
+    in += resourceStride * resourceCount;
+
+    psv.resources.reserve(resourceCount);
+    for(uint32_t i = 0; i < resourceCount; i++)
+    {
+      PSVResource res;
+      memcpy(&res, resources, resourceStride);
+
+      psv.resources.push_back(res);
+
+      resources += resourceStride;
+    }
+  }
+
+  if(psv.version >= PSVData::Version::Version1)
+  {
+    const uint32_t stringBufSize = *(uint32_t *)in;
+    in += sizeof(uint32_t);
+    StringBuffer stringbuf(false);    // not deduplicated, though it doesn't matter on read
+    stringbuf.Load(in, stringBufSize);
+    in += AlignUp4(stringBufSize);    // should already be aligned but let's be safe
+
+    const uint32_t idxArraySize = *(uint32_t *)in;
+    in += sizeof(uint32_t);
+    IndexArrays idxArrays(true, false);    // deduplicated and not length-prefixed
+    idxArrays.Load(
+        in, idxArraySize * sizeof(uint32_t));    // length is given as number of dwords not bytes
+    in += idxArraySize * sizeof(uint32_t);
+
+    if(psv.inputSigElems || psv.outputSigElems || psv.patchConstPrimSigElems)
+    {
+      const uint32_t sigStride = *(uint32_t *)in;
+      in += sizeof(uint32_t);
+
+      if(sigStride > PSVSignature0::SigStride)
+      {
+        RDCWARN("Unexpected PSV signature element stride %u, only reading ver1", sigStride);
+      }
+      else if(sigStride != PSVSignature0::SigStride)
+      {
+        RDCERR("Invalid PSV signature element stride %u", sigStride);
+        return false;
+      }
+
+      psv.signatureVersion = PSVData::SignatureVersion::Version0;
+
+      psv.inputSig.reserve(psv.inputSigElems);
+      for(uint8_t i = 0; i < psv.inputSigElems; i++)
+      {
+        IndexReference name, semIndices;
+        memcpy(&name, in, sizeof(IndexReference));
+        in += sizeof(IndexReference);
+        memcpy(&semIndices, in, sizeof(IndexReference));
+        in += sizeof(IndexReference);
+
+        PSVSignature sig;
+        memcpy(&sig.properties, in, sizeof(sig.properties));
+        in += sizeof(sig.properties);
+
+        sig.name = stringbuf.GetString(name);
+        sig.semIndices = idxArrays.GetSpan<uint32_t>(semIndices);
+        sig.semIndices.resize(sig.properties.rows);
+
+        psv.inputSig.push_back(sig);
+      }
+
+      psv.outputSig.reserve(psv.outputSigElems);
+      for(uint8_t i = 0; i < psv.outputSigElems; i++)
+      {
+        IndexReference name, semIndices;
+        memcpy(&name, in, sizeof(IndexReference));
+        in += sizeof(IndexReference);
+        memcpy(&semIndices, in, sizeof(IndexReference));
+        in += sizeof(IndexReference);
+
+        PSVSignature sig;
+        memcpy(&sig.properties, in, sizeof(sig.properties));
+        in += sizeof(sig.properties);
+
+        sig.name = stringbuf.GetString(name);
+        sig.semIndices = idxArrays.GetSpan<uint32_t>(semIndices);
+        sig.semIndices.resize(sig.properties.rows);
+
+        psv.outputSig.push_back(sig);
+      }
+
+      psv.patchConstPrimSig.reserve(psv.patchConstPrimSigElems);
+      for(uint8_t i = 0; i < psv.patchConstPrimSigElems; i++)
+      {
+        IndexReference name, semIndices;
+        memcpy(&name, in, sizeof(IndexReference));
+        in += sizeof(IndexReference);
+        memcpy(&semIndices, in, sizeof(IndexReference));
+        in += sizeof(IndexReference);
+
+        PSVSignature sig;
+        memcpy(&sig.properties, in, sizeof(sig.properties));
+        in += sizeof(sig.properties);
+
+        sig.name = stringbuf.GetString(name);
+        sig.semIndices = idxArrays.GetSpan<uint32_t>(semIndices);
+        sig.semIndices.resize(sig.properties.rows);
+
+        psv.patchConstPrimSig.push_back(sig);
+      }
+    }
+
+    // view ID dependence table
+    if(psv.useViewID)
+    {
+      for(uint32_t stream = 0; stream < PSVData::NumOutputStreams; stream++)
+      {
+        if(psv.outputSigVectors[stream])
+        {
+          psv.viewIDAffects.outputMask[stream].ReadTable(in, psv.outputSigVectors[stream]);
+        }
+      }
+
+      // same union member
+      RDCCOMPILE_ASSERT(offsetof(DXIL::PSVData1, hs1.sigPatchConstVectors) ==
+                            offsetof(DXIL::PSVData1, ms1.sigPrimVectors),
+                        "sigPatchConstVectors is not at the same offset as sigPrimVectors");
+      if((m_Type == DXBC::ShaderType::Hull || m_Type == DXBC::ShaderType::Mesh) &&
+         psv.hs1.sigPatchConstVectors)
+      {
+        psv.viewIDAffects.patchConstOrPrimMask.ReadTable(in, psv.hs1.sigPatchConstVectors);
+      }
+    }
+
+    // IO dependence table
+    for(uint32_t stream = 0; stream < PSVData::NumOutputStreams; stream++)
+    {
+      if(psv.inputSigVectors && psv.outputSigVectors[stream])
+      {
+        rdcarray<PSVData::Bitmask> &bitmask = psv.IODependencies[stream].dependentOutputsForInput;
+        bitmask.resize(psv.inputSigVectors * 4);
+        for(size_t i = 0; i < bitmask.size(); i++)
+        {
+          bitmask[i].ReadTable(in, psv.outputSigVectors[stream]);
+        }
+      }
+    }
+
+    // patch constant output on input dependence table
+    if(m_Type == DXBC::ShaderType::Hull && psv.hs1.sigPatchConstVectors && psv.inputSigVectors)
+    {
+      rdcarray<PSVData::Bitmask> &bitmask = psv.PCIODependencies.dependentPCOutputsForInput;
+      bitmask.resize(psv.inputSigVectors * 4);
+      for(size_t i = 0; i < bitmask.size(); i++)
+      {
+        bitmask[i].ReadTable(in, psv.hs1.sigPatchConstVectors);
+      }
+    }
+
+    // output on patch constant input dependence table
+    if(m_Type == DXBC::ShaderType::Domain && psv.outputSigVectors[0] && psv.ds1.sigPatchConstVectors)
+    {
+      rdcarray<PSVData::Bitmask> &bitmask = psv.PCIODependencies.dependentPCOutputsForInput;
+      bitmask.resize(psv.ds1.sigPatchConstVectors * 4);
+      for(size_t i = 0; i < bitmask.size(); i++)
+      {
+        bitmask[i].ReadTable(in, psv.outputSigVectors[0]);
+      }
+    }
+  }
+
+  RDCASSERT(in == end);
+
   return true;
 }
 
 void DXBCContainer::SetPipelineValidation(bytebuf &ByteCode, const DXIL::PSVData &psv)
 {
+  using namespace DXIL;
+
+  StreamWriter writer(256);
+
+  uint32_t headerSize = sizeof(PSVData::PSVData0);
+  switch(psv.version)
+  {
+    default:
+    case PSVData::Version::Version0: headerSize = sizeof(PSVData::PSVData0); break;
+    case PSVData::Version::Version1: headerSize = sizeof(PSVData::PSVData1); break;
+    case PSVData::Version::Version2: headerSize = sizeof(PSVData::PSVData2); break;
+  }
+
+  // PSV does not deduplicate
+  StringBuffer stringbuf(false);
+
+  // PSV does deduplicate index arrays, but does not length prefix them
+  IndexArrays idxArrays(true, false);
+
+  // write header
+  writer.Write<uint32_t>(headerSize);
+  writer.Write(&psv, headerSize);
+
+  // write resources
+  const uint32_t resourceCount = psv.resources.count();
+  writer.Write(resourceCount);
+
+  if(resourceCount)
+  {
+    uint32_t resourceStride = sizeof(PSVResource1);
+
+    if(psv.resourceVersion == PSVData::ResourceVersion::Version0)
+      resourceStride = sizeof(PSVResource0);
+
+    writer.Write(resourceStride);
+
+    for(uint32_t i = 0; i < resourceCount; i++)
+      writer.Write(&psv.resources[i], resourceStride);
+  }
+
+  if(psv.version >= PSVData::Version::Version1)
+  {
+    // gather string buffer and index arrays first so we can write them
+    RDCASSERT(psv.inputSigElems == psv.inputSig.size());
+    for(uint8_t i = 0; i < psv.inputSigElems; i++)
+    {
+      stringbuf.MakeRef(psv.inputSig[i].name);
+      idxArrays.MakeRef(psv.inputSig[i].semIndices, false);
+    }
+
+    RDCASSERT(psv.outputSigElems == psv.outputSig.size());
+    for(uint8_t i = 0; i < psv.outputSigElems; i++)
+    {
+      stringbuf.MakeRef(psv.outputSig[i].name);
+      idxArrays.MakeRef(psv.outputSig[i].semIndices, false);
+    }
+
+    RDCASSERT(psv.patchConstPrimSigElems == psv.patchConstPrimSig.size());
+    for(uint8_t i = 0; i < psv.patchConstPrimSigElems; i++)
+    {
+      stringbuf.MakeRef(psv.patchConstPrimSig[i].name);
+      idxArrays.MakeRef(psv.patchConstPrimSig[i].semIndices, false);
+    }
+
+    const uint32_t stringBufSize = AlignUp4(stringbuf.GetBlob().count());
+    writer.Write(stringBufSize);
+    writer.Write(stringbuf.GetBlob().data(), stringbuf.GetBlob().size());
+    writer.AlignTo<sizeof(uint32_t)>();
+
+    // length is given as number of dwords not bytes
+    const uint32_t idxArraySize = idxArrays.GetBlob().count();
+    writer.Write(idxArraySize);
+    writer.Write(idxArrays.GetBlob().data(), idxArraySize * sizeof(uint32_t));
+
+    // since it's not deduplicated, reset the string buffer and we'll "recreate" it the same, to not
+    // have to store all the references above. The index arrays will naturally deduplicate to be the same.
+    stringbuf.Reset();
+
+    // string buffer and index array are unconditionally written but we only write the signature
+    // data with stride if there is some data to write
+    if(psv.inputSigElems || psv.outputSigElems || psv.patchConstPrimSigElems)
+    {
+      uint32_t sigStride = PSVSignature0::SigStride;
+
+      writer.Write(sigStride);
+
+      for(uint8_t i = 0; i < psv.inputSigElems; i++)
+      {
+        writer.Write(stringbuf.MakeRef(psv.inputSig[i].name).offset);
+        writer.Write(idxArrays.MakeRef(psv.inputSig[i].semIndices, false).offset);
+        writer.Write(&psv.inputSig[i].properties, sizeof(PSVSignature0::Properties));
+      }
+
+      for(uint8_t i = 0; i < psv.outputSigElems; i++)
+      {
+        writer.Write(stringbuf.MakeRef(psv.outputSig[i].name).offset);
+        writer.Write(idxArrays.MakeRef(psv.outputSig[i].semIndices, false).offset);
+        writer.Write(&psv.outputSig[i].properties, sizeof(PSVSignature0::Properties));
+      }
+
+      for(uint8_t i = 0; i < psv.patchConstPrimSigElems; i++)
+      {
+        writer.Write(stringbuf.MakeRef(psv.patchConstPrimSig[i].name).offset);
+        writer.Write(idxArrays.MakeRef(psv.patchConstPrimSig[i].semIndices, false).offset);
+        writer.Write(&psv.patchConstPrimSig[i].properties, sizeof(PSVSignature0::Properties));
+      }
+    }
+
+    // view ID dependence table
+    if(psv.useViewID)
+    {
+      for(uint32_t stream = 0; stream < PSVData::NumOutputStreams; stream++)
+      {
+        if(psv.outputSigVectors[stream])
+        {
+          psv.viewIDAffects.outputMask[stream].WriteTable(writer, psv.outputSigVectors[stream]);
+        }
+      }
+
+      // same union member
+      RDCCOMPILE_ASSERT(offsetof(DXIL::PSVData1, hs1.sigPatchConstVectors) ==
+                            offsetof(DXIL::PSVData1, ms1.sigPrimVectors),
+                        "sigPatchConstVectors is not at the same offset as sigPrimVectors");
+      if((psv.shaderType == DXBC::ShaderType::Hull || psv.shaderType == DXBC::ShaderType::Mesh) &&
+         psv.hs1.sigPatchConstVectors)
+      {
+        psv.viewIDAffects.patchConstOrPrimMask.WriteTable(writer, psv.hs1.sigPatchConstVectors);
+      }
+    }
+
+    // IO dependence table
+    for(uint32_t stream = 0; stream < PSVData::NumOutputStreams; stream++)
+    {
+      if(psv.inputSigVectors && psv.outputSigVectors[stream])
+      {
+        const rdcarray<PSVData::Bitmask> &bitmask =
+            psv.IODependencies[stream].dependentOutputsForInput;
+        for(size_t i = 0; i < bitmask.size(); i++)
+        {
+          bitmask[i].WriteTable(writer, psv.outputSigVectors[stream]);
+        }
+      }
+    }
+
+    // patch constant output on input dependence table
+    if(psv.shaderType == DXBC::ShaderType::Hull && psv.hs1.sigPatchConstVectors && psv.inputSigVectors)
+    {
+      const rdcarray<PSVData::Bitmask> &bitmask = psv.PCIODependencies.dependentPCOutputsForInput;
+      for(size_t i = 0; i < bitmask.size(); i++)
+      {
+        bitmask[i].WriteTable(writer, psv.hs1.sigPatchConstVectors);
+      }
+    }
+
+    // output on patch constant input dependence table
+    if(psv.shaderType == DXBC::ShaderType::Domain && psv.outputSigVectors[0] &&
+       psv.ds1.sigPatchConstVectors)
+    {
+      const rdcarray<PSVData::Bitmask> &bitmask = psv.PCIODependencies.dependentPCOutputsForInput;
+      for(size_t i = 0; i < bitmask.size(); i++)
+      {
+        bitmask[i].WriteTable(writer, psv.outputSigVectors[0]);
+      }
+    }
+  }
+
+  DXBC::DXBCContainer::ReplaceChunk(ByteCode, DXBC::FOURCC_PSV0, writer.GetData(),
+                                    (size_t)writer.GetOffset());
 }
 
 bool DXBCContainer::GetRuntimeData(DXIL::RDATData &rdat) const

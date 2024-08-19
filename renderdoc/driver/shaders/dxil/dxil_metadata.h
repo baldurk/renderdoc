@@ -28,6 +28,8 @@
 #include "driver/shaders/dxbc/dxbc_common.h"
 #include "dxil_common.h"
 
+class StreamWriter;
+
 namespace DXBC
 {
 enum class ShaderType : uint8_t;
@@ -39,6 +41,8 @@ namespace DXIL
 
 struct PSVData0
 {
+  PSVData0() { ms = MSInfo(); }
+
   struct VSInfo
   {
     bool SVPositionOutput;
@@ -97,8 +101,8 @@ struct PSVData0
     ASInfo as;
     MSInfo ms;
   };
-  uint32_t minWaveCount;
-  uint32_t maxWaveCount;
+  uint32_t minWaveCount = 0;
+  uint32_t maxWaveCount = ~0U;
 
   static const size_t ExpectedSize = sizeof(uint32_t) * 6;
 };
@@ -107,8 +111,10 @@ struct PSVData1 : public PSVData0
 {
   static const uint32_t NumOutputStreams = 4;
 
-  DXBC::ShaderType shaderType;
-  bool useViewID;
+  PSVData1() { gs1.maxVerts = 0; }
+
+  DXBC::ShaderType shaderType = DXBC::ShaderType::Max;
+  bool useViewID = false;
 
   union
   {
@@ -120,28 +126,28 @@ struct PSVData1 : public PSVData0
     struct
     {
       uint8_t sigPatchConstVectors;
-    } hs, gs;
+    } hs1, ds1;
 
     struct
     {
       uint8_t sigPrimVectors;
       DXBC::TessellatorDomain topology;
-    } ms;
+    } ms1;
   };
 
-  uint8_t inputSigElems;
-  uint8_t outputSigElems;
-  uint8_t patchConstPrimSigElems;
+  uint8_t inputSigElems = 0;
+  uint8_t outputSigElems = 0;
+  uint8_t patchConstPrimSigElems = 0;
 
-  uint8_t inputSigVectors;
-  uint8_t outputSigVectors[NumOutputStreams];    // one per geometry stream
+  uint8_t inputSigVectors = 0;
+  uint8_t outputSigVectors[NumOutputStreams] = {};    // one per geometry stream
 
   static const size_t ExpectedSize = sizeof(PSVData0) + sizeof(uint16_t) + 10 * sizeof(uint8_t);
 };
 
 struct PSVData2 : public PSVData1
 {
-  uint32_t threadCount[3];
+  uint32_t threadCount[3] = {};
 
   static const size_t ExpectedSize = sizeof(PSVData1) + 3 * sizeof(uint32_t);
 };
@@ -162,8 +168,8 @@ enum class PSVResourceFlags
 
 struct PSVResource1 : public PSVResource0
 {
-  DXIL::ResourceKind kind;
-  PSVResourceFlags flags;
+  DXIL::ResourceKind kind = DXIL::ResourceKind::Unknown;
+  PSVResourceFlags flags = PSVResourceFlags::None;
 };
 
 using PSVResource = PSVResource1;
@@ -172,25 +178,27 @@ struct PSVSignature0
 {
   rdcstr name;
   rdcarray<uint32_t> semIndices;
-  uint8_t rows;
-  uint8_t firstRow;
-  uint8_t cols;        // : 4
-  uint8_t startCol;    // :2
-  uint8_t alloc;       // :2
-  SigSemantic semantic;
-  DXBC::SigCompType compType;
-  DXBC::InterpolationMode interpMode;
-  uint8_t dynamicMask;    // :4
-  uint8_t stream;         // :2
-  uint8_t padding;
+
+  // we make a properties struct for the data which is directly serialisable to make this easier to load/save
+  struct Properties
+  {
+    uint8_t rows;
+    uint8_t firstRow;
+    uint8_t cols : 4;
+    uint8_t startCol : 2;
+    uint8_t alloc : 2;
+    SigSemantic semantic;
+    DXBC::SigCompType compType;
+    DXBC::InterpolationMode interpMode;
+    uint8_t dynamicMask : 4;
+    uint8_t stream : 2;
+    uint8_t padding;
+  } properties;
+
+  static const size_t SigStride = sizeof(Properties) + sizeof(uint32_t) * 2;
 };
 
 using PSVSignature = PSVSignature0;
-
-inline const uint32_t VectorBitmaskBitSize(uint32_t numVectors)
-{
-  return AlignUp(numVectors * 4, 64U);
-}
 
 struct PSVData : public PSVData2
 {
@@ -202,6 +210,19 @@ struct PSVData : public PSVData2
     VersionLatest = Version2,
   } version = Version::VersionLatest;
 
+  enum class ResourceVersion
+  {
+    Version0 = 0,
+    Version1,
+    VersionLatest = Version1,
+  } resourceVersion = ResourceVersion::VersionLatest;
+
+  enum class SignatureVersion
+  {
+    Version0 = 0,
+    VersionLatest = Version0,
+  } signatureVersion = SignatureVersion::VersionLatest;
+
   rdcarray<PSVResource> resources;
 
   // stringtable
@@ -211,35 +232,48 @@ struct PSVData : public PSVData2
   rdcarray<PSVSignature> outputSig;
   rdcarray<PSVSignature> patchConstPrimSig;
 
-  // in the tables below we assume no more than 64 dwords in any signature (16 vectors) so store
-  // bitmasks as 64-bit.
+  // bitmask could be larger than 64-bit (more than 16 vectors) but at least not larger than 32-bit.
+  // rather than having some horrible arrays here we just worst-case allocate
+  struct Bitmask
+  {
+    uint64_t bitmask[2] = {};
+
+    inline size_t TableByteSize(uint32_t numVectors) const
+    {
+      return (AlignUp(numVectors * 4, 32U)) / 8;
+    }
+    void WriteTable(StreamWriter &writer, uint32_t numVectors) const;
+    inline void ReadTable(const byte *&in, uint32_t numVectors)
+    {
+      memcpy(bitmask, in, TableByteSize(numVectors));
+      in += TableByteSize(numVectors);
+    }
+  };
 
   // if view ID is used, a bitmask per output stream, the bitmask containing one bit per dword as
   // in PSVData1::outputSigVectors indicating if that output vector depends on view ID
   struct
   {
-    uint64_t outputMask;
-    uint64_t patchConstMask;
-  } viewIDAffects[PSVData1::NumOutputStreams];
+    Bitmask outputMask[PSVData1::NumOutputStreams];
+    // dependency of patch constant outputs or per-primitive outputs (for mesh shader) on viewID
+    Bitmask patchConstOrPrimMask;
+  } viewIDAffects;
 
   // for each stream, a bitmask for each input vector with the bitmask containing which output
   // vectors have a dependency on the input vector.
+  // this array becomes inefficient because there's waste in every bitmask but a bitmask per input dword.
   struct
   {
-    rdcarray<uint64_t> dependentOutputsForInput;
+    rdcarray<Bitmask> dependentOutputsForInput;
   } IODependencies[PSVData1::NumOutputStreams];
 
-  // same as above, but for patch constant outputs on inputs - HS only
+  // same as above, but for:
+  // - patch constant outputs on inputs - HS only
+  // - outputs on patch constant inputs - DS only
   struct
   {
-    rdcarray<uint64_t> dependentPCOutputsForInput;
-  } PCOutDependencies;
-
-  // same as above, but for outputs on patch constant inputs - DS only
-  struct
-  {
-    rdcarray<uint64_t> dependentOutputsForPCInput;
-  } PCInDependencies;
+    rdcarray<Bitmask> dependentPCOutputsForInput;
+  } PCIODependencies;
 };
 
 struct RDATData
