@@ -600,189 +600,54 @@ void D3D12Replay::PatchQuadWritePS(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &pi
       }
     }
 
+    DXIL::PSVData rastFeedingPSV;
+    DXIL::PSVData patchedPSV;
+
+    if(rastFeedingDXBC.GetPipelineValidation(rastFeedingPSV) &&
+       quadOverdrawDXBC.GetPipelineValidation(patchedPSV))
     {
-      // do a horrible franken-patch to merge the PSV0 chunks. We use the header from the existing
-      // PS,
-      // change the number of declared input elements, then copy the signature elements from the
-      // last
-      // shader's chunk. We can't copy the whole string table because that will likely include other
-      // strings and then the damned thing won't match according to the runtime's validation.
-      size_t rastPsv0Size = 0;
-      const byte *rastPsv0Bytes =
-          DXBC::DXBCContainer::FindChunk(rastFeedingBytes, DXBC::FOURCC_PSV0, rastPsv0Size);
-      StreamReader rastPsv0(rastPsv0Bytes, rastPsv0Size);
+      DXIL::PSVData mergedPSV = patchedPSV;
 
-      size_t psPsv0Size = 0;
-      const byte *psPsv0Bytes =
-          DXBC::DXBCContainer::FindChunk(patchedDXBC, DXBC::FOURCC_PSV0, psPsv0Size);
-      StreamReader psPsv0(psPsv0Bytes, psPsv0Size);
-
-      StreamWriter mergedPsv0(1024);
-
-      uint32_t rastHeaderSize = 0;
-      if(!rastPsv0.Read<uint32_t>(rastHeaderSize))
-        return;
-
-      uint32_t psHeaderSize = 0;
-      if(!psPsv0.Read<uint32_t>(psHeaderSize))
-        return;
-
-      struct PSVHeader0
+      // if the previous shader only uses version0, use version0 ourselves as I don't know if it's
+      // safe to mix and match versions in a pipeline. Version 0 doesn't have signatures so we can
+      // basically stop here, the resources are already all set up as we based mergedPSV on patchedPSV
+      if(rastFeedingPSV.version == DXIL::PSVData::Version::Version0)
       {
-        uint32_t unused[6];
-      };
-
-      struct PSVHeader1 : public PSVHeader0
-      {
-        // other data
-        uint32_t unused1;
-
-        // signature element counts
-        uint8_t inputEls;
-        uint8_t outputEls;
-        uint8_t patchConstEls;
-
-        // signature vector counts
-        uint8_t inputVecs;
-        uint8_t outputVecs[4];
-      };
-
-      struct PSVHeader2 : public PSVHeader1
-      {
-        uint32_t NumThreadsX;
-        uint32_t NumThreadsY;
-        uint32_t NumThreadsZ;
-      };
-
-      bytebuf copyBuf;
-      PSVHeader2 rastHeader = {}, psHeader = {};
-
-      if(rastHeaderSize < sizeof(PSVHeader1))
-      {
-        // only copy the header0 part out of the ps one since we won't have signature data to copy,
-        // hope this is OK
-
-        // read the whole ps header
-        psPsv0.Read(&psHeader, psHeaderSize);
-
-        // write only the old sized header
-        mergedPsv0.Write(rastHeaderSize);
-        mergedPsv0.Write(&psHeader, rastHeaderSize);
+        mergedPSV.version = DXIL::PSVData::Version::Version0;
       }
       else
       {
-        rastPsv0.Read(&rastHeader, rastHeaderSize);
-        psPsv0.Read(&psHeader, psHeaderSize);
+        // newer versions, we need to patch the signature elements in our new patched PS reading
+        // from the right input signature element to match the previous signature's outputs
+        mergedPSV.inputSigElems = rastFeedingPSV.outputSigElems;
+        mergedPSV.inputSigVectors = rastFeedingPSV.outputSigVectors[0];
+        mergedPSV.inputSig = rastFeedingPSV.outputSig;
 
-        // copy the previous output signature into the ps input
-        psHeader.inputEls = rastHeader.outputEls;
-        psHeader.inputVecs = rastHeader.outputVecs[0];
-
-        // the ps header should have no other elements for us to worry about
-        RDCASSERT(psHeader.outputEls == 0);
-        RDCASSERT(psHeader.patchConstEls == 0);
-        RDCASSERT(psHeader.outputVecs[0] == 0);
-        RDCASSERT(psHeader.outputVecs[1] == 0);
-        RDCASSERT(psHeader.outputVecs[2] == 0);
-        RDCASSERT(psHeader.outputVecs[3] == 0);
-
-        // we should have a table offset for each output entry
-        RDCASSERT(rastHeader.outputEls == stringTableOffsets.size());
-        RDCASSERT(rastHeader.outputEls == semanticIndexTableOffsets.size());
-
-        mergedPsv0.Write(psHeaderSize);
-        mergedPsv0.Write(&psHeader, psHeaderSize);
-      }
-
-      // skip resource counts in raster side shader
-      uint32_t rastResCount = 0;
-      if(!rastPsv0.Read<uint32_t>(rastResCount))
-        return;
-
-      if(rastResCount > 0)
-      {
-        uint32_t resSize = 0;
-        if(!rastPsv0.Read<uint32_t>(resSize))
-          return;
-        rastPsv0.SkipBytes(rastResCount * resSize);
-      }
-
-      uint32_t psResCount = 0;
-      if(!psPsv0.Read<uint32_t>(psResCount))
-        return;
-      mergedPsv0.Write(psResCount);
-
-      // copy any resources in the pixel psv0
-      if(psResCount > 0)
-      {
-        uint32_t resSize = 0;
-        if(!psPsv0.Read<uint32_t>(resSize))
-          return;
-        mergedPsv0.Write(resSize);
-        copyBuf.resize(psResCount * resSize);
-        psPsv0.Read(copyBuf.data(), copyBuf.size());
-        mergedPsv0.Write(copyBuf.data(), copyBuf.size());
-      }
-
-      // if we have a new header with signature elements (what we expect)
-      if(rastHeaderSize >= sizeof(PSVHeader1))
-      {
-        // we're effectively done with the rest of the ps chunk here, we're just going to copy the
-        // old
-        // chunk except skipping the input signature. There might be data we don't need in the
-        // string/indices tables but that's fine.
-
-        // align string table to multiple of 4 size
-        stringTable.resize(AlignUp4(stringTable.size()));
-
-        // skip the old string table and semantic index table
-        uint32_t stringTableSize = 0;
-        if(!rastPsv0.Read<uint32_t>(stringTableSize))
-          return;
-        rastPsv0.SkipBytes(stringTableSize);
-
-        uint32_t indexTableSize = 0;
-        if(!rastPsv0.Read<uint32_t>(indexTableSize))
-          return;
-        rastPsv0.SkipBytes(indexTableSize * sizeof(uint32_t));
-
-        mergedPsv0.Write((uint32_t)stringTable.size());
-        mergedPsv0.Write(stringTable.data(), stringTable.size());
-
-        mergedPsv0.Write((uint32_t)semanticIndexTable.size());
-        mergedPsv0.Write(semanticIndexTable.data(), semanticIndexTable.byteSize());
-
-        uint32_t sigElSize = 0;
-        if(!rastPsv0.Read<uint32_t>(sigElSize))
-          return;
-        mergedPsv0.Write(sigElSize);
-
-        // skip any inputs from the previous stage, we don't want to copy that
-        rastPsv0.SkipBytes(rastHeader.inputEls * sigElSize);
-
-        struct PSVSigElement
+        // the PS header should have no other elements for us to worry about
+        RDCASSERT(mergedPSV.outputSigElems == 0);
+        RDCASSERT(mergedPSV.patchConstPrimSigElems == 0);
+        for(uint32_t i = 0; i < 4; i++)
         {
-          uint32_t stringTableOffset;
-          uint32_t semanticTableOffset;
-        };
-
-        // copy the output elements, this will become the input elements. We need to modify the
-        // table
-        // offsets to match the one we generated
-        for(uint8_t el = 0; el < rastHeader.outputEls; el++)
-        {
-          copyBuf.resize(sigElSize);
-          rastPsv0.Read(copyBuf.data(), copyBuf.size());
-          PSVSigElement *sigEl = (PSVSigElement *)copyBuf.data();
-          sigEl->stringTableOffset = stringTableOffsets[el];
-          sigEl->semanticTableOffset = semanticIndexTableOffsets[el];
-
-          mergedPsv0.Write(copyBuf.data(), copyBuf.size());
+          RDCASSERT(mergedPSV.outputSigVectors[i] == 0);
         }
+
+        // similarly we should have no I/O dependency tables
+        for(uint32_t i = 0; i < 4; i++)
+        {
+          RDCASSERT(mergedPSV.viewIDAffects.outputMask[i].bitmask[0] == 0);
+          RDCASSERT(mergedPSV.viewIDAffects.outputMask[i].bitmask[1] == 0);
+          RDCASSERT(mergedPSV.IODependencies[i].dependentOutputsForInput.empty());
+        }
+        RDCASSERT(mergedPSV.viewIDAffects.patchConstOrPrimMask.bitmask[0] == 0);
+        RDCASSERT(mergedPSV.viewIDAffects.patchConstOrPrimMask.bitmask[1] == 0);
+        RDCASSERT(mergedPSV.PCIODependencies.dependentPCOutputsForInput.empty());
       }
 
-      DXBC::DXBCContainer::ReplaceChunk(patchedDXBC, DXBC::FOURCC_PSV0, mergedPsv0.GetData(),
-                                        (size_t)mergedPsv0.GetOffset());
+      DXBC::DXBCContainer::SetPipelineValidation(patchedDXBC, mergedPSV);
+    }
+    else
+    {
+      RDCERR("Couldn't get PSV for raster feeding or quad write shader to patch");
     }
   }
   else    // dxbc bytecode not dxil

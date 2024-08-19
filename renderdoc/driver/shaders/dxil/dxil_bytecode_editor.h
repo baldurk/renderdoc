@@ -26,6 +26,7 @@
 
 #include "dxil_bytecode.h"
 #include "dxil_common.h"
+#include "dxil_metadata.h"
 
 namespace DXBC
 {
@@ -128,6 +129,11 @@ public:
   void PatchGlobalShaderFlags(std::function<void(DXBC::GlobalShaderFlags &)> patcher);
 private:
   bytebuf &m_OutBlob;
+
+  DXIL::RDATData m_RDAT;
+  DXIL::PSVData m_PSV;
+  bool m_RDATPresent = false;
+  bool m_PSVPresent = false;
 
   rdcarray<Constant *> m_Constants;
 

@@ -98,6 +98,9 @@ ProgramEditor::ProgramEditor(const DXBC::DXBCContainer *container, bytebuf &outB
   }
 
   m_Constants.removeIf([](Constant *a) { return a == NULL; });
+
+  m_PSVPresent = container->GetPipelineValidation(m_PSV);
+  m_RDATPresent = container->GetRuntimeData(m_RDAT);
 }
 
 ProgramEditor::~ProgramEditor()
@@ -140,6 +143,16 @@ ProgramEditor::~ProgramEditor()
 
   // also strip STAT because it might have stale reflection info
   DXBC::DXBCContainer::StripChunk(m_OutBlob, DXBC::FOURCC_STAT);
+
+  if(m_PSVPresent)
+  {
+    DXBC::DXBCContainer::SetPipelineValidation(m_OutBlob, m_PSV);
+  }
+
+  if(m_RDATPresent)
+  {
+    DXBC::DXBCContainer::SetRuntimeData(m_OutBlob, m_RDAT);
+  }
 
 #if ENABLED(RDOC_DEVEL) && 1
   // on debug builds, run through dxil for "validation" if it's available.
@@ -1702,84 +1715,15 @@ struct ResourceBind1 : ResourceBind0
 void ProgramEditor::RegisterUAV(DXILResourceType type, uint32_t space, uint32_t regBase,
                                 uint32_t regEnd, ResourceKind kind)
 {
-  size_t sz = 0;
-  const byte *psv0 = DXBC::DXBCContainer::FindChunk(m_OutBlob, DXBC::FOURCC_PSV0, sz);
-
-  ResourceBind1 bind = {};
+  DXIL::PSVResource bind = {};
   bind.type = type;
   bind.space = space;
-  bind.regBase = regBase;
+  bind.regStart = regBase;
   bind.regEnd = regEnd;
   bind.kind = kind;
 
-  if(psv0)
-  {
-    bytebuf psv0blob(psv0, sz);
-
-    byte *begin = psv0blob.data();
-    byte *end = begin + sz;
-
-    byte *cur = begin;
-
-    uint32_t *headerSize = (uint32_t *)cur;
-    cur += sizeof(uint32_t);
-    if(cur >= end)
-      return;
-
-    // don't need to patch the header
-    cur += *headerSize;
-    if(cur >= end)
-      return;
-
-    uint32_t *numResources = (uint32_t *)cur;
-    cur += sizeof(uint32_t);
-    if(cur >= end)
-      return;
-
-    if(*numResources > 0)
-    {
-      uint32_t *resourceBindSize = (uint32_t *)cur;
-      cur += sizeof(uint32_t);
-      if(cur >= end)
-        return;
-
-      // fortunately UAVs are the last entry so we don't need to walk the list to insert in the
-      // right place, we can just add it at the end
-      cur += (*resourceBindSize) * (*numResources);
-      if(cur >= end)
-        return;
-
-      // add an extra resource
-      (*numResources)++;
-
-      if(*resourceBindSize == sizeof(ResourceBind1) || *resourceBindSize == sizeof(ResourceBind0))
-      {
-        psv0blob.insert(cur - begin, (byte *)&bind, *resourceBindSize);
-      }
-      else
-      {
-        RDCERR("Unexpected resource bind size %u", *resourceBindSize);
-        return;
-      }
-    }
-    else
-    {
-      // from definitions in dxc
-      const uint32_t headerSizeVer0 = 6 * sizeof(uint32_t);
-      const uint32_t headerSizeVer1 = headerSizeVer0 + sizeof(uint16_t) + 10 * sizeof(uint8_t);
-      const uint32_t headerSizeVer2 = headerSizeVer1 + 3 * sizeof(uint32_t);
-
-      // If there is no resource in the chunk we also need to insert the size of a resource bind
-      *numResources = 1;
-      size_t insertOffset = cur - begin;
-      uint32_t resourceBindSize =
-          *headerSize == headerSizeVer2 ? sizeof(ResourceBind1) : sizeof(ResourceBind0);
-      psv0blob.insert(insertOffset, (byte *)&resourceBindSize, sizeof(resourceBindSize));
-      psv0blob.insert(insertOffset + sizeof(resourceBindSize), (byte *)&bind, resourceBindSize);
-    }
-
-    DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, DXBC::FOURCC_PSV0, psv0blob);
-  }
+  RDCASSERT(m_PSVPresent);
+  m_PSV.resources.push_back(bind);
 
   // patch SFI0 here for non-CS non-PS shaders
   if(m_Type != DXBC::ShaderType::Compute && m_Type != DXBC::ShaderType::Pixel)
@@ -1794,87 +1738,22 @@ void ProgramEditor::RegisterUAV(DXILResourceType type, uint32_t space, uint32_t 
 
 void ProgramEditor::SetNumThreads(uint32_t dim[3])
 {
-  size_t sz = 0;
-  const byte *psv0 = DXBC::DXBCContainer::FindChunk(m_OutBlob, DXBC::FOURCC_PSV0, sz);
+  RDCASSERT(m_PSVPresent);
+  RDCASSERT(m_PSV.version >= PSVData::Version::Version2);
 
-  if(psv0)
-  {
-    bytebuf psv0blob(psv0, sz);
-
-    byte *begin = psv0blob.data();
-    byte *end = begin + sz;
-
-    byte *cur = begin;
-
-    uint32_t *headerSize = (uint32_t *)cur;
-    cur += sizeof(uint32_t);
-    if(cur >= end)
-      return;
-
-    // from definitions in dxc
-    const uint32_t headerSizeVer0 = 6 * sizeof(uint32_t);
-    const uint32_t headerSizeVer1 = headerSizeVer0 + sizeof(uint16_t) + 10 * sizeof(uint8_t);
-    const uint32_t headerSizeVer2 = headerSizeVer1 + 3 * sizeof(uint32_t);
-
-    if(*headerSize >= headerSizeVer2)
-    {
-      cur += headerSizeVer1;
-      memcpy(cur, dim, sizeof(uint32_t) * 3);
-    }
-
-    DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, DXBC::FOURCC_PSV0, psv0blob);
-  }
+  memcpy(m_PSV.threadCount, dim, sizeof(uint32_t) * 3);
 }
 
 void ProgramEditor::SetASPayloadSize(uint32_t payloadSize)
 {
-  size_t sz = 0;
-  const byte *psv0 = DXBC::DXBCContainer::FindChunk(m_OutBlob, DXBC::FOURCC_PSV0, sz);
-
-  if(psv0)
-  {
-    bytebuf psv0blob(psv0, sz);
-
-    byte *begin = psv0blob.data();
-    byte *end = begin + sz;
-
-    byte *cur = begin;
-
-    cur += sizeof(uint32_t);
-    if(cur >= end)
-      return;
-
-    // the AS info with the payload size is immediately at the start of the header
-    memcpy(cur, &payloadSize, sizeof(uint32_t));
-
-    DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, DXBC::FOURCC_PSV0, psv0blob);
-  }
+  RDCASSERT(m_PSVPresent);
+  m_PSV.as.payloadBytes = payloadSize;
 }
 
 void ProgramEditor::SetMSPayloadSize(uint32_t payloadSize)
 {
-  size_t sz = 0;
-  const byte *psv0 = DXBC::DXBCContainer::FindChunk(m_OutBlob, DXBC::FOURCC_PSV0, sz);
-
-  if(psv0)
-  {
-    bytebuf psv0blob(psv0, sz);
-
-    byte *begin = psv0blob.data();
-    byte *end = begin + sz;
-
-    byte *cur = begin;
-
-    cur += sizeof(uint32_t);
-    if(cur >= end)
-      return;
-
-    // the MS info is immediately at the start of the header
-    // the first two uint32s are groupshared related, then comes the payload size
-    memcpy(cur + sizeof(uint32_t) * 2, &payloadSize, sizeof(uint32_t));
-
-    DXBC::DXBCContainer::ReplaceChunk(m_OutBlob, DXBC::FOURCC_PSV0, psv0blob);
-  }
+  RDCASSERT(m_PSVPresent);
+  m_PSV.ms.payloadBytes = payloadSize;
 }
 
 void ProgramEditor::PatchGlobalShaderFlags(std::function<void(DXBC::GlobalShaderFlags &)> patcher)
