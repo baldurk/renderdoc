@@ -532,6 +532,7 @@
     <ClCompile Include="android\jdwp_util.cpp" />
     <ClCompile Include="common\common.cpp" />
     <ClCompile Include="common\dds_readwrite.cpp" />
+    <ClCompile Include="common\jobsystem.cpp" />
     <ClCompile Include="common\threading_tests.cpp" />
     <ClCompile Include="core\bit_flag_iterator_tests.cpp" />
     <ClCompile Include="core\gpu_address_range_tracker.cpp" />

@@ -324,6 +324,13 @@ void SetCurrentThreadName(const rdcstr &name)
   }
 }
 
+uint32_t Threading::NumberOfCores()
+{
+  SYSTEM_INFO sysinfo;
+  GetSystemInfo(&sysinfo);
+  return sysinfo.dwNumberOfProcessors;
+}
+
 uint64_t GetCurrentID()
 {
   return (uint64_t)::GetCurrentThreadId();

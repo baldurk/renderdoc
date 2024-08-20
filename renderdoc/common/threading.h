@@ -110,6 +110,16 @@ public:
 private:
   SpinLock *m_Spin = NULL;
 };
+
+namespace JobSystem
+{
+struct Job;
+void Init(uint32_t numThreads = 0);
+void Shutdown();
+Job *AddJob(std::function<void()> &&cb, const rdcarray<Job *> &parents = {});
+void SyncAllJobs();
+};
+
 };
 
 #define SCOPED_LOCK(cs) Threading::ScopedLock CONCAT(scopedlock, __LINE__)(&cs);

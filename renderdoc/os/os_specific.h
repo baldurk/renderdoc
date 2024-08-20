@@ -164,6 +164,7 @@ void SetCurrentThreadName(const rdcstr &name);
 typedef uint64_t ThreadHandle;
 ThreadHandle CreateThread(std::function<void()> entryFunc);
 uint64_t GetCurrentID();
+uint32_t NumberOfCores();
 void JoinThread(ThreadHandle handle);
 void DetachThread(ThreadHandle handle);
 void CloseThread(ThreadHandle handle);

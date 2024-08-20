@@ -131,6 +131,7 @@ set(sources
     common/globalconfig.h
     common/result.h
     common/shader_cache.h
+    common/jobsystem.cpp
     common/threading.h
     common/timing.h
     common/wrapped_pool.h

@@ -49,6 +49,14 @@ void Threading::SetCurrentThreadName(const rdcstr &name)
   prctl(PR_SET_NAME, (unsigned long)name.c_str(), 0, 0, 0);
 }
 
+uint32_t Threading::NumberOfCores()
+{
+  long ret = sysconf(_SC_NPROCESSORS_ONLN);
+  if(ret <= 0)
+    return 1;
+  return uint32_t(ret);
+}
+
 namespace Threading
 {
 

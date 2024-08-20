@@ -962,6 +962,9 @@
     <ClCompile Include="core\gpu_address_range_tracker.cpp">
       <Filter>Core</Filter>
     </ClCompile>
+    <ClCompile Include="common\jobsystem.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="os\win32\comexport.def">
