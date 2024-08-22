@@ -979,6 +979,19 @@ private:
 
   bytebuf m_MaskedMapData;
 
+  struct PendingCommandBufferCallbacks
+  {
+    VkEvent event;
+    VkCommandBuffer commandBuffer;
+    rdcarray<std::function<void()>> callbacks;
+  };
+
+  Threading::CriticalSection m_PendingCmdBufferCallbacksLock;
+  rdcarray<PendingCommandBufferCallbacks> m_PendingCmdBufferCallbacks;
+  void MarkPendingCommandBufferAsDeleted(VkCommandBuffer commandBuffer);
+  void AddPendingCommandBufferCallbacks(VkCommandBuffer commandBuffer);
+  void CheckPendingCommandBufferCallbacks();
+
   GPUAddressRangeTracker m_AddressTracker;
   GPUAddressRange CreateAddressRange(VkDevice device, VkBuffer buffer);
 

@@ -705,6 +705,75 @@ void WrappedVulkan::SetDebugMessageSink(WrappedVulkan::ScopedDebugMessageSink *s
   Threading::SetTLSValue(debugMessageSinkTLSSlot, (void *)sink);
 }
 
+void WrappedVulkan::MarkPendingCommandBufferAsDeleted(VkCommandBuffer commandBuffer)
+{
+  SCOPED_LOCK(m_PendingCmdBufferCallbacksLock);
+
+  for(PendingCommandBufferCallbacks &pending : m_PendingCmdBufferCallbacks)
+  {
+    if(pending.commandBuffer == commandBuffer)
+    {
+      pending.commandBuffer = VK_NULL_HANDLE;
+      return;
+    }
+  }
+}
+
+void WrappedVulkan::AddPendingCommandBufferCallbacks(VkCommandBuffer commandBuffer)
+{
+  SCOPED_LOCK(m_PendingCmdBufferCallbacksLock);
+
+  VkResourceRecord *cmdRecord = GetRecord(commandBuffer);
+  rdcarray<std::function<void()>> &callbacks = cmdRecord->cmdInfo->pendingSubmissionCompleteCallbacks;
+
+  if(callbacks.empty())
+    return;
+
+  const VkEventCreateInfo info = {VK_STRUCTURE_TYPE_EVENT_CREATE_INFO};
+  VkEvent event;
+  const VkResult vkr = ObjDisp(m_Device)->CreateEvent(Unwrap(m_Device), &info, NULL, &event);
+  CheckVkResult(vkr);
+
+  ObjDisp(commandBuffer)->CmdSetEvent(Unwrap(commandBuffer), event, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+
+  m_PendingCmdBufferCallbacks.push_back({event, commandBuffer, std::move(callbacks)});
+}
+
+void WrappedVulkan::CheckPendingCommandBufferCallbacks()
+{
+  SCOPED_LOCK(m_PendingCmdBufferCallbacksLock);
+
+  // Delete any events whose command buffers have been deleted and their callbacks called
+  m_PendingCmdBufferCallbacks.removeIf([d = m_Device](const PendingCommandBufferCallbacks &pending) {
+    const bool destroyEvent = pending.commandBuffer == VK_NULL_HANDLE && pending.callbacks.empty();
+    if(destroyEvent)
+      ObjDisp(d)->DestroyEvent(Unwrap(d), pending.event, NULL);
+
+    return destroyEvent;
+  });
+
+  for(PendingCommandBufferCallbacks &pending : m_PendingCmdBufferCallbacks)
+  {
+    // We've already executed the callbacks, we're now just waiting for the command buffer to be
+    // destroyed/reused so we can delete the event
+    if(pending.callbacks.empty())
+      continue;
+
+    const VkResult vkr = ObjDisp(m_Device)->GetEventStatus(Unwrap(m_Device), pending.event);
+    if(vkr == VK_EVENT_SET)
+    {
+      for(std::function<void()> &f : pending.callbacks)
+        f();
+
+      pending.callbacks.clear();
+    }
+    else if(vkr != VK_EVENT_RESET)
+    {
+      CheckVkResult(vkr);
+    }
+  }
+}
+
 byte *WrappedVulkan::GetRingTempMemory(size_t s)
 {
   TempMem *mem = (TempMem *)Threading::GetTLSValue(tempMemoryTLSSlot);
@@ -2268,6 +2337,7 @@ void WrappedVulkan::StartFrameCapture(DeviceOwnedWindow devWnd)
     }
 
     m_PreparedNotSerialisedInitStates.clear();
+    CheckPendingCommandBufferCallbacks();
     GetResourceManager()->PrepareInitialContents();
 
     {

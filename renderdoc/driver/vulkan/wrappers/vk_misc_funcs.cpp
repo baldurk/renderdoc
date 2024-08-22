@@ -345,6 +345,8 @@ void WrappedVulkan::vkFreeCommandBuffers(VkDevice device, VkCommandPool commandP
     if(pCommandBuffers[c] == VK_NULL_HANDLE)
       continue;
 
+    MarkPendingCommandBufferAsDeleted(pCommandBuffers[c]);
+
     WrappedVkDispRes *wrapped = (WrappedVkDispRes *)GetWrapped(pCommandBuffers[c]);
 
 #if ENABLED(VERBOSE_PARTIAL_REPLAY)
