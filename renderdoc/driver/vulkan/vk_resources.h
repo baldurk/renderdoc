@@ -1144,6 +1144,9 @@ struct CmdBufferRecordingInfo
   // A list of acceleration structures that this command buffer will build or copy
   rdcarray<VkResourceRecord *> accelerationStructures;
 
+  // A list of callbacks to be executed once the command buffer execution has been completed
+  rdcarray<std::function<void()>> pendingSubmissionCompleteCallbacks;
+
   // AdvanceFrame/Present should be called after this buffer is submitted
   bool present;
   // BeginFrameCapture should be called *before* this buffer is submitted.
@@ -2247,6 +2250,8 @@ public:
     cmdInfo->imageStates.swap(bakedCommands->cmdInfo->imageStates);
     cmdInfo->memFrameRefs.swap(bakedCommands->cmdInfo->memFrameRefs);
     cmdInfo->accelerationStructures.swap(bakedCommands->cmdInfo->accelerationStructures);
+    cmdInfo->pendingSubmissionCompleteCallbacks.swap(
+        bakedCommands->cmdInfo->pendingSubmissionCompleteCallbacks);
   }
 
   // we have a lot of 'cold' data in the resource record, as it can be accessed

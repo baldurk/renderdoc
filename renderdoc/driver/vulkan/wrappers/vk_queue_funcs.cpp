@@ -1337,6 +1337,8 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
 
   for(VkResourceRecord *asRecord : accelerationStructures)
     asRecord->accelerationStructureInfo->accelerationStructureBuilt = true;
+
+  CheckPendingCommandBufferCallbacks();
 }
 
 template <typename SerialiserType>
