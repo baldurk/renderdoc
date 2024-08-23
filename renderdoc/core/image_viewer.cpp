@@ -32,6 +32,7 @@
 #include "stb/stb_image.h"
 #include "strings/string_utils.h"
 #include "tinyexr/tinyexr.h"
+#include "r2d/r2dLoad.h"
 
 class ImageViewer : public IReplayDriver
 {
@@ -518,6 +519,25 @@ RDResult IMG_CreateReplayDevice(RDCFile *rdc, IReplayDriver **driver)
 
     free(data);
   }
+  else if(r2dIsMagicHeader(headerBuffer))
+  {
+      R2dFileHeader r2dHeader;
+      const size_t r2dHeaderSize = FileIO::fread(&r2dHeader, 1, sizeof(R2dFileHeader), f);
+      FileIO::fseek64(f, 0, SEEK_SET);
+      if ( r2dHeaderSize == sizeof(R2dFileHeader))
+      {
+        if ( !r2dHeader.IsSupportedR2dFormat() )
+        {
+            FileIO::fclose(f);
+            RETURN_ERROR_RESULT(ResultCode::ImageUnsupported,"R2D file format not supported (only RGBA-Float32)");
+        }
+      }
+      else
+      {
+          FileIO::fclose(f);
+          RETURN_ERROR_RESULT(ResultCode::ImageUnsupported,"R2D corrupted file");
+      }
+  }
   else if(is_dds_file(headerBuffer, headerSize))
   {
     FileIO::fseek64(f, 0, SEEK_SET);
@@ -812,6 +832,63 @@ void ImageViewer::RefreshFile()
       FileIO::fclose(f);
       return;
     }
+  }
+  else if(r2dIsMagicHeader(headerBuffer))
+  {
+      R2dFileHeader r2dHeader;
+      const size_t r2dHeaderSize = FileIO::fread(&r2dHeader, 1, sizeof(R2dFileHeader), f);
+      FileIO::fseek64(f, 0, SEEK_SET);
+      if ( r2dHeaderSize == sizeof(R2dFileHeader))
+      {
+          if ( r2dHeader.IsSupportedR2dFormat() )
+          {
+              texDetails.format = rgba32_float;
+
+              FileIO::fseek64(f, 0, SEEK_END);
+              uint64_t size = FileIO::ftell64(f);
+              FileIO::fseek64(f, 0, SEEK_SET);
+
+              bytebuf buffer;
+              buffer.resize((size_t)size);
+
+              // read the entire r2d file
+              FileIO::fread(&buffer[0], 1, buffer.size(), f);
+
+              texDetails.width = r2dHeader.w;
+              texDetails.height = r2dHeader.h;
+
+              if(texDetails.width > 16384 || texDetails.height > 16384)
+              {
+                  SET_ERROR_RESULT(m_Error, ResultCode::OutOfMemory,
+                                   "R2D dimension %d x %d is too large for display", texDetails.width,
+                                   texDetails.height);
+                  return;
+              }
+
+              datasize = size_t(texDetails.width) * size_t(texDetails.height) * 4 * sizeof(float);
+              data = (byte *)malloc(datasize);
+
+              bool ok = r2dImageLoadFromMemory(buffer.data(), buffer.size(), data, datasize);
+              if ( !ok )
+              {
+                  SET_ERROR_RESULT(m_Error, ResultCode::ImageUnsupported,
+                                   "R2D file detected, but couldn't load with r2dImageLoadFromMemory");
+                  FileIO::fclose(f);
+              }
+          }
+          else
+          {
+              SET_ERROR_RESULT(m_Error, ResultCode::FileCorrupted,
+                               "R2D file corrupted");
+              FileIO::fclose(f);
+          }
+      }
+      else
+      {
+          SET_ERROR_RESULT(m_Error, ResultCode::FileCorrupted,
+                           "R2D file corrupted");
+          FileIO::fclose(f);
+      }
   }
   else if(stbi_is_hdr_from_file(f))
   {

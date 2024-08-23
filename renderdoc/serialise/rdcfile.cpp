@@ -29,6 +29,7 @@
 #include "common/formatting.h"
 #include "jpeg-compressor/jpge.h"
 #include "stb/stb_image.h"
+#include "r2d/r2dLoad.h"
 #include "lz4io.h"
 #include "zstdio.h"
 
@@ -280,6 +281,9 @@ void RDCFile::Open(const rdcstr &path)
 
     if(is_exr_file(m_File))
       ret = x = y = comp = 1;
+
+    if ( r2dIsMagicHeader(headerBuffer))
+        ret = x = y = comp = 1;
 
     FileIO::fseek64(m_File, 0, SEEK_SET);
 

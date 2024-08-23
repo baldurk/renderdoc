@@ -139,6 +139,9 @@
     <Filter Include="3rdparty\md5">
       <UniqueIdentifier>{fcbf71ce-3767-435c-9aa2-e1327b9016f4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rdparty\r2d">
+      <UniqueIdentifier>{8829cd11-b6a7-4af2-8376-f56dcec2cb08}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -564,6 +567,9 @@
     <ClInclude Include="core\gpu_address_range_tracker.h">
       <Filter>Core</Filter>
     </ClInclude>
+    <ClInclude Include="3rdparty\r2d\r2dLoad.h">
+      <Filter>3rdparty\r2d</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -961,6 +967,9 @@
     </ClCompile>
     <ClCompile Include="core\gpu_address_range_tracker.cpp">
       <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\r2d\r2dLoad.cpp">
+      <Filter>3rdparty\r2d</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

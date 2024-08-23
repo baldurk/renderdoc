@@ -541,7 +541,7 @@ void MainWindow::on_action_Open_Capture_triggered()
 
   QString filename = RDDialog::getOpenFileName(
       this, tr("Select file to open"), m_Ctx.Config().LastCaptureFilePath,
-      tr("Capture Files (*.rdc);;Image Files (*.dds *.hdr *.exr *.bmp *.jpg "
+      tr("Capture Files (*.rdc);;Image Files (*.dds *.hdr *.exr *.r2d *.bmp *.jpg "
          "*.jpeg *.png *.tga *.gif *.psd);;All Files (*)"));
 
   if(!filename.isEmpty())
