@@ -405,6 +405,10 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 11.9)
             list(APPEND warning_flags -Wno-unused-value)
         endif()
+        
+        if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 13.9)
+            list(APPEND warning_flags -Wno-cast-user-defined)
+        endif()
     endif()
 
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
