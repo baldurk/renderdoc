@@ -755,7 +755,7 @@ void ImageViewer::RefreshFile()
     texDetails.width = exrImage.width;
     texDetails.height = exrImage.height;
 
-    if(texDetails.width > 16384 || texDetails.width > 16384)
+    if(texDetails.width > 16384 || texDetails.height > 16384)
     {
       SET_ERROR_RESULT(m_Error, ResultCode::OutOfMemory,
                        "EXR dimension %d x %d is too large for display", exrImage.width,
