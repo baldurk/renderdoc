@@ -37,6 +37,8 @@
 
 #include "stb/stb_image_write.h"
 
+RDOC_EXTERN_CONFIG(bool, Replay_Debug_PrintChunkTimings);
+
 RDOC_EXTERN_CONFIG(bool, Vulkan_Debug_VerboseCommandRecording);
 
 RDOC_DEBUG_CONFIG(bool, Vulkan_Debug_SingleSubmitFlushing, false,
@@ -3146,19 +3148,28 @@ RDResult WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStructured
 
   SAFE_DELETE(sink);
 
+  const bool develMode =
 #if ENABLED(RDOC_DEVEL)
-  for(auto it = chunkInfos.begin(); it != chunkInfos.end(); ++it)
-  {
-    double dcount = double(it->second.count);
-
-    RDCDEBUG(
-        "% 5d chunks - Time: %9.3fms total/%9.3fms avg - Size: %8.3fMB total/%7.3fMB avg - %s (%u)",
-        it->second.count, it->second.total, it->second.total / dcount,
-        double(it->second.totalsize) / (1024.0 * 1024.0),
-        double(it->second.totalsize) / (dcount * 1024.0 * 1024.0),
-        GetChunkName((uint32_t)it->first).c_str(), uint32_t(it->first));
-  }
+      true;
+#else
+      false;
 #endif
+
+  if(Replay_Debug_PrintChunkTimings() || develMode)
+  {
+    for(auto it = chunkInfos.begin(); it != chunkInfos.end(); ++it)
+    {
+      double dcount = double(it->second.count);
+
+      RDCLOG(
+          "| % 5d chunks - Time: %9.3fms total/%9.3fms avg - Size: %8.3fMB total/%7.3fMB avg - %s "
+          "(%u)",
+          it->second.count, it->second.total, it->second.total / dcount,
+          double(it->second.totalsize) / (1024.0 * 1024.0),
+          double(it->second.totalsize) / (dcount * 1024.0 * 1024.0),
+          GetChunkName((uint32_t)it->first).c_str(), uint32_t(it->first));
+    }
+  }
 
   // steal the structured data for ourselves
   m_StructuredFile->Swap(*m_StoredStructuredData);

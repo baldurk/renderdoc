@@ -26,11 +26,14 @@
 #include "gl_driver.h"
 #include <algorithm>
 #include "common/common.h"
+#include "core/settings.h"
 #include "driver/shaders/spirv/spirv_compile.h"
 #include "jpeg-compressor/jpge.h"
 #include "serialise/rdcfile.h"
 #include "strings/string_utils.h"
 #include "gl_replay.h"
+
+RDOC_EXTERN_CONFIG(bool, Replay_Debug_PrintChunkTimings);
 
 std::map<uint64_t, GLWindowingData> WrappedOpenGL::m_ActiveContexts;
 
@@ -3508,19 +3511,28 @@ RDResult WrappedOpenGL::ReadLogInitialisation(RDCFile *rdc, bool storeStructured
             m_ImplicitThreadSwitches));
   }
 
+  const bool develMode =
 #if ENABLED(RDOC_DEVEL)
-  for(auto it = chunkInfos.begin(); it != chunkInfos.end(); ++it)
-  {
-    double dcount = double(it->second.count);
-
-    RDCDEBUG(
-        "% 5d chunks - Time: %9.3fms total/%9.3fms avg - Size: %8.3fMB total/%7.3fMB avg - %s (%u)",
-        it->second.count, it->second.total, it->second.total / dcount,
-        double(it->second.totalsize) / (1024.0 * 1024.0),
-        double(it->second.totalsize) / (dcount * 1024.0 * 1024.0),
-        GetChunkName((uint32_t)it->first).c_str(), uint32_t(it->first));
-  }
+      true;
+#else
+      false;
 #endif
+
+  if(Replay_Debug_PrintChunkTimings() || develMode)
+  {
+    for(auto it = chunkInfos.begin(); it != chunkInfos.end(); ++it)
+    {
+      double dcount = double(it->second.count);
+
+      RDCLOG(
+          "| % 5d chunks - Time: %9.3fms total/%9.3fms avg - Size: %8.3fMB total/%7.3fMB avg - %s "
+          "(%u)",
+          it->second.count, it->second.total, it->second.total / dcount,
+          double(it->second.totalsize) / (1024.0 * 1024.0),
+          double(it->second.totalsize) / (dcount * 1024.0 * 1024.0),
+          GetChunkName((uint32_t)it->first).c_str(), uint32_t(it->first));
+    }
+  }
 
   // steal the structured data for ourselves
   m_StructuredFile->Swap(*m_StoredStructuredData);
