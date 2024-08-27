@@ -3644,7 +3644,10 @@ bool WrappedID3D12Device::Serialise_SetName(SerialiserType &ser, ID3D12DeviceChi
     if(Name && Name[0])
     {
       descr.SetCustomName(Name);
-      pResource->SetName(StringFormat::UTF82Wide(Name).c_str());
+
+      // defer setting names on real resources so we can do this independent of any jobs without
+      // needing to push more jobs
+      m_CustomNames.push_back({pResource, Name});
     }
     AddResourceCurChunk(descr);
   }
@@ -4900,6 +4903,9 @@ RDResult WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool storeStru
 
         if(m_DeferredResult != ResultCode::Succeeded)
           return m_DeferredResult;
+
+        for(rdcpair<ID3D12DeviceChild *, rdcstr> &name : m_CustomNames)
+          name.first->SetName(StringFormat::UTF82Wide(name.second).c_str());
 
         // restore saved messages - which implicitly discards any generated while applying initial
         // contents

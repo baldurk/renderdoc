@@ -34,8 +34,54 @@
 #include "d3d12_rootsig.h"
 #include "d3d12_shader_cache.h"
 
+RDOC_EXTERN_CONFIG(bool, Replay_Debug_SingleThreadedCompilation);
+
 RDOC_DEBUG_CONFIG(bool, D3D12_Experimental_EnableRTSupport, false,
                   "Enable support for experimental DXR support");
+
+static RDResult DeferredPipelineCompile(ID3D12Device *device,
+                                        const D3D12_GRAPHICS_PIPELINE_STATE_DESC &Descriptor,
+                                        WrappedID3D12PipelineState *wrappedPipe)
+{
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC unwrappedDesc = Descriptor;
+  unwrappedDesc.pRootSignature = Unwrap(unwrappedDesc.pRootSignature);
+
+  ID3D12PipelineState *realPipe;
+  HRESULT hr = device->CreateGraphicsPipelineState(&unwrappedDesc, __uuidof(ID3D12PipelineState),
+                                                   (void **)&realPipe);
+
+  wrappedPipe->SetNewReal(realPipe);
+
+  if(FAILED(hr))
+  {
+    RETURN_ERROR_RESULT(ResultCode::APIReplayFailed,
+                        "Failed creating graphics pipeline, HRESULT: %s", ToStr(hr).c_str());
+  }
+
+  return ResultCode::Succeeded;
+}
+
+static RDResult DeferredPipelineCompile(ID3D12Device *device,
+                                        const D3D12_COMPUTE_PIPELINE_STATE_DESC &Descriptor,
+                                        WrappedID3D12PipelineState *wrappedPipe)
+{
+  D3D12_COMPUTE_PIPELINE_STATE_DESC unwrappedDesc = Descriptor;
+  unwrappedDesc.pRootSignature = Unwrap(unwrappedDesc.pRootSignature);
+
+  ID3D12PipelineState *realPipe;
+  HRESULT hr = device->CreateComputePipelineState(&unwrappedDesc, __uuidof(ID3D12PipelineState),
+                                                  (void **)&realPipe);
+
+  wrappedPipe->SetNewReal(realPipe);
+
+  if(FAILED(hr))
+  {
+    RETURN_ERROR_RESULT(ResultCode::APIReplayFailed,
+                        "Failed creating compute pipeline, HRESULT: %s", ToStr(hr).c_str());
+  }
+
+  return ResultCode::Succeeded;
+}
 
 static bool UsesExtensionUAV(const D3D12_SHADER_BYTECODE &sh, uint32_t reg, uint32_t space)
 {
@@ -452,12 +498,16 @@ bool WrappedID3D12Device::Serialise_CreateGraphicsPipelineState(
 
   if(IsReplayingAndReading())
   {
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC unwrappedDesc = Descriptor;
-    unwrappedDesc.pRootSignature = Unwrap(unwrappedDesc.pRootSignature);
+    // we steal the serialised descriptor here so we can pass it to jobs without its contents and
+    // all of the allocated structures and arrays being deserialised. We add a job which waits on
+    // the compiles then deserialises this manually.
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC OrigDescriptor = Descriptor;
+    Descriptor = {};
 
     {
       D3D12_SHADER_BYTECODE *shaders[] = {
-          &Descriptor.VS, &Descriptor.HS, &Descriptor.DS, &Descriptor.GS, &Descriptor.PS,
+          &OrigDescriptor.VS, &OrigDescriptor.HS, &OrigDescriptor.DS,
+          &OrigDescriptor.GS, &OrigDescriptor.PS,
       };
 
       for(size_t i = 0; i < ARRAY_COUNT(shaders); i++)
@@ -474,107 +524,117 @@ bool WrappedID3D12Device::Serialise_CreateGraphicsPipelineState(
       }
     }
 
-    ID3D12PipelineState *ret = NULL;
-    HRESULT hr = m_pDevice->CreateGraphicsPipelineState(&unwrappedDesc, guid, (void **)&ret);
+    WrappedID3D12PipelineState *wrapped = new WrappedID3D12PipelineState(
+        GetResourceManager()->CreateDeferredHandle<ID3D12PipelineState>(), this);
 
-    if(FAILED(hr))
+    wrapped->graphics = new D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(OrigDescriptor);
+
+    D3D12_SHADER_BYTECODE *shaders[] = {
+        &wrapped->graphics->VS, &wrapped->graphics->HS, &wrapped->graphics->DS,
+        &wrapped->graphics->GS, &wrapped->graphics->PS,
+    };
+
+    AddResource(pPipelineState, ResourceType::PipelineState, "Graphics Pipeline State");
+    if(OrigDescriptor.pRootSignature)
+      DerivedResource(OrigDescriptor.pRootSignature, pPipelineState);
+
+    for(size_t i = 0; i < ARRAY_COUNT(shaders); i++)
     {
-      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
-                       "Failed creating graphics pipeline, HRESULT: %s", ToStr(hr).c_str());
-      return false;
+      if(shaders[i]->BytecodeLength == 0 || shaders[i]->pShaderBytecode == NULL)
+      {
+        shaders[i]->pShaderBytecode = NULL;
+        shaders[i]->BytecodeLength = 0;
+      }
+      else
+      {
+        WrappedID3D12Shader *entry = WrappedID3D12Shader::AddShader(*shaders[i], this);
+        entry->AddRef();
+
+        shaders[i]->pShaderBytecode = entry;
+
+        if(m_GlobalEXTUAV != ~0U)
+          entry->SetShaderExtSlot(m_GlobalEXTUAV, m_GlobalEXTUAVSpace);
+
+        AddResourceCurChunk(entry->GetResourceID());
+
+        DerivedResource(entry->GetResourceID(), pPipelineState);
+      }
+    }
+
+    wrapped->FetchRootSig(GetShaderCache());
+
+    if(wrapped->graphics->InputLayout.NumElements)
+    {
+      wrapped->graphics->InputLayout.pInputElementDescs =
+          new D3D12_INPUT_ELEMENT_DESC[wrapped->graphics->InputLayout.NumElements];
+      memcpy((void *)wrapped->graphics->InputLayout.pInputElementDescs,
+             OrigDescriptor.InputLayout.pInputElementDescs,
+             sizeof(D3D12_INPUT_ELEMENT_DESC) * wrapped->graphics->InputLayout.NumElements);
     }
     else
     {
-      ret = new WrappedID3D12PipelineState(ret, this);
+      wrapped->graphics->InputLayout.pInputElementDescs = NULL;
+    }
 
-      WrappedID3D12PipelineState *wrapped = (WrappedID3D12PipelineState *)ret;
+    if(wrapped->graphics->StreamOutput.NumEntries)
+    {
+      wrapped->graphics->StreamOutput.pSODeclaration =
+          new D3D12_SO_DECLARATION_ENTRY[wrapped->graphics->StreamOutput.NumEntries];
+      memcpy((void *)wrapped->graphics->StreamOutput.pSODeclaration,
+             OrigDescriptor.StreamOutput.pSODeclaration,
+             sizeof(D3D12_SO_DECLARATION_ENTRY) * wrapped->graphics->StreamOutput.NumEntries);
 
-      wrapped->graphics = new D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(Descriptor);
-
-      D3D12_SHADER_BYTECODE *shaders[] = {
-          &wrapped->graphics->VS, &wrapped->graphics->HS, &wrapped->graphics->DS,
-          &wrapped->graphics->GS, &wrapped->graphics->PS,
-      };
-
-      AddResource(pPipelineState, ResourceType::PipelineState, "Graphics Pipeline State");
-      if(Descriptor.pRootSignature)
-        DerivedResource(Descriptor.pRootSignature, pPipelineState);
-
-      for(size_t i = 0; i < ARRAY_COUNT(shaders); i++)
+      if(wrapped->graphics->StreamOutput.NumStrides)
       {
-        if(shaders[i]->BytecodeLength == 0 || shaders[i]->pShaderBytecode == NULL)
-        {
-          shaders[i]->pShaderBytecode = NULL;
-          shaders[i]->BytecodeLength = 0;
-        }
-        else
-        {
-          WrappedID3D12Shader *entry = WrappedID3D12Shader::AddShader(*shaders[i], this);
-          entry->AddRef();
-
-          shaders[i]->pShaderBytecode = entry;
-
-          if(m_GlobalEXTUAV != ~0U)
-            entry->SetShaderExtSlot(m_GlobalEXTUAV, m_GlobalEXTUAVSpace);
-
-          AddResourceCurChunk(entry->GetResourceID());
-
-          DerivedResource(entry->GetResourceID(), pPipelineState);
-        }
-      }
-
-      wrapped->FetchRootSig(GetShaderCache());
-
-      if(wrapped->graphics->InputLayout.NumElements)
-      {
-        wrapped->graphics->InputLayout.pInputElementDescs =
-            new D3D12_INPUT_ELEMENT_DESC[wrapped->graphics->InputLayout.NumElements];
-        memcpy((void *)wrapped->graphics->InputLayout.pInputElementDescs,
-               Descriptor.InputLayout.pInputElementDescs,
-               sizeof(D3D12_INPUT_ELEMENT_DESC) * wrapped->graphics->InputLayout.NumElements);
+        wrapped->graphics->StreamOutput.pBufferStrides =
+            new UINT[wrapped->graphics->StreamOutput.NumStrides];
+        memcpy((void *)wrapped->graphics->StreamOutput.pBufferStrides,
+               OrigDescriptor.StreamOutput.pBufferStrides,
+               sizeof(UINT) * wrapped->graphics->StreamOutput.NumStrides);
       }
       else
       {
-        wrapped->graphics->InputLayout.pInputElementDescs = NULL;
-      }
-
-      if(wrapped->graphics->StreamOutput.NumEntries)
-      {
-        wrapped->graphics->StreamOutput.pSODeclaration =
-            new D3D12_SO_DECLARATION_ENTRY[wrapped->graphics->StreamOutput.NumEntries];
-        memcpy((void *)wrapped->graphics->StreamOutput.pSODeclaration,
-               Descriptor.StreamOutput.pSODeclaration,
-               sizeof(D3D12_SO_DECLARATION_ENTRY) * wrapped->graphics->StreamOutput.NumEntries);
-
-        if(wrapped->graphics->StreamOutput.NumStrides)
-        {
-          wrapped->graphics->StreamOutput.pBufferStrides =
-              new UINT[wrapped->graphics->StreamOutput.NumStrides];
-          memcpy((void *)wrapped->graphics->StreamOutput.pBufferStrides,
-                 Descriptor.StreamOutput.pBufferStrides,
-                 sizeof(UINT) * wrapped->graphics->StreamOutput.NumStrides);
-        }
-        else
-        {
-          wrapped->graphics->StreamOutput.pBufferStrides = NULL;
-        }
-      }
-      else
-      {
-        wrapped->graphics->StreamOutput.pSODeclaration = NULL;
         wrapped->graphics->StreamOutput.pBufferStrides = NULL;
       }
-
-      // if this shader was initialised with nvidia's dynamic UAV, pull in that chunk as one of ours
-      // and unset it (there will be one for each create that actually used vendor extensions)
-      if(m_VendorEXT == GPUVendor::nVidia && m_GlobalEXTUAV != ~0U)
-      {
-        GetResourceDesc(pPipelineState)
-            .initialisationChunks.push_back((uint32_t)m_StructuredFile->chunks.size() - 2);
-        m_GlobalEXTUAV = ~0U;
-      }
-      GetResourceManager()->AddLiveResource(pPipelineState, ret);
     }
+    else
+    {
+      wrapped->graphics->StreamOutput.pSODeclaration = NULL;
+      wrapped->graphics->StreamOutput.pBufferStrides = NULL;
+    }
+
+    if(Replay_Debug_SingleThreadedCompilation())
+    {
+      RDResult res = DeferredPipelineCompile(m_pDevice, OrigDescriptor, wrapped);
+      Deserialise(OrigDescriptor);
+
+      if(res != ResultCode::Succeeded)
+      {
+        m_FailedReplayResult = res;
+        return false;
+      }
+    }
+    else
+    {
+      wrapped->deferredJob = Threading::JobSystem::AddJob([wrappedD3D12 = this, device = m_pDevice,
+                                                           OrigDescriptor, wrapped]() {
+        PerformanceTimer timer;
+        wrappedD3D12->CheckDeferredResult(DeferredPipelineCompile(device, OrigDescriptor, wrapped));
+        wrappedD3D12->AddDeferredTime(timer.GetMilliseconds());
+
+        Deserialise(OrigDescriptor);
+      });
+    }
+
+    // if this shader was initialised with nvidia's dynamic UAV, pull in that chunk as one of ours
+    // and unset it (there will be one for each create that actually used vendor extensions)
+    if(m_VendorEXT == GPUVendor::nVidia && m_GlobalEXTUAV != ~0U)
+    {
+      GetResourceDesc(pPipelineState)
+          .initialisationChunks.push_back((uint32_t)m_StructuredFile->chunks.size() - 2);
+      m_GlobalEXTUAV = ~0U;
+    }
+    GetResourceManager()->AddLiveResource(pPipelineState, wrapped);
   }
 
   return true;
@@ -757,59 +817,73 @@ bool WrappedID3D12Device::Serialise_CreateComputePipelineState(
 
   if(IsReplayingAndReading())
   {
-    D3D12_COMPUTE_PIPELINE_STATE_DESC unwrappedDesc = Descriptor;
-    unwrappedDesc.pRootSignature = Unwrap(unwrappedDesc.pRootSignature);
+    // we steal the serialised descriptor here so we can pass it to jobs without its contents and
+    // all of the allocated structures and arrays being deserialised. We add a job which waits on
+    // the compiles then deserialises this manually.
+    D3D12_COMPUTE_PIPELINE_STATE_DESC OrigDescriptor = Descriptor;
+    Descriptor = {};
 
     // add any missing hashes ourselves. This probably comes from a capture with experimental
     // enabled so it can load unhashed, but we want to be more proactive
-    if(!DXBC::DXBCContainer::IsHashedContainer(Descriptor.CS.pShaderBytecode,
-                                               Descriptor.CS.BytecodeLength))
-      DXBC::DXBCContainer::HashContainer((void *)Descriptor.CS.pShaderBytecode,
-                                         Descriptor.CS.BytecodeLength);
+    if(!DXBC::DXBCContainer::IsHashedContainer(OrigDescriptor.CS.pShaderBytecode,
+                                               OrigDescriptor.CS.BytecodeLength))
+      DXBC::DXBCContainer::HashContainer((void *)OrigDescriptor.CS.pShaderBytecode,
+                                         OrigDescriptor.CS.BytecodeLength);
 
-    ID3D12PipelineState *ret = NULL;
-    HRESULT hr = m_pDevice->CreateComputePipelineState(&unwrappedDesc, guid, (void **)&ret);
+    WrappedID3D12PipelineState *wrapped = new WrappedID3D12PipelineState(
+        GetResourceManager()->CreateDeferredHandle<ID3D12PipelineState>(), this);
 
-    if(FAILED(hr))
+    wrapped->compute = new D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(OrigDescriptor);
+
+    WrappedID3D12Shader *entry = WrappedID3D12Shader::AddShader(wrapped->compute->CS, this);
+    entry->AddRef();
+
+    wrapped->FetchRootSig(GetShaderCache());
+
+    if(m_GlobalEXTUAV != ~0U)
+      entry->SetShaderExtSlot(m_GlobalEXTUAV, m_GlobalEXTUAVSpace);
+
+    AddResourceCurChunk(entry->GetResourceID());
+
+    AddResource(pPipelineState, ResourceType::PipelineState, "Compute Pipeline State");
+    if(OrigDescriptor.pRootSignature)
+      DerivedResource(OrigDescriptor.pRootSignature, pPipelineState);
+    DerivedResource(entry->GetResourceID(), pPipelineState);
+
+    wrapped->compute->CS.pShaderBytecode = entry;
+
+    if(Replay_Debug_SingleThreadedCompilation())
     {
-      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
-                       "Failed creating compute pipeline, HRESULT: %s", ToStr(hr).c_str());
-      return false;
+      RDResult res = DeferredPipelineCompile(m_pDevice, OrigDescriptor, wrapped);
+      Deserialise(OrigDescriptor);
+
+      if(res != ResultCode::Succeeded)
+      {
+        m_FailedReplayResult = res;
+        return false;
+      }
     }
     else
     {
-      WrappedID3D12PipelineState *wrapped = new WrappedID3D12PipelineState(ret, this);
-      ret = wrapped;
+      wrapped->deferredJob = Threading::JobSystem::AddJob([wrappedD3D12 = this, device = m_pDevice,
+                                                           OrigDescriptor, wrapped]() {
+        PerformanceTimer timer;
+        wrappedD3D12->CheckDeferredResult(DeferredPipelineCompile(device, OrigDescriptor, wrapped));
+        wrappedD3D12->AddDeferredTime(timer.GetMilliseconds());
 
-      wrapped->compute = new D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC(Descriptor);
-
-      WrappedID3D12Shader *entry = WrappedID3D12Shader::AddShader(wrapped->compute->CS, this);
-      entry->AddRef();
-
-      wrapped->FetchRootSig(GetShaderCache());
-
-      if(m_GlobalEXTUAV != ~0U)
-        entry->SetShaderExtSlot(m_GlobalEXTUAV, m_GlobalEXTUAVSpace);
-
-      AddResourceCurChunk(entry->GetResourceID());
-
-      AddResource(pPipelineState, ResourceType::PipelineState, "Compute Pipeline State");
-      if(Descriptor.pRootSignature)
-        DerivedResource(Descriptor.pRootSignature, pPipelineState);
-      DerivedResource(entry->GetResourceID(), pPipelineState);
-
-      wrapped->compute->CS.pShaderBytecode = entry;
-
-      // if this shader was initialised with nvidia's dynamic UAV, pull in that chunk as one of ours
-      // and unset it (there will be one for each create that actually used vendor extensions)
-      if(m_VendorEXT == GPUVendor::nVidia && m_GlobalEXTUAV != ~0U)
-      {
-        GetResourceDesc(pPipelineState)
-            .initialisationChunks.push_back((uint32_t)m_StructuredFile->chunks.size() - 2);
-        m_GlobalEXTUAV = ~0U;
-      }
-      GetResourceManager()->AddLiveResource(pPipelineState, ret);
+        Deserialise(OrigDescriptor);
+      });
     }
+
+    // if this shader was initialised with nvidia's dynamic UAV, pull in that chunk as one of ours
+    // and unset it (there will be one for each create that actually used vendor extensions)
+    if(m_VendorEXT == GPUVendor::nVidia && m_GlobalEXTUAV != ~0U)
+    {
+      GetResourceDesc(pPipelineState)
+          .initialisationChunks.push_back((uint32_t)m_StructuredFile->chunks.size() - 2);
+      m_GlobalEXTUAV = ~0U;
+    }
+    GetResourceManager()->AddLiveResource(pPipelineState, wrapped);
   }
 
   return true;

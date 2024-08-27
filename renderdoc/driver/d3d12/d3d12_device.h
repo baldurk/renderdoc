@@ -741,6 +741,8 @@ private:
   rdcarray<FrameDescription> m_CapturedFrames;
   rdcarray<ActionDescription *> m_Actions;
 
+  rdcarray<rdcpair<ID3D12DeviceChild *, rdcstr>> m_CustomNames;
+
   Threading::CriticalSection m_DeferredResultLock;
   RDResult m_DeferredResult = ResultCode::Succeeded;
   double m_DeferredTime = 0.0;

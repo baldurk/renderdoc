@@ -29,6 +29,14 @@
 #include "d3d12_device.h"
 #include "d3d12_manager.h"
 
+namespace Threading
+{
+namespace JobSystem
+{
+struct Job;
+};
+};
+
 rdcpair<uint32_t, uint32_t> FindMatchingRootParameter(const D3D12RootSignature &sig,
                                                       D3D12_SHADER_VISIBILITY visibility,
                                                       D3D12_DESCRIPTOR_RANGE_TYPE rangeType,
@@ -708,6 +716,8 @@ class WrappedID3D12PipelineState : public WrappedDeviceChild12<ID3D12PipelineSta
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12PipelineState);
 
+  Threading::JobSystem::Job *deferredJob = NULL;
+
   D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC *graphics = NULL;
   D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC *compute = NULL;
 
@@ -984,6 +994,8 @@ public:
       SAFE_DELETE(compute);
     }
   }
+
+  void SetNewReal(ID3D12PipelineState *real) { m_pReal = real; }
 
   void ProcessDescriptorAccess();
 
