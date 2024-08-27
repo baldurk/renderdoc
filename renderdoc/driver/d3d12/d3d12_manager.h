@@ -1170,6 +1170,18 @@ public:
     return (T *)GetCurrentResource(id);
   }
 
+  template <typename D3D12Type>
+  D3D12Type *CreateDeferredHandle()
+  {
+    D3D12Type *ret = (D3D12Type *)(m_DummyHandle);
+
+    Atomic::Dec64((int64_t *)&m_DummyHandle);
+
+    return ret;
+  }
+
+  void ResolveDeferredWrappers();
+
   void ApplyBarriers(BarrierSet &barriers, std::map<ResourceId, SubresourceStateVector> &states);
 
   D3D12RaytracingResourceAndUtilHandler *GetRaytracingResourceAndUtilHandler() const
@@ -1208,4 +1220,8 @@ private:
   WrappedID3D12Device *m_Device;
   D3D12RaytracingResourceAndUtilHandler *m_raytracingResourceManager;
   D3D12GpuBufferAllocator m_GPUBufferAllocator;
+
+  // dummy handle to use - starting from near highest valid pointer to minimise risk of overlap with real handles
+  static const uint64_t FirstDummyHandle = INTPTR_MAX - 1024;
+  uint64_t m_DummyHandle = FirstDummyHandle;
 };

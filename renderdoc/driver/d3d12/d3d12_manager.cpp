@@ -1980,6 +1980,25 @@ bool D3D12GpuBufferAllocator::D3D12GpuBufferResource::CreateBufferResource(
   return false;
 }
 
+void D3D12ResourceManager::ResolveDeferredWrappers()
+{
+  rdcarray<ID3D12DeviceChild *> wrappers;
+  for(auto it = m_WrapperMap.begin(); it != m_WrapperMap.end();)
+  {
+    if((uint64_t)it->first >= m_DummyHandle)
+    {
+      wrappers.push_back(it->second);
+      it = m_WrapperMap.erase(it);
+      continue;
+    }
+
+    ++it;
+  }
+
+  for(ID3D12DeviceChild *wrapper : wrappers)
+    AddWrapper(wrapper, Unwrap(wrapper));
+}
+
 void D3D12ResourceManager::ApplyBarriers(BarrierSet &barriers,
                                          std::map<ResourceId, SubresourceStateVector> &states)
 {

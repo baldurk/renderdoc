@@ -949,6 +949,7 @@ void WrappedVulkan::Shutdown()
   if(!m_Replay->IsRemoteProxy())
   {
     Threading::JobSystem::Shutdown();
+    GetResourceManager()->ResolveDeferredWrappers();
   }
 
   // flush out any pending commands/semaphores

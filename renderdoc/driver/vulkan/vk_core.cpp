@@ -3279,6 +3279,8 @@ RDResult WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t startEv
       RDCLOG("Total deferred CPU time: %.2fms", m_DeferredTime);
     }
 
+    GetResourceManager()->ResolveDeferredWrappers();
+
     if(m_DeferredResult != ResultCode::Succeeded)
       return m_DeferredResult;
 

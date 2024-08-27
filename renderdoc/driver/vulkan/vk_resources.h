@@ -33,6 +33,14 @@
 #include "vk_dispatch_defs.h"
 #include "vk_hookset_defs.h"
 
+namespace Threading
+{
+namespace JobSystem
+{
+struct Job;
+};
+};
+
 struct VkResourceRecord;
 
 // empty base class for dispatchable/non-dispatchable. Unfortunately
@@ -157,7 +165,12 @@ struct WrappedVkNonDispRes : public WrappedVkRes
 
   RealVkRes real;
   ResourceId id;
-  VkResourceRecord *record;
+
+  union
+  {
+    VkResourceRecord *record;
+    Threading::JobSystem::Job *deferredJob;
+  };
 };
 
 class WrappedVulkan;
@@ -205,7 +218,11 @@ struct WrappedVkDispRes : public WrappedVkRes
   uintptr_t loaderTable, table;
   RealVkRes real;
   ResourceId id;
-  VkResourceRecord *record;
+  union
+  {
+    VkResourceRecord *record;
+    Threading::JobSystem::Job *deferredJob;
+  };
   // we store this here so that any entry point with a dispatchable object can find the
   // write instance to invoke into, without needing to keep any around. Its lifetime is
   // tied to the VkInstance

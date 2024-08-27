@@ -862,6 +862,7 @@ WrappedID3D12Device::~WrappedID3D12Device()
   if(!m_Replay->IsRemoteProxy())
   {
     Threading::JobSystem::SyncAllJobs();
+    GetResourceManager()->ResolveDeferredWrappers();
   }
 
   {
@@ -4894,6 +4895,8 @@ RDResult WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool storeStru
           Threading::JobSystem::SyncAllJobs();
           RDCLOG("Total deferred CPU time: %.2fms", m_DeferredTime);
         }
+
+        GetResourceManager()->ResolveDeferredWrappers();
 
         if(m_DeferredResult != ResultCode::Succeeded)
           return m_DeferredResult;

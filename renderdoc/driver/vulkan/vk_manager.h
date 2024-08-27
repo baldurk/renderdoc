@@ -319,6 +319,45 @@ public:
     return wrapped->id;
   }
 
+  template <typename realtype>
+  realtype CreateDeferredHandle()
+  {
+    // only defer non dispatchable handles
+    RDCCOMPILE_ASSERT(UnwrapHelper<realtype>::DispatchableType == 0,
+                      "Can't defer dispatchable handle");
+
+    realtype ret = (realtype)(m_DummyHandle);
+
+    Atomic::Dec64((int64_t *)&m_DummyHandle);
+
+    return ret;
+  }
+
+  void ResolveDeferredWrappers()
+  {
+    rdcarray<rdcpair<TypedRealHandle, WrappedVkRes *>> wrappers;
+    for(auto it = m_WrapperMap.begin(); it != m_WrapperMap.end();)
+    {
+      if(it->first.real.handle >= m_DummyHandle)
+      {
+        wrappers.push_back({it->first, it->second});
+        it = m_WrapperMap.erase(it);
+        continue;
+      }
+
+      ++it;
+    }
+
+    for(rdcpair<TypedRealHandle, WrappedVkRes *> &wrapper : wrappers)
+    {
+      // we can know for sure that these are non-dispatchable based on the assert above, to get the new real handle
+      WrappedVkNonDispRes *wrapped = (WrappedVkNonDispRes *)wrapper.second;
+      wrapper.first.real = wrapped->real;
+      wrapped->deferredJob = NULL;
+      AddWrapper(wrapper.second, wrapper.first);
+    }
+  }
+
   void PreFreeMemory(ResourceId id)
   {
     if(IsActiveCapturing(m_State))
@@ -471,6 +510,10 @@ private:
   void Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData);
   void Apply_InitialState(WrappedVkRes *live, const VkInitialContents &initial);
   rdcarray<ResourceId> InitialContentResources();
+
+  // dummy handle to use - starting from near highest valid pointer to minimise risk of overlap with real handles
+  static const uint64_t FirstDummyHandle = INTPTR_MAX - 1024;
+  uint64_t m_DummyHandle = FirstDummyHandle;
 
   WrappedVulkan *m_Core;
   std::unordered_map<ResourceId, MemRefs> m_MemFrameRefs;
