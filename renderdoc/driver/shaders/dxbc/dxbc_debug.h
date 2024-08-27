@@ -170,26 +170,6 @@ public:
   rdcarray<ShaderVariable> constantBlocks;
 };
 
-struct PSInputElement
-{
-  PSInputElement(int regster, int element, int numWords, ShaderBuiltin attr, bool inc)
-  {
-    reg = regster;
-    elem = element;
-    numwords = numWords;
-    sysattribute = attr;
-    included = inc;
-  }
-
-  int reg;
-  int elem;
-  ShaderBuiltin sysattribute;
-
-  int numwords;
-
-  bool included;
-};
-
 void FlattenSingleVariable(uint32_t byteOffset, const rdcstr &basename, const ShaderVariable &v,
                            rdcarray<ShaderVariable> &outvars);
 
@@ -197,12 +177,6 @@ void FillViewFmt(DXGI_FORMAT format, GlobalState::ViewFmt &viewFmt);
 
 void LookupSRVFormatFromShaderReflection(const DXBC::Reflection &reflection,
                                          const BindingSlot &slot, GlobalState::ViewFmt &viewFmt);
-
-void GatherPSInputDataForInitialValues(const DXBC::DXBCContainer *dxbc,
-                                       const DXBC::Reflection &prevStageDxbc,
-                                       rdcarray<PSInputElement> &initialValues,
-                                       rdcarray<rdcstr> &floatInputs, rdcarray<rdcstr> &inputVarNames,
-                                       rdcstr &psInputDefinition, int &structureStride);
 
 class DebugAPIWrapper
 {
@@ -333,4 +307,7 @@ void AddCBufferToGlobalState(const DXBCBytecode::Program &program, GlobalState &
                              const ShaderReflection &refl, const BindingSlot &slot,
                              bytebuf &cbufData);
 
-};    // namespace ShaderDebug
+void GetInterpolationModeForInputParams(const rdcarray<SigParameter> &stageInputSig,
+                                        const DXBCBytecode::Program *program,
+                                        rdcarray<DXBC::InterpolationMode> &interpModes);
+};    // namespace DXBCDebug

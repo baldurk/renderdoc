@@ -2026,9 +2026,13 @@ ShaderDebugTrace *D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t
     rdcstr extractHlsl;
     int structureStride = 0;
 
-    DXBCDebug::GatherPSInputDataForInitialValues(dxbc, *prevDxbc->GetReflection(), initialValues,
-                                                 floatInputs, inputVarNames, extractHlsl,
-                                                 structureStride);
+    rdcarray<DXBC::InterpolationMode> interpModes;
+    const rdcarray<SigParameter> &inputSig = dxbc->GetReflection()->InputSig;
+    DXBCDebug::GetInterpolationModeForInputParams(inputSig, dxbc->GetDXBCByteCode(), interpModes);
+
+    DXDebug::GatherPSInputDataForInitialValues(inputSig, prevDxbc->GetReflection()->OutputSig,
+                                               interpModes, initialValues, floatInputs,
+                                               inputVarNames, extractHlsl, structureStride);
 
     uint32_t overdrawLevels = 100;    // maximum number of overdraw levels
 

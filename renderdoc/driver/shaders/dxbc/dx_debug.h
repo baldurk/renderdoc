@@ -27,6 +27,7 @@
 namespace DXBC
 {
 enum ResourceRetType;
+enum class InterpolationMode : uint8_t;
 };
 
 namespace DXBCBytecode
@@ -40,6 +41,33 @@ namespace DXDebug
 typedef DXBC::ResourceRetType ResourceRetType;
 typedef DXBCBytecode::ResourceDimension ResourceDimension;
 typedef DXBCBytecode::SamplerMode SamplerMode;
+
+struct PSInputElement
+{
+  PSInputElement(int regster, int element, int numWords, ShaderBuiltin attr, bool inc)
+  {
+    reg = regster;
+    elem = element;
+    numwords = numWords;
+    sysattribute = attr;
+    included = inc;
+  }
+
+  int reg;
+  int elem;
+  ShaderBuiltin sysattribute;
+
+  int numwords;
+
+  bool included;
+};
+
+void GatherPSInputDataForInitialValues(const rdcarray<SigParameter> &stageInputSig,
+                                       const rdcarray<SigParameter> &prevStageOutputSig,
+                                       const rdcarray<DXBC::InterpolationMode> &interpModes,
+                                       rdcarray<PSInputElement> &initialValues,
+                                       rdcarray<rdcstr> &floatInputs, rdcarray<rdcstr> &inputVarNames,
+                                       rdcstr &psInputDefinition, int &structureStride);
 
 enum class GatherChannel : uint8_t
 {

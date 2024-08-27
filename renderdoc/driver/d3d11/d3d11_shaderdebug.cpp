@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include "data/resource.h"
+#include "driver/shaders/dxbc/dx_debug.h"
 #include "driver/shaders/dxbc/dxbc_bytecode.h"
 #include "driver/shaders/dxbc/dxbc_debug.h"
 #include "maths/formatpacking.h"
@@ -1878,9 +1879,13 @@ ShaderDebugTrace *D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t
   rdcstr extractHlsl;
   int structureStride = 0;
 
-  DXBCDebug::GatherPSInputDataForInitialValues(dxbc, *prevdxbc->GetReflection(), initialValues,
-                                               floatInputs, inputVarNames, extractHlsl,
-                                               structureStride);
+  rdcarray<DXBC::InterpolationMode> interpModes;
+  const rdcarray<SigParameter> &inputSig = dxbc->GetReflection()->InputSig;
+  DXBCDebug::GetInterpolationModeForInputParams(inputSig, dxbc->GetDXBCByteCode(), interpModes);
+
+  DXDebug::GatherPSInputDataForInitialValues(inputSig, prevdxbc->GetReflection()->OutputSig,
+                                             interpModes, initialValues, floatInputs, inputVarNames,
+                                             extractHlsl, structureStride);
 
   uint32_t overdrawLevels = 100;    // maximum number of overdraw levels
 
