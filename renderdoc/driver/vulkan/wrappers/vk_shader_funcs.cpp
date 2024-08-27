@@ -24,7 +24,100 @@
 
 #include "../vk_core.h"
 #include "../vk_replay.h"
+#include "core/settings.h"
 #include "driver/shaders/spirv/spirv_reflect.h"
+
+RDOC_EXTERN_CONFIG(bool, Replay_Debug_SingleThreadedCompilation);
+
+static RDResult DeferredPipelineCompile(VkDevice device,
+                                        const VkGraphicsPipelineCreateInfo &createInfo,
+                                        WrappedVkPipeline *wrappedPipe)
+{
+  byte *mem = AllocAlignedBuffer(GetNextPatchSize(&createInfo));
+  VkGraphicsPipelineCreateInfo *unwrapped =
+      UnwrapStructAndChain(CaptureState::LoadingReplaying, mem, &createInfo);
+
+  VkPipeline realPipe;
+  VkResult ret = ObjDisp(device)->CreateGraphicsPipelines(Unwrap(device), VK_NULL_HANDLE, 1,
+                                                          unwrapped, NULL, &realPipe);
+
+  FreeAlignedBuffer((byte *)unwrapped);
+
+  wrappedPipe->real = ToTypedHandle(realPipe).real;
+
+  if(ret != VK_SUCCESS)
+  {
+    RETURN_ERROR_RESULT(ResultCode::APIReplayFailed,
+                        "Failed creating graphics pipeline, VkResult: %s", ToStr(ret).c_str());
+  }
+
+  return ResultCode::Succeeded;
+}
+
+static RDResult DeferredPipelineCompile(VkDevice device,
+                                        const VkComputePipelineCreateInfo &createInfo,
+                                        WrappedVkPipeline *wrappedPipe)
+{
+  byte *mem = AllocAlignedBuffer(GetNextPatchSize(&createInfo));
+  VkComputePipelineCreateInfo *unwrapped =
+      UnwrapStructAndChain(CaptureState::LoadingReplaying, mem, &createInfo);
+
+  VkPipeline realPipe;
+  VkResult ret = ObjDisp(device)->CreateComputePipelines(Unwrap(device), VK_NULL_HANDLE, 1,
+                                                         unwrapped, NULL, &realPipe);
+
+  FreeAlignedBuffer((byte *)unwrapped);
+
+  wrappedPipe->real = ToTypedHandle(realPipe).real;
+
+  if(ret != VK_SUCCESS)
+  {
+    RETURN_ERROR_RESULT(ResultCode::APIReplayFailed,
+                        "Failed creating graphics pipeline, VkResult: %s", ToStr(ret).c_str());
+  }
+
+  return ResultCode::Succeeded;
+}
+
+static RDResult DeferredPipelineCompile(VkDevice device,
+                                        const VkRayTracingPipelineCreateInfoKHR &createInfo,
+                                        const bytebuf &replayHandles,
+                                        uint32_t captureReplayHandleSize,
+                                        WrappedVkPipeline *wrappedPipe)
+{
+  byte *mem = AllocAlignedBuffer(GetNextPatchSize(&createInfo));
+  VkRayTracingPipelineCreateInfoKHR *unwrapped =
+      UnwrapStructAndChain(CaptureState::LoadingReplaying, mem, &createInfo);
+
+  // patch in the capture/replay handles we saved
+  VkRayTracingShaderGroupCreateInfoKHR *groups =
+      (VkRayTracingShaderGroupCreateInfoKHR *)unwrapped->pGroups;
+
+  for(uint32_t i = 0; i < unwrapped->groupCount; i++)
+    groups[i].pShaderGroupCaptureReplayHandle = replayHandles.data() + captureReplayHandleSize * i;
+
+  VkPipeline realPipe;
+  VkResult ret = ObjDisp(device)->CreateRayTracingPipelinesKHR(
+      Unwrap(device), VK_NULL_HANDLE, VK_NULL_HANDLE, 1, unwrapped, NULL, &realPipe);
+
+  FreeAlignedBuffer((byte *)unwrapped);
+
+  wrappedPipe->real = ToTypedHandle(realPipe).real;
+
+  if(ret == VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS)
+  {
+    RETURN_ERROR_RESULT(
+        ResultCode::APIHardwareUnsupported,
+        "Failed to re-create RT PSO because capture/replay handle was incompatible.\n");
+  }
+  else if(ret != VK_SUCCESS)
+  {
+    RETURN_ERROR_RESULT(ResultCode::APIReplayFailed,
+                        "Failed creating graphics pipeline, VkResult: %s", ToStr(ret).c_str());
+  }
+
+  return ResultCode::Succeeded;
+}
 
 template <>
 VkComputePipelineCreateInfo *WrappedVulkan::UnwrapInfos(CaptureState state,
@@ -650,154 +743,182 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
     // valid
     CreateInfo.flags &= ~VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT;
 
-    VkGraphicsPipelineCreateInfo *unwrapped = UnwrapInfos(m_State, &CreateInfo, 1);
-    VkResult ret = ObjDisp(device)->CreateGraphicsPipelines(Unwrap(device), Unwrap(pipelineCache),
-                                                            1, unwrapped, NULL, &pipe);
+    // disable pipeline derivatives, because I don't think any driver actually uses them and it
+    // would require a job-wait for the parent
+    CreateInfo.flags &= ~VK_PIPELINE_CREATE_DERIVATIVE_BIT;
+    CreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+    CreateInfo.basePipelineIndex = -1;
+
+    // we steal the serialised create info here so we can pass it to jobs without its contents and
+    // all of the allocated structures and arrays being deserialised. We add a job which waits on
+    // the compiles then deserialises this manually.
+    VkGraphicsPipelineCreateInfo OrigCreateInfo = CreateInfo;
+    CreateInfo = {};
+
+    rdcarray<rdcpair<VkGraphicsPipelineCreateInfo, VkPipeline>> pipelinesToCompile;
+
+    pipe = GetResourceManager()->CreateDeferredHandle<VkPipeline>();
 
     AddResource(Pipeline, ResourceType::PipelineState, "Graphics Pipeline");
 
-    if(ret != VK_SUCCESS)
+    ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), pipe);
+    GetResourceManager()->AddLiveResource(Pipeline, pipe);
+
+    pipelinesToCompile.push_back({OrigCreateInfo, pipe});
+
+    VkGraphicsPipelineCreateInfo shadInstantiatedInfo = OrigCreateInfo;
+    VkPipelineShaderStageCreateInfo shadInstantiations[NumShaderStages];
+
+    // search for inline shaders, and create shader modules for them so we have objects to pull
+    // out for recreating graphics pipelines (and to replace for shader editing)
+    for(uint32_t s = 0; s < shadInstantiatedInfo.stageCount; s++)
     {
-      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
-                       "Failed creating graphics pipeline, VkResult: %s", ToStr(ret).c_str());
-      return false;
+      shadInstantiations[s] = shadInstantiatedInfo.pStages[s];
+
+      if(shadInstantiations[s].module == VK_NULL_HANDLE)
+      {
+        const VkShaderModuleCreateInfo *inlineShad = (const VkShaderModuleCreateInfo *)FindNextStruct(
+            &shadInstantiations[s], VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO);
+        const VkDebugUtilsObjectNameInfoEXT *shadName =
+            (const VkDebugUtilsObjectNameInfoEXT *)FindNextStruct(
+                &shadInstantiations[s], VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT);
+        if(inlineShad)
+        {
+          vkCreateShaderModule(device, inlineShad, NULL, &shadInstantiations[s].module);
+
+          // this will be a replay ID, there is no equivalent original ID
+          ResourceId shadId = GetResID(shadInstantiations[s].module);
+
+          AddResource(shadId, ResourceType::Shader, "Shader Module");
+          DerivedResource(device, shadId);
+          DerivedResource(pipe, shadId);
+
+          const char *names[] = {
+              " vertex shader",
+              " tess control shader",
+              " tess eval shader",
+              " geometry shader",
+              " fragment shader",
+              NULL,
+              " task shader",
+              " mesh shader",
+              NULL,
+              NULL,
+              NULL,
+              NULL,
+              NULL,
+              NULL,
+          };
+          RDCCOMPILE_ASSERT(ARRAY_COUNT(names) == NumShaderStages, "Array is out of date");
+
+          if(shadName)
+            GetReplay()->GetResourceDesc(shadId).SetCustomName(shadName->pObjectName);
+          else
+            GetReplay()->GetResourceDesc(shadId).name =
+                GetReplay()->GetResourceDesc(Pipeline).name +
+                names[StageIndex(shadInstantiations[s].stage)];
+        }
+        else
+        {
+          RDCERR("NULL module in stage %s (entry %s) with no linked module create info",
+                 ToStr(shadInstantiations[s].stage).c_str(), shadInstantiations[s].pName);
+        }
+      }
     }
-    else
+
+    shadInstantiatedInfo.pStages = shadInstantiations;
+
+    VulkanCreationInfo::Pipeline &pipeInfo = m_CreationInfo.m_Pipeline[live];
+
+    pipeInfo.Init(GetResourceManager(), m_CreationInfo, live, &shadInstantiatedInfo);
+
+    ResourceId renderPassID = GetResID(origRP);
+
+    if(OrigCreateInfo.renderPass != VK_NULL_HANDLE)
     {
-      ResourceId live;
+      OrigCreateInfo.renderPass =
+          m_CreationInfo.m_RenderPass[renderPassID].loadRPs[OrigCreateInfo.subpass];
+      OrigCreateInfo.subpass = 0;
 
-      if(GetResourceManager()->HasWrapper(ToTypedHandle(pipe)))
-      {
-        live = GetResourceManager()->GetNonDispWrapper(pipe)->id;
+      pipeInfo.subpass0pipe = GetResourceManager()->CreateDeferredHandle<VkPipeline>();
 
-        // destroy this instance of the duplicate, as we must have matching create/destroy
-        // calls and there won't be a wrapped resource hanging around to destroy this one.
-        ObjDisp(device)->DestroyPipeline(Unwrap(device), pipe, NULL);
+      ResourceId subpass0id =
+          GetResourceManager()->WrapResource(Unwrap(device), pipeInfo.subpass0pipe);
 
-        // whenever the new ID is requested, return the old ID, via replacements.
-        GetResourceManager()->ReplaceResource(Pipeline, GetResourceManager()->GetOriginalID(live));
-      }
-      else
-      {
-        live = GetResourceManager()->WrapResource(Unwrap(device), pipe);
-        GetResourceManager()->AddLiveResource(Pipeline, pipe);
+      // register as a live-only resource, so it is cleaned up properly
+      GetResourceManager()->AddLiveResource(subpass0id, pipeInfo.subpass0pipe);
 
-        VkGraphicsPipelineCreateInfo shadInstantiatedInfo = CreateInfo;
-        VkPipelineShaderStageCreateInfo shadInstantiations[NumShaderStages];
-
-        // search for inline shaders, and create shader modules for them so we have objects to pull
-        // out for recreating graphics pipelines (and to replace for shader editing)
-        for(uint32_t s = 0; s < shadInstantiatedInfo.stageCount; s++)
-        {
-          shadInstantiations[s] = shadInstantiatedInfo.pStages[s];
-
-          if(shadInstantiations[s].module == VK_NULL_HANDLE)
-          {
-            const VkShaderModuleCreateInfo *inlineShad =
-                (const VkShaderModuleCreateInfo *)FindNextStruct(
-                    &shadInstantiations[s], VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO);
-            const VkDebugUtilsObjectNameInfoEXT *shadName =
-                (const VkDebugUtilsObjectNameInfoEXT *)FindNextStruct(
-                    &shadInstantiations[s], VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT);
-            if(inlineShad)
-            {
-              vkCreateShaderModule(device, inlineShad, NULL, &shadInstantiations[s].module);
-
-              // this will be a replay ID, there is no equivalent original ID
-              ResourceId shadId = GetResID(shadInstantiations[s].module);
-
-              AddResource(shadId, ResourceType::Shader, "Shader Module");
-              DerivedResource(device, shadId);
-              DerivedResource(pipe, shadId);
-
-              const char *names[] = {
-                  " vertex shader",
-                  " tess control shader",
-                  " tess eval shader",
-                  " geometry shader",
-                  " fragment shader",
-                  NULL,
-                  " task shader",
-                  " mesh shader",
-                  NULL,
-                  NULL,
-                  NULL,
-                  NULL,
-                  NULL,
-                  NULL,
-              };
-              RDCCOMPILE_ASSERT(ARRAY_COUNT(names) == NumShaderStages, "Array is out of date");
-
-              if(shadName)
-                GetReplay()->GetResourceDesc(shadId).SetCustomName(shadName->pObjectName);
-              else
-                GetReplay()->GetResourceDesc(shadId).name =
-                    GetReplay()->GetResourceDesc(Pipeline).name +
-                    names[StageIndex(shadInstantiations[s].stage)];
-            }
-            else
-            {
-              RDCERR("NULL module in stage %s (entry %s) with no linked module create info",
-                     ToStr(shadInstantiations[s].stage).c_str(), shadInstantiations[s].pName);
-            }
-          }
-        }
-
-        shadInstantiatedInfo.pStages = shadInstantiations;
-
-        VulkanCreationInfo::Pipeline &pipeInfo = m_CreationInfo.m_Pipeline[live];
-
-        pipeInfo.Init(GetResourceManager(), m_CreationInfo, live, &shadInstantiatedInfo);
-
-        ResourceId renderPassID = GetResID(CreateInfo.renderPass);
-
-        if(CreateInfo.renderPass != VK_NULL_HANDLE)
-        {
-          CreateInfo.renderPass =
-              m_CreationInfo.m_RenderPass[renderPassID].loadRPs[CreateInfo.subpass];
-          CreateInfo.subpass = 0;
-
-          unwrapped = UnwrapInfos(m_State, &CreateInfo, 1);
-          ret = ObjDisp(device)->CreateGraphicsPipelines(Unwrap(device), Unwrap(pipelineCache), 1,
-                                                         unwrapped, NULL, &pipeInfo.subpass0pipe);
-          RDCASSERTEQUAL(ret, VK_SUCCESS);
-
-          ResourceId subpass0id =
-              GetResourceManager()->WrapResource(Unwrap(device), pipeInfo.subpass0pipe);
-
-          // register as a live-only resource, so it is cleaned up properly
-          GetResourceManager()->AddLiveResource(subpass0id, pipeInfo.subpass0pipe);
-        }
-      }
+      pipelinesToCompile.push_back({OrigCreateInfo, pipeInfo.subpass0pipe});
     }
 
     DerivedResource(device, Pipeline);
     if(origCache != VK_NULL_HANDLE)
       DerivedResource(origCache, Pipeline);
-    if(CreateInfo.flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
+    if(OrigCreateInfo.flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
     {
-      if(CreateInfo.basePipelineHandle != VK_NULL_HANDLE)
-        DerivedResource(CreateInfo.basePipelineHandle, Pipeline);
+      if(OrigCreateInfo.basePipelineHandle != VK_NULL_HANDLE)
+        DerivedResource(OrigCreateInfo.basePipelineHandle, Pipeline);
     }
     if(origRP != VK_NULL_HANDLE)
       DerivedResource(origRP, Pipeline);
-    if(CreateInfo.layout != VK_NULL_HANDLE)
-      DerivedResource(CreateInfo.layout, Pipeline);
-    for(uint32_t i = 0; i < CreateInfo.stageCount; i++)
+    if(OrigCreateInfo.layout != VK_NULL_HANDLE)
+      DerivedResource(OrigCreateInfo.layout, Pipeline);
+    for(uint32_t i = 0; i < OrigCreateInfo.stageCount; i++)
     {
-      if(CreateInfo.pStages[i].module != VK_NULL_HANDLE)
-        DerivedResource(CreateInfo.pStages[i].module, Pipeline);
+      if(OrigCreateInfo.pStages[i].module != VK_NULL_HANDLE)
+        DerivedResource(OrigCreateInfo.pStages[i].module, Pipeline);
     }
 
+    rdcarray<Threading::JobSystem::Job *> parents;
+
     VkPipelineLibraryCreateInfoKHR *libraryInfo = (VkPipelineLibraryCreateInfoKHR *)FindNextStruct(
-        &CreateInfo, VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR);
+        &OrigCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR);
 
     if(libraryInfo)
     {
       for(uint32_t l = 0; l < libraryInfo->libraryCount; l++)
       {
         DerivedResource(libraryInfo->pLibraries[l], Pipeline);
+        parents.push_back(GetWrapped(libraryInfo->pLibraries[l])->deferredJob);
       }
+    }
+
+    if(Replay_Debug_SingleThreadedCompilation())
+    {
+      for(rdcpair<VkGraphicsPipelineCreateInfo, VkPipeline> &deferredPipe : pipelinesToCompile)
+      {
+        RDResult res =
+            DeferredPipelineCompile(device, deferredPipe.first, GetWrapped(deferredPipe.second));
+
+        if(res != ResultCode::Succeeded)
+          m_FailedReplayResult = res;
+      }
+
+      if(m_FailedReplayResult != ResultCode::Succeeded)
+        return false;
+
+      Deserialise(OrigCreateInfo);
+    }
+    else
+    {
+      rdcarray<Threading::JobSystem::Job *> compiles;
+
+      for(rdcpair<VkGraphicsPipelineCreateInfo, VkPipeline> &deferredPipe : pipelinesToCompile)
+      {
+        WrappedVkPipeline *wrappedPipe = GetWrapped(deferredPipe.second);
+        wrappedPipe->deferredJob = Threading::JobSystem::AddJob(
+            [wrappedVulkan = this, device, createInfo = deferredPipe.first, wrappedPipe]() {
+              PerformanceTimer timer;
+              wrappedVulkan->CheckDeferredResult(
+                  DeferredPipelineCompile(device, createInfo, wrappedPipe));
+              wrappedVulkan->AddDeferredTime(timer.GetMilliseconds());
+            },
+            parents);
+        compiles.push_back(wrappedPipe->deferredJob);
+      }
+
+      // once all the compiles are done, we can deserialise the create info
+      Threading::JobSystem::AddJob([OrigCreateInfo]() { Deserialise(OrigCreateInfo); }, compiles);
     }
   }
 
@@ -969,93 +1090,99 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
     // valid
     CreateInfo.flags &= ~VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT;
 
-    VkComputePipelineCreateInfo *unwrapped = UnwrapInfos(m_State, &CreateInfo, 1);
-    VkResult ret = ObjDisp(device)->CreateComputePipelines(Unwrap(device), Unwrap(pipelineCache), 1,
-                                                           unwrapped, NULL, &pipe);
+    // disable pipeline derivatives, because I don't think any driver actually uses them and it
+    // would require a job-wait for the parent
+    CreateInfo.flags &= ~VK_PIPELINE_CREATE_DERIVATIVE_BIT;
+    CreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+    CreateInfo.basePipelineIndex = -1;
+
+    // we steal the serialised create info here so we can pass it to jobs without its contents and
+    // all of the allocated structures and arrays being deserialised. We add a job which waits on
+    // the compiles then deserialises this manually.
+    VkComputePipelineCreateInfo OrigCreateInfo = CreateInfo;
+    CreateInfo = {};
 
     AddResource(Pipeline, ResourceType::PipelineState, "Compute Pipeline");
 
-    if(ret != VK_SUCCESS)
-    {
-      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
-                       "Failed creating compute pipeline, VkResult: %s", ToStr(ret).c_str());
-      return false;
-    }
-    else
-    {
-      ResourceId live;
+    ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), pipe);
+    GetResourceManager()->AddLiveResource(Pipeline, pipe);
 
-      if(GetResourceManager()->HasWrapper(ToTypedHandle(pipe)))
+    VkPipelineShaderStageCreateInfo shadInstantiated = OrigCreateInfo.stage;
+
+    // search for inline shader, and create shader module so we have objects to pull
+    // out for recreating the compute pipeline (and to replace for shader editing)
+    if(shadInstantiated.module == VK_NULL_HANDLE)
+    {
+      const VkShaderModuleCreateInfo *inlineShad = (const VkShaderModuleCreateInfo *)FindNextStruct(
+          &shadInstantiated, VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO);
+      const VkDebugUtilsObjectNameInfoEXT *shadName =
+          (const VkDebugUtilsObjectNameInfoEXT *)FindNextStruct(
+              &shadInstantiated, VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT);
+      if(inlineShad)
       {
-        live = GetResourceManager()->GetNonDispWrapper(pipe)->id;
+        vkCreateShaderModule(device, inlineShad, NULL, &shadInstantiated.module);
 
-        // destroy this instance of the duplicate, as we must have matching create/destroy
-        // calls and there won't be a wrapped resource hanging around to destroy this one.
-        ObjDisp(device)->DestroyPipeline(Unwrap(device), pipe, NULL);
+        // this will be a replay ID, there is no equivalent original ID
+        ResourceId shadId = GetResID(shadInstantiated.module);
 
-        // whenever the new ID is requested, return the old ID, via replacements.
-        GetResourceManager()->ReplaceResource(Pipeline, GetResourceManager()->GetOriginalID(live));
+        AddResource(shadId, ResourceType::Shader, "Shader Module");
+        DerivedResource(device, shadId);
+        DerivedResource(pipe, shadId);
+
+        if(shadName)
+          GetReplay()->GetResourceDesc(shadId).SetCustomName(shadName->pObjectName);
+        else
+          GetReplay()->GetResourceDesc(shadId).name =
+              GetReplay()->GetResourceDesc(Pipeline).name + " shader";
       }
       else
       {
-        live = GetResourceManager()->WrapResource(Unwrap(device), pipe);
-        GetResourceManager()->AddLiveResource(Pipeline, pipe);
-
-        VkPipelineShaderStageCreateInfo shadInstantiated = CreateInfo.stage;
-
-        // search for inline shader, and create shader module so we have objects to pull
-        // out for recreating the compute pipeline (and to replace for shader editing)
-        if(shadInstantiated.module == VK_NULL_HANDLE)
-        {
-          const VkShaderModuleCreateInfo *inlineShad =
-              (const VkShaderModuleCreateInfo *)FindNextStruct(
-                  &shadInstantiated, VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO);
-          const VkDebugUtilsObjectNameInfoEXT *shadName =
-              (const VkDebugUtilsObjectNameInfoEXT *)FindNextStruct(
-                  &shadInstantiated, VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT);
-          if(inlineShad)
-          {
-            vkCreateShaderModule(device, inlineShad, NULL, &shadInstantiated.module);
-
-            // this will be a replay ID, there is no equivalent original ID
-            ResourceId shadId = GetResID(shadInstantiated.module);
-
-            AddResource(shadId, ResourceType::Shader, "Shader Module");
-            DerivedResource(device, shadId);
-            DerivedResource(pipe, shadId);
-
-            if(shadName)
-              GetReplay()->GetResourceDesc(shadId).SetCustomName(shadName->pObjectName);
-            else
-              GetReplay()->GetResourceDesc(shadId).name =
-                  GetReplay()->GetResourceDesc(Pipeline).name + " shader";
-          }
-          else
-          {
-            RDCERR("NULL module (entry %s) with no linked module create info",
-                   shadInstantiated.pName);
-          }
-        }
-
-        VkComputePipelineCreateInfo shadInstantiatedInfo = CreateInfo;
-        shadInstantiatedInfo.stage = shadInstantiated;
-
-        m_CreationInfo.m_Pipeline[live].Init(GetResourceManager(), m_CreationInfo, live,
-                                             &shadInstantiatedInfo);
+        RDCERR("NULL module (entry %s) with no linked module create info", shadInstantiated.pName);
       }
+    }
+
+    VkComputePipelineCreateInfo shadInstantiatedInfo = OrigCreateInfo;
+    shadInstantiatedInfo.stage = shadInstantiated;
+
+    m_CreationInfo.m_Pipeline[live].Init(GetResourceManager(), m_CreationInfo, live,
+                                         &shadInstantiatedInfo);
+
+    if(Replay_Debug_SingleThreadedCompilation())
+    {
+      RDResult res = DeferredPipelineCompile(device, OrigCreateInfo, GetWrapped(pipe));
+      Deserialise(OrigCreateInfo);
+
+      if(res != ResultCode::Succeeded)
+      {
+        m_FailedReplayResult = res;
+        return false;
+      }
+    }
+    else
+    {
+      WrappedVkPipeline *wrappedPipe = GetWrapped(pipe);
+      wrappedPipe->deferredJob =
+          Threading::JobSystem::AddJob([wrappedVulkan = this, device, OrigCreateInfo, wrappedPipe]() {
+            PerformanceTimer timer;
+            wrappedVulkan->CheckDeferredResult(
+                DeferredPipelineCompile(device, OrigCreateInfo, wrappedPipe));
+            wrappedVulkan->AddDeferredTime(timer.GetMilliseconds());
+
+            Deserialise(OrigCreateInfo);
+          });
     }
 
     DerivedResource(device, Pipeline);
     if(origCache != VK_NULL_HANDLE)
       DerivedResource(origCache, Pipeline);
-    if(CreateInfo.flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
+    if(OrigCreateInfo.flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
     {
-      if(CreateInfo.basePipelineHandle != VK_NULL_HANDLE)
-        DerivedResource(CreateInfo.basePipelineHandle, Pipeline);
+      if(OrigCreateInfo.basePipelineHandle != VK_NULL_HANDLE)
+        DerivedResource(OrigCreateInfo.basePipelineHandle, Pipeline);
     }
-    DerivedResource(CreateInfo.layout, Pipeline);
-    if(CreateInfo.stage.module != VK_NULL_HANDLE)
-      DerivedResource(CreateInfo.stage.module, Pipeline);
+    DerivedResource(OrigCreateInfo.layout, Pipeline);
+    if(OrigCreateInfo.stage.module != VK_NULL_HANDLE)
+      DerivedResource(OrigCreateInfo.stage.module, Pipeline);
   }
 
   return true;
@@ -1240,84 +1367,85 @@ bool WrappedVulkan::Serialise_vkCreateRayTracingPipelinesKHR(
     // valid
     CreateInfo.flags &= ~VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT;
 
-    VkRayTracingPipelineCreateInfoKHR *unwrapped = UnwrapInfos(m_State, &CreateInfo, 1);
-
-    // patch in the capture/replay handles we saved
-    VkRayTracingShaderGroupCreateInfoKHR *groups =
-        (VkRayTracingShaderGroupCreateInfoKHR *)unwrapped->pGroups;
-
-    for(uint32_t i = 0; i < unwrapped->groupCount; i++)
-      groups[i].pShaderGroupCaptureReplayHandle =
-          captureReplayHandles.data() + captureReplayHandleSize * i;
-
-    VkResult ret = ObjDisp(device)->CreateRayTracingPipelinesKHR(
-        Unwrap(device), VK_NULL_HANDLE, Unwrap(pipelineCache), 1, unwrapped, NULL, &pipe);
+    // we steal the serialised create info and handle buffer here so we can pass it to jobs without
+    // its contents and all of the allocated structures and arrays being deserialised. We add a job
+    // which waits on the compiles then deserialises this manually.
+    VkRayTracingPipelineCreateInfoKHR OrigCreateInfo = CreateInfo;
+    bytebuf *OrigReplayHandles = new bytebuf;
+    CreateInfo = {};
+    OrigReplayHandles->swap(captureReplayHandles);
 
     AddResource(Pipeline, ResourceType::PipelineState, "RT Pipeline");
 
-    if(ret == VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS)
-    {
-      SET_ERROR_RESULT(
-          m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
-          "Failed to re-create RT PSO because capture/replay handle was incompatible.\n"
-          "\n%s",
-          GetPhysDeviceCompatString(false, false).c_str());
-      return false;
-    }
-    else if(ret != VK_SUCCESS)
-    {
-      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
-                       "Failed creating RT pipeline, VkResult: %s", ToStr(ret).c_str());
-      return false;
-    }
-    else
-    {
-      ResourceId live;
+    ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), pipe);
+    GetResourceManager()->AddLiveResource(Pipeline, pipe);
 
-      if(GetResourceManager()->HasWrapper(ToTypedHandle(pipe)))
-      {
-        live = GetResourceManager()->GetNonDispWrapper(pipe)->id;
+    VulkanCreationInfo::Pipeline &pipeInfo = m_CreationInfo.m_Pipeline[live];
 
-        // destroy this instance of the duplicate, as we must have matching create/destroy
-        // calls and there won't be a wrapped resource hanging around to destroy this one.
-        ObjDisp(device)->DestroyPipeline(Unwrap(device), pipe, NULL);
-
-        // whenever the new ID is requested, return the old ID, via replacements.
-        GetResourceManager()->ReplaceResource(Pipeline, GetResourceManager()->GetOriginalID(live));
-      }
-      else
-      {
-        live = GetResourceManager()->WrapResource(Unwrap(device), pipe);
-        GetResourceManager()->AddLiveResource(Pipeline, pipe);
-
-        VulkanCreationInfo::Pipeline &pipeInfo = m_CreationInfo.m_Pipeline[live];
-
-        pipeInfo.Init(GetResourceManager(), m_CreationInfo, live, &CreateInfo);
-      }
-    }
+    pipeInfo.Init(GetResourceManager(), m_CreationInfo, live, &OrigCreateInfo);
 
     DerivedResource(device, Pipeline);
     if(origCache != VK_NULL_HANDLE)
       DerivedResource(origCache, Pipeline);
-    if(CreateInfo.flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
+    if(OrigCreateInfo.flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
     {
-      if(CreateInfo.basePipelineHandle != VK_NULL_HANDLE)
-        DerivedResource(CreateInfo.basePipelineHandle, Pipeline);
+      if(OrigCreateInfo.basePipelineHandle != VK_NULL_HANDLE)
+        DerivedResource(OrigCreateInfo.basePipelineHandle, Pipeline);
     }
-    if(CreateInfo.layout != VK_NULL_HANDLE)
-      DerivedResource(CreateInfo.layout, Pipeline);
-    for(uint32_t i = 0; i < CreateInfo.stageCount; i++)
+    if(OrigCreateInfo.layout != VK_NULL_HANDLE)
+      DerivedResource(OrigCreateInfo.layout, Pipeline);
+    for(uint32_t i = 0; i < OrigCreateInfo.stageCount; i++)
     {
-      if(CreateInfo.pStages[i].module != VK_NULL_HANDLE)
-        DerivedResource(CreateInfo.pStages[i].module, Pipeline);
+      if(OrigCreateInfo.pStages[i].module != VK_NULL_HANDLE)
+        DerivedResource(OrigCreateInfo.pStages[i].module, Pipeline);
     }
 
-    if(CreateInfo.pLibraryInfo)
+    rdcarray<Threading::JobSystem::Job *> parents;
+
+    if(OrigCreateInfo.pLibraryInfo)
     {
-      for(uint32_t l = 0; l < CreateInfo.pLibraryInfo->libraryCount; l++)
+      for(uint32_t l = 0; l < OrigCreateInfo.pLibraryInfo->libraryCount; l++)
       {
-        DerivedResource(CreateInfo.pLibraryInfo->pLibraries[l], Pipeline);
+        DerivedResource(OrigCreateInfo.pLibraryInfo->pLibraries[l], Pipeline);
+        parents.push_back(GetWrapped(OrigCreateInfo.pLibraryInfo->pLibraries[l])->deferredJob);
       }
+    }
+
+    if(Replay_Debug_SingleThreadedCompilation())
+    {
+      RDResult res = DeferredPipelineCompile(device, OrigCreateInfo, *OrigReplayHandles,
+                                             captureReplayHandleSize, GetWrapped(pipe));
+      if(res == ResultCode::APIHardwareUnsupported)
+        res.message = rdcstr(res.message) + "\n" + GetPhysDeviceCompatString(false, false);
+      Deserialise(OrigCreateInfo);
+      delete OrigReplayHandles;
+
+      if(res != ResultCode::Succeeded)
+      {
+        m_FailedReplayResult = res;
+        return false;
+      }
+    }
+    else
+    {
+      WrappedVkPipeline *wrappedPipe = GetWrapped(pipe);
+      wrappedPipe->deferredJob = Threading::JobSystem::AddJob(
+          [wrappedVulkan = this, device, OrigCreateInfo, OrigReplayHandles, captureReplayHandleSize,
+           wrappedPipe]() {
+            PerformanceTimer timer;
+            RDResult res = DeferredPipelineCompile(device, OrigCreateInfo, *OrigReplayHandles,
+                                                   captureReplayHandleSize, wrappedPipe);
+            wrappedVulkan->AddDeferredTime(timer.GetMilliseconds());
+            if(res == ResultCode::APIHardwareUnsupported)
+              res.message = rdcstr(res.message) + "\n" +
+                            wrappedVulkan->GetPhysDeviceCompatString(false, false);
+
+            wrappedVulkan->CheckDeferredResult(res);
+
+            Deserialise(OrigCreateInfo);
+            delete OrigReplayHandles;
+          },
+          parents);
     }
   }
 

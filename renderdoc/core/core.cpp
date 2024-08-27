@@ -53,6 +53,9 @@ RDOC_DEBUG_CONFIG(bool, Capture_Debug_SnapshotDiagnosticLog, false,
 
 RDOC_CONFIG(bool, Replay_Debug_PrintChunkTimings, false, "Print stats of chunk processing times");
 
+RDOC_CONFIG(bool, Replay_Debug_SingleThreadedCompilation, false,
+            "Compile all shaders and PSOs single-threaded.");
+
 // this is declared centrally so it can be shared with any backend - the name is a misnomer but kept
 // for backwards compatibility reasons.
 RDOC_CONFIG(rdcarray<rdcstr>, DXBC_Debug_SearchDirPaths, {},
