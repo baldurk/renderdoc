@@ -1036,9 +1036,10 @@ typedef WrappedID3D12PipelineState::ShaderEntry WrappedID3D12Shader;
 struct D3D12ShaderExportDatabase : public RefCounter12<IUnknown>
 {
 public:
-  D3D12ShaderExportDatabase(ResourceId id, D3D12RaytracingResourceAndUtilHandler *rayManager,
-                            ID3D12StateObjectProperties *obj);
+  D3D12ShaderExportDatabase(ResourceId id, D3D12RaytracingResourceAndUtilHandler *rayManager);
   ~D3D12ShaderExportDatabase();
+
+  void SetObjectProperties(ID3D12StateObjectProperties *obj) { m_StateObjectProps = obj; }
 
   ResourceId GetResourceId() { return objectOriginalId; }
 
@@ -1167,16 +1168,26 @@ public:
 
   D3D12ShaderExportDatabase *exports = NULL;
 
+  Threading::JobSystem::Job *deferredJob = NULL;
+
   enum
   {
     TypeEnum = Resource_StateObject,
   };
 
-  WrappedID3D12StateObject(ID3D12StateObject *real, WrappedID3D12Device *device)
+  WrappedID3D12StateObject(ID3D12StateObject *real, bool deferredHandle, WrappedID3D12Device *device)
       : WrappedDeviceChild12(real, device)
   {
+    if(!deferredHandle)
+      SetNewReal(real);
+  }
+
+  void SetNewReal(ID3D12StateObject *real)
+  {
+    m_pReal = real;
     real->QueryInterface(__uuidof(ID3D12StateObjectProperties), (void **)&properties);
   }
+
   virtual ~WrappedID3D12StateObject()
   {
     SAFE_RELEASE(properties);

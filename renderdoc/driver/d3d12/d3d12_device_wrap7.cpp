@@ -23,8 +23,78 @@
  ******************************************************************************/
 
 #include "d3d12_device.h"
+#include "core/settings.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "d3d12_resources.h"
+
+RDOC_EXTERN_CONFIG(bool, Replay_Debug_SingleThreadedCompilation);
+
+static RDResult DeferredStateObjGrow(ID3D12Device7 *device7,
+                                     const D3D12_STATE_OBJECT_DESC &Descriptor,
+                                     ID3D12StateObject *pStateObjectToGrowFrom,
+                                     WrappedID3D12StateObject *wrappedObj)
+{
+  rdcarray<ID3D12RootSignature *> rootSigs;
+  rdcarray<ID3D12StateObject *> collections;
+
+  // unwrap the referenced objects in place
+  const D3D12_STATE_SUBOBJECT *subs = Descriptor.pSubobjects;
+  for(UINT i = 0; i < Descriptor.NumSubobjects; i++)
+  {
+    if(subs[i].Type == D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE ||
+       subs[i].Type == D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE)
+    {
+      // both structs are the same
+      D3D12_GLOBAL_ROOT_SIGNATURE *global = (D3D12_GLOBAL_ROOT_SIGNATURE *)subs[i].pDesc;
+      rootSigs.push_back(global->pGlobalRootSignature);
+      global->pGlobalRootSignature = Unwrap(global->pGlobalRootSignature);
+    }
+    else if(subs[i].Type == D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION)
+    {
+      D3D12_EXISTING_COLLECTION_DESC *coll = (D3D12_EXISTING_COLLECTION_DESC *)subs[i].pDesc;
+      collections.push_back(coll->pExistingCollection);
+      // wait for any jobs for existing collections to complete
+      WrappedID3D12StateObject *wrapped = GetWrapped(coll->pExistingCollection);
+      coll->pExistingCollection = wrapped->GetReal();
+    }
+  }
+
+  ID3D12StateObject *realObj;
+  HRESULT hr = device7->AddToStateObject(&Descriptor, Unwrap(pStateObjectToGrowFrom),
+                                         __uuidof(ID3D12StateObject), (void **)&realObj);
+
+  // rewrap the objects for PopulateDatabase below
+  for(UINT i = 0, r = 0, c = 0; i < Descriptor.NumSubobjects; i++)
+  {
+    if(subs[i].Type == D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE ||
+       subs[i].Type == D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE)
+    {
+      D3D12_GLOBAL_ROOT_SIGNATURE *global = (D3D12_GLOBAL_ROOT_SIGNATURE *)subs[i].pDesc;
+      // the same order as above, we can consume the rootSigs in order
+      global->pGlobalRootSignature = rootSigs[r++];
+    }
+    else if(subs[i].Type == D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION)
+    {
+      D3D12_EXISTING_COLLECTION_DESC *coll = (D3D12_EXISTING_COLLECTION_DESC *)subs[i].pDesc;
+      coll->pExistingCollection = collections[c++];
+    }
+  }
+
+  wrappedObj->SetNewReal(realObj);
+
+  wrappedObj->exports->SetObjectProperties(wrappedObj->GetProperties());
+
+  wrappedObj->exports->GrowFrom(GetWrapped(pStateObjectToGrowFrom)->exports);
+  wrappedObj->exports->PopulateDatabase(Descriptor.NumSubobjects, subs);
+
+  if(FAILED(hr))
+  {
+    RETURN_ERROR_RESULT(ResultCode::APIReplayFailed, "Failed creating state object, HRESULT: %s",
+                        ToStr(hr).c_str());
+  }
+
+  return ResultCode::Succeeded;
+}
 
 template <typename SerialiserType>
 bool WrappedID3D12Device::Serialise_AddToStateObject(SerialiserType &ser,
@@ -44,100 +114,93 @@ bool WrappedID3D12Device::Serialise_AddToStateObject(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    ID3D12StateObject *ret = NULL;
-    HRESULT hr = E_NOINTERFACE;
-
-    // unwrap the subobjects that need unwrapping in-place. We'll undo these after creating the
-    // object - this is probably better than unwrapping to a separate object since that requires
-    // rebasing all the associations etc
-
-    rdcarray<ID3D12RootSignature *> rootSigs;
-    rdcarray<ID3D12StateObject *> collections;
-
-    const D3D12_STATE_SUBOBJECT *subs = Addition.pSubobjects;
-    for(UINT i = 0; i < Addition.NumSubobjects; i++)
-    {
-      if(subs[i].Type == D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE ||
-         subs[i].Type == D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE)
-      {
-        // both structs are the same
-        D3D12_GLOBAL_ROOT_SIGNATURE *global = (D3D12_GLOBAL_ROOT_SIGNATURE *)subs[i].pDesc;
-        rootSigs.push_back(global->pGlobalRootSignature);
-        global->pGlobalRootSignature = Unwrap(global->pGlobalRootSignature);
-      }
-      else if(subs[i].Type == D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION)
-      {
-        D3D12_EXISTING_COLLECTION_DESC *coll = (D3D12_EXISTING_COLLECTION_DESC *)subs[i].pDesc;
-        collections.push_back(coll->pExistingCollection);
-        coll->pExistingCollection = Unwrap(coll->pExistingCollection);
-      }
-    }
+    // we steal the serialised descriptor here so we can pass it to jobs without its contents and
+    // all of the allocated structures and arrays being deserialised. We add a job which waits on
+    // the compiles then deserialises this manually.
+    D3D12_STATE_OBJECT_DESC OrigAddition = Addition;
+    Addition = {};
 
     m_UsedDXIL = true;
 
-    if(m_pDevice7)
-    {
-      hr = m_pDevice7->AddToStateObject(&Addition, Unwrap(pStateObjectToGrowFrom), guid,
-                                        (void **)&ret);
-    }
-    else
+    if(!m_pDevice7)
     {
       SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
                        "Capture requires ID3D12Device7 which isn't available");
       return false;
     }
 
-    if(FAILED(hr))
+    WrappedID3D12StateObject *wrapped = new WrappedID3D12StateObject(
+        GetResourceManager()->CreateDeferredHandle<ID3D12StateObject>(), true, this);
+
+    // TODO: Apply m_GlobalEXTUAV, m_GlobalEXTUAVSpace for processing extensions in the DXBC files?
+
+    wrapped->exports = new D3D12ShaderExportDatabase(
+        pNewStateObject, GetResourceManager()->GetRaytracingResourceAndUtilHandler());
+
+    AddResource(pNewStateObject, ResourceType::PipelineState, "State Object");
+    DerivedResource(pStateObjectToGrowFrom, pNewStateObject);
+
+    rdcarray<Threading::JobSystem::Job *> parents;
+
+    const D3D12_STATE_SUBOBJECT *subs = OrigAddition.pSubobjects;
+    for(UINT i = 0; i < OrigAddition.NumSubobjects; i++)
     {
-      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
-                       "Failed creating state object, HRESULT: %s", ToStr(hr).c_str());
-      return false;
+      if(subs[i].Type == D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE ||
+         subs[i].Type == D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE)
+      {
+        // both structs are the same
+        D3D12_GLOBAL_ROOT_SIGNATURE *global = (D3D12_GLOBAL_ROOT_SIGNATURE *)subs[i].pDesc;
+        DerivedResource(global->pGlobalRootSignature, pNewStateObject);
+      }
+      else if(subs[i].Type == D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION)
+      {
+        D3D12_EXISTING_COLLECTION_DESC *coll = (D3D12_EXISTING_COLLECTION_DESC *)subs[i].pDesc;
+        DerivedResource(coll->pExistingCollection, pNewStateObject);
+
+        if(!Replay_Debug_SingleThreadedCompilation())
+        {
+          parents.push_back(GetWrapped(coll->pExistingCollection)->deferredJob);
+        }
+      }
+    }
+
+    if(Replay_Debug_SingleThreadedCompilation())
+    {
+      RDResult res = DeferredStateObjGrow(m_pDevice7, OrigAddition, pStateObjectToGrowFrom, wrapped);
+      Deserialise(OrigAddition);
+
+      if(res != ResultCode::Succeeded)
+      {
+        m_FailedReplayResult = res;
+        return false;
+      }
     }
     else
     {
-      for(UINT i = 0, r = 0, c = 0; i < Addition.NumSubobjects; i++)
-      {
-        if(subs[i].Type == D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE ||
-           subs[i].Type == D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE)
-        {
-          D3D12_GLOBAL_ROOT_SIGNATURE *global = (D3D12_GLOBAL_ROOT_SIGNATURE *)subs[i].pDesc;
-          // the same order as above, we can consume the rootSigs in order
-          global->pGlobalRootSignature = rootSigs[r++];
-        }
-        else if(subs[i].Type == D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION)
-        {
-          D3D12_EXISTING_COLLECTION_DESC *coll = (D3D12_EXISTING_COLLECTION_DESC *)subs[i].pDesc;
-          coll->pExistingCollection = collections[c++];
-        }
-      }
+      // first wait on the parent
+      parents.push_back(GetWrapped(pStateObjectToGrowFrom)->deferredJob);
 
-      WrappedID3D12StateObject *wrapped = new WrappedID3D12StateObject(ret, this);
+      wrapped->deferredJob = Threading::JobSystem::AddJob(
+          [wrappedD3D12 = this, device7 = m_pDevice7, OrigAddition, pStateObjectToGrowFrom, wrapped]() {
+            PerformanceTimer timer;
+            wrappedD3D12->CheckDeferredResult(
+                DeferredStateObjGrow(device7, OrigAddition, pStateObjectToGrowFrom, wrapped));
+            wrappedD3D12->AddDeferredTime(timer.GetMilliseconds());
 
-      // TODO: Apply m_GlobalEXTUAV, m_GlobalEXTUAVSpace for processing extensions in the DXBC files?
-
-      wrapped->exports = new D3D12ShaderExportDatabase(
-          pNewStateObject, GetResourceManager()->GetRaytracingResourceAndUtilHandler(),
-          wrapped->GetProperties());
-
-      wrapped->exports->GrowFrom(((WrappedID3D12StateObject *)pStateObjectToGrowFrom)->exports);
-      wrapped->exports->PopulateDatabase(Addition.NumSubobjects, subs);
-
-      AddResource(pNewStateObject, ResourceType::PipelineState, "State Object");
-      for(ID3D12RootSignature *rootSig : rootSigs)
-        DerivedResource(rootSig, pNewStateObject);
-      for(ID3D12StateObject *coll : collections)
-        DerivedResource(coll, pNewStateObject);
-
-      // if this shader was initialised with nvidia's dynamic UAV, pull in that chunk as one of ours
-      // and unset it (there will be one for each create that actually used vendor extensions)
-      if(m_VendorEXT == GPUVendor::nVidia && m_GlobalEXTUAV != ~0U)
-      {
-        GetResourceDesc(pNewStateObject)
-            .initialisationChunks.push_back((uint32_t)m_StructuredFile->chunks.size() - 2);
-        m_GlobalEXTUAV = ~0U;
-      }
-      GetResourceManager()->AddLiveResource(pNewStateObject, wrapped);
+            Deserialise(OrigAddition);
+          },
+          parents);
     }
+
+    // if this shader was initialised with nvidia's dynamic UAV, pull in that chunk as one of ours
+    // and unset it (there will be one for each create that actually used vendor extensions)
+    if(m_VendorEXT == GPUVendor::nVidia && m_GlobalEXTUAV != ~0U)
+    {
+      GetResourceDesc(pNewStateObject)
+          .initialisationChunks.push_back((uint32_t)m_StructuredFile->chunks.size() - 2);
+      m_GlobalEXTUAV = ~0U;
+    }
+    GetResourceManager()->AddLiveResource(pNewStateObject, wrapped);
   }
 
   return true;
@@ -167,7 +230,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Device::AddToStateObject(
 
   if(SUCCEEDED(ret))
   {
-    WrappedID3D12StateObject *wrapped = new WrappedID3D12StateObject(real, this);
+    WrappedID3D12StateObject *wrapped = new WrappedID3D12StateObject(real, false, this);
 
     if(IsCaptureMode(m_State))
     {
@@ -188,8 +251,9 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Device::AddToStateObject(
       Serialise_AddToStateObject(ser, pAddition, pStateObjectToGrowFrom, riid, (void **)&wrapped);
 
       wrapped->exports = new D3D12ShaderExportDatabase(
-          wrapped->GetResourceID(), GetResourceManager()->GetRaytracingResourceAndUtilHandler(),
-          wrapped->GetProperties());
+          wrapped->GetResourceID(), GetResourceManager()->GetRaytracingResourceAndUtilHandler());
+
+      wrapped->exports->SetObjectProperties(wrapped->GetProperties());
 
       wrapped->exports->GrowFrom(((WrappedID3D12StateObject *)pStateObjectToGrowFrom)->exports);
       wrapped->exports->PopulateDatabase(pAddition->NumSubobjects, pAddition->pSubobjects);
