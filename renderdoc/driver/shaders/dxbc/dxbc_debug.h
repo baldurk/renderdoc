@@ -26,8 +26,8 @@
 #pragma once
 
 #include "common/common.h"
+#include "dx_debug.h"
 #include "dxbc_bytecode.h"
-#include "dxbcdxil_debug.h"
 
 namespace DXBC
 {
@@ -48,12 +48,12 @@ enum DXGI_FORMAT;
 
 namespace DXBCDebug
 {
-using namespace DXBCDXILDebug;
+using namespace DXDebug;
 
-typedef DXBCDXILDebug::SampleGatherResourceData SampleGatherResourceData;
-typedef DXBCDXILDebug::SampleGatherSamplerData SampleGatherSamplerData;
-typedef DXBCDXILDebug::BindingSlot BindingSlot;
-typedef DXBCDXILDebug::GatherChannel GatherChannel;
+typedef DXDebug::SampleGatherResourceData SampleGatherResourceData;
+typedef DXDebug::SampleGatherSamplerData SampleGatherSamplerData;
+typedef DXDebug::BindingSlot BindingSlot;
+typedef DXDebug::GatherChannel GatherChannel;
 
 BindingSlot GetBindingSlotForDeclaration(const DXBCBytecode::Program &program,
                                          const DXBCBytecode::Declaration &decl);

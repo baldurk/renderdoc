@@ -565,9 +565,9 @@ D3D12Descriptor D3D12ShaderDebug::FindDescriptor(WrappedID3D12Device *device,
 
 ShaderVariable D3D12ShaderDebug::GetResourceInfo(WrappedID3D12Device *device,
                                                  D3D12_DESCRIPTOR_RANGE_TYPE descType,
-                                                 const DXBCDXILDebug::BindingSlot &slot,
-                                                 uint32_t mipLevel, const DXBC::ShaderType shaderType,
-                                                 int &dim, bool isDXIL)
+                                                 const DXDebug::BindingSlot &slot, uint32_t mipLevel,
+                                                 const DXBC::ShaderType shaderType, int &dim,
+                                                 bool isDXIL)
 {
   ShaderVariable result("", 0U, 0U, 0U, 0U);
 
@@ -845,7 +845,7 @@ ShaderVariable D3D12ShaderDebug::GetResourceInfo(WrappedID3D12Device *device,
 
 ShaderVariable D3D12ShaderDebug::GetSampleInfo(WrappedID3D12Device *device,
                                                D3D12_DESCRIPTOR_RANGE_TYPE descType,
-                                               const DXBCDXILDebug::BindingSlot &slot,
+                                               const DXDebug::BindingSlot &slot,
                                                const DXBC::ShaderType shaderType,
                                                const char *opString)
 {
@@ -933,13 +933,13 @@ public:
                                  uint32_t mipLevel, int &dim);
 
   bool CalculateSampleGather(DXBCBytecode::OpcodeType opcode,
-                             DXBCDXILDebug::SampleGatherResourceData resourceData,
-                             DXBCDXILDebug::SampleGatherSamplerData samplerData,
-                             const ShaderVariable &uv, const ShaderVariable &ddxCalc,
-                             const ShaderVariable &ddyCalc, const int8_t texelOffsets[3],
-                             int multisampleIndex, float lodOrCompareValue,
-                             const uint8_t swizzle[4], DXBCDXILDebug::GatherChannel gatherChannel,
-                             const char *opString, ShaderVariable &output);
+                             DXDebug::SampleGatherResourceData resourceData,
+                             DXDebug::SampleGatherSamplerData samplerData, const ShaderVariable &uv,
+                             const ShaderVariable &ddxCalc, const ShaderVariable &ddyCalc,
+                             const int8_t texelOffsets[3], int multisampleIndex,
+                             float lodOrCompareValue, const uint8_t swizzle[4],
+                             DXDebug::GatherChannel gatherChannel, const char *opString,
+                             ShaderVariable &output);
 
 private:
   DXBC::ShaderType GetShaderType() { return m_dxbc ? m_dxbc->m_Type : DXBC::ShaderType::Pixel; }
@@ -1424,11 +1424,11 @@ ShaderVariable D3D12DebugAPIWrapper::GetResourceInfo(DXBCBytecode::OperandType t
 }
 
 bool D3D12DebugAPIWrapper::CalculateSampleGather(
-    DXBCBytecode::OpcodeType opcode, DXBCDXILDebug::SampleGatherResourceData resourceData,
-    DXBCDXILDebug::SampleGatherSamplerData samplerData, const ShaderVariable &uv,
+    DXBCBytecode::OpcodeType opcode, DXDebug::SampleGatherResourceData resourceData,
+    DXDebug::SampleGatherSamplerData samplerData, const ShaderVariable &uv,
     const ShaderVariable &ddxCalc, const ShaderVariable &ddyCalc, const int8_t texelOffsets[3],
     int multisampleIndex, float lodOrCompareValue, const uint8_t swizzle[4],
-    DXBCDXILDebug::GatherChannel gatherChannel, const char *opString, ShaderVariable &output)
+    DXDebug::GatherChannel gatherChannel, const char *opString, ShaderVariable &output)
 {
   using namespace DXBCBytecode;
 

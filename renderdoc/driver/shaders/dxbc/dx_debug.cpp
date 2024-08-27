@@ -22,9 +22,9 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "dxbcdxil_debug.h"
+#include "dx_debug.h"
 
-namespace DXBCDXILDebug
+namespace DXDebug
 {
 // "NaN has special handling. If one source operand is NaN, then the other source operand is
 // returned. If both are NaN, any NaN representation is returned."
@@ -187,16 +187,16 @@ void get_sample_position(uint32_t sampleIndex, uint32_t sampleCount, float *posi
 #undef _SMP
 }
 
-};    // namespace DXBCDXILDebug
+};    // namespace DXDebug
 
 #if ENABLED(ENABLE_UNIT_TESTS)
 
 #include <limits>
 #include "catch/catch.hpp"
 
-using namespace DXBCDXILDebug;
+using namespace DXDebug;
 
-TEST_CASE("DXBCDXIL debugging helpers", "[program]")
+TEST_CASE("DXBC DXIL shader debugging helpers", "[program]")
 {
   const float posinf = std::numeric_limits<float>::infinity();
   const float neginf = -std::numeric_limits<float>::infinity();

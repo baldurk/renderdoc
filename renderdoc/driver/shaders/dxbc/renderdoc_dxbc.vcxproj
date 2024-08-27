@@ -101,7 +101,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="dxbcdxil_debug.cpp" />
+    <ClCompile Include="dx_debug.cpp" />
     <ClCompile Include="dxbc_bytecode.cpp" />
     <ClCompile Include="dxbc_bytecode_editor.cpp" />
     <ClCompile Include="dxbc_bytecode_vendorext.cpp" />
@@ -118,7 +118,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="dxbcdxil_debug.h" />
+    <ClInclude Include="dx_debug.h" />
     <ClInclude Include="dxbc_bytecode.h" />
     <ClInclude Include="dxbc_bytecode_editor.h" />
     <ClInclude Include="dxbc_bytecode_ops.h" />

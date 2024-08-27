@@ -33,7 +33,7 @@
 #include "dxbc_container.h"
 
 using namespace DXBCBytecode;
-using namespace DXBCDXILDebug;
+using namespace DXDebug;
 
 namespace DXBCDebug
 {
@@ -3529,7 +3529,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
                   "Shader debugging %d: %s\nNon-multisampled texture being passed to sample_pos",
                   nextInstruction - 1, op.str.c_str()));
         }
-        DXBCDXILDebug::get_sample_position(sampleIndex, sampleCount, result.value.f32v.data());
+        DXDebug::get_sample_position(sampleIndex, sampleCount, result.value.f32v.data());
       }
 
       // apply swizzle

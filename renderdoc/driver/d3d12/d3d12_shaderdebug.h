@@ -24,18 +24,18 @@
 
 #pragma once
 
+#include "driver/shaders/dxbc/dx_debug.h"
 #include "driver/shaders/dxbc/dxbc_common.h"
-#include "driver/shaders/dxbc/dxbcdxil_debug.h"
 #include "d3d12_manager.h"
 
 namespace D3D12ShaderDebug
 {
-using namespace DXBCDXILDebug;
+using namespace DXDebug;
 
-typedef DXBCDXILDebug::SampleGatherResourceData SampleGatherResourceData;
-typedef DXBCDXILDebug::SampleGatherSamplerData SampleGatherSamplerData;
-typedef DXBCDXILDebug::BindingSlot BindingSlot;
-typedef DXBCDXILDebug::GatherChannel GatherChannel;
+typedef DXDebug::SampleGatherResourceData SampleGatherResourceData;
+typedef DXDebug::SampleGatherSamplerData SampleGatherSamplerData;
+typedef DXDebug::BindingSlot BindingSlot;
+typedef DXDebug::GatherChannel GatherChannel;
 typedef DXBCBytecode::SamplerMode SamplerMode;
 
 // Helpers used by DXBC and DXIL debuggers to interact with GPU and resources
@@ -52,16 +52,15 @@ bool CalculateSampleGather(bool dxil, WrappedID3D12Device *device, int sampleOp,
                            uint32_t instruction, const char *opString, ShaderVariable &output);
 
 D3D12Descriptor FindDescriptor(WrappedID3D12Device *device, D3D12_DESCRIPTOR_RANGE_TYPE descType,
-                               const DXBCDXILDebug::BindingSlot &slot,
-                               const DXBC::ShaderType shaderType);
+                               const DXDebug::BindingSlot &slot, const DXBC::ShaderType shaderType);
 
 ShaderVariable GetResourceInfo(WrappedID3D12Device *device, D3D12_DESCRIPTOR_RANGE_TYPE descType,
-                               const DXBCDXILDebug::BindingSlot &slot, uint32_t mipLevel,
+                               const DXDebug::BindingSlot &slot, uint32_t mipLevel,
                                const DXBC::ShaderType shaderType, int &dim, bool isDXIL);
 
 ShaderVariable GetSampleInfo(WrappedID3D12Device *device, D3D12_DESCRIPTOR_RANGE_TYPE descType,
-                             const DXBCDXILDebug::BindingSlot &slot,
-                             const DXBC::ShaderType shaderType, const char *opString);
+                             const DXDebug::BindingSlot &slot, const DXBC::ShaderType shaderType,
+                             const char *opString);
 
 ShaderVariable GetRenderTargetSampleInfo(WrappedID3D12Device *device,
                                          const DXBC::ShaderType shaderType, const char *opString);

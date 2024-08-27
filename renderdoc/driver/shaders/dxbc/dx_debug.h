@@ -35,7 +35,7 @@ enum ResourceDimension;
 enum SamplerMode;
 };
 
-namespace DXBCDXILDebug
+namespace DXDebug
 {
 typedef DXBC::ResourceRetType ResourceRetType;
 typedef DXBCBytecode::ResourceDimension ResourceDimension;

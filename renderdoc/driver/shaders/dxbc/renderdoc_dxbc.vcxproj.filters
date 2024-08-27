@@ -15,7 +15,7 @@
     <ClCompile Include="dxbc_stringise.cpp" />
     <ClCompile Include="dxbc_bytecode_vendorext.cpp" />
     <ClCompile Include="dxbc_bytecode_editor.cpp" />
-    <ClCompile Include="dxbcdxil_debug.cpp" />
+    <ClCompile Include="dx_debug.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dxbc_debug.h" />
@@ -37,7 +37,7 @@
     <ClInclude Include="dxbc_bytecode.h" />
     <ClInclude Include="dxbc_bytecode_ops.h" />
     <ClInclude Include="dxbc_bytecode_editor.h" />
-    <ClInclude Include="dxbcdxil_debug.h" />
+    <ClInclude Include="dx_debug.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="PCH">

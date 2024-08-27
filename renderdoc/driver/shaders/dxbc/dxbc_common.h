@@ -29,7 +29,7 @@
 #include "api/replay/rdcpair.h"
 #include "api/replay/rdcstr.h"
 #include "api/replay/shader_types.h"
-#include "dxbcdxil_debug.h"
+#include "dx_debug.h"
 
 struct DXBCContainerDebugger : public ShaderDebugger
 {
