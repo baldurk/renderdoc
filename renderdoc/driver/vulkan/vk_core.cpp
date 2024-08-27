@@ -3273,6 +3273,15 @@ RDResult WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t startEv
 
     ApplyInitialContents();
 
+    {
+      SCOPED_TIMER("Syncing deferred jobs");
+      Threading::JobSystem::SyncAllJobs();
+      RDCLOG("Total deferred CPU time: %.2fms", m_DeferredTime);
+    }
+
+    if(m_DeferredResult != ResultCode::Succeeded)
+      return m_DeferredResult;
+
     SetDebugMessageSink(sink);
   }
 
@@ -4764,6 +4773,21 @@ void WrappedVulkan::CheckErrorVkResult(VkResult vkr)
   {
     RDCLOG("Ignoring return code %s", ToStr(vkr).c_str());
   }
+}
+
+void WrappedVulkan::CheckDeferredResult(const RDResult &res)
+{
+  if(res == ResultCode::Succeeded)
+    return;
+
+  SCOPED_LOCK(m_DeferredResultLock);
+  m_DeferredResult = res;
+}
+
+void WrappedVulkan::AddDeferredTime(double ms)
+{
+  SCOPED_LOCK(m_DeferredResultLock);
+  m_DeferredTime += ms;
 }
 
 VkBool32 WrappedVulkan::DebugCallback(MessageSeverity severity, MessageCategory category,

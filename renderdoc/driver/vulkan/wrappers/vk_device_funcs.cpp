@@ -219,6 +219,9 @@ RDResult WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVersion
   m_SectionVersion = sectionVersion;
   m_ReplayOptions = opts;
 
+  if(!m_Replay->IsRemoteProxy())
+    Threading::JobSystem::Init();
+
   m_ResourceManager->SetOptimisationLevel(m_ReplayOptions.optimisation);
 
   StripUnwantedLayers(params.Layers);
@@ -943,6 +946,11 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
 
 void WrappedVulkan::Shutdown()
 {
+  if(!m_Replay->IsRemoteProxy())
+  {
+    Threading::JobSystem::Shutdown();
+  }
+
   // flush out any pending commands/semaphores
   SubmitCmds();
   SubmitSemaphores();

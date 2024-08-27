@@ -1078,6 +1078,9 @@ private:
 
   std::set<ResourceId> m_SparseBindResources;
 
+  Threading::CriticalSection m_DeferredResultLock;
+  RDResult m_DeferredResult = ResultCode::Succeeded;
+  double m_DeferredTime = 0.0;
   RDResult m_FailedReplayResult = ResultCode::APIReplayFailed;
 
   VulkanActionTreeNode m_ParentAction;
@@ -1321,6 +1324,9 @@ public:
     CheckErrorVkResult(vkr);
   }
   void CheckErrorVkResult(VkResult vkr);
+
+  void CheckDeferredResult(const RDResult &res);
+  void AddDeferredTime(double ms);
 
   bool SeparateDepthStencil() const { return m_SeparateDepthStencil; }
   bool NULLDescriptorsAllowed() const { return m_NULLDescriptorsAllowed; }

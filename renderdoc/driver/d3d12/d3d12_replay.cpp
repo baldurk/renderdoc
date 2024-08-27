@@ -101,6 +101,8 @@ void D3D12Replay::Shutdown()
     RDCASSERT(GetModuleHandleA("d3d12.dll") == NULL);
     RDCASSERT(GetModuleHandleA("d3d12core.dll") == NULL);
   }
+
+  Threading::JobSystem::Shutdown();
 }
 
 void D3D12Replay::Initialise(IDXGIFactory1 *factory, D3D12DevConfiguration *config)
@@ -141,6 +143,9 @@ void D3D12Replay::Initialise(IDXGIFactory1 *factory, D3D12DevConfiguration *conf
   }
 
   m_pDevice->SetDriverInfo(m_DriverInfo);
+
+  if(!m_Proxy)
+    Threading::JobSystem::Init();
 }
 
 RDResult D3D12Replay::FatalErrorCheck()

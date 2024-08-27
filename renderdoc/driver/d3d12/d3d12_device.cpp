@@ -859,6 +859,11 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 
 WrappedID3D12Device::~WrappedID3D12Device()
 {
+  if(!m_Replay->IsRemoteProxy())
+  {
+    Threading::JobSystem::SyncAllJobs();
+  }
+
   {
     SCOPED_LOCK(m_DeviceWrappersLock);
     m_DeviceWrappers.erase(m_pDevice);
@@ -3558,6 +3563,21 @@ void WrappedID3D12Device::CheckHRESULT(HRESULT hr)
   }
 }
 
+void WrappedID3D12Device::CheckDeferredResult(const RDResult &res)
+{
+  if(res == ResultCode::Succeeded)
+    return;
+
+  SCOPED_LOCK(m_DeferredResultLock);
+  m_DeferredResult = res;
+}
+
+void WrappedID3D12Device::AddDeferredTime(double ms)
+{
+  SCOPED_LOCK(m_DeferredResultLock);
+  m_DeferredTime += ms;
+}
+
 template <typename SerialiserType>
 bool WrappedID3D12Device::Serialise_SetShaderDebugPath(SerialiserType &ser,
                                                        ID3D12DeviceChild *pResource, const char *Path)
@@ -4868,6 +4888,15 @@ RDResult WrappedID3D12Device::ReadLogInitialisation(RDCFile *rdc, bool storeStru
         savedDebugMessages.swap(m_DebugMessages);
 
         ApplyInitialContents();
+
+        {
+          SCOPED_TIMER("Syncing deferred jobs");
+          Threading::JobSystem::SyncAllJobs();
+          RDCLOG("Total deferred CPU time: %.2fms", m_DeferredTime);
+        }
+
+        if(m_DeferredResult != ResultCode::Succeeded)
+          return m_DeferredResult;
 
         // restore saved messages - which implicitly discards any generated while applying initial
         // contents

@@ -741,6 +741,9 @@ private:
   rdcarray<FrameDescription> m_CapturedFrames;
   rdcarray<ActionDescription *> m_Actions;
 
+  Threading::CriticalSection m_DeferredResultLock;
+  RDResult m_DeferredResult = ResultCode::Succeeded;
+  double m_DeferredTime = 0.0;
   RDResult m_FailedReplayResult = ResultCode::APIReplayFailed;
 
   bool m_AppControlledCapture = false;
@@ -914,6 +917,10 @@ public:
       m_OOMHandler--;
   }
   void CheckHRESULT(HRESULT hr);
+
+  void CheckDeferredResult(const RDResult &res);
+  void AddDeferredTime(double ms);
+
   void ReportFatalError(RDResult error) { m_FatalError = error; }
   RDResult FatalErrorCheck() { return m_FatalError; }
   bool HasFatalError() { return m_FatalError != ResultCode::Succeeded; }
