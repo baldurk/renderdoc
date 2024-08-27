@@ -2467,11 +2467,11 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
         UnwrapNextChain(state, "VkPipelineDynamicStateCreateInfo", tempMem,
                         (VkBaseInStructure *)out->pDynamicState);
 
-        UnwrapInPlace(out->layout);
-        UnwrapInPlace(out->renderPass);
+        out->layout = Unwrap(in->layout);
+        out->renderPass = Unwrap(in->renderPass);
         out->subpass = in->subpass;
         if(out->flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
-          UnwrapInPlace(out->basePipelineHandle);
+          out->basePipelineHandle = Unwrap(in->basePipelineHandle);
         else
           out->basePipelineHandle = VK_NULL_HANDLE;
         out->basePipelineIndex = in->basePipelineIndex;
