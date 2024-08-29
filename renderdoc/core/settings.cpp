@@ -367,29 +367,24 @@ static bool MergeConfigValues(const rdcstr &prefix, SDObject *dstConfig, const S
   return ret;
 }
 
-const bool &ConfigVarRegistration<bool>::value()
+bool ConfigVarRegistration<bool>::value() const
 {
-  // avoid warnings on stupid compilers
-  (void)tmp;
   return obj->data.basic.b;
 }
 
-const uint64_t &ConfigVarRegistration<uint64_t>::value()
+uint64_t ConfigVarRegistration<uint64_t>::value() const
 {
-  (void)tmp;
   return obj->data.basic.u;
 }
 
-const uint32_t &ConfigVarRegistration<uint32_t>::value()
+uint32_t ConfigVarRegistration<uint32_t>::value() const
 {
-  tmp = obj->data.basic.u & 0xFFFFFFFFU;
-  return tmp;
+  return obj->data.basic.u & 0xFFFFFFFFU;
 }
 
-const rdcstr &ConfigVarRegistration<rdcstr>::value()
+rdcstr ConfigVarRegistration<rdcstr>::value() const
 {
-  tmp = obj->data.str;
-  return tmp;
+  return obj->data.str;
 }
 
 template <typename T>
@@ -399,8 +394,9 @@ rdcstr DefValString(const T &el)
 }
 
 // this one needs a special implementation unfortunately to convert
-const rdcarray<rdcstr> &ConfigVarRegistration<rdcarray<rdcstr>>::value()
+rdcarray<rdcstr> ConfigVarRegistration<rdcarray<rdcstr>>::value() const
 {
+  rdcarray<rdcstr> tmp;
   tmp.resize(obj->NumChildren());
   for(size_t i = 0; i < tmp.size(); i++)
     tmp[i] = obj->GetChild(i)->data.str;
