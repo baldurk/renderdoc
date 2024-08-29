@@ -222,7 +222,7 @@ rdcstr DoStringise(const D3D12Chunk &el)
     STRINGISE_ENUM_CLASS_NAMED(List_Barrier, "ID3D12GraphicsCommandList7::Barrier");
     STRINGISE_ENUM_CLASS_NAMED(List_DispatchMesh, "ID3D12GraphicsCommandList6::DispatchMesh");
     STRINGISE_ENUM_CLASS_NAMED(Device_CreateStateObject, "ID3D12Device5::CreateStateObject");
-    STRINGISE_ENUM_CLASS_NAMED(Device_AddToStateObject, "ID3D12Device7::CreateStateObject");
+    STRINGISE_ENUM_CLASS_NAMED(Device_AddToStateObject, "ID3D12Device7::AddToStateObject");
     STRINGISE_ENUM_CLASS_NAMED(List_BuildRaytracingAccelerationStructure,
                                "ID3D12GraphicsCommandList4::BuildRaytracingAccelerationStructure");
     STRINGISE_ENUM_CLASS_NAMED(List_CopyRaytracingAccelerationStructure,
