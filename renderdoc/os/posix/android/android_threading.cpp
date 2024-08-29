@@ -24,6 +24,10 @@
 
 #include "os/os_specific.h"
 
+#include "common/common.h"
+
+#include <errno.h>
+#include <semaphore.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -42,3 +46,67 @@ uint64_t Timing::GetTick()
 void Threading::SetCurrentThreadName(const rdcstr &name)
 {
 }
+
+namespace Threading
+{
+
+// works for all posix except apple, hence being here
+struct PosixSemaphore : public Semaphore
+{
+  ~PosixSemaphore() {}
+
+  sem_t h;
+};
+
+Semaphore *Semaphore::Create()
+{
+  PosixSemaphore *sem = new PosixSemaphore();
+  int err = sem_init(&sem->h, 0, 0);
+  // only documented errors are too large initial value (impossible for 0) or for shared semaphores
+  // going wrong (we're not shared)
+  RDCASSERT(err == 0, errno);
+  return sem;
+}
+
+void Semaphore::Destroy()
+{
+  PosixSemaphore *sem = (PosixSemaphore *)this;
+  sem_destroy(&sem->h);
+  delete sem;
+}
+
+void Semaphore::Wake(uint32_t numToWake)
+{
+  PosixSemaphore *sem = (PosixSemaphore *)this;
+  for(uint32_t i = 0; i < numToWake; i++)
+    sem_post(&sem->h);
+}
+
+void Semaphore::WaitForWake()
+{
+  PosixSemaphore *sem = (PosixSemaphore *)this;
+
+  // handle extremely moronic stupid signal interruptions
+  do
+  {
+    int ret = sem_wait(&sem->h);
+
+    if(ret == -1)
+    {
+      if(errno == EINTR)
+        continue;
+
+      RDCWARN("Semaphore wait failed: %d", errno);
+    }
+  } while(false);
+}
+
+Semaphore::Semaphore()
+{
+}
+
+Semaphore::~Semaphore()
+{
+}
+
+};

@@ -368,4 +368,48 @@ void Sleep(uint32_t milliseconds)
 {
   ::Sleep((DWORD)milliseconds);
 }
+
+struct Win32Semaphore : public Semaphore
+{
+  ~Win32Semaphore() {}
+
+  HANDLE h;
+};
+
+Semaphore *Semaphore::Create()
+{
+  Win32Semaphore *sem = new Win32Semaphore();
+  sem->h = CreateSemaphore(NULL, 0, 0xffff, NULL);
+  return sem;
+}
+
+void Semaphore::Destroy()
+{
+  Win32Semaphore *sem = (Win32Semaphore *)this;
+  CloseHandle(sem->h);
+  delete sem;
+}
+
+void Semaphore::Wake(uint32_t numToWake)
+{
+  Win32Semaphore *sem = (Win32Semaphore *)this;
+  ReleaseSemaphore(sem->h, numToWake, NULL);
+}
+
+void Semaphore::WaitForWake()
+{
+  Win32Semaphore *sem = (Win32Semaphore *)this;
+  DWORD err = WaitForSingleObject(sem->h, INFINITE);
+  if(err == WAIT_FAILED)
+    RDCWARN("Semaphore failed to sleep: %d", GetLastError());
+}
+
+Semaphore::Semaphore()
+{
+}
+
+Semaphore::~Semaphore()
+{
+}
+
 };

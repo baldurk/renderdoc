@@ -146,6 +146,17 @@ uint64_t AllocateTLSSlot();
 void *GetTLSValue(uint64_t slot);
 void SetTLSValue(uint64_t slot, void *value);
 
+struct Semaphore
+{
+  static Semaphore *Create();
+  void Destroy();
+  void Wake(uint32_t numToWake);
+  void WaitForWake();
+protected:
+  Semaphore();
+  ~Semaphore();
+};
+
 // must typedef CriticalSectionTemplate<X> CriticalSection
 
 void SetCurrentThreadName(const rdcstr &name);
