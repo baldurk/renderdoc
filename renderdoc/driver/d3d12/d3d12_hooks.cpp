@@ -752,7 +752,6 @@ private:
         {
           D3D12DevConfiguration *cfg = new D3D12DevConfiguration(*devConfig);
           wrap->GetReplay()->SetDevConfiguration(cfg);
-          wrap->GetShaderCache()->SetDevConfiguration(cfg);
         }
 
         RDCDEBUG("created wrapped device.");

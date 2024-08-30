@@ -31,6 +31,7 @@
 #include "d3d12_command_queue.h"
 #include "d3d12_device.h"
 #include "d3d12_resources.h"
+#include "d3d12_rootsig.h"
 #include "d3d12_shader_cache.h"
 
 #include "data/hlsl/hlsl_cbuffers.h"
@@ -1369,12 +1370,13 @@ void D3D12RaytracingResourceAndUtilHandler::InitRayDispatchPatchingResources()
 
   RDCASSERT(rootParameters.size() == uint32_t(D3D12PatchRayDispatchParam::Count));
 
-  ID3DBlob *rootSig = shaderCache->MakeRootSig(rootParameters, D3D12_ROOT_SIGNATURE_FLAG_NONE);
+  bytebuf rootSig = EncodeRootSig(m_wrappedDevice->RootSigVersion(), rootParameters,
+                                  D3D12_ROOT_SIGNATURE_FLAG_NONE);
 
-  if(rootSig)
+  if(!rootSig.empty())
   {
     HRESULT result = m_wrappedDevice->GetReal()->CreateRootSignature(
-        0, rootSig->GetBufferPointer(), rootSig->GetBufferSize(), __uuidof(ID3D12RootSignature),
+        0, rootSig.data(), rootSig.size(), __uuidof(ID3D12RootSignature),
         (void **)&m_RayPatchingData.descPatchRootSig);
 
     if(!SUCCEEDED(result))
@@ -1405,8 +1407,6 @@ void D3D12RaytracingResourceAndUtilHandler::InitRayDispatchPatchingResources()
     {
       RDCERR("Failed to get shader for dispatch patching");
     }
-
-    SAFE_RELEASE(rootSig);
   }
 
   // need 5x 2-DWORD root buffers, the rest we can have for constants.
@@ -1481,12 +1481,13 @@ void D3D12RaytracingResourceAndUtilHandler::InitRayDispatchPatchingResources()
 
   RDCASSERT(rootParameters.size() == uint32_t(D3D12IndirectPrepParam::Count));
 
-  rootSig = shaderCache->MakeRootSig(rootParameters, D3D12_ROOT_SIGNATURE_FLAG_NONE);
+  rootSig = EncodeRootSig(m_wrappedDevice->RootSigVersion(), rootParameters,
+                          D3D12_ROOT_SIGNATURE_FLAG_NONE);
 
-  if(rootSig)
+  if(!rootSig.empty())
   {
     HRESULT result = m_wrappedDevice->GetReal()->CreateRootSignature(
-        0, rootSig->GetBufferPointer(), rootSig->GetBufferSize(), __uuidof(ID3D12RootSignature),
+        0, rootSig.data(), rootSig.size(), __uuidof(ID3D12RootSignature),
         (void **)&m_RayPatchingData.indirectPrepRootSig);
 
     if(!SUCCEEDED(result))
@@ -1517,8 +1518,6 @@ void D3D12RaytracingResourceAndUtilHandler::InitRayDispatchPatchingResources()
     {
       RDCERR("Failed to get shader for indirect execute patching");
     }
-
-    SAFE_RELEASE(rootSig);
   }
 
   {
@@ -1601,12 +1600,13 @@ void D3D12RaytracingResourceAndUtilHandler::InitReplayBlasPatchingResources()
 
   if(shaderCache != NULL)
   {
-    ID3DBlob *rootSig = shaderCache->MakeRootSig(rootParameters, D3D12_ROOT_SIGNATURE_FLAG_NONE);
+    bytebuf rootSig = EncodeRootSig(m_wrappedDevice->RootSigVersion(), rootParameters,
+                                    D3D12_ROOT_SIGNATURE_FLAG_NONE);
 
-    if(rootSig)
+    if(!rootSig.empty())
     {
       HRESULT result = m_wrappedDevice->GetReal()->CreateRootSignature(
-          0, rootSig->GetBufferPointer(), rootSig->GetBufferSize(), __uuidof(ID3D12RootSignature),
+          0, rootSig.data(), rootSig.size(), __uuidof(ID3D12RootSignature),
           (void **)&m_accStructPatchInfo.m_rootSignature);
 
       if(!SUCCEEDED(result))
@@ -1633,8 +1633,6 @@ void D3D12RaytracingResourceAndUtilHandler::InitReplayBlasPatchingResources()
         if(!SUCCEEDED(result))
           RDCERR("Unable to create pipeline for patching the BLAS");
       }
-
-      SAFE_RELEASE(rootSig);
     }
   }
   else

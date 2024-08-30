@@ -31,6 +31,7 @@
 #include "d3d12_device.h"
 #include "d3d12_replay.h"
 #include "d3d12_resources.h"
+#include "d3d12_rootsig.h"
 #include "d3d12_shader_cache.h"
 
 RDOC_CONFIG(rdcstr, D3D12_Debug_FeedbackDumpDirPath, "",
@@ -1430,19 +1431,15 @@ bool D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   ID3D12RootSignature *annotatedSig = NULL;
 
   {
-    ID3DBlob *root = m_pDevice->GetShaderCache()->MakeRootSig(modsig);
-    HRESULT hr =
-        m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
-                                       __uuidof(ID3D12RootSignature), (void **)&annotatedSig);
+    bytebuf root = EncodeRootSig(m_pDevice->RootSigVersion(), modsig);
+    HRESULT hr = m_pDevice->CreateRootSignature(
+        0, root.data(), root.size(), __uuidof(ID3D12RootSignature), (void **)&annotatedSig);
 
     if(annotatedSig == NULL || FAILED(hr))
     {
-      SAFE_RELEASE(root);
       RDCERR("Couldn't create feedback modified root signature: %s", ToStr(hr).c_str());
       return false;
     }
-
-    SAFE_RELEASE(root);
   }
 
   ID3D12PipelineState *annotatedPipe = NULL;

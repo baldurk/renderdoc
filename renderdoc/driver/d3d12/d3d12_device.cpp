@@ -591,6 +591,16 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 
     HRESULT hr = S_OK;
 
+    {
+      D3D12_FEATURE_DATA_ROOT_SIGNATURE rootSigVer;
+      hr = m_pDevice->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &rootSigVer,
+                                          sizeof(rootSigVer));
+      if(hr != S_OK)
+        rootSigVer.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+
+      m_RootSigVersion = rootSigVer.HighestVersion;
+    }
+
     hr = m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &m_D3D12Opts,
                                         sizeof(m_D3D12Opts));
     if(hr != S_OK)
@@ -4173,9 +4183,6 @@ void WrappedID3D12Device::CreateInternalResources()
   }
 
   m_GPUSyncCounter = 0;
-
-  if(IsReplayMode(m_State))
-    GetShaderCache()->SetDevConfiguration(m_Replay->GetDevConfiguration());
 
   if(m_TextRenderer == NULL)
     m_TextRenderer = new D3D12TextRenderer(this);

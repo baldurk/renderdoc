@@ -41,6 +41,7 @@
 #include "d3d12_debug.h"
 #include "d3d12_device.h"
 #include "d3d12_replay.h"
+#include "d3d12_rootsig.h"
 #include "d3d12_shader_cache.h"
 
 #include "data/hlsl/hlsl_cbuffers.h"
@@ -116,13 +117,11 @@ struct D3D12QuadOverdrawCallback : public D3D12ActionCallback
 
       cache.sigElem = uint32_t(modsig.Parameters.size() - 1);
 
-      ID3DBlob *root = m_pDevice->GetShaderCache()->MakeRootSig(modsig);
+      bytebuf root = EncodeRootSig(m_pDevice->RootSigVersion(), modsig);
 
-      hr = m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
+      hr = m_pDevice->CreateRootSignature(0, root.data(), root.size(),
                                           __uuidof(ID3D12RootSignature), (void **)&cache.sig);
       RDCASSERTEQUAL(hr, S_OK);
-
-      SAFE_RELEASE(root);
 
       WrappedID3D12PipelineState *origPSO =
           m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);

@@ -33,6 +33,7 @@
 #include "d3d12_debug.h"
 #include "d3d12_device.h"
 #include "d3d12_replay.h"
+#include "d3d12_rootsig.h"
 #include "d3d12_shader_cache.h"
 
 RDOC_CONFIG(rdcstr, D3D12_Debug_PostVSDumpDirPath, "",
@@ -2231,12 +2232,9 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
   ID3D12RootSignature *annotatedSig = NULL;
 
   {
-    ID3DBlob *blob = m_pDevice->GetShaderCache()->MakeRootSig(modsig);
-    HRESULT hr =
-        m_pDevice->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(),
-                                       __uuidof(ID3D12RootSignature), (void **)&annotatedSig);
-
-    SAFE_RELEASE(blob);
+    bytebuf blob = EncodeRootSig(m_pDevice->RootSigVersion(), modsig);
+    HRESULT hr = m_pDevice->CreateRootSignature(
+        0, blob.data(), blob.size(), __uuidof(ID3D12RootSignature), (void **)&annotatedSig);
 
     if(annotatedSig == NULL || FAILED(hr))
     {
@@ -2955,9 +2953,9 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     {
       rootsig.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT;
 
-      ID3DBlob *blob = m_pDevice->GetShaderCache()->MakeRootSig(rootsig);
+      bytebuf blob = EncodeRootSig(m_pDevice->RootSigVersion(), rootsig);
 
-      hr = m_pDevice->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(),
+      hr = m_pDevice->CreateRootSignature(0, blob.data(), blob.size(),
                                           __uuidof(ID3D12RootSignature), (void **)&soSig);
       if(FAILED(hr))
       {
@@ -2966,8 +2964,6 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
         RDCERR("%s", ret.vsout.status.c_str());
         return;
       }
-
-      SAFE_RELEASE(blob);
     }
   }
 

@@ -27,6 +27,7 @@
 #include "driver/shaders/dxil/dxil_metadata.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
+#include "d3d12_rootsig.h"
 #include "d3d12_shader_cache.h"
 
 GPUAddressRangeTracker WrappedID3D12Resource::m_Addresses;
@@ -688,7 +689,7 @@ void WrappedID3D12PipelineState::FetchRootSig(D3D12ShaderCache *shaderCache)
       D3D12_SHADER_BYTECODE desc = CS()->GetDesc();
       if(DXBC::DXBCContainer::CheckForRootSig(desc.pShaderBytecode, desc.BytecodeLength))
       {
-        usedSig = shaderCache->GetRootSig(desc.pShaderBytecode, desc.BytecodeLength);
+        usedSig = DecodeRootSig(desc.pShaderBytecode, desc.BytecodeLength);
       }
       else
       {
@@ -713,7 +714,7 @@ void WrappedID3D12PipelineState::FetchRootSig(D3D12ShaderCache *shaderCache)
 
           if(DXBC::DXBCContainer::CheckForRootSig(desc.pShaderBytecode, desc.BytecodeLength))
           {
-            usedSig = shaderCache->GetRootSig(desc.pShaderBytecode, desc.BytecodeLength);
+            usedSig = DecodeRootSig(desc.pShaderBytecode, desc.BytecodeLength);
             return;
           }
         }
@@ -840,13 +841,8 @@ void WrappedID3D12PipelineState::ProcessDescriptorAccess()
 
 D3D12ShaderExportDatabase::D3D12ShaderExportDatabase(ResourceId id,
                                                      D3D12RaytracingResourceAndUtilHandler *rayManager,
-                                                     D3D12ShaderCache *cache,
                                                      ID3D12StateObjectProperties *obj)
-    : RefCounter12(NULL),
-      objectOriginalId(id),
-      m_RayManager(rayManager),
-      m_ShaderCache(cache),
-      m_StateObjectProps(obj)
+    : RefCounter12(NULL), objectOriginalId(id), m_RayManager(rayManager), m_StateObjectProps(obj)
 {
   m_RayManager->RegisterExportDatabase(this);
 }
@@ -946,7 +942,7 @@ void D3D12ShaderExportDatabase::PopulateDatabase(size_t NumSubobjects,
             {
               localRSs.push_back(sub.name);
               dxilLocalRootSigs[sub.name] = m_RayManager->RegisterLocalRootSig(
-                  m_ShaderCache->GetRootSig(sub.rs.data.data(), sub.rs.data.size()));
+                  DecodeRootSig(sub.rs.data.data(), sub.rs.data.size(), false));
 
               // ignore these if an explicit default association has been made
               if(!explicitDXILDefault)

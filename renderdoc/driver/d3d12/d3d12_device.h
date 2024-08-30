@@ -686,6 +686,8 @@ private:
   WrappedID3D12DebugDevice m_WrappedDebug;
   WrappedID3D12SharingContract m_SharingContract;
 
+  D3D_ROOT_SIGNATURE_VERSION m_RootSigVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
+
   D3D12Replay *m_Replay;
   D3D12ShaderCache *m_ShaderCache = NULL;
   D3D12TextRenderer *m_TextRenderer = NULL;
@@ -844,6 +846,7 @@ public:
     return m_DescriptorIncrements[type];
   }
 
+  D3D_ROOT_SIGNATURE_VERSION RootSigVersion() const { return m_RootSigVersion; }
   const D3D12_FEATURE_DATA_D3D12_OPTIONS &GetOpts() { return m_D3D12Opts; }
   const D3D12_FEATURE_DATA_D3D12_OPTIONS1 &GetOpts1() { return m_D3D12Opts1; }
   const D3D12_FEATURE_DATA_D3D12_OPTIONS2 &GetOpts2() { return m_D3D12Opts2; }

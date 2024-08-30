@@ -33,6 +33,7 @@
 #include "d3d12_debug.h"
 #include "d3d12_replay.h"
 #include "d3d12_resources.h"
+#include "d3d12_rootsig.h"
 #include "d3d12_shader_cache.h"
 
 #include "data/hlsl/hlsl_cbuffers.h"
@@ -2439,21 +2440,19 @@ void ExtractInputsPS(PSInput IN,
     modsig.Flags &= ~D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
 
     // Create the root signature for gathering initial pixel shader values
-    ID3DBlob *root = m_pDevice->GetShaderCache()->MakeRootSig(modsig);
+    bytebuf root = EncodeRootSig(m_pDevice->RootSigVersion(), modsig);
     ID3D12RootSignature *pRootSignature = NULL;
-    hr = m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
-                                        __uuidof(ID3D12RootSignature), (void **)&pRootSignature);
+    hr = m_pDevice->CreateRootSignature(0, root.data(), root.size(), __uuidof(ID3D12RootSignature),
+                                        (void **)&pRootSignature);
     if(FAILED(hr))
     {
       RDCERR("Failed to create root signature for pixel shader debugging HRESULT: %s",
              ToStr(hr).c_str());
-      SAFE_RELEASE(root);
       SAFE_RELEASE(psBlob);
       SAFE_RELEASE(pInitialValuesBuffer);
       SAFE_RELEASE(pMsaaEvalBuffer);
       return new ShaderDebugTrace;
     }
-    SAFE_RELEASE(root);
 
     // All PSO state is the same as the event's, except for the pixel shader and root signature
     pipeDesc.PS.BytecodeLength = psBlob->GetBufferSize();

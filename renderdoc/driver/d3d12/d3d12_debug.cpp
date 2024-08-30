@@ -36,6 +36,7 @@
 #include "d3d12_command_queue.h"
 #include "d3d12_device.h"
 #include "d3d12_replay.h"
+#include "d3d12_rootsig.h"
 #include "d3d12_shader_cache.h"
 
 #include "data/hlsl/hlsl_cbuffers.h"
@@ -248,45 +249,39 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   shaderCache->SetCaching(true);
 
   {
-    ID3DBlob *root = shaderCache->MakeRootSig({
-        // cbuffer
-        cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0),
-        // normal SRVs (2x, 4x, 8x, 16x, 32x)
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1, 5),
-        // stencil SRVs (2x, 4x, 8x, 16x, 32x)
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 11, 5),
-    });
+    bytebuf root = EncodeRootSig(
+        m_pDevice->RootSigVersion(),
+        {
+            // cbuffer
+            cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0),
+            // normal SRVs (2x, 4x, 8x, 16x, 32x)
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 1, 5),
+            // stencil SRVs (2x, 4x, 8x, 16x, 32x)
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 11, 5),
+        });
 
-    RDCASSERT(root);
-
-    hr = m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
-                                        __uuidof(ID3D12RootSignature), (void **)&m_ArrayMSAARootSig);
+    hr = m_pDevice->CreateRootSignature(0, root.data(), root.size(), __uuidof(ID3D12RootSignature),
+                                        (void **)&m_ArrayMSAARootSig);
     m_pDevice->InternalRef();
-
-    SAFE_RELEASE(root);
 
     rm->SetInternalResource(m_ArrayMSAARootSig);
   }
 
   {
-    ID3DBlob *root = shaderCache->MakeRootSig(
-        {
-            cbvParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 0),
-            cbvParam(D3D12_SHADER_VISIBILITY_GEOMETRY, 0, 0),
-            // 'push constant' CBV
-            constParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0, 4),
-            // meshlet sizes SRV
-            srvParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 0),
-        },
-        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+    bytebuf root = EncodeRootSig(m_pDevice->RootSigVersion(),
+                                 {
+                                     cbvParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 0),
+                                     cbvParam(D3D12_SHADER_VISIBILITY_GEOMETRY, 0, 0),
+                                     // 'push constant' CBV
+                                     constParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0, 4),
+                                     // meshlet sizes SRV
+                                     srvParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 0),
+                                 },
+                                 D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
-    RDCASSERT(root);
-
-    hr = m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
-                                        __uuidof(ID3D12RootSignature), (void **)&m_MeshRootSig);
+    hr = m_pDevice->CreateRootSignature(0, root.data(), root.size(), __uuidof(ID3D12RootSignature),
+                                        (void **)&m_MeshRootSig);
     m_pDevice->InternalRef();
-
-    SAFE_RELEASE(root);
 
     rm->SetInternalResource(m_MeshRootSig);
   }
@@ -376,20 +371,17 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   }
 
   {
-    ID3DBlob *root = shaderCache->MakeRootSig({
-        cbvParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0),
-        tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 0, 5),
-        tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 10),
-    });
+    bytebuf root = EncodeRootSig(
+        m_pDevice->RootSigVersion(),
+        {
+            cbvParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0),
+            tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 0, 5),
+            tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 10),
+        });
 
-    RDCASSERT(root);
-
-    hr = m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
-                                        __uuidof(ID3D12RootSignature),
+    hr = m_pDevice->CreateRootSignature(0, root.data(), root.size(), __uuidof(ID3D12RootSignature),
                                         (void **)&m_PixelHistoryCopySig);
     m_pDevice->InternalRef();
-
-    SAFE_RELEASE(root);
 
     rm->SetInternalResource(m_PixelHistoryCopySig);
 
@@ -509,18 +501,15 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     m_pDevice->InternalRef();
     FillBuffer(m_DiscardConstantsUndefined, 0, pattern.data(), pattern.size());
 
-    ID3DBlob *root = shaderCache->MakeRootSig({
-        cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0),
-        constParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 1, 1),
-    });
+    bytebuf root = EncodeRootSig(m_pDevice->RootSigVersion(),
+                                 {
+                                     cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0),
+                                     constParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 1, 1),
+                                 });
 
-    RDCASSERT(root);
-
-    hr = m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
-                                        __uuidof(ID3D12RootSignature), (void **)&m_DiscardRootSig);
+    hr = m_pDevice->CreateRootSignature(0, root.data(), root.size(), __uuidof(ID3D12RootSignature),
+                                        (void **)&m_DiscardRootSig);
     m_pDevice->InternalRef();
-
-    SAFE_RELEASE(root);
   }
 }
 
@@ -662,19 +651,17 @@ bool D3D12DebugManager::CreateShaderDebugResources()
   sampParam.ranges.push_back(range);
   rootSig.Parameters.push_back(sampParam);
 
-  ID3DBlob *root = m_pDevice->GetShaderCache()->MakeRootSig(rootSig);
-  if(root == NULL)
+  bytebuf root = EncodeRootSig(m_pDevice->RootSigVersion(), rootSig);
+  if(root.empty())
   {
     RDCERR("Failed to create root signature for shader debugging");
     SAFE_RELEASE(csBlob);
     return false;
   }
 
-  HRESULT hr =
-      m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
-                                     __uuidof(ID3D12RootSignature), (void **)&m_ShaderDebugRootSig);
+  HRESULT hr = m_pDevice->CreateRootSignature(
+      0, root.data(), root.size(), __uuidof(ID3D12RootSignature), (void **)&m_ShaderDebugRootSig);
   m_pDevice->InternalRef();
-  SAFE_RELEASE(root);
   if(FAILED(hr))
   {
     RDCERR("Failed to create root signature for shader debugging HRESULT: %s", ToStr(hr).c_str());
@@ -1988,25 +1975,22 @@ void D3D12DebugManager::PrepareExecuteIndirectPatching(const GPUAddressRangeTrac
   HRESULT hr = S_OK;
 
   {
-    ID3DBlob *root = shaderCache->MakeRootSig({
-        cbvParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0),
-        cbvParam(D3D12_SHADER_VISIBILITY_ALL, 0, 1),
-        constParam(D3D12_SHADER_VISIBILITY_ALL, 0, 2, 1),
-        srvParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0),
-        uavParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0),
-    });
+    bytebuf root = EncodeRootSig(m_pDevice->RootSigVersion(),
+                                 {
+                                     cbvParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0),
+                                     cbvParam(D3D12_SHADER_VISIBILITY_ALL, 0, 1),
+                                     constParam(D3D12_SHADER_VISIBILITY_ALL, 0, 2, 1),
+                                     srvParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0),
+                                     uavParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0),
+                                 });
 
-    RDCASSERT(root);
-
-    hr = m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
-                                        __uuidof(ID3D12RootSignature), (void **)&m_EIPatchRootSig);
+    hr = m_pDevice->CreateRootSignature(0, root.data(), root.size(), __uuidof(ID3D12RootSignature),
+                                        (void **)&m_EIPatchRootSig);
 
     if(FAILED(hr))
     {
       RDCERR("Couldn't create execute indirect patching RootSig! HRESULT: %s", ToStr(hr).c_str());
     }
-
-    SAFE_RELEASE(root);
   }
 
   {
@@ -2284,16 +2268,13 @@ void D3D12Replay::GeneralMisc::Init(WrappedID3D12Device *device, D3D12DebugManag
   }
 
   {
-    ID3DBlob *root = shaderCache->MakeRootSig({
-        cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0),
-    });
+    bytebuf root =
+        EncodeRootSig(device->RootSigVersion(), {
+                                                    cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0),
+                                                });
 
-    RDCASSERT(root);
-
-    hr = device->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
-                                     __uuidof(ID3D12RootSignature), (void **)&CheckerboardRootSig);
-
-    SAFE_RELEASE(root);
+    hr = device->CreateRootSignature(0, root.data(), root.size(), __uuidof(ID3D12RootSignature),
+                                     (void **)&CheckerboardRootSig);
   }
 
   {
@@ -2403,30 +2384,28 @@ void D3D12Replay::TextureRendering::Init(WrappedID3D12Device *device, D3D12Debug
   shaderCache->SetCaching(true);
 
   {
-    ID3DBlob *root = shaderCache->MakeRootSig({
-        // VS cbuffer
-        cbvParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 0),
-        // normal FS cbuffer
-        cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0),
-        // heatmap cbuffer
-        cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 1),
-        // display SRVs
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 32),
-        // samplers
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 0, 0, 2),
-    });
+    bytebuf root = EncodeRootSig(
+        device->RootSigVersion(),
+        {
+            // VS cbuffer
+            cbvParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 0),
+            // normal FS cbuffer
+            cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 0),
+            // heatmap cbuffer
+            cbvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 1),
+            // display SRVs
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 32),
+            // samplers
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 0, 0, 2),
+        });
 
-    RDCASSERT(root);
-
-    hr = device->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
-                                     __uuidof(ID3D12RootSignature), (void **)&RootSig);
+    hr = device->CreateRootSignature(0, root.data(), root.size(), __uuidof(ID3D12RootSignature),
+                                     (void **)&RootSig);
 
     if(FAILED(hr))
     {
       RDCERR("Couldn't create tex display RootSig! HRESULT: %s", ToStr(hr).c_str());
     }
-
-    SAFE_RELEASE(root);
   }
 
   {
@@ -2635,17 +2614,15 @@ void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12Debug
   }
 
   {
-    ID3DBlob *root = shaderCache->MakeRootSig({
-        // quad overdraw results SRV
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 1),
-    });
+    bytebuf root = EncodeRootSig(
+        device->RootSigVersion(),
+        {
+            // quad overdraw results SRV
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 1),
+        });
 
-    RDCASSERT(root);
-
-    hr = device->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
-                                     __uuidof(ID3D12RootSignature), (void **)&QuadResolveRootSig);
-
-    SAFE_RELEASE(root);
+    hr = device->CreateRootSignature(0, root.data(), root.size(), __uuidof(ID3D12RootSignature),
+                                     (void **)&QuadResolveRootSig);
   }
 
   {
@@ -2711,16 +2688,15 @@ void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12Debug
   }
 
   {
-    ID3DBlob *root = shaderCache->MakeRootSig({
-        // depth copy SRV
-        tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 1),
-    });
+    bytebuf root = EncodeRootSig(
+        device->RootSigVersion(),
+        {
+            // depth copy SRV
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 1),
+        });
 
-    RDCASSERT(root);
-    hr = device->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
-                                     __uuidof(ID3D12RootSignature),
+    hr = device->CreateRootSignature(0, root.data(), root.size(), __uuidof(ID3D12RootSignature),
                                      (void **)&DepthCopyResolveRootSig);
-    SAFE_RELEASE(root);
   }
 
   {
@@ -2921,18 +2897,16 @@ void D3D12Replay::VertexPicking::Init(WrappedID3D12Device *device, D3D12DebugMan
   VBSize = 0;
 
   {
-    ID3DBlob *root = shaderCache->MakeRootSig({
-        cbvParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0),
-        tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 2),
-        tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 0, 1),
-    });
+    bytebuf root = EncodeRootSig(
+        device->RootSigVersion(),
+        {
+            cbvParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0),
+            tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 2),
+            tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 0, 1),
+        });
 
-    RDCASSERT(root);
-
-    hr = device->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
-                                     __uuidof(ID3D12RootSignature), (void **)&RootSig);
-
-    SAFE_RELEASE(root);
+    hr = device->CreateRootSignature(0, root.data(), root.size(), __uuidof(ID3D12RootSignature),
+                                     (void **)&RootSig);
   }
 
   {
@@ -3160,22 +3134,20 @@ void D3D12Replay::HistogramMinMax::Init(WrappedID3D12Device *device, D3D12DebugM
   shaderCache->SetCaching(true);
 
   {
-    ID3DBlob *root = shaderCache->MakeRootSig({
-        cbvParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0),
-        // texture SRVs
-        tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 32),
-        // samplers
-        tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 0, 0, 2),
-        // UAVs
-        tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 0, 3),
-    });
+    bytebuf root = EncodeRootSig(
+        device->RootSigVersion(),
+        {
+            cbvParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0),
+            // texture SRVs
+            tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 32),
+            // samplers
+            tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 0, 0, 2),
+            // UAVs
+            tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 0, 3),
+        });
 
-    RDCASSERT(root);
-
-    hr = device->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
-                                     __uuidof(ID3D12RootSignature), (void **)&HistogramRootSig);
-
-    SAFE_RELEASE(root);
+    hr = device->CreateRootSignature(0, root.data(), root.size(), __uuidof(ID3D12RootSignature),
+                                     (void **)&HistogramRootSig);
   }
 
   {

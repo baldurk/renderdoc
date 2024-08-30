@@ -31,6 +31,7 @@
 #include "d3d12_command_queue.h"
 #include "d3d12_replay.h"
 #include "d3d12_resources.h"
+#include "d3d12_rootsig.h"
 #include "d3d12_shader_cache.h"
 
 RDOC_DEBUG_CONFIG(bool, D3D12_Experimental_EnableRTSupport, false,
@@ -1097,7 +1098,7 @@ bool WrappedID3D12Device::Serialise_CreateRootSignature(SerialiserType &ser, UIN
 
       WrappedID3D12RootSignature *wrapped = (WrappedID3D12RootSignature *)ret;
 
-      wrapped->sig = GetShaderCache()->GetRootSig(pBlobWithRootSignature, (size_t)blobLengthInBytes);
+      wrapped->sig = DecodeRootSig(pBlobWithRootSignature, (size_t)blobLengthInBytes);
 
       if(wrapped->sig.Flags & D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE)
         wrapped->localRootSigIdx =
@@ -1167,7 +1168,7 @@ HRESULT WrappedID3D12Device::CreateRootSignature(UINT nodeMask, const void *pBlo
       record->Length = 0;
       wrapped->SetResourceRecord(record);
 
-      wrapped->sig = GetShaderCache()->GetRootSig(pBlobWithRootSignature, blobLengthInBytes);
+      wrapped->sig = DecodeRootSig(pBlobWithRootSignature, blobLengthInBytes);
 
       if(wrapped->sig.Flags & D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE)
         wrapped->localRootSigIdx =
@@ -1216,7 +1217,7 @@ HRESULT WrappedID3D12Device::CreateRootSignature(UINT nodeMask, const void *pBlo
     }
     else
     {
-      wrapped->sig = GetShaderCache()->GetRootSig(pBlobWithRootSignature, blobLengthInBytes);
+      wrapped->sig = DecodeRootSig(pBlobWithRootSignature, blobLengthInBytes);
     }
 
     *ppvRootSignature = (ID3D12RootSignature *)wrapped;

@@ -30,6 +30,7 @@
 #include "strings/string_utils.h"
 #include "d3d12_command_list.h"
 #include "d3d12_device.h"
+#include "d3d12_rootsig.h"
 #include "d3d12_shader_cache.h"
 
 #include "data/hlsl/hlsl_cbuffers.h"
@@ -363,20 +364,19 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
       },
   };
 
-  ID3DBlob *root = shaderCache->MakeRootSig(rootSig, D3D12_ROOT_SIGNATURE_FLAG_NONE, 2, samplers);
+  bytebuf root =
+      EncodeRootSig(wrapper->RootSigVersion(), rootSig, D3D12_ROOT_SIGNATURE_FLAG_NONE, 2, samplers);
 
-  RDCASSERT(root);
+  RDCASSERT(!root.empty());
 
-  hr = wrapper->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
-                                    __uuidof(ID3D12RootSignature), (void **)&RootSig);
+  hr = wrapper->CreateRootSignature(0, root.data(), root.size(), __uuidof(ID3D12RootSignature),
+                                    (void **)&RootSig);
   wrapper->InternalRef();
 
   if(FAILED(hr))
     RDCERR("Couldn't create RootSig! %s", ToStr(hr).c_str());
 
   rm->SetInternalResource(RootSig);
-
-  SAFE_RELEASE(root);
 
   rdcstr hlsl = GetEmbeddedResource(text_hlsl);
 
