@@ -221,6 +221,8 @@ public:
   }
 
   static const byte *FindChunk(const bytebuf &ByteCode, uint32_t fourcc, size_t &size);
+  static const byte *FindChunk(const byte *ByteCode, size_t ByteCodeLength, uint32_t fourcc,
+                               size_t &size);
 
   const DXBCBytecode::Program *GetDXBCByteCode() const { return m_DXBCByteCode; }
   DXBCBytecode::Program *GetDXBCByteCode() { return m_DXBCByteCode; }
@@ -233,6 +235,9 @@ public:
     return m_ShaderBlob.data() + m_NonDebugDXILByteCodeOffset;
   }
   size_t GetNonDebugDXILByteCodeSize() const { return m_NonDebugDXILByteCodeSize; }
+
+  static bytebuf MakeContainerForChunk(uint32_t fourcc, const byte *chunk, uint64_t chunkSize);
+
   static bool IsHashedContainer(const void *ByteCode, size_t BytecodeLength);
   static bool HashContainer(void *ByteCode, size_t BytecodeLength);
 

@@ -124,6 +124,12 @@ struct FileHeader
   // uint32 chunkOffsets[numChunks]; follows
 };
 
+struct PartHeader
+{
+  uint32_t fourcc;
+  uint32_t partLength;
+};
+
 struct ILDNHeader
 {
   uint16_t Flags;
@@ -820,36 +826,42 @@ void DXBCContainer::ReplaceChunk(bytebuf &ByteCode, uint32_t fourcc, const byte 
   HashContainer(ByteCode.data(), ByteCode.size());
 }
 
-const byte *DXBCContainer::FindChunk(const bytebuf &ByteCode, uint32_t fourcc, size_t &size)
+const byte *DXBCContainer::FindChunk(const byte *ByteCode, size_t ByteCodeLength, uint32_t fourcc,
+                                     size_t &size)
 {
-  const FileHeader *header = (const FileHeader *)ByteCode.data();
+  const FileHeader *header = (const FileHeader *)ByteCode;
 
   size = 0;
 
   if(header->fourcc != FOURCC_DXBC)
     return NULL;
 
-  if(header->fileLength != (uint32_t)ByteCode.size())
+  if(header->fileLength != (uint32_t)ByteCodeLength)
     return NULL;
 
   const uint32_t *chunkOffsets =
-      (const uint32_t *)(ByteCode.data() + sizeof(FileHeader));    // right after the header
+      (const uint32_t *)(ByteCode + sizeof(FileHeader));    // right after the header
 
   for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
   {
     uint32_t offs = chunkOffsets[chunkIdx];
 
-    const uint32_t *chunkFourcc = (uint32_t *)(ByteCode.data() + offs);
+    const uint32_t *chunkFourcc = (uint32_t *)(ByteCode + offs);
     const uint32_t *chunkSize = (uint32_t *)(chunkFourcc + 1);
 
     if(*chunkFourcc == fourcc)
     {
       size = *chunkSize;
-      return ByteCode.data() + offs + 8;
+      return ByteCode + offs + 8;
     }
   }
 
   return NULL;
+}
+
+const byte *DXBCContainer::FindChunk(const bytebuf &ByteCode, uint32_t fourcc, size_t &size)
+{
+  return FindChunk(ByteCode.data(), ByteCode.size(), fourcc, size);
 }
 
 void DXBCContainer::GetHash(uint32_t hash[4], const void *ByteCode, size_t BytecodeLength)
@@ -890,6 +902,43 @@ void DXBCContainer::GetHash(uint32_t hash[4], const void *ByteCode, size_t Bytec
       memcpy(hash, hashHeader->hashValue, sizeof(hashHeader->hashValue));
     }
   }
+}
+
+bytebuf DXBCContainer::MakeContainerForChunk(uint32_t fourcc, const byte *chunk, uint64_t chunkSize)
+{
+  FileHeader dxbcHeader;
+  PartHeader partHeader;
+
+  dxbcHeader.fourcc = FOURCC_DXBC;
+  dxbcHeader.containerVersion = 1;
+  dxbcHeader.fileLength =
+      uint32_t(sizeof(FileHeader) + sizeof(uint32_t) + sizeof(PartHeader) + chunkSize);
+  dxbcHeader.numChunks = 1;
+
+  partHeader.fourcc = fourcc;
+  partHeader.partLength = (uint32_t)chunkSize;
+
+  uint32_t chunkOffset = sizeof(FileHeader) + sizeof(uint32_t);
+
+  bytebuf ret;
+  ret.resize(dxbcHeader.fileLength);
+
+  byte *write = ret.data();
+
+  memcpy(write, &dxbcHeader, sizeof(dxbcHeader));
+  write += sizeof(dxbcHeader);
+
+  memcpy(write, &chunkOffset, sizeof(chunkOffset));
+  write += sizeof(chunkOffset);
+
+  memcpy(write, &partHeader, sizeof(partHeader));
+  write += sizeof(partHeader);
+
+  memcpy(write, chunk, chunkSize);
+
+  HashContainer(ret.data(), ret.size());
+
+  return ret;
 }
 
 bool DXBCContainer::IsHashedContainer(const void *ByteCode, size_t BytecodeLength)
