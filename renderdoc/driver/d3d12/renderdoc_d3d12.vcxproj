@@ -144,6 +144,7 @@
     <ClCompile Include="d3d12_rendertexture.cpp" />
     <ClCompile Include="d3d12_replay.cpp" />
     <ClCompile Include="d3d12_resources.cpp" />
+    <ClCompile Include="d3d12_rootsig.cpp" />
     <ClCompile Include="d3d12_sdk_select.cpp" />
     <ClCompile Include="d3d12_serialise.cpp" />
     <ClCompile Include="d3d12_shaderdebug.cpp" />
@@ -172,6 +173,7 @@
     <ClInclude Include="d3d12_rendertext.h" />
     <ClInclude Include="d3d12_replay.h" />
     <ClInclude Include="d3d12_resources.h" />
+    <ClInclude Include="d3d12_rootsig.h" />
     <ClInclude Include="d3d12_shaderdebug.h" />
     <ClInclude Include="d3d12_shader_cache.h" />
     <ClInclude Include="d3d12_state.h" />
