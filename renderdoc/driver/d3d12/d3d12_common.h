@@ -499,7 +499,6 @@ struct D3D12RootSignatureParameter : D3D12_ROOT_PARAMETER1
     ShaderVisibility = param.ShaderVisibility;
 
     // copy the POD ones first
-    Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_DATA_VOLATILE;
     Descriptor.RegisterSpace = param.Descriptor.RegisterSpace;
     Descriptor.ShaderRegister = param.Descriptor.ShaderRegister;
     Constants = param.Constants;
@@ -513,8 +512,10 @@ struct D3D12RootSignatureParameter : D3D12_ROOT_PARAMETER1
         ranges[i].NumDescriptors = param.DescriptorTable.pDescriptorRanges[i].NumDescriptors;
         ranges[i].BaseShaderRegister = param.DescriptorTable.pDescriptorRanges[i].BaseShaderRegister;
         ranges[i].RegisterSpace = param.DescriptorTable.pDescriptorRanges[i].RegisterSpace;
-        ranges[i].Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE |
-                          D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
+        ranges[i].Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
+        // samplers can't have volatile data
+        if(ranges[i].RangeType != D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
+          ranges[i].Flags |= D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
         ranges[i].OffsetInDescriptorsFromTableStart =
             param.DescriptorTable.pDescriptorRanges[i].OffsetInDescriptorsFromTableStart;
 
@@ -530,6 +531,8 @@ struct D3D12RootSignatureParameter : D3D12_ROOT_PARAMETER1
     }
     else
     {
+      // apply default flags here
+      Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_DATA_VOLATILE;
       numSpaces = RDCMAX(numSpaces, Descriptor.RegisterSpace + 1);
     }
   }
