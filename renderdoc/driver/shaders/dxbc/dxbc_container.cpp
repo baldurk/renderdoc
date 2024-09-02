@@ -934,7 +934,7 @@ bytebuf DXBCContainer::MakeContainerForChunk(uint32_t fourcc, const byte *chunk,
   memcpy(write, &partHeader, sizeof(partHeader));
   write += sizeof(partHeader);
 
-  memcpy(write, chunk, chunkSize);
+  memcpy(write, chunk, (size_t)chunkSize);
 
   HashContainer(ret.data(), ret.size());
 
