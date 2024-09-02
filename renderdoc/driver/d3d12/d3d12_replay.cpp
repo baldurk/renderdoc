@@ -734,7 +734,7 @@ void D3D12Replay::FillDescriptor(Descriptor &dst, const D3D12Descriptor *src)
     return;
   }
 
-  if(src->GetHeap()->HasValidDescriptorCache(src->GetHeapIndex()))
+  if(src->GetHeap() && src->GetHeap()->HasValidDescriptorCache(src->GetHeapIndex()))
   {
     src->GetHeap()->GetFromDescriptorCache(src->GetHeapIndex(), dst);
     return;
@@ -748,7 +748,10 @@ void D3D12Replay::FillDescriptor(Descriptor &dst, const D3D12Descriptor *src)
     if(src->GetType() != D3D12DescriptorType::SRV ||
        src->GetSRV().ViewDimension != D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE)
     {
-      src->GetHeap()->GetFromDescriptorCache(src->GetHeapIndex(), dst);
+      if(src->GetHeap())
+        src->GetHeap()->GetFromDescriptorCache(src->GetHeapIndex(), dst);
+      else
+        dst = {};
       return;
     }
   }
@@ -1083,7 +1086,8 @@ void D3D12Replay::FillDescriptor(Descriptor &dst, const D3D12Descriptor *src)
     dst.format = MakeResourceFormat(fmt);
   }
 
-  src->GetHeap()->SetToDescriptorCache(src->GetHeapIndex(), dst);
+  if(src->GetHeap())
+    src->GetHeap()->SetToDescriptorCache(src->GetHeapIndex(), dst);
 }
 
 void D3D12Replay::FillSamplerDescriptor(SamplerDescriptor &dst, const D3D12_SAMPLER_DESC2 &src)
