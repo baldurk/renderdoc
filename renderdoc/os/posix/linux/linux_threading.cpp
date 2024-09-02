@@ -66,7 +66,7 @@ Semaphore *Semaphore::Create()
   int err = sem_init(&sem->h, 0, 0);
   // only documented errors are too large initial value (impossible for 0) or for shared semaphores
   // going wrong (we're not shared)
-  RDCASSERT(err == 0, errno);
+  RDCASSERT(err == 0, (int)errno);
   return sem;
 }
 
