@@ -589,7 +589,7 @@ public:
                                 _In_ SIZE_T ExecutionParametersDataSizeInBytes);
 
   bool PatchAccStructBlasAddress(const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC *accStructInput,
-                                 ID3D12GraphicsCommandList4 *list,
+                                 ID3D12GraphicsCommandList4 *unwrappedList,
                                  BakedCmdListInfo::PatchRaytracing *patchRaytracing);
 
   bool ProcessASBuildAfterSubmission(ResourceId asbWrappedResourceId,
