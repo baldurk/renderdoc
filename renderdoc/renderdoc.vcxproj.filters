@@ -965,6 +965,9 @@
     <ClCompile Include="common\jobsystem.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="common\jobsystem_tests.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="os\win32\comexport.def">
