@@ -41,6 +41,21 @@ float4 main() : SV_Target0
 
 )EOSHADER";
 
+  std::string pixel_root = R"EOSHADER(
+
+#define MyRS1 "RootFlags( ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), " \
+              "DescriptorTable(SRV(t50, numDescriptors = 999)) "
+
+Texture2D<float> empty : register(t50);
+
+[RootSignature(MyRS1)]
+float4 main() : SV_Target0
+{
+	return float4(0, 1, 0, 1) + empty.Load(int3(0,0,0));
+}
+
+)EOSHADER";
+
   int main()
   {
     // initialise, create window, create device, etc
@@ -316,6 +331,13 @@ float4 main() : SV_Target0
       SetBufferData(ib, D3D12_RESOURCE_STATE_COMMON, (const byte *)indices, sizeof(indices));
     }
 
+    ID3DBlobPtr psblob_sig = Compile(pixel_root, "main", "ps_5_1");
+
+    // create a PSO with no root signature specified, only an implied embedded one
+    D3D12PSOCreator psoNoSigCreator = MakePSO().RootSig(NULL).InputLayout().VS(vsblob).PS(psblob_sig);
+
+    ID3D12PipelineStatePtr psoNoSig = psoNoSigCreator;
+
     ID3D12ResourcePtr rtvtex = MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, 4, 4)
                                    .RTV()
                                    .InitialState(D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -405,6 +427,12 @@ float4 main() : SV_Target0
         if(right == FALSE)
           TEST_WARN("Didn't get the expected return value from AssertResourceState(PRESENT)");
       }
+
+      cmd->SetPipelineState(psoNoSig);
+
+      setMarker(cmd, "No Sig Draw");
+
+      cmd->DrawIndexedInstanced(3, 1, 0, 0, 0);
 
       cmd->Close();
 
