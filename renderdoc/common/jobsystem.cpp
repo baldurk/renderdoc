@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <math.h>
 #include "threading.h"
 
 namespace Threading
@@ -53,7 +54,7 @@ static float spinForce = 0.0f;
       Threading::Sleep(sleepMS - 1);                                             \
     float x = (float)spinRounds;                                                 \
     for(uint32_t counter = 0; counter < spinRounds; counter++)                   \
-      x = sqrt(x + 2.0f);                                                        \
+      x = sqrtf(x + 2.0f);                                                       \
     spinForce = x;                                                               \
   }
 
