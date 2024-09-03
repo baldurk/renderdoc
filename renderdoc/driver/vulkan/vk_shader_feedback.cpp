@@ -1605,7 +1605,7 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
      m_pDriver->GetDriverInfo().BufferDeviceAddressBrokenDriver())
     useBufferAddress = false;
 
-  bool useBufferAddressKHR = m_pDriver->GetExtensions(NULL).ext_KHR_buffer_device_address;
+  bool useBufferAddressKHR = m_pDriver->GetExtensions(NULL).ext_KHR_buffer_device_address != 0;
 
   const VulkanRenderState &state = m_pDriver->m_RenderState;
   VulkanCreationInfo &creationInfo = m_pDriver->m_CreationInfo;

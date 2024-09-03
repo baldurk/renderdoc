@@ -374,12 +374,14 @@ VK_LAYER_RENDERDOC_CaptureEnumerateInstanceExtensionProperties(
 }
 
 #undef DeclExt
-#define DeclExt(name) \
-  bool name = false;  \
+#define DeclExt(name)                                              \
+  ExtensionStatusFlags name = ExtensionStatusFlagBits::NotEnabled; \
   (void)name;
 
 #undef CheckExt
-#define CheckExt(name, ver) name = instDevInfo == NULL || instDevInfo->ext_##name;
+#define CheckExt(name, ver)                                                              \
+  name = instDevInfo == NULL ? (ExtensionStatusFlags)ExtensionStatusFlagBits::NotEnabled \
+                             : instDevInfo->ext_##name;
 
 #undef HookInit
 #define HookInit(function)                            \
@@ -396,12 +398,16 @@ VK_LAYER_RENDERDOC_CaptureEnumerateInstanceExtensionProperties(
 
 // for promoted extensions, we return the function pointer for either name as an alias.
 #undef HookInitPromotedExtension
-#define HookInitPromotedExtension(cond, function, suffix)                     \
-  if(!strcmp(pName, STRINGIZE(CONCAT(vk, function))) ||                       \
-             !strcmp(pName, STRINGIZE(CONCAT(vk, CONCAT(function, suffix))))) \
-  {                                                                           \
-    if(cond)                                                                  \
-      return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function);                \
+#define HookInitPromotedExtension(cond, function, suffix)             \
+  if(!strcmp(pName, STRINGIZE(CONCAT(vk, CONCAT(function, suffix))))) \
+  {                                                                   \
+    if(ExtensionStatusFlagBits::ExplicitEnabled & cond)               \
+      return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function);        \
+  }                                                                   \
+  if(!strcmp(pName, STRINGIZE(CONCAT(vk, function))))                 \
+  {                                                                   \
+    if(ExtensionStatusFlagBits::PromotionEnabled & cond)              \
+      return (PFN_vkVoidFunction)&CONCAT(hooked_vk, function);        \
   }
 
 #undef HookInitExtensionEXTtoKHR
@@ -412,6 +418,9 @@ VK_LAYER_RENDERDOC_CaptureEnumerateInstanceExtensionProperties(
 VK_LAYER_EXPORT VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr(VkDevice device, const char *pName)
 {
+  if(device == VK_NULL_HANDLE || pName == NULL)
+    return NULL;
+
   if(!strcmp("vkGetDeviceProcAddr", pName))
     return (PFN_vkVoidFunction)&VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr;
   if(!strcmp("vkCreateDevice", pName))
@@ -420,9 +429,6 @@ VK_LAYER_RENDERDOC_CaptureGetDeviceProcAddr(VkDevice device, const char *pName)
     return (PFN_vkVoidFunction)&hooked_vkDestroyDevice;
 
   HookInitVulkanDevice();
-
-  if(device == VK_NULL_HANDLE)
-    return NULL;
 
   InstanceDeviceInfo *instDevInfo = GetRecord(device)->instDevInfo;
 

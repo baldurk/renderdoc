@@ -26,6 +26,7 @@
 
 // layer includes
 
+#include <cstdint>
 #if ENABLED(RDOC_WIN32)
 // undefined clashing windows #defines
 #undef CreateEvent
@@ -37,10 +38,20 @@
 
 void InitReplayTables(void *vulkanModule);
 
+// bitmask of extension enabled status
+enum ExtensionStatusFlagBits
+{
+  NotEnabled = 0,
+  ExplicitEnabled = 1 << 0,
+  PromotionEnabled = 1 << 1,
+};
+
+typedef uint8_t ExtensionStatusFlags;
+
 struct InstanceDeviceInfo
 {
 #undef DeclExt
-#define DeclExt(name) bool ext_##name = false;
+#define DeclExt(name) ExtensionStatusFlags ext_##name = ExtensionStatusFlagBits::NotEnabled;
 
   bool brokenGetDeviceProcAddr = false;
 

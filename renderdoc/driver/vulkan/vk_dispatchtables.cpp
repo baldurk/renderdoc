@@ -75,8 +75,8 @@ void InitInstanceExtensionTables(VkInstance instance, InstanceDeviceInfo *info)
   instance = Unwrap(instance);
 
 #undef DeclExt
-#define DeclExt(name) \
-  bool name = false;  \
+#define DeclExt(name)                                              \
+  ExtensionStatusFlags name = ExtensionStatusFlagBits::NotEnabled; \
   (void)name;
 
 #undef CheckExt

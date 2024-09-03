@@ -331,13 +331,16 @@ void WrappedVulkan::vkGetDeviceBufferMemoryRequirements(VkDevice device,
 
   VkBufferCreateInfo *info = (VkBufferCreateInfo *)unwrappedInfo->pCreateInfo;
 
-  // patch the create info the same as we would for vkCreateBuffer
-  info->usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-  info->usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+  VkBufferUsageFlags2KHR usage = GetBufferUsageFlags(info);
 
-  if(IsCaptureMode(m_State) && (info->usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT))
+  // patch the create info the same as we would for vkCreateBuffer
+  usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+  usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+  if(IsCaptureMode(m_State) && (usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT))
     info->flags |= VK_BUFFER_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT;
 
+  SetBufferUsageFlags(info, usage);
   ObjDisp(device)->GetDeviceBufferMemoryRequirements(Unwrap(device), unwrappedInfo,
                                                      pMemoryRequirements);
 
@@ -1290,4 +1293,26 @@ VkDeviceSize WrappedVulkan::vkGetRayTracingShaderGroupStackSizeKHR(
 {
   return ObjDisp(device)->GetRayTracingShaderGroupStackSizeKHR(Unwrap(device), Unwrap(pipeline),
                                                                group, groupShader);
+}
+
+void WrappedVulkan::vkGetDeviceImageSubresourceLayoutKHR(VkDevice device,
+                                                         const VkDeviceImageSubresourceInfoKHR *pInfo,
+                                                         VkSubresourceLayout2KHR *pLayout)
+{
+  ObjDisp(device)->GetDeviceImageSubresourceLayoutKHR(Unwrap(device), pInfo, pLayout);
+}
+
+void WrappedVulkan::vkGetImageSubresourceLayout2KHR(VkDevice device, VkImage image,
+                                                    const VkImageSubresource2KHR *pSubresource,
+                                                    VkSubresourceLayout2KHR *pLayout)
+{
+  ObjDisp(device)->GetImageSubresourceLayout2KHR(Unwrap(device), Unwrap(image), pSubresource,
+                                                 pLayout);
+}
+
+void WrappedVulkan::vkGetRenderingAreaGranularityKHR(VkDevice device,
+                                                     const VkRenderingAreaInfoKHR *pRenderingAreaInfo,
+                                                     VkExtent2D *pGranularity)
+{
+  ObjDisp(device)->GetRenderingAreaGranularityKHR(Unwrap(device), pRenderingAreaInfo, pGranularity);
 }

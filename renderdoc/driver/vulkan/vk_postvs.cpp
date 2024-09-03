@@ -4517,8 +4517,13 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
     // fetch ibuffer
     if(state.ibuffer.buf != ResourceId())
-      GetBufferData(state.ibuffer.buf, state.ibuffer.offs + action->indexOffset * idxsize,
-                    uint64_t(action->numIndices) * idxsize, idxdata);
+    {
+      uint64_t offset = uint64_t(action->indexOffset) * idxsize;
+      uint64_t data_len = uint64_t(action->numIndices) * idxsize;
+
+      uint64_t len = RDCMIN(data_len, state.ibuffer.size - offset);
+      GetBufferData(state.ibuffer.buf, state.ibuffer.offs + offset, len, idxdata);
+    }
 
     // figure out what the maximum index could be, so we can clamp our index buffer to something
     // sane

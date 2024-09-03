@@ -909,7 +909,7 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   VkGraphicsPipelineCreateInfo ret = {
       VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
       NULL,
-      pipeInfo.flags,
+      0,
       stageCount,
       stages,
       &vi,
@@ -1024,11 +1024,28 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
     rs.pNext = &provokeSetup;
   }
 
-  // never create derivatives
-  ret.flags &= ~VK_PIPELINE_CREATE_DERIVATIVE_BIT;
+  static VkPipelineCreateFlags2CreateInfoKHR flags2 = {
+      VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO_KHR,
+  };
 
-  ret.flags &= ~VK_PIPELINE_CREATE_LIBRARY_BIT_KHR;
-  ret.flags &= ~VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
+  VkPipelineCreateFlags2KHR flags = pipeInfo.flags;
+
+  // never create derivatives
+  flags &= ~VK_PIPELINE_CREATE_DERIVATIVE_BIT;
+
+  flags &= ~VK_PIPELINE_CREATE_LIBRARY_BIT_KHR;
+  flags &= ~VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
+
+  if(flags > VK_PIPELINE_CREATE_FLAG_BITS_MAX_ENUM)
+  {
+    flags2.flags = pipeInfo.flags;
+    flags2.pNext = ret.pNext;
+    ret.pNext = &flags2;
+  }
+  else
+  {
+    ret.flags = (VkPipelineCreateFlags)flags;
+  }
 
   pipeCreateInfo = ret;
 }
@@ -1100,15 +1117,32 @@ void VulkanShaderCache::MakeComputePipelineInfo(VkComputePipelineCreateInfo &pip
   VkComputePipelineCreateInfo ret = {
       VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
       NULL,
-      pipeInfo.flags,
+      0,
       stage,
       rm->GetCurrentHandle<VkPipelineLayout>(pipeInfo.compLayout),
       VK_NULL_HANDLE,    // base pipeline handle
       0,                 // base pipeline index
   };
 
+  VkPipelineCreateFlags2KHR flags = pipeInfo.flags;
+
   // never create derivatives
-  ret.flags &= ~VK_PIPELINE_CREATE_DERIVATIVE_BIT;
+  flags &= ~VK_PIPELINE_CREATE_DERIVATIVE_BIT;
+
+  static VkPipelineCreateFlags2CreateInfoKHR flags2 = {
+      VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO_KHR,
+  };
+
+  if(flags > VK_PIPELINE_CREATE_FLAG_BITS_MAX_ENUM)
+  {
+    flags2.flags = pipeInfo.flags;
+    flags2.pNext = ret.pNext;
+    ret.pNext = &flags2;
+  }
+  else
+  {
+    ret.flags = (VkPipelineCreateFlags)flags;
+  }
 
   pipeCreateInfo = ret;
 }

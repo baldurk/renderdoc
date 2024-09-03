@@ -172,6 +172,8 @@ DECL_VKFLAG_EXT(VkBuildAccelerationStructure, KHR);
 DECL_VKFLAG_EXT(VkGeometry, KHR);
 DECL_VKFLAG_EXT(VkGeometryInstance, KHR);
 DECL_VKFLAG_EXT(VkShaderCreate, EXT);
+DECL_VKFLAG_EXT(VkBufferUsage, 2KHR);
+DECL_VKFLAG_EXT(VkPipelineCreate, 2KHR);
 
 // serialise a member as flags - cast to the Bits enum for serialisation so the stringification
 // picks up the bitfield and doesn't treat it as uint32_t. Then we rename the type back to the base
@@ -1456,6 +1458,20 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_FRAGMENT_DENSITY_MAP_OFFSET_END_INFO_QCOM,                    \
                VkSubpassFragmentDensityMapOffsetEndInfoQCOM)                                           \
                                                                                                        \
+  /* VK_KHR_maintenance5 */                                                                            \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_FEATURES_KHR,                           \
+               VkPhysicalDeviceMaintenance5FeaturesKHR)                                                \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_PROPERTIES_KHR,                         \
+               VkPhysicalDeviceMaintenance5PropertiesKHR)                                              \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_RENDERING_AREA_INFO_KHR, VkRenderingAreaInfoKHR)                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEVICE_IMAGE_SUBRESOURCE_INFO_KHR, VkDeviceImageSubresourceInfoKHR)   \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO_KHR,                              \
+               VkPipelineCreateFlags2CreateInfoKHR)                                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_BUFFER_USAGE_FLAGS_2_CREATE_INFO_KHR,                                 \
+               VkBufferUsageFlags2CreateInfoKHR)                                                       \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_IMAGE_SUBRESOURCE_2_KHR, VkImageSubresource2KHR)                      \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_SUBRESOURCE_LAYOUT_2_KHR, VkSubresourceLayout2KHR)                    \
+                                                                                                       \
   /* Surface creation structs. These would pull in dependencies on OS-specific includes. */            \
   /* So treat them as unsupported. */                                                                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR)                                 \
@@ -1587,8 +1603,6 @@ SERIALISE_VK_HANDLES();
   /* VK_EXT_image_compression_control */                                                               \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_COMPRESSION_CONTROL_FEATURES_EXT)          \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_COMPRESSION_CONTROL_EXT)                                   \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_SUBRESOURCE_LAYOUT_2_EXT)                                        \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_SUBRESOURCE_2_EXT)                                         \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMAGE_COMPRESSION_PROPERTIES_EXT)                                \
                                                                                                        \
   /* VK_EXT_image_compression_control_swapchain */                                                     \
@@ -1725,14 +1739,6 @@ SERIALISE_VK_HANDLES();
   /* VK_KHR_map_memory2 */                                                                             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_MAP_INFO_KHR)                                             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_MEMORY_UNMAP_INFO_KHR)                                           \
-                                                                                                       \
-  /* VK_KHR_maintenance5 */                                                                            \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_FEATURES_KHR)                      \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_PROPERTIES_KHR)                    \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RENDERING_AREA_INFO_KHR)                                         \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DEVICE_IMAGE_SUBRESOURCE_INFO_KHR)                               \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO_KHR)                         \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_BUFFER_USAGE_FLAGS_2_CREATE_INFO_KHR)                            \
                                                                                                        \
   /* VK_KHR_maintenance6 */                                                                            \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_6_FEATURES_KHR)                      \
@@ -12391,6 +12397,155 @@ void DoSerialise(SerialiserType &ser, VkStridedDeviceAddressRegionKHR &el)
   SERIALISE_MEMBER(size);
 }
 
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceMaintenance5FeaturesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_FEATURES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(maintenance5);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceMaintenance5FeaturesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceMaintenance5PropertiesKHR &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_PROPERTIES_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(earlyFragmentMultisampleCoverageAfterSampleCounting);
+  SERIALISE_MEMBER(earlyFragmentSampleMaskTestBeforeSampleCounting);
+  SERIALISE_MEMBER(depthStencilSwizzleOneSupport);
+  SERIALISE_MEMBER(polygonModePointSize);
+  SERIALISE_MEMBER(nonStrictSinglePixelWideLinesUseParallelogram);
+  SERIALISE_MEMBER(nonStrictWideLinesUseParallelogram);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceMaintenance5PropertiesKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkRenderingAreaInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_RENDERING_AREA_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(colorAttachmentCount);
+  SERIALISE_MEMBER_ARRAY(pColorAttachmentFormats, colorAttachmentCount);
+  SERIALISE_MEMBER(depthAttachmentFormat);
+  SERIALISE_MEMBER(stencilAttachmentFormat);
+}
+
+template <>
+void Deserialise(const VkRenderingAreaInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+  delete[] el.pColorAttachmentFormats;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkDeviceImageSubresourceInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_DEVICE_IMAGE_SUBRESOURCE_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_OPT(pCreateInfo);
+  SERIALISE_MEMBER_OPT(pSubresource);
+}
+
+template <>
+void Deserialise(const VkDeviceImageSubresourceInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+  delete el.pCreateInfo;
+  delete el.pSubresource;
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPipelineCreateFlags2CreateInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_VKFLAGS(VkPipelineCreateFlags2KHR, flags);
+}
+
+template <>
+void Deserialise(const VkPipelineCreateFlags2CreateInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkBufferUsageFlags2CreateInfoKHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_BUFFER_USAGE_FLAGS_2_CREATE_INFO_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER_VKFLAGS(VkBufferUsageFlags2KHR, usage);
+}
+
+template <>
+void Deserialise(const VkBufferUsageFlags2CreateInfoKHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkImageSubresource2KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_IMAGE_SUBRESOURCE_2_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(imageSubresource);
+}
+
+template <>
+void Deserialise(const VkImageSubresource2KHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSubresourceLayout2KHR &el)
+{
+  RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_SUBRESOURCE_LAYOUT_2_KHR);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(subresourceLayout);
+}
+
+template <>
+void Deserialise(const VkSubresourceLayout2KHR &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkSubresourceLayout &el)
+{
+  SERIALISE_MEMBER(offset).OffsetOrSize();
+  SERIALISE_MEMBER(size).OffsetOrSize();
+  SERIALISE_MEMBER(rowPitch).OffsetOrSize();
+  SERIALISE_MEMBER(arrayPitch).OffsetOrSize();
+  SERIALISE_MEMBER(depthPitch).OffsetOrSize();
+}
+
+template <>
+void Deserialise(const VkSubresourceLayout &el)
+{
+}
+
 // pNext structs - always have deserialise for the next chain
 INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureBuildGeometryInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureBuildSizesInfoKHR);
@@ -12831,6 +12986,14 @@ INSTANTIATE_SERIALISE_TYPE(VkVertexInputAttributeDescription2EXT);
 INSTANTIATE_SERIALISE_TYPE(VkVertexInputBindingDescription2EXT);
 INSTANTIATE_SERIALISE_TYPE(VkWriteDescriptorSet);
 INSTANTIATE_SERIALISE_TYPE(VkWriteDescriptorSetAccelerationStructureKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMaintenance5FeaturesKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceMaintenance5PropertiesKHR);
+INSTANTIATE_SERIALISE_TYPE(VkRenderingAreaInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkDeviceImageSubresourceInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPipelineCreateFlags2CreateInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkBufferUsageFlags2CreateInfoKHR);
+INSTANTIATE_SERIALISE_TYPE(VkImageSubresource2KHR);
+INSTANTIATE_SERIALISE_TYPE(VkSubresourceLayout2KHR);
 
 // plain structs with no next chain
 INSTANTIATE_SERIALISE_TYPE(VkAabbPositionsKHR);
@@ -12917,6 +13080,7 @@ INSTANTIATE_SERIALISE_TYPE(VkVertexInputBindingDescription);
 INSTANTIATE_SERIALISE_TYPE(VkVertexInputBindingDivisorDescriptionEXT);
 INSTANTIATE_SERIALISE_TYPE(VkViewport);
 INSTANTIATE_SERIALISE_TYPE(VkXYColorEXT);
+INSTANTIATE_SERIALISE_TYPE(VkSubresourceLayout);
 
 INSTANTIATE_SERIALISE_TYPE(DescriptorSetSlot);
 INSTANTIATE_SERIALISE_TYPE(ImageRegionState);

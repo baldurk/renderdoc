@@ -1069,7 +1069,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
                                         VulkanCreationInfo &info, ResourceId id,
                                         const VkGraphicsPipelineCreateInfo *pCreateInfo)
 {
-  flags = pCreateInfo->flags;
+  flags = WrappedVulkan::GetPipelineCreateFlags(pCreateInfo);
 
   graphicsPipe = true;
 
@@ -1750,8 +1750,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
 void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
                                         ResourceId id, const VkComputePipelineCreateInfo *pCreateInfo)
 {
-  flags = pCreateInfo->flags;
-
+  flags = WrappedVulkan::GetPipelineCreateFlags(pCreateInfo);
   graphicsPipe = false;
 
   compLayout = GetResID(pCreateInfo->layout);
@@ -2300,7 +2299,7 @@ void VulkanCreationInfo::Buffer::Init(VulkanResourceManager *resourceMan, Vulkan
                                       const VkBufferCreateInfo *pCreateInfo,
                                       VkMemoryRequirements origMrq)
 {
-  usage = pCreateInfo->usage;
+  usage = WrappedVulkan::GetBufferUsageFlags(pCreateInfo);
   size = pCreateInfo->size;
   gpuAddress = 0;
 
