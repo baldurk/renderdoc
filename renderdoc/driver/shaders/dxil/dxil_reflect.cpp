@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "common/formatting.h"
+#include "strings/string_utils.h"
 #include "dxil_bytecode.h"
 #include "dxil_common.h"
 
@@ -1466,6 +1467,8 @@ DXBC::Reflection *Program::BuildReflection()
   using namespace DXBC;
 
   Reflection *refl = new Reflection;
+  Files.clear();
+  m_CompileFlags.flags.clear();
 
   DXMeta dx(m_NamedMeta);
 
@@ -1528,13 +1531,25 @@ DXBC::Reflection *Program::BuildReflection()
     {
       if(f->children.size() != 2)
         continue;
-      Files.push_back({f->children[0]->str, f->children[1]->str});
+      bool found = false;
+      rdcstr shaderFilePath = standardise_directory_separator(f->children[0]->str);
+      for(const ShaderSourceFile &shaderSource : Files)
+      {
+        if(shaderSource.filename == shaderFilePath)
+        {
+          found = true;
+          break;
+        }
+      }
+
+      if(!found)
+        Files.push_back({shaderFilePath, f->children[1]->str});
     }
 
     // push the main filename to the front
     if(dx.source.mainFileName && !dx.source.mainFileName->children.empty())
     {
-      rdcstr mainFile = dx.source.mainFileName->children[0]->str;
+      rdcstr mainFile = standardise_directory_separator(dx.source.mainFileName->children[0]->str);
 
       if(!mainFile.empty())
       {
@@ -1548,6 +1563,8 @@ DXBC::Reflection *Program::BuildReflection()
         }
       }
     }
+    if(!Files.empty())
+      m_CompileFlags.flags.push_back({"preferSourceDebug", "1"});
   }
 
   if(dx.source.args && dx.source.args->children.size() == 1)
