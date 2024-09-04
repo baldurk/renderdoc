@@ -282,7 +282,72 @@ bool Program::ParseDebugMetaRecord(MetadataList &metadata, const LLVMBC::BlockOr
   return true;
 };
 
-rdcstr Program::GetDebugVarName(const DIBase *d)
+const Metadata *Program::GetDebugScopeParent(const DIBase *d) const
+{
+  if(d->type == DIBase::Subprogram)
+    return d->As<DISubprogram>()->scope;
+  else if(d->type == DIBase::LexicalBlock)
+    return d->As<DILexicalBlock>()->scope;
+
+  return NULL;
+}
+
+uint64_t Program::GetDebugScopeLine(const DIBase *d) const
+{
+  if(d->type == DIBase::Subprogram)
+    return d->As<DISubprogram>()->line;
+  else if(d->type == DIBase::LexicalBlock)
+    return d->As<DILexicalBlock>()->line;
+  else if(d->type == DIBase::File)
+    return 0;
+
+  RDCERR("Unexpected type %s in GetDebugScopeLine", ToStr(d->type).c_str());
+  return UINT64_MAX;
+}
+
+rdcstr Program::GetDebugScopeFilePath(const DIBase *d) const
+{
+  const Metadata *scope = NULL;
+  if(d->type == DIBase::Subprogram)
+    scope = d->As<DISubprogram>()->scope;
+  else if(d->type == DIBase::LexicalBlock)
+    scope = d->As<DILexicalBlock>()->scope;
+  else if(d->type == DIBase::LocalVariable)
+    scope = d->As<DILocalVariable>()->scope;
+
+  while(scope && scope->dwarf)
+  {
+    if(scope->dwarf->type == DIBase::Subprogram)
+    {
+      scope = scope->dwarf->As<DISubprogram>()->scope;
+      continue;
+    }
+    else if(scope->dwarf->type == DIBase::LexicalBlock)
+    {
+      scope = scope->dwarf->As<DILexicalBlock>()->scope;
+      continue;
+    }
+    break;
+  }
+  if(d->type != DIBase::File)
+  {
+    if(!scope || !scope->dwarf)
+      return "???";
+  }
+
+  const DXIL::DIBase *dwarf = (d->type != DIBase::File) ? scope->dwarf : d;
+  RDCASSERT(dwarf->type == DIBase::File);
+  const DIFile *f = dwarf->As<DIFile>();
+
+  rdcstr filePath;
+  if(f->dir)
+    filePath = f->dir->str + "/";
+
+  filePath += f->file->str;
+  return filePath;
+}
+
+rdcstr Program::GetDebugVarName(const DIBase *d) const
 {
   if(d->type == DIBase::LocalVariable)
     return *d->As<DILocalVariable>()->name;
@@ -291,7 +356,7 @@ rdcstr Program::GetDebugVarName(const DIBase *d)
   return "???";
 }
 
-rdcstr Program::GetFunctionScopeName(const DIBase *d)
+rdcstr Program::GetFunctionScopeName(const DIBase *d) const
 {
   const Metadata *scope = NULL;
   if(d->type == DIBase::LocalVariable)

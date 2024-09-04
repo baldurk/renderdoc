@@ -1589,8 +1589,11 @@ protected:
   void ParseConstant(ValueList &values, const LLVMBC::BlockOrRecord &constant);
   bool ParseDebugMetaRecord(MetadataList &metadata, const LLVMBC::BlockOrRecord &metaRecord,
                             Metadata &meta);
-  rdcstr GetDebugVarName(const DIBase *d);
-  rdcstr GetFunctionScopeName(const DIBase *d);
+  rdcstr GetDebugVarName(const DIBase *d) const;
+  rdcstr GetFunctionScopeName(const DIBase *d) const;
+  rdcstr GetDebugScopeFilePath(const DIBase *d) const;
+  uint64_t GetDebugScopeLine(const DIBase *d) const;
+  const Metadata *GetDebugScopeParent(const DIBase *d) const;
 
   rdcstr GetValueSymtabString(Value *v);
   void SetValueSymtabString(Value *v, const rdcstr &s);
