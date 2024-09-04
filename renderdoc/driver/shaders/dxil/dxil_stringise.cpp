@@ -521,3 +521,41 @@ rdcstr DoStringise(const DXIL::Type::ScalarKind &el)
   }
   END_ENUM_STRINGISE();
 }
+
+template <>
+rdcstr DoStringise(const DXIL::LLVMDbgOp &el)
+{
+  BEGIN_ENUM_STRINGISE(DXIL::LLVMDbgOp);
+  {
+    STRINGISE_ENUM_CLASS(Declare);
+    STRINGISE_ENUM_CLASS(Value);
+    STRINGISE_ENUM_CLASS(Unknown);
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
+rdcstr DoStringise(const DXIL::DIBase::Type &el)
+{
+  BEGIN_ENUM_STRINGISE(DXIL::DIBase::Type);
+  {
+    STRINGISE_ENUM_CLASS(File);
+    STRINGISE_ENUM_CLASS(CompileUnit);
+    STRINGISE_ENUM_CLASS(BasicType);
+    STRINGISE_ENUM_CLASS(DerivedType);
+    STRINGISE_ENUM_CLASS(CompositeType);
+    STRINGISE_ENUM_CLASS(TemplateTypeParameter);
+    STRINGISE_ENUM_CLASS(TemplateValueParameter);
+    STRINGISE_ENUM_CLASS(Subprogram);
+    STRINGISE_ENUM_CLASS(SubroutineType);
+    STRINGISE_ENUM_CLASS(GlobalVariable);
+    STRINGISE_ENUM_CLASS(LocalVariable);
+    STRINGISE_ENUM_CLASS(Expression);
+    STRINGISE_ENUM_CLASS(LexicalBlock);
+    STRINGISE_ENUM_CLASS(Subrange);
+    STRINGISE_ENUM_CLASS(Namespace);
+    STRINGISE_ENUM_CLASS(ImportedEntity);
+    STRINGISE_ENUM_CLASS(Enum);
+  }
+  END_ENUM_STRINGISE();
+};
