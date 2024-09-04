@@ -158,6 +158,7 @@ private:
   ID3D12GraphicsCommandList7 *m_pList7 = NULL;
   ID3D12GraphicsCommandList8 *m_pList8 = NULL;
   ID3D12GraphicsCommandList9 *m_pList9 = NULL;
+  ID3D12GraphicsCommandList10 *m_pList10 = NULL;
 
   RefCounter12<ID3D12GraphicsCommandList> m_RefCounter;
 
@@ -220,6 +221,7 @@ public:
   ID3D12GraphicsCommandList7 *GetReal7() { return m_pList7; }
   ID3D12GraphicsCommandList8 *GetReal8() { return m_pList8; }
   ID3D12GraphicsCommandList9 *GetReal9() { return m_pList9; }
+  ID3D12GraphicsCommandList10 *GetReal10() { return m_pList10; }
   WrappedID3D12Device *GetWrappedDevice() { return m_pDevice; }
   D3D12ResourceRecord *GetResourceRecord() { return m_ListRecord; }
   D3D12ResourceRecord *GetCreationRecord() { return m_CreationRecord; }
@@ -654,6 +656,14 @@ public:
 
   IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, IASetIndexBufferStripCutValue,
                                 _In_ D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBStripCutValue);
+
+  //////////////////////////////
+  // implement ID3D12GraphicsCommandList10
+  IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, SetProgram,
+                                _In_ const D3D12_SET_PROGRAM_DESC *pDesc);
+
+  IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, DispatchGraph,
+                                _In_ const D3D12_DISPATCH_GRAPH_DESC *pDesc);
 };
 
 template <>
@@ -689,6 +699,8 @@ template <>
 ResourceId GetResID(ID3D12GraphicsCommandList8 *obj);
 template <>
 ResourceId GetResID(ID3D12GraphicsCommandList9 *obj);
+template <>
+ResourceId GetResID(ID3D12GraphicsCommandList10 *obj);
 
 ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList1 *obj);
 ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList2 *obj);
@@ -699,6 +711,7 @@ ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList6 *obj);
 ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList7 *obj);
 ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList8 *obj);
 ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList9 *obj);
+ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList10 *obj);
 
 ID3D12GraphicsCommandList1 *Unwrap1(ID3D12GraphicsCommandList1 *obj);
 ID3D12GraphicsCommandList2 *Unwrap2(ID3D12GraphicsCommandList2 *obj);
@@ -709,6 +722,7 @@ ID3D12GraphicsCommandList6 *Unwrap6(ID3D12GraphicsCommandList6 *obj);
 ID3D12GraphicsCommandList7 *Unwrap7(ID3D12GraphicsCommandList7 *obj);
 ID3D12GraphicsCommandList8 *Unwrap8(ID3D12GraphicsCommandList8 *obj);
 ID3D12GraphicsCommandList9 *Unwrap9(ID3D12GraphicsCommandList9 *obj);
+ID3D12GraphicsCommandList10 *Unwrap10(ID3D12GraphicsCommandList10 *obj);
 
 WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList1 *obj);
 WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList2 *obj);
@@ -719,3 +733,4 @@ WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList6 *obj);
 WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList7 *obj);
 WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList8 *obj);
 WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList9 *obj);
+WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList10 *obj);

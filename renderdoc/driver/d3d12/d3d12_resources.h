@@ -1159,9 +1159,10 @@ private:
 };
 
 class WrappedID3D12StateObject : public WrappedDeviceChild12<ID3D12StateObject>,
-                                 public ID3D12StateObjectProperties
+                                 public ID3D12StateObjectProperties1
 {
   ID3D12StateObjectProperties *properties;
+  ID3D12StateObjectProperties1 *properties1;
 
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12StateObject);
@@ -1186,6 +1187,7 @@ public:
   {
     m_pReal = real;
     real->QueryInterface(__uuidof(ID3D12StateObjectProperties), (void **)&properties);
+    real->QueryInterface(__uuidof(ID3D12StateObjectProperties1), (void **)&properties1);
   }
 
   virtual ~WrappedID3D12StateObject()
@@ -1204,6 +1206,24 @@ public:
       *ppvObject = (ID3D12StateObjectProperties *)this;
       AddRef();
       return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12StateObjectProperties1))
+    {
+      if(properties1)
+      {
+        *ppvObject = (ID3D12StateObjectProperties1 *)this;
+        AddRef();
+        return S_OK;
+      }
+      else
+      {
+        return E_NOINTERFACE;
+      }
+    }
+    if(riid == __uuidof(ID3D12WorkGraphProperties) || riid == __uuidof(ID3D12WorkGraphProperties1))
+    {
+      // work graphs are not currently supported
+      return E_NOINTERFACE;
     }
     return WrappedDeviceChild12::QueryInterface(riid, ppvObject);
   }
@@ -1232,6 +1252,21 @@ public:
   {
     m_pDevice->SetPipelineStackSize(this, PipelineStackSizeInBytes);
     properties->SetPipelineStackSize(PipelineStackSizeInBytes);
+  }
+
+  //////////////////////////////
+  // implement ID3D12StateObjectProperties1
+
+#if defined(_MSC_VER) || !defined(_WIN32)
+  virtual D3D12_PROGRAM_IDENTIFIER STDMETHODCALLTYPE GetProgramIdentifier(LPCWSTR pProgramName)
+#else
+  virtual D3D12_PROGRAM_IDENTIFIER *STDMETHODCALLTYPE
+  GetProgramIdentifier(D3D12_PROGRAM_IDENTIFIER *RetVal, LPCWSTR pProgramName)
+#endif
+  {
+    if(properties1)
+      return properties1->GetProgramIdentifier(pProgramName);
+    return {};
   }
 };
 

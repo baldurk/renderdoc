@@ -112,7 +112,8 @@ HRESULT STDMETHODCALLTYPE DummyID3D12DebugDevice::QueryInterface(REFIID riid, vo
      riid == __uuidof(ID3D12Device5) || riid == __uuidof(ID3D12Device6) ||
      riid == __uuidof(ID3D12Device7) || riid == __uuidof(ID3D12Device8) ||
      riid == __uuidof(ID3D12Device9) || riid == __uuidof(ID3D12Device10) ||
-     riid == __uuidof(ID3D12Device11) || riid == __uuidof(ID3D12Device12))
+     riid == __uuidof(ID3D12Device11) || riid == __uuidof(ID3D12Device12) ||
+     riid == __uuidof(ID3D12Device13) || riid == __uuidof(ID3D12Device14))
     return m_pDevice->QueryInterface(riid, ppvObject);
 
   if(riid == __uuidof(IUnknown))
@@ -148,7 +149,8 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12DebugDevice::QueryInterface(REFIID riid, 
      riid == __uuidof(ID3D12Device5) || riid == __uuidof(ID3D12Device6) ||
      riid == __uuidof(ID3D12Device7) || riid == __uuidof(ID3D12Device8) ||
      riid == __uuidof(ID3D12Device9) || riid == __uuidof(ID3D12Device10) ||
-     riid == __uuidof(ID3D12Device11) || riid == __uuidof(ID3D12Device12))
+     riid == __uuidof(ID3D12Device11) || riid == __uuidof(ID3D12Device12) ||
+     riid == __uuidof(ID3D12Device13) || riid == __uuidof(ID3D12Device14))
     return m_pDevice->QueryInterface(riid, ppvObject);
 
   if(riid == __uuidof(IUnknown))
@@ -558,6 +560,8 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   m_pDevice10 = NULL;
   m_pDevice11 = NULL;
   m_pDevice12 = NULL;
+  m_pDevice13 = NULL;
+  m_pDevice14 = NULL;
   m_pDownlevel = NULL;
   if(m_pDevice)
   {
@@ -573,6 +577,8 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     m_pDevice->QueryInterface(__uuidof(ID3D12Device10), (void **)&m_pDevice10);
     m_pDevice->QueryInterface(__uuidof(ID3D12Device11), (void **)&m_pDevice11);
     m_pDevice->QueryInterface(__uuidof(ID3D12Device12), (void **)&m_pDevice12);
+    m_pDevice->QueryInterface(__uuidof(ID3D12Device13), (void **)&m_pDevice13);
+    m_pDevice->QueryInterface(__uuidof(ID3D12Device14), (void **)&m_pDevice14);
     m_pDevice->QueryInterface(__uuidof(ID3D12DeviceRemovedExtendedData), (void **)&m_DRED.m_pReal);
     m_pDevice->QueryInterface(__uuidof(ID3D12DeviceRemovedExtendedData1), (void **)&m_DRED.m_pReal1);
     m_pDevice->QueryInterface(__uuidof(ID3D12DeviceRemovedExtendedDataSettings),
@@ -837,6 +843,9 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
           // message about mismatched SRV dimensions, which it seems to get wrong with the
           // dummy NULL descriptors on the texture sampling code
           D3D12_MESSAGE_ID_COMMAND_LIST_STATIC_DESCRIPTOR_RESOURCE_DIMENSION_MISMATCH,
+
+          // This error has a bug, it doesn't properly count events
+          D3D12_MESSAGE_ID_PIX_EVENT_UNDERFLOW,
       };
 
       D3D12_INFO_QUEUE_FILTER filter = {};
@@ -928,6 +937,8 @@ WrappedID3D12Device::~WrappedID3D12Device()
   SAFE_RELEASE(m_CompatDevice.m_pReal);
   SAFE_RELEASE(m_SharingContract.m_pReal);
   SAFE_RELEASE(m_pDownlevel);
+  SAFE_RELEASE(m_pDevice14);
+  SAFE_RELEASE(m_pDevice13);
   SAFE_RELEASE(m_pDevice12);
   SAFE_RELEASE(m_pDevice11);
   SAFE_RELEASE(m_pDevice10);
@@ -1248,11 +1259,48 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
       return E_NOINTERFACE;
     }
   }
+  else if(riid == __uuidof(ID3D12Device13))
+  {
+    if(m_pDevice13)
+    {
+      AddRef();
+      *ppvObject = (ID3D12Device13 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D12Device14))
+  {
+    if(m_pDevice14)
+    {
+      AddRef();
+      *ppvObject = (ID3D12Device14 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
   else if(riid == __uuidof(ID3D12DeviceConfiguration))
   {
     if(m_DevConfig.IsValid())
     {
       *ppvObject = (ID3D12DeviceConfiguration *)&m_DevConfig;
+      AddRef();
+      return S_OK;
+    }
+
+    return E_NOINTERFACE;
+  }
+  else if(riid == __uuidof(ID3D12DeviceConfiguration1))
+  {
+    if(m_DevConfig.IsValid1())
+    {
+      *ppvObject = (ID3D12DeviceConfiguration1 *)&m_DevConfig;
       AddRef();
       return S_OK;
     }
@@ -4486,6 +4534,7 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
       return Serialise_CreatePipelineState(ser, NULL, IID(), NULL);
     // these functions are serialised as-if they are a real heap.
     case D3D12Chunk::Device_CreateHeapFromAddress:
+    case D3D12Chunk::Device_CreateHeapFromAddress1:
     case D3D12Chunk::Device_CreateHeapFromFileMapping:
       return Serialise_CreateHeap(ser, NULL, IID(), NULL);
     case D3D12Chunk::Device_OpenSharedHandle:
@@ -4532,6 +4581,8 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
     case D3D12Chunk::CreateAS: return Serialise_CreateAS(ser, NULL, 0, {}, NULL);
     case D3D12Chunk::StateObject_SetPipelineStackSize:
       return Serialise_SetPipelineStackSize(ser, NULL, 0);
+    case D3D12Chunk::Device_CreateRootSignatureFromSubobjectInLibrary:
+      return Serialise_CreateRootSignatureFromSubobjectInLibrary(ser, 0, NULL, 0, NULL, IID(), NULL);
 
     // in order to get a warning if we miss a case, we explicitly handle the list/queue chunks here.
     // If we actually encounter one it's an error (we should hit CaptureBegin first and switch to
@@ -4630,6 +4681,8 @@ bool WrappedID3D12Device::ProcessChunk(ReadSerialiser &ser, D3D12Chunk context)
     case D3D12Chunk::List_EmitRaytracingAccelerationStructurePostbuildInfo:
     case D3D12Chunk::List_DispatchRays:
     case D3D12Chunk::List_SetPipelineState1:
+    case D3D12Chunk::List_SetProgram:
+    case D3D12Chunk::List_DispatchGraph:
       RDCERR("Unexpected chunk while processing initialisation: %s", ToStr(context).c_str());
       return false;
 

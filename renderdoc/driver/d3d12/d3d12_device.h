@@ -37,6 +37,16 @@
 #include "d3d12_common.h"
 #include "d3d12_manager.h"
 
+typedef struct D3D11_RESOURCE_FLAGS
+{
+  UINT BindFlags;
+  UINT MiscFlags;
+  UINT CPUAccessFlags;
+  UINT StructureByteStride;
+} D3D11_RESOURCE_FLAGS;
+
+#include "driver/dx/official/d3d12compatibility.h"
+
 struct IAmdExtD3DFactory;
 
 struct D3D12InitParams
@@ -447,55 +457,6 @@ public:
   virtual void STDMETHODCALLTYPE EndCapturableWork(_In_ REFGUID guid);
 };
 
-// these aren't documented, they're defined in D3D12TranslationLayer in the d3d11on12 codebase
-typedef enum D3D12_COMPATIBILITY_SHARED_FLAGS
-{
-  D3D12_COMPATIBILITY_SHARED_FLAG_NONE = 0,
-  D3D12_COMPATIBILITY_SHARED_FLAG_NON_NT_HANDLE = 0x1,
-  D3D12_COMPATIBILITY_SHARED_FLAG_KEYED_MUTEX = 0x2,
-  D3D12_COMPATIBILITY_SHARED_FLAG_9_ON_12 = 0x4
-} D3D12_COMPATIBILITY_SHARED_FLAGS;
-
-typedef enum D3D12_REFLECT_SHARED_PROPERTY
-{
-  D3D12_REFLECT_SHARED_PROPERTY_D3D11_RESOURCE_FLAGS = 0,
-  D3D12_REFELCT_SHARED_PROPERTY_COMPATIBILITY_SHARED_FLAGS =
-      (D3D12_REFLECT_SHARED_PROPERTY_D3D11_RESOURCE_FLAGS + 1),
-  D3D12_REFLECT_SHARED_PROPERTY_NON_NT_SHARED_HANDLE =
-      (D3D12_REFELCT_SHARED_PROPERTY_COMPATIBILITY_SHARED_FLAGS + 1)
-} D3D12_REFLECT_SHARED_PROPERTY;
-
-typedef struct D3D11_RESOURCE_FLAGS
-{
-  UINT BindFlags;
-  UINT MiscFlags;
-  UINT CPUAccessFlags;
-  UINT StructureByteStride;
-} D3D11_RESOURCE_FLAGS;
-
-MIDL_INTERFACE("8f1c0e3c-fae3-4a82-b098-bfe1708207ff")
-ID3D12CompatibilityDevice : public IUnknown
-{
-public:
-  virtual HRESULT STDMETHODCALLTYPE CreateSharedResource(
-      _In_ const D3D12_HEAP_PROPERTIES *pHeapProperties, D3D12_HEAP_FLAGS HeapFlags,
-      _In_ const D3D12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES InitialResourceState,
-      _In_opt_ const D3D12_CLEAR_VALUE *pOptimizedClearValue,
-      _In_opt_ const D3D11_RESOURCE_FLAGS *pFlags11,
-      D3D12_COMPATIBILITY_SHARED_FLAGS CompatibilityFlags,
-      _In_opt_ ID3D12LifetimeTracker *pLifetimeTracker,
-      _In_opt_ ID3D12SwapChainAssistant *pOwningSwapchain, REFIID riid,
-      _COM_Outptr_opt_ void **ppResource) = 0;
-
-  virtual HRESULT STDMETHODCALLTYPE CreateSharedHeap(
-      _In_ const D3D12_HEAP_DESC *pHeapDesc, D3D12_COMPATIBILITY_SHARED_FLAGS CompatibilityFlags,
-      REFIID riid, _COM_Outptr_opt_ void **ppHeap) = 0;
-
-  virtual HRESULT STDMETHODCALLTYPE ReflectSharedProperties(
-      _In_ ID3D12Object * pHeapOrResource, D3D12_REFLECT_SHARED_PROPERTY ReflectType,
-      _Out_writes_bytes_(DataSize) void *pData, UINT DataSize) = 0;
-};
-
 struct WrappedCompatibilityDevice : public ID3D12CompatibilityDevice
 {
   WrappedID3D12Device &m_pDevice;
@@ -588,7 +549,7 @@ class WrappedID3D12CommandQueue;
   template <typename SerialiserType>                         \
   bool CONCAT(Serialise_, func(SerialiserType &ser, __VA_ARGS__));
 
-class WrappedID3D12Device : public IFrameCapturer, public ID3DDevice, public ID3D12Device12
+class WrappedID3D12Device : public IFrameCapturer, public ID3DDevice, public ID3D12Device14
 {
 private:
   ID3D12Device *m_pDevice;
@@ -604,6 +565,8 @@ private:
   ID3D12Device10 *m_pDevice10;
   ID3D12Device11 *m_pDevice11;
   ID3D12Device12 *m_pDevice12;
+  ID3D12Device13 *m_pDevice13;
+  ID3D12Device14 *m_pDevice14;
   ID3D12DeviceDownlevel *m_pDownlevel;
 
   WrappedID3D12DeviceConfiguration m_DevConfig;
@@ -1089,7 +1052,8 @@ public:
        iid == __uuidof(ID3D12Device6) || iid == __uuidof(ID3D12Device7) ||
        iid == __uuidof(ID3D12Device8) || iid == __uuidof(ID3D12Device9) ||
        iid == __uuidof(ID3D12Device10) || iid == __uuidof(ID3D12Device11) ||
-       iid == __uuidof(ID3D12Device12))
+       iid == __uuidof(ID3D12Device12) || iid == __uuidof(ID3D12Device13) ||
+       iid == __uuidof(ID3D12Device14))
       return true;
 
     return false;
@@ -1122,6 +1086,10 @@ public:
       return (ID3D12Device11 *)this;
     else if(iid == __uuidof(ID3D12Device12))
       return (ID3D12Device12 *)this;
+    else if(iid == __uuidof(ID3D12Device13))
+      return (ID3D12Device13 *)this;
+    else if(iid == __uuidof(ID3D12Device14))
+      return (ID3D12Device14 *)this;
 
     RDCERR("Requested unknown device interface %s", ToStr(iid).c_str());
 
@@ -1228,6 +1196,18 @@ public:
     else if(riid == __uuidof(ID3D12Device12))
     {
       *ppvDevice = (ID3D12Device12 *)this;
+      this->AddRef();
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12Device13))
+    {
+      *ppvDevice = (ID3D12Device13 *)this;
+      this->AddRef();
+      return S_OK;
+    }
+    else if(riid == __uuidof(ID3D12Device14))
+    {
+      *ppvDevice = (ID3D12Device14 *)this;
       this->AddRef();
       return S_OK;
     }
@@ -1793,4 +1773,20 @@ public:
       _In_opt_count_(numResourceDescs) const UINT32 *pNumCastableFormats,
       _In_opt_count_(numResourceDescs) const DXGI_FORMAT *const *ppCastableFormats,
       _Out_writes_opt_(numResourceDescs) D3D12_RESOURCE_ALLOCATION_INFO1 *pResourceAllocationInfo1);
+
+  //////////////////////////////
+  // implement ID3D12Device13
+
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE,
+                                       OpenExistingHeapFromAddress1, _In_ const void *pAddress,
+                                       SIZE_T size, REFIID riid, _COM_Outptr_ void **ppvHeap);
+
+  //////////////////////////////
+  // implement ID3D12Device14
+
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE,
+                                       CreateRootSignatureFromSubobjectInLibrary, _In_ UINT nodeMask,
+                                       _In_reads_(blobLengthInBytes) const void *pLibraryBlob,
+                                       _In_ SIZE_T blobLengthInBytes, _In_opt_ LPCWSTR subobjectName,
+                                       REFIID riid, _COM_Outptr_ void **ppvRootSignature);
 };

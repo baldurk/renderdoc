@@ -789,12 +789,17 @@ void DXBCContainer::SetPipelineValidation(bytebuf &ByteCode, const DXIL::PSVData
 
 bool DXBCContainer::GetRuntimeData(DXIL::RDATData &rdat) const
 {
-  using namespace DXIL;
-
   if(m_RDATOffset == 0)
     return false;
 
-  const byte *in = m_ShaderBlob.data() + m_RDATOffset;
+  return GetRuntimeData(m_ShaderBlob.data() + m_RDATOffset, m_RDATSize, rdat);
+}
+
+bool DXBCContainer::GetRuntimeData(const byte *RDATChunk, size_t RDATLength, DXIL::RDATData &rdat)
+{
+  using namespace DXIL;
+
+  const byte *in = RDATChunk;
 
   // RDAT Header
   uint32_t *ver = (uint32_t *)in;

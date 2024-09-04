@@ -253,6 +253,8 @@ public:
   bool GetPipelineValidation(DXIL::PSVData &psv) const;
   bool GetRuntimeData(DXIL::RDATData &rdat) const;
 
+  static bool GetRuntimeData(const byte *RDATChunk, size_t RDATLength, DXIL::RDATData &rdat);
+
   static void SetPipelineValidation(bytebuf &ByteCode, const DXIL::PSVData &psv);
   static void SetRuntimeData(bytebuf &ByteCode, const DXIL::RDATData &rdat);
 

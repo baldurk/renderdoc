@@ -377,7 +377,7 @@ HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST
      riid != __uuidof(ID3D12GraphicsCommandList3) && riid != __uuidof(ID3D12GraphicsCommandList4) &&
      riid != __uuidof(ID3D12GraphicsCommandList5) && riid != __uuidof(ID3D12GraphicsCommandList6) &&
      riid != __uuidof(ID3D12GraphicsCommandList7) && riid != __uuidof(ID3D12GraphicsCommandList8) &&
-     riid != __uuidof(ID3D12GraphicsCommandList9))
+     riid != __uuidof(ID3D12GraphicsCommandList9) && riid != __uuidof(ID3D12GraphicsCommandList10))
     return E_NOINTERFACE;
 
   void *realptr = NULL;
@@ -410,6 +410,8 @@ HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST
     real = (ID3D12GraphicsCommandList8 *)realptr;
   else if(riid == __uuidof(ID3D12GraphicsCommandList9))
     real = (ID3D12GraphicsCommandList9 *)realptr;
+  else if(riid == __uuidof(ID3D12GraphicsCommandList10))
+    real = (ID3D12GraphicsCommandList10 *)realptr;
 
   if(SUCCEEDED(ret))
   {
@@ -470,6 +472,8 @@ HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST
       *ppCommandList = (ID3D12GraphicsCommandList8 *)wrapped;
     else if(riid == __uuidof(ID3D12GraphicsCommandList9))
       *ppCommandList = (ID3D12GraphicsCommandList9 *)wrapped;
+    else if(riid == __uuidof(ID3D12GraphicsCommandList10))
+      *ppCommandList = (ID3D12GraphicsCommandList10 *)wrapped;
     else if(riid == __uuidof(ID3D12CommandList))
       *ppCommandList = (ID3D12CommandList *)wrapped;
     else
@@ -1229,6 +1233,8 @@ HRESULT WrappedID3D12Device::CreateRootSignature(UINT nodeMask, const void *pBlo
       wrapped = new WrappedID3D12RootSignature(real, this);
     }
 
+    wrapped->sig = DecodeRootSig(pBlobWithRootSignature, blobLengthInBytes);
+
     if(IsCaptureMode(m_State))
     {
       CACHE_THREAD_SERIALISER();
@@ -1241,8 +1247,6 @@ HRESULT WrappedID3D12Device::CreateRootSignature(UINT nodeMask, const void *pBlo
       record->type = Resource_RootSignature;
       record->Length = 0;
       wrapped->SetResourceRecord(record);
-
-      wrapped->sig = DecodeRootSig(pBlobWithRootSignature, blobLengthInBytes);
 
       if(wrapped->sig.Flags & D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE)
         wrapped->localRootSigIdx =
@@ -1288,10 +1292,6 @@ HRESULT WrappedID3D12Device::CreateRootSignature(UINT nodeMask, const void *pBlo
       }
 
       record->AddChunk(scope.Get());
-    }
-    else
-    {
-      wrapped->sig = DecodeRootSig(pBlobWithRootSignature, blobLengthInBytes);
     }
 
     *ppvRootSignature = (ID3D12RootSignature *)wrapped;
@@ -2326,13 +2326,19 @@ HRESULT WrappedID3D12Device::SetStablePowerState(BOOL Enable)
 HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pFeatureSupportData,
                                                  UINT FeatureSupportDataSize)
 {
-  static uint64_t logged = 0;
+  static uint64_t logged[2] = {};
   bool dolog = true;
   if(uint32_t(Feature) < 64)
   {
     const uint64_t bit = 1ULL << uint32_t(Feature);
-    dolog = (logged & bit) == 0;
-    logged |= bit;
+    dolog = (logged[0] & bit) == 0;
+    logged[0] |= bit;
+  }
+  else if(uint32_t(Feature - 64) < 64)
+  {
+    const uint64_t bit = 1ULL << uint32_t(Feature - 64);
+    dolog = (logged[1] & bit) == 0;
+    logged[1] |= bit;
   }
 
   if(dolog)
@@ -2418,6 +2424,35 @@ HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pF
 
     if(dolog)
       RDCLOG("Forcing no changed renderpass support");
+
+    return S_OK;
+  }
+  else if(Feature == D3D12_FEATURE_D3D12_OPTIONS20)
+  {
+    D3D12_FEATURE_DATA_D3D12_OPTIONS20 *opts =
+        (D3D12_FEATURE_DATA_D3D12_OPTIONS20 *)pFeatureSupportData;
+    if(FeatureSupportDataSize != sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS20))
+      return E_INVALIDARG;
+
+    // unknown what this does, disable it
+    opts->RecreateAtTier = D3D12_RECREATE_AT_TIER_NOT_SUPPORTED;
+
+    return S_OK;
+  }
+  else if(Feature == D3D12_FEATURE_D3D12_OPTIONS21)
+  {
+    D3D12_FEATURE_DATA_D3D12_OPTIONS21 *opts =
+        (D3D12_FEATURE_DATA_D3D12_OPTIONS21 *)pFeatureSupportData;
+    if(FeatureSupportDataSize != sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS21))
+      return E_INVALIDARG;
+
+    if(dolog)
+      RDCLOG("Forcing no EI 1.1 support");
+    opts->ExecuteIndirectTier = D3D12_EXECUTE_INDIRECT_TIER_1_0;
+
+    if(dolog)
+      RDCLOG("Forcing no work graph support");
+    opts->WorkGraphsTier = D3D12_WORK_GRAPHS_TIER_NOT_SUPPORTED;
 
     return S_OK;
   }

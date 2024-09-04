@@ -326,6 +326,12 @@ public:
       AddRef();
       return S_OK;
     }
+    if(riid == __uuidof(ID3D12DeviceConfiguration1) && config.IsValid1())
+    {
+      *ppvObject = (ID3D12DeviceConfiguration1 *)&config;
+      AddRef();
+      return S_OK;
+    }
 
     return E_NOINTERFACE;
   }
@@ -652,7 +658,8 @@ private:
        riid != __uuidof(ID3D12Device6) && riid != __uuidof(ID3D12Device7) &&
        riid != __uuidof(ID3D12Device8) && riid != __uuidof(ID3D12Device9) &&
        riid != __uuidof(ID3D12Device10) && riid != __uuidof(ID3D12Device11) &&
-       riid != __uuidof(ID3D12Device12))
+       riid != __uuidof(ID3D12Device12) && riid != __uuidof(ID3D12Device13) &&
+       riid != __uuidof(ID3D12Device14))
     {
       RDCERR("Unsupported UUID %s for D3D12CreateDevice", ToStr(riid).c_str());
       return E_NOINTERFACE;
@@ -732,18 +739,28 @@ private:
         }
         else if(riid == __uuidof(ID3D12Device10))
         {
-          ID3D12Device10 *dev9 = (ID3D12Device10 *)*ppDevice;
-          dev = (ID3D12Device *)dev9;
+          ID3D12Device10 *dev10 = (ID3D12Device10 *)*ppDevice;
+          dev = (ID3D12Device *)dev10;
         }
         else if(riid == __uuidof(ID3D12Device11))
         {
-          ID3D12Device11 *dev9 = (ID3D12Device11 *)*ppDevice;
-          dev = (ID3D12Device *)dev9;
+          ID3D12Device11 *dev11 = (ID3D12Device11 *)*ppDevice;
+          dev = (ID3D12Device *)dev11;
         }
         else if(riid == __uuidof(ID3D12Device12))
         {
-          ID3D12Device12 *dev9 = (ID3D12Device12 *)*ppDevice;
-          dev = (ID3D12Device *)dev9;
+          ID3D12Device12 *dev12 = (ID3D12Device12 *)*ppDevice;
+          dev = (ID3D12Device *)dev12;
+        }
+        else if(riid == __uuidof(ID3D12Device13))
+        {
+          ID3D12Device13 *dev13 = (ID3D12Device13 *)*ppDevice;
+          dev = (ID3D12Device *)dev13;
+        }
+        else if(riid == __uuidof(ID3D12Device14))
+        {
+          ID3D12Device14 *dev14 = (ID3D12Device14 *)*ppDevice;
+          dev = (ID3D12Device *)dev14;
         }
 
         WrappedID3D12Device *wrap = WrappedID3D12Device::Create(dev, params, EnableDebugLayer);
@@ -782,6 +799,10 @@ private:
           *ppDevice = (ID3D12Device11 *)wrap;
         else if(riid == __uuidof(ID3D12Device12))
           *ppDevice = (ID3D12Device12 *)wrap;
+        else if(riid == __uuidof(ID3D12Device13))
+          *ppDevice = (ID3D12Device13 *)wrap;
+        else if(riid == __uuidof(ID3D12Device14))
+          *ppDevice = (ID3D12Device14 *)wrap;
       }
     }
     else if(SUCCEEDED(ret))

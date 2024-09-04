@@ -112,6 +112,14 @@ ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList9 *obj)
   return ((WrappedID3D12GraphicsCommandList *)obj)->GetReal();
 }
 
+ID3D12GraphicsCommandList *Unwrap(ID3D12GraphicsCommandList10 *obj)
+{
+  if(obj == NULL)
+    return NULL;
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetReal();
+}
+
 ID3D12GraphicsCommandList1 *Unwrap1(ID3D12GraphicsCommandList1 *obj)
 {
   if(obj == NULL)
@@ -182,6 +190,14 @@ ID3D12GraphicsCommandList9 *Unwrap9(ID3D12GraphicsCommandList9 *obj)
     return NULL;
 
   return ((WrappedID3D12GraphicsCommandList *)obj)->GetReal9();
+}
+
+ID3D12GraphicsCommandList10 *Unwrap10(ID3D12GraphicsCommandList10 *obj)
+{
+  if(obj == NULL)
+    return NULL;
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetReal10();
 }
 
 template <>
@@ -284,6 +300,15 @@ ResourceId GetResID(ID3D12GraphicsCommandList9 *obj)
 }
 
 template <>
+ResourceId GetResID(ID3D12GraphicsCommandList10 *obj)
+{
+  if(obj == NULL)
+    return ResourceId();
+
+  return ((WrappedID3D12GraphicsCommandList *)obj)->GetResourceID();
+}
+
+template <>
 ResourceId GetResID(ID3D12CommandList *obj)
 {
   if(obj == NULL)
@@ -378,6 +403,11 @@ WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList8 *obj)
 }
 
 WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList9 *obj)
+{
+  return ((WrappedID3D12GraphicsCommandList *)obj);
+}
+
+WrappedID3D12GraphicsCommandList *GetWrapped(ID3D12GraphicsCommandList10 *obj)
 {
   return ((WrappedID3D12GraphicsCommandList *)obj);
 }
@@ -1006,6 +1036,10 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
     case D3D12Chunk::Device_AddToStateObject:
     case D3D12Chunk::CreateAS:
     case D3D12Chunk::StateObject_SetPipelineStackSize:
+    case D3D12Chunk::Device_CreateHeapFromAddress1:
+    case D3D12Chunk::Device_CreateRootSignatureFromSubobjectInLibrary:
+    case D3D12Chunk::List_SetProgram:
+    case D3D12Chunk::List_DispatchGraph:
       RDCERR("Unexpected chunk while processing frame: %s", ToStr(chunk).c_str());
       return false;
 
@@ -1322,6 +1356,7 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
     m_pList->QueryInterface(__uuidof(ID3D12GraphicsCommandList7), (void **)&m_pList7);
     m_pList->QueryInterface(__uuidof(ID3D12GraphicsCommandList8), (void **)&m_pList8);
     m_pList->QueryInterface(__uuidof(ID3D12GraphicsCommandList9), (void **)&m_pList9);
+    m_pList->QueryInterface(__uuidof(ID3D12GraphicsCommandList10), (void **)&m_pList10);
   }
 
   // create a temporary and grab its resource ID
@@ -1399,6 +1434,7 @@ WrappedID3D12GraphicsCommandList::~WrappedID3D12GraphicsCommandList()
   SAFE_RELEASE(m_WrappedDebug.m_pReal1);
   SAFE_RELEASE(m_WrappedDebug.m_pReal2);
   SAFE_RELEASE(m_WrappedDebug.m_pReal3);
+  SAFE_RELEASE(m_pList10);
   SAFE_RELEASE(m_pList9);
   SAFE_RELEASE(m_pList8);
   SAFE_RELEASE(m_pList7);
@@ -1626,6 +1662,19 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList::QueryInterface(REFII
     if(m_pList9)
     {
       *ppvObject = (ID3D12GraphicsCommandList9 *)this;
+      AddRef();
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
+  else if(riid == __uuidof(ID3D12GraphicsCommandList10))
+  {
+    if(m_pList10)
+    {
+      *ppvObject = (ID3D12GraphicsCommandList10 *)this;
       AddRef();
       return S_OK;
     }
