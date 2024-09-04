@@ -125,7 +125,7 @@ bool WrappedID3D12Device::Serialise_CreateRootSignatureFromSubobjectInLibrary(
 
       WrappedID3D12RootSignature *wrapped = (WrappedID3D12RootSignature *)ret;
 
-      wrapped->sig = DecodeRootSig(pLibraryBlob, blobLengthInBytes, subobjectName);
+      wrapped->sig = DecodeRootSig(pLibraryBlob, (size_t)blobLengthInBytes, subobjectName);
 
       if(wrapped->sig.Flags & D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE)
         wrapped->localRootSigIdx =
