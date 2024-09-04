@@ -1070,19 +1070,19 @@ void Program::SettleIDs()
 #endif
     size_t curBlock = 0;
     Function &func = *m_Functions[i];
-    for(Instruction *inst : func.instructions)
+    for(Instruction *arg : func.args)
     {
       RDCASSERT(curBlock < func.blocks.size());
-      for(Instruction *arg : func.args)
-      {
 #if DISABLED(DXC_COMPATIBLE_DISASM)
-        if(arg->slot == ~0U)
-          arg->slot = m_NextSSAId++;
+      if(arg->slot == ~0U)
+        arg->slot = m_NextSSAId++;
 #else
-        if(arg->getName().isEmpty())
-          arg->slot = slot++;
+      if(arg->getName().isEmpty())
+        arg->slot = slot++;
 #endif
-      }
+    }
+    for(Instruction *inst : func.instructions)
+    {
       if(!inst->type->isVoid())
       {
 #if DISABLED(DXC_COMPATIBLE_DISASM)
