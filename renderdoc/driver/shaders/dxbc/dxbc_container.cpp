@@ -1900,7 +1900,7 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
     if(m_DXBCByteCode)
       m_Reflection = m_DXBCByteCode->GuessReflection();
     else if(dxilReflectProgram)
-      m_Reflection = dxilReflectProgram->GetReflection();
+      m_Reflection = dxilReflectProgram->BuildReflection();
     else
       m_Reflection = new Reflection;
   }

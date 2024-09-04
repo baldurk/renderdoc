@@ -1460,7 +1460,7 @@ rdcarray<ShaderEntryPoint> Program::GetEntryPoints()
   return ret;
 }
 
-DXBC::Reflection *Program::GetReflection()
+DXBC::Reflection *Program::BuildReflection()
 {
   const bool dxcStyleFormatting = m_DXCStyle;
   using namespace DXBC;

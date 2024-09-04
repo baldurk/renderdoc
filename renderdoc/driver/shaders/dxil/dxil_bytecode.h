@@ -1546,7 +1546,7 @@ public:
 
   const bytebuf &GetBytes() const { return m_Bytes; }
   void FetchComputeProperties(DXBC::Reflection *reflection);
-  DXBC::Reflection *GetReflection();
+  DXBC::Reflection *BuildReflection();
   rdcstr GetDebugStatus();
   rdcarray<ShaderEntryPoint> GetEntryPoints();
   void FillEntryPointInterfaces();
