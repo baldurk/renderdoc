@@ -891,11 +891,12 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
             DeferredPipelineCompile(device, deferredPipe.first, GetWrapped(deferredPipe.second));
 
         if(res != ResultCode::Succeeded)
+        {
           m_FailedReplayResult = res;
+          Deserialise(OrigCreateInfo);
+          return false;
+        }
       }
-
-      if(m_FailedReplayResult != ResultCode::Succeeded)
-        return false;
 
       Deserialise(OrigCreateInfo);
     }
@@ -1101,6 +1102,8 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
     // the compiles then deserialises this manually.
     VkComputePipelineCreateInfo OrigCreateInfo = CreateInfo;
     CreateInfo = {};
+
+    pipe = GetResourceManager()->CreateDeferredHandle<VkPipeline>();
 
     AddResource(Pipeline, ResourceType::PipelineState, "Compute Pipeline");
 
@@ -1374,6 +1377,8 @@ bool WrappedVulkan::Serialise_vkCreateRayTracingPipelinesKHR(
     bytebuf *OrigReplayHandles = new bytebuf;
     CreateInfo = {};
     OrigReplayHandles->swap(captureReplayHandles);
+
+    pipe = GetResourceManager()->CreateDeferredHandle<VkPipeline>();
 
     AddResource(Pipeline, ResourceType::PipelineState, "RT Pipeline");
 

@@ -3284,6 +3284,78 @@ RDResult WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t startEv
     if(m_DeferredResult != ResultCode::Succeeded)
       return m_DeferredResult;
 
+    // apply names to objects now that deferred wrappers are resolved. Only use debug_utils - this
+    // is replay time only for the benefit of other tools (mostly self-capture) so we don't have to use debug marker.
+    if(ObjDisp(m_Device)->SetDebugUtilsObjectNameEXT)
+    {
+      for(auto it = m_CreationInfo.m_Names.begin(); it != m_CreationInfo.m_Names.end(); ++it)
+      {
+        VkDebugUtilsObjectNameInfoEXT name = {VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT};
+        name.pObjectName = it->second.c_str();
+        WrappedVkRes *res = GetResourceManager()->GetCurrentResource(it->first);
+
+        if(res)
+        {
+          if(IsDispatchableRes(res))
+          {
+            WrappedVkDispRes *disp = (WrappedVkDispRes *)res;
+            name.objectHandle = disp->real.handle;
+          }
+          else
+          {
+            WrappedVkNonDispRes *nondisp = (WrappedVkNonDispRes *)res;
+            name.objectHandle = nondisp->real.handle;
+          }
+
+          VkObjectType type = VK_OBJECT_TYPE_UNKNOWN;
+
+          switch(IdentifyTypeByPtr(res))
+          {
+            case eResUnknown: type = VK_OBJECT_TYPE_UNKNOWN; break;
+            case eResPhysicalDevice: type = VK_OBJECT_TYPE_PHYSICAL_DEVICE; break;
+            case eResInstance: type = VK_OBJECT_TYPE_INSTANCE; break;
+            case eResDevice: type = VK_OBJECT_TYPE_DEVICE; break;
+            case eResQueue: type = VK_OBJECT_TYPE_QUEUE; break;
+            case eResDeviceMemory: type = VK_OBJECT_TYPE_DEVICE_MEMORY; break;
+            case eResBuffer: type = VK_OBJECT_TYPE_BUFFER; break;
+            case eResBufferView: type = VK_OBJECT_TYPE_BUFFER_VIEW; break;
+            case eResImage: type = VK_OBJECT_TYPE_IMAGE; break;
+            case eResImageView: type = VK_OBJECT_TYPE_IMAGE_VIEW; break;
+            case eResFramebuffer: type = VK_OBJECT_TYPE_FRAMEBUFFER; break;
+            case eResRenderPass: type = VK_OBJECT_TYPE_RENDER_PASS; break;
+            case eResShaderModule: type = VK_OBJECT_TYPE_SHADER_MODULE; break;
+            case eResPipelineCache: type = VK_OBJECT_TYPE_PIPELINE_CACHE; break;
+            case eResPipelineLayout: type = VK_OBJECT_TYPE_PIPELINE_LAYOUT; break;
+            case eResPipeline: type = VK_OBJECT_TYPE_PIPELINE; break;
+            case eResSampler: type = VK_OBJECT_TYPE_SAMPLER; break;
+            case eResDescriptorPool: type = VK_OBJECT_TYPE_DESCRIPTOR_POOL; break;
+            case eResDescriptorSetLayout: type = VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT; break;
+            case eResDescriptorSet: type = VK_OBJECT_TYPE_DESCRIPTOR_SET; break;
+            case eResCommandPool: type = VK_OBJECT_TYPE_COMMAND_POOL; break;
+            case eResCommandBuffer: type = VK_OBJECT_TYPE_COMMAND_BUFFER; break;
+            case eResFence: type = VK_OBJECT_TYPE_FENCE; break;
+            case eResEvent: type = VK_OBJECT_TYPE_EVENT; break;
+            case eResQueryPool: type = VK_OBJECT_TYPE_QUERY_POOL; break;
+            case eResSemaphore: type = VK_OBJECT_TYPE_SEMAPHORE; break;
+            case eResSwapchain: type = VK_OBJECT_TYPE_SWAPCHAIN_KHR; break;
+            case eResSurface: type = VK_OBJECT_TYPE_SURFACE_KHR; break;
+            case eResDescUpdateTemplate: type = VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE; break;
+            case eResSamplerConversion: type = VK_OBJECT_TYPE_SAMPLER_YCBCR_CONVERSION; break;
+            case eResAccelerationStructureKHR:
+              type = VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR;
+              break;
+            case eResShaderEXT: type = VK_OBJECT_TYPE_SHADER_EXT; break;
+          }
+
+          if(type != VK_OBJECT_TYPE_UNKNOWN && type != VK_OBJECT_TYPE_PHYSICAL_DEVICE)
+          {
+            name.objectType = type;
+            ObjDisp(m_Device)->SetDebugUtilsObjectNameEXT(Unwrap(m_Device), &name);
+          }
+        }
+      }
+    }
+
     SetDebugMessageSink(sink);
   }
 
