@@ -141,6 +141,29 @@ rdcstr strip_extension(const rdcstr &path)
   return path.substr(0, offs);
 }
 
+rdcstr standardise_directory_separator(const rdcstr &path)
+{
+  // Replace '\' -> '/'
+  // Replace '//' -> '/'
+  rdcstr ret;
+  ret.reserve(path.size());
+  int slashCount = 0;
+  for(size_t i = 0; i < path.size(); ++i)
+  {
+    char c = path[i];
+    if(c == '\\')
+      c = '/';
+
+    if(c == '/')
+      slashCount++;
+    else
+      slashCount = 0;
+    if(slashCount < 2)
+      ret.push_back(c);
+  }
+  return ret;
+}
+
 void strip_nonbasic(rdcstr &str)
 {
   for(char &c : str)
@@ -337,6 +360,17 @@ TEST_CASE("String manipulation", "[string]")
     CHECK(strip_extension(".exe") == "");
     CHECK(strip_extension(".config.txt") == ".config");
     CHECK(strip_extension("bar/foo.exe") == "bar/foo");
+  };
+
+  SECTION("standardise_directory_separator")
+  {
+    CHECK(standardise_directory_separator("a/exe.ext") == "a/exe.ext");
+    CHECK(standardise_directory_separator("a\\exe.ext") == "a/exe.ext");
+    CHECK(standardise_directory_separator("a//exe.ext") == "a/exe.ext");
+    CHECK(standardise_directory_separator("a\\\\exe.ext") == "a/exe.ext");
+    CHECK(standardise_directory_separator("a\\b/exe.ext") == "a/b/exe.ext");
+    CHECK(standardise_directory_separator("a\\/b/\\exe.ext") == "a/b/exe.ext");
+    CHECK(standardise_directory_separator("a\\\\/b//exe.ext") == "a/b/exe.ext");
   };
 
   SECTION("strupper")
