@@ -372,7 +372,11 @@ public:
     }
   }
 
-  ~WrappedID3D12DeviceConfiguration() { SAFE_RELEASE(m_pReal); }
+  ~WrappedID3D12DeviceConfiguration()
+  {
+    SAFE_RELEASE(m_pReal);
+    SAFE_RELEASE(m_pReal1);
+  }
 
   bool IsValid() { return m_pReal != NULL; }
   bool IsValid1() { return m_pReal1 != NULL; }
