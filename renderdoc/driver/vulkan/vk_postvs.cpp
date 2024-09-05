@@ -3093,12 +3093,12 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
       bufInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
       vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &taskBuffer);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       bufInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
       vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &readbackTaskBuffer);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       VkMemoryRequirements mrq = {0};
       m_pDriver->vkGetBufferMemoryRequirements(dev, taskBuffer, &mrq);
@@ -3125,10 +3125,10 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
         return;
       }
 
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       vkr = m_pDriver->vkBindBufferMemory(dev, taskBuffer, taskMem, 0);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       m_pDriver->vkGetBufferMemoryRequirements(dev, readbackTaskBuffer, &mrq);
 
@@ -3149,10 +3149,10 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
         return;
       }
 
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       vkr = m_pDriver->vkBindBufferMemory(dev, readbackTaskBuffer, readbackTaskMem, 0);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       // register address as specialisation constant
 
@@ -3194,7 +3194,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
     if(!state.graphics.shaderObject)
     {
       vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &taskModule);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
     }
 
     for(uint32_t s = 0; s < pipeCreateInfo.stageCount; s++)
@@ -3288,7 +3288,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
                                           VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
     vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     // fill destination buffer with 0s to ensure unwritten vertices have sane data
     ObjDisp(dev)->CmdFillBuffer(Unwrap(cmd), Unwrap(taskBuffer), 0, taskBufSize, 0);
@@ -3343,7 +3343,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
     DoPipelineBarrier(cmd, 1, &taskbufbarrier);
 
     vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     // submit & flush so that we don't have to keep pipeline or shader object around for a while
     m_pDriver->SubmitCmds();
@@ -3359,7 +3359,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
     // readback task data
     const byte *taskData = NULL;
     vkr = m_pDriver->vkMapMemory(m_Device, readbackTaskMem, 0, VK_WHOLE_SIZE, 0, (void **)&taskData);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
     if(vkr != VK_SUCCESS || !taskData)
     {
       m_pDriver->vkFreeMemory(m_Device, taskMem, NULL);
@@ -3370,7 +3370,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
       if(!taskData)
       {
         RDCERR("Manually reporting failed memory map");
-        CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+        CHECK_VKR(m_pDriver, VK_ERROR_MEMORY_MAP_FAILED);
       }
       ret.meshout.status = ret.taskout.status = "Couldn't read back task output data from GPU";
       return;
@@ -3381,7 +3381,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
     };
 
     vkr = m_pDriver->vkInvalidateMappedMemoryRanges(m_Device, 1, &range);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     totalNumMeshlets = 0;
     const byte *taskDataBegin = taskData;
@@ -3398,7 +3398,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
     }
 
     vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     for(uint32_t taskGroup = 0; taskGroup < totalNumTaskGroups; taskGroup++)
     {
@@ -3434,7 +3434,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
     DoPipelineBarrier(cmd, 1, &taskbufbarrier);
 
     vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
   }
 
   // clean up temporary memories
@@ -3493,12 +3493,12 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
     bufInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
     vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &meshBuffer);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     bufInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
     vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &readbackBuffer);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     VkMemoryRequirements mrq = {0};
     m_pDriver->vkGetBufferMemoryRequirements(dev, meshBuffer, &mrq);
@@ -3526,10 +3526,10 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
       return;
     }
 
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     vkr = m_pDriver->vkBindBufferMemory(dev, meshBuffer, meshMem, 0);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     m_pDriver->vkGetBufferMemoryRequirements(dev, readbackBuffer, &mrq);
 
@@ -3551,10 +3551,10 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
       return;
     }
 
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     vkr = m_pDriver->vkBindBufferMemory(dev, readbackBuffer, readbackMem, 0);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     // register address as specialisation constant
 
@@ -3599,7 +3599,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
   if(!state.graphics.shaderObject)
   {
     vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &module);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
   }
 
   // create mesh shader object with modified code
@@ -3681,7 +3681,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
       moduleCreateInfo.codeSize = modSpirv.byteSize();
 
       vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &taskFeedModule);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
     }
   }
 
@@ -3769,7 +3769,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
                                           VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
     vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     // fill destination buffer with 0s to ensure unwritten vertices have sane data
     ObjDisp(dev)->CmdFillBuffer(Unwrap(cmd), Unwrap(meshBuffer), 0, bufSize, 0);
@@ -3823,7 +3823,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
     DoPipelineBarrier(cmd, 1, &meshbufbarrier);
 
     vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     // submit & flush so that we don't have to keep pipeline around for a while
     m_pDriver->SubmitCmds();
@@ -3858,13 +3858,13 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
     // readback mesh data
     const byte *meshletData = NULL;
     vkr = m_pDriver->vkMapMemory(m_Device, readbackMem, 0, VK_WHOLE_SIZE, 0, (void **)&meshletData);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
     if(vkr != VK_SUCCESS || !meshletData)
     {
       if(!meshletData)
       {
         RDCERR("Manually reporting failed memory map");
-        CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+        CHECK_VKR(m_pDriver, VK_ERROR_MEMORY_MAP_FAILED);
       }
       m_pDriver->vkFreeMemory(m_Device, taskMem, NULL);
       m_pDriver->vkDestroyBuffer(m_Device, taskBuffer, NULL);
@@ -3881,7 +3881,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
     };
 
     vkr = m_pDriver->vkInvalidateMappedMemoryRanges(m_Device, 1, &range);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     // do a super quick sum of the number of verts and prims
     for(uint32_t m = 0; m < totalNumMeshlets; m++)
@@ -4117,7 +4117,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
     bufInfo.usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 
     vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &meshBuffer);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     VkMemoryRequirements mrq = {0};
     m_pDriver->vkGetBufferMemoryRequirements(dev, meshBuffer, &mrq);
@@ -4139,14 +4139,14 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
       return;
     }
 
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     vkr = m_pDriver->vkBindBufferMemory(dev, meshBuffer, meshMem, 0);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     byte *uploadData = NULL;
     vkr = m_pDriver->vkMapMemory(m_Device, meshMem, 0, VK_WHOLE_SIZE, 0, (void **)&uploadData);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
     if(vkr != VK_SUCCESS || !uploadData)
     {
       m_pDriver->vkDestroyBuffer(m_Device, meshBuffer, NULL);
@@ -4154,7 +4154,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
       if(!uploadData)
       {
         RDCERR("Manually reporting failed memory map");
-        CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+        CHECK_VKR(m_pDriver, VK_ERROR_MEMORY_MAP_FAILED);
       }
       ret.meshout.status = "Couldn't upload mesh output data to GPU";
       return;
@@ -4169,7 +4169,7 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
     };
 
     vkr = m_pDriver->vkFlushMappedMemoryRanges(m_Device, 1, &range);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     m_pDriver->vkUnmapMemory(m_Device, meshMem);
   }
@@ -4421,7 +4421,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     };
 
     vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &pipeLayout);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
   }
   else
   {
@@ -4453,7 +4453,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     };
 
     vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &pipeLayout);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     // clear the array because it's not needed after and we want to avoid releasing real resources
     setLayouts.clear();
@@ -4652,7 +4652,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
       bufInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
     vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &uniqIdxBuf);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     uniqIdxBufDescriptor.buffer = uniqIdxBuf;
     uniqIdxBufDescriptor.offset = 0;
@@ -4680,20 +4680,20 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
       return;
     }
 
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     vkr = m_pDriver->vkBindBufferMemory(dev, uniqIdxBuf, uniqIdxBufMem, 0);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     byte *idxData = NULL;
     vkr = m_pDriver->vkMapMemory(m_Device, uniqIdxBufMem, 0, VK_WHOLE_SIZE, 0, (void **)&idxData);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
     if(vkr != VK_SUCCESS || !idxData)
     {
       if(!idxData)
       {
         RDCERR("Manually reporting failed memory map");
-        CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+        CHECK_VKR(m_pDriver, VK_ERROR_MEMORY_MAP_FAILED);
       }
       ret.vsout.status = "Couldn't read back vertex output data from GPU";
       return;
@@ -4706,7 +4706,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     };
 
     vkr = m_pDriver->vkFlushMappedMemoryRanges(m_Device, 1, &range);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     m_pDriver->vkUnmapMemory(m_Device, uniqIdxBufMem);
 
@@ -4746,7 +4746,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     bufInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
     vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &rebasedIdxBuf);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     m_pDriver->vkGetBufferMemoryRequirements(dev, rebasedIdxBuf, &mrq);
 
@@ -4762,19 +4762,19 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
       return;
     }
 
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     vkr = m_pDriver->vkBindBufferMemory(dev, rebasedIdxBuf, rebasedIdxBufMem, 0);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     vkr = m_pDriver->vkMapMemory(m_Device, rebasedIdxBufMem, 0, VK_WHOLE_SIZE, 0, (void **)&idxData);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
     if(vkr != VK_SUCCESS || !idxData)
     {
       if(!idxData)
       {
         RDCERR("Manually reporting failed memory map");
-        CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+        CHECK_VKR(m_pDriver, VK_ERROR_MEMORY_MAP_FAILED);
       }
       ret.vsout.status = "Couldn't read back vertex output data from GPU";
       return;
@@ -4787,7 +4787,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     };
 
     vkr = m_pDriver->vkFlushMappedMemoryRanges(m_Device, 1, &rebasedRange);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     m_pDriver->vkUnmapMemory(m_Device, rebasedIdxBufMem);
   }
@@ -4989,7 +4989,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
           bufInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
         vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &vbuffers[attr].buf);
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
 
         VkMemoryRequirements mrq = {0};
         m_pDriver->vkGetBufferMemoryRequirements(dev, vbuffers[attr].buf, &mrq);
@@ -5013,21 +5013,21 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
           return;
         }
 
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
 
         vkr = m_pDriver->vkBindBufferMemory(dev, vbuffers[attr].buf, vbuffers[attr].mem, 0);
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
 
         byte *dst = NULL;
         vkr =
             m_pDriver->vkMapMemory(m_Device, vbuffers[attr].mem, 0, VK_WHOLE_SIZE, 0, (void **)&dst);
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
         if(vkr != VK_SUCCESS || !dst)
         {
           if(!dst)
           {
             RDCERR("Manually reporting failed memory map");
-            CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+            CHECK_VKR(m_pDriver, VK_ERROR_MEMORY_MAP_FAILED);
           }
           ret.vsout.status = "Couldn't read back vertex output data from GPU";
           return;
@@ -5187,7 +5187,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
         };
 
         vkr = m_pDriver->vkFlushMappedMemoryRanges(m_Device, 1, &range);
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
 
         m_pDriver->vkUnmapMemory(m_Device, vbuffers[attr].mem);
       }
@@ -5261,12 +5261,12 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
       bufInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
     vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &meshBuffer);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     bufInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
     vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &readbackBuffer);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     VkMemoryRequirements mrq = {0};
     m_pDriver->vkGetBufferMemoryRequirements(dev, meshBuffer, &mrq);
@@ -5297,10 +5297,10 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
       return;
     }
 
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     vkr = m_pDriver->vkBindBufferMemory(dev, meshBuffer, meshMem, 0);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     m_pDriver->vkGetBufferMemoryRequirements(dev, readbackBuffer, &mrq);
 
@@ -5316,10 +5316,10 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
       return;
     }
 
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     vkr = m_pDriver->vkBindBufferMemory(dev, readbackBuffer, readbackMem, 0);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
   }
 
   VkComputePipelineCreateInfo compPipeInfo = {VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
@@ -5335,7 +5335,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
   VkShaderModule module;
   vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &module);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   compPipeInfo.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   compPipeInfo.stage.module = module;
@@ -5461,7 +5461,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
                                           VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
     vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     // fill destination buffer with 0s to ensure unwritten vertices have sane data
     ObjDisp(dev)->CmdFillBuffer(Unwrap(cmd), Unwrap(meshBuffer), 0, bufSize, 0);
@@ -5536,7 +5536,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
     DoPipelineBarrier(cmd, 1, &meshbufbarrier);
 
     vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     // submit & flush so that we don't have to keep pipeline around for a while
     m_pDriver->SubmitCmds();
@@ -5552,13 +5552,13 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   // readback mesh data
   byte *byteData = NULL;
   vkr = m_pDriver->vkMapMemory(m_Device, readbackMem, 0, VK_WHOLE_SIZE, 0, (void **)&byteData);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
   if(vkr != VK_SUCCESS || !byteData)
   {
     if(!byteData)
     {
       RDCERR("Manually reporting failed memory map");
-      CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+      CHECK_VKR(m_pDriver, VK_ERROR_MEMORY_MAP_FAILED);
     }
     ret.vsout.status = "Couldn't read back vertex output data from GPU";
     return;
@@ -5569,7 +5569,7 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
   };
 
   vkr = m_pDriver->vkInvalidateMappedMemoryRanges(m_Device, 1, &range);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   // do near/far calculations
 
@@ -5806,7 +5806,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
 
   VkShaderModule module;
   vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &module);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   VkGraphicsPipelineCreateInfo pipeCreateInfo;
 
@@ -5849,14 +5849,14 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
   };
 
   vkr = m_pDriver->vkCreateRenderPass(m_Device, &rpinfo, NULL, &rp);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   VkFramebufferCreateInfo fbinfo = {
       VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL, 0, rp, 0, NULL, 16U, 16U, 1,
   };
 
   vkr = m_pDriver->vkCreateFramebuffer(m_Device, &fbinfo, NULL, &fb);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   pipeCreateInfo.renderPass = rp;
   pipeCreateInfo.subpass = 0;
@@ -5873,7 +5873,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
     vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
                                                &pipe);
 
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   if(state.graphics.shaderObject)
     state.shaderObjects[stageIndex] = GetResID(shad);
@@ -5912,7 +5912,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
     };
 
     vkr = m_pDriver->vkCreateQueryPool(m_Device, &info, NULL, &m_PostVS.XFBQueryPool);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     m_PostVS.XFBQueryPoolSize = action->numInstances;
   }
@@ -5950,7 +5950,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
     bufInfo.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
     vkr = m_pDriver->vkCreateBuffer(dev, &bufInfo, NULL, &meshBuffer);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     VkMemoryRequirements mrq = {0};
     m_pDriver->vkGetBufferMemoryRequirements(dev, meshBuffer, &mrq);
@@ -5985,10 +5985,10 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
       return;
     }
 
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     vkr = m_pDriver->vkBindBufferMemory(dev, meshBuffer, meshMem, 0);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
@@ -5999,7 +5999,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
                                           VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
     vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), Unwrap(m_PostVS.XFBQueryPool), 0, 1);
 
@@ -6039,7 +6039,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
     state.EndRenderPass(cmd);
 
     vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     m_pDriver->SubmitCmds();
     m_pDriver->FlushQ();
@@ -6047,7 +6047,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
     vkr = ObjDisp(dev)->GetQueryPoolResults(
         Unwrap(dev), Unwrap(m_PostVS.XFBQueryPool), 0, 1, sizeof(VkXfbQueryResult), &queryResult,
         sizeof(VkXfbQueryResult), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     VkDeviceSize generatedSize = queryResult.numPrimitivesGenerated * 3 * xfbStride;
 
@@ -6071,7 +6071,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
                                           VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
     vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), Unwrap(m_PostVS.XFBQueryPool), 0,
                                     action->numInstances);
@@ -6107,12 +6107,12 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
         state.EndRenderPass(cmd);
 
         vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
 
         cmd = m_pDriver->GetNextCmd();
 
         vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
 
         state.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
       }
@@ -6121,7 +6121,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
     state.EndRenderPass(cmd);
 
     vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     m_pDriver->SubmitCmds();
     m_pDriver->FlushQ();
@@ -6132,7 +6132,7 @@ void VulkanReplay::FetchTessGSOut(uint32_t eventId, VulkanRenderState &state)
         Unwrap(dev), Unwrap(m_PostVS.XFBQueryPool), 0, action->numInstances,
         sizeof(VkXfbQueryResult) * action->numInstances, queryResults.data(),
         sizeof(VkXfbQueryResult), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     uint64_t prevVertCount = 0;
 

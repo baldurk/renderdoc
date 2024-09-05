@@ -437,7 +437,7 @@ HRESULT WrappedID3D12Device::CreateResource(
 
   if(FAILED(ret))
   {
-    CheckHRESULT(ret);
+    CHECK_HR(this, ret);
     return ret;
   }
 

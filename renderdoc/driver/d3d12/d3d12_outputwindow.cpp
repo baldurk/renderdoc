@@ -211,11 +211,11 @@ uint64_t D3D12Replay::MakeOutputWindow(WindowingData window, bool depth)
     if(outw.swap)
     {
       hr = outw.swap->GetBuffer(0, __uuidof(ID3D12Resource), (void **)&outw.bb[0]);
-      m_pDevice->CheckHRESULT(hr);
+      CHECK_HR(m_pDevice, hr);
       if(FAILED(hr))
         return 0;
       hr = outw.swap->GetBuffer(1, __uuidof(ID3D12Resource), (void **)&outw.bb[1]);
-      m_pDevice->CheckHRESULT(hr);
+      CHECK_HR(m_pDevice, hr);
       if(FAILED(hr))
         return 0;
 
@@ -331,7 +331,7 @@ bool D3D12Replay::CheckResizeOutputWindow(uint64_t id)
 
         HRESULT hr = outw.swap->ResizeBuffers(desc.BufferCount, outw.width, outw.height,
                                               desc.BufferDesc.Format, desc.Flags);
-        m_pDevice->CheckHRESULT(hr);
+        CHECK_HR(m_pDevice, hr);
 
         if(FAILED(hr))
         {
@@ -340,11 +340,11 @@ bool D3D12Replay::CheckResizeOutputWindow(uint64_t id)
         }
 
         hr = outw.swap->GetBuffer(0, __uuidof(ID3D12Resource), (void **)&outw.bb[0]);
-        m_pDevice->CheckHRESULT(hr);
+        CHECK_HR(m_pDevice, hr);
         if(FAILED(hr))
           return true;
         hr = outw.swap->GetBuffer(1, __uuidof(ID3D12Resource), (void **)&outw.bb[1]);
-        m_pDevice->CheckHRESULT(hr);
+        CHECK_HR(m_pDevice, hr);
         if(FAILED(hr))
           return true;
       }
@@ -441,7 +441,7 @@ void D3D12Replay::GetOutputWindowData(uint64_t id, bytebuf &retData)
   HRESULT hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufDesc,
                                                   D3D12_RESOURCE_STATE_COPY_DEST, NULL,
                                                   __uuidof(ID3D12Resource), (void **)&readback);
-  m_pDevice->CheckHRESULT(hr);
+  CHECK_HR(m_pDevice, hr);
 
   if(SUCCEEDED(hr))
   {
@@ -508,7 +508,7 @@ void D3D12Replay::GetOutputWindowData(uint64_t id, bytebuf &retData)
 
     byte *data = NULL;
     hr = readback->Map(0, NULL, (void **)&data);
-    m_pDevice->CheckHRESULT(hr);
+    CHECK_HR(m_pDevice, hr);
 
     if(SUCCEEDED(hr) && data)
     {
@@ -717,7 +717,7 @@ void D3D12Replay::FlipOutputWindow(uint64_t id)
   if(outw.swap)
   {
     HRESULT hr = outw.swap->Present(0, 0);
-    m_pDevice->CheckHRESULT(hr);
+    CHECK_HR(m_pDevice, hr);
   }
 
   outw.bbIdx++;

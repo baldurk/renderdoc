@@ -422,7 +422,7 @@ MemoryAllocation WrappedVulkan::AllocateMemoryForResource(bool buffer, VkMemoryR
 
     // do the actual allocation
     VkResult vkr = ObjDisp(d)->AllocateMemory(Unwrap(d), &info, NULL, &chunk.mem);
-    CheckVkResult(vkr);
+    CHECK_VKR(this, vkr);
 
     ret.offs = 0;
     ret.mem = VK_NULL_HANDLE;

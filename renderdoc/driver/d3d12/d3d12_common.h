@@ -119,6 +119,8 @@ inline rdcstr DecodeMarkerString(UINT Metadata, const void *pData, UINT Size, UI
   return MarkerText;
 }
 
+#define CHECK_HR(device, hr_or_expr) device->CheckHRESULT(__FILE__, __LINE__, hr_or_expr)
+
 FloatVector DecodePIXColor(UINT64 Color);
 
 TextureType MakeTextureDim(D3D12_SRV_DIMENSION dim);

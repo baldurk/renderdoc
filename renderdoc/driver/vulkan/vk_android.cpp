@@ -86,7 +86,7 @@ void VulkanReplay::OutputWindow::CreateSurface(WrappedVulkan *driver, VkInstance
   createInfo.window = wnd;
 
   VkResult vkr = ObjDisp(inst)->CreateAndroidSurfaceKHR(Unwrap(inst), &createInfo, NULL, &surface);
-  driver->CheckVkResult(vkr);
+  CHECK_VKR(driver, vkr);
 }
 
 void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)

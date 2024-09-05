@@ -781,7 +781,7 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
 
       // add the signal for those callbacks to wait on
       HRESULT hr = m_pReal->Signal(fence, m_RayFenceValue++);
-      m_pDevice->CheckHRESULT(hr);
+      CHECK_HR(m_pDevice, hr);
       RDCASSERTEQUAL(hr, S_OK);
     }
 
@@ -934,7 +934,7 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
       m_RayDispatchesPending.append(rayDispatches);
 
       HRESULT hr = m_pReal->Signal(GetRayFence(), m_RayFenceValue++);
-      m_pDevice->CheckHRESULT(hr);
+      CHECK_HR(m_pDevice, hr);
       RDCASSERTEQUAL(hr, S_OK);
     }
 

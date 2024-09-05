@@ -249,7 +249,7 @@ HRESULT WrappedID3D12Device::CreateRootSignatureFromSubobjectInLibrary(
   }
   else
   {
-    CheckHRESULT(ret);
+    CHECK_HR(this, ret);
   }
 
   return ret;

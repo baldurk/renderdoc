@@ -296,7 +296,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Device::AddToStateObject(
   }
   else
   {
-    CheckHRESULT(ret);
+    CHECK_HR(this, ret);
   }
 
   return ret;

@@ -1557,7 +1557,7 @@ HRESULT WrappedID3D12Device::CreateInitialStateBuffer(const D3D12_RESOURCE_DESC 
 
     if(FAILED(ret))
     {
-      CheckHRESULT(ret);
+      CHECK_HR(this, ret);
       RDCERR("Couldn't create new initial state heap #%zu: %s", m_InitialStateHeaps.size(),
              ToStr(ret).c_str());
       SAFE_RELEASE(heap);
@@ -2027,7 +2027,7 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
     else
     {
       HRESULT hr = Resource->Map(Subresource, &nopRange, (void **)&MappedData);
-      CheckHRESULT(hr);
+      CHECK_HR(this, hr);
       if(FAILED(hr))
       {
         RDCERR("Failed to map resource on replay HRESULT: %s", ToStr(hr).c_str());
@@ -2056,7 +2056,7 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
     {
       byte *writePtr = NULL;
       HRESULT hr = Resource->Map(Subresource, &nopRange, (void **)&writePtr);
-      CheckHRESULT(hr);
+      CHECK_HR(this, hr);
       if(FAILED(hr))
       {
         RDCERR("Failed to map resource on replay HRESULT: %s", ToStr(hr).c_str());
@@ -2127,7 +2127,7 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
         D3D12_RANGE maprange = {0, 0};
         void *dst = NULL;
         HRESULT hr = uploadBuf->Map(Subresource, &maprange, &dst);
-        CheckHRESULT(hr);
+        CHECK_HR(this, hr);
 
         if(SUCCEEDED(hr))
         {
@@ -2288,7 +2288,7 @@ bool WrappedID3D12Device::Serialise_WriteToSubresource(SerialiserType &ser, ID3D
         D3D12_RANGE range = {0, 0};
         void *dst = NULL;
         HRESULT hr = uploadBuf->Map(Subresource, &range, &dst);
-        CheckHRESULT(hr);
+        CHECK_HR(this, hr);
 
         if(SUCCEEDED(hr))
         {
@@ -2326,7 +2326,7 @@ bool WrappedID3D12Device::Serialise_WriteToSubresource(SerialiserType &ser, ID3D
     else
     {
       HRESULT hr = Resource->Map(Subresource, NULL, NULL);
-      CheckHRESULT(hr);
+      CHECK_HR(this, hr);
 
       if(SUCCEEDED(hr))
       {
@@ -3583,7 +3583,7 @@ rdcarray<DebugMessage> WrappedID3D12Device::GetDebugMessages()
   return ret;
 }
 
-void WrappedID3D12Device::CheckHRESULT(HRESULT hr)
+void WrappedID3D12Device::CheckHRESULT(const char *file, int line, HRESULT hr)
 {
   if(SUCCEEDED(hr) || HasFatalError())
     return;
@@ -3591,24 +3591,24 @@ void WrappedID3D12Device::CheckHRESULT(HRESULT hr)
   if(hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET ||
      hr == DXGI_ERROR_DEVICE_HUNG || hr == DXGI_ERROR_DRIVER_INTERNAL_ERROR)
   {
-    SET_ERROR_RESULT(m_FatalError, ResultCode::DeviceLost, "Logging device lost fatal error for %s",
-                     ToStr(hr).c_str());
+    SET_ERROR_RESULT(m_FatalError, ResultCode::DeviceLost,
+                     "Logging device lost fatal error at %s:%d: %s", file, line, ToStr(hr).c_str());
   }
   else if(hr == E_OUTOFMEMORY)
   {
     if(m_OOMHandler)
     {
-      RDCLOG("Ignoring out of memory error that will be handled");
+      RDCLOG("Ignoring out of memory error at %s:%d that will be handled");
     }
     else
     {
-      RDCLOG("Logging out of memory fatal error for %s", ToStr(hr).c_str());
+      RDCLOG("Logging out of memory error at %s:%d: %s", file, line, ToStr(hr).c_str());
       m_FatalError = ResultCode::OutOfMemory;
     }
   }
   else
   {
-    RDCLOG("Ignoring return code %s", ToStr(hr).c_str());
+    RDCLOG("Ignoring return code at %s:%d: %s", file, line, ToStr(hr).c_str());
   }
 }
 
@@ -4318,14 +4318,14 @@ void WrappedID3D12Device::GPUSync(ID3D12CommandQueue *queue, ID3D12Fence *fence)
     fence = m_GPUSyncFence;
 
   HRESULT hr = queue->Signal(fence, m_GPUSyncCounter);
-  CheckHRESULT(hr);
+  CHECK_HR(this, hr);
   RDCASSERTEQUAL(hr, S_OK);
 
   fence->SetEventOnCompletion(m_GPUSyncCounter, m_GPUSyncHandle);
   WaitForSingleObject(m_GPUSyncHandle, 10000);
 
   hr = m_pDevice->GetDeviceRemovedReason();
-  CheckHRESULT(hr);
+  CHECK_HR(this, hr);
   RDCASSERTEQUAL(hr, S_OK);
 }
 
@@ -4364,7 +4364,7 @@ ID3D12GraphicsCommandListX *WrappedID3D12Device::GetNewList()
     ret = (ID3D12GraphicsCommandListX *)list;
 
     RDCASSERTEQUAL(hr, S_OK);
-    CheckHRESULT(hr);
+    CHECK_HR(this, hr);
 
     if(ret == NULL)
       return NULL;
@@ -5080,17 +5080,17 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
     // command lists due to the 'previous queue fence' not being ready yet, even if no fences are
     // signalled or waited. So instead we just signal a dummy fence each new 'frame'
     for(size_t i = 0; i < m_Queues.size(); i++)
-      CheckHRESULT(m_Queues[i]->Signal(m_QueueFences[i], m_GPUSyncCounter));
+      CHECK_HR(this, m_Queues[i]->Signal(m_QueueFences[i], m_GPUSyncCounter));
 
     FlushLists(true);
     m_CurDataUpload = 0;
 
     // take this opportunity to reset command allocators to ensure we don't steadily leak over time.
     if(m_DataUploadAlloc)
-      CheckHRESULT(m_DataUploadAlloc->Reset());
+      CHECK_HR(this, m_DataUploadAlloc->Reset());
 
     for(ID3D12CommandAllocator *alloc : m_CommandAllocators)
-      CheckHRESULT(alloc->Reset());
+      CHECK_HR(this, alloc->Reset());
 
     if(HasFatalError())
       return;
@@ -5139,7 +5139,7 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
       beginList->SetMarker(0, text.c_str(), size);
     }
 
-    CheckHRESULT(beginList->Close());
+    CHECK_HR(this, beginList->Close());
     ExecuteLists();
 
     if(HasFatalError())
@@ -5200,7 +5200,7 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
 
       ID3D12GraphicsCommandList *list = cmd.m_OutsideCmdList;
 
-      CheckHRESULT(list->Close());
+      CHECK_HR(this, list->Close());
 
       ExecuteLists();
 
@@ -5240,7 +5240,7 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
     uavBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
     list->ResourceBarrier(1, &uavBarrier);
 
-    CheckHRESULT(list->Close());
+    CHECK_HR(this, list->Close());
 
     ExecuteLists();
   }

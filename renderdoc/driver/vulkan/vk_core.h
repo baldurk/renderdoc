@@ -1323,13 +1323,13 @@ public:
   }
   RDResult FatalErrorCheck() { return m_FatalError; }
   bool HasFatalError() { return m_FatalError != ResultCode::Succeeded; }
-  inline void CheckVkResult(VkResult vkr)
+  inline void CheckVkResult(const char *file, int line, VkResult vkr)
   {
     if(vkr == VK_SUCCESS)
       return;
-    CheckErrorVkResult(vkr);
+    CheckErrorVkResult(file, line, vkr);
   }
-  void CheckErrorVkResult(VkResult vkr);
+  void CheckErrorVkResult(const char *file, int line, VkResult vkr);
 
   void CheckDeferredResult(const RDResult &res);
   void AddDeferredTime(double ms);

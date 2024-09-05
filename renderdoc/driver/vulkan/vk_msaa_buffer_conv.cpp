@@ -89,7 +89,7 @@ void VulkanDebugManager::CopyTex2DMSToBuffer(VkCommandBuffer cmd, VkBuffer destB
   }
 
   vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &srcView);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
   NameUnwrappedVulkanObject(srcView, "MS -> Buffer srcView");
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
@@ -253,7 +253,7 @@ void VulkanDebugManager::CopyDepthTex2DMSToBuffer(VkCommandBuffer cmd, VkBuffer 
   if(aspectFlags & VK_IMAGE_ASPECT_DEPTH_BIT)
   {
     vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &srcDepthView);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
     NameUnwrappedVulkanObject(srcDepthView, "Depth MS -> Array srcDepthView");
   }
 
@@ -261,7 +261,7 @@ void VulkanDebugManager::CopyDepthTex2DMSToBuffer(VkCommandBuffer cmd, VkBuffer 
   {
     viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
     vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &srcStencilView);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
     NameUnwrappedVulkanObject(srcStencilView, "Depth MS -> Array srcStencilView");
   }
 
@@ -457,7 +457,7 @@ void VulkanDebugManager::CopyBufferToTex2DMS(VkCommandBuffer cmd, VkImage destMS
   }
 
   vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &destView);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
   NameUnwrappedVulkanObject(destView, "Array -> MS destView");
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
@@ -652,7 +652,7 @@ void VulkanDebugManager::CopyDepthBufferToTex2DMS(VkCommandBuffer cmd, VkImage d
     viewInfo.subresourceRange.layerCount = 1;
 
     vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &destView[i]);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
     NameUnwrappedVulkanObject(destView[i], "Depth Array -> MS destView[i]");
   }
 
@@ -718,7 +718,7 @@ void VulkanDebugManager::CopyDepthBufferToTex2DMS(VkCommandBuffer cmd, VkImage d
     fbinfo.pAttachments = destView.data() + i;
 
     vkr = ObjDisp(dev)->CreateFramebuffer(Unwrap(dev), &fbinfo, NULL, &fb[i]);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
   }
 
   bool endCommand = false;

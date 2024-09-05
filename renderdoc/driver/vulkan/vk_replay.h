@@ -518,7 +518,6 @@ private:
   bool GetMinMax(ResourceId texid, const Subresource &sub, CompType typeCast, bool stencil,
                  float *minval, float *maxval);
 
-  void CheckVkResult(VkResult vkr);
   VulkanDebugManager *GetDebugManager();
   VulkanResourceManager *GetResourceManager();
 

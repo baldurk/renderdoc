@@ -334,6 +334,8 @@ enum
 
 DECLARE_REFLECTION_STRUCT(VkBaseInStructure);
 
+#define CHECK_VKR(core, vkr_or_expr) core->CheckVkResult(__FILE__, __LINE__, vkr_or_expr)
+
 // we cast to this type when serialising as a placeholder indicating that
 // the given flags field doesn't have any bits defined
 enum VkFlagWithNoBits

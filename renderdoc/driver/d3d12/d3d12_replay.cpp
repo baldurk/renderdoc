@@ -2886,7 +2886,7 @@ void D3D12Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, const Su
 
   float *pix = NULL;
   HRESULT hr = m_General.ResultReadbackBuffer->Map(0, &range, (void **)&pix);
-  m_pDevice->CheckHRESULT(hr);
+  CHECK_HR(m_pDevice, hr);
 
   if(FAILED(hr))
   {
@@ -3063,7 +3063,7 @@ bool D3D12Replay::GetMinMax(ResourceId texid, const Subresource &sub, CompType t
 
   void *data = NULL;
   HRESULT hr = m_General.ResultReadbackBuffer->Map(0, &range, &data);
-  m_pDevice->CheckHRESULT(hr);
+  CHECK_HR(m_pDevice, hr);
 
   if(FAILED(hr))
   {
@@ -3237,7 +3237,7 @@ bool D3D12Replay::GetHistogram(ResourceId texid, const Subresource &sub, CompTyp
 
   void *data = NULL;
   HRESULT hr = m_General.ResultReadbackBuffer->Map(0, &range, &data);
-  m_pDevice->CheckHRESULT(hr);
+  CHECK_HR(m_pDevice, hr);
 
   histogram.clear();
   histogram.resize(HGRAM_NUM_BUCKETS);
@@ -4154,7 +4154,7 @@ void D3D12Replay::GetTextureData(ResourceId tex, const Subresource &sub,
   // map the buffer and copy to return buffer
   byte *pData = NULL;
   hr = readbackBuf->Map(0, NULL, (void **)&pData);
-  m_pDevice->CheckHRESULT(hr);
+  CHECK_HR(m_pDevice, hr);
   if(FAILED(hr))
   {
     RDCERR("Couldn't map readback buffer: %s", ToStr(hr).c_str());

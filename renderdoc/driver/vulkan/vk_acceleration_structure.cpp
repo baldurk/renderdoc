@@ -78,7 +78,7 @@ bool VulkanAccelerationStructureManager::Prepare(VkAccelerationStructureKHR unwr
     bufInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
   vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &dstBuf);
-  m_pDriver->CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   m_pDriver->AddPendingObjectCleanup(
       [d, dstBuf]() { ObjDisp(d)->DestroyBuffer(Unwrap(d), dstBuf, NULL); });
@@ -94,7 +94,7 @@ bool VulkanAccelerationStructureManager::Prepare(VkAccelerationStructureKHR unwr
     return false;
 
   vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, Unwrap(readbackmem.mem), readbackmem.offs);
-  m_pDriver->CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   const VkBufferDeviceAddressInfo addrInfo = {VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO, NULL,
                                               dstBuf};
@@ -117,7 +117,7 @@ bool VulkanAccelerationStructureManager::Prepare(VkAccelerationStructureKHR unwr
 
     vkr = ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(readbackmem.mem), readbackmem.offs, size, 0,
                                 (void **)&mappedDstBuffer);
-    m_pDriver->CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     // Copy the data using host-commands but into mapped memory
     VkCopyAccelerationStructureToMemoryInfoKHR copyInfo = {
@@ -148,7 +148,7 @@ bool VulkanAccelerationStructureManager::Prepare(VkAccelerationStructureKHR unwr
 
     vkr = ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(readbackmem.mem), readbackmem.offs, size, 0,
                                 (void **)&mappedDstBuffer);
-    m_pDriver->CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
   }
 
   // invalidate the cpu cache for this memory range to avoid reading stale data
@@ -156,7 +156,7 @@ bool VulkanAccelerationStructureManager::Prepare(VkAccelerationStructureKHR unwr
       VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, Unwrap(readbackmem.mem), readbackmem.offs, size,
   };
   vkr = ObjDisp(d)->InvalidateMappedMemoryRanges(Unwrap(d), 1, &range);
-  m_pDriver->CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   // Count the BLAS device addresses to update the AS type
   const uint64_t handleCount = *(uint64_t *)(mappedDstBuffer + handleCountOffset);
@@ -199,7 +199,7 @@ bool VulkanAccelerationStructureManager::Serialise(SerialiserType &ser, Resource
       mappedMem = initial->mem;
       vkr = ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem.mem), initial->mem.offs, size, 0,
                                   (void **)&contents);
-      m_pDriver->CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       // invalidate the cpu cache for this memory range to avoid reading stale data
       const VkMappedMemoryRange range = {
@@ -207,7 +207,7 @@ bool VulkanAccelerationStructureManager::Serialise(SerialiserType &ser, Resource
       };
 
       vkr = ObjDisp(d)->InvalidateMappedMemoryRanges(Unwrap(d), 1, &range);
-      m_pDriver->CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
     }
   }
   else if(IsReplayMode(state) && !ser.IsErrored())
@@ -223,7 +223,7 @@ bool VulkanAccelerationStructureManager::Serialise(SerialiserType &ser, Resource
     };
 
     vkr = m_pDriver->vkCreateBuffer(d, &bufInfo, NULL, &uploadBuf);
-    m_pDriver->CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     VkMemoryRequirements mrq = {};
     m_pDriver->vkGetBufferMemoryRequirements(d, uploadBuf, &mrq);
@@ -237,18 +237,18 @@ bool VulkanAccelerationStructureManager::Serialise(SerialiserType &ser, Resource
       return false;
 
     vkr = m_pDriver->vkBindBufferMemory(d, uploadBuf, uploadMemory.mem, uploadMemory.offs);
-    m_pDriver->CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     mappedMem = uploadMemory;
 
     vkr = ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem.mem), mappedMem.offs,
                                 AlignUp(mappedMem.size, nonCoherentAtomSize), 0, (void **)&contents);
-    m_pDriver->CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     if(!contents)
     {
       RDCERR("Manually reporting failed memory map");
-      m_pDriver->CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+      CHECK_VKR(m_pDriver, VK_ERROR_MEMORY_MAP_FAILED);
       return false;
     }
 
@@ -273,7 +273,7 @@ bool VulkanAccelerationStructureManager::Serialise(SerialiserType &ser, Resource
       };
 
       vkr = ObjDisp(d)->FlushMappedMemoryRanges(Unwrap(d), 1, &range);
-      m_pDriver->CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       // Read the AS's BLAS handle count to determine if it's top or bottom level
       isTLAS = *((uint64_t *)(contents + handleCountOffset)) > 0;
@@ -327,7 +327,7 @@ void VulkanAccelerationStructureManager::Apply(ResourceId id, const VkInitialCon
     byte *mappedSrcBuffer = NULL;
     VkResult vkr = ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(initial.mem.mem), initial.mem.offs, size,
                                          0, (void **)&mappedSrcBuffer);
-    m_pDriver->CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     VkCopyMemoryToAccelerationStructureInfoKHR copyInfo = {
         VK_STRUCTURE_TYPE_COPY_MEMORY_TO_ACCELERATION_STRUCTURE_INFO_KHR};
@@ -371,7 +371,7 @@ VkDeviceSize VulkanAccelerationStructureManager::SerialisedASSize(VkAcceleration
 
   VkQueryPool pool;
   VkResult vkr = ObjDisp(d)->CreateQueryPool(Unwrap(d), &info, NULL, &pool);
-  m_pDriver->CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   // Reset query pool
   VkCommandBuffer cmd = m_pDriver->GetInitStateCmd();
@@ -390,7 +390,7 @@ VkDeviceSize VulkanAccelerationStructureManager::SerialisedASSize(VkAcceleration
   vkr = ObjDisp(d)->GetQueryPoolResults(Unwrap(d), pool, 0, 1, sizeof(VkDeviceSize), &size,
                                         sizeof(VkDeviceSize),
                                         VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
-  m_pDriver->CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   // Clean up
   ObjDisp(d)->DestroyQueryPool(Unwrap(d), pool, NULL);

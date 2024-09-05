@@ -71,7 +71,7 @@ void D3D12RenderState::ResolvePendingIndirectState(WrappedID3D12Device *device)
 
   D3D12_RANGE range = {0, D3D12CommandData::m_IndirectSize};
   byte *mapPtr = NULL;
-  device->CheckHRESULT(indirectState.argsBuf->Map(0, &range, (void **)&mapPtr));
+  CHECK_HR(device, indirectState.argsBuf->Map(0, &range, (void **)&mapPtr));
 
   if(device->HasFatalError())
     return;

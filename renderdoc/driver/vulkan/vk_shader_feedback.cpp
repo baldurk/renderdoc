@@ -1896,7 +1896,7 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
       };
 
       vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &pipeLayout);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       // we'll only use one, set both structs to keep things simple
       computeInfo.layout = pipeLayout;
@@ -1970,7 +1970,7 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     moduleCreateInfo.codeSize = modSpirv.size() * sizeof(uint32_t);
 
     vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &modules[0]);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     stage.module = modules[0];
   }
@@ -2063,7 +2063,7 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
       moduleCreateInfo.codeSize = modSpirv.size() * sizeof(uint32_t);
 
       vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &modules[i]);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       stage.module = modules[i];
     }
@@ -2075,13 +2075,13 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   {
     vkr = m_pDriver->vkCreateComputePipelines(m_Device, VK_NULL_HANDLE, 1, &computeInfo, NULL,
                                               &feedbackPipe);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
   }
   else
   {
     vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &graphicsInfo, NULL,
                                                &feedbackPipe);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
   }
 
   // make copy of state to draw from
@@ -2119,7 +2119,7 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
                                           VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
     vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     // fill destination buffer with 0s to ensure a baseline to then feedback against
     ObjDisp(dev)->CmdFillBuffer(Unwrap(cmd), Unwrap(m_BindlessFeedback.FeedbackBuffer.buf), 0,
@@ -2158,7 +2158,7 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     }
 
     vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     m_pDriver->SubmitCmds();
     m_pDriver->FlushQ();

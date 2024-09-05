@@ -410,7 +410,7 @@ private:
         moduleCreateInfo.codeSize = modSpirv.byteSize();
         VkResult vkr =
             m_pDriver->vkCreateShaderModule(m_pDriver->GetDev(), &moduleCreateInfo, NULL, &module);
-        m_pDriver->CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
       }
 
       return module;
@@ -459,7 +459,7 @@ private:
         shadCreateInfo.codeSize = modSpirv.byteSize();
         VkResult vkr =
             m_pDriver->vkCreateShadersEXT(m_pDriver->GetDev(), 1, &shadCreateInfo, NULL, &shader);
-        m_pDriver->CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
       }
 
       return shader;
@@ -484,7 +484,7 @@ private:
     };
 
     VkResult vkr = m_pDriver->vkCreateShaderModule(m_pDriver->GetDev(), &modinfo, NULL, &mod);
-    m_pDriver->CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
   }
 
   void PatchOutputLocation(VkShaderEXT &shad, ResourceId shaderId, BuiltinShader shaderType,
@@ -502,7 +502,7 @@ private:
     shadinfo.pName = "main";
 
     VkResult vkr = m_pDriver->vkCreateShadersEXT(m_pDriver->GetDev(), 1, &shadinfo, NULL, &shad);
-    m_pDriver->CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
   }
 
   void PatchOutputLocationSpirv(rdcarray<uint32_t> &spv, BuiltinShader shaderType,
@@ -1337,7 +1337,7 @@ protected:
     VkRenderPass renderpass;
     VkResult vkr =
         m_pDriver->vkCreateRenderPass(m_pDriver->GetDev(), &rpCreateInfo, NULL, &renderpass);
-    m_pDriver->CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
     m_RpsToDestroy.push_back(renderpass);
 
     pipestate.SetRenderPass(GetResID(renderpass));
@@ -1421,7 +1421,7 @@ protected:
 
     VkFramebuffer framebuffer;
     VkResult vkr = m_pDriver->vkCreateFramebuffer(m_pDriver->GetDev(), &fbCI, NULL, &framebuffer);
-    m_pDriver->CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
     m_FbsToDestroy.push_back(framebuffer);
 
     NameVulkanObject(
@@ -1471,7 +1471,7 @@ protected:
 
     VkImageView imageView;
     VkResult vkr = m_pDriver->vkCreateImageView(m_pDriver->GetDev(), &viewInfo, NULL, &imageView);
-    m_pDriver->CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
     m_ImageViewsToDestroy.push_back(imageView);
 
     VkImageView imageView2 = VK_NULL_HANDLE;
@@ -1479,7 +1479,7 @@ protected:
     {
       viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
       vkr = m_pDriver->vkCreateImageView(m_pDriver->GetDev(), &viewInfo, NULL, &imageView2);
-      m_pDriver->CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
       m_ImageViewsToDestroy.push_back(imageView2);
     }
 
@@ -1804,7 +1804,7 @@ struct VulkanOcclusionCallback : public VulkanPixelHistoryCallback
                                              m_OcclusionResults.byteSize(),
                                              m_OcclusionResults.data(), sizeof(uint64_t),
                                              VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
-    m_pDriver->CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
   }
 
   uint64_t GetOcclusionResult(uint32_t eventId)
@@ -1860,7 +1860,7 @@ private:
     VkPipeline pipe;
     VkResult vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
                                                         &pipeCreateInfo, NULL, &pipe);
-    m_pDriver->CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
     m_PipeCache.insert(std::make_pair(pipeline, pipe));
     return pipe;
   }
@@ -2374,7 +2374,7 @@ private:
     VkResult vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
                                                         &pipeCreateInfo, NULL,
                                                         &replacements.originalShaderStencil);
-    m_pDriver->CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
     {
@@ -2389,7 +2389,7 @@ private:
     vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
                                                &pipeCreateInfo, NULL,
                                                &replacements.fixedShaderStencil);
-    m_pDriver->CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     m_PipeCache.insert(std::make_pair(pipeline, replacements));
 
@@ -2506,7 +2506,7 @@ struct TestsFailedCallback : public VulkanPixelHistoryCallback
                                   (uint32_t)m_OcclusionResults.size(), m_OcclusionResults.byteSize(),
                                   m_OcclusionResults.data(), sizeof(m_OcclusionResults[0]),
                                   VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
-    m_pDriver->CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
   }
 
   uint64_t GetOcclusionResult(uint32_t eventId, uint32_t test) const
@@ -2973,7 +2973,7 @@ private:
     VkPipeline pipe;
     VkResult vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1, &ci,
                                                         NULL, &pipe);
-    m_pDriver->CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
     m_PipeCache.insert(std::make_pair(pipeKey, pipe));
     return GetResID(pipe);
   }
@@ -3590,7 +3590,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     Pipelines pipes = {};
     VkResult vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
                                                         &pipeCreateInfo, NULL, &pipes.postModPipe);
-    m_pDriver->CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
     m_PipesToDestroy.push_back(pipes.postModPipe);
 
     pipeCreateInfo.renderPass = rp;
@@ -3642,7 +3642,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
 
     vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
                                                &pipeCreateInfo, NULL, &pipes.shaderOutPipe);
-    m_pDriver->CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     m_PipesToDestroy.push_back(pipes.shaderOutPipe);
 
@@ -3693,7 +3693,7 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     {
       vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
                                                  &pipeCreateInfo, NULL, &pipes.primitiveIdPipe);
-      m_pDriver->CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
       m_PipesToDestroy.push_back(pipes.primitiveIdPipe);
     }
     else
@@ -3886,7 +3886,7 @@ struct VulkanPixelHistoryDiscardedFragmentsCallback : VulkanPixelHistoryCallback
     VkPipeline newPipe;
     VkResult vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
                                                         &pipeCreateInfo, NULL, &newPipe);
-    m_pDriver->CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
     m_PipesToDestroy.push_back(newPipe);
     return newPipe;
   }
@@ -3900,7 +3900,7 @@ struct VulkanPixelHistoryDiscardedFragmentsCallback : VulkanPixelHistoryCallback
                                              m_OcclusionResults.byteSize(),
                                              m_OcclusionResults.data(), sizeof(uint64_t),
                                              VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
-    m_pDriver->CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
   }
 
   bool PrimitiveDiscarded(uint32_t eid, uint32_t primId)
@@ -3994,7 +3994,7 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
     imgInfo.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
 
   vkr = m_pDriver->vkCreateImage(dev, &imgInfo, NULL, &colorImage);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   ImageState colorImageState = ImageState(colorImage, ImageInfo(imgInfo), eFrameRef_None);
 
@@ -4007,7 +4007,7 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
                   VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
   vkr = m_pDriver->vkCreateImage(dev, &imgInfo, NULL, &dsImage);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   ImageState stencilImageState = ImageState(dsImage, ImageInfo(imgInfo), eFrameRef_None);
 
@@ -4023,16 +4023,16 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
       m_pDriver->GetGPULocalMemoryIndex(colorImageMrq.memoryTypeBits),
   };
   vkr = m_pDriver->vkAllocateMemory(m_Device, &allocInfo, NULL, &gpuMem);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   if(vkr != VK_SUCCESS)
     return false;
 
   vkr = m_pDriver->vkBindImageMemory(m_Device, colorImage, gpuMem, 0);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   vkr = m_pDriver->vkBindImageMemory(m_Device, dsImage, gpuMem, offset);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   NameVulkanObject(colorImage, "Pixel History color image");
   NameVulkanObject(dsImage, "Pixel History depth image");
@@ -4047,7 +4047,7 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
 
   vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &colorImageView);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   viewInfo.image = dsImage;
   viewInfo.format = dsFormat;
@@ -4055,14 +4055,14 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
                                imgInfo.arrayLayers};
 
   vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &dsImageView);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
   bufferInfo.size = AlignUp((uint32_t)(numEvents * sizeof(EventInfo)), 4096U);
   bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
   vkr = m_pDriver->vkCreateBuffer(m_Device, &bufferInfo, NULL, &dstBuffer);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   // Allocate memory
   VkMemoryRequirements mrq = {};
@@ -4070,13 +4070,13 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
   allocInfo.allocationSize = mrq.size;
   allocInfo.memoryTypeIndex = m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits);
   vkr = m_pDriver->vkAllocateMemory(m_Device, &allocInfo, NULL, &bufferMemory);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   if(vkr != VK_SUCCESS)
     return false;
 
   vkr = m_pDriver->vkBindBufferMemory(m_Device, dstBuffer, bufferMemory, 0);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
@@ -4086,7 +4086,7 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
     return false;
 
   vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
   ObjDisp(cmd)->CmdFillBuffer(Unwrap(cmd), Unwrap(dstBuffer), 0, VK_WHOLE_SIZE, 0);
   colorImageState.InlineTransition(
       cmd, m_pDriver->m_QueueFamilyIdx, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 0,
@@ -4096,7 +4096,7 @@ bool VulkanDebugManager::PixelHistorySetupResources(PixelHistoryResources &resou
       VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, m_pDriver->GetImageTransitionInfo());
 
   vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
   m_pDriver->SubmitCmds();
   m_pDriver->FlushQ();
 
@@ -4145,7 +4145,7 @@ bool VulkanDebugManager::PixelHistorySetupPerFragResources(PixelHistoryResources
   bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
   VkResult vkr = m_pDriver->vkCreateBuffer(m_Device, &bufferInfo, NULL, &resources.dstBuffer);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   // Allocate memory
   VkMemoryRequirements mrq = {};
@@ -4157,13 +4157,13 @@ bool VulkanDebugManager::PixelHistorySetupPerFragResources(PixelHistoryResources
       m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits),
   };
   vkr = m_pDriver->vkAllocateMemory(m_Device, &allocInfo, NULL, &resources.bufferMemory);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   if(vkr != VK_SUCCESS)
     return false;
 
   vkr = m_pDriver->vkBindBufferMemory(m_Device, resources.dstBuffer, resources.bufferMemory, 0);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
@@ -4173,11 +4173,11 @@ bool VulkanDebugManager::PixelHistorySetupPerFragResources(PixelHistoryResources
     return false;
 
   vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
   ObjDisp(cmd)->CmdFillBuffer(Unwrap(cmd), Unwrap(resources.dstBuffer), 0, VK_WHOLE_SIZE, 0);
 
   vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
   m_pDriver->SubmitCmds();
   m_pDriver->FlushQ();
 
@@ -4279,7 +4279,7 @@ static void CreateOcclusionPool(WrappedVulkan *vk, uint32_t poolSize, VkQueryPoo
   // TODO: check that occlusion feature is available
   VkResult vkr =
       ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &occlusionPoolCreateInfo, NULL, pQueryPool);
-  vk->CheckVkResult(vkr);
+  CHECK_VKR(vk, vkr);
   VkCommandBuffer cmd = vk->GetNextCmd();
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
@@ -4288,10 +4288,10 @@ static void CreateOcclusionPool(WrappedVulkan *vk, uint32_t poolSize, VkQueryPoo
     return;
 
   vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-  vk->CheckVkResult(vkr);
+  CHECK_VKR(vk, vkr);
   ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), *pQueryPool, 0, poolSize);
   vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
-  vk->CheckVkResult(vkr);
+  CHECK_VKR(vk, vkr);
   vk->SubmitCmds();
   vk->FlushQ();
 }
@@ -4609,13 +4609,13 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
   EventInfo *eventsInfo;
   VkResult vkr =
       m_pDriver->vkMapMemory(dev, resources.bufferMemory, 0, VK_WHOLE_SIZE, 0, (void **)&eventsInfo);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
   if(vkr != VK_SUCCESS)
     return history;
   if(!eventsInfo)
   {
     RDCERR("Manually reporting failed memory map");
-    CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+    CHECK_VKR(m_pDriver, VK_ERROR_MEMORY_MAP_FAILED);
     return history;
   }
 
@@ -4715,13 +4715,13 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
 
     PerFragmentInfo *bp = NULL;
     vkr = m_pDriver->vkMapMemory(dev, resources.bufferMemory, 0, VK_WHOLE_SIZE, 0, (void **)&bp);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
     if(vkr != VK_SUCCESS)
       return history;
     if(!bp)
     {
       RDCERR("Manually reporting failed memory map");
-      CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+      CHECK_VKR(m_pDriver, VK_ERROR_MEMORY_MAP_FAILED);
       return history;
     }
 

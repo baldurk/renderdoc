@@ -329,7 +329,7 @@ WrappedID3D12Device::CreateStateObject(const D3D12_STATE_OBJECT_DESC *pDesc, REF
   }
   else
   {
-    CheckHRESULT(ret);
+    CHECK_HR(this, ret);
   }
 
   return ret;

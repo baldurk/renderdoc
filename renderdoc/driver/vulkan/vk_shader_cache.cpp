@@ -329,7 +329,7 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
 
           VkResult vkr = driver->vkCreateShaderModule(
               m_Device, &modinfo, NULL, &m_BuiltinShaderModules[i][baseType][textureType]);
-          driver->CheckVkResult(vkr);
+          CHECK_VKR(driver, vkr);
 
           driver->GetResourceManager()->SetInternalResource(
               GetResID(m_BuiltinShaderModules[i][baseType][textureType]));
@@ -394,7 +394,7 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
 
     VkResult vkr = ObjDisp(m_Device)->CreatePipelineCache(Unwrap(m_Device), &createInfo, NULL,
                                                           &m_PipelineCache);
-    driver->CheckVkResult(vkr);
+    CHECK_VKR(driver, vkr);
 
     if(vkr == VK_SUCCESS)
     {
@@ -960,7 +960,7 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
 
       VkResult vkr = m_pDriver->vkCreatePipelineLayout(m_pDriver->GetDev(), &pipeLayoutCreateInfo,
                                                        NULL, &m_CombinedPipeLayouts[pipeline]);
-      m_pDriver->CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       ret.layout = m_CombinedPipeLayouts[pipeline];
     }

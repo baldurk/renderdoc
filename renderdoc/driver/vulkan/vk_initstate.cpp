@@ -316,7 +316,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     VkBuffer dstBuf;
 
     vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &dstBuf);
-    CheckVkResult(vkr);
+    CHECK_VKR(this, vkr);
 
     VkMemoryRequirements dstBufMrq = {};
     ObjDisp(d)->GetBufferMemoryRequirements(Unwrap(d), dstBuf, &dstBufMrq);
@@ -332,7 +332,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     }
 
     vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, Unwrap(readbackmem.mem), readbackmem.offs);
-    CheckVkResult(vkr);
+    CHECK_VKR(this, vkr);
 
     VkImageAspectFlags aspectFlags = FormatImageAspects(imageInfo.format);
 
@@ -536,7 +536,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
     bufInfo.size = datasize;
     vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, NULL, &dstBuf);
-    CheckVkResult(vkr);
+    CHECK_VKR(this, vkr);
 
     VkMemoryRequirements dstBufMrq = {};
     ObjDisp(d)->GetBufferMemoryRequirements(Unwrap(d), dstBuf, &dstBufMrq);
@@ -551,9 +551,9 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       return false;
     }
 
-    CheckVkResult(vkr);
+    CHECK_VKR(this, vkr);
     vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, Unwrap(readbackmem.mem), readbackmem.offs);
-    CheckVkResult(vkr);
+    CHECK_VKR(this, vkr);
 
     VkBufferCopy region = {0, 0, datasize};
 
@@ -1514,7 +1514,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
         mappedMem = initial->mem;
         vkr = ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem.mem), initial->mem.offs, size, 0,
                                     (void **)&Contents);
-        CheckVkResult(vkr);
+        CHECK_VKR(this, vkr);
 
         // invalidate the cpu cache for this memory range to avoid reading stale data
         VkMappedMemoryRange range = {
@@ -1526,7 +1526,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
         };
 
         vkr = ObjDisp(d)->InvalidateMappedMemoryRanges(Unwrap(d), 1, &range);
-        CheckVkResult(vkr);
+        CHECK_VKR(this, vkr);
       }
     }
     else if(IsReplayingAndReading() && !ser.IsErrored())
@@ -1537,7 +1537,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
           VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT};
 
       vkr = vkCreateBuffer(d, &bufInfo, NULL, &uploadBuf);
-      CheckVkResult(vkr);
+      CHECK_VKR(this, vkr);
 
       uploadMemory =
           AllocateMemoryForResource(uploadBuf, MemoryScope::InitialContents, MemoryType::Upload);
@@ -1546,19 +1546,19 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
         return false;
 
       vkr = vkBindBufferMemory(d, uploadBuf, uploadMemory.mem, uploadMemory.offs);
-      CheckVkResult(vkr);
+      CHECK_VKR(this, vkr);
 
       mappedMem = uploadMemory;
 
       vkr = ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mappedMem.mem), mappedMem.offs,
                                   AlignUp(mappedMem.size, nonCoherentAtomSize), 0,
                                   (void **)&Contents);
-      CheckVkResult(vkr);
+      CHECK_VKR(this, vkr);
 
       if(!Contents)
       {
         RDCERR("Manually reporting failed memory map");
-        CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+        CHECK_VKR(this, VK_ERROR_MEMORY_MAP_FAILED);
         return false;
       }
 
@@ -1585,7 +1585,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
         };
 
         vkr = ObjDisp(d)->FlushMappedMemoryRanges(Unwrap(d), 1, &range);
-        CheckVkResult(vkr);
+        CHECK_VKR(this, vkr);
       }
 
       ObjDisp(d)->UnmapMemory(Unwrap(d), Unwrap(mappedMem.mem));
@@ -1649,7 +1649,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
           };
 
           vkr = vkCreateBuffer(d, &gpuBufInfo, NULL, &gpuBuf);
-          CheckVkResult(vkr);
+          CHECK_VKR(this, vkr);
 
           MemoryAllocation gpuUploadMemory =
               AllocateMemoryForResource(gpuBuf, MemoryScope::InitialContents, MemoryType::GPULocal);
@@ -1658,7 +1658,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
             return false;
 
           vkr = vkBindBufferMemory(d, gpuBuf, gpuUploadMemory.mem, gpuUploadMemory.offs);
-          CheckVkResult(vkr);
+          CHECK_VKR(this, vkr);
 
           VkCommandBuffer cmd = GetNextCmd();
 
@@ -1669,7 +1669,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
                                                 VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
           vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-          CheckVkResult(vkr);
+          CHECK_VKR(this, vkr);
 
           VkBufferCopy bufCopy = {0, 0, ContentsSize};
           ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(uploadBuf), Unwrap(gpuBuf), 1, &bufCopy);
@@ -1689,7 +1689,7 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
           DoPipelineBarrier(cmd, 1, &bufBarrier);
 
           vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-          CheckVkResult(vkr);
+          CHECK_VKR(this, vkr);
 
           SubmitCmds();
           FlushQ();

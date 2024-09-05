@@ -138,7 +138,7 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
       else
         vkr = m_pDriver->vkCreatePipelineLayout(m_pDriver->GetDev(), &pipeLayoutInfo, NULL,
                                                 &pipe.pipeLayout);
-      m_pDriver->CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       VkGraphicsPipelineCreateInfo pipeCreateInfo;
       m_pDriver->GetShaderCache()->MakeGraphicsPipelineInfo(pipeCreateInfo,
@@ -209,7 +209,7 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
         shadCreateInfo.pSpecializationInfo = NULL;
 
         vkr = m_pDriver->vkCreateShadersEXT(dev, 1, &shadCreateInfo, NULL, &shad.shad);
-        m_pDriver->CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
 
         shad.descSet = descSet;
 
@@ -230,7 +230,7 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
         VkDevice dev = m_pDriver->GetDev();
 
         vkr = m_pDriver->vkCreateShaderModule(dev, &modinfo, NULL, &module);
-        m_pDriver->CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
 
         bool found = false;
         for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
@@ -263,7 +263,7 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
 
         vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL,
                                                    &pipe.pipe);
-        m_pDriver->CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
 
         m_pDriver->vkDestroyShaderModule(dev, module, NULL);
 
@@ -447,7 +447,7 @@ void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, float col[4])
   };
 
   VkResult vkr = m_pDriver->vkCreateShaderModule(m_Device, &modinfo, NULL, &mod);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 }
 
 void VulkanDebugManager::PatchFixedColShaderObject(VkShaderEXT &shad, float col[4])
@@ -510,7 +510,7 @@ void VulkanDebugManager::PatchFixedColShaderObject(VkShaderEXT &shad, float col[
 
   VkResult vkr = m_pDriver->vkCreateShadersEXT(m_Device, 1, &shadInfo, NULL, &shad);
 
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 }
 
 void VulkanDebugManager::PatchLineStripIndexBuffer(const ActionDescription *action,
@@ -578,7 +578,7 @@ void VulkanDebugManager::PatchLineStripIndexBuffer(const ActionDescription *acti
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
   VkResult vkr = ObjDisp(m_Device)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   // ensure host writes finish before using as index buffer
   DoPipelineBarrier(cmd, 1, &uploadbarrier);
@@ -634,7 +634,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
   VkResult vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   VkMarkerRegion::Begin(StringFormat::Fmt("RenderOverlay %d", overlay), cmd);
 
@@ -717,7 +717,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
     };
 
     vkr = m_pDriver->vkCreateImage(m_Device, &imInfo, NULL, &m_Overlay.Image);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     NameVulkanObject(m_Overlay.Image, "m_Overlay.Image");
 
@@ -741,7 +741,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       };
 
       vkr = m_pDriver->vkAllocateMemory(m_Device, &allocInfo, NULL, &m_Overlay.ImageMem);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       if(vkr != VK_SUCCESS)
         return ResourceId();
@@ -750,7 +750,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
     }
 
     vkr = m_pDriver->vkBindImageMemory(m_Device, m_Overlay.Image, m_Overlay.ImageMem, 0);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     // need to update image layout into valid state
 
@@ -798,7 +798,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       rpinfo.pNext = &multiviewRP;
 
     vkr = m_pDriver->vkCreateRenderPass(m_Device, &rpinfo, NULL, &m_Overlay.NoDepthRP);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
   }
 
   if(m_Overlay.ViewMip != sub.mip || m_Overlay.ViewSlice != sub.slice ||
@@ -824,7 +824,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
     };
 
     vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &m_Overlay.ImageView);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     // Create framebuffer rendering just to overlay image, no depth
     VkFramebufferCreateInfo fbinfo = {
@@ -840,7 +840,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
     };
 
     vkr = m_pDriver->vkCreateFramebuffer(m_Device, &fbinfo, NULL, &m_Overlay.NoDepthFB);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     // can't create a framebuffer or renderpass for overlay image + depth as that
     // needs to match the depth texture type wherever our draw is.
@@ -991,7 +991,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
     if(!state.rastDiscardEnable)
     {
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       // backup state
       VulkanRenderState prevstate = state;
@@ -1201,7 +1201,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       {
         vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo,
                                                    NULL, &pipe);
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
       }
 
       // modify state
@@ -1253,7 +1253,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           return ResourceId();
 
         vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
 
         // do single draw
         state.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
@@ -1265,7 +1265,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         state.EndRenderPass(cmd);
 
         vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
       }
 
       // submit & flush so that we don't have to keep pipeline around for a while
@@ -1278,7 +1278,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         return ResourceId();
 
       vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       // restore state
       state = prevstate;
@@ -1325,7 +1325,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
     if(!state.rastDiscardEnable)
     {
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       float highlightCol[] = {1.0f, 0.0f, 0.0f, 1.0f};
 
@@ -1432,13 +1432,13 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo,
                                                    NULL, &pipe[0]);
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
 
         fragShader->module = mod[1];
 
         vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo,
                                                    NULL, &pipe[1]);
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
       }
 
       // disable tests in dynamic state too
@@ -1497,7 +1497,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         return ResourceId();
 
       vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       {
         VkClearValue clearval = {};
@@ -1595,7 +1595,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       }
 
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       // submit & flush so that we don't have to keep pipeline around for a while
       m_pDriver->SubmitCmds();
@@ -1607,7 +1607,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         return ResourceId();
 
       vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       for(int i = 0; i < 2; i++)
       {
@@ -1651,7 +1651,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
     if(!state.rastDiscardEnable)
     {
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       // backup state
       VulkanRenderState prevstate = state;
@@ -1760,14 +1760,14 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo,
                                                    NULL, &pipe[0]);
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
 
         fragShader->module = mod[1];
         rs->cullMode = origCullMode;
 
         vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo,
                                                    NULL, &pipe[1]);
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
       }
 
       // disable tests in dynamic state too
@@ -1818,7 +1818,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         return ResourceId();
 
       vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       // restore state
       state = prevstate;
@@ -1868,7 +1868,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
     if(!state.rastDiscardEnable)
     {
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
       cmd = VK_NULL_HANDLE;
 
       VkFramebuffer depthFB = VK_NULL_HANDLE;
@@ -2036,7 +2036,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           rpinfo.pNext = &multiviewRP;
 
         vkr = m_pDriver->vkCreateRenderPass(m_Device, &rpinfo, NULL, &depthRP);
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
 
         VkImageView dsView =
             m_pDriver->GetResourceManager()->GetCurrentHandle<VkImageView>(depthStencilView);
@@ -2102,7 +2102,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           };
 
           vkr = m_pDriver->vkCreateImage(m_Device, &dsNewImInfo, NULL, &dsTempImage);
-          CheckVkResult(vkr);
+          CHECK_VKR(m_pDriver, vkr);
 
           NameVulkanObject(dsTempImage, "Overlay Depth+Stencil Image");
 
@@ -2117,20 +2117,20 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           };
 
           vkr = m_pDriver->vkAllocateMemory(m_Device, &allocInfo, NULL, &dsTempImageMem);
-          CheckVkResult(vkr);
+          CHECK_VKR(m_pDriver, vkr);
 
           if(vkr != VK_SUCCESS)
             return ResourceId();
 
           vkr = m_pDriver->vkBindImageMemory(m_Device, dsTempImage, dsTempImageMem, 0);
-          CheckVkResult(vkr);
+          CHECK_VKR(m_pDriver, vkr);
 
           cmd = m_pDriver->GetNextCmd();
           if(cmd == VK_NULL_HANDLE)
             return ResourceId();
 
           vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-          CheckVkResult(vkr);
+          CHECK_VKR(m_pDriver, vkr);
 
           // move original depth buffer to shader read state
           m_pDriver->FindImageState(depthIm)->InlineTransition(
@@ -2145,7 +2145,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
                                  m_pDriver->GetImageTransitionInfo());
 
           vkr = vt->EndCommandBuffer(Unwrap(cmd));
-          CheckVkResult(vkr);
+          CHECK_VKR(m_pDriver, vkr);
           cmd = VK_NULL_HANDLE;
 
           dsSubRange = {
@@ -2169,7 +2169,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           };
 
           vkr = m_pDriver->vkCreateImageView(m_Device, &dsViewInfo, NULL, &dsView);
-          CheckVkResult(vkr);
+          CHECK_VKR(m_pDriver, vkr);
           dsDepthImage = dsTempImage;
         }
 
@@ -2192,7 +2192,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         };
 
         vkr = m_pDriver->vkCreateFramebuffer(m_Device, &fbinfo, NULL, &depthFB);
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
 
         // Fullscreen pass using shader to copy original depth buffer -> new depth buffer
         // Pipeline also writes 0 to the stencil during the pass
@@ -2203,7 +2203,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
             return ResourceId();
 
           vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-          CheckVkResult(vkr);
+          CHECK_VKR(m_pDriver, vkr);
 
           VkClearValue clearval = {};
           VkRenderPassBeginInfo rpbegin = {
@@ -2233,7 +2233,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           vt->CmdEndRenderPass(Unwrap(cmd));
 
           vkr = vt->EndCommandBuffer(Unwrap(cmd));
-          CheckVkResult(vkr);
+          CHECK_VKR(m_pDriver, vkr);
           cmd = VK_NULL_HANDLE;
         }
         dsFmt = dsNewFmt;
@@ -2365,7 +2365,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo,
                                                    NULL, &passpipe);
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
 
         fragShader->module = failmod;
 
@@ -2384,7 +2384,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo,
                                                    NULL, &failpipe);
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
 
         if(useDepthWriteStencilPass)
         {
@@ -2416,7 +2416,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
           vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1, &pipeCreateInfo,
                                                      NULL, &depthWriteStencilPipe);
-          CheckVkResult(vkr);
+          CHECK_VKR(m_pDriver, vkr);
         }
       }
 
@@ -2482,7 +2482,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           return ResourceId();
 
         vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
 
         VkImageSubresourceRange sSubRange = {
             VK_IMAGE_ASPECT_STENCIL_BIT, sub.mip, 1, sub.slice, sub.numSlices,
@@ -2520,7 +2520,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         }
 
         vkr = vt->EndCommandBuffer(Unwrap(cmd));
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
         cmd = VK_NULL_HANDLE;
       }
 
@@ -2542,7 +2542,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         RDCASSERT((dsFmt == VK_FORMAT_D24_UNORM_S8_UINT) || (dsFmt == VK_FORMAT_D32_SFLOAT_S8_UINT));
         vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
 
         VkClearValue clearval = {};
         VkRenderPassBeginInfo rpbegin = {
@@ -2569,7 +2569,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         vt->CmdEndRenderPass(Unwrap(cmd));
 
         vkr = vt->EndCommandBuffer(Unwrap(cmd));
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
         cmd = VK_NULL_HANDLE;
       }
 
@@ -2583,7 +2583,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         return ResourceId();
 
       vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       // restore state
       state = prevstate;
@@ -2644,7 +2644,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
     {
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       if(Vulkan_Debug_SingleSubmitFlushing())
         m_pDriver->SubmitCmds();
@@ -2684,7 +2684,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         return ResourceId();
 
       vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       state.BeginRenderPassAndApplyState(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
 
@@ -2753,7 +2753,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       state.EndRenderPass(cmd);
 
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       for(size_t i = startEvent; i < events.size(); i++)
       {
@@ -2769,7 +2769,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         return ResourceId();
 
       vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
     }
   }
   else if(overlay == DebugOverlay::QuadOverdrawPass || overlay == DebugOverlay::QuadOverdrawDraw)
@@ -2845,7 +2845,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       };
 
       vkr = m_pDriver->vkCreateImage(m_Device, &imInfo, NULL, &quadImg);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       NameVulkanObject(quadImg, "m_Overlay.quadImg");
 
@@ -2861,13 +2861,13 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       };
 
       vkr = m_pDriver->vkAllocateMemory(m_Device, &allocInfo, NULL, &quadImgMem);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       if(vkr != VK_SUCCESS)
         return ResourceId();
 
       vkr = m_pDriver->vkBindImageMemory(m_Device, quadImg, quadImgMem, 0);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       VkImageViewCreateInfo viewinfo = {
           VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -2882,7 +2882,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       };
 
       vkr = m_pDriver->vkCreateImageView(m_Device, &viewinfo, NULL, &quadImgView);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       // update descriptor to point to our R32 result image
       VkDescriptorImageInfo imdesc = {0};
@@ -2939,7 +2939,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
       // end this cmd buffer so the image is in the right state for the next part
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       if(Vulkan_Debug_SingleSubmitFlushing())
         m_pDriver->SubmitCmds();
@@ -2961,7 +2961,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
             return ResourceId();
 
           vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-          CheckVkResult(vkr);
+          CHECK_VKR(m_pDriver, vkr);
 
           quadImBarrier.srcAccessMask = quadImBarrier.dstAccessMask;
           quadImBarrier.oldLayout = quadImBarrier.newLayout;
@@ -2998,7 +2998,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           vt->CmdEndRenderPass(Unwrap(cmd));
 
           vkr = vt->EndCommandBuffer(Unwrap(cmd));
-          CheckVkResult(vkr);
+          CHECK_VKR(m_pDriver, vkr);
         }
 
         m_pDriver->SubmitCmds();
@@ -3018,7 +3018,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         return ResourceId();
 
       vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
     }
   }
   else if(overlay == DebugOverlay::TriangleSizePass || overlay == DebugOverlay::TriangleSizeDraw)
@@ -3068,7 +3068,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
 
         // end this cmd buffer so the image is in the right state for the next part
         vkr = vt->EndCommandBuffer(Unwrap(cmd));
-        CheckVkResult(vkr);
+        CHECK_VKR(m_pDriver, vkr);
 
         if(Vulkan_Debug_SingleSubmitFlushing())
           m_pDriver->SubmitCmds();
@@ -3229,7 +3229,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
             rpinfo.pNext = &multiviewRP;
 
           vkr = m_pDriver->vkCreateRenderPass(m_Device, &rpinfo, NULL, &RP);
-          CheckVkResult(vkr);
+          CHECK_VKR(m_pDriver, vkr);
 
           VkImageView views[] = {
               m_Overlay.ImageView,
@@ -3250,7 +3250,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           };
 
           vkr = m_pDriver->vkCreateFramebuffer(m_Device, &fbinfo, NULL, &FB);
-          CheckVkResult(vkr);
+          CHECK_VKR(m_pDriver, vkr);
         }
 
         VkGraphicsPipelineCreateInfo pipeCreateInfo;
@@ -3454,7 +3454,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
             return ResourceId();
 
           vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-          CheckVkResult(vkr);
+          CHECK_VKR(m_pDriver, vkr);
 
           VkClearValue clearval = {};
           VkRenderPassBeginInfo rpbegin = {
@@ -3498,7 +3498,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
               {
                 vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1,
                                                            &pipeCreateInfo, NULL, &pipe);
-                CheckVkResult(vkr);
+                CHECK_VKR(m_pDriver, vkr);
               }
 
               VkBuffer vb =
@@ -3996,7 +3996,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           vt->CmdEndRenderPass(Unwrap(cmd));
 
           vkr = vt->EndCommandBuffer(Unwrap(cmd));
-          CheckVkResult(vkr);
+          CHECK_VKR(m_pDriver, vkr);
 
           if(overlay == DebugOverlay::TriangleSizePass)
           {
@@ -4038,14 +4038,14 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         return ResourceId();
 
       vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
     }
   }
 
   VkMarkerRegion::End(cmd);
 
   vkr = vt->EndCommandBuffer(Unwrap(cmd));
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   if(Vulkan_Debug_SingleSubmitFlushing())
     m_pDriver->SubmitCmds();

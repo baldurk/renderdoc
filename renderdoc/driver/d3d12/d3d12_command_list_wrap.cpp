@@ -128,7 +128,7 @@ HRESULT WrappedID3D12GraphicsCommandList::Close()
     m_ListRecord->Bake();
   }
 
-  m_pDevice->CheckHRESULT(ret);
+  CHECK_HR(m_pDevice, ret);
 
   return ret;
 }
@@ -439,7 +439,7 @@ HRESULT WrappedID3D12GraphicsCommandList::ResetInternal(ID3D12CommandAllocator *
   else
   {
     ret = m_pList->Reset(Unwrap(pAllocator), Unwrap(pInitialState));
-    m_pDevice->CheckHRESULT(ret);
+    CHECK_HR(m_pDevice, ret);
   }
 
   return ret;
@@ -3649,7 +3649,7 @@ void WrappedID3D12GraphicsCommandList::FinaliseExecuteIndirectEvents(BakedCmdLis
 
   D3D12_RANGE range = {0, D3D12CommandData::m_IndirectSize};
   byte *mapPtr = NULL;
-  m_pDevice->CheckHRESULT(exec.argBuf->Map(0, &range, (void **)&mapPtr));
+  CHECK_HR(m_pDevice, exec.argBuf->Map(0, &range, (void **)&mapPtr));
 
   if(m_pDevice->HasFatalError())
     return;

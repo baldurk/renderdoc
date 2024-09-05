@@ -105,7 +105,7 @@ void VulkanReplay::OutputWindow::CreateSurface(WrappedVulkan *driver, VkInstance
     RDCDEBUG("Creating macOS surface with EXT_metal_surface");
 
     VkResult vkr = ObjDisp(inst)->CreateMetalSurfaceEXT(Unwrap(inst), &createInfo, NULL, &surface);
-    driver->CheckVkResult(vkr);
+    CHECK_VKR(driver, vkr);
     return;
   }
 #endif
@@ -123,7 +123,7 @@ void VulkanReplay::OutputWindow::CreateSurface(WrappedVulkan *driver, VkInstance
     RDCDEBUG("Creating macOS surface with MVK_macos_surface");
 
     VkResult vkr = ObjDisp(inst)->CreateMacOSSurfaceMVK(Unwrap(inst), &createInfo, NULL, &surface);
-    driver->CheckVkResult(vkr);
+    CHECK_VKR(driver, vkr);
     return;
   }
 #endif

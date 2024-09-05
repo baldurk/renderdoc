@@ -771,7 +771,7 @@ public:
       }
 
       VkResult vkr = m_pDriver->vkCreateImageView(dev, &viewInfo, NULL, &sampleView);
-      m_pDriver->CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       m_SampleViews[GetResID(view)] = sampleView;
     }
@@ -851,7 +851,7 @@ public:
           sampInfo.mipLodBias += bias;
 
           VkResult vkr = m_pDriver->vkCreateSampler(dev, &sampInfo, NULL, &sampler);
-          m_pDriver->CheckVkResult(vkr);
+          CHECK_VKR(m_pDriver, vkr);
 
           insertIt.first->second = sampler;
         }
@@ -1263,7 +1263,7 @@ public:
                                             VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
       VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      m_pDriver->CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       VkClearValue clear = {};
 
@@ -1318,7 +1318,7 @@ public:
       DoPipelineBarrier(cmd, 1, &bufBarrier);
 
       vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-      m_pDriver->CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       m_pDriver->SubmitCmds();
       m_pDriver->FlushQ();
@@ -1406,7 +1406,7 @@ public:
                                             VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
       VkResult vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      m_pDriver->CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
                                     Unwrap(m_DebugData.MathPipe[floatSizeIdx]));
@@ -1458,7 +1458,7 @@ public:
       DoPipelineBarrier(cmd, 1, &bufBarrier);
 
       vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-      m_pDriver->CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       m_pDriver->SubmitCmds();
       m_pDriver->FlushQ();
@@ -1820,7 +1820,7 @@ private:
 
       VkResult vkr = m_pDriver->vkCreateShaderModule(m_pDriver->GetDev(), &moduleCreateInfo, NULL,
                                                      &m_DebugData.Module[shaderIndex]);
-      m_pDriver->CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       const char *filename[] = {
           "/debug_psgather_float.spv", "/debug_psgather_depth.spv", "/debug_psgather_uint.spv",
@@ -4478,7 +4478,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     };
 
     vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &pipeLayout);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     graphicsInfo.layout = pipeLayout;
 
@@ -4563,7 +4563,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
       moduleCreateInfo.codeSize = fragspv.size() * sizeof(uint32_t);
 
       vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &stage.module);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       stage.pSpecializationInfo = &specInfo;
 
@@ -4601,7 +4601,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
       moduleCreateInfo.codeSize = spirv.size() * sizeof(uint32_t);
 
       vkr = m_pDriver->vkCreateShaderModule(dev, &moduleCreateInfo, NULL, &stage.module);
-      CheckVkResult(vkr);
+      CHECK_VKR(m_pDriver, vkr);
 
       modules.push_back(stage.module);
     }
@@ -4614,7 +4614,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   VkPipeline inputsPipe;
   vkr =
       m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &graphicsInfo, NULL, &inputsPipe);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   // make copy of state to draw from
   VulkanRenderState modifiedstate = state;
@@ -4649,7 +4649,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
                                           VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
     vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     // fill destination buffer with 0s to ensure a baseline to then feedback against
     ObjDisp(dev)->CmdFillBuffer(Unwrap(cmd), Unwrap(m_BindlessFeedback.FeedbackBuffer.buf), 0,
@@ -4678,7 +4678,7 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     modifiedstate.EndRenderPass(cmd);
 
     vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     m_pDriver->SubmitCmds();
     m_pDriver->FlushQ();

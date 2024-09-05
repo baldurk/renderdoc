@@ -215,7 +215,7 @@ HRESULT WrappedID3D12Device::CreateCommandQueue(const D3D12_COMMAND_QUEUE_DESC *
   }
   else
   {
-    CheckHRESULT(ret);
+    CHECK_HR(this, ret);
   }
 
   return ret;
@@ -305,7 +305,7 @@ HRESULT WrappedID3D12Device::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE type
   }
   else
   {
-    CheckHRESULT(ret);
+    CHECK_HR(this, ret);
   }
 
   return ret;
@@ -481,7 +481,7 @@ HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST
   }
   else
   {
-    CheckHRESULT(ret);
+    CHECK_HR(this, ret);
   }
 
   return ret;
@@ -800,7 +800,7 @@ HRESULT WrappedID3D12Device::CreateGraphicsPipelineState(const D3D12_GRAPHICS_PI
   }
   else
   {
-    CheckHRESULT(ret);
+    CHECK_HR(this, ret);
   }
 
   return ret;
@@ -983,7 +983,7 @@ HRESULT WrappedID3D12Device::CreateComputePipelineState(const D3D12_COMPUTE_PIPE
   }
   else
   {
-    CheckHRESULT(ret);
+    CHECK_HR(this, ret);
   }
 
   return ret;
@@ -1121,7 +1121,7 @@ HRESULT WrappedID3D12Device::CreateDescriptorHeap(const D3D12_DESCRIPTOR_HEAP_DE
   }
   else
   {
-    CheckHRESULT(ret);
+    CHECK_HR(this, ret);
   }
 
   return ret;
@@ -1298,7 +1298,7 @@ HRESULT WrappedID3D12Device::CreateRootSignature(UINT nodeMask, const void *pBlo
   }
   else
   {
-    CheckHRESULT(ret);
+    CHECK_HR(this, ret);
   }
 
   return ret;
@@ -1673,7 +1673,7 @@ HRESULT WrappedID3D12Device::CreateHeap(const D3D12_HEAP_DESC *pDesc, REFIID rii
   }
   else
   {
-    CheckHRESULT(ret);
+    CHECK_HR(this, ret);
   }
 
   return ret;
@@ -1771,7 +1771,7 @@ HRESULT WrappedID3D12Device::CreateFence(UINT64 InitialValue, D3D12_FENCE_FLAGS 
   }
   else
   {
-    CheckHRESULT(ret);
+    CHECK_HR(this, ret);
   }
 
   return ret;
@@ -1853,7 +1853,7 @@ HRESULT WrappedID3D12Device::CreateQueryHeap(const D3D12_QUERY_HEAP_DESC *pDesc,
   }
   else
   {
-    CheckHRESULT(ret);
+    CHECK_HR(this, ret);
   }
 
   return ret;
@@ -1968,7 +1968,7 @@ HRESULT WrappedID3D12Device::CreateCommandSignature(const D3D12_COMMAND_SIGNATUR
   }
   else
   {
-    CheckHRESULT(ret);
+    CHECK_HR(this, ret);
   }
 
   return ret;

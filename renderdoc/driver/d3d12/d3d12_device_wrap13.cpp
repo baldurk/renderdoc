@@ -93,7 +93,7 @@ HRESULT WrappedID3D12Device::OpenExistingHeapFromAddress1(const void *pAddress, 
   }
   else
   {
-    CheckHRESULT(ret);
+    CHECK_HR(this, ret);
   }
 
   return ret;

@@ -1352,7 +1352,7 @@ bool D3D12Replay::FetchShaderFeedback(uint32_t eventId)
     pipestatsQueryDesc.Type = D3D12_QUERY_HEAP_TYPE_PIPELINE_STATISTICS;
     HRESULT hr = m_pDevice->CreateQueryHeap(&pipestatsQueryDesc, __uuidof(ID3D12QueryHeap),
                                             (void **)&m_BindlessFeedback.PipeStatsHeap);
-    m_pDevice->CheckHRESULT(hr);
+    CHECK_HR(m_pDevice, hr);
     if(FAILED(hr))
     {
       RDCERR("Failed to create shader feedback pipeline query heap HRESULT: %s", ToStr(hr).c_str());

@@ -1334,7 +1334,7 @@ void D3D12ResourceManager::Create_InitialState(ResourceId id, ID3D12DeviceChild 
       if(FAILED(hr))
       {
         RDCERR("Couldn't create initial state copy: %s", ToStr(hr).c_str());
-        m_Device->CheckHRESULT(hr);
+        CHECK_HR(m_Device, hr);
       }
       else
       {
@@ -1439,7 +1439,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
         if(copyDst->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
         {
           hr = Unwrap(copyDst)->Map(0, NULL, (void **)&dst);
-          m_Device->CheckHRESULT(hr);
+          CHECK_HR(m_Device, hr);
 
           if(FAILED(hr))
           {
@@ -1472,7 +1472,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
           for(UINT i = 0; i < numSubresources; i++)
           {
             hr = Unwrap(copyDst)->Map(i, NULL, (void **)&dst);
-            m_Device->CheckHRESULT(hr);
+            CHECK_HR(m_Device, hr);
 
             if(FAILED(hr))
             {

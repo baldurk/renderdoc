@@ -436,7 +436,7 @@ HRESULT WrappedID3D12Device::CreatePipelineState(const D3D12_PIPELINE_STATE_STRE
   }
   else
   {
-    CheckHRESULT(ret);
+    CHECK_HR(this, ret);
   }
 
   return ret;

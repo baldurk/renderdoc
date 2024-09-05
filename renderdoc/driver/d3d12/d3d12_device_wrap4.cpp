@@ -194,7 +194,7 @@ HRESULT WrappedID3D12Device::CreateCommandList1(UINT nodeMask, D3D12_COMMAND_LIS
   }
   else
   {
-    CheckHRESULT(ret);
+    CHECK_HR(this, ret);
   }
 
   return ret;
@@ -340,7 +340,7 @@ HRESULT WrappedID3D12Device::CreateHeap1(const D3D12_HEAP_DESC *pDesc,
   }
   else
   {
-    CheckHRESULT(ret);
+    CHECK_HR(this, ret);
   }
 
   return ret;

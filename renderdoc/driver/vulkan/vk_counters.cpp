@@ -689,7 +689,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCountersKHR(const rdcarray<GPUCounter
 
   VkQueryPool queryPool;
   vkr = ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &queryPoolCreateInfo, NULL, &queryPool);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   // Reset query pool
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
@@ -701,12 +701,12 @@ rdcarray<CounterResult> VulkanReplay::FetchCountersKHR(const rdcarray<GPUCounter
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
   vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), queryPool, 0, maxEID);
 
   vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   m_pDriver->SubmitCmds();
 
@@ -732,7 +732,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCountersKHR(const rdcarray<GPUCounter
       Unwrap(dev), queryPool, 0, (uint32_t)cb.m_Results.size(),
       sizeof(VkPerformanceCounterResultKHR) * perfResults.size(), &perfResults[0],
       sizeof(VkPerformanceCounterResultKHR) * counters.size(), VK_QUERY_RESULT_WAIT_BIT);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
   m_pDriver->SubmitCmds();
   m_pDriver->FlushQ();
 
@@ -1039,7 +1039,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
   VkQueryPool timeStampPool;
   VkResult vkr =
       ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &timeStampPoolCreateInfo, NULL, &timeStampPool);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   bool occlNeeded = false;
   bool statsNeeded = false;
@@ -1071,21 +1071,21 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
   if(availableFeatures.occlusionQueryPrecise && occlNeeded)
   {
     vkr = ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &occlusionPoolCreateInfo, NULL, &occlusionPool);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
   }
 
   VkQueryPool pipeStatsPool = VK_NULL_HANDLE;
   if(availableFeatures.pipelineStatisticsQuery && statsNeeded)
   {
     vkr = ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &pipeStatsPoolCreateInfo, NULL, &pipeStatsPool);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
   }
 
   VkQueryPool meshStatsPool = VK_NULL_HANDLE;
   if(m_pDriver->MeshQueries() && meshNeeded)
   {
     vkr = ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &meshStatsPoolCreateInfo, NULL, &meshStatsPool);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
   }
 
   VkQueryPool compPipeStatsPool = VK_NULL_HANDLE;
@@ -1095,7 +1095,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
         VK_QUERY_PIPELINE_STATISTIC_COMPUTE_SHADER_INVOCATIONS_BIT;
     vkr = ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &pipeStatsPoolCreateInfo, NULL,
                                         &compPipeStatsPool);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
   }
 
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
@@ -1107,7 +1107,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
   vkr = ObjDisp(dev)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), timeStampPool, 0, maxEID * 2);
   if(occlusionPool != VK_NULL_HANDLE)
@@ -1120,7 +1120,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
     ObjDisp(dev)->CmdResetQueryPool(Unwrap(cmd), compPipeStatsPool, 0, maxEID);
 
   vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
 
   if(Vulkan_Debug_SingleSubmitFlushing())
     m_pDriver->SubmitCmds();
@@ -1138,7 +1138,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
       Unwrap(dev), timeStampPool, 0, (uint32_t)timeStampData.size(),
       sizeof(uint64_t) * timeStampData.size(), &timeStampData[0], sizeof(uint64_t),
       VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
-  CheckVkResult(vkr);
+  CHECK_VKR(m_pDriver, vkr);
   m_pDriver->SubmitCmds();
   m_pDriver->FlushQ();
 
@@ -1153,7 +1153,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
       vkr = ObjDisp(dev)->GetQueryPoolResults(
           Unwrap(dev), occlusionPool, 0, cb.m_OcclQueries, sizeof(uint64_t) * cb.m_OcclQueries,
           occlusionData.data(), sizeof(uint64_t), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), occlusionPool, NULL);
   }
@@ -1169,7 +1169,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
                                               sizeof(uint64_t) * cb.m_GraphicsQueries * numPipeStats,
                                               pipeStatsData.data(), sizeof(uint64_t) * numPipeStats,
                                               VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), pipeStatsPool, NULL);
   }
@@ -1185,7 +1185,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
                                               sizeof(uint64_t) * cb.m_MeshQueries * numMeshStats,
                                               meshStatsData.data(), sizeof(uint64_t) * numMeshStats,
                                               VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), meshStatsPool, NULL);
   }
@@ -1200,7 +1200,7 @@ rdcarray<CounterResult> VulkanReplay::FetchCounters(const rdcarray<GPUCounter> &
                                               sizeof(uint64_t) * cb.m_ComputeQueries,
                                               m_CompPipeStatsData.data(), sizeof(uint64_t),
                                               VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
-    CheckVkResult(vkr);
+    CHECK_VKR(m_pDriver, vkr);
 
     ObjDisp(dev)->DestroyQueryPool(Unwrap(dev), compPipeStatsPool, NULL);
   }

@@ -881,7 +881,7 @@ public:
     else
       m_OOMHandler--;
   }
-  void CheckHRESULT(HRESULT hr);
+  void CheckHRESULT(const char *file, int line, HRESULT hr);
 
   void CheckDeferredResult(const RDResult &res);
   void AddDeferredTime(double ms);

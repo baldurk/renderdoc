@@ -479,7 +479,7 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
     VkBuffer buf;
 
     VkResult vkr = ObjDisp(device)->CreateBuffer(Unwrap(device), &bufInfo, NULL, &buf);
-    CheckVkResult(vkr);
+    CHECK_VKR(this, vkr);
 
     if(vkr == VK_SUCCESS && buf != VK_NULL_HANDLE)
     {
@@ -766,7 +766,7 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
   }
   else
   {
-    CheckVkResult(ret);
+    CHECK_VKR(this, ret);
   }
 
   return ret;
@@ -958,7 +958,7 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(SerialiserType &ser, VkDevice device
     {
       SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
                        "Error mapping memory on replay");
-      CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+      CHECK_VKR(this, VK_ERROR_MEMORY_MAP_FAILED);
       return false;
     }
 
@@ -1162,14 +1162,14 @@ bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(SerialiserType &ser, VkD
     VkResult ret =
         ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(MemRange.memory), MemRange.offset,
                                    MemRange.size, 0, (void **)&MappedData);
-    CheckVkResult(ret);
+    CHECK_VKR(this, ret);
     if(ret != VK_SUCCESS)
       RDCERR("Error mapping memory on replay: %s", ToStr(ret).c_str());
     if(!MappedData)
     {
       SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
                        "Error mapping memory on replay");
-      CheckVkResult(VK_ERROR_MEMORY_MAP_FAILED);
+      CHECK_VKR(this, VK_ERROR_MEMORY_MAP_FAILED);
       return false;
     }
 
@@ -1476,7 +1476,7 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
   SERIALISE_TIME_CALL(ret = ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buffer),
                                                               Unwrap(memory), memoryOffset));
 
-  CheckVkResult(ret);
+  CHECK_VKR(this, ret);
 
   if(IsCaptureMode(m_State))
   {
@@ -1597,7 +1597,7 @@ VkResult WrappedVulkan::vkBindImageMemory(VkDevice device, VkImage image, VkDevi
   SERIALISE_TIME_CALL(ret = ObjDisp(device)->BindImageMemory(Unwrap(device), Unwrap(image),
                                                              Unwrap(mem), memOffset));
 
-  CheckVkResult(ret);
+  CHECK_VKR(this, ret);
 
   if(IsCaptureMode(m_State))
   {
@@ -1979,7 +1979,7 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
   }
   else
   {
-    CheckVkResult(ret);
+    CHECK_VKR(this, ret);
   }
 
   return ret;
@@ -2716,7 +2716,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
   }
   else
   {
-    CheckVkResult(ret);
+    CHECK_VKR(this, ret);
   }
 
   return ret;
@@ -2978,7 +2978,7 @@ VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCo
   SERIALISE_TIME_CALL(
       ret = ObjDisp(device)->BindBufferMemory2(Unwrap(device), bindInfoCount, unwrapped));
 
-  CheckVkResult(ret);
+  CHECK_VKR(this, ret);
 
   if(IsCaptureMode(m_State))
   {
@@ -3110,7 +3110,7 @@ VkResult WrappedVulkan::vkBindImageMemory2(VkDevice device, uint32_t bindInfoCou
   SERIALISE_TIME_CALL(
       ret = ObjDisp(device)->BindImageMemory2(Unwrap(device), bindInfoCount, unwrapped));
 
-  CheckVkResult(ret);
+  CHECK_VKR(this, ret);
 
   if(IsCaptureMode(m_State))
   {

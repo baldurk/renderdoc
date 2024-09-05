@@ -213,7 +213,7 @@ void VulkanReplay::OutputWindow::CreateSurface(WrappedVulkan *driver, VkInstance
     createInfo.window = xlib.window;
 
     VkResult vkr = ObjDisp(inst)->CreateXlibSurfaceKHR(Unwrap(inst), &createInfo, NULL, &surface);
-    driver->CheckVkResult(vkr);
+    CHECK_VKR(driver, vkr);
 
     return;
   }
@@ -231,7 +231,7 @@ void VulkanReplay::OutputWindow::CreateSurface(WrappedVulkan *driver, VkInstance
     createInfo.window = xcb.window;
 
     VkResult vkr = ObjDisp(inst)->CreateXcbSurfaceKHR(Unwrap(inst), &createInfo, NULL, &surface);
-    driver->CheckVkResult(vkr);
+    CHECK_VKR(driver, vkr);
 
     return;
   }
@@ -249,7 +249,7 @@ void VulkanReplay::OutputWindow::CreateSurface(WrappedVulkan *driver, VkInstance
     createInfo.surface = wayland.window;
 
     VkResult vkr = ObjDisp(inst)->CreateWaylandSurfaceKHR(Unwrap(inst), &createInfo, NULL, &surface);
-    driver->CheckVkResult(vkr);
+    CHECK_VKR(driver, vkr);
 
     return;
   }

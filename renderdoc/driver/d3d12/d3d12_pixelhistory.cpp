@@ -879,7 +879,7 @@ struct D3D12OcclusionCallback : public D3D12PixelHistoryCallback
     HRESULT hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufDesc,
                                                     D3D12_RESOURCE_STATE_COPY_DEST, NULL,
                                                     __uuidof(ID3D12Resource), (void **)&readbackBuf);
-    m_pDevice->CheckHRESULT(hr);
+    CHECK_HR(m_pDevice, hr);
     if(FAILED(hr))
     {
       RDCERR("Failed to create query readback buffer HRESULT: %s", ToStr(hr).c_str());
@@ -905,7 +905,7 @@ struct D3D12OcclusionCallback : public D3D12PixelHistoryCallback
 
     uint64_t *data;
     hr = readbackBuf->Map(0, &range, (void **)&data);
-    m_pDevice->CheckHRESULT(hr);
+    CHECK_HR(m_pDevice, hr);
     if(FAILED(hr))
     {
       RDCERR("Failed to map query heap data HRESULT: %s", ToStr(hr).c_str());
@@ -1470,7 +1470,7 @@ struct D3D12TestsFailedCallback : public D3D12PixelHistoryCallback
     HRESULT hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufDesc,
                                                     D3D12_RESOURCE_STATE_COPY_DEST, NULL,
                                                     __uuidof(ID3D12Resource), (void **)&readbackBuf);
-    m_pDevice->CheckHRESULT(hr);
+    CHECK_HR(m_pDevice, hr);
     if(FAILED(hr))
     {
       RDCERR("Failed to create query readback buffer HRESULT: %s", ToStr(hr).c_str());
@@ -1496,7 +1496,7 @@ struct D3D12TestsFailedCallback : public D3D12PixelHistoryCallback
 
     uint64_t *data;
     hr = readbackBuf->Map(0, &range, (void **)&data);
-    m_pDevice->CheckHRESULT(hr);
+    CHECK_HR(m_pDevice, hr);
     if(FAILED(hr))
     {
       RDCERR("Failed to map query heap data HRESULT: %s", ToStr(hr).c_str());
@@ -2515,7 +2515,7 @@ struct D3D12PixelHistoryDiscardedFragmentsCallback : D3D12PixelHistoryCallback
     HRESULT hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufDesc,
                                                     D3D12_RESOURCE_STATE_COPY_DEST, NULL,
                                                     __uuidof(ID3D12Resource), (void **)&readbackBuf);
-    m_pDevice->CheckHRESULT(hr);
+    CHECK_HR(m_pDevice, hr);
     if(FAILED(hr))
     {
       RDCERR("Failed to create query readback buffer HRESULT: %s", ToStr(hr).c_str());
@@ -2541,7 +2541,7 @@ struct D3D12PixelHistoryDiscardedFragmentsCallback : D3D12PixelHistoryCallback
 
     uint64_t *data;
     hr = readbackBuf->Map(0, &range, (void **)&data);
-    m_pDevice->CheckHRESULT(hr);
+    CHECK_HR(m_pDevice, hr);
     if(FAILED(hr))
     {
       RDCERR("Failed to map query heap data HRESULT: %s", ToStr(hr).c_str());
@@ -2661,7 +2661,7 @@ bool D3D12DebugManager::PixelHistorySetupResources(D3D12PixelHistoryResources &r
   hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &imageDesc,
                                           D3D12_RESOURCE_STATE_RENDER_TARGET, NULL,
                                           __uuidof(ID3D12Resource), (void **)&colorImage);
-  m_pDevice->CheckHRESULT(hr);
+  CHECK_HR(m_pDevice, hr);
   if(FAILED(hr))
   {
     RDCERR("Failed to create scratch render target for pixel history: %s", ToStr(hr).c_str());
@@ -2681,7 +2681,7 @@ bool D3D12DebugManager::PixelHistorySetupResources(D3D12PixelHistoryResources &r
   hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &imageDesc,
                                           D3D12_RESOURCE_STATE_DEPTH_WRITE, NULL,
                                           __uuidof(ID3D12Resource), (void **)&dsImage);
-  m_pDevice->CheckHRESULT(hr);
+  CHECK_HR(m_pDevice, hr);
   if(FAILED(hr))
   {
     RDCERR("Failed to create scratch depth stencil for pixel history: %s", ToStr(hr).c_str());
@@ -2720,7 +2720,7 @@ bool D3D12DebugManager::PixelHistorySetupResources(D3D12PixelHistoryResources &r
   hr = m_pDevice->CreateCommittedResource(&readbackHeapProps, D3D12_HEAP_FLAG_NONE, &bufDesc,
                                           D3D12_RESOURCE_STATE_COPY_DEST, NULL,
                                           __uuidof(ID3D12Resource), (void **)&dstBuffer);
-  m_pDevice->CheckHRESULT(hr);
+  CHECK_HR(m_pDevice, hr);
   if(FAILED(hr))
   {
     RDCERR("Failed to create readback buffer for pixel history: %s", ToStr(hr).c_str());

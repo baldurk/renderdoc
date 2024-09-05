@@ -239,7 +239,7 @@ VkCommandBuffer WrappedVulkan::GetInitStateCmd()
                                           VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
     VkResult vkr = ObjDisp(initStateCurCmd)->BeginCommandBuffer(Unwrap(initStateCurCmd), &beginInfo);
-    CheckVkResult(vkr);
+    CHECK_VKR(this, vkr);
 
     if(IsReplayMode(m_State))
     {
@@ -266,7 +266,7 @@ void WrappedVulkan::CloseInitStateCmd()
   VkMarkerRegion::End(initStateCurCmd);
 
   VkResult vkr = ObjDisp(initStateCurCmd)->EndCommandBuffer(Unwrap(initStateCurCmd));
-  CheckVkResult(vkr);
+  CHECK_VKR(this, vkr);
 
   initStateCurCmd = VK_NULL_HANDLE;
   initStateCurBatch = 0;
@@ -294,7 +294,7 @@ VkCommandBuffer WrappedVulkan::GetNextCmd()
     };
     VkResult vkr = ObjDisp(m_Device)->AllocateCommandBuffers(Unwrap(m_Device), &cmdInfo, &ret);
 
-    CheckVkResult(vkr);
+    CHECK_VKR(this, vkr);
     if(vkr == VK_SUCCESS)
     {
       if(m_SetDeviceLoaderData)
@@ -368,7 +368,7 @@ void WrappedVulkan::SubmitCmds(VkSemaphore *unwrappedWaitSemaphores,
 
   {
     VkResult vkr = ObjDisp(m_Queue)->QueueSubmit(Unwrap(m_Queue), 1, &submitInfo, VK_NULL_HANDLE);
-    CheckVkResult(vkr);
+    CHECK_VKR(this, vkr);
   }
 
   m_InternalCmds.submittedcmds.append(m_InternalCmds.pendingcmds);
@@ -393,7 +393,7 @@ VkSemaphore WrappedVulkan::GetNextSemaphore()
   {
     VkSemaphoreCreateInfo semInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
     VkResult vkr = ObjDisp(m_Device)->CreateSemaphore(Unwrap(m_Device), &semInfo, NULL, &ret);
-    CheckVkResult(vkr);
+    CHECK_VKR(this, vkr);
 
     GetResourceManager()->WrapResource(Unwrap(m_Device), ret);
   }
@@ -432,14 +432,14 @@ void WrappedVulkan::FlushQ()
   if(m_Queue != VK_NULL_HANDLE)
   {
     VkResult vkr = ObjDisp(m_Queue)->QueueWaitIdle(Unwrap(m_Queue));
-    CheckVkResult(vkr);
+    CHECK_VKR(this, vkr);
   }
 
   if(Vulkan_Debug_SingleSubmitFlushing() && m_Device != VK_NULL_HANDLE)
   {
     ObjDisp(m_Device)->DeviceWaitIdle(Unwrap(m_Device));
     VkResult vkr = ObjDisp(m_Device)->DeviceWaitIdle(Unwrap(m_Device));
-    CheckVkResult(vkr);
+    CHECK_VKR(this, vkr);
   }
 
   for(std::function<void()> cleanup : m_PendingCleanups)
@@ -502,7 +502,7 @@ void WrappedVulkan::SubmitAndFlushExtQueue(uint32_t queueFamilyIdx)
   VkQueue q = m_ExternalQueues[queueFamilyIdx].queue;
 
   VkResult vkr = ObjDisp(q)->QueueSubmit(Unwrap(q), 1, &submitInfo, VK_NULL_HANDLE);
-  CheckVkResult(vkr);
+  CHECK_VKR(this, vkr);
 
   ObjDisp(q)->QueueWaitIdle(Unwrap(q));
 }
@@ -553,28 +553,28 @@ void WrappedVulkan::SubmitAndFlushImageStateBarriers(ImageBarrierSequence &barri
         for(auto it = batch.begin(); it != batch.end(); ++it)
         {
           vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-          CheckVkResult(vkr);
+          CHECK_VKR(this, vkr);
 
           DoPipelineBarrier(cmd, 1, it);
           vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-          CheckVkResult(vkr);
+          CHECK_VKR(this, vkr);
 
           vkr = ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, VK_NULL_HANDLE);
-          CheckVkResult(vkr);
+          CHECK_VKR(this, vkr);
 
           vkr = ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
-          CheckVkResult(vkr);
+          CHECK_VKR(this, vkr);
         }
       }
       else
       {
         vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-        CheckVkResult(vkr);
+        CHECK_VKR(this, vkr);
 
         DoPipelineBarrier(cmd, (uint32_t)batch.size(), batch.data());
 
         vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-        CheckVkResult(vkr);
+        CHECK_VKR(this, vkr);
 
         queueFamilyFences.resize_for_index(queueFamilyIndex);
         VkFence &fence = queueFamilyFences[queueFamilyIndex];
@@ -586,11 +586,11 @@ void WrappedVulkan::SubmitAndFlushImageStateBarriers(ImageBarrierSequence &barri
               /* flags = */ 0,
           };
           vkr = ObjDisp(m_Device)->CreateFence(Unwrap(m_Device), &fenceInfo, NULL, &fence);
-          CheckVkResult(vkr);
+          CHECK_VKR(this, vkr);
         }
 
         vkr = ObjDisp(queue)->QueueSubmit(Unwrap(queue), 1, &submitInfo, fence);
-        CheckVkResult(vkr);
+        CHECK_VKR(this, vkr);
         submittedFences.push_back(fence);
       }
 
@@ -600,10 +600,10 @@ void WrappedVulkan::SubmitAndFlushImageStateBarriers(ImageBarrierSequence &barri
     {
       vkr = ObjDisp(m_Device)->WaitForFences(Unwrap(m_Device), (uint32_t)submittedFences.size(),
                                              submittedFences.data(), VK_TRUE, 1000000000);
-      CheckVkResult(vkr);
+      CHECK_VKR(this, vkr);
       vkr = ObjDisp(m_Device)->ResetFences(Unwrap(m_Device), (uint32_t)submittedFences.size(),
                                            submittedFences.data());
-      CheckVkResult(vkr);
+      CHECK_VKR(this, vkr);
       submittedFences.clear();
     }
   }
@@ -721,7 +721,7 @@ void WrappedVulkan::InsertPendingCommandBufferCallbacksEvent(VkCommandBuffer com
   const VkEventCreateInfo info = {VK_STRUCTURE_TYPE_EVENT_CREATE_INFO};
   VkEvent event;
   const VkResult vkr = ObjDisp(m_Device)->CreateEvent(Unwrap(m_Device), &info, NULL, &event);
-  CheckVkResult(vkr);
+  CHECK_VKR(this, vkr);
 
   ObjDisp(commandBuffer)->CmdSetEvent(Unwrap(commandBuffer), event, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 
@@ -776,7 +776,7 @@ void WrappedVulkan::CheckPendingCommandBufferCallbacks()
     }
     else if(vkr != VK_EVENT_RESET)
     {
-      CheckVkResult(vkr);
+      CHECK_VKR(this, vkr);
     }
 
     ++i;
@@ -2337,12 +2337,12 @@ void WrappedVulkan::StartFrameCapture(DeviceOwnedWindow devWnd)
                                             VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
       vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      CheckVkResult(vkr);
+      CHECK_VKR(this, vkr);
 
       DoPipelineBarrier(cmd, 1, &memBarrier);
 
       vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-      CheckVkResult(vkr);
+      CHECK_VKR(this, vkr);
     }
 
     m_PreparedNotSerialisedInitStates.clear();
@@ -2550,7 +2550,7 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
         VK_BUFFER_USAGE_TRANSFER_DST_BIT,
     };
     vt->CreateBuffer(Unwrap(device), &bufInfo, NULL, &readbackBuf);
-    CheckVkResult(vkr);
+    CHECK_VKR(this, vkr);
 
     GetResourceManager()->WrapResource(Unwrap(device), readbackBuf);
 
@@ -2559,14 +2559,14 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
 
     vkr = vt->BindBufferMemory(Unwrap(device), Unwrap(readbackBuf), Unwrap(readbackMem.mem),
                                readbackMem.offs);
-    CheckVkResult(vkr);
+    CHECK_VKR(this, vkr);
 
     VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                           VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
     // do image copy
     vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-    CheckVkResult(vkr);
+    CHECK_VKR(this, vkr);
 
     uint32_t rowPitch = (uint32_t)GetByteSize(imageInfo.extent.width, 1, 1, imageInfo.format, 0);
 
@@ -2603,7 +2603,7 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
       VkCommandBuffer extQCmd = GetExtQueueCmd(swapQueueIndex);
 
       vkr = vt->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
-      CheckVkResult(vkr);
+      CHECK_VKR(this, vkr);
 
       DoPipelineBarrier(extQCmd, 1, &bbBarrier);
 
@@ -2636,7 +2636,7 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
     DoPipelineBarrier(cmd, 1, &bufBarrier);
 
     vkr = vt->EndCommandBuffer(Unwrap(cmd));
-    CheckVkResult(vkr);
+    CHECK_VKR(this, vkr);
 
     SubmitCmds();
     FlushQ();    // need to wait so we can readback
@@ -2646,7 +2646,7 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
       VkCommandBuffer extQCmd = GetExtQueueCmd(swapQueueIndex);
 
       vkr = vt->BeginCommandBuffer(Unwrap(extQCmd), &beginInfo);
-      CheckVkResult(vkr);
+      CHECK_VKR(this, vkr);
 
       DoPipelineBarrier(extQCmd, 1, &bbBarrier);
 
@@ -2662,7 +2662,7 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
     byte *pData = NULL;
     vkr = vt->MapMemory(Unwrap(device), Unwrap(readbackMem.mem), readbackMem.offs, alignedSize, 0,
                         (void **)&pData);
-    CheckVkResult(vkr);
+    CHECK_VKR(this, vkr);
     RDCASSERT(pData != NULL);
 
     fp.len = (uint32_t)readbackMem.size;
@@ -2678,7 +2678,7 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
     };
 
     vkr = vt->InvalidateMappedMemoryRanges(Unwrap(device), 1, &range);
-    CheckVkResult(vkr);
+    CHECK_VKR(this, vkr);
 
     vt->UnmapMemory(Unwrap(device), Unwrap(readbackMem.mem));
 
@@ -3603,7 +3603,7 @@ RDResult WrappedVulkan::ContextReplayLog(CaptureState readType, uint32_t startEv
     };
 
     VkResult vkr = ObjDisp(m_Queue)->QueueSubmit(Unwrap(m_Queue), 1, &submitInfo, VK_NULL_HANDLE);
-    CheckVkResult(vkr);
+    CHECK_VKR(this, vkr);
   }
 
   m_IndirectDraw = false;
@@ -3664,12 +3664,12 @@ void WrappedVulkan::ApplyInitialContents()
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
   vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-  CheckVkResult(vkr);
+  CHECK_VKR(this, vkr);
 
   DoPipelineBarrier(cmd, 1, &memBarrier);
 
   vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-  CheckVkResult(vkr);
+  CHECK_VKR(this, vkr);
 
   // sync all GPU work so we can also apply descriptor set initial contents
   SubmitCmds();
@@ -3704,12 +3704,12 @@ void WrappedVulkan::ApplyInitialContents()
   cmd = GetNextCmd();
 
   vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-  CheckVkResult(vkr);
+  CHECK_VKR(this, vkr);
 
   DoPipelineBarrier(cmd, 1, &memBarrier);
 
   vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-  CheckVkResult(vkr);
+  CHECK_VKR(this, vkr);
 
   SubmitAndFlushImageStateBarriers(m_setupImageBarriers);
   SubmitCmds();
@@ -3729,7 +3729,7 @@ void WrappedVulkan::ApplyInitialContents()
       return;
 
     vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-    CheckVkResult(vkr);
+    CHECK_VKR(this, vkr);
 
     uint32_t i = 0;
     for(const ResetQuery &r : m_ResetQueries)
@@ -3756,7 +3756,7 @@ void WrappedVulkan::ApplyInitialContents()
         if(i > 0 && (i % (128 * 1024)) == 0)
         {
           vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-          CheckVkResult(vkr);
+          CHECK_VKR(this, vkr);
 
           SubmitCmds();
           FlushQ();
@@ -3767,13 +3767,13 @@ void WrappedVulkan::ApplyInitialContents()
             return;
 
           vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-          CheckVkResult(vkr);
+          CHECK_VKR(this, vkr);
         }
       }
     }
 
     vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
-    CheckVkResult(vkr);
+    CHECK_VKR(this, vkr);
 
     m_ResetQueries.clear();
 
@@ -4420,10 +4420,10 @@ void WrappedVulkan::AddFrameTerminator(uint64_t queueMarkerTag)
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
   vkr = ObjDisp(cmdBuffer)->BeginCommandBuffer(Unwrap(cmdBuffer), &beginInfo);
-  CheckVkResult(vkr);
+  CHECK_VKR(this, vkr);
 
   vkr = ObjDisp(cmdBuffer)->EndCommandBuffer(Unwrap(cmdBuffer));
-  CheckVkResult(vkr);
+  CHECK_VKR(this, vkr);
 
   VkDebugMarkerObjectTagInfoEXT tagInfo = {VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_TAG_INFO_EXT, NULL};
   tagInfo.objectType = VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_BUFFER_EXT;
@@ -4510,7 +4510,7 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
                                             VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
       vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
-      CheckVkResult(vkr);
+      CHECK_VKR(this, vkr);
 
       // we're replaying a single item inline, even if it was previously in a secondary command
       // buffer execution.
@@ -4898,33 +4898,34 @@ rdcstr WrappedVulkan::GetPhysDeviceCompatString(bool externalResource, bool orig
   return ret;
 }
 
-void WrappedVulkan::CheckErrorVkResult(VkResult vkr)
+void WrappedVulkan::CheckErrorVkResult(const char *file, int line, VkResult vkr)
 {
   if(vkr == VK_SUCCESS || HasFatalError() || IsCaptureMode(m_State))
     return;
 
   if(vkr == VK_ERROR_INITIALIZATION_FAILED || vkr == VK_ERROR_DEVICE_LOST || vkr == VK_ERROR_UNKNOWN)
   {
-    SET_ERROR_RESULT(m_FatalError, ResultCode::DeviceLost, "Logging device lost fatal error for %s",
-                     ToStr(vkr).c_str());
+    SET_ERROR_RESULT(m_FatalError, ResultCode::DeviceLost,
+                     "Logging device lost fatal error at %s:%d: %s", file, line, ToStr(vkr).c_str());
     m_FailedReplayResult = m_FatalError;
   }
   else if(vkr == VK_ERROR_OUT_OF_HOST_MEMORY || vkr == VK_ERROR_OUT_OF_DEVICE_MEMORY)
   {
     if(m_OOMHandler)
     {
-      RDCLOG("Ignoring out of memory error that will be handled");
+      RDCLOG("Ignoring out of memory error at %s:%d that will be handled", file, line);
     }
     else
     {
       SET_ERROR_RESULT(m_FatalError, ResultCode::OutOfMemory,
-                       "Logging out of memory fatal error for %s", ToStr(vkr).c_str());
+                       "Logging out of memory fatal error at %s:%d: %s", file, line,
+                       ToStr(vkr).c_str());
       m_FailedReplayResult = m_FatalError;
     }
   }
   else
   {
-    RDCLOG("Ignoring return code %s", ToStr(vkr).c_str());
+    RDCLOG("Ignoring return code at %s:%d: %s", file, line, ToStr(vkr).c_str());
   }
 }
 

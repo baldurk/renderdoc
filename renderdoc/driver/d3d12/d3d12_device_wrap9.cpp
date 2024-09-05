@@ -196,7 +196,7 @@ HRESULT WrappedID3D12Device::CreateCommandQueue1(const D3D12_COMMAND_QUEUE_DESC 
   }
   else
   {
-    CheckHRESULT(ret);
+    CHECK_HR(this, ret);
   }
 
   return ret;
