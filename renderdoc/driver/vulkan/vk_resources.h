@@ -1088,6 +1088,24 @@ struct MemRefs
 struct ImgRefs;
 struct ImageState;
 
+class VkPendingSubmissionCompleteCallbacks
+{
+public:
+  VkPendingSubmissionCompleteCallbacks() = default;
+  VkPendingSubmissionCompleteCallbacks(const VkPendingSubmissionCompleteCallbacks &) = delete;
+  VkPendingSubmissionCompleteCallbacks(VkPendingSubmissionCompleteCallbacks &&) = delete;
+
+  void AddRef() { Atomic::Inc32(&refCount); }
+  void Release();
+
+  VkDevice device = VK_NULL_HANDLE;
+  VkEvent event = VK_NULL_HANDLE;
+  rdcarray<std::function<void()>> callbacks;
+
+private:
+  int32_t refCount = 1;
+};
+
 struct CmdPoolInfo
 {
   CmdPoolInfo() : pool(4 * 1024) {}
@@ -1104,13 +1122,19 @@ struct CmdPoolInfo
 
 struct CmdBufferRecordingInfo
 {
-  CmdBufferRecordingInfo(CmdPoolInfo &pool) : alloc(pool.pool) {}
+  CmdBufferRecordingInfo(CmdPoolInfo &pool)
+      : alloc(pool.pool),
+        pendingSubmissionCompleteCallbacks(new VkPendingSubmissionCompleteCallbacks())
+  {
+  }
   CmdBufferRecordingInfo(const CmdBufferRecordingInfo &) = delete;
   CmdBufferRecordingInfo(CmdBufferRecordingInfo &&) = delete;
   CmdBufferRecordingInfo &operator=(const CmdBufferRecordingInfo &) = delete;
   ~CmdBufferRecordingInfo()
   {
     // nothing to do explicitly, the alloc destructor will clean up any pages it holds
+    // pendingSubmissionCompleteCallbacks manages itself via ref-counting
+    pendingSubmissionCompleteCallbacks->Release();
   }
 
   VkDevice device;
@@ -1144,8 +1168,8 @@ struct CmdBufferRecordingInfo
   // A list of acceleration structures that this command buffer will build or copy
   rdcarray<VkResourceRecord *> accelerationStructures;
 
-  // A list of callbacks to be executed once the command buffer execution has been completed
-  rdcarray<std::function<void()>> pendingSubmissionCompleteCallbacks;
+  // The VkEvent and the list of callbacks to be executed once it has been signalled
+  VkPendingSubmissionCompleteCallbacks *pendingSubmissionCompleteCallbacks = NULL;
 
   // AdvanceFrame/Present should be called after this buffer is submitted
   bool present;
@@ -2250,8 +2274,8 @@ public:
     cmdInfo->imageStates.swap(bakedCommands->cmdInfo->imageStates);
     cmdInfo->memFrameRefs.swap(bakedCommands->cmdInfo->memFrameRefs);
     cmdInfo->accelerationStructures.swap(bakedCommands->cmdInfo->accelerationStructures);
-    cmdInfo->pendingSubmissionCompleteCallbacks.swap(
-        bakedCommands->cmdInfo->pendingSubmissionCompleteCallbacks);
+    std::swap(cmdInfo->pendingSubmissionCompleteCallbacks,
+              bakedCommands->cmdInfo->pendingSubmissionCompleteCallbacks);
   }
 
   // we have a lot of 'cold' data in the resource record, as it can be accessed
