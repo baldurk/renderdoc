@@ -346,6 +346,28 @@ TEST_CASE("String manipulation", "[string]")
     CHECK(strupper("FOOBAR") == "FOOBAR");
   };
 
+  SECTION("strip_nonbasic")
+  {
+    // not unicode safe, so only testing ASCII characters
+    for(rdcpair<rdcstr, rdcstr> test : rdcarray<rdcpair<rdcstr, rdcstr>>({
+            {"", ""},
+            {"Foobar", "Foobar"},
+            {"foo123", "foo123"},
+            {"foo 123", "foo 123"},
+            {"foo . 123...", "foo . 123..."},
+            {"foo '' 123", "foo __ 123"},
+            {"foo -- 123", "foo __ 123"},
+            {"foo \t\n 123", "foo __ 123"},
+            {"foo @$.%^&*() 123", "foo __.______ 123"},
+        }))
+    {
+      rdcstr str = test.first;
+      INFO(str);
+      strip_nonbasic(str);
+      CHECK(str == test.second);
+    }
+  };
+
   SECTION("split by comma")
   {
     rdcarray<rdcstr> vec;
