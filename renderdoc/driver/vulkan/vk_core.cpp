@@ -705,28 +705,17 @@ void WrappedVulkan::SetDebugMessageSink(WrappedVulkan::ScopedDebugMessageSink *s
   Threading::SetTLSValue(debugMessageSinkTLSSlot, (void *)sink);
 }
 
-void WrappedVulkan::MarkPendingCommandBufferAsDeleted(VkCommandBuffer commandBuffer)
+void WrappedVulkan::InsertPendingCommandBufferCallbacksEvent(VkCommandBuffer commandBuffer)
 {
-  SCOPED_LOCK(m_PendingCmdBufferCallbacksLock);
-
-  for(PendingCommandBufferCallbacks &pending : m_PendingCmdBufferCallbacks)
-  {
-    if(pending.commandBuffer == commandBuffer)
-    {
-      pending.commandBuffer = VK_NULL_HANDLE;
-      return;
-    }
-  }
-}
-
-void WrappedVulkan::AddPendingCommandBufferCallbacks(VkCommandBuffer commandBuffer)
-{
-  SCOPED_LOCK(m_PendingCmdBufferCallbacksLock);
+  // This occurs pre-baking as the event needs to be in the command buffer before vkEndCommandBuffer
+  // is called
 
   VkResourceRecord *cmdRecord = GetRecord(commandBuffer);
-  rdcarray<std::function<void()>> &callbacks = cmdRecord->cmdInfo->pendingSubmissionCompleteCallbacks;
+  VkPendingSubmissionCompleteCallbacks *pending =
+      cmdRecord->cmdInfo->pendingSubmissionCompleteCallbacks;
+  RDCASSERT(pending->event == VK_NULL_HANDLE);
 
-  if(callbacks.empty())
+  if(pending->callbacks.empty())
     return;
 
   const VkEventCreateInfo info = {VK_STRUCTURE_TYPE_EVENT_CREATE_INFO};
@@ -736,41 +725,61 @@ void WrappedVulkan::AddPendingCommandBufferCallbacks(VkCommandBuffer commandBuff
 
   ObjDisp(commandBuffer)->CmdSetEvent(Unwrap(commandBuffer), event, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 
-  m_PendingCmdBufferCallbacks.push_back({event, commandBuffer, std::move(callbacks)});
+  pending->device = cmdRecord->cmdInfo->device;
+  pending->event = event;
+}
+
+void WrappedVulkan::AddPendingCommandBufferCallbacks(VkCommandBuffer commandBuffer)
+{
+  VkResourceRecord *cmdRecord = GetRecord(commandBuffer);
+  VkPendingSubmissionCompleteCallbacks *pending =
+      cmdRecord->bakedCommands->cmdInfo->pendingSubmissionCompleteCallbacks;
+
+  if(pending->callbacks.empty())
+    return;
+
+  RDCASSERT(pending->event != VK_NULL_HANDLE);
+
+  pending->AddRef();
+
+  SCOPED_LOCK(m_PendingCmdBufferCallbacksLock);
+  m_PendingCmdBufferCallbacks.push_back(pending);
 }
 
 void WrappedVulkan::CheckPendingCommandBufferCallbacks()
 {
+  // This approach is bad for contention, so a future optimisation could be to:
+  // 1. Acquire the lock
+  // 2. Move m_PendingCmdBufferCallbacks into a local
+  // 3. Release the lock
+  // 4. Do the checks/execution
+  // 5. Acquire the lock
+  // 6. Merge any remaining entries to m_PendingCmdBufferCallbacks (which may have accumulated new
+  //    entries from other threads)
+  // 7. Release the lock
+
   SCOPED_LOCK(m_PendingCmdBufferCallbacksLock);
 
-  // Delete any events whose command buffers have been deleted and their callbacks called
-  m_PendingCmdBufferCallbacks.removeIf([d = m_Device](const PendingCommandBufferCallbacks &pending) {
-    const bool destroyEvent = pending.commandBuffer == VK_NULL_HANDLE && pending.callbacks.empty();
-    if(destroyEvent)
-      ObjDisp(d)->DestroyEvent(Unwrap(d), pending.event, NULL);
-
-    return destroyEvent;
-  });
-
-  for(PendingCommandBufferCallbacks &pending : m_PendingCmdBufferCallbacks)
+  for(size_t i = 0; i < m_PendingCmdBufferCallbacks.size();)
   {
-    // We've already executed the callbacks, we're now just waiting for the command buffer to be
-    // destroyed/reused so we can delete the event
-    if(pending.callbacks.empty())
-      continue;
+    VkPendingSubmissionCompleteCallbacks *pending = m_PendingCmdBufferCallbacks[i];
 
-    const VkResult vkr = ObjDisp(m_Device)->GetEventStatus(Unwrap(m_Device), pending.event);
+    const VkResult vkr = ObjDisp(m_Device)->GetEventStatus(Unwrap(m_Device), pending->event);
     if(vkr == VK_EVENT_SET)
     {
-      for(std::function<void()> &f : pending.callbacks)
+      for(std::function<void()> &f : pending->callbacks)
         f();
 
-      pending.callbacks.clear();
+      pending->Release();
+      m_PendingCmdBufferCallbacks.erase(i);
+      continue;
     }
     else if(vkr != VK_EVENT_RESET)
     {
       CheckVkResult(vkr);
     }
+
+    ++i;
   }
 }
 

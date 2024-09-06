@@ -1043,6 +1043,8 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
 
       record->bakedCommands->AddRef();
     }
+
+    AddPendingCommandBufferCallbacks(commandBuffers[i]);
   }
 
   if(backframe)

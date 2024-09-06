@@ -979,16 +979,9 @@ private:
 
   bytebuf m_MaskedMapData;
 
-  struct PendingCommandBufferCallbacks
-  {
-    VkEvent event;
-    VkCommandBuffer commandBuffer;
-    rdcarray<std::function<void()>> callbacks;
-  };
-
   Threading::CriticalSection m_PendingCmdBufferCallbacksLock;
-  rdcarray<PendingCommandBufferCallbacks> m_PendingCmdBufferCallbacks;
-  void MarkPendingCommandBufferAsDeleted(VkCommandBuffer commandBuffer);
+  rdcarray<VkPendingSubmissionCompleteCallbacks *> m_PendingCmdBufferCallbacks;
+  void InsertPendingCommandBufferCallbacksEvent(VkCommandBuffer commandBuffer);
   void AddPendingCommandBufferCallbacks(VkCommandBuffer commandBuffer);
   void CheckPendingCommandBufferCallbacks();
 

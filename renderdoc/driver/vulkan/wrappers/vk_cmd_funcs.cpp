@@ -1382,10 +1382,7 @@ VkResult WrappedVulkan::vkBeginCommandBuffer(VkCommandBuffer commandBuffer,
     // then begin is spec'd to implicitly reset. That means we need to tidy up
     // any existing baked commands before creating a new set.
     if(record->bakedCommands)
-    {
-      MarkPendingCommandBufferAsDeleted(commandBuffer);
       record->bakedCommands->Delete(GetResourceManager());
-    }
 
     record->bakedCommands = GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
     record->bakedCommands->resType = eResCommandBuffer;
@@ -1674,7 +1671,7 @@ VkResult WrappedVulkan::vkEndCommandBuffer(VkCommandBuffer commandBuffer)
   RDCASSERT(record);
 
   if(IsCaptureMode(m_State))
-    AddPendingCommandBufferCallbacks(commandBuffer);
+    InsertPendingCommandBufferCallbacksEvent(commandBuffer);
 
   VkResult ret;
   SERIALISE_TIME_CALL(ret = ObjDisp(commandBuffer)->EndCommandBuffer(Unwrap(commandBuffer)));
