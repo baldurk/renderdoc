@@ -512,7 +512,7 @@ private:
   rdcarray<ResourceId> InitialContentResources();
 
   // dummy handle to use - starting from near highest valid pointer to minimise risk of overlap with real handles
-  static const uint64_t FirstDummyHandle = INTPTR_MAX - 1024;
+  static const uint64_t FirstDummyHandle = UINTPTR_MAX - 1024;
   uint64_t m_DummyHandle = FirstDummyHandle;
 
   WrappedVulkan *m_Core;

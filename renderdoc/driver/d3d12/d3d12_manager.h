@@ -1222,6 +1222,6 @@ private:
   D3D12GpuBufferAllocator m_GPUBufferAllocator;
 
   // dummy handle to use - starting from near highest valid pointer to minimise risk of overlap with real handles
-  static const uint64_t FirstDummyHandle = INTPTR_MAX - 1024;
+  static const uint64_t FirstDummyHandle = UINTPTR_MAX - 1024;
   uint64_t m_DummyHandle = FirstDummyHandle;
 };
