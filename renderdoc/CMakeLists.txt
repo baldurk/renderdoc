@@ -14,6 +14,12 @@ if(ENABLE_DLSYM_HOOKING)
     message(WARNING "Enabling dlsym() hooking - may cause issues, segfaults, crashes, or bad behaviour. Only enable if absolutely required")
 endif()
 
+option(ENABLE_VERBOSE_LOGGING "Enable verbose logging during RenderDoc capture and replay" OFF)
+if (ENABLE_VERBOSE_LOGGING)
+    set(RDOC_DEFINITIONS ${RDOC_DEFINITIONS} PRIVATE -DRENDERDOC_VERBOSE_LOGGING)
+    message(STATUS "Enabling verbose logging during RenderDoc capture and replay")
+endif()
+
 if(ANDROID)
     list(APPEND RDOC_LIBRARIES
         PRIVATE -lm

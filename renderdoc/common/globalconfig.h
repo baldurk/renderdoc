@@ -58,6 +58,12 @@
 #define RDOC_MSVS OPTION_OFF
 #endif
 
+#if defined(RENDERDOC_VERBOSE_LOGGING)
+#define RDOC_VERBOSE_LOGGING OPTION_ON
+#else
+#define RDOC_VERBOSE_LOGGING OPTION_OFF
+#endif
+
 // translate from build system defines, so they don't have to be defined to anything in
 // particular
 #if defined(RENDERDOC_PLATFORM_WIN32)
@@ -187,7 +193,12 @@ enum
 #define INCLUDE_LOCATION_IN_LOG OPTION_ON
 
 // logs go to stdout/stderr
-#if ENABLED(RDOC_WIN32)
+#if ENABLED(RDOC_VERBOSE_LOGGING)
+
+#define OUTPUT_LOG_TO_STDOUT OPTION_OFF
+#define OUTPUT_LOG_TO_STDERR OPTION_ON
+
+#elif ENABLED(RDOC_WIN32)
 
 #define OUTPUT_LOG_TO_STDOUT OPTION_OFF
 #define OUTPUT_LOG_TO_STDERR OPTION_OFF
@@ -207,7 +218,7 @@ enum
 
 // normally only in a debug build do we
 // include debug logs. This prints them all the time
-#define FORCE_DEBUG_LOGS OPTION_OFF
+#define FORCE_DEBUG_LOGS RDOC_VERBOSE_LOGGING
 // this strips them completely
 #define STRIP_DEBUG_LOGS OPTION_OFF
 
