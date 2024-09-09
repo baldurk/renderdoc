@@ -3129,6 +3129,24 @@ void TextureViewer::OnEventChanged(uint32_t eventId)
       ShaderStage::Pixel,  ShaderStage::Task, ShaderStage::Mesh,
   };
 
+  QFont font = ui->overlay->font();
+  if(m_Ctx.APIProps().pipelineType == GraphicsAPI::Vulkan &&
+     m_Ctx.CurVulkanPipelineState()->multisample.rasterSamples > 1)
+  {
+    font.setItalic(true);
+    ui->overlay->setItemText((int)DebugOverlay::QuadOverdrawDraw, tr("Overdraw (N/A on MSAA)"));
+    ui->overlay->setItemText((int)DebugOverlay::QuadOverdrawPass, tr("Overdraw (N/A on MSAA)"));
+    ui->overlay->setItemData((int)DebugOverlay::QuadOverdrawDraw, font, Qt::FontRole);
+    ui->overlay->setItemData((int)DebugOverlay::QuadOverdrawPass, font, Qt::FontRole);
+  }
+  else
+  {
+    ui->overlay->setItemText((int)DebugOverlay::QuadOverdrawDraw, tr("Quad Overdraw (Draw)"));
+    ui->overlay->setItemText((int)DebugOverlay::QuadOverdrawPass, tr("Quad Overdraw (Pass)"));
+    ui->overlay->setItemData((int)DebugOverlay::QuadOverdrawDraw, font, Qt::FontRole);
+    ui->overlay->setItemData((int)DebugOverlay::QuadOverdrawPass, font, Qt::FontRole);
+  }
+
   int count = 7;
 
   if(compute)
