@@ -845,6 +845,12 @@ private:
   // determines whether we should track the open/close state of a renderpass.
   bool ShouldUpdateRenderpassActive(ResourceId cmdId, bool dynamicRendering = false);
 
+  // shifts the beginEvent of any command buffer nodes executed after targetEvent by eidShift.
+  // additionally updates the action and event counts for the corresponding BakedCmdBufferInfo.
+  // this function is used to account for events added by DrawIndirectCount calls
+  void ShiftSuccessiveCommandNodes(uint32_t targetEvent, uint32_t eidShift,
+                                   CommandBufferNode *current = NULL);
+
   // if we're replaying just a single action or a particular command
   // buffer subsection of command events, we don't go through the
   // whole original command buffers to set up the partial replay,

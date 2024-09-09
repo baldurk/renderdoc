@@ -331,14 +331,16 @@ void WrappedVulkan::ReplayQueueSubmit(VkQueue queue, VkSubmitInfo2 submitInfo, r
         m_RootEventID++;
       }
 
+      // here we build a tree of command nodes representing the current command buffer and any
+      // descendant secondaries. this tree is later used during active replay to handle cases where
+      // the selected event occurs within a command buffer. the node returned here represents the
+      // current primary command buffer.
+      CommandBufferNode *rebaseNode = BuildSubmitTree(cmd, m_RootEventID);
+      m_Partial.commandTree.push_back(rebaseNode);
+
       // insert the baked command buffer in-line into this list of notes, assigning new event
       // and drawIDs
       InsertActionsAndRefreshIDs(cmdBufInfo);
-
-      // only primary command buffers can be submitted
-      CommandBufferNode *rebaseNode = BuildSubmitTree(cmd, m_RootEventID);
-
-      m_Partial.commandTree.push_back(rebaseNode);
 
       for(size_t i = 0; i < cmdBufInfo.debugMessages.size(); i++)
       {
@@ -716,6 +718,12 @@ void WrappedVulkan::InsertActionsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
         // happened) or clone the subdraw to create more that we can then patch.
         if(eidShift != 0)
         {
+          // the command buffer submission trees must be updated such that any command buffer nodes
+          // that occur after the draw indirect count action account for the new events. this
+          // function also updates the BakedCommandBufferInfo for the primary command buffer and any
+          // descendants that the indirect action occured in
+          ShiftSuccessiveCommandNodes(n.action.eventId + 2, eidShift);
+
           // i is the pushmarker, so i + 1 is the sub draws, and i + 2 is the pop marker.
           // adjust all EIDs and action IDs after that point
           for(size_t j = i + 2; j < cmdBufNodes.size(); j++)
@@ -734,18 +742,6 @@ void WrappedVulkan::InsertActionsAndRefreshIDs(BakedCmdBufferInfo &cmdBufInfo)
           {
             if(cmdBufInfo.debugMessages[j].eventId >= cmdBufNodes[i].action.eventId + 2)
               cmdBufInfo.debugMessages[j].eventId += eidShift;
-          }
-
-          cmdBufInfo.eventCount += eidShift;
-          cmdBufInfo.actionCount += eidShift;
-
-          // we also need to patch the original secondary command buffer here, if the indirect call
-          // was on a secondary, so that vkCmdExecuteCommands knows accurately how many events are
-          // in the command buffer.
-          if(n.indirectPatch.commandBuffer != ResourceId())
-          {
-            m_BakedCmdBufferInfo[n.indirectPatch.commandBuffer].eventCount += eidShift;
-            m_BakedCmdBufferInfo[n.indirectPatch.commandBuffer].actionCount += eidShift;
           }
 
           RDCASSERT(cmdBufNodes[i + 1].action.events.size() == 1);

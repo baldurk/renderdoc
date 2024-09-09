@@ -5220,6 +5220,52 @@ bool WrappedVulkan::ShouldUpdateRenderpassActive(ResourceId cmdId, bool dynamicR
   return IsCommandBufferPartialPrimary(cmdId);
 }
 
+void WrappedVulkan::ShiftSuccessiveCommandNodes(uint32_t targetEvent, uint32_t eidShift,
+                                                CommandBufferNode *current)
+{
+  // first determine the primary command buffer node the target event occurs in. This will happen
+  // once, then current will be set for the following recursive cases.
+  if(current == NULL)
+  {
+    for(CommandBufferNode *primaryNode : m_Partial.commandTree)
+    {
+      if(IsEventInCommandBuffer(primaryNode, targetEvent,
+                                m_BakedCmdBufferInfo[primaryNode->cmdId].eventCount))
+      {
+        current = primaryNode;
+        break;
+      }
+    }
+  }
+
+  if(IsEventInCommandBuffer(current, targetEvent, m_BakedCmdBufferInfo[current->cmdId].eventCount))
+  {
+    // if the target event occurs within the scope of this command buffer, update the
+    // BakedCommandBufferInfo to account for the extra actions and events added by the indirect
+    // action
+    m_BakedCmdBufferInfo[current->cmdId].actionCount += eidShift;
+    m_BakedCmdBufferInfo[current->cmdId].eventCount += eidShift;
+  }
+  else if(current->beginEvent > targetEvent)
+  {
+    // if the target event occurs before the scope of this command buffer, shift the command buffer
+    // node's begin event to account for the events added by the indirect action
+    current->beginEvent += eidShift;
+  }
+  else
+  {
+    // otherwise the target event occurs after this command buffer, so do nothing and do not process
+    // any of this command buffer's children.
+    return;
+  }
+
+  // if the target event is in or before this command buffer, we also need to update any child command buffers.
+  for(CommandBufferNode *childNode : current->childCmdNodes)
+  {
+    ShiftSuccessiveCommandNodes(targetEvent, eidShift, childNode);
+  }
+}
+
 bool WrappedVulkan::InRerecordRange(ResourceId cmdid)
 {
   // if we have an outside command buffer, assume the range is valid and we're replaying all events

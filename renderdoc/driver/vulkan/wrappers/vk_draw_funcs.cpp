@@ -129,9 +129,8 @@ VkIndirectPatchData WrappedVulkan::FetchIndirectData(VkIndirectPatchType type,
   indirectPatch.stride = stride;
   indirectPatch.buf = paramsbuf;
 
-  // secondary command buffers need to know that their event count should be shifted
-  if(m_BakedCmdBufferInfo[m_LastCmdBufferID].level == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
-    indirectPatch.commandBuffer = m_LastCmdBufferID;
+  // record the current command buffer ID so we can shift its event count and that of any successive command buffers.
+  indirectPatch.commandBuffer = m_LastCmdBufferID;
 
   return indirectPatch;
 }
