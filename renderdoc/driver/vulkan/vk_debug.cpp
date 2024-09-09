@@ -4330,6 +4330,34 @@ void VulkanReplay::OverlayRendering::Init(WrappedVulkan *driver, VkDescriptorPoo
   driver->vkDestroyRenderPass(driver->GetDev(), SRGBA8MSRP, NULL);
 }
 
+VkPipeline VulkanReplay::OverlayRendering::CreateTempMultiviewQuadResolvePipe(WrappedVulkan *driver)
+{
+  VulkanShaderCache *shaderCache = driver->GetShaderCache();
+
+  ConciseGraphicsPipeline pipeInfo = {
+      NoDepthRP,
+      m_QuadResolvePipeLayout,
+      shaderCache->GetBuiltinModule(BuiltinShader::BlitVS),
+      shaderCache->GetBuiltinModule(BuiltinShader::QuadResolveMultiviewFS),
+      {VK_DYNAMIC_STATE_VIEWPORT},
+      Samples,
+      false,    // sampleRateShading
+      false,    // depthEnable
+      false,    // stencilEnable
+      StencilMode::KEEP,
+      true,     // colourOutput
+      false,    // blendEnable
+      VK_BLEND_FACTOR_SRC_ALPHA,
+      VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+      0xf,    // writeMask
+  };
+
+  VkPipeline ret;
+  CREATE_OBJECT(ret, pipeInfo);
+
+  return ret;
+}
+
 void VulkanReplay::OverlayRendering::Destroy(WrappedVulkan *driver)
 {
   if(ImageMem == VK_NULL_HANDLE)

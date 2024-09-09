@@ -31,6 +31,10 @@
 #extension GL_ARB_gpu_shader5 : require
 #endif
 
+#if defined(VULKAN) && defined(USE_MULTIVIEW)
+#extension GL_EXT_multiview : require
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////////////////
 // Below shaders courtesy of Stephen Hill (@self_shadow), converted to glsl trivially
 //
@@ -71,7 +75,12 @@ void main()
   // Count the live pixels, minus 1 (zero indexing)
   uint pixelCount = c0 + c1 + c2 + c3 - 1u;
 
-  ivec3 quad = ivec3(gl_FragCoord.xy * 0.5, pixelCount);
+  uint arrayIndex = pixelCount;
+#if defined(VULKAN) && defined(USE_MULTIVIEW)
+  arrayIndex += 4 * gl_ViewIndex;
+#endif
+
+  ivec3 quad = ivec3(gl_FragCoord.xy * 0.5, arrayIndex);
   imageAtomicAdd(overdrawImage, quad, 1);
 }
 

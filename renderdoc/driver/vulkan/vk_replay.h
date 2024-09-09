@@ -667,6 +667,8 @@ private:
     void Init(WrappedVulkan *driver, VkDescriptorPool descriptorPool);
     void Destroy(WrappedVulkan *driver);
 
+    VkPipeline CreateTempMultiviewQuadResolvePipe(WrappedVulkan *driver);
+
     VkDeviceMemory ImageMem = VK_NULL_HANDLE;
     VkDeviceSize ImageMemSize = 0;
     VkImage Image = VK_NULL_HANDLE;

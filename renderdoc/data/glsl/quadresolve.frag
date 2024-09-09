@@ -26,6 +26,10 @@
 #extension GL_ARB_shader_image_load_store : require
 #endif
 
+#if defined(VULKAN) && defined(USE_MULTIVIEW)
+#extension GL_EXT_multiview : require
+#endif
+
 #include "glsl_globals.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -47,9 +51,14 @@ void main()
 {
   ivec2 quad = ivec2(gl_FragCoord.xy * 0.5f);
 
+  uint view_offset = 0u;
+#if defined(VULKAN) && defined(USE_MULTIVIEW)
+  view_offset += 4 * gl_ViewIndex;
+#endif
+
   uint overdraw = 0u;
   for(uint i = 0u; i < 4u; i++)
-    overdraw += imageLoad(overdrawImage, ivec3(quad, i)).x / (i + 1u);
+    overdraw += imageLoad(overdrawImage, ivec3(quad, i + view_offset)).x / (i + 1u);
 
   color_out = vec4(overdraw);
 }

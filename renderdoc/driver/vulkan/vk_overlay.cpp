@@ -45,8 +45,13 @@ RDOC_EXTERN_CONFIG(bool, Vulkan_Debug_SingleSubmitFlushing);
 struct VulkanQuadOverdrawCallback : public VulkanActionCallback
 {
   VulkanQuadOverdrawCallback(WrappedVulkan *vk, VkDescriptorSetLayout descSetLayout,
-                             VkDescriptorSet descSet, const rdcarray<uint32_t> &events)
-      : m_pDriver(vk), m_DescSetLayout(descSetLayout), m_DescSet(descSet), m_Events(events)
+                             VkDescriptorSet descSet, const rdcarray<uint32_t> &events,
+                             bool multiview)
+      : m_pDriver(vk),
+        m_DescSetLayout(descSetLayout),
+        m_DescSet(descSet),
+        m_Events(events),
+        m_Multiview(multiview)
   {
     m_pDriver->SetActionCB(this);
   }
@@ -173,8 +178,8 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
         rs->rasterizerDiscardEnable = false;
       }
 
-      rdcarray<uint32_t> spirv =
-          *m_pDriver->GetShaderCache()->GetBuiltinBlob(BuiltinShader::QuadWriteFS);
+      rdcarray<uint32_t> spirv = *m_pDriver->GetShaderCache()->GetBuiltinBlob(
+          m_Multiview ? BuiltinShader::QuadWriteMultiviewFS : BuiltinShader::QuadWriteFS);
 
       // patch spirv, change descriptor set to descSet value
       size_t it = 5;
@@ -375,6 +380,7 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
   VkDescriptorSetLayout m_DescSetLayout;
   VkDescriptorSet m_DescSet;
   const rdcarray<uint32_t> &m_Events;
+  bool m_Multiview;
 
   // cache modified pipelines
   struct CachedPipeline
@@ -823,6 +829,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         subRange,
     };
 
+    if(subRange.layerCount > 1)
+      viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+
     vkr = m_pDriver->vkCreateImageView(m_Device, &viewInfo, NULL, &m_Overlay.ImageView);
     CHECK_VKR(m_pDriver, vkr);
 
@@ -838,6 +847,9 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         RDCMAX(1U, m_Overlay.ImageDim.height >> sub.mip),
         sub.numSlices,
     };
+
+    if(multiviewMask > 0)
+      fbinfo.layers = 1;
 
     vkr = m_pDriver->vkCreateFramebuffer(m_Device, &fbinfo, NULL, &m_Overlay.NoDepthFB);
     CHECK_VKR(m_pDriver, vkr);
@@ -2822,9 +2834,18 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           events.erase(0);
       }
 
+      VkPipeline quadResolveMultiviewPipe = VK_NULL_HANDLE;
       VkImage quadImg;
       VkDeviceMemory quadImgMem;
       VkImageView quadImgView;
+
+      uint32_t quadImgArraySlices = 4;
+      if(multiviewMask > 0)
+      {
+        quadImgArraySlices *= Bits::CountOnes(multiviewMask);
+
+        quadResolveMultiviewPipe = m_Overlay.CreateTempMultiviewQuadResolvePipe(m_pDriver);
+      }
 
       VkImageCreateInfo imInfo = {
           VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -2834,7 +2855,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           VK_FORMAT_R32_UINT,
           {RDCMAX(1U, m_Overlay.ImageDim.width >> 1), RDCMAX(1U, m_Overlay.ImageDim.height >> 1), 1},
           1,
-          4,
+          quadImgArraySlices,
           VK_SAMPLE_COUNT_1_BIT,
           VK_IMAGE_TILING_OPTIMAL,
           VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -2878,7 +2899,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           VK_FORMAT_R32_UINT,
           {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
            VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
-          {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 4},
+          {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, quadImgArraySlices},
       };
 
       vkr = m_pDriver->vkCreateImageView(m_Device, &viewinfo, NULL, &quadImgView);
@@ -2912,7 +2933,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           VK_QUEUE_FAMILY_IGNORED,
           VK_QUEUE_FAMILY_IGNORED,
           Unwrap(quadImg),
-          {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 4},
+          {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, quadImgArraySlices},
       };
 
       // clear all to black
@@ -2949,7 +2970,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
       {
         // declare callback struct here
         VulkanQuadOverdrawCallback cb(m_pDriver, m_Overlay.m_QuadDescSetLayout,
-                                      m_Overlay.m_QuadDescSet, events);
+                                      m_Overlay.m_QuadDescSet, events, multiviewMask > 0);
 
         m_pDriver->ReplayLog(events.front(), events.back(), eReplay_Full);
 
@@ -2983,8 +3004,12 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
           };
           vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
-          vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              Unwrap(m_Overlay.m_QuadResolvePipeline[SampleIndex(iminfo.samples)]));
+          if(multiviewMask > 0)
+            vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                Unwrap(quadResolveMultiviewPipe));
+          else
+            vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                Unwrap(m_Overlay.m_QuadResolvePipeline[SampleIndex(iminfo.samples)]));
           vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
                                     Unwrap(m_Overlay.m_QuadResolvePipeLayout), 0, 1,
                                     UnwrapPtr(m_Overlay.m_QuadDescSet), 0, NULL);
@@ -3007,6 +3032,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, D
         m_pDriver->vkDestroyImageView(m_Device, quadImgView, NULL);
         m_pDriver->vkDestroyImage(m_Device, quadImg, NULL);
         m_pDriver->vkFreeMemory(m_Device, quadImgMem, NULL);
+        m_pDriver->vkDestroyPipeline(m_Device, quadResolveMultiviewPipe, NULL);
       }
 
       // restore back to normal
