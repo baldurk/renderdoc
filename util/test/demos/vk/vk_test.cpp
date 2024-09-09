@@ -921,6 +921,43 @@ void VulkanGraphicsTest::Present()
   mainWindow->Present(queue);
 }
 
+VkPipelineShaderStageCreateInfo VulkanGraphicsTest::LoadShaderModule(const std::string &filename,
+                                                                     ShaderStage stage,
+                                                                     const char *entry_point)
+{
+  VkShaderModule ret = VK_NULL_HANDLE;
+
+  std::vector<uint32_t> spirv;
+
+  FILE *f = fopen(filename.c_str(), "rb");
+  if(f)
+  {
+    fseek(f, 0, SEEK_END);
+    spirv.resize(ftell(f) / sizeof(uint32_t));
+    fseek(f, 0, SEEK_SET);
+    fread(spirv.data(), sizeof(uint32_t), spirv.size(), f);
+    fclose(f);
+  }
+
+  if(spirv.empty())
+    return {};
+
+  CHECK_VKR(vkCreateShaderModule(device, vkh::ShaderModuleCreateInfo(spirv), NULL, &ret));
+
+  shaders.push_back(ret);
+
+  VkShaderStageFlagBits vkstage[] = {
+      VK_SHADER_STAGE_VERTEX_BIT,
+      VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
+      VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+      VK_SHADER_STAGE_GEOMETRY_BIT,
+      VK_SHADER_STAGE_FRAGMENT_BIT,
+      VK_SHADER_STAGE_COMPUTE_BIT,
+  };
+
+  return vkh::PipelineShaderStageCreateInfo(ret, vkstage[(int)stage], entry_point);
+}
+
 VkPipelineShaderStageCreateInfo VulkanGraphicsTest::CompileShaderModule(
     const std::string &source_text, ShaderLang lang, ShaderStage stage, const char *entry_point,
     const std::map<std::string, std::string> &macros, SPIRVTarget target)

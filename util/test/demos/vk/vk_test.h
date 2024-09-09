@@ -217,6 +217,8 @@ struct VulkanGraphicsTest : public GraphicsTest
   void SubmitAndPresent(const std::vector<VkCommandBuffer> &cmds);
   void Present();
 
+  VkPipelineShaderStageCreateInfo LoadShaderModule(const std::string &filename, ShaderStage stage,
+                                                   const char *entry_point = "main");
   VkPipelineShaderStageCreateInfo CompileShaderModule(
       const std::string &source_text, ShaderLang lang, ShaderStage stage,
       const char *entry_point = "main", const std::map<std::string, std::string> &macros = {},
