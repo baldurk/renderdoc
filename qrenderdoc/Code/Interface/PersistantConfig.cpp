@@ -705,7 +705,7 @@ ShaderProcessingTool::ShaderProcessingTool(const QVariant &var)
 rdcstr ShaderProcessingTool::DefaultArguments() const
 {
   if(tool == KnownShaderTool::SPIRV_Cross)
-    return "--vulkan-semantics --entry {entry_point} --stage {glsl_stage4}";
+    return "--vulkan-semantics --entry {entry_point} --stage {glsl_stage4} --version 460";
   else if(tool == KnownShaderTool::SPIRV_Cross_OpenGL)
     return "--entry {entry_point} --stage {glsl_stage4}";
   else if(tool == KnownShaderTool::spirv_dis || tool == KnownShaderTool::spirv_dis_OpenGL)
