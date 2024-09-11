@@ -409,7 +409,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
     // get the size
     {
-      D3D12GpuBuffer *ASQueryBuffer = GetRaytracingResourceAndUtilHandler()->ASQueryBuffer;
+      D3D12GpuBuffer *ASQueryBuffer = GetRTManager()->ASQueryBuffer;
 
       list4 = Unwrap4(m_Device->GetInitialStateList());
 
@@ -440,7 +440,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       ASQueryBuffer->Unmap();
 
       // no other copies are in flight because of the above sync so we can resize this
-      GetRaytracingResourceAndUtilHandler()->ResizeSerialisationBuffer(desc.Width);
+      GetRTManager()->ResizeSerialisationBuffer(desc.Width);
     }
 
     ID3D12Resource *copyDst = NULL;
@@ -456,7 +456,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
     if(SUCCEEDED(hr))
     {
-      D3D12GpuBuffer *ASSerialiseBuffer = GetRaytracingResourceAndUtilHandler()->ASSerialiseBuffer;
+      D3D12GpuBuffer *ASSerialiseBuffer = GetRTManager()->ASSerialiseBuffer;
 
       list4->CopyRaytracingAccelerationStructure(
           ASSerialiseBuffer->Address(), r->GetVirtualAddress(),

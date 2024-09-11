@@ -691,8 +691,8 @@ D3D12Descriptor *DescriptorFromPortableHandle(D3D12ResourceManager *manager, Por
 #define BARRIER_ASSERT(...)
 #endif
 
-D3D12RaytracingResourceAndUtilHandler::D3D12RaytracingResourceAndUtilHandler(
-    WrappedID3D12Device *device, D3D12GpuBufferAllocator &gpuBufferAllocator)
+D3D12RTManager::D3D12RTManager(WrappedID3D12Device *device,
+                               D3D12GpuBufferAllocator &gpuBufferAllocator)
     : m_wrappedDevice(device),
       m_cmdList(NULL),
       m_cmdAlloc(NULL),
@@ -704,7 +704,7 @@ D3D12RaytracingResourceAndUtilHandler::D3D12RaytracingResourceAndUtilHandler(
 {
 }
 
-void D3D12RaytracingResourceAndUtilHandler::CreateInternalResources()
+void D3D12RTManager::CreateInternalResources()
 {
   if(m_wrappedDevice)
   {
@@ -756,7 +756,7 @@ void D3D12RaytracingResourceAndUtilHandler::CreateInternalResources()
   }
 }
 
-void D3D12RaytracingResourceAndUtilHandler::SyncGpuForRtWork()
+void D3D12RTManager::SyncGpuForRtWork()
 {
   m_gpuSyncCounter++;
 
@@ -771,7 +771,7 @@ void D3D12RaytracingResourceAndUtilHandler::SyncGpuForRtWork()
   WaitForSingleObject(m_gpuSyncHandle, 10000);
 }
 
-void D3D12RaytracingResourceAndUtilHandler::InitInternalResources()
+void D3D12RTManager::InitInternalResources()
 {
   if(IsReplayMode(m_wrappedDevice->GetState()))
   {
@@ -780,7 +780,7 @@ void D3D12RaytracingResourceAndUtilHandler::InitInternalResources()
   InitRayDispatchPatchingResources();
 }
 
-void D3D12RaytracingResourceAndUtilHandler::ResizeSerialisationBuffer(UINT64 size)
+void D3D12RTManager::ResizeSerialisationBuffer(UINT64 size)
 {
   if(!ASSerialiseBuffer || size > ASSerialiseBuffer->Size())
   {
@@ -791,8 +791,8 @@ void D3D12RaytracingResourceAndUtilHandler::ResizeSerialisationBuffer(UINT64 siz
   }
 }
 
-void D3D12RaytracingResourceAndUtilHandler::AddPendingASBuilds(
-    ID3D12Fence *fence, UINT64 waitValue, const rdcarray<std::function<bool()>> &callbacks)
+void D3D12RTManager::AddPendingASBuilds(ID3D12Fence *fence, UINT64 waitValue,
+                                        const rdcarray<std::function<bool()>> &callbacks)
 {
   SCOPED_LOCK(m_PendingASBuildsLock);
   for(const std::function<bool()> &cb : callbacks)
@@ -802,7 +802,7 @@ void D3D12RaytracingResourceAndUtilHandler::AddPendingASBuilds(
   }
 }
 
-void D3D12RaytracingResourceAndUtilHandler::CheckPendingASBuilds()
+void D3D12RTManager::CheckPendingASBuilds()
 {
   std::map<ID3D12Fence *, UINT64> fenceValues;
   SCOPED_LOCK(m_PendingASBuildsLock);
@@ -828,9 +828,9 @@ void D3D12RaytracingResourceAndUtilHandler::CheckPendingASBuilds()
   m_PendingASBuilds.removeIf([](const PendingASBuild &build) { return build.fence == NULL; });
 }
 
-PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
-    ID3D12GraphicsCommandList4 *unwrappedCmd, rdcarray<ResourceId> heaps,
-    const D3D12_DISPATCH_RAYS_DESC &desc)
+PatchedRayDispatch D3D12RTManager::PatchRayDispatch(ID3D12GraphicsCommandList4 *unwrappedCmd,
+                                                    rdcarray<ResourceId> heaps,
+                                                    const D3D12_DISPATCH_RAYS_DESC &desc)
 {
   PatchedRayDispatch ret = {};
 
@@ -1005,7 +1005,7 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchRayDispatch(
   return ret;
 }
 
-PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchIndirectRayDispatch(
+PatchedRayDispatch D3D12RTManager::PatchIndirectRayDispatch(
     ID3D12GraphicsCommandList *unwrappedCmd, rdcarray<ResourceId> heaps,
     ID3D12CommandSignature *pCommandSignature, UINT MaxCommandCount, ID3D12Resource *pArgumentBuffer,
     UINT64 ArgumentBufferOffset, ID3D12Resource *pCountBuffer, UINT64 CountBufferOffset)
@@ -1162,8 +1162,7 @@ PatchedRayDispatch D3D12RaytracingResourceAndUtilHandler::PatchIndirectRayDispat
   return ret;
 }
 
-void D3D12RaytracingResourceAndUtilHandler::PrepareRayDispatchBuffer(
-    const GPUAddressRangeTracker *origAddresses)
+void D3D12RTManager::PrepareRayDispatchBuffer(const GPUAddressRangeTracker *origAddresses)
 {
   SCOPED_LOCK(m_LookupBufferLock);
   if(m_LookupBufferDirty || origAddresses)
@@ -1266,7 +1265,7 @@ void D3D12RaytracingResourceAndUtilHandler::PrepareRayDispatchBuffer(
   }
 }
 
-void D3D12RaytracingResourceAndUtilHandler::InitRayDispatchPatchingResources()
+void D3D12RTManager::InitRayDispatchPatchingResources()
 {
   D3D12ShaderCache *shaderCache = m_wrappedDevice->GetShaderCache();
 
@@ -1560,7 +1559,7 @@ void D3D12RaytracingResourceAndUtilHandler::InitRayDispatchPatchingResources()
   }
 }
 
-void D3D12RaytracingResourceAndUtilHandler::InitReplayBlasPatchingResources()
+void D3D12RTManager::InitReplayBlasPatchingResources()
 {
   // Root Signature
   rdcarray<D3D12_ROOT_PARAMETER1> rootParameters;
@@ -1641,7 +1640,7 @@ void D3D12RaytracingResourceAndUtilHandler::InitReplayBlasPatchingResources()
   }
 }
 
-uint32_t D3D12RaytracingResourceAndUtilHandler::RegisterLocalRootSig(const D3D12RootSignature &sig)
+uint32_t D3D12RTManager::RegisterLocalRootSig(const D3D12RootSignature &sig)
 {
   rdcarray<uint32_t> patchOffsets;
   uint32_t offset = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
@@ -1686,7 +1685,7 @@ uint32_t D3D12RaytracingResourceAndUtilHandler::RegisterLocalRootSig(const D3D12
   return idx;
 }
 
-void D3D12RaytracingResourceAndUtilHandler::RegisterExportDatabase(D3D12ShaderExportDatabase *db)
+void D3D12RTManager::RegisterExportDatabase(D3D12ShaderExportDatabase *db)
 {
   SCOPED_LOCK(m_LookupBufferLock);
   m_ExportDatabases.push_back(db);
@@ -1694,7 +1693,7 @@ void D3D12RaytracingResourceAndUtilHandler::RegisterExportDatabase(D3D12ShaderEx
   m_LookupBufferDirty = true;
 }
 
-void D3D12RaytracingResourceAndUtilHandler::UnregisterExportDatabase(D3D12ShaderExportDatabase *db)
+void D3D12RTManager::UnregisterExportDatabase(D3D12ShaderExportDatabase *db)
 {
   SCOPED_LOCK(m_LookupBufferLock);
   m_ExportDatabases.removeOne(db);

@@ -803,8 +803,7 @@ bool WrappedID3D12GraphicsCommandList::PatchAccStructBlasAddress(
     // Here, we are uploading the old BLAS addresses, and comparing the BLAS
     // addresses in the TLAS and patching it with the corresponding new address.
 
-    D3D12RaytracingResourceAndUtilHandler *rtHandler =
-        GetResourceManager()->GetRaytracingResourceAndUtilHandler();
+    D3D12RTManager *rtManager = GetResourceManager()->GetRTManager();
 
     // Create a resource for patched instance desc; we don't
     // need a resource of same size but of same number of instances in the TLAS with uav
@@ -864,7 +863,7 @@ bool WrappedID3D12GraphicsCommandList::PatchAccStructBlasAddress(
                                     patchRaytracing->m_patchedInstanceBuffer->Offset(),
                                     instanceResource, instanceResOffset, totalInstancesSize);
 
-    D3D12AccStructPatchInfo patchInfo = rtHandler->GetAccStructPatchInfo();
+    D3D12AccStructPatchInfo patchInfo = rtManager->GetAccStructPatchInfo();
 
     {
       rdcarray<D3D12_RESOURCE_BARRIER> resBarriers;
@@ -1481,8 +1480,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DispatchRays(SerialiserType &se
         // a reference to the lookup buffer used as well as a reference to the scratch buffer
         // containing the patched shader records.
         PatchedRayDispatch patchedDispatch =
-            GetResourceManager()->GetRaytracingResourceAndUtilHandler()->PatchRayDispatch(
-                Unwrap4(list), state.heaps, Desc);
+            GetResourceManager()->GetRTManager()->PatchRayDispatch(Unwrap4(list), state.heaps, Desc);
 
         // restore state that would have been mutated by the patching process
         Unwrap4(list)->SetComputeRootSignature(
@@ -1507,9 +1505,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DispatchRays(SerialiserType &se
       // this call will copy the specified buffers containing shader records and patch them. We get
       // a reference to the lookup buffer used as well as a reference to the scratch buffer
       // containing the patched shader records.
-      PatchedRayDispatch patchedDispatch =
-          GetResourceManager()->GetRaytracingResourceAndUtilHandler()->PatchRayDispatch(
-              Unwrap4(pCommandList), state.heaps, Desc);
+      PatchedRayDispatch patchedDispatch = GetResourceManager()->GetRTManager()->PatchRayDispatch(
+          Unwrap4(pCommandList), state.heaps, Desc);
 
       // restore state that would have been mutated by the patching process
       Unwrap4(pCommandList)
@@ -1545,9 +1542,8 @@ void WrappedID3D12GraphicsCommandList::DispatchRays(_In_ const D3D12_DISPATCH_RA
   // this call will copy the specified buffers containing shader records and patch them. We get a
   // reference to the lookup buffer used as well as a reference to the scratch buffer containing the
   // patched shader records.
-  PatchedRayDispatch patchedDispatch =
-      GetResourceManager()->GetRaytracingResourceAndUtilHandler()->PatchRayDispatch(
-          m_pList4, m_CaptureComputeState.heaps, *pDesc);
+  PatchedRayDispatch patchedDispatch = GetResourceManager()->GetRTManager()->PatchRayDispatch(
+      m_pList4, m_CaptureComputeState.heaps, *pDesc);
 
   // restore state that would have been mutated by the patching process
   m_pList4->SetComputeRootSignature(Unwrap(GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(

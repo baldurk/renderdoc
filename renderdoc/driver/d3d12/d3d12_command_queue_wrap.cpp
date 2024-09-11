@@ -776,8 +776,8 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
       // results are available, since we could submit a build on one queue and then a dependent
       // build on another queue later once it's finished without any intermediate submissions on the
       // first queue. For that reason we pass these to the RT handler to hold onto, and tick it
-      GetResourceManager()->GetRaytracingResourceAndUtilHandler()->AddPendingASBuilds(
-          fence, m_RayFenceValue, pendingASBuildCallbacks);
+      GetResourceManager()->GetRTManager()->AddPendingASBuilds(fence, m_RayFenceValue,
+                                                               pendingASBuildCallbacks);
 
       // add the signal for those callbacks to wait on
       HRESULT hr = m_pReal->Signal(fence, m_RayFenceValue++);
@@ -786,7 +786,7 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
     }
 
     // check AS builds now
-    GetResourceManager()->GetRaytracingResourceAndUtilHandler()->CheckPendingASBuilds();
+    GetResourceManager()->GetRTManager()->CheckPendingASBuilds();
   }
 
   if(IsCaptureMode(m_State))

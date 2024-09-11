@@ -175,8 +175,8 @@ bool WrappedID3D12Device::Serialise_CreateStateObject(SerialiserType &ser,
     WrappedID3D12StateObject *wrapped = new WrappedID3D12StateObject(
         GetResourceManager()->CreateDeferredHandle<ID3D12StateObject>(), true, this);
 
-    wrapped->exports = new D3D12ShaderExportDatabase(
-        pStateObject, GetResourceManager()->GetRaytracingResourceAndUtilHandler());
+    wrapped->exports =
+        new D3D12ShaderExportDatabase(pStateObject, GetResourceManager()->GetRTManager());
 
     // TODO: Apply m_GlobalEXTUAV, m_GlobalEXTUAVSpace for processing extensions in the DXBC files?
 
@@ -286,8 +286,8 @@ WrappedID3D12Device::CreateStateObject(const D3D12_STATE_OBJECT_DESC *pDesc, REF
       SCOPED_SERIALISE_CHUNK(D3D12Chunk::Device_CreateStateObject);
       Serialise_CreateStateObject(ser, pDesc, riid, (void **)&wrapped);
 
-      wrapped->exports = new D3D12ShaderExportDatabase(
-          wrapped->GetResourceID(), GetResourceManager()->GetRaytracingResourceAndUtilHandler());
+      wrapped->exports = new D3D12ShaderExportDatabase(wrapped->GetResourceID(),
+                                                       GetResourceManager()->GetRTManager());
 
       wrapped->exports->SetObjectProperties(wrapped->GetProperties());
 

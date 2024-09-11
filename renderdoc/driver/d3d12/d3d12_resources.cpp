@@ -839,8 +839,7 @@ void WrappedID3D12PipelineState::ProcessDescriptorAccess()
   }
 }
 
-D3D12ShaderExportDatabase::D3D12ShaderExportDatabase(ResourceId id,
-                                                     D3D12RaytracingResourceAndUtilHandler *rayManager)
+D3D12ShaderExportDatabase::D3D12ShaderExportDatabase(ResourceId id, D3D12RTManager *rayManager)
     : RefCounter12(NULL), objectOriginalId(id), m_RayManager(rayManager)
 {
   m_RayManager->RegisterExportDatabase(this);

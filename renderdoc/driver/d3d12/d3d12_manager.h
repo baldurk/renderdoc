@@ -1025,11 +1025,10 @@ struct PatchedRayDispatch
 
 struct D3D12ShaderExportDatabase;
 
-class D3D12RaytracingResourceAndUtilHandler
+class D3D12RTManager
 {
 public:
-  D3D12RaytracingResourceAndUtilHandler(WrappedID3D12Device *device,
-                                        D3D12GpuBufferAllocator &gpuBufferAllocator);
+  D3D12RTManager(WrappedID3D12Device *device, D3D12GpuBufferAllocator &gpuBufferAllocator);
 
   void CreateInternalResources();
 
@@ -1040,7 +1039,7 @@ public:
   D3D12AccStructPatchInfo GetAccStructPatchInfo() const { return m_accStructPatchInfo; }
   void SyncGpuForRtWork();
 
-  ~D3D12RaytracingResourceAndUtilHandler()
+  ~D3D12RTManager()
   {
     SAFE_RELEASE(m_cmdList);
     SAFE_RELEASE(m_cmdAlloc);
@@ -1152,11 +1151,10 @@ public:
   D3D12ResourceManager(CaptureState &state, WrappedID3D12Device *dev)
       : ResourceManager(state), m_Device(dev), m_GPUBufferAllocator(dev)
   {
-    m_raytracingResourceManager =
-        new D3D12RaytracingResourceAndUtilHandler(m_Device, m_GPUBufferAllocator);
+    m_RTManager = new D3D12RTManager(m_Device, m_GPUBufferAllocator);
   }
 
-  ~D3D12ResourceManager() { SAFE_DELETE(m_raytracingResourceManager); }
+  ~D3D12ResourceManager() { SAFE_DELETE(m_RTManager); }
 
   template <class T>
   T *GetLiveAs(ResourceId id, bool optional = false)
@@ -1184,10 +1182,7 @@ public:
 
   void ApplyBarriers(BarrierSet &barriers, std::map<ResourceId, SubresourceStateVector> &states);
 
-  D3D12RaytracingResourceAndUtilHandler *GetRaytracingResourceAndUtilHandler() const
-  {
-    return m_raytracingResourceManager;
-  }
+  D3D12RTManager *GetRTManager() const { return m_RTManager; }
 
   D3D12GpuBufferAllocator &GetGPUBufferAllocator() { return m_GPUBufferAllocator; }
 
@@ -1218,7 +1213,7 @@ private:
   void Apply_InitialState(ID3D12DeviceChild *live, const D3D12InitialContents &data);
 
   WrappedID3D12Device *m_Device;
-  D3D12RaytracingResourceAndUtilHandler *m_raytracingResourceManager;
+  D3D12RTManager *m_RTManager;
   D3D12GpuBufferAllocator m_GPUBufferAllocator;
 
   // dummy handle to use - starting from near highest valid pointer to minimise risk of overlap with real handles

@@ -4214,10 +4214,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
           if(comSig->sig.raytraced)
           {
             PatchedRayDispatch patchedDispatch = {};
-            patchedDispatch =
-                GetResourceManager()->GetRaytracingResourceAndUtilHandler()->PatchIndirectRayDispatch(
-                    Unwrap(pCommandList), state.heaps, comSig, MaxCommandCount, patched.first,
-                    patched.second, pCountBuffer, CountBufferOffset);
+            patchedDispatch = GetResourceManager()->GetRTManager()->PatchIndirectRayDispatch(
+                Unwrap(pCommandList), state.heaps, comSig, MaxCommandCount, patched.first,
+                patched.second, pCountBuffer, CountBufferOffset);
 
             argBuffer = patchedDispatch.resources.argumentBuffer->Resource();
             argOffset = patchedDispatch.resources.argumentBuffer->Offset();
@@ -4315,10 +4314,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
       if(comSig->sig.raytraced)
       {
         PatchedRayDispatch patchedDispatch = {};
-        patchedDispatch =
-            GetResourceManager()->GetRaytracingResourceAndUtilHandler()->PatchIndirectRayDispatch(
-                Unwrap(list), state.heaps, comSig, MaxCommandCount, patched.first, patched.second,
-                pCountBuffer, CountBufferOffset);
+        patchedDispatch = GetResourceManager()->GetRTManager()->PatchIndirectRayDispatch(
+            Unwrap(list), state.heaps, comSig, MaxCommandCount, patched.first, patched.second,
+            pCountBuffer, CountBufferOffset);
 
         argBuffer = patchedDispatch.resources.argumentBuffer->Resource();
         argOffset = patchedDispatch.resources.argumentBuffer->Offset();
@@ -4426,10 +4424,9 @@ void WrappedID3D12GraphicsCommandList::ExecuteIndirect(ID3D12CommandSignature *p
   PatchedRayDispatch patchedDispatch = {};
   if(((WrappedID3D12CommandSignature *)pCommandSignature)->sig.raytraced)
   {
-    patchedDispatch =
-        GetResourceManager()->GetRaytracingResourceAndUtilHandler()->PatchIndirectRayDispatch(
-            m_pList, m_CaptureComputeState.heaps, pCommandSignature, MaxCommandCount,
-            pArgumentBuffer, ArgumentBufferOffset, pCountBuffer, CountBufferOffset);
+    patchedDispatch = GetResourceManager()->GetRTManager()->PatchIndirectRayDispatch(
+        m_pList, m_CaptureComputeState.heaps, pCommandSignature, MaxCommandCount, pArgumentBuffer,
+        ArgumentBufferOffset, pCountBuffer, CountBufferOffset);
 
     argBuffer = patchedDispatch.resources.argumentBuffer->Resource();
     argOffset = patchedDispatch.resources.argumentBuffer->Offset();

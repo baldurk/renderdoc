@@ -1036,7 +1036,7 @@ typedef WrappedID3D12PipelineState::ShaderEntry WrappedID3D12Shader;
 struct D3D12ShaderExportDatabase : public RefCounter12<IUnknown>
 {
 public:
-  D3D12ShaderExportDatabase(ResourceId id, D3D12RaytracingResourceAndUtilHandler *rayManager);
+  D3D12ShaderExportDatabase(ResourceId id, D3D12RTManager *rayManager);
   ~D3D12ShaderExportDatabase();
 
   void SetObjectProperties(ID3D12StateObjectProperties *obj) { m_StateObjectProps = obj; }
@@ -1085,7 +1085,7 @@ private:
   rdcarray<D3D12ShaderExportDatabase *> parents;
 
   ID3D12StateObjectProperties *m_StateObjectProps = NULL;
-  D3D12RaytracingResourceAndUtilHandler *m_RayManager = NULL;
+  D3D12RTManager *m_RayManager = NULL;
 
   struct ExportLookup
   {

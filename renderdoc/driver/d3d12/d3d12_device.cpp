@@ -2565,8 +2565,7 @@ bool WrappedID3D12Device::Serialise_BeginCaptureFrame(SerialiserType &ser)
     m_InitialResourceStates = m_ResourceStates;
 
     GetDebugManager()->PrepareExecuteIndirectPatching(m_OrigGPUAddresses);
-    GetResourceManager()->GetRaytracingResourceAndUtilHandler()->PrepareRayDispatchBuffer(
-        &m_OrigGPUAddresses);
+    GetResourceManager()->GetRTManager()->PrepareRayDispatchBuffer(&m_OrigGPUAddresses);
   }
 
   std::map<ResourceId, SubresourceStateVector> initialStates;
@@ -2662,7 +2661,7 @@ void WrappedID3D12Device::StartFrameCapture(DeviceOwnedWindow devWnd)
     GPUSyncAllQueues();
 
     // wait until we've synced all queues to check for these
-    GetResourceManager()->GetRaytracingResourceAndUtilHandler()->CheckPendingASBuilds();
+    GetResourceManager()->GetRTManager()->CheckPendingASBuilds();
 
     GetResourceManager()->PrepareInitialContents();
 
@@ -4177,7 +4176,7 @@ void WrappedID3D12Device::CreateInternalResources()
     }
   }
 
-  GetResourceManager()->GetRaytracingResourceAndUtilHandler()->CreateInternalResources();
+  GetResourceManager()->GetRTManager()->CreateInternalResources();
 
   // we don't want replay-only shaders added in WrappedID3D12Shader to pollute the list of resources
   WrappedID3D12Shader::InternalResources(true);
@@ -4276,7 +4275,7 @@ void WrappedID3D12Device::CreateInternalResources()
   m_Replay->CreateResources();
 
   WrappedID3D12Shader::InternalResources(false);
-  GetResourceManager()->GetRaytracingResourceAndUtilHandler()->InitInternalResources();
+  GetResourceManager()->GetRTManager()->InitInternalResources();
 }
 
 void WrappedID3D12Device::DestroyInternalResources()

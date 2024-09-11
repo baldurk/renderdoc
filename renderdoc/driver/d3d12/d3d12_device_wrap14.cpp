@@ -129,8 +129,7 @@ bool WrappedID3D12Device::Serialise_CreateRootSignatureFromSubobjectInLibrary(
 
       if(wrapped->sig.Flags & D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE)
         wrapped->localRootSigIdx =
-            GetResourceManager()->GetRaytracingResourceAndUtilHandler()->RegisterLocalRootSig(
-                wrapped->sig);
+            GetResourceManager()->GetRTManager()->RegisterLocalRootSig(wrapped->sig);
 
       {
         StructuredSerialiser structuriser(ser.GetStructuredFile().chunks.back(), &GetChunkName);
@@ -201,8 +200,7 @@ HRESULT WrappedID3D12Device::CreateRootSignatureFromSubobjectInLibrary(
 
       if(wrapped->sig.Flags & D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE)
         wrapped->localRootSigIdx =
-            GetResourceManager()->GetRaytracingResourceAndUtilHandler()->RegisterLocalRootSig(
-                wrapped->sig);
+            GetResourceManager()->GetRTManager()->RegisterLocalRootSig(wrapped->sig);
 
       if(!m_BindlessResourceUseActive)
       {
