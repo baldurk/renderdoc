@@ -1760,6 +1760,16 @@ void Program::GetLocals(const DXBC::DXBCContainer *dxbc, size_t instruction, uin
                         rdcarray<SourceVariableMapping> &locals) const
 {
   locals.clear();
+
+  for(const LocalSourceVariable &localVar : m_Locals)
+  {
+    if(localVar.startInst > instruction)
+      continue;
+    if(instruction > localVar.endInst)
+      continue;
+
+    locals.append(localVar.sourceVars);
+  }
 }
 
 const ResourceReference *Program::GetResourceReference(const rdcstr &handleStr) const

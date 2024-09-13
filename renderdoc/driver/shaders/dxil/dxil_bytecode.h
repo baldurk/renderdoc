@@ -1536,6 +1536,14 @@ class Program : public DXBC::IDebugInfo
 {
   friend DXILDebug::Debugger;
   friend DXILDebug::ThreadState;
+
+  struct LocalSourceVariable
+  {
+    uint32_t startInst;
+    uint32_t endInst;
+    rdcarray<SourceVariableMapping> sourceVars;
+  };
+
 public:
   Program(const byte *bytes, size_t length);
   Program(const Program &o) = delete;
@@ -1681,6 +1689,7 @@ protected:
   std::map<rdcstr, size_t> m_ResourceHandles;
   std::map<rdcstr, rdcstr> m_SsaAliases;
   std::map<rdcstr, uint32_t> m_ResourceAnnotateCounts;
+  rdcarray<LocalSourceVariable> m_Locals;
 
   rdcarray<ResourceReference> m_ResourceReferences;
   rdcstr m_Disassembly;
