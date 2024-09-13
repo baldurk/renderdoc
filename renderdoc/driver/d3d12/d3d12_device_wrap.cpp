@@ -842,8 +842,6 @@ bool WrappedID3D12Device::Serialise_CreateComputePipelineState(
     WrappedID3D12Shader *entry = WrappedID3D12Shader::AddShader(wrapped->compute->CS, this);
     entry->AddRef();
 
-    wrapped->FetchRootSig(GetShaderCache());
-
     if(m_GlobalEXTUAV != ~0U)
       entry->SetShaderExtSlot(m_GlobalEXTUAV, m_GlobalEXTUAVSpace);
 
@@ -855,6 +853,8 @@ bool WrappedID3D12Device::Serialise_CreateComputePipelineState(
     DerivedResource(entry->GetResourceID(), pPipelineState);
 
     wrapped->compute->CS.pShaderBytecode = entry;
+
+    wrapped->FetchRootSig(GetShaderCache());
 
     if(Replay_Debug_SingleThreadedCompilation())
     {
