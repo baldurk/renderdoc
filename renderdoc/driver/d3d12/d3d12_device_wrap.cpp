@@ -842,6 +842,8 @@ bool WrappedID3D12Device::Serialise_CreateComputePipelineState(
     WrappedID3D12Shader *entry = WrappedID3D12Shader::AddShader(wrapped->compute->CS, this);
     entry->AddRef();
 
+    wrapped->compute->CS.pShaderBytecode = entry;
+
     wrapped->FetchRootSig(GetShaderCache());
 
     if(m_GlobalEXTUAV != ~0U)
