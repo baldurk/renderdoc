@@ -760,3 +760,4 @@ struct DIImportedEntity : public DIBase
 };    // namespace DXIL
 
 DECLARE_REFLECTION_ENUM(DXIL::DW_LANG);
+DECLARE_STRINGISE_TYPE(DXIL::DW_OP);
