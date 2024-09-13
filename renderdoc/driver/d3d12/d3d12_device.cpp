@@ -45,6 +45,8 @@
 
 RDOC_EXTERN_CONFIG(bool, Replay_Debug_PrintChunkTimings);
 
+RDOC_EXTERN_CONFIG(bool, Replay_Debug_SingleThreadedCompilation);
+
 RDOC_DEBUG_CONFIG(bool, D3D12_Debug_SingleSubmitFlushing, false,
                   "Every command buffer is submitted and fully flushed to the GPU, to narrow down "
                   "the source of problems.");
@@ -3912,12 +3914,24 @@ bool WrappedID3D12Device::Serialise_SetPipelineStackSize(SerialiserType &ser,
 
   if(IsReplayingAndReading() && pStateObject)
   {
-    ID3D12StateObjectProperties *properties = NULL;
-    pStateObject->QueryInterface(__uuidof(ID3D12StateObjectProperties), (void **)&properties);
+    auto setSize = [pStateObject, StackSize]() {
+      ID3D12StateObjectProperties *properties = NULL;
+      pStateObject->QueryInterface(__uuidof(ID3D12StateObjectProperties), (void **)&properties);
 
-    properties->SetPipelineStackSize(StackSize);
+      properties->SetPipelineStackSize(StackSize);
 
-    SAFE_RELEASE(properties);
+      SAFE_RELEASE(properties);
+    };
+
+    if(Replay_Debug_SingleThreadedCompilation())
+    {
+      setSize();
+    }
+    else
+    {
+      Threading::JobSystem::AddJob([setSize]() { setSize(); },
+                                   {GetWrapped(pStateObject)->deferredJob});
+    }
   }
 
   return true;
