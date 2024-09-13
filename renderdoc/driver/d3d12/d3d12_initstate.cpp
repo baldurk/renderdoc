@@ -33,6 +33,51 @@
 
 RDOC_EXTERN_CONFIG(bool, D3D12_Debug_SingleSubmitFlushing);
 
+RDOC_CONFIG(bool, D3D12_Debug_DriverASSerialisation, false,
+            "Use driver-side serialisation for saving and restoring ASs");
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, ASBuildData::RVAWithStride &el)
+{
+  SERIALISE_MEMBER(RVA);
+  SERIALISE_MEMBER(StrideInBytes);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, ASBuildData::RVATrianglesDesc &el)
+{
+  SERIALISE_MEMBER(Transform3x4);
+  SERIALISE_MEMBER(IndexFormat);
+  SERIALISE_MEMBER(VertexFormat);
+  SERIALISE_MEMBER(IndexCount);
+  SERIALISE_MEMBER(VertexCount);
+  SERIALISE_MEMBER(IndexBuffer);
+  SERIALISE_MEMBER(VertexBuffer);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, ASBuildData::RVAAABBDesc &el)
+{
+  SERIALISE_MEMBER(AABBCount);
+  SERIALISE_MEMBER(AABBs);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, ASBuildData::RTGeometryDesc &el)
+{
+  SERIALISE_MEMBER(Type);
+  SERIALISE_MEMBER(Flags);
+
+  if(el.Type == D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES)
+  {
+    SERIALISE_MEMBER(Triangles);
+  }
+  else
+  {
+    SERIALISE_MEMBER(AABBs);
+  }
+}
+
 bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 {
   ResourceId id = GetResID(res);
@@ -386,107 +431,124 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
   {
     D3D12AccelerationStructure *r = (D3D12AccelerationStructure *)res;
 
-    D3D12InitialContents initContents;
+    D3D12InitialContents initContents(D3D12InitialContents::AccelerationStructure, NULL);
+    initContents.resourceType = Resource_AccelerationStructure;
 
-    D3D12_GPU_VIRTUAL_ADDRESS asAddress = r->GetVirtualAddress();
-
-    D3D12_RESOURCE_DESC desc;
-
-    desc.Alignment = 0;
-    desc.DepthOrArraySize = 1;
-    desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    desc.Flags = D3D12_RESOURCE_FLAG_NONE;
-    desc.Format = DXGI_FORMAT_UNKNOWN;
-    desc.Height = 1;
-    desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-    desc.MipLevels = 1;
-    desc.SampleDesc.Count = 1;
-    desc.SampleDesc.Quality = 0;
-
-    ID3D12GraphicsCommandList4 *list4 = NULL;
-
-    UINT64 blasCount = 0;
-
-    // get the size
+    if(D3D12_Debug_DriverASSerialisation())
     {
-      D3D12GpuBuffer *ASQueryBuffer = GetRTManager()->ASQueryBuffer;
+      D3D12_GPU_VIRTUAL_ADDRESS asAddress = r->GetVirtualAddress();
 
-      list4 = Unwrap4(m_Device->GetInitialStateList());
+      D3D12_RESOURCE_DESC desc;
 
-      D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC emitDesc = {};
-      emitDesc.DestBuffer = ASQueryBuffer->Address();
-      emitDesc.InfoType = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_SERIALIZATION;
+      desc.Alignment = 0;
+      desc.DepthOrArraySize = 1;
+      desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+      desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+      desc.Format = DXGI_FORMAT_UNKNOWN;
+      desc.Height = 1;
+      desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+      desc.MipLevels = 1;
+      desc.SampleDesc.Count = 1;
+      desc.SampleDesc.Quality = 0;
 
-      list4->EmitRaytracingAccelerationStructurePostbuildInfo(&emitDesc, 1, &asAddress);
+      ID3D12GraphicsCommandList4 *list4 = NULL;
 
-      m_Device->CloseInitialStateList();
+      UINT64 blasCount = 0;
 
-      m_Device->ExecuteLists(NULL, true);
-      m_Device->FlushLists();
-
-      D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_SERIALIZATION_DESC *serSize =
-          (D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_SERIALIZATION_DESC *)
-              ASQueryBuffer->Map();
-
-      if(!serSize)
+      // get the size
       {
-        RDCERR("Couldn't map AS query buffer");
+        D3D12GpuBuffer *ASQueryBuffer = GetRTManager()->ASQueryBuffer;
+
+        list4 = Unwrap4(m_Device->GetInitialStateList());
+
+        D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC emitDesc = {};
+        emitDesc.DestBuffer = ASQueryBuffer->Address();
+        emitDesc.InfoType = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_SERIALIZATION;
+
+        list4->EmitRaytracingAccelerationStructurePostbuildInfo(&emitDesc, 1, &asAddress);
+
+        m_Device->CloseInitialStateList();
+
+        m_Device->ExecuteLists(NULL, true);
+        m_Device->FlushLists();
+
+        D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_SERIALIZATION_DESC *serSize =
+            (D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_SERIALIZATION_DESC *)
+                ASQueryBuffer->Map();
+
+        if(!serSize)
+        {
+          RDCERR("Couldn't map AS query buffer");
+          return false;
+        }
+
+        desc.Width = serSize->SerializedSizeInBytes;
+        blasCount = serSize->NumBottomLevelAccelerationStructurePointers;
+
+        ASQueryBuffer->Unmap();
+
+        // no other copies are in flight because of the above sync so we can resize this
+        GetRTManager()->ResizeSerialisationBuffer(desc.Width);
+      }
+
+      ID3D12Resource *copyDst = NULL;
+      HRESULT hr = m_Device->CreateInitialStateBuffer(desc, &copyDst);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Couldn't create serialisation buffer: HRESULT: %s", ToStr(hr).c_str());
         return false;
       }
 
-      desc.Width = serSize->SerializedSizeInBytes;
-      blasCount = serSize->NumBottomLevelAccelerationStructurePointers;
+      list4 = Unwrap4(m_Device->GetInitialStateList());
 
-      ASQueryBuffer->Unmap();
+      if(SUCCEEDED(hr))
+      {
+        D3D12GpuBuffer *ASSerialiseBuffer = GetRTManager()->ASSerialiseBuffer;
 
-      // no other copies are in flight because of the above sync so we can resize this
-      GetRTManager()->ResizeSerialisationBuffer(desc.Width);
-    }
+        list4->CopyRaytracingAccelerationStructure(
+            ASSerialiseBuffer->Address(), r->GetVirtualAddress(),
+            D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_SERIALIZE);
 
-    ID3D12Resource *copyDst = NULL;
-    HRESULT hr = m_Device->CreateInitialStateBuffer(desc, &copyDst);
+        D3D12_RESOURCE_BARRIER b = {};
+        b.Transition.pResource = ASSerialiseBuffer->Resource();
+        b.Transition.Subresource = 0;
+        b.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+        b.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
 
-    if(FAILED(hr))
-    {
-      RDCERR("Couldn't create serialisation buffer: HRESULT: %s", ToStr(hr).c_str());
-      return false;
-    }
+        list4->ResourceBarrier(1, &b);
 
-    list4 = Unwrap4(m_Device->GetInitialStateList());
+        list4->CopyBufferRegion(copyDst, 0, ASSerialiseBuffer->Resource(),
+                                ASSerialiseBuffer->Offset(), desc.Width);
+      }
+      else
+      {
+        RDCERR("Couldn't create readback buffer: HRESULT: %s", ToStr(hr).c_str());
+      }
 
-    if(SUCCEEDED(hr))
-    {
-      D3D12GpuBuffer *ASSerialiseBuffer = GetRTManager()->ASSerialiseBuffer;
+      initContents.resource = copyDst;
+      copyDst->AddRef();
 
-      list4->CopyRaytracingAccelerationStructure(
-          ASSerialiseBuffer->Address(), r->GetVirtualAddress(),
-          D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_SERIALIZE);
-
-      D3D12_RESOURCE_BARRIER b = {};
-      b.Transition.pResource = ASSerialiseBuffer->Resource();
-      b.Transition.Subresource = 0;
-      b.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-      b.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
-
-      list4->ResourceBarrier(1, &b);
-
-      list4->CopyBufferRegion(copyDst, 0, ASSerialiseBuffer->Resource(),
-                              ASSerialiseBuffer->Offset(), desc.Width);
+      if(D3D12_Debug_SingleSubmitFlushing())
+      {
+        m_Device->CloseInitialStateList();
+        m_Device->ExecuteLists(NULL, true);
+        m_Device->FlushLists(true);
+      }
     }
     else
     {
-      RDCERR("Couldn't create readback buffer: HRESULT: %s", ToStr(hr).c_str());
+      // on D3D12 ASs are created on the fly by a build, so we should always have build data.
+      if(!r->buildData)
+      {
+        RDCERR("AS with no build data");
+        return false;
+      }
+
+      initContents.buildData = r->buildData;
+      SAFE_ADDREF(r->buildData);
     }
 
-    if(D3D12_Debug_SingleSubmitFlushing())
-    {
-      m_Device->CloseInitialStateList();
-      m_Device->ExecuteLists(NULL, true);
-      m_Device->FlushLists(true);
-    }
-
-    initContents = D3D12InitialContents(D3D12InitialContents::AccelerationStructure, copyDst);
-    initContents.resourceType = Resource_AccelerationStructure;
     SetInitialContents(r->GetResourceID(), initContents);
     return true;
   }
@@ -528,11 +590,34 @@ uint64_t D3D12ResourceManager::GetSize_InitialState(ResourceId id, const D3D12In
   }
   else if(data.resourceType == Resource_AccelerationStructure)
   {
-    ID3D12Resource *buf = (ID3D12Resource *)data.resource;
+    uint64_t ret = WriteSerialiser::GetChunkAlignment();
 
-    uint64_t ret = WriteSerialiser::GetChunkAlignment() + 64;
+    if(D3D12_Debug_DriverASSerialisation())
+    {
+      ID3D12Resource *buf = (ID3D12Resource *)data.resource;
 
-    return ret + uint64_t(buf ? buf->GetDesc().Width : 0);
+      // driver serialisation flag
+      ret += 64;
+
+      return ret + uint64_t(buf ? buf->GetDesc().Width : 0);
+    }
+    else
+    {
+      ASBuildData *buildData = data.buildData;
+
+      // driver serialisation flag
+      // type/flags/count
+      ret += 64;
+
+      // geometries serialise size is no larger than the desc because it's all single elements with
+      // no expansion or array counts
+      ret += 64 + sizeof(D3D12_RAYTRACING_GEOMETRY_DESC) * buildData->geoms.size();
+
+      if(buildData->buffer)
+        ret += 64 + buildData->buffer->Size();
+
+      return ret;
+    }
   }
   else
   {
@@ -1086,161 +1171,350 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
   }
   else if(type == Resource_AccelerationStructure)
   {
-    byte *ResourceContents = NULL;
-    uint64_t ContentsLength = 0;
-    byte *dummy = NULL;
-    ID3D12Resource *mappedBuffer = NULL;
+    SERIALISE_ELEMENT_LOCAL(opaqueBlob, D3D12_Debug_DriverASSerialisation());
 
-    if(ser.IsWriting())
+    if(opaqueBlob)
     {
-      m_Device->ExecuteLists(NULL, true);
-      m_Device->FlushLists();
+      byte *ResourceContents = NULL;
+      uint64_t ContentsLength = 0;
+      byte *dummy = NULL;
+      ID3D12Resource *mappedBuffer = NULL;
 
-      RDCASSERT(initial);
-
-      mappedBuffer = (ID3D12Resource *)initial->resource;
-
-      HRESULT hr = mappedBuffer->Map(0, NULL, (void **)&ResourceContents);
-      ContentsLength = mappedBuffer->GetDesc().Width;
-
-      if(FAILED(hr) || ResourceContents == NULL)
+      if(ser.IsWriting())
       {
-        ContentsLength = 0;
-        ResourceContents = NULL;
-        mappedBuffer = NULL;
+        m_Device->ExecuteLists(NULL, true);
+        m_Device->FlushLists();
 
-        RDCERR("Failed to map buffer for readback! %s", ToStr(hr).c_str());
-        ret = false;
-      }
-    }
+        RDCASSERT(initial);
 
-    // serialise the size separately so we can recreate on replay
-    SERIALISE_ELEMENT(ContentsLength);
+        mappedBuffer = (ID3D12Resource *)initial->resource;
 
-    // only map on replay if we haven't encountered any errors so far
-    if(IsReplayingAndReading() && !ser.IsErrored())
-    {
-      // create an upload buffer to contain the contents
-      D3D12_HEAP_PROPERTIES heapProps = {};
-      heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
-      heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-      heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-      heapProps.CreationNodeMask = 1;
-      heapProps.VisibleNodeMask = 1;
+        HRESULT hr = mappedBuffer->Map(0, NULL, (void **)&ResourceContents);
+        ContentsLength = mappedBuffer->GetDesc().Width;
 
-      D3D12_RESOURCE_DESC desc;
-      desc.Alignment = 0;
-      desc.DepthOrArraySize = 1;
-      desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-      desc.Flags = D3D12_RESOURCE_FLAG_NONE;
-      desc.Format = DXGI_FORMAT_UNKNOWN;
-      desc.Height = 1;
-      desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-      desc.MipLevels = 1;
-      desc.SampleDesc.Count = 1;
-      desc.SampleDesc.Quality = 0;
-      desc.Width = RDCMAX(ContentsLength, 64ULL);
-
-      ID3D12Resource *copySrc = NULL;
-      HRESULT hr = m_Device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc,
-                                                     D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
-                                                     __uuidof(ID3D12Resource), (void **)&copySrc);
-
-      if(SUCCEEDED(hr))
-      {
-        mappedBuffer = copySrc;
-
-        // map the upload buffer to serialise into
-        hr = copySrc->Map(0, NULL, (void **)&ResourceContents);
-
-        if(FAILED(hr))
+        if(FAILED(hr) || ResourceContents == NULL)
         {
-          RDCERR("Created but couldn't map upload buffer: %s", ToStr(hr).c_str());
+          ContentsLength = 0;
+          ResourceContents = NULL;
+          mappedBuffer = NULL;
+
+          RDCERR("Failed to map buffer for readback! %s", ToStr(hr).c_str());
           ret = false;
-          SAFE_RELEASE(copySrc);
+        }
+      }
+
+      // serialise the size separately so we can recreate on replay
+      SERIALISE_ELEMENT(ContentsLength);
+
+      // only map on replay if we haven't encountered any errors so far
+      if(IsReplayingAndReading() && !ser.IsErrored())
+      {
+        // create an upload buffer to contain the contents
+        D3D12_HEAP_PROPERTIES heapProps = {};
+        heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+        heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+        heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+        heapProps.CreationNodeMask = 1;
+        heapProps.VisibleNodeMask = 1;
+
+        D3D12_RESOURCE_DESC desc;
+        desc.Alignment = 0;
+        desc.DepthOrArraySize = 1;
+        desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+        desc.Format = DXGI_FORMAT_UNKNOWN;
+        desc.Height = 1;
+        desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        desc.MipLevels = 1;
+        desc.SampleDesc.Count = 1;
+        desc.SampleDesc.Quality = 0;
+        desc.Width = RDCMAX(ContentsLength, 64ULL);
+
+        ID3D12Resource *copySrc = NULL;
+        HRESULT hr = m_Device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc,
+                                                       D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
+                                                       __uuidof(ID3D12Resource), (void **)&copySrc);
+
+        if(SUCCEEDED(hr))
+        {
+          mappedBuffer = copySrc;
+
+          // map the upload buffer to serialise into
+          hr = copySrc->Map(0, NULL, (void **)&ResourceContents);
+
+          if(FAILED(hr))
+          {
+            RDCERR("Created but couldn't map upload buffer: %s", ToStr(hr).c_str());
+            ret = false;
+            SAFE_RELEASE(copySrc);
+            mappedBuffer = NULL;
+            ResourceContents = NULL;
+          }
+        }
+        else
+        {
+          RDCERR("Couldn't create upload buffer: %s", ToStr(hr).c_str());
+          ret = false;
           mappedBuffer = NULL;
           ResourceContents = NULL;
         }
+
+        // need to create a dummy buffer to serialise into if anything went wrong
+        if(ResourceContents == NULL && ContentsLength > 0)
+          ResourceContents = dummy = new byte[(size_t)ContentsLength];
+      }
+
+      // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
+      // directly into upload memory
+      ser.Serialise("ResourceContents"_lit, ResourceContents, ContentsLength, SerialiserFlags::NoFlags)
+          .Important();
+
+      if(mappedBuffer)
+      {
+        if(IsReplayingAndReading())
+        {
+          // this is highly inefficient, but temporary. Read-back and patch the addresses of any BLASs
+          D3D12_SERIALIZED_RAYTRACING_ACCELERATION_STRUCTURE_HEADER header;
+          memcpy(&header, ResourceContents, sizeof(header));
+
+          D3D12_DRIVER_MATCHING_IDENTIFIER_STATUS status =
+              m_Device->GetReal5()->CheckDriverMatchingIdentifier(
+                  D3D12_SERIALIZED_DATA_RAYTRACING_ACCELERATION_STRUCTURE,
+                  &header.DriverMatchingIdentifier);
+          if(status != D3D12_DRIVER_MATCHING_IDENTIFIER_COMPATIBLE_WITH_DEVICE)
+          {
+            RDResult err;
+            SET_ERROR_RESULT(err, ResultCode::APIHardwareUnsupported,
+                             "Serialised AS is not compatible with current device");
+            m_Device->ReportFatalError(err);
+            return false;
+          }
+
+          UINT64 numBLAS = header.NumBottomLevelAccelerationStructurePointersAfterHeader;
+          D3D12_GPU_VIRTUAL_ADDRESS *blasAddrs =
+              (D3D12_GPU_VIRTUAL_ADDRESS *)(ResourceContents + sizeof(header));
+          for(UINT64 i = 0; i < numBLAS; i++)
+          {
+            // silently ignore NULL BLASs
+            if(blasAddrs[i] == 0)
+              continue;
+
+            ResourceId asbId;
+            UINT64 offsInASB;
+            m_Device->GetResIDFromOrigAddr(blasAddrs[i], asbId, offsInASB);
+
+            ID3D12Resource *asb = GetLiveAs<ID3D12Resource>(asbId);
+
+            if(asbId == ResourceId() || asb == NULL)
+            {
+              RDCWARN("BLAS referenced by TLAS is not available on replay - possibly stale TLAS");
+              blasAddrs[i] = 0;
+              continue;
+            }
+
+            blasAddrs[i] = asb->GetGPUVirtualAddress() + offsInASB;
+          }
+        }
+
+        mappedBuffer->Unmap(0, NULL);
+      }
+
+      SAFE_DELETE_ARRAY(dummy);
+
+      SERIALISE_CHECK_READ_ERRORS();
+
+      if(IsReplayingAndReading() && mappedBuffer)
+      {
+        D3D12InitialContents initContents(D3D12InitialContents::AccelerationStructure, mappedBuffer);
+        initContents.resourceType = Resource_AccelerationStructure;
+
+        if(initContents.resource)
+          SetInitialContents(id, initContents);
+      }
+    }
+    else
+    {
+      ASBuildData *buildData = NULL;
+      byte *BufferContents = NULL;
+      uint64_t ContentsLength = 0;
+      byte *tempAlloc = NULL;
+      D3D12GpuBuffer *mappedBuffer = NULL;
+
+      if(ser.IsWriting())
+      {
+        m_Device->ExecuteLists(NULL, true);
+        m_Device->FlushLists();
+
+        RDCASSERT(initial && initial->buildData);
+
+        mappedBuffer = initial->buildData->buffer;
+
+        BufferContents = (byte *)mappedBuffer->Map();
+        ContentsLength = mappedBuffer->Size();
+
+        if(BufferContents == NULL)
+        {
+          ContentsLength = 0;
+          BufferContents = NULL;
+          mappedBuffer = NULL;
+
+          RDCERR("Failed to map builddata buffer for readback!");
+          ret = false;
+        }
+
+        buildData = initial->buildData;
       }
       else
       {
-        RDCERR("Couldn't create upload buffer: %s", ToStr(hr).c_str());
-        ret = false;
-        mappedBuffer = NULL;
-        ResourceContents = NULL;
+        buildData = new ASBuildData;
       }
 
-      // need to create a dummy buffer to serialise into if anything went wrong
-      if(ResourceContents == NULL && ContentsLength > 0)
-        ResourceContents = dummy = new byte[(size_t)ContentsLength];
-    }
+      SERIALISE_ELEMENT(buildData->Type);
+      SERIALISE_ELEMENT(buildData->Flags);
+      SERIALISE_ELEMENT(buildData->NumBLAS);
+      SERIALISE_ELEMENT(buildData->geoms);
 
-    // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
-    // directly into upload memory
-    ser.Serialise("ResourceContents"_lit, ResourceContents, ContentsLength, SerialiserFlags::NoFlags)
-        .Important();
+      // serialise the size separately so we can recreate on replay
+      SERIALISE_ELEMENT(ContentsLength);
 
-    if(mappedBuffer)
-    {
-      if(IsReplayingAndReading())
+      // only map on replay if we haven't encountered any errors so far
+      if(IsReplayingAndReading() && !ser.IsErrored())
       {
-        // this is highly inefficient, but temporary. Read-back and patch the addresses of any BLASs
-        D3D12_SERIALIZED_RAYTRACING_ACCELERATION_STRUCTURE_HEADER header;
-        memcpy(&header, ResourceContents, sizeof(header));
+        m_GPUBufferAllocator.Alloc(D3D12GpuBufferHeapType::UploadHeap,
+                                   D3D12GpuBufferHeapMemoryFlag::Default, ContentsLength, 256,
+                                   &buildData->buffer);
 
-        D3D12_DRIVER_MATCHING_IDENTIFIER_STATUS status =
-            m_Device->GetReal5()->CheckDriverMatchingIdentifier(
-                D3D12_SERIALIZED_DATA_RAYTRACING_ACCELERATION_STRUCTURE,
-                &header.DriverMatchingIdentifier);
-        if(status != D3D12_DRIVER_MATCHING_IDENTIFIER_COMPATIBLE_WITH_DEVICE)
+        if(buildData->buffer)
         {
-          RDResult err;
-          SET_ERROR_RESULT(err, ResultCode::APIHardwareUnsupported,
-                           "Serialised AS is not compatible with current device");
-          m_Device->ReportFatalError(err);
-          return false;
+          mappedBuffer = buildData->buffer;
+
+          // for BLASs, map the upload buffer to serialise into directly.
+          // for TLASs, put it into temporary memory so that we can patch the BLAS addresses in CPU
+          // memory before upload. We expect TLASs to not be much memory - each BLAS instance is 64
+          // bytes so even 100k BLASs in a TLAS is only ~6MB
+          if(buildData->NumBLAS == 0)
+            BufferContents = (byte *)buildData->buffer->Map();
+          else
+            BufferContents = tempAlloc = new byte[(size_t)ContentsLength];
+
+          if(!BufferContents)
+          {
+            RDCERR("Created but couldn't map upload AS data buffer");
+            ret = false;
+            SAFE_RELEASE(buildData->buffer);
+            SAFE_RELEASE(buildData);
+            BufferContents = NULL;
+          }
+        }
+        else
+        {
+          RDCERR("Couldn't create upload AS data buffer");
+          ret = false;
+          BufferContents = NULL;
+          SAFE_RELEASE(buildData);
         }
 
-        UINT64 numBLAS = header.NumBottomLevelAccelerationStructurePointersAfterHeader;
-        D3D12_GPU_VIRTUAL_ADDRESS *blasAddrs =
-            (D3D12_GPU_VIRTUAL_ADDRESS *)(ResourceContents + sizeof(header));
-        for(UINT64 i = 0; i < numBLAS; i++)
+        // need to create a dummy buffer to serialise into if anything went wrong
+        if(BufferContents == NULL && ContentsLength > 0)
+          BufferContents = tempAlloc = new byte[(size_t)ContentsLength];
+      }
+
+      // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
+      // directly into already allocated memory (either directly upload memory for BLAS, or
+      // temporary memory to patch for TLASs)
+      ser.Serialise("BufferContents"_lit, BufferContents, ContentsLength, SerialiserFlags::NoFlags)
+          .Important();
+
+      if(buildData)
+      {
+        if(IsReplayingAndReading())
         {
-          // silently ignore NULL BLASs
-          if(blasAddrs[i] == 0)
-            continue;
-
-          ResourceId blasId;
-          UINT64 blasOffs;
-          m_Device->GetResIDFromOrigAddr(blasAddrs[i], blasId, blasOffs);
-
-          ID3D12Resource *blas = GetLiveAs<ID3D12Resource>(blasId);
-
-          if(blasId == ResourceId() || blas == NULL)
+          // if this is a TLAS, patch the addresses of any BLASs in the instance data before uploading it
+          if(buildData->NumBLAS > 0)
           {
-            RDCWARN("BLAS referenced by TLAS is not available on replay - possibly stale TLAS");
-            blasAddrs[i] = 0;
-            continue;
+            D3D12_RAYTRACING_INSTANCE_DESC *instances =
+                (D3D12_RAYTRACING_INSTANCE_DESC *)BufferContents;
+            for(UINT64 i = 0; i < buildData->NumBLAS; i++)
+            {
+              // silently ignore NULL BLASs
+              if(instances[i].AccelerationStructure == 0)
+                continue;
+
+              ResourceId blasId;
+              UINT64 blasOffs;
+              m_Device->GetResIDFromOrigAddr(instances[i].AccelerationStructure, blasId, blasOffs);
+
+              ID3D12Resource *blas = GetLiveAs<ID3D12Resource>(blasId);
+
+              if(blasId == ResourceId() || blas == NULL)
+              {
+                RDCWARN("BLAS referenced by TLAS is not available on replay - possibly stale TLAS");
+                instances[i].AccelerationStructure = 0;
+                continue;
+              }
+
+              instances[i].AccelerationStructure = blas->GetGPUVirtualAddress() + blasOffs;
+            }
+
+            void *upload = mappedBuffer->Map();
+            if(upload)
+            {
+              memcpy(upload, BufferContents, ContentsLength);
+            }
+            else
+            {
+              RDCERR("Created but couldn't map upload AS data buffer");
+              ret = false;
+              SAFE_RELEASE(mappedBuffer);
+              SAFE_RELEASE(buildData);
+            }
           }
 
-          blasAddrs[i] = blas->GetGPUVirtualAddress() + blasOffs;
+          // rebase all the geometries to the new address
+          uint64_t baseVA = mappedBuffer->Address();
+          for(ASBuildData::RTGeometryDesc &desc : buildData->geoms)
+          {
+            if(desc.Type == D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS)
+            {
+              if(desc.AABBs.AABBCount != 0)
+                desc.AABBs.AABBs.RVA += baseVA;
+              else
+                desc.AABBs.AABBs.RVA = 0;
+            }
+            else
+            {
+              if(desc.Triangles.Transform3x4 != ASBuildData::NULLVA)
+                desc.Triangles.Transform3x4 += baseVA;
+              else
+                desc.Triangles.Transform3x4 = 0;
+
+              if(desc.Triangles.IndexBuffer != ASBuildData::NULLVA)
+                desc.Triangles.IndexBuffer += baseVA;
+              else
+                desc.Triangles.IndexBuffer = 0;
+
+              // VB is always present, no need for NULL check
+              desc.Triangles.VertexBuffer.RVA += baseVA;
+            }
+          }
         }
+
+        if(mappedBuffer)
+          mappedBuffer->Unmap();
       }
 
-      mappedBuffer->Unmap(0, NULL);
-    }
+      SAFE_DELETE_ARRAY(tempAlloc);
 
-    SAFE_DELETE_ARRAY(dummy);
+      SERIALISE_CHECK_READ_ERRORS();
 
-    SERIALISE_CHECK_READ_ERRORS();
+      if(IsReplayingAndReading() && buildData)
+      {
+        D3D12InitialContents initContents(D3D12InitialContents::AccelerationStructure, NULL);
+        initContents.resourceType = Resource_AccelerationStructure;
+        initContents.buildData = buildData;
 
-    if(IsReplayingAndReading() && mappedBuffer)
-    {
-      D3D12InitialContents initContents(D3D12InitialContents::AccelerationStructure, mappedBuffer);
-      initContents.resourceType = Resource_AccelerationStructure;
-
-      if(initContents.resource)
         SetInitialContents(id, initContents);
+      }
     }
   }
   else
@@ -1642,22 +1916,84 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
       return;
     }
 
-    ID3D12Resource *copySrc = (ID3D12Resource *)data.resource;
+    ASBuildData *buildData = data.buildData;
 
-    if(!copySrc)
+    if(buildData)
     {
-      RDCERR("Missing copy source in initial state apply");
-      return;
+      D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC desc = {};
+
+      desc.DestAccelerationStructureData = as->GetVirtualAddress();
+
+      desc.Inputs.Type = buildData->Type;
+      desc.Inputs.Flags = buildData->Flags;
+      desc.Inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+
+      // we're not updating
+      desc.Inputs.Flags &= ~D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
+
+      if(buildData->Type == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL)
+      {
+        desc.Inputs.NumDescs = buildData->NumBLAS;
+        desc.Inputs.InstanceDescs = buildData->buffer->Address();
+      }
+      else
+      {
+        desc.Inputs.NumDescs = buildData->geoms.count();
+        // can be safely cast as the RVAs have been rebased to real VAs on serialise
+        desc.Inputs.pGeometryDescs = (D3D12_RAYTRACING_GEOMETRY_DESC *)buildData->geoms.data();
+      }
+
+      D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO prebuild = {};
+      m_Device->GetRaytracingAccelerationStructurePrebuildInfo(&desc.Inputs, &prebuild);
+
+      if(!GetRTManager()->ASSerialiseBuffer ||
+         prebuild.ScratchDataSizeInBytes > GetRTManager()->ASSerialiseBuffer->Size())
+      {
+        if(GetRTManager()->ASSerialiseBuffer)
+        {
+          // synchronise the GPU to ensure any previous work is done before resizing
+          m_Device->CloseInitialStateList();
+          m_Device->ExecuteLists(NULL, true);
+          m_Device->FlushLists(true);
+        }
+
+        // discourage resizes by claiming at least 4MB
+        GetRTManager()->ResizeSerialisationBuffer(
+            RDCMAX(4 * 1024 * 1024ULL, prebuild.ScratchDataSizeInBytes));
+      }
+
+      desc.ScratchAccelerationStructureData = GetRTManager()->ASSerialiseBuffer->Address();
+
+      ID3D12GraphicsCommandListX *list = m_Device->GetInitialStateList();
+
+      if(!list)
+        return;
+
+      list->BuildRaytracingAccelerationStructure(&desc, 0, NULL);
+
+      D3D12_RESOURCE_BARRIER barrier = {};
+      barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+      list->ResourceBarrier(1, &barrier);
     }
+    else
+    {
+      ID3D12Resource *copySrc = (ID3D12Resource *)data.resource;
 
-    ID3D12GraphicsCommandListX *list = m_Device->GetInitialStateList();
+      if(!copySrc)
+      {
+        RDCERR("Missing copy source in initial state apply");
+        return;
+      }
 
-    if(!list)
-      return;
+      ID3D12GraphicsCommandListX *list = m_Device->GetInitialStateList();
 
-    Unwrap4(list)->CopyRaytracingAccelerationStructure(
-        as->GetVirtualAddress(), copySrc->GetGPUVirtualAddress(),
-        D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_DESERIALIZE);
+      if(!list)
+        return;
+
+      Unwrap4(list)->CopyRaytracingAccelerationStructure(
+          as->GetVirtualAddress(), copySrc->GetGPUVirtualAddress(),
+          D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_DESERIALIZE);
+    }
 
     if(D3D12_Debug_SingleSubmitFlushing())
     {

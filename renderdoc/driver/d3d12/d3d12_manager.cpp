@@ -2568,6 +2568,24 @@ bool D3D12ResourceManager::ResourceTypeRelease(ID3D12DeviceChild *res)
   return true;
 }
 
+rdcarray<ResourceId> D3D12ResourceManager::InitialContentResources()
+{
+  rdcarray<ResourceId> resources =
+      ResourceManager<D3D12ResourceManagerConfiguration>::InitialContentResources();
+  std::sort(resources.begin(), resources.end(), [this](ResourceId a, ResourceId b) {
+    const InitialContentData &aData = m_InitialContents[a].data;
+    const InitialContentData &bData = m_InitialContents[b].data;
+
+    // Always sort BLASs before TLASs, as a TLAS holds device addresses for it's BLASs
+    // and we make sure those addresses are built first
+    if(aData.buildData && bData.buildData)
+      return aData.buildData->Type > bData.buildData->Type;
+
+    return aData.resourceType < bData.resourceType;
+  });
+  return resources;
+}
+
 void D3D12GpuBuffer::AddRef()
 {
   InterlockedIncrement(&m_RefCount);

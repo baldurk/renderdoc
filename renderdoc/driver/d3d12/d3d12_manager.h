@@ -701,6 +701,8 @@ private:
   rdcarray<Bind> binds;
 };
 
+struct ASBuildData;
+
 struct D3D12InitialContents
 {
   enum Tag
@@ -764,7 +766,8 @@ struct D3D12InitialContents
         srcData(NULL),
         dataSize(0),
         sparseTable(NULL),
-        sparseBinds(NULL)
+        sparseBinds(NULL),
+        buildData(NULL)
   {
   }
 
@@ -775,6 +778,7 @@ struct D3D12InitialContents
     SAFE_DELETE(sparseTable);
     SAFE_RELEASE(resource);
     FreeAlignedBuffer(srcData);
+    SAFE_RELEASE(buildData);
   }
 
   Tag tag;
@@ -791,6 +795,8 @@ struct D3D12InitialContents
   Sparse::PageTable *sparseTable;
   // only valid on replay, the table above converted into a set of binds
   SparseBinds *sparseBinds;
+
+  ASBuildData *buildData;
 };
 
 class WrappedID3D12GraphicsCommandList;
@@ -1127,6 +1133,7 @@ public:
 
   ~D3D12RTManager()
   {
+    SAFE_RELEASE(ASSerialiseBuffer);
     SAFE_RELEASE(m_cmdList);
     SAFE_RELEASE(m_cmdAlloc);
     SAFE_RELEASE(m_cmdQueue);
@@ -1166,7 +1173,7 @@ public:
                           const rdcarray<std::function<bool()>> &callbacks);
   void CheckPendingASBuilds();
 
-  void ResizeSerialisationBuffer(UINT64 size);
+  void ResizeSerialisationBuffer(UINT64 ScratchDataSizeInBytes);
 
   // buffer in UAV state for emitting AS queries to, CPU accessible/mappable
   D3D12GpuBuffer *ASQueryBuffer = NULL;
@@ -1303,6 +1310,7 @@ private:
   }
   void Create_InitialState(ResourceId id, ID3D12DeviceChild *live, bool hasData);
   void Apply_InitialState(ID3D12DeviceChild *live, const D3D12InitialContents &data);
+  rdcarray<ResourceId> InitialContentResources();
 
   WrappedID3D12Device *m_Device;
   D3D12RTManager *m_RTManager;
