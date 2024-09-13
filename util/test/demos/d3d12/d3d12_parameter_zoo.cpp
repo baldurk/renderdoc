@@ -56,6 +56,22 @@ float4 main() : SV_Target0
 
 )EOSHADER";
 
+  std::string compute_root = R"EOSHADER(
+
+#define MyRS1 "RootFlags( ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), " \
+              "UAV(u0, visibility = SHADER_VISIBILITY_ALL)"
+
+RWStructuredBuffer<uint4> bufout : register(u0);
+
+[RootSignature(MyRS1)]
+[numthreads(1,1,1)]
+void main()
+{
+  bufout[0] = uint4(1,2,3,4);
+}
+
+)EOSHADER";
+
   int main()
   {
     // initialise, create window, create device, etc
@@ -341,12 +357,20 @@ float4 main() : SV_Target0
 
     ID3D12PipelineStatePtr psoNoSig = psoNoSigCreator;
 
+    ID3D12RootSignaturePtr compsig = MakeSig({
+        uavParam(D3D12_SHADER_VISIBILITY_ALL, 0, 0),
+    });
+    ID3DBlobPtr csblob = Compile(compute_root, "main", "cs_5_1");
+    ID3D12PipelineStatePtr psoCompNoSig = MakePSO().CS(csblob);
+
     ID3D12ResourcePtr rtvtex = MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, 4, 4)
                                    .RTV()
                                    .InitialState(D3D12_RESOURCE_STATE_RENDER_TARGET);
 
     ID3D12CommandSignaturePtr cmdsig = MakeCommandSig(NULL, {vbArg(0), drawArg()});
     ID3D12ResourcePtr argBuf = MakeBuffer().Upload().Size(1024);
+
+    ID3D12ResourcePtr bufout = MakeBuffer().Size(1024).UAV();
 
     while(Running())
     {
@@ -437,6 +461,13 @@ float4 main() : SV_Target0
       cmd->DrawIndexedInstanced(3, 1, 0, 0, 0);
 
       FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+      uint32_t b[4] = {111, 111, 111, 111};
+
+      cmd->SetPipelineState(psoCompNoSig);
+      cmd->SetComputeRootSignature(compsig);
+      cmd->SetComputeRootUnorderedAccessView(0, bufout->GetGPUVirtualAddress());
+      cmd->Dispatch(1, 1, 1);
 
       cmd->Close();
 
