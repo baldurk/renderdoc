@@ -25,6 +25,7 @@
 #pragma once
 
 #include "common/common.h"
+#include "driver/shaders/dxbc/dxbc_bytecode.h"
 #include "driver/shaders/dxbc/dxbc_container.h"
 #include "dxil_bytecode.h"
 
