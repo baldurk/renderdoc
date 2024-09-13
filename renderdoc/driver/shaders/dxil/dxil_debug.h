@@ -72,6 +72,30 @@ void ApplyAllDerivatives(GlobalState &global, rdcarray<ThreadState> &quad, int d
 
 class DebugAPIWrapper
 {
+public:
+  // During shader debugging, when a new resource is encountered
+  // These will be called to fetch the data on demand.
+  virtual void FetchSRV(const BindingSlot &slot) = 0;
+  virtual void FetchUAV(const BindingSlot &slot) = 0;
+
+  virtual bool CalculateMathIntrinsic(DXIL::DXOp dxOp, const ShaderVariable &input,
+                                      ShaderVariable &output) = 0;
+  virtual bool CalculateSampleGather(DXIL::DXOp dxOp, SampleGatherResourceData resourceData,
+                                     SampleGatherSamplerData samplerData, const ShaderVariable &uv,
+                                     const ShaderVariable &ddxCalc, const ShaderVariable &ddyCalc,
+                                     const int8_t texelOffsets[3], int multisampleIndex,
+                                     float lodOrCompareValue, const uint8_t swizzle[4],
+                                     GatherChannel gatherChannel, DXBC::ShaderType shaderType,
+                                     uint32_t instructionIdx, const char *opString,
+                                     ShaderVariable &output) = 0;
+  virtual ShaderVariable GetResourceInfo(DXIL::ResourceClass resClass,
+                                         const DXDebug::BindingSlot &slot, uint32_t mipLevel,
+                                         const DXBC::ShaderType shaderType, int &dim) = 0;
+  virtual ShaderVariable GetSampleInfo(DXIL::ResourceClass resClass, const DXDebug::BindingSlot &slot,
+                                       const DXBC::ShaderType shaderType, const char *opString) = 0;
+  virtual ShaderVariable GetRenderTargetSampleInfo(const DXBC::ShaderType shaderType,
+                                                   const char *opString) = 0;
+  virtual bool IsResourceBound(DXIL::ResourceClass resClass, const DXDebug::BindingSlot &slot) = 0;
 };
 
 struct ThreadState
