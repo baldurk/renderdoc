@@ -1730,6 +1730,10 @@ rdcstr Program::GetDebugStatus()
 
 void Program::GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const
 {
+  // TODO: Get the entry point infomation
+  if(instruction == ~0U)
+    instruction = 0;
+
   lineInfo = LineColumnInfo();
 
   for(size_t i = 0; i < m_Functions.size(); i++)
@@ -1738,7 +1742,35 @@ void Program::GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &
 
     if(instruction < f.instructions.size())
     {
-      lineInfo.disassemblyLine = f.instructions[instruction]->disassemblyLine;
+      const Instruction *const inst = f.instructions[instruction];
+      uint32_t dbgLoc = inst->debugLoc;
+      if(dbgLoc != ~0U)
+      {
+        const DebugLocation &debugLoc = m_DebugLocations[dbgLoc];
+        int32_t fileIndex = -1;
+        Metadata *scope = debugLoc.scope;
+        const DIBase *const dwarfInfo = scope->dwarf;
+        rdcstr shaderFilePath = standardise_directory_separator(GetDebugScopeFilePath(dwarfInfo));
+        RDCASSERT(!shaderFilePath.empty());
+        for(int32_t iFile = 0; iFile < Files.count(); iFile++)
+        {
+          rdcstr filePath = Files[iFile].filename;
+          if(filePath == shaderFilePath)
+          {
+            fileIndex = iFile;
+            break;
+          }
+        }
+
+        lineInfo.fileIndex = fileIndex;
+        lineInfo.lineStart = (uint32_t)debugLoc.line;
+        lineInfo.lineEnd = (uint32_t)debugLoc.line;
+        // Without column end data ignore the column start data in DebugLocation
+        lineInfo.colStart = 0;
+        lineInfo.colEnd = 0;
+      }
+
+      lineInfo.disassemblyLine = inst->disassemblyLine;
       break;
     }
     instruction -= f.instructions.size();
