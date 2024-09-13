@@ -1649,6 +1649,8 @@ public:
   }
 };
 
+struct ASBuildData;
+
 // class to represent acceleration structure i.e. BLAS/TLAS
 class D3D12AccelerationStructure : public WrappedDeviceChild12<ID3D12DeviceChild>
 {
@@ -1666,6 +1668,8 @@ public:
   {
     return m_asbWrappedResource->GetGPUVirtualAddress() + m_asbWrappedResourceBufferOffset;
   }
+
+  ASBuildData *buildData = NULL;
 
 private:
   WrappedID3D12Resource *m_asbWrappedResource;

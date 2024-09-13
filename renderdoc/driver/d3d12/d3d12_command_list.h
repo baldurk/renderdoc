@@ -596,7 +596,7 @@ public:
 
   bool ProcessASBuildAfterSubmission(ResourceId asbWrappedResourceId,
                                      D3D12BufferOffset asbWrappedResourceBufferOffset,
-                                     UINT64 byteSize);
+                                     UINT64 byteSize, ASBuildData *buildData);
 
   IMPLEMENT_FUNCTION_SERIALISED(
       virtual void STDMETHODCALLTYPE, BuildRaytracingAccelerationStructure,

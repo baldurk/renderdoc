@@ -154,6 +154,7 @@ D3D12AccelerationStructure::D3D12AccelerationStructure(WrappedID3D12Device *wrap
 
 D3D12AccelerationStructure::~D3D12AccelerationStructure()
 {
+  SAFE_RELEASE(buildData);
   Shutdown();
 }
 

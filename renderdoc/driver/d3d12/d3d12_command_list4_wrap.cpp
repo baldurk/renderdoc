@@ -729,7 +729,8 @@ void WrappedID3D12GraphicsCommandList::ExecuteMetaCommand(
 
 bool WrappedID3D12GraphicsCommandList::ProcessASBuildAfterSubmission(ResourceId destASBId,
                                                                      D3D12BufferOffset destASBOffset,
-                                                                     UINT64 byteSize)
+                                                                     UINT64 byteSize,
+                                                                     ASBuildData *buildData)
 {
   bool success = false;
   D3D12ResourceManager *resManager = m_pDevice->GetResourceManager();
@@ -788,6 +789,15 @@ bool WrappedID3D12GraphicsCommandList::ProcessASBuildAfterSubmission(ResourceId 
       RDCERR("Unable to create acceleration structure");
       success = false;
     }
+  }
+
+  if(success && buildData)
+  {
+    // release any existing build data we had, this is a new version
+    SAFE_RELEASE(accStructAtDestOffset->buildData);
+
+    // take ownership of the implicit ref
+    accStructAtDestOffset->buildData = buildData;
   }
 
   return success;
@@ -1145,6 +1155,25 @@ void WrappedID3D12GraphicsCommandList::BuildRaytracingAccelerationStructure(
       m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     }
 
+    // snapshot the build data from these inputs, when the AS is finalised this will be stored
+    ASBuildData *buildData =
+        GetResourceManager()->GetRTManager()->CopyBuildInputs(m_pList4, pDesc->Inputs);
+
+    // restore state that might have been mutated by the copying process
+    if(m_CaptureComputeState.compute.rootsig != ResourceId())
+    {
+      m_pList4->SetComputeRootSignature(Unwrap(GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(
+          m_CaptureComputeState.compute.rootsig)));
+      m_CaptureComputeState.ApplyComputeRootElementsUnwrapped(m_pList);
+    }
+
+    if(m_CaptureComputeState.stateobj != ResourceId())
+      m_pList4->SetPipelineState1(Unwrap(
+          GetResourceManager()->GetCurrentAs<ID3D12StateObject>(m_CaptureComputeState.stateobj)));
+    else if(m_CaptureComputeState.pipe != ResourceId())
+      m_pList4->SetPipelineState(Unwrap(
+          GetResourceManager()->GetCurrentAs<ID3D12PipelineState>(m_CaptureComputeState.pipe)));
+
     ResourceId asbWrappedResourceId;
     D3D12BufferOffset asbWrappedResourceBufferOffset;
 
@@ -1157,9 +1186,9 @@ void WrappedID3D12GraphicsCommandList::BuildRaytracingAccelerationStructure(
     UINT64 byteSize = preBldInfo.ResultDataMaxSizeInBytes;
 
     AddSubmissionASBuildCallback(
-        false, [this, asbWrappedResourceId, asbWrappedResourceBufferOffset, byteSize]() {
+        false, [this, asbWrappedResourceId, asbWrappedResourceBufferOffset, byteSize, buildData]() {
           return ProcessASBuildAfterSubmission(asbWrappedResourceId, asbWrappedResourceBufferOffset,
-                                               byteSize);
+                                               byteSize, buildData);
         });
   }
 }
@@ -1392,13 +1421,47 @@ void WrappedID3D12GraphicsCommandList::CopyRaytracingAccelerationStructure(
       m_pList4->EmitRaytracingAccelerationStructurePostbuildInfo(&desc, 1,
                                                                  &DestAccelerationStructureData);
 
-      auto PostBldExecute = [this, destASBId, destASBOffset, sizeBuffer]() -> bool {
+      ASBuildData *buildData = NULL;
+
+      if(Mode == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_DESERIALIZE)
+      {
+        RDCERR(
+            "Deserialisation can't be recorded, will fail on replay. Deserialisation is invalid "
+            "with forced-fail version check");
+      }
+      else if(Mode == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_COMPACT)
+      {
+        ResourceId srcASBId;
+        D3D12BufferOffset srcASBOffset;
+
+        WrappedID3D12Resource::GetResIDFromAddr(SourceAccelerationStructureData, srcASBId,
+                                                srcASBOffset);
+
+        D3D12AccelerationStructure *accStructAtSrcOffset = NULL;
+
+        WrappedID3D12Resource *srcASB =
+            GetResourceManager()->GetCurrentAs<WrappedID3D12Resource>(srcASBId);
+
+        // get the source AS, we should have this and can't proceed without it to give us the size
+        if(!srcASB->GetAccStructIfExist(srcASBOffset, &accStructAtSrcOffset))
+        {
+          RDCERR("Couldn't find source acceleration structure in AS copy");
+          return;
+        }
+
+        // get a new refcount for this build data, it will be shared by the new copy (the old AS is
+        // likely to be deleted and release its own ref)
+        SAFE_ADDREF(accStructAtSrcOffset->buildData);
+        buildData = accStructAtSrcOffset->buildData;
+      }
+
+      auto PostBldExecute = [this, destASBId, destASBOffset, sizeBuffer, buildData]() -> bool {
         UINT64 *size = (UINT64 *)sizeBuffer->Map();
         UINT64 destSize = *size;
         sizeBuffer->Unmap();
         sizeBuffer->Release();
 
-        return ProcessASBuildAfterSubmission(destASBId, destASBOffset, destSize);
+        return ProcessASBuildAfterSubmission(destASBId, destASBOffset, destSize, buildData);
       };
 
       AddSubmissionASBuildCallback(true, PostBldExecute);
@@ -1431,7 +1494,11 @@ void WrappedID3D12GraphicsCommandList::CopyRaytracingAccelerationStructure(
           return false;
         }
 
-        return ProcessASBuildAfterSubmission(destASBId, destASBOffset, accStructAtSrcOffset->Size());
+        // get a new refcount for this build data, it will be shared by the new copy (the old AS is
+        // likely to be deleted and release its own ref)
+        SAFE_ADDREF(accStructAtSrcOffset->buildData);
+        return ProcessASBuildAfterSubmission(destASBId, destASBOffset, accStructAtSrcOffset->Size(),
+                                             accStructAtSrcOffset->buildData);
       });
     }
   }
@@ -1512,6 +1579,7 @@ void WrappedID3D12GraphicsCommandList::SetPipelineState1(_In_ ID3D12StateObject 
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pStateObject), eFrameRef_Read);
 
     m_CaptureComputeState.stateobj = GetResID(pStateObject);
+    m_CaptureComputeState.pipe = ResourceId();
   }
 }
 

@@ -38,6 +38,13 @@
 
 RDOC_CONFIG(uint32_t, D3D12_Debug_RTIndirectEstimateOverride, 0,
             "Override how many bytes are reserved for shader tables in each indirect ray dispatch");
+RDOC_CONFIG(uint32_t, D3D12_Debug_RTMaxVertexIncrement, 1000,
+            "Amount to add to the API-provided max vertex when building a BLAS with an index "
+            "buffer, to account for incorrectly set values by application.");
+RDOC_CONFIG(
+    uint32_t, D3D12_Debug_RTMaxVertexPercentIncrease, 10,
+    "Percentage increase for the API-provided max vertex when building a BLAS with an index "
+    "buffer, to account for incorrectly set values by application.");
 
 void D3D12Descriptor::Init(const D3D12_SAMPLER_DESC2 *pDesc)
 {
@@ -1265,6 +1272,245 @@ void D3D12RTManager::PrepareRayDispatchBuffer(const GPUAddressRangeTracker *orig
   }
 }
 
+ASBuildData *D3D12RTManager::CopyBuildInputs(
+    ID3D12GraphicsCommandList4 *unwrappedCmd,
+    const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS &inputs)
+{
+  ASBuildData *ret = new ASBuildData;
+  ret->Type = inputs.Type;
+  ret->Flags = inputs.Flags;
+
+  if(inputs.Type == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL)
+  {
+    ret->NumBLAS = inputs.NumDescs;
+
+    if(ret->NumBLAS > 0)
+    {
+      uint64_t byteSize = sizeof(D3D12_RAYTRACING_INSTANCE_DESC) * inputs.NumDescs;
+      m_GPUBufferAllocator.Alloc(D3D12GpuBufferHeapType::ReadBackHeap,
+                                 D3D12GpuBufferHeapMemoryFlag::Default, byteSize, 256, &ret->buffer);
+
+      if(inputs.DescsLayout == D3D12_ELEMENTS_LAYOUT_ARRAY)
+      {
+        // easy case, one copy of instances
+
+        ResourceId sourceBufferId;
+        D3D12BufferOffset sourceOffset;
+
+        WrappedID3D12Resource::GetResIDFromAddr(inputs.InstanceDescs, sourceBufferId, sourceOffset);
+        ID3D12Resource *sourceBuffer = Unwrap(
+            m_wrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(sourceBufferId));
+
+        unwrappedCmd->CopyBufferRegion(ret->buffer->Resource(), ret->buffer->Offset(), sourceBuffer,
+                                       sourceOffset, byteSize);
+      }
+      else
+      {
+        // hard case :( instance pointers, need to do indirected copy with compute
+        // this is extra hard because all the indirect pointers are inaccessible from shaders so we
+        // need to shunt through an ExecuteIndirect to use them as root SRVs. That also means that
+        // we need to first do a pre-pass to prepare the indirect argument buffer from
+        // {BLASDescAddr, BLASDescAddr, BlasDescAddr...} to
+        // {BLASDescAddr, dispatch(1,1,1), BLASDescAddr, dispatch(1,1,1), ...}
+        RDCERR("Unimplemented indirect array-of-pointers input to TLAS");
+
+        ret->NumBLAS = 0;
+      }
+    }
+  }
+  else
+  {
+    ret->NumBLAS = 0;
+
+    if(inputs.DescsLayout == D3D12_ELEMENTS_LAYOUT_ARRAY)
+    {
+      ret->geoms.assign((ASBuildData::RTGeometryDesc *)inputs.pGeometryDescs, inputs.NumDescs);
+    }
+    else
+    {
+      ret->geoms.reserve(inputs.NumDescs);
+      for(UINT i = 0; i < inputs.NumDescs; i++)
+        ret->geoms.push_back(*inputs.ppGeometryDescs[i]);
+    }
+
+    // calculate how much data is needed. Add 256 bytes padding
+    uint64_t byteSize = 0;
+    for(const ASBuildData::RTGeometryDesc &desc : ret->geoms)
+    {
+      if(desc.Type == D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS)
+      {
+        if(desc.AABBs.AABBCount > 0)
+        {
+          byteSize += (desc.AABBs.AABBCount - 1) * desc.AABBs.AABBs.StrideInBytes;
+          byteSize += sizeof(D3D12_RAYTRACING_AABB);
+          byteSize = AlignUp16(byteSize);
+        }
+      }
+      else
+      {
+        if(desc.Triangles.Transform3x4)
+          byteSize += sizeof(float) * 3 * 4;
+
+        if(desc.Triangles.IndexBuffer)
+        {
+          UINT isize = 2;
+          if(desc.Triangles.IndexFormat == DXGI_FORMAT_R32_UINT)
+            isize = 4;
+          byteSize += isize * desc.Triangles.IndexCount;
+          byteSize = AlignUp16(byteSize);
+
+          ResourceId vbId = WrappedID3D12Resource::GetResIDFromAddr(desc.Triangles.VertexBuffer.RVA);
+          ID3D12Resource *sourceBuffer =
+              m_wrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(vbId);
+
+          uint64_t vbSize = sourceBuffer->GetDesc().Width;
+
+          uint32_t untrustedVertexCount = desc.Triangles.VertexCount;
+          uint32_t estimatedVertexCount =
+              untrustedVertexCount +
+              (untrustedVertexCount / 100) * D3D12_Debug_RTMaxVertexPercentIncrease() +
+              D3D12_Debug_RTMaxVertexIncrement();
+
+          vbSize = RDCMIN(vbSize, desc.Triangles.VertexBuffer.StrideInBytes * estimatedVertexCount);
+
+          byteSize += vbSize;
+          byteSize = AlignUp16(byteSize);
+        }
+        else
+        {
+          if(desc.Triangles.VertexCount > 0)
+          {
+            byteSize += (desc.Triangles.VertexCount - 1) * desc.Triangles.VertexBuffer.StrideInBytes;
+
+            byteSize += GetByteSize(1, 1, 1, desc.Triangles.VertexFormat, 0);
+            byteSize = AlignUp16(byteSize);
+          }
+        }
+      }
+    }
+
+    m_GPUBufferAllocator.Alloc(D3D12GpuBufferHeapType::ReadBackHeap,
+                               D3D12GpuBufferHeapMemoryFlag::Default, byteSize, 256, &ret->buffer);
+
+    if(!ret->buffer)
+    {
+      RDCERR("Failed to allocate shadow storage for AS");
+      ret = {};
+      return ret;
+    }
+
+    ID3D12Resource *dstRes = ret->buffer->Resource();
+    uint64_t dstOffset = ret->buffer->Offset();
+    uint64_t baseOffset = dstOffset;
+
+    for(ASBuildData::RTGeometryDesc &desc : ret->geoms)
+    {
+      if(desc.Type == D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS)
+      {
+        if(desc.AABBs.AABBCount > 0)
+        {
+          byteSize = (desc.AABBs.AABBCount - 1) * desc.AABBs.AABBs.StrideInBytes;
+          byteSize += sizeof(D3D12_RAYTRACING_AABB);
+
+          CopyFromVA(unwrappedCmd, dstRes, dstOffset, desc.AABBs.AABBs.RVA, byteSize);
+
+          desc.AABBs.AABBs.RVA = dstOffset - baseOffset;
+
+          dstOffset = AlignUp16(dstOffset + byteSize);
+        }
+        else
+        {
+          // set a NULL marker so that we don't confuse an offset of 0 with an intended NULL
+          desc.AABBs.AABBs.RVA = ASBuildData::NULLVA;
+        }
+      }
+      else
+      {
+        if(desc.Triangles.Transform3x4)
+        {
+          byteSize = sizeof(float) * 3 * 4;
+
+          CopyFromVA(unwrappedCmd, dstRes, dstOffset, desc.Triangles.Transform3x4, byteSize);
+
+          desc.Triangles.Transform3x4 = dstOffset - baseOffset;
+
+          dstOffset = AlignUp16(dstOffset + byteSize);
+        }
+        else
+        {
+          desc.Triangles.Transform3x4 = ASBuildData::NULLVA;
+        }
+
+        if(desc.Triangles.IndexBuffer)
+        {
+          UINT isize = 2;
+          if(desc.Triangles.IndexFormat == DXGI_FORMAT_R32_UINT)
+            isize = 4;
+          byteSize = isize * desc.Triangles.IndexCount;
+
+          CopyFromVA(unwrappedCmd, dstRes, dstOffset, desc.Triangles.IndexBuffer, byteSize);
+
+          desc.Triangles.IndexBuffer = dstOffset - baseOffset;
+
+          dstOffset = AlignUp16(dstOffset + byteSize);
+
+          ResourceId vbId;
+          uint64_t srcOffs = 0;
+          WrappedID3D12Resource::GetResIDFromAddr(desc.Triangles.VertexBuffer.RVA, vbId, srcOffs);
+          ID3D12Resource *sourceBuffer =
+              m_wrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(vbId);
+
+          uint64_t vbSize = sourceBuffer->GetDesc().Width;
+
+          vbSize =
+              RDCMIN(vbSize, desc.Triangles.VertexBuffer.StrideInBytes * desc.Triangles.VertexCount);
+
+          unwrappedCmd->CopyBufferRegion(dstRes, dstOffset, Unwrap(sourceBuffer), srcOffs, vbSize);
+
+          desc.Triangles.VertexBuffer.RVA = dstOffset - baseOffset;
+
+          dstOffset = AlignUp16(dstOffset + byteSize);
+        }
+        else
+        {
+          desc.Triangles.IndexBuffer = ASBuildData::NULLVA;
+          if(desc.Triangles.VertexCount > 0)
+          {
+            byteSize = (desc.Triangles.VertexCount - 1) * desc.Triangles.VertexBuffer.StrideInBytes;
+
+            byteSize += GetByteSize(1, 1, 1, desc.Triangles.VertexFormat, 0);
+
+            CopyFromVA(unwrappedCmd, dstRes, dstOffset, desc.Triangles.VertexBuffer.RVA, byteSize);
+
+            desc.Triangles.VertexBuffer.RVA = dstOffset - baseOffset;
+
+            dstOffset = AlignUp16(dstOffset + byteSize);
+          }
+        }
+      }
+    }
+  }
+
+  // ensure the copy finishes before anything changes in the input buffer
+  D3D12_RESOURCE_BARRIER barrier = {};
+  barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+  unwrappedCmd->ResourceBarrier(1, &barrier);
+
+  return ret;
+}
+
+void D3D12RTManager::CopyFromVA(ID3D12GraphicsCommandList4 *unwrappedCmd, ID3D12Resource *dstRes,
+                                uint64_t dstOffset, D3D12_GPU_VIRTUAL_ADDRESS sourceVA,
+                                uint64_t byteSize)
+{
+  ResourceId srcId;
+  uint64_t srcOffs = 0;
+  WrappedID3D12Resource::GetResIDFromAddr(sourceVA, srcId, srcOffs);
+  ID3D12Resource *srcBuf = m_wrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(srcId);
+
+  unwrappedCmd->CopyBufferRegion(dstRes, dstOffset, Unwrap(srcBuf), srcOffs, byteSize);
+}
+
 void D3D12RTManager::InitRayDispatchPatchingResources()
 {
   D3D12ShaderCache *shaderCache = m_wrappedDevice->GetShaderCache();
@@ -2333,6 +2579,22 @@ void D3D12GpuBuffer::Release()
   if(ret == 0)
   {
     m_Allocator.Release(*this);
+
+    delete this;
+  }
+}
+
+void ASBuildData::AddRef()
+{
+  InterlockedIncrement(&m_RefCount);
+}
+
+void ASBuildData::Release()
+{
+  unsigned int ret = InterlockedDecrement(&m_RefCount);
+  if(ret == 0)
+  {
+    SAFE_RELEASE(buffer);
 
     delete this;
   }

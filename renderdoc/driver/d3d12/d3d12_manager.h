@@ -1025,6 +1025,92 @@ struct PatchedRayDispatch
 
 struct D3D12ShaderExportDatabase;
 
+// this is a refcounted GPU buffer with the build data, together with the metadata
+struct ASBuildData
+{
+  static const uint64_t NULLVA = ~0ULL;
+  // RVA equivalent of D3D12_GPU_VIRTUAL_ADDRESS_AND_STRIDE
+  struct RVAWithStride
+  {
+    uint64_t RVA;
+    UINT64 StrideInBytes;
+  };
+
+  // RVA equivalent of D3D12_RAYTRACING_GEOMETRY_TRIANGLES_DESC
+  struct RVATrianglesDesc
+  {
+    uint64_t Transform3x4;
+    DXGI_FORMAT IndexFormat;
+    DXGI_FORMAT VertexFormat;
+    UINT IndexCount;
+    UINT VertexCount;
+    uint64_t IndexBuffer;
+    RVAWithStride VertexBuffer;
+  };
+
+  // RVA equivalent of D3D12_RAYTRACING_GEOMETRY_AABBS_DESC
+  struct RVAAABBDesc
+  {
+    UINT AABBCount;
+    RVAWithStride AABBs;
+  };
+
+  // analogous struct to D3D12_RAYTRACING_GEOMETRY_DESC but contains plain uint64 offsets in place
+  // of GPU VAs - effectively RVAs in the internal buffer
+  struct RTGeometryDesc
+  {
+    RTGeometryDesc() = default;
+    RTGeometryDesc(const D3D12_RAYTRACING_GEOMETRY_DESC &desc)
+    {
+      RDCCOMPILE_ASSERT(sizeof(*this) == sizeof(D3D12_RAYTRACING_GEOMETRY_DESC),
+                        "Types should be entirely identical");
+      memcpy(this, &desc, sizeof(desc));
+    }
+
+    D3D12_RAYTRACING_GEOMETRY_TYPE Type;
+    D3D12_RAYTRACING_GEOMETRY_FLAGS Flags;
+
+    union
+    {
+      RVATrianglesDesc Triangles;
+      RVAAABBDesc AABBs;
+    };
+  };
+
+  // this struct is immutable, it's a snapshot of data and it's only referenced or deleted, never modified
+  ASBuildData(const ASBuildData &o) = delete;
+  ASBuildData(ASBuildData &&o) = delete;
+  ASBuildData &operator=(const ASBuildData &o) = delete;
+
+  D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE Type;
+  D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS Flags;
+
+  // for TLAS, the number of instance descriptors. For BLAS the number of geometries is given by
+  // the size of the array below
+  UINT NumBLAS;
+
+  // geometry GPU addresses have been de-based to contain only offsets
+  rdcarray<RTGeometryDesc> geoms;
+
+  void AddRef();
+  void Release();
+
+  D3D12GpuBuffer *buffer = NULL;
+
+private:
+  ASBuildData() = default;
+
+  unsigned int m_RefCount = 1;
+
+  friend class D3D12RTManager;
+  friend class D3D12ResourceManager;
+};
+
+DECLARE_REFLECTION_STRUCT(ASBuildData::RVAWithStride);
+DECLARE_REFLECTION_STRUCT(ASBuildData::RVATrianglesDesc);
+DECLARE_REFLECTION_STRUCT(ASBuildData::RVAAABBDesc);
+DECLARE_REFLECTION_STRUCT(ASBuildData::RTGeometryDesc);
+
 class D3D12RTManager
 {
 public:
@@ -1063,6 +1149,9 @@ public:
 
   void PrepareRayDispatchBuffer(const GPUAddressRangeTracker *origAddresses);
 
+  ASBuildData *CopyBuildInputs(ID3D12GraphicsCommandList4 *unwrappedCmd,
+                               const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS &inputs);
+
   PatchedRayDispatch PatchRayDispatch(ID3D12GraphicsCommandList4 *unwrappedCmd,
                                       rdcarray<ResourceId> heaps,
                                       const D3D12_DISPATCH_RAYS_DESC &desc);
@@ -1088,6 +1177,9 @@ public:
 private:
   void InitRayDispatchPatchingResources();
   void InitReplayBlasPatchingResources();
+
+  void CopyFromVA(ID3D12GraphicsCommandList4 *unwrappedCmd, ID3D12Resource *dstRes,
+                  uint64_t dstOffset, D3D12_GPU_VIRTUAL_ADDRESS sourceVA, uint64_t byteSize);
 
   WrappedID3D12Device *m_wrappedDevice;
   D3D12GpuBufferAllocator &m_GPUBufferAllocator;

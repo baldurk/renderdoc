@@ -1381,6 +1381,9 @@ void WrappedID3D12GraphicsCommandList::SetPipelineState(ID3D12PipelineState *pPi
 
     m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pPipelineState), eFrameRef_Read);
+
+    m_CaptureComputeState.pipe = GetResID(pPipelineState);
+    m_CaptureComputeState.stateobj = ResourceId();
   }
 }
 
