@@ -375,6 +375,8 @@ bool D3D12GraphicsTest::Init()
   devConfig = devPtrs.config;
   d3d12Debug = devPtrs.debug;
 
+  m_SingletonDevice = (devFactory == NULL);
+
   dev = CreateDevice(adapters, minFeatureLevel);
   if(!dev)
     return false;

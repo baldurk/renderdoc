@@ -219,6 +219,8 @@ struct D3D12GraphicsTest : public GraphicsTest
   bool gpuva = false, m_12On7 = false, m_DXILSupport = false;
   IDXGIFactory1Ptr m_Factory;
 
+  bool m_SingletonDevice;
+
   ID3D12DebugPtr d3d12Debug;
   ID3D12InfoQueuePtr infoqueue;
 
