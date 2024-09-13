@@ -30,32 +30,20 @@
 
 namespace DXILDebug
 {
-typedef rdcstr Id;
+using namespace DXDebug;
+
+typedef DXDebug::SampleGatherResourceData SampleGatherResourceData;
+typedef DXDebug::SampleGatherSamplerData SampleGatherSamplerData;
+typedef DXDebug::BindingSlot BindingSlot;
+typedef DXDebug::GatherChannel GatherChannel;
+typedef DXBCBytecode::SamplerMode SamplerMode;
+typedef DXBC::InterpolationMode InterpolationMode;
+
+typedef uint32_t Id;
 class Debugger;
 struct GlobalState;
-struct BindingSlot
-{
-  BindingSlot() : shaderRegister(UINT32_MAX), registerSpace(UINT32_MAX) {}
-  BindingSlot(uint32_t shaderReg, uint32_t regSpace)
-      : shaderRegister(shaderReg), registerSpace(regSpace)
-  {
-  }
-  BindingSlot(const DXIL::ResourceReference &resRef)
-      : shaderRegister(resRef.resourceBase.regBase), registerSpace(resRef.resourceBase.space)
-  {
-  }
 
-  bool operator<(const BindingSlot &o) const
-  {
-    if(registerSpace != o.registerSpace)
-      return registerSpace < o.registerSpace;
-    return shaderRegister < o.shaderRegister;
-  }
-
-  uint32_t shaderRegister;
-  uint32_t registerSpace;
-};
-
+typedef std::map<ShaderBuiltin, ShaderVariable> BuiltinInputs;
 class DebugAPIWrapper
 {
 };
@@ -67,12 +55,81 @@ struct ThreadState
 struct GlobalState
 {
   GlobalState() = default;
+  BuiltinInputs builtinInputs;
+
+  struct ViewFmt
+  {
+    int byteWidth = 0;
+    int numComps = 0;
+    CompType fmt = CompType::Typeless;
+    int stride = 0;
+
+    int Stride() const
+    {
+      if(stride != 0)
+        return stride;
+
+      if(byteWidth == 10 || byteWidth == 11)
+        return 4;    // 10 10 10 2 or 11 11 10
+
+      return byteWidth * numComps;
+    }
+  };
+
+  struct UAVData
+  {
+    UAVData()
+        : firstElement(0), numElements(0), tex(false), rowPitch(0), depthPitch(0), hiddenCounter(0)
+    {
+    }
+
+    bytebuf data;
+    uint32_t firstElement;
+    uint32_t numElements;
+
+    bool tex;
+    uint32_t rowPitch, depthPitch;
+
+    ViewFmt format;
+
+    uint32_t hiddenCounter;
+  };
+  std::map<BindingSlot, UAVData> uavs;
+  typedef std::map<BindingSlot, UAVData>::const_iterator UAVIterator;
+
+  struct SRVData
+  {
+    SRVData() : firstElement(0), numElements(0) {}
+    bytebuf data;
+    uint32_t firstElement;
+    uint32_t numElements;
+
+    ViewFmt format;
+  };
+
+  std::map<BindingSlot, SRVData> srvs;
+  typedef std::map<BindingSlot, SRVData>::const_iterator SRVIterator;
+
+  // allocated storage for opaque uniform blocks, does not change over the course of debugging
+  rdcarray<ShaderVariable> constantBlocks;
+
+  // workgroup private variables
+  rdcarray<ShaderVariable> workgroups;
+
+  // resources may be read-write but the variable itself doesn't change
+  rdcarray<ShaderVariable> readOnlyResources;
+  rdcarray<ShaderVariable> readWriteResources;
+  rdcarray<ShaderVariable> samplers;
+  // Globals across workgroups including inputs (immutable) and outputs (mutable)
+  rdcarray<ShaderVariable> globals;
 };
 
 class Debugger : public DXBCContainerDebugger
 {
 public:
   Debugger() : DXBCContainerDebugger(true){};
+  static rdcstr GetResourceReferenceName(const DXIL::Program *program, DXIL::ResourceClass resClass,
+                                         const BindingSlot &slot);
 };
 
 };    // namespace DXILDebug

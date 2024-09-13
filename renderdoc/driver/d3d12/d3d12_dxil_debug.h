@@ -23,3 +23,55 @@
  ******************************************************************************/
 
 #pragma once
+
+#include "driver/shaders/dxil/dxil_debug.h"
+#include "d3d12_device.h"
+#include "d3d12_shaderdebug.h"
+#include "d3d12_state.h"
+
+namespace DXILDebug
+{
+class Debugger;
+
+void FetchConstantBufferData(WrappedID3D12Device *device, const DXIL::Program *program,
+                             const D3D12RenderState::RootSignature &rootsig,
+                             const ShaderReflection &refl, DXILDebug::GlobalState &global,
+                             rdcarray<SourceVariableMapping> &sourceVars);
+
+class D3D12APIWrapper : public DebugAPIWrapper
+{
+public:
+  D3D12APIWrapper(WrappedID3D12Device *device, const DXBC::DXBCContainer *dxbcContainer,
+                  GlobalState &globalState, uint32_t eventId);
+  ~D3D12APIWrapper();
+
+  void FetchSRV(const BindingSlot &slot);
+  void FetchUAV(const BindingSlot &slot);
+  bool CalculateMathIntrinsic(DXIL::DXOp dxOp, const ShaderVariable &input, ShaderVariable &output);
+  bool CalculateSampleGather(DXIL::DXOp dxOp, SampleGatherResourceData resourceData,
+                             SampleGatherSamplerData samplerData, const ShaderVariable &uv,
+                             const ShaderVariable &ddxCalc, const ShaderVariable &ddyCalc,
+                             const int8_t texelOffsets[3], int multisampleIndex,
+                             float lodOrCompareValue, const uint8_t swizzle[4],
+                             GatherChannel gatherChannel, DXBC::ShaderType shaderType,
+                             uint32_t instructionIdx, const char *opString, ShaderVariable &output);
+  ShaderVariable GetResourceInfo(DXIL::ResourceClass resClass, const DXDebug::BindingSlot &slot,
+                                 uint32_t mipLevel, const DXBC::ShaderType shaderType, int &dim);
+  ShaderVariable GetSampleInfo(DXIL::ResourceClass resClass, const DXDebug::BindingSlot &slot,
+                               const DXBC::ShaderType shaderType, const char *opString);
+  ShaderVariable GetRenderTargetSampleInfo(const DXBC::ShaderType shaderType, const char *opString);
+  bool IsResourceBound(DXIL::ResourceClass resClass, const DXDebug::BindingSlot &slot);
+
+private:
+  bool IsSRVBound(const BindingSlot &slot);
+  bool IsUAVBound(const BindingSlot &slot);
+
+  WrappedID3D12Device *m_Device;
+  const DXBC::DXBCContainer *m_DXBC;
+  GlobalState &m_GlobalState;
+  DXBC::ShaderType m_ShaderType;
+  const uint32_t m_EventId;
+  bool m_DidReplay = false;
+};
+
+};

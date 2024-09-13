@@ -26,6 +26,33 @@
 
 #include "dxil_debug.h"
 
+using namespace DXIL;
+using namespace DXDebug;
+
 namespace DXILDebug
 {
+
+// static helper function
+rdcstr Debugger::GetResourceReferenceName(const DXIL::Program *program,
+                                          DXIL::ResourceClass resClass, const BindingSlot &slot)
+{
+  RDCASSERT(program);
+  for(const ResourceReference &resRef : program->m_ResourceReferences)
+  {
+    if(resRef.resourceBase.resClass != resClass)
+      continue;
+    if(resRef.resourceBase.space != slot.registerSpace)
+      continue;
+    if(resRef.resourceBase.regBase > slot.shaderRegister)
+      continue;
+    if(resRef.resourceBase.regBase + resRef.resourceBase.regCount < slot.shaderRegister)
+      continue;
+
+    return program->GetHandleAlias(resRef.handleID);
+  }
+  RDCERR("Failed to find DXIL %s Resource Space %d Register %d", ToStr(resClass).c_str(),
+         slot.registerSpace, slot.shaderRegister);
+  return "UNKNOWN_RESOURCE_HANDLE";
+}
+
 };    // namespace DXILDebug
