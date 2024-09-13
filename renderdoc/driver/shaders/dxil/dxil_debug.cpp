@@ -25,6 +25,7 @@
 #pragma once
 
 #include "dxil_debug.h"
+#include "common/formatting.h"
 #include "maths/formatpacking.h"
 
 using namespace DXIL;
@@ -1097,10 +1098,607 @@ void ApplyAllDerivatives(GlobalState &global, rdcarray<ThreadState> &quad, int d
   }
 }
 
+ThreadState::ThreadState(uint32_t workgroupIndex, Debugger &debugger, const GlobalState &globalState)
+    : m_Debugger(debugger), m_GlobalState(globalState), m_Program(debugger.GetProgram())
+{
+  m_WorkgroupIndex = workgroupIndex;
+  m_FunctionInfo = NULL;
+  m_FunctionInstructionIdx = 0;
+  m_GlobalInstructionIdx = 0;
+  m_Killed = false;
+  m_Ended = false;
+  m_Callstack.clear();
+  m_ShaderType = m_Program.GetShaderType();
+  m_Semantics.coverage = ~0U;
+  m_Semantics.isFrontFace = false;
+  m_Semantics.primID = ~0U;
+}
+
+ThreadState::~ThreadState()
+{
+  for(auto it : m_StackAllocs)
+    free(it.second.backingMemory);
+}
+
 void ThreadState::InitialiseHelper(const ThreadState &activeState)
 {
   m_Input = activeState.m_Input;
   m_Semantics = activeState.m_Semantics;
+  m_LiveVariables = activeState.m_LiveVariables;
+}
+
+bool ThreadState::Finished() const
+{
+  return m_Killed || m_Ended || m_Callstack.empty();
+}
+
+void ThreadState::ProcessScopeChange(const rdcarray<Id> &oldLive, const rdcarray<Id> &newLive)
+{
+  // nothing to do if we aren't tracking into a state
+  if(!m_State)
+    return;
+
+  // all oldLive (except globals) are going out of scope. all newLive (except globals) are coming
+  // into scope
+
+  const rdcarray<Id> &liveGlobals = m_Debugger.GetLiveGlobals();
+
+  for(const Id &id : oldLive)
+  {
+    if(liveGlobals.contains(id))
+      continue;
+
+    m_State->changes.push_back({m_LiveVariables[id]});
+  }
+
+  for(const Id &id : newLive)
+  {
+    if(liveGlobals.contains(id))
+      continue;
+
+    m_State->changes.push_back({ShaderVariable(), m_LiveVariables[id]});
+  }
+}
+
+void ThreadState::EnterFunction(const Function *function, const rdcarray<Value *> &args)
+{
+  StackFrame *frame = new StackFrame(function);
+  m_FunctionInstructionIdx = 0;
+  m_FunctionInfo = m_Debugger.GetFunctionInfo(function);
+
+  // if there's a previous stack frame, save its live list
+  if(!m_Callstack.empty())
+  {
+    // process the outgoing scope
+    ProcessScopeChange(m_Live, {});
+    m_Callstack.back()->live = m_Live;
+    m_Callstack.back()->dormant = m_Dormant;
+  }
+
+  // start with just globals
+  m_Live = m_Debugger.GetLiveGlobals();
+  m_Dormant.clear();
+  m_Block = 0;
+  m_PreviousBlock = ~0U;
+
+  m_GlobalInstructionIdx = m_FunctionInfo->globalInstructionOffset + m_FunctionInstructionIdx;
+  m_Callstack.push_back(frame);
+
+  ShaderDebugState *state = m_State;
+  m_State = state;
+}
+
+void ThreadState::EnterEntryPoint(const Function *function, ShaderDebugState *state)
+{
+  m_State = state;
+
+  EnterFunction(function, {});
+
+  /*
+    //TODO : add the globals to known variables
+    for(const ShaderVariable &v : m_GlobalState.globals)
+      m_LiveVariables[v.name] = v;
+  */
+
+  m_State = NULL;
+}
+
+bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
+                                     const rdcarray<ThreadState> &workgroups)
+{
+  return true;
+}
+
+void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
+                           const rdcarray<ThreadState> &workgroups)
+{
+  m_State = state;
+
+  do
+  {
+    m_GlobalInstructionIdx = m_FunctionInfo->globalInstructionOffset + m_FunctionInstructionIdx;
+    if(m_State)
+    {
+      if(!m_Ended)
+        m_State->nextInstruction = m_GlobalInstructionIdx + 1;
+
+      m_State->flags = ShaderEvents::NoEvent;
+      m_State->changes.clear();
+    }
+
+  } while(!ExecuteInstruction(apiWrapper, workgroups));
+
+  if(m_State && m_Ended)
+    --m_State->nextInstruction;
+
+  m_State = NULL;
+}
+
+bool ThreadState::GetShaderVariable(const DXIL::Value *dxilValue, Operation op, DXOp dxOpCode,
+                                    ShaderVariable &var, bool flushDenormInput) const
+{
+  var.name.clear();
+  var.members.clear();
+  var.flags = ShaderVariableFlags::NoFlags;
+  var.rows = 1;
+  var.columns = 1;
+  var.type = ConvertDXILTypeToVarType(dxilValue->type);
+  bool flushDenorm = flushDenormInput && OperationFlushing(op, dxOpCode);
+  if(var.type == VarType::Double)
+    flushDenorm = false;
+
+  RDCASSERT(!flushDenorm || var.type == VarType::Float);
+  if(const Constant *c = cast<Constant>(dxilValue))
+  {
+    if(c->isShaderVal())
+    {
+      var.value = c->getShaderVal();
+      if(flushDenorm)
+        var.value.f32v[0] = flush_denorm(var.value.f32v[0]);
+      return true;
+    }
+    else if(c->isLiteral())
+    {
+      var.value.u64v[0] = c->getU64();
+      return true;
+    }
+    else if(c->isNULL())
+    {
+      var.value.u64v[0] = 0;
+      return true;
+    }
+    else if(c->isUndef())
+    {
+      return false;
+    }
+    else if(c->isData())
+    {
+      RDCERR("Constant isData DXIL Value not supported");
+    }
+    else if(c->isCast())
+    {
+      RDCERR("Constant isCast DXIL Value not supported");
+    }
+    else if(c->isCompound())
+    {
+      // TODO: Might be a vector
+      if(c->op == Operation::GetElementPtr)
+      {
+        const rdcarray<DXIL::Value *> &members = c->getMembers();
+        const Type *baseType = members.at(0)->type;
+        RDCASSERTEQUAL(baseType->type, Type::Pointer);
+        ShaderVariable ptrVal;
+        RDCASSERT(GetShaderVariable(members.at(0), op, dxOpCode, ptrVal));
+        rdcarray<uint64_t> indexes;
+        for(size_t i = 1; i < members.size(); i++)
+        {
+          ShaderVariable index;
+          RDCASSERT(GetShaderVariable(members.at(i), op, dxOpCode, index));
+          indexes.push_back(index.value.u64v[0]);
+        }
+        var.value = ptrVal.value;
+        // TODO: Need to do the arithmetic with indexes
+        return true;
+      }
+      else if(c->op != Operation::NoOp)
+      {
+        RDCERR("Constant isCompound DXIL Value with unsupported operaiton %s", ToStr(c->op).c_str());
+      }
+    }
+    else
+    {
+      RDCERR("Constant DXIL Value with no value");
+      return false;
+    }
+  }
+  else if(const Literal *lit = cast<Literal>(dxilValue))
+  {
+    var.value.u64v[0] = lit->literal;
+    return true;
+  }
+  else if(const GlobalVar *gv = cast<GlobalVar>(dxilValue))
+  {
+    var.value.u64v[0] = gv->initialiser->getU64();
+    return true;
+  }
+
+  if(const Instruction *inst = cast<Instruction>(dxilValue))
+  {
+    GetVariable(inst->slot, op, dxOpCode, var);
+    return true;
+  }
+  RDCERR("Unandled DXIL Value type");
+
+  return false;
+}
+
+bool ThreadState::GetVariable(const Id &id, Operation op, DXOp dxOpCode, ShaderVariable &var) const
+{
+  RDCASSERT(m_Live.contains(id));
+  RDCASSERTEQUAL(m_LiveVariables.count(id), 1);
+  var = m_LiveVariables.at(id);
+
+  bool flushDenorm = OperationFlushing(op, dxOpCode);
+  if(var.type == VarType::Double)
+    flushDenorm = false;
+  RDCASSERT(!flushDenorm || var.type == VarType::Float);
+  if(flushDenorm)
+    var.value.f32v[0] = flush_denorm(var.value.f32v[0]);
+  return true;
+}
+
+void ThreadState::SetResult(const Id &id, ShaderVariable &result, Operation op, DXOp dxOpCode,
+                            ShaderEvents flags)
+{
+  RDCASSERT(result.rows > 0);
+  RDCASSERT(result.columns > 0);
+  RDCASSERT(result.columns <= 4);
+  RDCASSERTNOTEQUAL(result.type, VarType::Unknown);
+
+  // Can only flush denorms for float types
+  bool flushDenorm = OperationFlushing(op, dxOpCode) && (result.type == VarType::Float);
+
+  flags |= AssignValue(result, result, flushDenorm);
+
+  if(m_State)
+  {
+    ShaderVariableChange change;
+    m_State->flags |= flags;
+    change.before = m_LiveVariables[id];
+    change.after = result;
+    m_State->changes.push_back(change);
+  }
+}
+
+void ThreadState::MarkResourceAccess(const rdcstr &name, const DXIL::ResourceReference *resRef)
+{
+  if(m_State == NULL)
+    return;
+
+  ResourceClass resClass = resRef->resourceBase.resClass;
+  if(resClass != ResourceClass::UAV && resClass != ResourceClass::SRV)
+    return;
+
+  bool isSRV = (resClass == ResourceClass::SRV);
+  m_State->changes.push_back(ShaderVariableChange());
+  ShaderVariableChange &change = m_State->changes.back();
+  change.after.rows = change.after.columns = 1;
+  change.after.type = isSRV ? VarType::ReadOnlyResource : VarType::ReadWriteResource;
+
+  const DXIL::EntryPointInterface::ResourceBase &resourceBase = resRef->resourceBase;
+  change.after.name = name;
+  // TODO: find the array index
+  uint32_t arrayIdx = 0;
+  if(resourceBase.regCount > 1)
+    change.after.name += StringFormat::Fmt("[%u]", arrayIdx);
+
+  change.after.SetBindIndex(ShaderBindIndex(
+      isSRV ? DescriptorCategory::ReadOnlyResource : DescriptorCategory::ReadWriteResource,
+      resRef->resourceIndex, arrayIdx));
+
+  // Check whether this resource was visited before
+  bool found = false;
+  ShaderBindIndex bp = change.after.GetBindIndex();
+  rdcarray<ShaderBindIndex> &accessed = isSRV ? m_accessedSRVs : m_accessedUAVs;
+  for(size_t i = 0; i < accessed.size(); ++i)
+  {
+    if(accessed[i] == bp)
+    {
+      found = true;
+      break;
+    }
+  }
+
+  if(found)
+    change.before = change.after;
+  else
+    accessed.push_back(bp);
+}
+
+void ThreadState::PerformGPUResourceOp(const rdcarray<ThreadState> &workgroups, Operation opCode,
+                                       DXOp dxOpCode, const DXIL::ResourceReference *resRef,
+                                       DebugAPIWrapper *apiWrapper, const DXIL::Instruction &inst,
+                                       ShaderVariable &result)
+{
+  // TextureLoad(srv,mipLevelOrSampleCount,coord0,coord1,coord2,offset0,offset1,offset2)
+  // Sample(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,clamp)
+  // SampleLevel(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,LOD)
+  // SampleCmpLevelZero(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue)
+
+  // TODO
+  // SampleBias(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,bias,clamp)
+  // SampleGrad(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,ddx0,ddx1,ddx2,ddy0,ddy1,ddy2,clamp)
+  // SampleCmp(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,clamp)
+  // SampleCmpLevel(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,lod)
+  // SampleCmpGrad(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,ddx0,ddx1,ddx2,ddy0,ddy1,ddy2,clamp)
+  // SampleCmpBias(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,bias,clamp)
+
+  // DXIL reports the vector result as a struct of N members of Element type, plus an int.
+  const Type *retType = inst.type;
+  RDCASSERTEQUAL(retType->type, Type::TypeKind::Struct);
+  const Type *baseType = retType->members[0];
+  RDCASSERTEQUAL(baseType->type, Type::TypeKind::Scalar);
+  result.type = ConvertDXILTypeToVarType(baseType);
+  result.columns = (uint8_t)(retType->members.size() - 1);
+
+  // CalculateSampleGather is only valid for SRV resources
+  ResourceClass resClass = resRef->resourceBase.resClass;
+  RDCASSERTEQUAL(resClass, ResourceClass::SRV);
+
+  // resRef->resourceBase must be an SRV
+  const DXIL::EntryPointInterface::SRV &srv = resRef->resourceBase.srvData;
+
+  SampleGatherResourceData resourceData;
+  resourceData.dim = (DXDebug::ResourceDimension)ConvertResourceKindToResourceDimension(srv.shape);
+  resourceData.retType =
+      (DXDebug::ResourceRetType)ConvertComponentTypeToResourceRetType(srv.compType);
+  resourceData.sampleCount = srv.sampleCount;
+
+  resourceData.binding.registerSpace = resRef->resourceBase.space;
+  resourceData.binding.shaderRegister = resRef->resourceBase.regBase;
+
+  // TODO: SET THIS TO INCLUDE UINT FORMATS
+  if(result.type == VarType::Float)
+    resourceData.retType = DXBC::RETURN_TYPE_FLOAT;
+  else if(result.type == VarType::SInt)
+    resourceData.retType = DXBC::RETURN_TYPE_SINT;
+  else
+    RDCERR("Unhanded return type %s", ToStr(result.type).c_str());
+
+  ShaderVariable uv;
+  int8_t texelOffsets[3] = {0, 0, 0};
+  int msIndex = 0;
+  float lodOrCompareValue = 0.0f;
+
+  SampleGatherSamplerData samplerData = {};
+  samplerData.mode = SamplerMode::NUM_SAMPLERS;
+
+  bool uvDDXY[4] = {false, false, false, false};
+
+  if(dxOpCode != DXOp::TextureLoad)
+  {
+    // Sampler is in arg 2
+    rdcstr samplerId = GetArgumentName(2);
+    const ResourceReference *samplerRef = GetResource(samplerId);
+    if(!samplerRef)
+      return;
+
+    RDCASSERTEQUAL(samplerRef->resourceBase.resClass, ResourceClass::Sampler);
+    // samplerRef->resourceBase must be a Sampler
+    const DXIL::EntryPointInterface::Sampler &sampler = resRef->resourceBase.samplerData;
+    // TODO: BIAS COMES FROM THE Sample*Bias arguments
+    samplerData.bias = 0.0f;
+    samplerData.binding.registerSpace = samplerRef->resourceBase.space;
+    samplerData.binding.shaderRegister = samplerRef->resourceBase.regBase;
+    samplerData.mode = ConvertSamplerKindToSamplerMode(sampler.samplerType);
+
+    ShaderVariable arg;
+    // UV is float data in args 3,4,5,6
+    for(uint32_t i = 0; i < 4; ++i)
+    {
+      if(GetShaderVariable(inst.args[3 + i], opCode, dxOpCode, arg))
+      {
+        uv.value.f32v[i] = arg.value.f32v[0];
+        // variables will have a name, constants will not have a name
+        if(!arg.name.empty())
+          uvDDXY[i] = true;
+      }
+    }
+
+    // Offset is int data in args 7,8,9
+    if(GetShaderVariable(inst.args[7], opCode, dxOpCode, arg, false))
+      texelOffsets[0] = (int8_t)arg.value.s32v[0];
+    if(GetShaderVariable(inst.args[8], opCode, dxOpCode, arg, false))
+      texelOffsets[1] = (int8_t)arg.value.s32v[0];
+    if(GetShaderVariable(inst.args[9], opCode, dxOpCode, arg, false))
+      texelOffsets[2] = (int8_t)arg.value.s32v[0];
+
+    // TODO: Sample: Clamp is in arg 10
+
+    // SampleLevel: LOD is in arg 10
+    // SampleCmpLevelZero: compare is in arg 10
+    if((dxOpCode == DXOp::SampleLevel) || (dxOpCode == DXOp::SampleCmpLevelZero))
+    {
+      if(GetShaderVariable(inst.args[10], opCode, dxOpCode, arg))
+      {
+        RDCASSERTEQUAL(arg.type, VarType::Float);
+        lodOrCompareValue = arg.value.f32v[0];
+      }
+    }
+  }
+  else
+  {
+    ShaderVariable arg;
+    // TODO : mipLevelOrSampleCount is in arg 2
+    if(GetShaderVariable(inst.args[2], opCode, dxOpCode, arg))
+    {
+      msIndex = arg.value.u32v[0];
+      lodOrCompareValue = arg.value.f32v[0];
+    }
+
+    // UV is int data in args 3,4,5
+    if(GetShaderVariable(inst.args[3], opCode, dxOpCode, arg))
+      uv.value.s32v[0] = arg.value.s32v[0];
+    if(GetShaderVariable(inst.args[4], opCode, dxOpCode, arg))
+      uv.value.s32v[1] = arg.value.s32v[0];
+    if(GetShaderVariable(inst.args[5], opCode, dxOpCode, arg))
+      uv.value.s32v[2] = arg.value.s32v[0];
+
+    // Offset is int data in args 6,7,8
+    if(GetShaderVariable(inst.args[6], opCode, dxOpCode, arg))
+      texelOffsets[0] = (int8_t)arg.value.s32v[0];
+    if(GetShaderVariable(inst.args[7], opCode, dxOpCode, arg))
+      texelOffsets[1] = (int8_t)arg.value.s32v[0];
+    if(GetShaderVariable(inst.args[8], opCode, dxOpCode, arg))
+      texelOffsets[2] = (int8_t)arg.value.s32v[0];
+  }
+
+  // TODO: DDX & DDY
+  ShaderVariable ddx;
+  ShaderVariable ddy;
+  // Sample, SampleBias, SampleCmp, CalculateLOD need DDX, DDY
+  if((dxOpCode == DXOp::Sample) || (dxOpCode == DXOp::SampleBias) ||
+     (dxOpCode == DXOp::SampleCmp) || (dxOpCode == DXOp::CalculateLOD))
+  {
+    if(m_ShaderType != DXBC::ShaderType::Pixel || workgroups.size() != 4)
+    {
+      RDCERR("Undefined results using derivative instruction outside of a pixel shader.");
+    }
+    else
+    {
+      // texture samples use coarse derivatives
+      // TODO: the UV should be the ID per UV compponent
+      ShaderValue delta;
+      for(uint32_t i = 0; i < 4; i++)
+      {
+        if(uvDDXY[i])
+        {
+          delta = DDX(false, opCode, dxOpCode, workgroups, GetArgumentId(3 + i));
+          ddx.value.f32v[i] = delta.f32v[0];
+          delta = DDY(false, opCode, dxOpCode, workgroups, GetArgumentId(3 + i));
+          ddy.value.f32v[i] = delta.f32v[0];
+        }
+      }
+    }
+  }
+  else if(dxOpCode == DXOp::SampleGrad)
+  {
+    // TODO: get from arguments
+  }
+
+  uint8_t swizzle[4] = {0, 1, 2, 3};
+
+  // TODO: GATHER CHANNEL
+  GatherChannel gatherChannel = GatherChannel::Red;
+  uint32_t instructionIdx = m_FunctionInstructionIdx - 1;
+  const char *opString = ToStr(dxOpCode).c_str();
+  ShaderVariable data;
+
+  apiWrapper->CalculateSampleGather(dxOpCode, resourceData, samplerData, uv, ddx, ddy, texelOffsets,
+                                    msIndex, lodOrCompareValue, swizzle, gatherChannel,
+                                    m_ShaderType, instructionIdx, opString, data);
+
+  result.value = data.value;
+}
+
+rdcstr ThreadState::GetArgumentName(uint32_t i) const
+{
+  return m_Program.GetArgId(*m_CurrentInstruction, i);
+}
+
+Id ThreadState::GetArgumentId(uint32_t i) const
+{
+  DXIL::Value *arg = m_CurrentInstruction->args[i];
+  return GetSSAId(arg);
+}
+
+const DXIL::ResourceReference *ThreadState::GetResource(rdcstr handle)
+{
+  const DXIL::ResourceReference *resRef = m_Program.GetResourceReference(handle);
+  if(resRef)
+  {
+    rdcstr alias = m_Program.GetHandleAlias(handle);
+    MarkResourceAccess(alias, resRef);
+    return resRef;
+  }
+
+  RDCERR("Unknown resource handle '%s'", handle.c_str());
+  return NULL;
+}
+
+void ThreadState::Sub(const ShaderVariable &a, const ShaderVariable &b, ShaderValue &ret) const
+{
+  RDCASSERTEQUAL(a.type, b.type);
+  RDCASSERTEQUAL(a.rows, b.rows);
+  RDCASSERTEQUAL(a.columns, b.columns);
+  if(a.type == VarType::Float)
+    ret.f32v[0] = a.value.f32v[0] - b.value.f32v[0];
+  else if(a.type == VarType::SInt)
+    ret.s32v[0] = a.value.s32v[0] - b.value.s32v[0];
+  else if(a.type == VarType::UInt)
+    ret.u32v[0] = a.value.u32v[0] - b.value.u32v[0];
+  else
+    RDCERR("Unhandled type '%s'", ToStr(a.type).c_str());
+}
+
+ShaderValue ThreadState::DDX(bool fine, Operation opCode, DXOp dxOpCode,
+                             const rdcarray<ThreadState> &quad, const Id &id) const
+{
+  uint32_t index = ~0U;
+  int quadIndex = m_WorkgroupIndex;
+
+  if(!fine)
+  {
+    // use top-left pixel's neighbours
+    index = 0;
+  }
+  // find direct neighbours - left pixel in the quad
+  else if(quadIndex % 2 == 0)
+  {
+    index = quadIndex;
+  }
+  else
+  {
+    index = quadIndex - 1;
+  }
+
+  ShaderValue ret;
+  ShaderVariable a;
+  ShaderVariable b;
+  RDCASSERT(quad[index + 1].GetVariable(id, opCode, dxOpCode, a));
+  RDCASSERT(quad[index].GetVariable(id, opCode, dxOpCode, b));
+  Sub(a, b, ret);
+  return ret;
+}
+
+ShaderValue ThreadState::DDY(bool fine, Operation opCode, DXOp dxOpCode,
+                             const rdcarray<ThreadState> &quad, const Id &id) const
+{
+  uint32_t index = ~0U;
+  int quadIndex = m_WorkgroupIndex;
+
+  if(!fine)
+  {
+    // use top-left pixel's neighbours
+    index = 0;
+  }
+  // find direct neighbours - top pixel in the quad
+  else if(quadIndex < 2)
+  {
+    index = quadIndex;
+  }
+  else
+  {
+    index = quadIndex - 2;
+  }
+
+  ShaderValue ret;
+  ShaderVariable a;
+  ShaderVariable b;
+  RDCASSERT(quad[index + 2].GetVariable(id, opCode, dxOpCode, a));
+  RDCASSERT(quad[index].GetVariable(id, opCode, dxOpCode, b));
+  Sub(a, b, ret);
+  return ret;
 }
 
 // static helper function
@@ -1150,4 +1748,9 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug(DebugAPIWrapper *apiWrapper)
   return ret;
 }
 
+const FunctionInfo *Debugger::GetFunctionInfo(const DXIL::Function *function) const
+{
+  RDCASSERT(m_FunctionInfos.count(function) != 0);
+  return &m_FunctionInfos.at(function);
+}
 };    // namespace DXILDebug
