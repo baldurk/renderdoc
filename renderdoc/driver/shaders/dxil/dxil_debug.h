@@ -44,12 +44,48 @@ class Debugger;
 struct GlobalState;
 
 typedef std::map<ShaderBuiltin, ShaderVariable> BuiltinInputs;
+
+void GetInterpolationModeForInputParams(const rdcarray<SigParameter> &stageInputSig,
+                                        const DXIL::Program *program,
+                                        rdcarray<DXBC::InterpolationMode> &interpModes);
+
+struct PSInputData
+{
+  PSInputData(int inputIndex, int numWords, ShaderBuiltin sysAttribute, bool inc, void *pData)
+  {
+    input = inputIndex;
+    numwords = numWords;
+    sysattribute = sysAttribute;
+    included = inc;
+    data = pData;
+  }
+
+  void *data;
+  ShaderBuiltin sysattribute;
+  int input;
+  int numwords;
+  bool included;
+};
+
+void ApplyAllDerivatives(GlobalState &global, rdcarray<ThreadState> &quad, int destIdx,
+                         const rdcarray<PSInputData> &psInputs, float *data);
+
 class DebugAPIWrapper
 {
 };
 
 struct ThreadState
 {
+  void InitialiseHelper(const ThreadState &activeState);
+
+  struct
+  {
+    uint32_t coverage;
+    uint32_t primID;
+    uint32_t isFrontFace;
+  } m_Semantics;
+
+  ShaderVariable m_Input;
 };
 
 struct GlobalState
@@ -128,8 +164,27 @@ class Debugger : public DXBCContainerDebugger
 {
 public:
   Debugger() : DXBCContainerDebugger(true){};
+  ShaderDebugTrace *BeginDebug(uint32_t eventId, const DXBC::DXBCContainer *dxbcContainer,
+                               const ShaderReflection &reflection, uint32_t activeLaneIndex);
+  rdcarray<ShaderDebugState> ContinueDebug(DebugAPIWrapper *apiWrapper);
+  GlobalState &GetGlobalState() { return m_GlobalState; }
+  ThreadState &GetActiveLane() { return m_Workgroups[m_ActiveLaneIndex]; }
+  ThreadState &GetWorkgroup(const uint32_t i) { return m_Workgroups[i]; }
+  rdcarray<ThreadState> &GetWorkgroups() { return m_Workgroups; }
   static rdcstr GetResourceReferenceName(const DXIL::Program *program, DXIL::ResourceClass resClass,
                                          const BindingSlot &slot);
+  const DXBC::DXBCContainer *const GetDXBCContainer() { return m_DXBC; }
+  uint32_t GetEventId() { return m_EventId; }
+
+private:
+  rdcarray<ThreadState> m_Workgroups;
+
+  GlobalState m_GlobalState;
+
+  const DXBC::DXBCContainer *m_DXBC = NULL;
+
+  uint32_t m_EventId = 0;
+  uint32_t m_ActiveLaneIndex = 0;
 };
 
 };    // namespace DXILDebug

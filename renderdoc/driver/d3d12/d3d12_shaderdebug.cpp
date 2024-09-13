@@ -31,6 +31,7 @@
 #include "strings/string_utils.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_debug.h"
+#include "d3d12_dxil_debug.h"
 #include "d3d12_replay.h"
 #include "d3d12_resources.h"
 #include "d3d12_rootsig.h"
@@ -1938,7 +1939,262 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
   }
   else
   {
-    RDCERR("DXIL Vertex Shader Debugging is not supported");
+    DXILDebug::Debugger *debugger = new DXILDebug::Debugger();
+    ret = debugger->BeginDebug(eventId, dxbc, refl, 0);
+
+    DXILDebug::GlobalState &globalState = debugger->GetGlobalState();
+    DXILDebug::ThreadState &activeState = debugger->GetActiveLane();
+    rdcarray<ShaderVariable> &inputs = activeState.m_Input.members;
+
+    // Fetch constant buffer data from root signature
+    DXILDebug::FetchConstantBufferData(m_pDevice, dxbc->GetDXILByteCode(), rs.graphics, refl,
+                                       globalState, ret->sourceVars);
+
+    // Set input values
+    for(size_t i = 0; i < inputs.size(); i++)
+    {
+      const SigParameter &sigParam = dxbc->GetReflection()->InputSig[i];
+      switch(sigParam.systemValue)
+      {
+        case ShaderBuiltin::Undefined:
+        case ShaderBuiltin::Position:    // SV_Position seems to get promoted automatically,
+                                         // but it's invalid for vertex input
+        {
+          const D3D12_INPUT_ELEMENT_DESC *el = NULL;
+          rdcstr signame = strlower(sigParam.semanticName);
+
+          for(size_t l = 0; l < inputlayout.size(); l++)
+          {
+            rdcstr layoutname = strlower(inputlayout[l].SemanticName);
+            if(signame == layoutname && sigParam.semanticIndex == inputlayout[l].SemanticIndex)
+            {
+              el = &inputlayout[l];
+              break;
+            }
+            if(signame == layoutname + ToStr(inputlayout[l].SemanticIndex))
+            {
+              el = &inputlayout[l];
+              break;
+            }
+          }
+
+          RDCASSERT(el);
+
+          if(!el)
+            continue;
+
+          byte *srcData = NULL;
+          size_t dataSize = 0;
+
+          if(el->InputSlotClass == D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA)
+          {
+            if(vertData[el->InputSlot].size() >= el->AlignedByteOffset)
+            {
+              srcData = &vertData[el->InputSlot][el->AlignedByteOffset];
+              dataSize = vertData[el->InputSlot].size() - el->AlignedByteOffset;
+            }
+          }
+          else
+          {
+            if(el->InstanceDataStepRate == 0 || el->InstanceDataStepRate >= action->numInstances)
+            {
+              if(staticData[el->InputSlot].size() >= el->AlignedByteOffset)
+              {
+                srcData = &staticData[el->InputSlot][el->AlignedByteOffset];
+                dataSize = staticData[el->InputSlot].size() - el->AlignedByteOffset;
+              }
+            }
+            else
+            {
+              UINT isrIdx = el->InputSlot * MaxStepRate + (el->InstanceDataStepRate - 1);
+              if(instData[isrIdx].size() >= el->AlignedByteOffset)
+              {
+                srcData = &instData[isrIdx][el->AlignedByteOffset];
+                dataSize = instData[isrIdx].size() - el->AlignedByteOffset;
+              }
+            }
+          }
+
+          ResourceFormat fmt = MakeResourceFormat(el->Format);
+
+          // more data needed than is provided
+          if(sigParam.compCount > fmt.compCount)
+          {
+            inputs[i].value.u32v[3] = 1;
+
+            if(fmt.compType == CompType::Float)
+              inputs[i].value.f32v[3] = 1.0f;
+          }
+
+          // interpret resource format types
+          if(fmt.Special())
+          {
+            Vec3f *v3 = (Vec3f *)inputs[i].value.f32v.data();
+            Vec4f *v4 = (Vec4f *)inputs[i].value.f32v.data();
+
+            // only pull in all or nothing from these,
+            // if there's only e.g. 3 bytes remaining don't read and unpack some of
+            // a 4-byte resource format type
+            size_t packedsize = 4;
+            if(fmt.type == ResourceFormatType::R5G5B5A1 || fmt.type == ResourceFormatType::R5G6B5 ||
+               fmt.type == ResourceFormatType::R4G4B4A4)
+              packedsize = 2;
+
+            if(srcData == NULL || packedsize > dataSize)
+            {
+              inputs[i].value.u32v[0] = inputs[i].value.u32v[1] = inputs[i].value.u32v[2] =
+                  inputs[i].value.u32v[3] = 0;
+            }
+            else if(fmt.type == ResourceFormatType::R5G5B5A1)
+            {
+              RDCASSERT(fmt.BGRAOrder());
+              uint16_t packed = ((uint16_t *)srcData)[0];
+              *v4 = ConvertFromB5G5R5A1(packed);
+            }
+            else if(fmt.type == ResourceFormatType::R5G6B5)
+            {
+              RDCASSERT(fmt.BGRAOrder());
+              uint16_t packed = ((uint16_t *)srcData)[0];
+              *v3 = ConvertFromB5G6R5(packed);
+            }
+            else if(fmt.type == ResourceFormatType::R4G4B4A4)
+            {
+              RDCASSERT(fmt.BGRAOrder());
+              uint16_t packed = ((uint16_t *)srcData)[0];
+              *v4 = ConvertFromB4G4R4A4(packed);
+            }
+            else if(fmt.type == ResourceFormatType::R10G10B10A2)
+            {
+              uint32_t packed = ((uint32_t *)srcData)[0];
+
+              if(fmt.compType == CompType::UInt)
+              {
+                inputs[i].value.u32v[2] = (packed >> 0) & 0x3ff;
+                inputs[i].value.u32v[1] = (packed >> 10) & 0x3ff;
+                inputs[i].value.u32v[0] = (packed >> 20) & 0x3ff;
+                inputs[i].value.u32v[3] = (packed >> 30) & 0x003;
+              }
+              else
+              {
+                *v4 = ConvertFromR10G10B10A2(packed);
+              }
+            }
+            else if(fmt.type == ResourceFormatType::R11G11B10)
+            {
+              uint32_t packed = ((uint32_t *)srcData)[0];
+              *v3 = ConvertFromR11G11B10(packed);
+            }
+          }
+          else
+          {
+            for(uint32_t c = 0; c < fmt.compCount; c++)
+            {
+              if(srcData == NULL || fmt.compByteWidth > dataSize)
+              {
+                inputs[i].value.u32v[c] = 0;
+                continue;
+              }
+
+              dataSize -= fmt.compByteWidth;
+
+              if(fmt.compByteWidth == 1)
+              {
+                byte *src = srcData + c * fmt.compByteWidth;
+
+                if(fmt.compType == CompType::UInt)
+                  inputs[i].value.u32v[c] = *src;
+                else if(fmt.compType == CompType::SInt)
+                  inputs[i].value.s32v[c] = *((int8_t *)src);
+                else if(fmt.compType == CompType::UNorm || fmt.compType == CompType::UNormSRGB)
+                  inputs[i].value.f32v[c] = float(*src) / 255.0f;
+                else if(fmt.compType == CompType::SNorm)
+                {
+                  signed char *schar = (signed char *)src;
+
+                  // -128 is mapped to -1, then -127 to -127 are mapped to -1 to 1
+                  if(*schar == -128)
+                    inputs[i].value.f32v[c] = -1.0f;
+                  else
+                    inputs[i].value.f32v[c] = float(*schar) / 127.0f;
+                }
+                else
+                  RDCERR("Unexpected component type");
+              }
+              else if(fmt.compByteWidth == 2)
+              {
+                uint16_t *src = (uint16_t *)(srcData + c * fmt.compByteWidth);
+
+                if(fmt.compType == CompType::Float)
+                  inputs[i].value.f32v[c] = ConvertFromHalf(*src);
+                else if(fmt.compType == CompType::UInt)
+                  inputs[i].value.u32v[c] = *src;
+                else if(fmt.compType == CompType::SInt)
+                  inputs[i].value.s32v[c] = *((int16_t *)src);
+                else if(fmt.compType == CompType::UNorm || fmt.compType == CompType::UNormSRGB)
+                  inputs[i].value.f32v[c] = float(*src) / float(UINT16_MAX);
+                else if(fmt.compType == CompType::SNorm)
+                {
+                  int16_t *sint = (int16_t *)src;
+
+                  // -32768 is mapped to -1, then -32767 to -32767 are mapped to -1 to 1
+                  if(*sint == -32768)
+                    inputs[i].value.f32v[c] = -1.0f;
+                  else
+                    inputs[i].value.f32v[c] = float(*sint) / 32767.0f;
+                }
+                else
+                  RDCERR("Unexpected component type");
+              }
+              else if(fmt.compByteWidth == 4)
+              {
+                uint32_t *src = (uint32_t *)(srcData + c * fmt.compByteWidth);
+
+                if(fmt.compType == CompType::Float || fmt.compType == CompType::UInt ||
+                   fmt.compType == CompType::SInt)
+                  memcpy(&inputs[i].value.u32v[c], src, 4);
+                else
+                  RDCERR("Unexpected component type");
+              }
+            }
+
+            if(fmt.BGRAOrder())
+            {
+              RDCASSERT(fmt.compCount == 4);
+              std::swap(inputs[i].value.f32v[2], inputs[i].value.f32v[0]);
+            }
+          }
+          break;
+        }
+        case ShaderBuiltin::VertexIndex:
+        {
+          uint32_t sv_vertid = vertid;
+
+          if(action->flags & ActionFlags::Indexed)
+            sv_vertid = idx - action->baseVertex;
+
+          if(sigParam.varType == VarType::Float)
+            inputs[i].value.f32v[0] = inputs[i].value.f32v[1] = inputs[i].value.f32v[2] =
+                inputs[i].value.f32v[3] = (float)sv_vertid;
+          else
+            inputs[i].value.u32v[0] = inputs[i].value.u32v[1] = inputs[i].value.u32v[2] =
+                inputs[i].value.u32v[3] = sv_vertid;
+          break;
+        }
+        case ShaderBuiltin::InstanceIndex:
+        {
+          if(sigParam.varType == VarType::Float)
+            inputs[i].value.f32v[0] = inputs[i].value.f32v[1] = inputs[i].value.f32v[2] =
+                inputs[i].value.f32v[3] = (float)instid;
+          else
+            inputs[i].value.u32v[0] = inputs[i].value.u32v[1] = inputs[i].value.u32v[2] =
+                inputs[i].value.u32v[3] = instid;
+          break;
+        }
+        default: RDCERR("Unhandled system value semantic on VS input"); break;
+      }
+    }
+    ret->inputs = {activeState.m_Input};
+    delete[] instData;
   }
 
   if(ret)
@@ -1993,12 +2249,6 @@ ShaderDebugTrace *D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t
     return new ShaderDebugTrace;
   }
 
-  if(!dxbc->GetDXBCByteCode())
-  {
-    RDCERR("DXIL Pixel Shader Debugging is not supported");
-    return new ShaderDebugTrace;
-  }
-
   dxbc->GetDisassembly(false);
 
   ShaderDebugTrace *ret = NULL;
@@ -2037,7 +2287,7 @@ ShaderDebugTrace *D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t
   if(dxbc->GetDXBCByteCode())
     DXBCDebug::GetInterpolationModeForInputParams(inputSig, dxbc->GetDXBCByteCode(), interpModes);
   else
-    RDCERR("DXIL Pixel Shader Debugging is not supported");
+    DXILDebug::GetInterpolationModeForInputParams(inputSig, dxbc->GetDXILByteCode(), interpModes);
 
   DXDebug::GatherPSInputDataForInitialValues(inputSig, prevDxbc->GetReflection()->OutputSig,
                                              interpModes, initialValues, floatInputs, inputVarNames,
@@ -2158,7 +2408,7 @@ ShaderDebugTrace *D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t
     }
     else
     {
-      RDCERR("DXIL Pixel Shader Debugging is not supported");
+      RDCWARN("TODO DXIL Pixel Shader Debugging support for MSAA Evaluate");
     }
   }
 
@@ -2820,7 +3070,106 @@ struct PSInitialData
   }
   else
   {
-    RDCERR("DXIL Pixel Shader Debugging is not supported");
+    DXILDebug::Debugger *debugger = new DXILDebug::Debugger();
+    uint32_t activeLaneIdx = destIdx;
+    ret = debugger->BeginDebug(eventId, dxbc, refl, activeLaneIdx);
+
+    DXILDebug::GlobalState &globalState = debugger->GetGlobalState();
+    DXILDebug::ThreadState &activeState = debugger->GetActiveLane();
+    rdcarray<ShaderVariable> &ins = activeState.m_Input.members;
+
+    // Fetch constant buffer data from root signature
+    DXILDebug::FetchConstantBufferData(m_pDevice, dxbc->GetDXILByteCode(), rs.graphics, refl,
+                                       globalState, ret->sourceVars);
+
+    // TODO SAMPLE EVALUTE MASK
+    // globalState.sampleEvalRegisterMask = sampleEvalRegisterMask;
+
+    rdcarray<DXILDebug::PSInputData> psInputDatas;
+    for(int i = 0; i < initialValues.count(); i++)
+    {
+      PSInputElement &elem = initialValues[i];
+      if(elem.reg >= 0)
+        psInputDatas.emplace_back(i, elem.numwords, elem.sysattribute, elem.included, data);
+
+      if(elem.included)
+        data += elem.numwords;
+    }
+
+    {
+      if(!ins.empty() && ins.back().name == "vCoverage")
+        ins.back().value.u32v[0] = pHit->coverage;
+
+      activeState.m_Semantics.coverage = pHit->coverage;
+      activeState.m_Semantics.primID = pHit->primitive;
+      activeState.m_Semantics.isFrontFace = pHit->isFrontFace;
+
+      for(const DXILDebug::PSInputData &psInput : psInputDatas)
+      {
+        int32_t *rawout = NULL;
+
+        ShaderVariable &invar = ins[psInput.input];
+
+        if(psInput.sysattribute == ShaderBuiltin::PrimitiveIndex)
+        {
+          invar.value.u32v[0] = pHit->primitive;
+        }
+        else if(psInput.sysattribute == ShaderBuiltin::MSAASampleIndex)
+        {
+          invar.value.u32v[0] = pHit->sample;
+        }
+        else if(psInput.sysattribute == ShaderBuiltin::MSAACoverage)
+        {
+          invar.value.u32v[0] = pHit->coverage;
+        }
+        else if(psInput.sysattribute == ShaderBuiltin::IsFrontFace)
+        {
+          invar.value.u32v[0] = pHit->isFrontFace ? ~0U : 0;
+        }
+        else
+        {
+          rawout = &invar.value.s32v[0];
+          memcpy(rawout, psInput.data, psInput.numwords * 4);
+        }
+      }
+    }
+
+    for(int i = 0; i < 4; i++)
+    {
+      if(i != destIdx)
+      {
+        DXILDebug::ThreadState &workgroup = debugger->GetWorkgroup(i);
+        workgroup.InitialiseHelper(activeState);
+      }
+    }
+
+    // TODO UPDATE INPUTS FROM SAMPLE CACHE
+#if 0
+      for(const GlobalState::SampleEvalCacheKey &key : evalSampleCacheData)
+      {
+        // start with the basic input value
+        ShaderVariable var = activeState.m_Input.members[key.inputRegisterIndex];
+
+        // copy over the value into the variable
+        memcpy(var.value.f32v.data(), evalSampleCache, var.columns * sizeof(float));
+
+        // store in the global cache for each quad. We'll apply derivatives below to adjust for each
+        GlobalState::SampleEvalCacheKey k = key;
+        for(int i = 0; i < 4; i++)
+        {
+          k.quadIndex = i;
+          activeState.sampleEvalCache[k] = var;
+        }
+
+        // advance past this data - always by float4 as that's the buffer stride
+        evalSampleCache += 4;
+      }
+#endif
+    DXILDebug::ApplyAllDerivatives(globalState, debugger->GetWorkgroups(), destIdx, psInputDatas,
+                                   (float *)data);
+
+    ret->inputs = {activeState.m_Input};
+    ret->constantBlocks = globalState.constantBlocks;
   }
 
   if(ret)
@@ -2954,7 +3303,47 @@ ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId,
   }
   else
   {
-    RDCERR("DXIL Compute Shader Debugging is not supported");
+    // get ourselves in pristine state before this dispatch (without any side effects it may have had)
+    m_pDevice->ReplayLog(0, eventId, eReplay_WithoutDraw);
+
+    DXILDebug::Debugger *debugger = new DXILDebug::Debugger();
+    ret = debugger->BeginDebug(eventId, dxbc, refl, 0);
+    DXILDebug::GlobalState &globalState = debugger->GetGlobalState();
+
+    std::map<ShaderBuiltin, ShaderVariable> &builtins = globalState.builtinInputs;
+
+    uint32_t threadDim[3] = {
+        refl.dispatchThreadsDimension[0],
+        refl.dispatchThreadsDimension[1],
+        refl.dispatchThreadsDimension[2],
+    };
+
+    // SV_DispatchThreadID
+    builtins[ShaderBuiltin::DispatchThreadIndex] = ShaderVariable(
+        rdcstr(), groupid[0] * threadDim[0] + threadid[0], groupid[1] * threadDim[1] + threadid[1],
+        groupid[2] * threadDim[2] + threadid[2], 0U);
+
+    // SV_GroupID
+    builtins[ShaderBuiltin::GroupIndex] =
+        ShaderVariable(rdcstr(), groupid[0], groupid[1], groupid[2], 0U);
+
+    // SV_GroupThreadID
+    builtins[ShaderBuiltin::GroupThreadIndex] =
+        ShaderVariable(rdcstr(), threadid[0], threadid[1], threadid[2], 0U);
+
+    // SV_GroupIndex
+    builtins[ShaderBuiltin::GroupFlatIndex] = ShaderVariable(
+        rdcstr(),
+        threadid[2] * threadDim[0] * threadDim[1] + threadid[1] * threadDim[0] + threadid[0], 0U,
+        0U, 0U);
+
+    // TODO ADD ANY OTHER INPUTS
+
+    // Fetch constant buffer data from root signature
+    DXILDebug::FetchConstantBufferData(m_pDevice, dxbc->GetDXILByteCode(), rs.compute, refl,
+                                       globalState, ret->sourceVars);
+    // ret->inputs = state.inputs;
+    ret->constantBlocks = globalState.constantBlocks;
   }
 
   if(ret)
@@ -2969,7 +3358,11 @@ rdcarray<ShaderDebugState> D3D12Replay::ContinueDebug(ShaderDebugger *debugger)
 
   if(((DXBCContainerDebugger *)debugger)->isDXIL)
   {
-    return {};
+    DXILDebug::Debugger *dxilDebugger = (DXILDebug::Debugger *)debugger;
+    DXILDebug::D3D12APIWrapper apiWrapper(m_pDevice, dxilDebugger->GetDXBCContainer(),
+                                          dxilDebugger->GetGlobalState(), dxilDebugger->GetEventId());
+    D3D12MarkerRegion region(m_pDevice->GetQueue()->GetReal(), "ContinueDebug Simulation Loop");
+    return dxilDebugger->ContinueDebug(&apiWrapper);
   }
   else
   {
