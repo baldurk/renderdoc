@@ -26,9 +26,11 @@
 
 #include <set>
 #include "common/common.h"
+#include "driver/shaders/dxbc/dx_debug.h"
 #include "driver/shaders/dxbc/dxbc_bytecode.h"
 #include "driver/shaders/dxbc/dxbc_container.h"
 #include "dxil_bytecode.h"
+#include "dxil_debuginfo.h"
 
 namespace DXILDebug
 {
@@ -304,6 +306,95 @@ struct GlobalState
   rdcarray<ShaderVariable> globals;
 };
 
+struct LocalMapping
+{
+  bool operator<(const LocalMapping &o) const
+  {
+    if(sourceVarName != o.sourceVarName)
+      return sourceVarName < o.sourceVarName;
+    if(byteOffset != o.byteOffset)
+      return byteOffset < o.byteOffset;
+    if(countBytes != o.countBytes)
+      return countBytes < o.countBytes;
+    if(instIndex != o.instIndex)
+      return instIndex < o.instIndex;
+    if(isDeclare != o.isDeclare)
+      return isDeclare;
+    return ssaIdName < o.ssaIdName;
+  }
+
+  bool isSourceSupersetOf(const LocalMapping &o) const
+  {
+    // this mapping is a superset of the other if:
+
+    // it's the same source var
+    if(sourceVarName != o.sourceVarName)
+      return false;
+
+    // it encompaases the other mapping
+    if(byteOffset > o.byteOffset)
+      return false;
+
+    // countBytes = 0 means entire variable
+    if(countBytes == 0)
+      return true;
+
+    if(o.countBytes == 0)
+      return false;
+
+    const int64_t thisEnd = byteOffset + countBytes;
+    const int64_t otherEnd = o.byteOffset + o.countBytes;
+    if(thisEnd < otherEnd)
+      return false;
+
+    return true;
+  }
+
+  const DXIL::DILocalVariable *variable;
+  rdcstr sourceVarName;
+  rdcstr ssaIdName;
+  int64_t byteOffset;
+  uint32_t countBytes;
+  uint32_t instIndex;
+  bool isDeclare;
+};
+
+struct ScopedDebugData
+{
+  rdcarray<LocalMapping> localMappings;
+  const DXIL::Metadata *md;
+  size_t parentIndex;
+  rdcstr fileName;
+  uint32_t line;
+  uint32_t minInstruction;
+  uint32_t maxInstruction;
+
+  bool operator<(const ScopedDebugData &o) const
+  {
+    if(minInstruction != o.minInstruction)
+      return minInstruction < o.minInstruction;
+    if(maxInstruction != o.maxInstruction)
+      return maxInstruction < o.maxInstruction;
+    return line < o.line;
+  }
+};
+
+struct TypeData
+{
+  const DXIL::DIBase *base;
+  rdcstr name;
+
+  VarType type = VarType::Unknown;
+  uint32_t vecSize = 0;
+  uint32_t matSize = 0;
+  bool colMajorMat = false;
+
+  const DXIL::Metadata *baseType = NULL;
+  rdcarray<uint32_t> arrayDimensions;
+  rdcarray<rdcpair<rdcstr, const DXIL::Metadata *>> structMembers;
+  rdcarray<uint32_t> memberOffsets;
+};
+
 class Debugger : public DXBCContainerDebugger
 {
 public:
@@ -324,6 +415,14 @@ public:
   const FunctionInfo *GetFunctionInfo(const DXIL::Function *function) const;
 
 private:
+  void CalcActiveMask(rdcarray<bool> &activeMask);
+  void ParseDbgOpDeclare(const DXIL::Instruction &inst, uint32_t instructionIndex);
+  void ParseDbgOpValue(const DXIL::Instruction &inst, uint32_t instructionIndex);
+  size_t AddScopedDebugData(const DXIL::Metadata *scopeMD, uint32_t instructionIndex);
+  size_t FindScopedDebugDataIndex(const DXIL::Metadata *md) const;
+  size_t Debugger::FindScopedDebugDataIndex(const uint32_t instructionIndex) const;
+  void AddDebugType(const DXIL::Metadata *typeMD);
+
   rdcarray<ThreadState> m_Workgroups;
   std::map<const DXIL::Function *, FunctionInfo> m_FunctionInfos;
 
@@ -332,11 +431,22 @@ private:
 
   GlobalState m_GlobalState;
 
+  struct DebugInfo
+  {
+    rdcarray<ScopedDebugData> scopedDebugDatas;
+    // TODO : Make sure the key is unique across scopes (need to mangle name or use an ID)
+    std::map<rdcstr, LocalMapping> locals;
+    std::map<const DXIL::Metadata *, TypeData> types;
+  } m_DebugInfo;
+
   const DXBC::DXBCContainer *m_DXBC = NULL;
   const DXIL::Program *m_Program = NULL;
+  const DXIL::Function *m_EntryPointFunction = NULL;
+  ShaderStage m_Stage;
 
   uint32_t m_EventId = 0;
   uint32_t m_ActiveLaneIndex = 0;
+  int m_Steps = 0;
 };
 
 };    // namespace DXILDebug

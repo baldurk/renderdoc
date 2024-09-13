@@ -3428,6 +3428,370 @@ rdcstr Debugger::GetResourceReferenceName(const DXIL::Program *program,
 }
 
 // member functions
+void Debugger::CalcActiveMask(rdcarray<bool> &activeMask)
+{
+  // one bool per workgroup thread
+  activeMask.resize(m_Workgroups.size());
+
+  // mark any threads that have finished as inactive, otherwise they're active
+  for(size_t i = 0; i < m_Workgroups.size(); i++)
+    activeMask[i] = !m_Workgroups[i].Finished();
+
+  // only pixel shaders automatically converge workgroups, compute shaders need explicit sync
+  if(m_Stage != ShaderStage::Pixel)
+    return;
+
+  // TODO: implement pixel shader convergence
+  return;
+}
+
+size_t Debugger::FindScopedDebugDataIndex(const uint32_t instructionIndex) const
+{
+  size_t countScopes = m_DebugInfo.scopedDebugDatas.size();
+  size_t scopeIndex = countScopes;
+  for(size_t i = 0; i < countScopes; i++)
+  {
+    if((m_DebugInfo.scopedDebugDatas[i].minInstruction <= instructionIndex) &&
+       (instructionIndex <= m_DebugInfo.scopedDebugDatas[i].maxInstruction))
+      scopeIndex = i;
+    else if(scopeIndex < countScopes)
+      break;
+  }
+  return scopeIndex;
+}
+
+size_t Debugger::FindScopedDebugDataIndex(const DXIL::Metadata *md) const
+{
+  size_t countScopes = m_DebugInfo.scopedDebugDatas.size();
+  for(size_t i = 0; i < countScopes; i++)
+  {
+    if(m_DebugInfo.scopedDebugDatas[i].md == md)
+      return i;
+  }
+  return countScopes;
+}
+
+size_t Debugger::AddScopedDebugData(const DXIL::Metadata *scopeMD, uint32_t instructionIndex)
+{
+  // Iterate upwards to find DISubprogram or DIFile scope
+  while((scopeMD->dwarf->type != DIBase::File) && (scopeMD->dwarf->type != DIBase::Subprogram))
+    scopeMD = m_Program->GetDebugScopeParent(scopeMD->dwarf);
+
+  size_t scopeIndex = FindScopedDebugDataIndex(scopeMD);
+  // Add a new DebugScope
+  if(scopeIndex == m_DebugInfo.scopedDebugDatas.size())
+  {
+    // Find the parent scope and add this to its children
+    const DXIL::Metadata *parentScope = m_Program->GetDebugScopeParent(scopeMD->dwarf);
+
+    ScopedDebugData scope;
+    scope.md = scopeMD;
+    scope.minInstruction = instructionIndex;
+    scope.maxInstruction = instructionIndex;
+    // File scope should not have a parent
+    if(scopeMD->dwarf->type != DIBase::File)
+    {
+      RDCASSERT(parentScope);
+      scope.parentIndex = AddScopedDebugData(parentScope, instructionIndex);
+      RDCASSERT(scope.parentIndex < m_DebugInfo.scopedDebugDatas.size());
+    }
+    else
+    {
+      RDCASSERT(!parentScope);
+      scope.parentIndex = (size_t)-1;
+    }
+    scope.fileName = m_Program->GetDebugScopeFilePath(scope.md->dwarf);
+    scope.line = (uint32_t)m_Program->GetDebugScopeLine(scope.md->dwarf);
+
+    m_DebugInfo.scopedDebugDatas.push_back(scope);
+  }
+  return scopeIndex;
+}
+
+void Debugger::AddDebugType(const DXIL::Metadata *typeMD)
+{
+  TypeData typeData;
+
+  const DXIL::DIBase *base = typeMD->dwarf;
+  /*
+    rdcstr name;
+    VarType type = VarType::Unknown;
+    uint32_t vecSize = 0;
+    uint32_t matSize = 0;
+    bool colMajorMat = false;
+
+    const DXIL::Metadata *baseType = NULL;
+    rdcarray<uint32_t> arrayDimensions;
+    rdcarray<rdcpair<rdcstr, const DXIL::Metadata *>> structMembers;
+    rdcarray<uint32_t> memberOffsets;
+  */
+
+  switch(base->type)
+  {
+    case DXIL::DIBase::Type::BasicType:
+    {
+      const DIBasicType *basicType = base->As<DIBasicType>();
+      typeData.name = *basicType->name;
+      typeData.baseType = typeMD;
+      typeData.vecSize = 1;
+      uint32_t sizeInBits = (uint32_t)basicType->sizeInBits;
+      switch(basicType->tag)
+      {
+        case DW_TAG_array_type:
+        {
+          // typeData.type = VAR TYPE OF THE ARRAY ELEMENTS
+          // typeData.baseType = MD TYPE OF THE ARRAY ELEMENTS
+          break;
+        }
+        case DW_TAG_base_type:
+        {
+          break;
+        }
+        default: RDCERR("Unhandled DIBasicType tag %s", ToStr(basicType->tag).c_str()); break;
+      }
+      switch(basicType->encoding)
+      {
+        case DW_ATE_boolean:
+        {
+          RDCASSERTEQUAL(sizeInBits, 8);
+          typeData.type = VarType ::Bool;
+          break;
+        }
+        case DW_ATE_float:
+        {
+          if(sizeInBits == 16)
+            typeData.type = VarType::Half;
+          else if(sizeInBits == 32)
+            typeData.type = VarType::Float;
+          else if(sizeInBits == 64)
+            typeData.type = VarType::Double;
+          else
+            RDCERR("Unhandled DIBasicType DW_ATE_float size %u", sizeInBits);
+          break;
+        }
+        case DW_ATE_signed:
+        {
+          if(sizeInBits == 8)
+            typeData.type = VarType::SByte;
+          else if(sizeInBits == 16)
+            typeData.type = VarType::SShort;
+          else if(sizeInBits == 32)
+            typeData.type = VarType::SInt;
+          else if(sizeInBits == 32)
+            typeData.type = VarType::SLong;
+          else
+            RDCERR("Unhandled DIBasicType DW_ATE_signed size %u", sizeInBits);
+          break;
+        }
+        case DW_ATE_unsigned:
+        {
+          if(sizeInBits == 8)
+            typeData.type = VarType::UByte;
+          else if(sizeInBits == 16)
+            typeData.type = VarType::UShort;
+          else if(sizeInBits == 32)
+            typeData.type = VarType::UInt;
+          else if(sizeInBits == 32)
+            typeData.type = VarType::ULong;
+          else
+            RDCERR("Unhandled DIBasicType DW_ATE_unsigned size %u", sizeInBits);
+          break;
+        }
+        case DW_ATE_signed_char:
+        {
+          RDCASSERTEQUAL(sizeInBits, 8);
+          typeData.type = VarType::SByte;
+          break;
+        }
+        case DW_ATE_unsigned_char:
+        {
+          RDCASSERTEQUAL(sizeInBits, 8);
+          typeData.type = VarType::UByte;
+          break;
+        }
+        case DW_ATE_complex_float:
+        case DW_ATE_address:
+        case DW_ATE_imaginary_float:
+        case DW_ATE_packed_decimal:
+        case DW_ATE_numeric_string:
+        case DW_ATE_edited:
+        case DW_ATE_signed_fixed:
+        case DW_ATE_unsigned_fixed:
+        case DW_ATE_decimal_float:
+        case DW_ATE_UTF:
+          RDCERR("Unhandled DIBasicType encoding %s", ToStr(basicType->encoding).c_str());
+          break;
+      };
+      break;
+    }
+    case DXIL::DIBase::Type::CompositeType:
+    {
+      const DICompositeType *compositeType = base->As<DICompositeType>();
+      typeData.name = *compositeType->name;
+      typeData.baseType = typeMD;
+      switch(compositeType->tag)
+      {
+        case DW_TAG_class_type:
+        case DW_TAG_structure_type:
+        {
+          typeData.type = VarType::Struct;
+          // rdcarray<rdcpair<rdcstr, const DXIL::Metadata *>> structMembers;
+          // rdcarray<uint32_t> memberOffsets;
+          //   AddDebugType(member);
+          //   RDCASSERT(m_DebugInfo.types.count(compositeType->base) == 1);
+          //   typeData = m_DebugInfo.types[compositeType->base];
+          break;
+        }
+        default:
+          RDCERR("Unhandled DICompositeType tag %s", ToStr(compositeType->tag).c_str());
+          break;
+      };
+      break;
+    }
+    case DXIL::DIBase::Type::DerivedType:
+    {
+      const DIDerivedType *derviedType = base->As<DIDerivedType>();
+      switch(derviedType->tag)
+      {
+        case DW_TAG_typedef:
+          AddDebugType(derviedType->base);
+          RDCASSERT(m_DebugInfo.types.count(derviedType->base) == 1);
+          typeData = m_DebugInfo.types[derviedType->base];
+          break;
+        default:
+          RDCERR("Unhandled DIDerivedType DIDerviedType Tag type %s",
+                 ToStr(derviedType->tag).c_str());
+          break;
+      }
+      break;
+    }
+    default: RDCERR("Unhandled DXIL type %s", ToStr(base->type).c_str()); break;
+  }
+
+  m_DebugInfo.types[typeMD] = typeData;
+}
+
+void Debugger::ParseDbgOpDeclare(const DXIL::Instruction &inst, uint32_t instructionIndex)
+{
+  // arg 0 contains the SSA Id of the alloca result which represents the local variable (a pointer)
+  const Metadata *allocaInstMD = cast<Metadata>(inst.args[0]);
+  RDCASSERT(allocaInstMD);
+  const Instruction *allocaInst = cast<Instruction>(allocaInstMD->value);
+  RDCASSERT(allocaInst);
+  RDCASSERTEQUAL(allocaInst->op, Operation::Alloca);
+  rdcstr resultId;
+  Program::MakeResultId(*allocaInst, resultId);
+
+  // arg 1 is DILocalVariable metadata
+  // Tag
+  // name
+  // arguments
+  // scope
+  // file, line
+  // type
+  // flags
+  const Metadata *localVariableMD = cast<Metadata>(inst.args[1]);
+  RDCASSERT(localVariableMD);
+  RDCASSERTEQUAL(localVariableMD->dwarf->type, DIBase::Type::LocalVariable);
+  const DILocalVariable *localVariable = localVariableMD->dwarf->As<DILocalVariable>();
+
+  // arg 2 is DIExpression metadata
+  const Metadata *expressionMD = cast<Metadata>(inst.args[2]);
+  uint32_t countBytes = 0;
+  if(expressionMD)
+  {
+    RDCASSERTEQUAL(expressionMD->dwarf->type, DIBase::Type::Expression);
+    const DIExpression *expression = expressionMD->dwarf->As<DIExpression>();
+    RDCLOG("Expression Op %s", ToStr(expression->op).c_str());
+  }
+
+  size_t scopeIndex = AddScopedDebugData(localVariable->scope, instructionIndex);
+  ScopedDebugData &scope = m_DebugInfo.scopedDebugDatas[scopeIndex];
+  scope.minInstruction = RDCMIN(scope.minInstruction, instructionIndex);
+  scope.maxInstruction = RDCMAX(scope.maxInstruction, instructionIndex);
+
+  rdcstr sourceVarName = m_Program->GetDebugVarName(localVariable);
+  LocalMapping localMapping;
+  localMapping.variable = localVariable;
+  localMapping.sourceVarName = sourceVarName;
+  localMapping.ssaIdName = resultId;
+  localMapping.byteOffset = 0;
+  localMapping.countBytes = countBytes;
+  localMapping.instIndex = instructionIndex;
+  localMapping.isDeclare = true;
+
+  scope.localMappings.push_back(localMapping);
+
+  const DXIL::Metadata *typeMD = localVariable->type;
+  if(m_DebugInfo.types.count(typeMD) == 0)
+    AddDebugType(typeMD);
+
+  if(m_DebugInfo.locals.count(sourceVarName) == 0)
+    m_DebugInfo.locals[sourceVarName] = localMapping;
+}
+
+void Debugger::ParseDbgOpValue(const DXIL::Instruction &inst, uint32_t instructionIndex)
+{
+  // arg 0 is metadata containing the new value
+  const Metadata *valueMD = cast<Metadata>(inst.args[0]);
+  rdcstr resultId = m_Program->GetArgId(valueMD->value);
+  // arg 1 is i64 byte offset in the source variable where the new value is written
+  int64_t byteOffset;
+  RDCASSERT(getival<int64_t>(inst.args[1], byteOffset));
+
+  // arg 2 is DILocalVariable metadata
+  // Tag
+  // name
+  // arguments
+  // scope
+  // file, line
+  // type
+  // flags
+  const Metadata *localVariableMD = cast<Metadata>(inst.args[2]);
+  RDCASSERT(localVariableMD);
+  RDCASSERTEQUAL(localVariableMD->dwarf->type, DIBase::Type::LocalVariable);
+  const DILocalVariable *localVariable = localVariableMD->dwarf->As<DILocalVariable>();
+
+  // arg 3 is DIExpression metadata
+  uint32_t countBytes = 0;
+  const Metadata *expressionMD = cast<Metadata>(inst.args[2]);
+  if(expressionMD)
+  {
+    if(expressionMD->dwarf->type == DIBase::Type::Expression)
+    {
+      // TODO: get the count bytes from the expression
+      const DIExpression *expression = expressionMD->dwarf->As<DIExpression>();
+      RDCLOG("Expression Op %s", ToStr(expression->op).c_str());
+    }
+  }
+
+  size_t scopeIndex = AddScopedDebugData(localVariable->scope, instructionIndex);
+  ScopedDebugData &scope = m_DebugInfo.scopedDebugDatas[scopeIndex];
+  scope.minInstruction = RDCMIN(scope.minInstruction, instructionIndex);
+  scope.maxInstruction = RDCMAX(scope.maxInstruction, instructionIndex);
+
+  byteOffset = 0;
+  countBytes = 0;
+
+  rdcstr sourceVarName = m_Program->GetDebugVarName(localVariable);
+  LocalMapping localMapping;
+  localMapping.variable = localVariable;
+  localMapping.sourceVarName = sourceVarName;
+  localMapping.ssaIdName = resultId;
+  localMapping.byteOffset = byteOffset;
+  localMapping.countBytes = countBytes;
+  localMapping.instIndex = instructionIndex;
+  localMapping.isDeclare = false;
+
+  scope.localMappings.push_back(localMapping);
+
+  const DXIL::Metadata *typeMD = localVariable->type;
+  if(m_DebugInfo.types.count(typeMD) == 0)
+    AddDebugType(typeMD);
+
+  if(m_DebugInfo.locals.count(sourceVarName) == 0)
+    m_DebugInfo.locals[sourceVarName] = localMapping;
+}
 
 ShaderDebugTrace *Debugger::BeginDebug(uint32_t eventId, const DXBC::DXBCContainer *dxbcContainer,
                                        const ShaderReflection &reflection, uint32_t activeLaneIndex)
@@ -3446,8 +3810,85 @@ ShaderDebugTrace *Debugger::BeginDebug(uint32_t eventId, const DXBC::DXBCContain
 
 rdcarray<ShaderDebugState> Debugger::ContinueDebug(DebugAPIWrapper *apiWrapper)
 {
+  ThreadState &active = GetActiveLane();
+
   rdcarray<ShaderDebugState> ret;
 
+  // initialise the first ShaderDebugState if we haven't stepped yet
+  if(m_Steps == 0)
+  {
+    ShaderDebugState initial;
+
+    for(size_t lane = 0; lane < m_Workgroups.size(); lane++)
+    {
+      ThreadState &thread = m_Workgroups[lane];
+
+      if(lane == m_ActiveLaneIndex)
+      {
+        thread.EnterEntryPoint(m_EntryPointFunction, &initial);
+        // FillCallstack(thread, initial);
+        initial.nextInstruction = thread.m_GlobalInstructionIdx;
+      }
+      else
+      {
+        thread.EnterEntryPoint(m_EntryPointFunction, NULL);
+      }
+    }
+
+    // globals won't be filled out by entering the entry point, ensure their change is registered.
+    for(const ShaderVariable &v : m_GlobalState.globals)
+      initial.changes.push_back({ShaderVariable(), v});
+
+    ret.push_back(std::move(initial));
+
+    m_Steps++;
+  }
+
+  // if we've finished, return an empty set to signify that
+  if(active.Finished())
+    return ret;
+
+  rdcarray<bool> activeMask;
+
+  for(int stepEnd = m_Steps + 100; m_Steps < stepEnd;)
+  {
+    if(active.Finished())
+      break;
+
+    // calculate the current mask of which threads are active
+    CalcActiveMask(activeMask);
+
+    // step all active members of the workgroup
+    for(size_t lane = 0; lane < m_Workgroups.size(); lane++)
+    {
+      if(activeMask[lane])
+      {
+        ThreadState &thread = m_Workgroups[lane];
+        if(thread.Finished())
+        {
+          if(lane == m_ActiveLaneIndex)
+            ret.emplace_back();
+          continue;
+        }
+
+        if(lane == m_ActiveLaneIndex)
+        {
+          ShaderDebugState state;
+
+          state.stepIndex = m_Steps;
+          thread.StepNext(&state, apiWrapper, m_Workgroups);
+
+          ret.push_back(std::move(state));
+
+          m_Steps++;
+        }
+        else
+        {
+          thread.StepNext(NULL, apiWrapper, m_Workgroups);
+        }
+      }
+    }
+  }
   return ret;
 }
 
