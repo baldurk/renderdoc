@@ -44,7 +44,7 @@ float4 main() : SV_Target0
   std::string pixel_root = R"EOSHADER(
 
 #define MyRS1 "RootFlags( ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT), " \
-              "DescriptorTable(SRV(t50, numDescriptors = 999)) "
+              "DescriptorTable(SRV(t50, numDescriptors = 999, offset = 0, flags = DESCRIPTORS_VOLATILE|DATA_VOLATILE), visibility = SHADER_VISIBILITY_PIXEL) "
 
 Texture2D<float> empty : register(t50);
 
@@ -418,8 +418,6 @@ float4 main() : SV_Target0
 
       cmd->ExecuteIndirect(cmdsig, 0, argBuf, 0, NULL, 0);
 
-      FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
       if(debug)
       {
         BOOL wrong = debug->AssertResourceState(bb, D3D12_RESOURCE_STATE_COPY_DEST, 0);
@@ -432,10 +430,13 @@ float4 main() : SV_Target0
       }
 
       cmd->SetPipelineState(psoNoSig);
+      IASetVertexBuffer(cmd, vb, sizeof(DefaultA2V), 0);
 
       setMarker(cmd, "No Sig Draw");
 
       cmd->DrawIndexedInstanced(3, 1, 0, 0, 0);
+
+      FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
       cmd->Close();
 
