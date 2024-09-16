@@ -791,7 +791,7 @@ cbuffer consts : register(b0)
 RWStructuredBuffer<uint4> bufIn : register(u0);
 RWStructuredBuffer<uint4> bufOut : register(u1);
 
-[numthreads(3,2,1)]
+[numthreads(1,1,1)]
 void main()
 {
   bufOut[0].x += bufIn[0].x * (uint)boolX;
@@ -807,6 +807,10 @@ void main()
     // initialise, create window, create device, etc
     if(!Init())
       return 3;
+
+    bool supportSM60 = (m_HighestShaderModel >= D3D_SHADER_MODEL_6_0) && m_DXILSupport;
+    bool supportSM66 = (m_HighestShaderModel >= D3D_SHADER_MODEL_6_6) && m_DXILSupport;
+    TEST_ASSERT(!supportSM66 || supportSM60, "SM 6.6 requires SM 6.0 support");
 
     size_t lastTest = pixel.rfind("IN.tri == ");
     lastTest += sizeof("IN.tri == ") - 1;
@@ -936,24 +940,33 @@ void main()
                                          .VS(vsblob)
                                          .PS(psblob)
                                          .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
-    // Recompile with SM 6.0 and SM 6.6
-    vsblob = Compile(common + vertex, "main", "vs_6_0");
-    psblob = Compile(common + "\n#define SM_6_0 1\n" + pixel, "main", "ps_6_0");
-    ID3D12PipelineStatePtr pso_6_0 = MakePSO()
-                                         .RootSig(sig)
-                                         .InputLayout(inputLayout)
-                                         .VS(vsblob)
-                                         .PS(psblob)
-                                         .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
 
-    vsblob = Compile(common + vertex, "main", "vs_6_6");
-    psblob = Compile(common + "\n#define SM_6_6 1\n" + pixel, "main", "ps_6_6");
-    ID3D12PipelineStatePtr pso_6_6 = MakePSO()
-                                         .RootSig(sig)
-                                         .InputLayout(inputLayout)
-                                         .VS(vsblob)
-                                         .PS(psblob)
-                                         .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
+    ID3D12PipelineStatePtr psos[4] = {pso_5_0, pso_5_1, NULL, NULL};
+
+    // Recompile with SM 6.0 and SM 6.6
+    if(supportSM60)
+    {
+      vsblob = Compile(common + vertex, "main", "vs_6_0");
+      psblob = Compile(common + "\n#define SM_6_0 1\n" + pixel, "main", "ps_6_0");
+      psos[2] = MakePSO()
+                    .RootSig(sig)
+                    .InputLayout(inputLayout)
+                    .VS(vsblob)
+                    .PS(psblob)
+                    .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
+    }
+
+    if(supportSM66)
+    {
+      vsblob = Compile(common + vertex, "main", "vs_6_6");
+      psblob = Compile(common + "\n#define SM_6_6 1\n" + pixel, "main", "ps_6_6");
+      psos[3] = MakePSO()
+                    .RootSig(sig)
+                    .InputLayout(inputLayout)
+                    .VS(vsblob)
+                    .PS(psblob)
+                    .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
+    }
 
     static const uint32_t texDim = AlignUp(numTests, 64U) * 4;
 
@@ -1189,15 +1202,20 @@ void main()
     ID3D12PipelineStatePtr vertexSamplePSO_5_0 =
         MakePSO().RootSig(vertexSampleSig).VS(vsblob).PS(psblob);
 
-    vsblob = Compile(vertexSampleVS, "main", "vs_6_0");
-    psblob = Compile(vertexSamplePS, "main", "ps_6_0");
-    ID3D12PipelineStatePtr vertexSamplePSO_6_0 =
-        MakePSO().RootSig(vertexSampleSig).VS(vsblob).PS(psblob);
+    ID3D12PipelineStatePtr vertexSamplePSOs[3] = {vertexSamplePSO_5_0, NULL};
+    if(supportSM60)
+    {
+      vsblob = Compile(vertexSampleVS, "main", "vs_6_0");
+      psblob = Compile(vertexSamplePS, "main", "ps_6_0");
+      vertexSamplePSOs[1] = MakePSO().RootSig(vertexSampleSig).VS(vsblob).PS(psblob);
+    }
 
-    vsblob = Compile(vertexSampleVS, "main", "vs_6_6");
-    psblob = Compile(vertexSamplePS, "main", "ps_6_6");
-    ID3D12PipelineStatePtr vertexSamplePSO_6_6 =
-        MakePSO().RootSig(vertexSampleSig).VS(vsblob).PS(psblob);
+    if(supportSM66)
+    {
+      vsblob = Compile(vertexSampleVS, "main", "vs_6_6");
+      psblob = Compile(vertexSamplePS, "main", "ps_6_6");
+      vertexSamplePSOs[2] = MakePSO().RootSig(vertexSampleSig).VS(vsblob).PS(psblob);
+    }
 
     // set the NULL descriptors
     UINT inc = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -1266,14 +1284,22 @@ void main()
         tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 2, 1, 3),
     });
 
-    const uint32_t countSMs = 2;
-    ID3DBlobPtr computeBlobs[countSMs];
-    ID3D12PipelineStatePtr computePSOs[countSMs];
-    std::string computeSMs[countSMs] = {"cs_6_0", "cs_6_6"};
-    for(uint32_t i = 0; i < countSMs; ++i)
+    const uint32_t countComputeSMs = 3;
+    ID3D12PipelineStatePtr computePSOs[countComputeSMs] = {NULL, NULL, NULL};
+    std::string computeSMs[countComputeSMs] = {"cs_5_0", "cs_6_0", "cs_6_6"};
+    ID3DBlobPtr csblob = Compile(compute, "main", "cs_5_0");
+    computePSOs[0] = MakePSO().RootSig(sigCompute).CS(csblob);
+
+    if(supportSM60)
     {
-      computeBlobs[i] = Compile(compute, "main", computeSMs[i], false);
-      computePSOs[i] = MakePSO().RootSig(sigCompute).CS(computeBlobs[i]);
+      csblob = Compile(compute, "main", "cs_6_0");
+      computePSOs[1] = MakePSO().RootSig(sigCompute).CS(csblob);
+    }
+
+    if(supportSM66)
+    {
+      csblob = Compile(compute, "main", "cs_6_6");
+      computePSOs[2] = MakePSO().RootSig(sigCompute).CS(csblob);
     }
 
     const uint32_t uavSize = 1024;
@@ -1319,7 +1345,6 @@ void main()
 
       setMarker(cmd, undefined_tests);
 
-      ID3D12PipelineStatePtr psos[4] = {pso_5_0, pso_5_1, pso_6_0, pso_6_6};
       float blitOffsets[4] = {0.0f, 4.0f, 8.0f, 12.0f};
       D3D12_RECT scissors[4] = {
           {0, 0, (int)texDim, 4},
@@ -1330,7 +1355,9 @@ void main()
       const char *markers[4] = {"sm_5_0", "sm_5_1", "sm_6_0", "sm_6_6"};
 
       // Clear, draw, and blit to backbuffer twice - once for each SM 5.0, 5.1, 6.0, 6.6
-      for(int i = 0; i < ARRAY_COUNT(psos); ++i)
+      size_t countGraphicsPasses = supportSM66 ? 4 : (supportSM60 ? 3 : 2);
+      TEST_ASSERT(countGraphicsPasses <= ARRAY_COUNT(psos), "More graphic passes than psos");
+      for(size_t i = 0; i < countGraphicsPasses; ++i)
       {
         OMSetRenderTargets(cmd, {fltRTV}, {});
         ClearRenderTargetView(cmd, fltRTV, {0.2f, 0.2f, 0.2f, 1.0f});
@@ -1408,15 +1435,15 @@ void main()
       cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
       cmd->SetGraphicsRootSignature(vertexSampleSig);
 
-      ID3D12PipelineStatePtr vertexSamplePSOs[3] = {vertexSamplePSO_5_0, vertexSamplePSO_6_0,
-                                                    vertexSamplePSO_6_6};
-
       const char *vs_markers[3] = {
           "VertexSample sm_5_0",
           "VertexSample sm_6_0",
           "VertexSample sm_6_6",
       };
-      for(int i = 0; i < ARRAY_COUNT(vertexSamplePSOs); ++i)
+      size_t countVertexSamplePasses = supportSM66 ? 3 : (supportSM60 ? 2 : 1);
+      TEST_ASSERT(countVertexSamplePasses <= ARRAY_COUNT(vertexSamplePSOs),
+                  "More vertex sample passes than psos");
+      for(int i = 0; i < countVertexSamplePasses; ++i)
       {
         cmd->SetPipelineState(vertexSamplePSOs[i]);
         cmd->SetGraphicsRootDescriptorTable(0, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
@@ -1437,7 +1464,9 @@ void main()
       FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
       pushMarker(cmd, "Compute");
-      for(uint32_t i = 0; i < countSMs; ++i)
+      size_t countComputePasses = supportSM66 ? 3 : (supportSM60 ? 2 : 1);
+      TEST_ASSERT(countComputePasses <= ARRAY_COUNT(computePSOs), "More compute passes than psos");
+      for(size_t i = 0; i < countComputePasses; ++i)
       {
         cmd->SetDescriptorHeaps(1, &m_CBVUAVSRV.GetInterfacePtr());
 

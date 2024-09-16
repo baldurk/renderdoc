@@ -21,6 +21,10 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
 
             # Jump to the action
             test_marker: rd.ActionDescription = self.find_action(shaderModels[sm])
+            if (test_marker is None):
+                rdtest.log.print(f"Skipping Graphics tests for {shaderModels[sm]}")
+                rdtest.log.end_section(shaderModels[sm] + " tests")
+                continue
             action = test_marker.next
             self.controller.SetFrameEvent(action.eventId, False)
 
@@ -42,10 +46,10 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                 if not failed:
                     rdtest.log.success("Basic VS debugging was successful")
             else:
-                rdtest.log.print(f"Ignoring undebuggable Vertex shader at {action.eventId}.")
+                rdtest.log.print(f"Ignoring undebuggable Vertex shader at {action.eventId} for {shaderModels[sm]}.")
 
             if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
-                rdtest.log.print("Skipping undebuggable Pixel shader at {}.".format(action.eventId))
+                rdtest.log.print(f"Skipping undebuggable Pixel shader at {action.eventId} for {shaderModels[sm]}.")
                 rdtest.log.end_section(shaderModels[sm] + " tests")
                 continue
 
@@ -68,6 +72,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                     else:
                         rdtest.log.error("Test {} did not match. {}".format(test, str(ex)))
                         failed = True
+                    rdtest.log.end_section(shaderModels[sm] + " tests")
                     continue
                 finally:
                     self.controller.FreeTrace(trace)
@@ -113,6 +118,9 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
         shaderModels = ["sm_5_0", "sm_6_0", "sm_6_6"]
         for sm in range(len(shaderModels)):
             test_marker: rd.ActionDescription = self.find_action("VertexSample " + shaderModels[sm])
+            if test_marker is None:
+                rdtest.log.print(f"Skipping Vertex Sample tests for {shaderModels[sm]}")
+                continue
             action = test_marker.next
             self.controller.SetFrameEvent(action.eventId, False)
             pipe: rd.PipeState = self.controller.GetPipelineState()
@@ -134,7 +142,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                 if not failed:
                     rdtest.log.success(shaderModels[sm] + " VertexSample VS was debugged correctly")
             else:
-                rdtest.log.print("Skipping undebuggable Vertex shader at {}.".format(action.eventId))
+                rdtest.log.print(f"Skipping undebuggable Vertex shader at {action.eventId} for {shaderModels[sm]}.")
 
             if pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
                 # Debug the pixel shader
@@ -154,7 +162,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
 
                 rdtest.log.success("VertexSample PS was debugged correctly")
             else:
-                rdtest.log.print("Skipping undebuggable Pixel shader at {}.".format(action.eventId))
+                rdtest.log.print(f"Skipping undebuggable Pixel shader at {action.eventId} for {shaderModels[sm]}.")
 
             if failed:
                 raise rdtest.TestFailureException("Some tests were not as expected")
@@ -204,7 +212,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
 
         rdtest.log.success("Banned signature PS was debugged correctly")
 
-        csShaderModels = ["cs_6_0", "cs_6_6"]
+        csShaderModels = ["cs_5_0", "cs_6_0", "cs_6_6"]
         for sm in range(len(csShaderModels)):
             test = csShaderModels[sm]
             section = test + " tests"
@@ -212,11 +220,16 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
 
             # Jump to the action
             test_marker: rd.ActionDescription = self.find_action(test)
+            if test_marker is None:
+                rdtest.log.print(f"Skipping Compute tests for {csShaderModels[sm]}")
+                rdtest.log.end_section(section)
+                continue
             action = test_marker.next
             self.controller.SetFrameEvent(action.eventId, False)
             pipe: rd.PipeState = self.controller.GetPipelineState()
             if not pipe.GetShaderReflection(rd.ShaderStage.Compute).debugInfo.debuggable:
-                rdtest.log.print("Skipping undebuggable shader at {}.".format(action.eventId))
+                rdtest.log.print(f"Skipping undebuggable Compute shader at {action.eventId} for {csShaderModels[sm]}.")
+                rdtest.log.end_section(section)
                 continue
 
             # Debug the shader
