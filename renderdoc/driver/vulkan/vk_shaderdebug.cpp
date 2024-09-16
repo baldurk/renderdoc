@@ -3948,12 +3948,26 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
   m_pDriver->ReplayLog(0, eventId, eReplay_WithoutDraw);
 
   const VulkanCreationInfo::Pipeline &pipe = c.m_Pipeline[state.graphics.pipeline];
-  VulkanCreationInfo::ShaderModule &shader = c.m_ShaderModule[pipe.shaders[0].module];
-  rdcstr entryPoint = pipe.shaders[0].entryPoint;
+
+  VulkanCreationInfo::ShaderModule *shader;
+  rdcstr entryPoint;
+
+  if(state.graphics.shaderObject)
+  {
+    VulkanCreationInfo::ShaderObject &shaderObject = c.m_ShaderObject[state.shaderObjects[0]];
+    shader = &c.m_ShaderModule[shaderObject.shad.module];
+    entryPoint = shaderObject.shad.entryPoint;
+  }
+  else
+  {
+    shader = &c.m_ShaderModule[pipe.shaders[0].module];
+    entryPoint = pipe.shaders[0].entryPoint;
+  }
+
   const rdcarray<SpecConstant> &spec = pipe.shaders[0].specialization;
 
   VulkanCreationInfo::ShaderModuleReflection &shadRefl =
-      shader.GetReflection(ShaderStage::Vertex, entryPoint, state.graphics.pipeline);
+      shader->GetReflection(ShaderStage::Vertex, entryPoint, state.graphics.pipeline);
 
   if(!shadRefl.refl->debugInfo.debuggable)
   {
@@ -3961,7 +3975,7 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
     return new ShaderDebugTrace();
   }
 
-  shadRefl.PopulateDisassembly(shader.spirv);
+  shadRefl.PopulateDisassembly(shader->spirv);
 
   VulkanAPIWrapper *apiWrapper =
       new VulkanAPIWrapper(m_pDriver, c, ShaderStage::Vertex, eventId, shadRefl.refl->resourceId);
@@ -4146,7 +4160,7 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
   }
 
   rdcspv::Debugger *debugger = new rdcspv::Debugger;
-  debugger->Parse(shader.spirv.GetSPIRV());
+  debugger->Parse(shader->spirv.GetSPIRV());
   ShaderDebugTrace *ret = debugger->BeginDebug(apiWrapper, ShaderStage::Vertex, entryPoint, spec,
                                                shadRefl.instructionLines, shadRefl.patchData, 0);
   apiWrapper->ResetReplay();
