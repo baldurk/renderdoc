@@ -373,10 +373,10 @@ void Shutdown()
 
 void SyncAllJobs()
 {
-  RDCASSERTEQUAL(mainThread, Threading::GetCurrentID());
-
   if(workers.empty())
     return;
+
+  RDCASSERTEQUAL(mainThread, Threading::GetCurrentID());
 
   while(true)
   {
