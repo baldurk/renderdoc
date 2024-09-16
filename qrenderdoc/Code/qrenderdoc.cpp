@@ -552,6 +552,29 @@ int main(int argc, char *argv[])
     GUIInvoke::init();
 
     {
+      QString homePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+#if defined(Q_OS_WIN32)
+      QString fn = homePath + lit("/AppData/Local/LunarG/vkconfig/override/");
+#else
+      QString fn = homePath + lit("/.local/share/vulkan/implicit_layer.d/");
+#endif
+      // documentation is unclear, mentions both these files so check both just in case
+      QFileInfo vkconfigcheck1(fn + lit("VkLayerOverride.json"));
+      QFileInfo vkconfigcheck2(fn + lit("VkLayer_Override.json"));
+      if((vkconfigcheck1.exists() && vkconfigcheck1.isFile()) ||
+         (vkconfigcheck2.exists() && vkconfigcheck2.isFile()))
+      {
+        RDDialog::warning(
+            NULL, tr("vkconfig detected - possible incompatibility"),
+            tr("Configuration from 'vkconfig' tool detected.\n\n"
+               "This program has caused roblems in the past and it is \n"
+               "strongly recommended that you disable it while using RenderDoc.\n\n"
+               "If this program is not active check the path below for any leftover files:\n\n%1")
+                .arg(fn));
+      }
+    }
+
+    {
       GlobalEnvironment env;
 #if defined(RENDERDOC_PLATFORM_LINUX)
       env.xlibDisplay = QX11Info::display();
