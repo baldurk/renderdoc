@@ -142,6 +142,8 @@ RD_TEST(D3D12_Sharing, D3D12GraphicsTest)
 
       OMSetRenderTargets(cmd, {rtv}, {});
 
+      setMarker(cmd, "Draw");
+
       cmd->DrawInstanced(3, 1, 0, 0);
 
       ResourceBarrier(cmd, d3d12tex, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COMMON);
