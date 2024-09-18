@@ -1429,7 +1429,8 @@ ID3DBlobPtr D3D12GraphicsTest::Compile(std::string src, std::string entry, std::
         hr = result->GetErrorBuffer(&dxcErrors);
         if(SUCCEEDED(hr) && dxcErrors)
         {
-          TEST_ERROR("Failed to compile DXC shader: %s", dxcErrors->GetBufferPointer());
+          TEST_ERROR("Failed to compile DXC shader: %.*s", (int)dxcErrors->GetBufferSize(),
+                     (char *)dxcErrors->GetBufferPointer());
         }
         else
         {
@@ -1459,7 +1460,8 @@ ID3DBlobPtr D3D12GraphicsTest::Compile(std::string src, std::string entry, std::
 
     if(FAILED(hr))
     {
-      TEST_ERROR("Failed to compile shader, error %x / %s", hr,
+      int numChars = error ? (int)error->GetBufferSize() : 1024;
+      TEST_ERROR("Failed to compile shader, error %x / %.*s", hr, numChars,
                  error ? (char *)error->GetBufferPointer() : "Unknown");
       return NULL;
     }
