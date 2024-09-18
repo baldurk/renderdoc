@@ -3449,12 +3449,14 @@ size_t Debugger::FindScopedDebugDataIndex(const uint32_t instructionIndex) const
 {
   size_t countScopes = m_DebugInfo.scopedDebugDatas.size();
   size_t scopeIndex = countScopes;
+  // Scopes are sorted with increasing minInstruction
   for(size_t i = 0; i < countScopes; i++)
   {
-    if((m_DebugInfo.scopedDebugDatas[i].minInstruction <= instructionIndex) &&
+    uint32_t scopeMinInstruction = m_DebugInfo.scopedDebugDatas[i].minInstruction;
+    if((scopeMinInstruction <= instructionIndex) &&
        (instructionIndex <= m_DebugInfo.scopedDebugDatas[i].maxInstruction))
       scopeIndex = i;
-    else if(scopeIndex < countScopes)
+    else if(scopeMinInstruction > instructionIndex)
       break;
   }
   return scopeIndex;
@@ -3473,8 +3475,9 @@ size_t Debugger::FindScopedDebugDataIndex(const DXIL::Metadata *md) const
 
 size_t Debugger::AddScopedDebugData(const DXIL::Metadata *scopeMD, uint32_t instructionIndex)
 {
-  // Iterate upwards to find DISubprogram or DIFile scope
-  while((scopeMD->dwarf->type != DIBase::File) && (scopeMD->dwarf->type != DIBase::Subprogram))
+  // Iterate upwards to find DIFile, DISubprogram or DILexicalBlock scope
+  while((scopeMD->dwarf->type != DIBase::File) && (scopeMD->dwarf->type != DIBase::Subprogram) &&
+        (scopeMD->dwarf->type != DIBase::LexicalBlock))
     scopeMD = m_Program->GetDebugScopeParent(scopeMD->dwarf);
 
   size_t scopeIndex = FindScopedDebugDataIndex(scopeMD);
@@ -3504,6 +3507,12 @@ size_t Debugger::AddScopedDebugData(const DXIL::Metadata *scopeMD, uint32_t inst
     scope.line = (uint32_t)m_Program->GetDebugScopeLine(scope.md->dwarf);
 
     m_DebugInfo.scopedDebugDatas.push_back(scope);
+  }
+  else
+  {
+    ScopedDebugData &scope = m_DebugInfo.scopedDebugDatas[scopeIndex];
+    scope.minInstruction = RDCMIN(scope.minInstruction, instructionIndex);
+    scope.maxInstruction = RDCMAX(scope.maxInstruction, instructionIndex);
   }
   return scopeIndex;
 }
@@ -3694,8 +3703,6 @@ void Debugger::AddLocalVariable(const DXIL::Metadata *localVariableMD, uint32_t 
 
   size_t scopeIndex = AddScopedDebugData(localVariable->scope, instructionIndex);
   ScopedDebugData &scope = m_DebugInfo.scopedDebugDatas[scopeIndex];
-  scope.minInstruction = RDCMIN(scope.minInstruction, instructionIndex);
-  scope.maxInstruction = RDCMAX(scope.maxInstruction, instructionIndex);
 
   rdcstr sourceVarName = m_Program->GetDebugVarName(localVariable);
   LocalMapping localMapping;
@@ -3823,13 +3830,10 @@ void Debugger::ParseDebugData()
           uint32_t dbgLoc = inst.debugLoc;
           if(dbgLoc != ~0U)
           {
+            activeInstructionIndex = instructionIndex;
             const DebugLocation &debugLoc = m_Program->m_DebugLocations[dbgLoc];
-            size_t scopeIndex = AddScopedDebugData(debugLoc.scope, instructionIndex);
-            ScopedDebugData &scope = m_DebugInfo.scopedDebugDatas[scopeIndex];
-            scope.minInstruction = RDCMIN(scope.minInstruction, instructionIndex);
-            scope.maxInstruction = RDCMAX(scope.maxInstruction, instructionIndex);
+            AddScopedDebugData(debugLoc.scope, activeInstructionIndex);
           }
-          activeInstructionIndex = instructionIndex;
           continue;
         }
 
@@ -3880,7 +3884,11 @@ void Debugger::ParseDebugData()
         while(scopeIndex < m_DebugInfo.scopedDebugDatas.size())
         {
           const ScopedDebugData &scope = m_DebugInfo.scopedDebugDatas[scopeIndex];
-          scopeIndexes.push_back(scopeIndex);
+
+          // Only add add scopes with mappings
+          if(!scope.localMappings.empty())
+            scopeIndexes.push_back(scopeIndex);
+
           // if we reach a function scope, don't go up any further.
           if(scope.md->dwarf->type == DIBase::Type::Subprogram)
             break;
@@ -3893,39 +3901,36 @@ void Debugger::ParseDebugData()
         {
           scopeIndex = scopeIndexes[scopeIndexes.size() - 1 - s];
           const ScopedDebugData &scope = m_DebugInfo.scopedDebugDatas[scopeIndex];
-          for(size_t m = 0; m < scope.localMappings.size(); m++)
+          size_t countLocalMappings = scope.localMappings.size();
+          for(size_t m = 0; m < countLocalMappings; m++)
           {
             const LocalMapping &mapping = scope.localMappings[m];
-
-            // if this mapping is past the current instruction, stop here.
-            if(mapping.instIndex > instructionIndex)
-              break;
 
             // see if this mapping is superceded by a later mapping in this scope for this
             // instruction. This is a bit inefficient but simple. The alternative would be to do
             // record start and end points for each mapping and update the end points, but this is
             // simple and should be limited since it's only per-scope
-            bool supercede = false;
-            for(size_t n = m + 1; n < scope.localMappings.size(); n++)
+            size_t innerStart = m + 1;
+            if(innerStart < countLocalMappings)
             {
-              const LocalMapping &laterMapping = scope.localMappings[n];
-
-              // if this mapping is past the current instruction, stop here.
-              if(laterMapping.instIndex > instructionIndex)
-                break;
-
-              // if this mapping will supercede and starts later
-              if(laterMapping.isSourceSupersetOf(mapping) &&
-                 laterMapping.instIndex > mapping.instIndex)
+              bool supercede = false;
+              for(size_t n = innerStart; n < countLocalMappings; n++)
               {
-                supercede = true;
-                break;
-              }
-            }
+                const LocalMapping &laterMapping = scope.localMappings[n];
 
-            // don't add the current mapping if it's going to be superceded by something later
-            if(supercede)
-              continue;
+                // if this mapping will supercede and starts later
+                if(laterMapping.isSourceSupersetOf(mapping) &&
+                   laterMapping.instIndex > mapping.instIndex)
+                {
+                  supercede = true;
+                  break;
+                }
+              }
+
+              // don't add the current mapping if it's going to be superceded by something later
+              if(supercede)
+                continue;
+            }
 
             processed.push_back(mapping);
             rdcstr sourceVarName = mapping.sourceVarName;
@@ -4126,6 +4131,7 @@ void Debugger::ParseDebugData()
                   {
                     uint32_t elementSize = childType->sizeInBytes;
                     uint32_t elementIndex = byteOffset / elementSize;
+                    byteOffset -= elementIndex * elementSize;
                     uint32_t rows = dims[d];
                     usage->rows = rows;
                     usage->columns = 1U;
@@ -4365,6 +4371,8 @@ void Debugger::ParseDebugData()
               }
               else if(bytesRemaining > 0)
               {
+                RDCASSERTEQUAL(byteOffset, 0);
+
                 // walk down until we get to a scalar type, if we get there. This means arrays of
                 // basic types will get the right type
                 while(typeWalk && typeWalk->baseType != NULL && typeWalk->type == VarType::Unknown)
