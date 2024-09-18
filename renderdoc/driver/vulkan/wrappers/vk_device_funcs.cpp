@@ -4660,6 +4660,19 @@ void WrappedVulkan::vkDestroyDevice(VkDevice device, const VkAllocationCallbacks
   SubmitSemaphores();
   FlushQ();
 
+  {
+    SCOPED_LOCK(m_PendingCmdBufferCallbacksLock);
+
+    for(VkPendingSubmissionCompleteCallbacks *pending : m_PendingCmdBufferCallbacks)
+    {
+      const VkResult vkr = ObjDisp(m_Device)->GetEventStatus(Unwrap(m_Device), pending->event);
+      if(vkr == VK_EVENT_SET)
+        pending->Release();
+    }
+
+    m_PendingCmdBufferCallbacks.clear();
+  }
+
   // idle the device as well so that external queues are idle.
   VkResult vkr = ObjDisp(m_Device)->DeviceWaitIdle(Unwrap(m_Device));
   CHECK_VKR(this, vkr);
