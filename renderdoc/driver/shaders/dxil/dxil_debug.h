@@ -320,7 +320,7 @@ struct LocalMapping
       return instIndex < o.instIndex;
     if(isDeclare != o.isDeclare)
       return isDeclare;
-    return ssaIdName < o.ssaIdName;
+    return debugVarSSAName < o.debugVarSSAName;
   }
 
   bool isSourceSupersetOf(const LocalMapping &o) const
@@ -352,8 +352,8 @@ struct LocalMapping
 
   const DXIL::DILocalVariable *variable;
   rdcstr sourceVarName;
-  rdcstr ssaIdName;
-  int64_t byteOffset;
+  rdcstr debugVarSSAName;
+  int32_t byteOffset;
   uint32_t countBytes;
   uint32_t instIndex;
   bool isDeclare;
@@ -381,18 +381,20 @@ struct ScopedDebugData
 
 struct TypeData
 {
-  const DXIL::DIBase *base;
+  const DXIL::Metadata *baseType = NULL;
+
+  rdcarray<uint32_t> arrayDimensions;
+  rdcarray<rdcpair<rdcstr, const DXIL::Metadata *>> structMembers;
+  rdcarray<uint32_t> memberOffsets;
+
   rdcstr name;
+  uint32_t sizeInBytes = 0;
+  uint32_t alignInBytes = 0;
 
   VarType type = VarType::Unknown;
   uint32_t vecSize = 0;
   uint32_t matSize = 0;
   bool colMajorMat = false;
-
-  const DXIL::Metadata *baseType = NULL;
-  rdcarray<uint32_t> arrayDimensions;
-  rdcarray<rdcpair<rdcstr, const DXIL::Metadata *>> structMembers;
-  rdcarray<uint32_t> memberOffsets;
 };
 
 class Debugger : public DXBCContainerDebugger
@@ -421,7 +423,11 @@ private:
   size_t AddScopedDebugData(const DXIL::Metadata *scopeMD, uint32_t instructionIndex);
   size_t FindScopedDebugDataIndex(const DXIL::Metadata *md) const;
   size_t Debugger::FindScopedDebugDataIndex(const uint32_t instructionIndex) const;
-  void AddDebugType(const DXIL::Metadata *typeMD);
+  const TypeData &AddDebugType(const DXIL::Metadata *typeMD);
+  void AddLocalVariable(const DXIL::Metadata *localVariableMD, uint32_t instructionIndex,
+                        bool isDeclare, int32_t byteOffset, uint32_t countBytes,
+                        const rdcstr &debugVarSSAName);
+  void ParseDebugData();
 
   rdcarray<ThreadState> m_Workgroups;
   std::map<const DXIL::Function *, FunctionInfo> m_FunctionInfos;

@@ -3508,23 +3508,11 @@ size_t Debugger::AddScopedDebugData(const DXIL::Metadata *scopeMD, uint32_t inst
   return scopeIndex;
 }
 
-void Debugger::AddDebugType(const DXIL::Metadata *typeMD)
+const TypeData &Debugger::AddDebugType(const DXIL::Metadata *typeMD)
 {
   TypeData typeData;
 
   const DXIL::DIBase *base = typeMD->dwarf;
-  /*
-    rdcstr name;
-    VarType type = VarType::Unknown;
-    uint32_t vecSize = 0;
-    uint32_t matSize = 0;
-    bool colMajorMat = false;
-
-    const DXIL::Metadata *baseType = NULL;
-    rdcarray<uint32_t> arrayDimensions;
-    rdcarray<rdcpair<rdcstr, const DXIL::Metadata *>> structMembers;
-    rdcarray<uint32_t> memberOffsets;
-  */
 
   switch(base->type)
   {
@@ -3537,14 +3525,10 @@ void Debugger::AddDebugType(const DXIL::Metadata *typeMD)
       uint32_t sizeInBits = (uint32_t)basicType->sizeInBits;
       switch(basicType->tag)
       {
-        case DW_TAG_array_type:
-        {
-          // typeData.type = VAR TYPE OF THE ARRAY ELEMENTS
-          // typeData.baseType = MD TYPE OF THE ARRAY ELEMENTS
-          break;
-        }
         case DW_TAG_base_type:
         {
+          typeData.alignInBytes = (uint32_t)(basicType->alignInBits / 8);
+          typeData.sizeInBytes = sizeInBits / 8;
           break;
         }
         default: RDCERR("Unhandled DIBasicType tag %s", ToStr(basicType->tag).c_str()); break;
@@ -3577,7 +3561,7 @@ void Debugger::AddDebugType(const DXIL::Metadata *typeMD)
             typeData.type = VarType::SShort;
           else if(sizeInBits == 32)
             typeData.type = VarType::SInt;
-          else if(sizeInBits == 32)
+          else if(sizeInBits == 64)
             typeData.type = VarType::SLong;
           else
             RDCERR("Unhandled DIBasicType DW_ATE_signed size %u", sizeInBits);
@@ -3591,7 +3575,7 @@ void Debugger::AddDebugType(const DXIL::Metadata *typeMD)
             typeData.type = VarType::UShort;
           else if(sizeInBits == 32)
             typeData.type = VarType::UInt;
-          else if(sizeInBits == 32)
+          else if(sizeInBits == 64)
             typeData.type = VarType::ULong;
           else
             RDCERR("Unhandled DIBasicType DW_ATE_unsigned size %u", sizeInBits);
@@ -3627,19 +3611,51 @@ void Debugger::AddDebugType(const DXIL::Metadata *typeMD)
     case DXIL::DIBase::Type::CompositeType:
     {
       const DICompositeType *compositeType = base->As<DICompositeType>();
-      typeData.name = *compositeType->name;
       typeData.baseType = typeMD;
       switch(compositeType->tag)
       {
         case DW_TAG_class_type:
         case DW_TAG_structure_type:
         {
+          typeData.name = *compositeType->name;
           typeData.type = VarType::Struct;
-          // rdcarray<rdcpair<rdcstr, const DXIL::Metadata *>> structMembers;
-          // rdcarray<uint32_t> memberOffsets;
-          //   AddDebugType(member);
-          //   RDCASSERT(m_DebugInfo.types.count(compositeType->base) == 1);
-          //   typeData = m_DebugInfo.types[compositeType->base];
+          typeData.sizeInBytes = (uint32_t)(compositeType->sizeInBits / 8);
+          typeData.alignInBytes = (uint32_t)(compositeType->alignInBits / 8);
+          const Metadata *elementsMD = compositeType->elements;
+          size_t countMembers = elementsMD->children.size();
+          for(size_t i = 0; i < countMembers; ++i)
+          {
+            const Metadata *memberMD = elementsMD->children[i];
+            const DXIL::DIBase *memberBase = memberMD->dwarf;
+            RDCASSERTEQUAL(memberBase->type, DXIL::DIBase::DerivedType);
+            const DXIL::DIDerivedType *member = memberBase->As<DIDerivedType>();
+            RDCASSERTEQUAL(member->tag, DXIL::DW_TAG_member);
+            // const TypeData &memberType = AddDebugType(member->base);
+            AddDebugType(member->base);
+            typeData.structMembers.push_back({*member->name, member->base});
+            uint32_t offset = (uint32_t)member->offsetInBits / 8;
+            typeData.memberOffsets.push_back(offset);
+          }
+          break;
+        }
+        case DW_TAG_array_type:
+        {
+          typeData.arrayDimensions.clear();
+          typeData.sizeInBytes = (uint32_t)(compositeType->sizeInBits / 8);
+          typeData.alignInBytes = (uint32_t)(compositeType->alignInBits / 8);
+          // elements->children is the array dimensionality
+          const Metadata *elementsMD = compositeType->elements;
+          for(int32_t x = 0; x < elementsMD->children.count(); x++)
+          {
+            const DXIL::DIBase *baseElement = elementsMD->children[x]->dwarf;
+            RDCASSERTEQUAL(baseElement->type, DXIL::DIBase::Type::Subrange);
+            uint32_t countElements = (uint32_t)baseElement->As<DXIL::DISubrange>()->count;
+            typeData.arrayDimensions.push_back(countElements);
+          }
+          // TODO : WHERE IS THE BASE ELEMENT TYPE
+          AddDebugType(compositeType->base);
+          typeData.baseType = compositeType->base;
+          // RDCERR("Unhandled Array %s", ToStr(typeData.name).c_str());
           break;
         }
         default:
@@ -3650,17 +3666,13 @@ void Debugger::AddDebugType(const DXIL::Metadata *typeMD)
     }
     case DXIL::DIBase::Type::DerivedType:
     {
-      const DIDerivedType *derviedType = base->As<DIDerivedType>();
-      switch(derviedType->tag)
+      const DIDerivedType *derivedType = base->As<DIDerivedType>();
+      switch(derivedType->tag)
       {
-        case DW_TAG_typedef:
-          AddDebugType(derviedType->base);
-          RDCASSERT(m_DebugInfo.types.count(derviedType->base) == 1);
-          typeData = m_DebugInfo.types[derviedType->base];
-          break;
+        case DW_TAG_typedef: typeData = AddDebugType(derivedType->base); break;
         default:
-          RDCERR("Unhandled DIDerivedType DIDerviedType Tag type %s",
-                 ToStr(derviedType->tag).c_str());
+          RDCERR("Unhandled DIDerivedType DIDerivedType Tag type %s",
+                 ToStr(derivedType->tag).c_str());
           break;
       }
       break;
@@ -3669,6 +3681,40 @@ void Debugger::AddDebugType(const DXIL::Metadata *typeMD)
   }
 
   m_DebugInfo.types[typeMD] = typeData;
+  return m_DebugInfo.types[typeMD];
+}
+
+void Debugger::AddLocalVariable(const DXIL::Metadata *localVariableMD, uint32_t instructionIndex,
+                                bool isDeclare, int32_t byteOffset, uint32_t countBytes,
+                                const rdcstr &debugVarSSAName)
+{
+  RDCASSERT(localVariableMD);
+  RDCASSERTEQUAL(localVariableMD->dwarf->type, DIBase::Type::LocalVariable);
+  const DILocalVariable *localVariable = localVariableMD->dwarf->As<DILocalVariable>();
+
+  size_t scopeIndex = AddScopedDebugData(localVariable->scope, instructionIndex);
+  ScopedDebugData &scope = m_DebugInfo.scopedDebugDatas[scopeIndex];
+  scope.minInstruction = RDCMIN(scope.minInstruction, instructionIndex);
+  scope.maxInstruction = RDCMAX(scope.maxInstruction, instructionIndex);
+
+  rdcstr sourceVarName = m_Program->GetDebugVarName(localVariable);
+  LocalMapping localMapping;
+  localMapping.variable = localVariable;
+  localMapping.sourceVarName = sourceVarName;
+  localMapping.debugVarSSAName = debugVarSSAName;
+  localMapping.byteOffset = byteOffset;
+  localMapping.countBytes = countBytes;
+  localMapping.instIndex = instructionIndex;
+  localMapping.isDeclare = isDeclare;
+
+  scope.localMappings.push_back(localMapping);
+
+  const DXIL::Metadata *typeMD = localVariable->type;
+  if(m_DebugInfo.types.count(typeMD) == 0)
+    AddDebugType(typeMD);
+
+  if(m_DebugInfo.locals.count(sourceVarName) == 0)
+    m_DebugInfo.locals[sourceVarName] = localMapping;
 }
 
 void Debugger::ParseDbgOpDeclare(const DXIL::Instruction &inst, uint32_t instructionIndex)
@@ -3681,53 +3727,37 @@ void Debugger::ParseDbgOpDeclare(const DXIL::Instruction &inst, uint32_t instruc
   RDCASSERTEQUAL(allocaInst->op, Operation::Alloca);
   rdcstr resultId;
   Program::MakeResultId(*allocaInst, resultId);
+  int32_t byteOffset = 0;
 
   // arg 1 is DILocalVariable metadata
-  // Tag
-  // name
-  // arguments
-  // scope
-  // file, line
-  // type
-  // flags
   const Metadata *localVariableMD = cast<Metadata>(inst.args[1]);
-  RDCASSERT(localVariableMD);
-  RDCASSERTEQUAL(localVariableMD->dwarf->type, DIBase::Type::LocalVariable);
-  const DILocalVariable *localVariable = localVariableMD->dwarf->As<DILocalVariable>();
 
   // arg 2 is DIExpression metadata
   const Metadata *expressionMD = cast<Metadata>(inst.args[2]);
   uint32_t countBytes = 0;
   if(expressionMD)
   {
-    RDCASSERTEQUAL(expressionMD->dwarf->type, DIBase::Type::Expression);
-    const DIExpression *expression = expressionMD->dwarf->As<DIExpression>();
-    RDCLOG("Expression Op %s", ToStr(expression->op).c_str());
+    if(expressionMD->dwarf->type == DIBase::Type::Expression)
+    {
+      const DIExpression *expression = expressionMD->dwarf->As<DXIL::DIExpression>();
+      switch(expression->op)
+      {
+        case DXIL::DW_OP::DW_OP_bit_piece:
+          byteOffset += (uint32_t)(expression->evaluated.bit_piece.offset / 8);
+          countBytes = (uint32_t)(expression->evaluated.bit_piece.size / 8);
+          break;
+        case DXIL::DW_OP::DW_OP_none: break;
+        case DXIL::DW_OP::DW_OP_nop: break;
+        default: RDCERR("Unhandled DIExpression op %s", ToStr(expression->op).c_str()); break;
+      }
+    }
+    else
+    {
+      RDCERR("Unhandled Expression Metadata %s", ToStr(expressionMD->dwarf->type).c_str());
+    }
   }
 
-  size_t scopeIndex = AddScopedDebugData(localVariable->scope, instructionIndex);
-  ScopedDebugData &scope = m_DebugInfo.scopedDebugDatas[scopeIndex];
-  scope.minInstruction = RDCMIN(scope.minInstruction, instructionIndex);
-  scope.maxInstruction = RDCMAX(scope.maxInstruction, instructionIndex);
-
-  rdcstr sourceVarName = m_Program->GetDebugVarName(localVariable);
-  LocalMapping localMapping;
-  localMapping.variable = localVariable;
-  localMapping.sourceVarName = sourceVarName;
-  localMapping.ssaIdName = resultId;
-  localMapping.byteOffset = 0;
-  localMapping.countBytes = countBytes;
-  localMapping.instIndex = instructionIndex;
-  localMapping.isDeclare = true;
-
-  scope.localMappings.push_back(localMapping);
-
-  const DXIL::Metadata *typeMD = localVariable->type;
-  if(m_DebugInfo.types.count(typeMD) == 0)
-    AddDebugType(typeMD);
-
-  if(m_DebugInfo.locals.count(sourceVarName) == 0)
-    m_DebugInfo.locals[sourceVarName] = localMapping;
+  AddLocalVariable(localVariableMD, instructionIndex, true, byteOffset, countBytes, resultId);
 }
 
 void Debugger::ParseDbgOpValue(const DXIL::Instruction &inst, uint32_t instructionIndex)
@@ -3736,61 +3766,691 @@ void Debugger::ParseDbgOpValue(const DXIL::Instruction &inst, uint32_t instructi
   const Metadata *valueMD = cast<Metadata>(inst.args[0]);
   rdcstr resultId = m_Program->GetArgId(valueMD->value);
   // arg 1 is i64 byte offset in the source variable where the new value is written
-  int64_t byteOffset;
-  RDCASSERT(getival<int64_t>(inst.args[1], byteOffset));
+  int64_t value = 0;
+  RDCASSERT(getival<int64_t>(inst.args[1], value));
+  int32_t byteOffset = (int32_t)(value);
 
   // arg 2 is DILocalVariable metadata
-  // Tag
-  // name
-  // arguments
-  // scope
-  // file, line
-  // type
-  // flags
   const Metadata *localVariableMD = cast<Metadata>(inst.args[2]);
-  RDCASSERT(localVariableMD);
-  RDCASSERTEQUAL(localVariableMD->dwarf->type, DIBase::Type::LocalVariable);
-  const DILocalVariable *localVariable = localVariableMD->dwarf->As<DILocalVariable>();
 
   // arg 3 is DIExpression metadata
   uint32_t countBytes = 0;
-  const Metadata *expressionMD = cast<Metadata>(inst.args[2]);
+  const Metadata *expressionMD = cast<Metadata>(inst.args[3]);
   if(expressionMD)
   {
     if(expressionMD->dwarf->type == DIBase::Type::Expression)
     {
-      // TODO: get the count bytes from the expression
-      const DIExpression *expression = expressionMD->dwarf->As<DIExpression>();
-      RDCLOG("Expression Op %s", ToStr(expression->op).c_str());
+      const DIExpression *expression = expressionMD->dwarf->As<DXIL::DIExpression>();
+      switch(expression->op)
+      {
+        case DXIL::DW_OP::DW_OP_bit_piece:
+          byteOffset += (uint32_t)(expression->evaluated.bit_piece.offset / 8);
+          countBytes = (uint32_t)(expression->evaluated.bit_piece.size / 8);
+          break;
+        case DXIL::DW_OP::DW_OP_none: break;
+        case DXIL::DW_OP::DW_OP_nop: break;
+        default: RDCERR("Unhandled DIExpression op %s", ToStr(expression->op).c_str()); break;
+      }
+    }
+    else
+    {
+      RDCERR("Unhandled Expression Metadata %s", ToStr(expressionMD->dwarf->type).c_str());
     }
   }
 
-  size_t scopeIndex = AddScopedDebugData(localVariable->scope, instructionIndex);
-  ScopedDebugData &scope = m_DebugInfo.scopedDebugDatas[scopeIndex];
-  scope.minInstruction = RDCMIN(scope.minInstruction, instructionIndex);
-  scope.maxInstruction = RDCMAX(scope.maxInstruction, instructionIndex);
+  AddLocalVariable(localVariableMD, instructionIndex, false, byteOffset, countBytes, resultId);
+}
 
-  byteOffset = 0;
-  countBytes = 0;
+void Debugger::ParseDebugData()
+{
+  // Parse LLVM debug data
+  // TODO : Track current active scope, previous scope
+  for(const Function *f : m_Program->m_Functions)
+  {
+    if(!f->external)
+    {
+      const FunctionInfo &info = m_FunctionInfos[f];
+      uint32_t countInstructions = (uint32_t)f->instructions.size();
+      uint32_t activeInstructionIndex = 0;
 
-  rdcstr sourceVarName = m_Program->GetDebugVarName(localVariable);
-  LocalMapping localMapping;
-  localMapping.variable = localVariable;
-  localMapping.sourceVarName = sourceVarName;
-  localMapping.ssaIdName = resultId;
-  localMapping.byteOffset = byteOffset;
-  localMapping.countBytes = countBytes;
-  localMapping.instIndex = instructionIndex;
-  localMapping.isDeclare = false;
+      for(uint32_t i = 0; i < countInstructions; ++i)
+      {
+        uint32_t instructionIndex = i + info.globalInstructionOffset;
+        const Instruction &inst = *(f->instructions[i]);
+        if(!DXIL::IsLLVMDebugCall(inst))
+        {
+          // Include DebugLoc data for building up the list of scopes
+          uint32_t dbgLoc = inst.debugLoc;
+          if(dbgLoc != ~0U)
+          {
+            const DebugLocation &debugLoc = m_Program->m_DebugLocations[dbgLoc];
+            size_t scopeIndex = AddScopedDebugData(debugLoc.scope, instructionIndex);
+            ScopedDebugData &scope = m_DebugInfo.scopedDebugDatas[scopeIndex];
+            scope.minInstruction = RDCMIN(scope.minInstruction, instructionIndex);
+            scope.maxInstruction = RDCMAX(scope.maxInstruction, instructionIndex);
+          }
+          activeInstructionIndex = instructionIndex;
+          continue;
+        }
 
-  scope.localMappings.push_back(localMapping);
+        const Function *dbgFunc = inst.getFuncCall();
+        switch(dbgFunc->llvmDbgOp)
+        {
+          case LLVMDbgOp::Declare: ParseDbgOpDeclare(inst, activeInstructionIndex); break;
+          case LLVMDbgOp::Value: ParseDbgOpValue(inst, activeInstructionIndex); break;
+          case LLVMDbgOp::Unknown:
+            RDCASSERT("Unsupported LLVM debug operation", dbgFunc->llvmDbgOp);
+            break;
+        };
+      }
+    }
+  }
 
-  const DXIL::Metadata *typeMD = localVariable->type;
-  if(m_DebugInfo.types.count(typeMD) == 0)
-    AddDebugType(typeMD);
+  // Sort the scopes by instruction index
+  std::sort(m_DebugInfo.scopedDebugDatas.begin(), m_DebugInfo.scopedDebugDatas.end(),
+            [](const ScopedDebugData &a, const ScopedDebugData &b) { return a < b; });
 
-  if(m_DebugInfo.locals.count(sourceVarName) == 0)
-    m_DebugInfo.locals[sourceVarName] = localMapping;
+  DXIL::Program *program = ((DXIL::Program *)m_Program);
+  program->m_Locals.clear();
+
+  for(const Function *f : m_Program->m_Functions)
+  {
+    if(!f->external)
+    {
+      const FunctionInfo &info = m_FunctionInfos[f];
+      uint32_t countInstructions = (uint32_t)f->instructions.size();
+
+      for(uint32_t i = 0; i < countInstructions; ++i)
+      {
+        uint32_t instructionIndex = i + info.globalInstructionOffset;
+
+        DXIL::Program::LocalSourceVariable localSrcVar;
+        localSrcVar.startInst = instructionIndex;
+        localSrcVar.endInst = instructionIndex;
+
+        // For each instruction - find which scope it belongs
+        size_t scopeIndex = FindScopedDebugDataIndex(instructionIndex);
+        // track which mappings we've processed, so if the same variable has mappings in multiple
+        // scopes we only pick the innermost.
+        rdcarray<LocalMapping> processed;
+        rdcarray<rdcstr> sourceVars;
+
+        // capture the scopes upwards (from child to parent)
+        rdcarray<size_t> scopeIndexes;
+        while(scopeIndex < m_DebugInfo.scopedDebugDatas.size())
+        {
+          const ScopedDebugData &scope = m_DebugInfo.scopedDebugDatas[scopeIndex];
+          scopeIndexes.push_back(scopeIndex);
+          // if we reach a function scope, don't go up any further.
+          if(scope.md->dwarf->type == DIBase::Type::Subprogram)
+            break;
+
+          scopeIndex = scope.parentIndex;
+        }
+
+        // Iterate over the scopes downwards (parent->child)
+        for(size_t s = 0; s < scopeIndexes.size(); ++s)
+        {
+          scopeIndex = scopeIndexes[scopeIndexes.size() - 1 - s];
+          const ScopedDebugData &scope = m_DebugInfo.scopedDebugDatas[scopeIndex];
+          for(size_t m = 0; m < scope.localMappings.size(); m++)
+          {
+            const LocalMapping &mapping = scope.localMappings[m];
+
+            // if this mapping is past the current instruction, stop here.
+            if(mapping.instIndex > instructionIndex)
+              break;
+
+            // see if this mapping is superceded by a later mapping in this scope for this
+            // instruction. This is a bit inefficient but simple. The alternative would be to do
+            // record start and end points for each mapping and update the end points, but this is
+            // simple and should be limited since it's only per-scope
+            bool supercede = false;
+            for(size_t n = m + 1; n < scope.localMappings.size(); n++)
+            {
+              const LocalMapping &laterMapping = scope.localMappings[n];
+
+              // if this mapping is past the current instruction, stop here.
+              if(laterMapping.instIndex > instructionIndex)
+                break;
+
+              // if this mapping will supercede and starts later
+              if(laterMapping.isSourceSupersetOf(mapping) &&
+                 laterMapping.instIndex > mapping.instIndex)
+              {
+                supercede = true;
+                break;
+              }
+            }
+
+            // don't add the current mapping if it's going to be superceded by something later
+            if(supercede)
+              continue;
+
+            processed.push_back(mapping);
+            rdcstr sourceVarName = mapping.sourceVarName;
+            if(!sourceVars.contains(mapping.sourceVarName))
+              sourceVars.push_back(mapping.sourceVarName);
+          }
+        }
+
+        // Converting debug variable mappings to SourceVariableMapping is a two phase algorithm.
+
+        // Phase One
+        // For each source variable, repeatedly apply the debug variable mappings.
+        // This debug variable usage is tracked in a tree-like structure built using DebugVarNode
+        // elements.
+        // As each mapping is applied, the new mapping can fully or partially override the
+        // existing mapping. When an existing mapping is:
+        //  - fully overridden: any sub-elements of that mapping are cleared
+        //    i.e. assigning a vector, array, structure
+        //  - partially overriden: the existing mapping is expanded into its sub-elements which are
+        //    mapped to the current mapping and then the new mapping is set to its corresponding
+        //    elements i.e. y-component in a vector, member in a structure, a single array element
+        // The DebugVarNode member "emitSourceVar" determines if the DebugVar mapping should be
+        // converted to a source variable mapping.
+
+        // Phase Two
+        // The DebugVarNode tree is walked to find the nodes which have "emitSourceVar" set to
+        // true and then those nodes are converted to SourceVariableMapping
+
+        struct DebugVarNode
+        {
+          rdcarray<DebugVarNode> children;
+          rdcstr debugVarSSAName;
+          rdcstr name;
+          rdcstr debugVarSuffix;
+          VarType type = VarType::Unknown;
+          uint32_t rows = 0;
+          uint32_t columns = 0;
+          uint32_t debugVarComponent = 0;
+          uint32_t offset = 0;
+          bool emitSourceVar = false;
+        };
+
+        ::std::map<rdcstr, DebugVarNode> roots;
+
+        // Phase One: generate the DebugVarNode tree by repeatedly applying debug variables
+        // updating existing mappings with later mappings
+        for(size_t sv = 0; sv < sourceVars.size(); ++sv)
+        {
+          rdcstr sourceVarName = sourceVars[sv];
+          const DXIL::DILocalVariable *variable = m_DebugInfo.locals[sourceVarName].variable;
+
+          // Convert processed mappings into a usage map
+          for(size_t m = 0; m < processed.size(); ++m)
+          {
+            const LocalMapping &mapping = processed[m];
+            if(mapping.sourceVarName != sourceVarName)
+              continue;
+
+            DebugVarNode *usage = &roots[sourceVarName];
+            if(usage->name.isEmpty())
+            {
+              usage->name = sourceVarName;
+              usage->rows = 1U;
+              usage->columns = 1U;
+            }
+
+            const DXIL::Metadata *typeMD = variable->type;
+            const TypeData *typeWalk = &m_DebugInfo.types[typeMD];
+
+            // if the mapping is the entire variable
+            if((mapping.byteOffset == 0 && mapping.countBytes == 0))
+            {
+              uint32_t rows = 1;
+              uint32_t columns = 1;
+              // TODO: is it worth considering GPU pointers for DXIL
+              // skip past any pointer types to get the 'real' type that we'll see
+              while(typeWalk && typeWalk->baseType != NULL && typeWalk->type == VarType::GPUPointer)
+                typeWalk = &m_DebugInfo.types[typeWalk->baseType];
+
+              const size_t arrayDimension = typeWalk->arrayDimensions.size();
+              if(arrayDimension > 0)
+              {
+                // walk down until we get to a scalar type, if we get there. This means arrays of
+                // basic types will get the right type
+                while(typeWalk && typeWalk->baseType != NULL && typeWalk->type == VarType::Unknown)
+                  typeWalk = &m_DebugInfo.types[typeWalk->baseType];
+
+                usage->type = typeWalk->type;
+              }
+              else if(!typeWalk->structMembers.empty())
+              {
+                usage->type = typeWalk->type;
+              }
+              if(typeWalk->matSize != 0)
+              {
+                const TypeData &vec = m_DebugInfo.types[typeWalk->baseType];
+                const TypeData &scalar = m_DebugInfo.types[vec.baseType];
+
+                usage->type = scalar.type;
+
+                if(typeWalk->colMajorMat)
+                {
+                  rows = RDCMAX(1U, vec.vecSize);
+                  columns = RDCMAX(1U, typeWalk->matSize);
+                }
+                else
+                {
+                  columns = RDCMAX(1U, vec.vecSize);
+                  rows = RDCMAX(1U, typeWalk->matSize);
+                }
+              }
+              else if(typeWalk->vecSize != 0)
+              {
+                const TypeData &scalar = m_DebugInfo.types[typeWalk->baseType];
+
+                usage->type = scalar.type;
+                columns = RDCMAX(1U, typeWalk->vecSize);
+              }
+              else
+              {
+                const TypeData &scalar = m_DebugInfo.types[typeWalk->baseType];
+
+                usage->type = scalar.type;
+                columns = 1U;
+              }
+
+              usage->debugVarSSAName = mapping.debugVarSSAName;
+              // Remove any child mappings : this mapping covers everything
+              usage->children.clear();
+              usage->emitSourceVar = true;
+              usage->rows = rows;
+              usage->columns = columns;
+            }
+            else
+            {
+              uint32_t byteOffset = mapping.byteOffset;
+              uint32_t bytesRemaining = mapping.countBytes;
+
+              // walk arrays and structures
+              while(bytesRemaining > 0)
+              {
+                const TypeData *childType = NULL;
+                const size_t arrayDimension = typeWalk->arrayDimensions.size();
+                if(arrayDimension > 0)
+                {
+                  if((byteOffset == 0) && (bytesRemaining == typeWalk->sizeInBytes))
+                  {
+                    // Remove mappings : this mapping covers everything
+                    usage->debugVarSSAName = mapping.debugVarSSAName;
+                    usage->children.clear();
+                    usage->emitSourceVar = true;
+                    usage->debugVarSuffix.clear();
+                    bytesRemaining = 0;
+                    break;
+                  }
+
+                  const rdcarray<uint32_t> &dims = typeWalk->arrayDimensions;
+                  childType = &m_DebugInfo.types[typeWalk->baseType];
+                  uint32_t childRows = 1U;
+                  uint32_t childColumns = 1U;
+                  VarType elementType = childType->type;
+                  uint32_t elementOffset = 1;
+                  if(childType->matSize != 0)
+                  {
+                    const TypeData &vec = m_DebugInfo.types[childType->baseType];
+                    const TypeData &scalar = m_DebugInfo.types[vec.baseType];
+
+                    elementType = scalar.type;
+                    if(childType->colMajorMat)
+                    {
+                      childRows = RDCMAX(1U, vec.vecSize);
+                      childColumns = RDCMAX(1U, childType->matSize);
+                    }
+                    else
+                    {
+                      childColumns = RDCMAX(1U, vec.vecSize);
+                      childRows = RDCMAX(1U, childType->matSize);
+                    }
+                  }
+                  else if(childType->vecSize != 0)
+                  {
+                    const TypeData &scalar = m_DebugInfo.types[childType->baseType];
+                    uint32_t vecColumns = RDCMAX(1U, childType->vecSize);
+
+                    elementType = scalar.type;
+
+                    childRows = 1U;
+                    childColumns = vecColumns;
+                  }
+                  else if(!childType->structMembers.empty())
+                  {
+                    elementOffset += childType->memberOffsets[childType->memberOffsets.count() - 1];
+                  }
+                  elementOffset *= childRows * childColumns;
+                  const uint32_t countDims = (uint32_t)arrayDimension;
+                  // TODO : N dimensional arrays
+                  for(uint32_t d = 0; d < countDims; ++d)
+                  {
+                    uint32_t elementSize = childType->sizeInBytes;
+                    uint32_t elementIndex = byteOffset / elementSize;
+                    uint32_t rows = dims[d];
+                    usage->rows = rows;
+                    usage->columns = 1U;
+                    // Expand the node if required
+                    if(usage->children.isEmpty())
+                    {
+                      usage->children.resize(rows);
+                      for(uint32_t x = 0; x < rows; x++)
+                      {
+                        usage->children[x].debugVarSSAName = usage->debugVarSSAName;
+                        rdcstr suffix = StringFormat::Fmt("[%u]", x);
+                        usage->children[x].debugVarSuffix = usage->debugVarSuffix + suffix;
+                        usage->children[x].name = usage->name + suffix;
+                        usage->children[x].type = elementType;
+                        usage->children[x].rows = childRows;
+                        usage->children[x].columns = childColumns;
+                        usage->children[x].offset = usage->offset + x * elementOffset;
+                      }
+                    }
+                    RDCASSERTEQUAL(usage->children.size(), rows);
+                    // if the whole node was displayed : display the sub-elements
+                    if(usage->emitSourceVar)
+                    {
+                      for(uint32_t x = 0; x < rows; x++)
+                        usage->children[x].emitSourceVar = true;
+                      usage->emitSourceVar = false;
+                    }
+                    // TODO : mapping covers whole sub-array
+                    {
+                      usage = &usage->children[elementIndex];
+                      usage->type = childType->type;
+                      typeWalk = childType;
+                    }
+                  }
+                  break;
+                }
+                else if(!typeWalk->structMembers.empty())
+                {
+                  uint32_t rows = (uint32_t)typeWalk->structMembers.size();
+                  usage->rows = rows;
+                  usage->columns = 1U;
+
+                  if((byteOffset == 0) && (bytesRemaining == typeWalk->sizeInBytes))
+                  {
+                    // Remove mappings : this mapping covers everything
+                    usage->debugVarSSAName = mapping.debugVarSSAName;
+                    usage->children.clear();
+                    usage->emitSourceVar = true;
+                    usage->debugVarSuffix.clear();
+                    bytesRemaining = 0;
+                    break;
+                  }
+
+                  // Loop over the member offsets in reverse to find the first member in the byteOffset
+                  uint32_t memberIndex = rows;
+                  for(uint32_t x = 0; x < rows; x++)
+                  {
+                    uint32_t idx = rows - x - 1;
+                    uint32_t memberOffset = typeWalk->memberOffsets[idx];
+                    if(byteOffset >= memberOffset)
+                    {
+                      memberIndex = idx;
+                      byteOffset -= memberOffset;
+                      break;
+                    }
+                  }
+
+                  childType = &m_DebugInfo.types[typeWalk->structMembers[memberIndex].second];
+
+                  // Expand the node if required
+                  if(usage->children.isEmpty())
+                  {
+                    usage->children.resize(rows);
+                    for(uint32_t x = 0; x < rows; x++)
+                    {
+                      rdcstr suffix =
+                          StringFormat::Fmt(".%s", typeWalk->structMembers[x].first.c_str());
+                      usage->children[x].debugVarSSAName = usage->debugVarSSAName;
+                      usage->children[x].debugVarSuffix = usage->debugVarSuffix + suffix;
+                      usage->children[x].name = usage->name + suffix;
+                      usage->children[x].offset = usage->offset + typeWalk->memberOffsets[x];
+                      uint32_t memberRows = 1U;
+                      uint32_t memberColumns = 1U;
+                      const TypeData *memberType =
+                          &m_DebugInfo.types[typeWalk->structMembers[x].second];
+                      VarType elementType = memberType->type;
+                      if(memberType->matSize != 0)
+                      {
+                        const TypeData &vec = m_DebugInfo.types[memberType->baseType];
+                        const TypeData &scalar = m_DebugInfo.types[vec.baseType];
+
+                        elementType = scalar.type;
+                        if(memberType->colMajorMat)
+                        {
+                          memberRows = RDCMAX(1U, vec.vecSize);
+                          memberColumns = RDCMAX(1U, memberType->matSize);
+                        }
+                        else
+                        {
+                          memberColumns = RDCMAX(1U, vec.vecSize);
+                          memberRows = RDCMAX(1U, memberType->matSize);
+                        }
+                      }
+                      else if(memberType->vecSize != 0)
+                      {
+                        const TypeData &scalar = m_DebugInfo.types[memberType->baseType];
+                        uint32_t vecColumns = RDCMAX(1U, memberType->vecSize);
+
+                        elementType = scalar.type;
+
+                        memberRows = 1U;
+                        memberColumns = vecColumns;
+                      }
+                      usage->children[x].type = elementType;
+                      usage->children[x].rows = memberRows;
+                      usage->children[x].columns = memberColumns;
+                    }
+                  }
+                  RDCASSERTEQUAL(usage->children.size(), rows);
+                  // if the whole node was displayed : display the sub-elements
+                  if(usage->emitSourceVar)
+                  {
+                    for(uint32_t x = 0; x < rows; x++)
+                      usage->children[x].emitSourceVar = true;
+                    usage->emitSourceVar = false;
+                  }
+
+                  usage = &usage->children[memberIndex];
+                  usage->type = childType->type;
+                  typeWalk = childType;
+                }
+                else
+                {
+                  break;
+                }
+              }
+
+              uint32_t rows = 1U;
+              uint32_t columns = 1U;
+
+              if(typeWalk->matSize != 0)
+              {
+                // Index into the matrix using byte offset and row/column layout
+                const TypeData &vec = m_DebugInfo.types[typeWalk->baseType];
+                const TypeData &scalar = m_DebugInfo.types[vec.baseType];
+                usage->type = scalar.type;
+
+                if(typeWalk->colMajorMat)
+                {
+                  rows = RDCMAX(1U, vec.vecSize);
+                  columns = RDCMAX(1U, typeWalk->matSize);
+                }
+                else
+                {
+                  columns = RDCMAX(1U, vec.vecSize);
+                  rows = RDCMAX(1U, typeWalk->matSize);
+                }
+                usage->rows = rows;
+                usage->columns = columns;
+
+                RDCERR("Matrix types not handled yet %s %u %u", typeWalk->name.c_str(), byteOffset,
+                       bytesRemaining);
+
+                if(bytesRemaining == 0)
+                {
+                  // Remove mappings : this mapping covers everything
+                  usage->debugVarSSAName = mapping.debugVarSSAName;
+                  usage->children.clear();
+                  usage->emitSourceVar = true;
+                  usage->debugVarSuffix.clear();
+                }
+              }
+              else if(typeWalk->vecSize != 0)
+              {
+                // Index into the vector using byte offset and component size
+                const TypeData &scalar = m_DebugInfo.types[typeWalk->baseType];
+                uint32_t componentIndex = byteOffset / scalar.sizeInBytes;
+                columns = RDCMAX(1U, typeWalk->vecSize);
+
+                usage->type = scalar.type;
+
+                usage->rows = 1U;
+                usage->columns = columns;
+
+                if(bytesRemaining > 0)
+                {
+                  bytesRemaining -= scalar.sizeInBytes;
+                  RDCASSERTEQUAL(bytesRemaining, 0);
+                  if(usage->children.isEmpty())
+                  {
+                    const char swizzle[] = "xyzw";
+                    usage->children.resize(columns);
+                    for(uint32_t x = 0; x < columns; ++x)
+                    {
+                      usage->children[x].emitSourceVar = usage->emitSourceVar;
+                      usage->children[x].name =
+                          usage->name + StringFormat::Fmt(".%c", swizzle[RDCMIN(x, 3U)]);
+                      usage->children[x].type = scalar.type;
+                      usage->children[x].debugVarSSAName = usage->debugVarSSAName;
+                      usage->children[x].debugVarComponent = x;
+                      usage->children[x].rows = 1U;
+                      usage->children[x].columns = 1U;
+                      usage->children[x].offset = usage->offset + x;
+                    }
+                    usage->emitSourceVar = false;
+                  }
+                  uint32_t col = componentIndex;
+                  RDCASSERT(col < columns, col, columns);
+                  RDCASSERTEQUAL(usage->children.size(), columns);
+                  usage->children[col].debugVarSSAName = mapping.debugVarSSAName;
+                  usage->children[col].debugVarComponent = 0;
+                  usage->children[col].emitSourceVar = true;
+
+                  // try to recombine vector to a single source var display
+                  bool collapseVector = true;
+                  for(uint32_t x = 0; x < columns; ++x)
+                  {
+                    collapseVector = usage->children[x].emitSourceVar;
+                    if(!collapseVector)
+                      break;
+                  }
+                  if(collapseVector)
+                  {
+                    usage->emitSourceVar = true;
+                    for(uint32_t x = 0; x < columns; ++x)
+                      usage->children[x].emitSourceVar = false;
+                  }
+                }
+                else
+                {
+                  // Remove mappings : this mapping covers everything
+                  usage->debugVarSSAName = mapping.debugVarSSAName;
+                  usage->children.clear();
+                  usage->emitSourceVar = true;
+                  usage->debugVarSuffix.clear();
+                }
+              }
+              else if(bytesRemaining > 0)
+              {
+                // walk down until we get to a scalar type, if we get there. This means arrays of
+                // basic types will get the right type
+                while(typeWalk && typeWalk->baseType != NULL && typeWalk->type == VarType::Unknown)
+                  typeWalk = &m_DebugInfo.types[typeWalk->baseType];
+
+                usage->type = typeWalk->type;
+                usage->debugVarSSAName = mapping.debugVarSSAName;
+                usage->debugVarComponent = 0;
+                usage->rows = 1U;
+                usage->columns = 1U;
+                usage->emitSourceVar = true;
+                usage->children.clear();
+                usage->debugVarSuffix.clear();
+
+                const TypeData &scalar = m_DebugInfo.types[typeWalk->baseType];
+                bytesRemaining -= scalar.sizeInBytes;
+                RDCASSERTEQUAL(bytesRemaining, 0);
+              }
+            }
+          }
+        }
+
+        // Phase Two: walk the DebugVarNode tree and convert "emitSourceVar = true" nodes to a SourceVariableMapping
+        for(size_t sv = 0; sv < sourceVars.size(); ++sv)
+        {
+          rdcstr sourceVarName = sourceVars[sv];
+          DebugVarNode *usage = &roots[sourceVarName];
+          rdcarray<const DebugVarNode *> nodesToProcess;
+          rdcarray<const DebugVarNode *> sourceVarNodes;
+          nodesToProcess.push_back(usage);
+          while(!nodesToProcess.isEmpty())
+          {
+            const DebugVarNode *n = nodesToProcess.back();
+            nodesToProcess.pop_back();
+            if(n->emitSourceVar)
+            {
+              sourceVarNodes.push_back(n);
+            }
+            else
+            {
+              for(size_t x = 0; x < n->children.size(); ++x)
+              {
+                const DebugVarNode *child = &n->children[x];
+                nodesToProcess.push_back(child);
+              }
+            }
+          }
+          for(size_t x = 0; x < sourceVarNodes.size(); ++x)
+          {
+            const DebugVarNode *n = sourceVarNodes[x];
+            SourceVariableMapping sourceVar;
+            sourceVar.name = n->name;
+            sourceVar.type = n->type;
+            sourceVar.signatureIndex = -1;
+            sourceVar.offset = n->offset;
+            sourceVar.variables.clear();
+            // unknown is treated as a struct
+            if(sourceVar.type == VarType::Unknown)
+              sourceVar.type = VarType::Struct;
+
+            if(n->children.empty())
+            {
+              RDCASSERTNOTEQUAL(n->rows * n->columns, 0);
+              for(uint32_t c = 0; c < n->rows * n->columns; ++c)
+              {
+                sourceVar.variables.push_back(DebugVariableReference(
+                    DebugVariableType::Variable, n->debugVarSSAName + n->debugVarSuffix, c));
+              }
+            }
+            else
+            {
+              RDCASSERTEQUAL(n->rows * n->columns, (uint32_t)n->children.count());
+              for(int32_t c = 0; c < n->children.count(); ++c)
+                sourceVar.variables.push_back(DebugVariableReference(
+                    DebugVariableType::Variable,
+                    n->children[c].debugVarSSAName + n->children[c].debugVarSuffix,
+                    n->children[c].debugVarComponent));
+            }
+
+            localSrcVar.sourceVars.push_back(sourceVar);
+          }
+        }
+        program->m_Locals.push_back(localSrcVar);
+      }
+    }
+  }
 }
 
 ShaderDebugTrace *Debugger::BeginDebug(uint32_t eventId, const DXBC::DXBCContainer *dxbcContainer,
@@ -4026,340 +4686,7 @@ ShaderDebugTrace *Debugger::BeginDebug(uint32_t eventId, const DXBC::DXBCContain
     }
   }
 
-  // Parse LLVM debug data
-  for(const Function *f : m_Program->m_Functions)
-  {
-    if(!f->external)
-    {
-      const FunctionInfo &info = m_FunctionInfos[f];
-      uint32_t countInstructions = (uint32_t)f->instructions.size();
-      uint32_t activeInstructionIndex = 0;
-
-      for(uint32_t i = 0; i < countInstructions; ++i)
-      {
-        uint32_t instructionIndex = i + info.globalInstructionOffset;
-        const Instruction &inst = *(f->instructions[i]);
-        if(!DXIL::IsLLVMDebugCall(inst))
-        {
-          // Include DebugLoc data for building up the list of scopes
-          uint32_t dbgLoc = inst.debugLoc;
-          if(dbgLoc != ~0U)
-          {
-            const DebugLocation &debugLoc = m_Program->m_DebugLocations[dbgLoc];
-            size_t scopeIndex = AddScopedDebugData(debugLoc.scope, instructionIndex);
-            ScopedDebugData &scope = m_DebugInfo.scopedDebugDatas[scopeIndex];
-            scope.minInstruction = RDCMIN(scope.minInstruction, instructionIndex);
-            scope.maxInstruction = RDCMAX(scope.maxInstruction, instructionIndex);
-          }
-          activeInstructionIndex = instructionIndex;
-          continue;
-        }
-
-        const Function *dbgFunc = inst.getFuncCall();
-        switch(dbgFunc->llvmDbgOp)
-        {
-          case LLVMDbgOp::Declare: ParseDbgOpDeclare(inst, activeInstructionIndex); break;
-          case LLVMDbgOp::Value: ParseDbgOpValue(inst, activeInstructionIndex); break;
-          case LLVMDbgOp::Unknown:
-            RDCASSERT("Unsupported LLVM debug operation", dbgFunc->llvmDbgOp);
-            break;
-        };
-      }
-    }
-  }
-
-  // Sort the scopes by instruction index
-  std::sort(m_DebugInfo.scopedDebugDatas.begin(), m_DebugInfo.scopedDebugDatas.end(),
-            [](const ScopedDebugData &a, const ScopedDebugData &b) { return a < b; });
-
-  // Track current active scope, previous scope
-
-  // For each instruction
-  for(const Function *f : m_Program->m_Functions)
-  {
-    if(!f->external)
-    {
-      const FunctionInfo &info = m_FunctionInfos[f];
-      uint32_t countInstructions = (uint32_t)f->instructions.size();
-
-      for(uint32_t i = 0; i < countInstructions; ++i)
-      {
-        uint32_t instructionIndex = i + info.globalInstructionOffset;
-
-        DXIL::Program::LocalSourceVariable localSrcVar;
-        localSrcVar.startInst = instructionIndex;
-        localSrcVar.endInst = instructionIndex;
-
-        // - find which scope it belongs
-        size_t scopeIndex = FindScopedDebugDataIndex(instructionIndex);
-        // track which mappings we've processed, so if the same variable has mappings in multiple
-        // scopes we only pick the innermost.
-        rdcarray<LocalMapping> processed;
-        rdcarray<rdcstr> sourceVars;
-
-        // capture the scopes upwards (from child to parent)
-        rdcarray<size_t> scopeIndexes;
-        while(scopeIndex < m_DebugInfo.scopedDebugDatas.size())
-        {
-          const ScopedDebugData &scope = m_DebugInfo.scopedDebugDatas[scopeIndex];
-          scopeIndexes.push_back(scopeIndex);
-          // if we reach a function scope, don't go up any further.
-          if(scope.md->dwarf->type == DIBase::Type::Subprogram)
-            break;
-
-          scopeIndex = scope.parentIndex;
-        }
-
-        // Iterate over the scopes downwards (parent->child)
-        for(size_t s = 0; s < scopeIndexes.size(); ++s)
-        {
-          scopeIndex = scopeIndexes[scopeIndexes.size() - 1 - s];
-          const ScopedDebugData &scope = m_DebugInfo.scopedDebugDatas[scopeIndex];
-          for(size_t m = 0; m < scope.localMappings.size(); m++)
-          {
-            const LocalMapping &mapping = scope.localMappings[m];
-
-            // if this mapping is past the current instruction, stop here.
-            if(mapping.instIndex > instructionIndex)
-              break;
-
-            // see if this mapping is superceded by a later mapping in this scope for this
-            // instruction. This is a bit inefficient but simple. The alternative would be to do
-            // record start and end points for each mapping and update the end points, but this is
-            // simple and should be limited since it's only per-scope
-            bool supercede = false;
-            for(size_t n = m + 1; n < scope.localMappings.size(); n++)
-            {
-              const LocalMapping &laterMapping = scope.localMappings[n];
-
-              // if this mapping is past the current instruction, stop here.
-              if(laterMapping.instIndex > instructionIndex)
-                break;
-
-              // if this mapping will supercede and starts later
-              if(laterMapping.isSourceSupersetOf(mapping) &&
-                 laterMapping.instIndex > mapping.instIndex)
-              {
-                supercede = true;
-                break;
-              }
-            }
-
-            // don't add the current mapping if it's going to be superceded by something later
-            if(supercede)
-              continue;
-
-            processed.push_back(mapping);
-            rdcstr sourceVarName = mapping.sourceVarName;
-            if(!sourceVars.contains(mapping.sourceVarName))
-              sourceVars.push_back(mapping.sourceVarName);
-          }
-        }
-
-        // Converting debug variable mappings to SourceVariableMapping is a two phase algorithm.
-
-        // Phase One
-        // For each source variable, repeatedly apply the debug variable mappings.
-        // This debug variable usage is tracked in a tree-like structure built using DebugVarNode
-        // elements.
-        // As each mapping is applied, the new mapping can fully or partially override the
-        // existing mapping. When an existing mapping is:
-        //  - fully overridden: any sub-elements of that mapping are cleared
-        //    i.e. assigning a vector, array, structure
-        //  - partially overriden: the existing mapping is expanded into its sub-elements which are
-        //    mapped to the current mapping and then the new mapping is set to its corresponding
-        //    elements i.e. y-component in a vector, member in a structure, a single array element
-        // The DebugVarNode member "emitSourceVar" determines if the DebugVar mapping should be
-        // converted to a source variable mapping.
-
-        // Phase Two
-        // The DebugVarNode tree is walked to find the nodes which have "emitSourceVar" set to
-        // true and then those nodes are converted to SourceVariableMapping
-
-        struct DebugVarNode
-        {
-          rdcarray<DebugVarNode> children;
-          rdcstr debugVarSSAName;
-          rdcstr name;
-          rdcstr debugVarSuffix;
-          VarType type = VarType::Unknown;
-          uint32_t rows = 0;
-          uint32_t columns = 0;
-          uint32_t debugVarComponent = 0;
-          uint32_t offset = 0;
-          bool emitSourceVar = false;
-        };
-
-        ::std::map<rdcstr, DebugVarNode> roots;
-
-        // Phase One: generate the DebugVarNode tree by repeatedly applying debug variables
-        // updating existing mappings with later mappings
-        for(size_t sv = 0; sv < sourceVars.size(); ++sv)
-        {
-          rdcstr sourceVarName = sourceVars[sv];
-          const DXIL::DILocalVariable *variable = m_DebugInfo.locals[sourceVarName].variable;
-
-          // Convert processed mappings into a usage map
-          for(size_t m = 0; m < processed.size(); ++m)
-          {
-            const LocalMapping &mapping = processed[m];
-            if(mapping.sourceVarName != sourceVarName)
-              continue;
-
-            DebugVarNode *usage = &roots[sourceVarName];
-            if(usage->name.isEmpty())
-            {
-              usage->name = sourceVarName;
-              usage->rows = 1U;
-              usage->columns = 1U;
-            }
-
-            const DXIL::Metadata *typeMD = variable->type;
-            const TypeData *typeWalk = &m_DebugInfo.types[typeMD];
-
-            // if the mapping is the entire variable
-            if((mapping.byteOffset == 0 && mapping.countBytes == 0))
-            {
-              uint32_t rows = 1;
-              uint32_t columns = 1;
-              // TODO: is it worth considering GPU pointers for DXIL
-              // skip past any pointer types to get the 'real' type that we'll see
-              while(typeWalk && typeWalk->baseType != NULL && typeWalk->type == VarType::GPUPointer)
-                typeWalk = &m_DebugInfo.types[typeWalk->baseType];
-
-              const size_t arrayDimension = typeWalk->arrayDimensions.size();
-              if(arrayDimension > 0)
-              {
-                // walk down until we get to a scalar type, if we get there. This means arrays of
-                // basic types will get the right type
-                while(typeWalk && typeWalk->baseType != Id() && typeWalk->type == VarType::Unknown)
-                  typeWalk = &m_DebugInfo.types[typeWalk->baseType];
-
-                usage->type = typeWalk->type;
-              }
-              else if(!typeWalk->structMembers.empty())
-              {
-                usage->type = typeWalk->type;
-              }
-              if(typeWalk->matSize != 0)
-              {
-                const TypeData &vec = m_DebugInfo.types[typeWalk->baseType];
-                const TypeData &scalar = m_DebugInfo.types[vec.baseType];
-
-                usage->type = scalar.type;
-
-                if(typeWalk->colMajorMat)
-                {
-                  rows = RDCMAX(1U, vec.vecSize);
-                  columns = RDCMAX(1U, typeWalk->matSize);
-                }
-                else
-                {
-                  columns = RDCMAX(1U, vec.vecSize);
-                  rows = RDCMAX(1U, typeWalk->matSize);
-                }
-              }
-              else if(typeWalk->vecSize != 0)
-              {
-                const TypeData &scalar = m_DebugInfo.types[typeWalk->baseType];
-
-                usage->type = scalar.type;
-                columns = RDCMAX(1U, typeWalk->vecSize);
-              }
-              else
-              {
-                const TypeData &scalar = m_DebugInfo.types[typeWalk->baseType];
-
-                usage->type = scalar.type;
-                columns = 1U;
-              }
-
-              usage->debugVarSSAName = mapping.ssaIdName;
-              // Remove any child mappings : this mapping covers everything
-              usage->children.clear();
-              usage->emitSourceVar = true;
-              usage->rows = rows;
-              usage->columns = columns;
-            }
-            else
-            {
-              uint64_t byteOffset = mapping.byteOffset;
-              uint64_t bytesRemaining = mapping.countBytes;
-
-              // walk any aggregate types
-              while(bytesRemaining)
-              {
-                bytesRemaining = 0;
-                RDCERR("Aggregate types not handled yet %u %u", byteOffset, bytesRemaining);
-              }
-            }
-          }
-        }
-
-        // Phase Two: walk the DebugVarNode tree and convert "emitSourceVar = true" nodes to a SourceVariableMapping
-        for(size_t sv = 0; sv < sourceVars.size(); ++sv)
-        {
-          rdcstr sourceVarName = sourceVars[sv];
-          DebugVarNode *usage = &roots[sourceVarName];
-          rdcarray<const DebugVarNode *> nodesToProcess;
-          rdcarray<const DebugVarNode *> sourceVarNodes;
-          nodesToProcess.push_back(usage);
-          while(!nodesToProcess.isEmpty())
-          {
-            const DebugVarNode *n = nodesToProcess.back();
-            nodesToProcess.pop_back();
-            if(n->emitSourceVar)
-            {
-              sourceVarNodes.push_back(n);
-            }
-            else
-            {
-              for(size_t x = 0; x < n->children.size(); ++x)
-              {
-                const DebugVarNode *child = &n->children[x];
-                nodesToProcess.push_back(child);
-              }
-            }
-          }
-          for(size_t x = 0; x < sourceVarNodes.size(); ++x)
-          {
-            const DebugVarNode *n = sourceVarNodes[x];
-            SourceVariableMapping sourceVar;
-            sourceVar.name = n->name;
-            sourceVar.type = n->type;
-            sourceVar.signatureIndex = -1;
-            sourceVar.offset = n->offset;
-            sourceVar.variables.clear();
-            // unknown is treated as a struct
-            if(sourceVar.type == VarType::Unknown)
-              sourceVar.type = VarType::Struct;
-
-            if(n->children.empty())
-            {
-              RDCASSERTNOTEQUAL(n->rows * n->columns, 0);
-              for(uint32_t c = 0; c < n->rows * n->columns; ++c)
-              {
-                sourceVar.variables.push_back(DebugVariableReference(
-                    DebugVariableType::Variable, n->debugVarSSAName + n->debugVarSuffix, c));
-              }
-            }
-            else
-            {
-              RDCASSERTEQUAL(n->rows * n->columns, (uint32_t)n->children.count());
-              for(int32_t c = 0; c < n->children.count(); ++c)
-                sourceVar.variables.push_back(DebugVariableReference(
-                    DebugVariableType::Variable,
-                    n->children[c].debugVarSSAName + n->children[c].debugVarSuffix,
-                    n->children[c].debugVarComponent));
-            }
-
-            localSrcVar.sourceVars.push_back(sourceVar);
-          }
-        }
-        program->m_Locals.push_back(localSrcVar);
-      }
-    }
-  }
+  ParseDebugData();
 
   // Add inputs to the shader trace
   const rdcarray<SigParameter> &inParams = dxbcContainer->GetReflection()->InputSig;
