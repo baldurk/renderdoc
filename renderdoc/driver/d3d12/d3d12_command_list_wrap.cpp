@@ -397,6 +397,7 @@ HRESULT WrappedID3D12GraphicsCommandList::ResetInternal(ID3D12CommandAllocator *
     }
     m_RayDispatches.clear();
 
+    m_CaptureComputeState = D3D12RenderState();
     m_CaptureComputeState.m_ResourceManager = GetResourceManager();
 
     // free any baked commands.
@@ -669,6 +670,9 @@ void WrappedID3D12GraphicsCommandList::ClearState(ID3D12PipelineState *pPipeline
 
     m_ListRecord->AddChunk(scope.Get(m_ListRecord->cmdInfo->alloc));
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pPipelineState), eFrameRef_Read);
+
+    m_CaptureComputeState = D3D12RenderState();
+    m_CaptureComputeState.m_ResourceManager = GetResourceManager();
   }
 }
 
