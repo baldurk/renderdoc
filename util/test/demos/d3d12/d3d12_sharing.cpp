@@ -61,9 +61,17 @@ RD_TEST(D3D12_Sharing, D3D12GraphicsTest)
     if(!d3d11.Init(pDXGIAdapter))
       return 4;
 
-    ID3D12DevicePtr devB = CreateDevice({pDXGIAdapter}, D3D_FEATURE_LEVEL_11_0);
-    if(!devB)
-      return 2;
+    ID3D12DevicePtr devB;
+    if(m_SingletonDevice)
+    {
+      devB = CreateDevice({pDXGIAdapter}, D3D_FEATURE_LEVEL_11_0);
+      if(!devB)
+        return 2;
+    }
+    else
+    {
+      devB = dev;
+    }
 
     ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_4_0");
     ID3DBlobPtr psblob = Compile(D3DDefaultPixel, "main", "ps_4_0");
