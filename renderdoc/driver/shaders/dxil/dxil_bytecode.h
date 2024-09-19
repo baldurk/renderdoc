@@ -54,6 +54,7 @@ static const rdcstr DXIL_FAKE_INPUT_STRUCT_NAME("_IN");
 
 enum class FunctionFamily : uint8_t
 {
+  Unknown,
   LLVM,
   DXOp,
   LLVMDbg,
@@ -1380,7 +1381,7 @@ struct Function : public Value
   rdcarray<UselistEntry> uselist;
   AttachedMetadata attachedMeta;
 
-  FunctionFamily family = FunctionFamily::LLVM;
+  FunctionFamily family = FunctionFamily::Unknown;
   LLVMDbgOp llvmDbgOp = LLVMDbgOp::Unknown;
 };
 
