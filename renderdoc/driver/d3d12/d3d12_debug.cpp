@@ -1041,7 +1041,7 @@ ID3D12PipelineState *D3D12DebugManager::GetDXILTexSamplePso(const int8_t offsets
 
 ID3D12Resource *D3D12DebugManager::MakeCBuffer(UINT64 size)
 {
-  ID3D12Resource *ret;
+  ID3D12Resource *ret = NULL;
 
   D3D12_HEAP_PROPERTIES heapProps;
   heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
