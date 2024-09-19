@@ -1730,9 +1730,9 @@ rdcstr Program::GetDebugStatus()
 
 void Program::GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const
 {
-  // TODO: Get the entry point infomation
-  if(instruction == ~0U)
-    instruction = 0;
+  bool getEntryPoint = (instruction == ~0U);
+  if(getEntryPoint)
+    RDCASSERT(!m_EntryPoint.empty());
 
   lineInfo = LineColumnInfo();
 
@@ -1740,7 +1740,16 @@ void Program::GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &
   {
     const Function &f = *m_Functions[i];
 
-    if(instruction < f.instructions.size())
+    bool getLineInfo = (getEntryPoint) ? false : (instruction < f.instructions.size());
+    if(getEntryPoint)
+    {
+      if(f.name == m_EntryPoint)
+      {
+        getLineInfo = true;
+        instruction = 0;
+      }
+    }
+    if(getLineInfo)
     {
       const Instruction *const inst = f.instructions[instruction];
       uint32_t dbgLoc = inst->debugLoc;
@@ -1771,7 +1780,7 @@ void Program::GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &
       }
 
       lineInfo.disassemblyLine = inst->disassemblyLine;
-      break;
+      return;
     }
     instruction -= f.instructions.size();
   }
