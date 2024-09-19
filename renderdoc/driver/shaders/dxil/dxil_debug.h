@@ -328,6 +328,9 @@ struct LocalMapping
     // this mapping is a superset of the other if:
 
     // it's the same source var
+    if(variable != o.variable)
+      return false;
+
     if(sourceVarName != o.sourceVarName)
       return false;
 
@@ -440,8 +443,7 @@ private:
   struct DebugInfo
   {
     rdcarray<ScopedDebugData> scopedDebugDatas;
-    // TODO : Make sure the key is unique across scopes (need to mangle name or use an ID)
-    std::map<rdcstr, LocalMapping> locals;
+    std::map<const DXIL::DILocalVariable *, LocalMapping> locals;
     std::map<const DXIL::Metadata *, TypeData> types;
   } m_DebugInfo;
 

@@ -3720,8 +3720,8 @@ void Debugger::AddLocalVariable(const DXIL::Metadata *localVariableMD, uint32_t 
   if(m_DebugInfo.types.count(typeMD) == 0)
     AddDebugType(typeMD);
 
-  if(m_DebugInfo.locals.count(sourceVarName) == 0)
-    m_DebugInfo.locals[sourceVarName] = localMapping;
+  if(m_DebugInfo.locals.count(localVariable) == 0)
+    m_DebugInfo.locals[localVariable] = localMapping;
 }
 
 void Debugger::ParseDbgOpDeclare(const DXIL::Instruction &inst, uint32_t instructionIndex)
@@ -3877,7 +3877,7 @@ void Debugger::ParseDebugData()
         // track which mappings we've processed, so if the same variable has mappings in multiple
         // scopes we only pick the innermost.
         rdcarray<LocalMapping> processed;
-        rdcarray<rdcstr> sourceVars;
+        rdcarray<const DXIL::DILocalVariable *> sourceVars;
 
         // capture the scopes upwards (from child to parent)
         rdcarray<size_t> scopeIndexes;
@@ -3933,9 +3933,9 @@ void Debugger::ParseDebugData()
             }
 
             processed.push_back(mapping);
-            rdcstr sourceVarName = mapping.sourceVarName;
-            if(!sourceVars.contains(mapping.sourceVarName))
-              sourceVars.push_back(mapping.sourceVarName);
+            const DXIL::DILocalVariable *sourceVar = mapping.variable;
+            if(!sourceVars.contains(sourceVar))
+              sourceVars.push_back(sourceVar);
           }
         }
 
@@ -3973,26 +3973,25 @@ void Debugger::ParseDebugData()
           bool emitSourceVar = false;
         };
 
-        ::std::map<rdcstr, DebugVarNode> roots;
+        ::std::map<const DXIL::DILocalVariable *, DebugVarNode> roots;
 
         // Phase One: generate the DebugVarNode tree by repeatedly applying debug variables
         // updating existing mappings with later mappings
         for(size_t sv = 0; sv < sourceVars.size(); ++sv)
         {
-          rdcstr sourceVarName = sourceVars[sv];
-          const DXIL::DILocalVariable *variable = m_DebugInfo.locals[sourceVarName].variable;
+          const DXIL::DILocalVariable *variable = sourceVars[sv];
 
           // Convert processed mappings into a usage map
           for(size_t m = 0; m < processed.size(); ++m)
           {
             const LocalMapping &mapping = processed[m];
-            if(mapping.sourceVarName != sourceVarName)
+            if(mapping.variable != variable)
               continue;
 
-            DebugVarNode *usage = &roots[sourceVarName];
+            DebugVarNode *usage = &roots[variable];
             if(usage->name.isEmpty())
             {
-              usage->name = sourceVarName;
+              usage->name = mapping.sourceVarName;
               usage->rows = 1U;
               usage->columns = 1U;
             }
@@ -4398,8 +4397,8 @@ void Debugger::ParseDebugData()
         // Phase Two: walk the DebugVarNode tree and convert "emitSourceVar = true" nodes to a SourceVariableMapping
         for(size_t sv = 0; sv < sourceVars.size(); ++sv)
         {
-          rdcstr sourceVarName = sourceVars[sv];
-          DebugVarNode *usage = &roots[sourceVarName];
+          const DXIL::DILocalVariable *variable = sourceVars[sv];
+          DebugVarNode *usage = &roots[variable];
           rdcarray<const DebugVarNode *> nodesToProcess;
           rdcarray<const DebugVarNode *> sourceVarNodes;
           nodesToProcess.push_back(usage);
