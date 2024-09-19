@@ -1055,11 +1055,79 @@ void WrappedID3D12GraphicsCommandList::BuildRaytracingAccelerationStructure(
     _In_reads_opt_(NumPostbuildInfoDescs)
         const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC *pPostbuildInfoDescs)
 {
-  SERIALISE_TIME_CALL(m_pList4->BuildRaytracingAccelerationStructure(pDesc, NumPostbuildInfoDescs,
-                                                                     pPostbuildInfoDescs));
+  D3D12_GPU_VIRTUAL_ADDRESS duplicateDest = 0;
+  D3D12_GPU_VIRTUAL_ADDRESS duplicateSource = 0;
+
+  // patch any compacted size queries to instead return current size
+  rdcarray<D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC> postbuilds;
+  if(IsCaptureMode(m_State))
+  {
+    postbuilds.assign(pPostbuildInfoDescs, NumPostbuildInfoDescs);
+    for(UINT i = 0; i < NumPostbuildInfoDescs; i++)
+    {
+      if(postbuilds[i].InfoType ==
+         D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_COMPACTED_SIZE)
+      {
+        postbuilds[i].InfoType = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_CURRENT_SIZE;
+
+        // we can only query each size once, so if there is already a current size query we'll need
+        // to copy to it manually
+        for(UINT j = 0; j < NumPostbuildInfoDescs; j++)
+        {
+          if(i == j)
+            continue;
+
+          if(postbuilds[j].InfoType ==
+             D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_CURRENT_SIZE)
+          {
+            duplicateDest = postbuilds[j].DestBuffer;
+            duplicateSource = postbuilds[i].DestBuffer;
+            postbuilds.erase(j);
+
+            // can stop here after removing it, since by the same rules there can't be another
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  SERIALISE_TIME_CALL(m_pList4->BuildRaytracingAccelerationStructure(
+      pDesc, NumPostbuildInfoDescs, postbuilds.empty() ? pPostbuildInfoDescs : postbuilds.data()));
 
   if(IsCaptureMode(m_State))
   {
+    if(duplicateDest)
+    {
+      D3D12_RESOURCE_BARRIER barrier = {};
+      barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+      m_pList4->ResourceBarrier(1, &barrier);
+
+      ResourceId destID;
+      D3D12BufferOffset destOffs;
+
+      WrappedID3D12Resource::GetResIDFromAddr(duplicateDest, destID, destOffs);
+
+      ID3D12Resource *destRes =
+          GetResourceManager()->GetCurrentAs<WrappedID3D12Resource>(destID)->GetReal();
+
+      ResourceId sourceID;
+      D3D12BufferOffset sourceOffs;
+
+      WrappedID3D12Resource::GetResIDFromAddr(duplicateSource, sourceID, sourceOffs);
+
+      ID3D12Resource *sourceRes =
+          GetResourceManager()->GetCurrentAs<WrappedID3D12Resource>(sourceID)->GetReal();
+
+      RDCCOMPILE_ASSERT(
+          sizeof(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_CURRENT_SIZE_DESC) ==
+              sizeof(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_COMPACTED_SIZE_DESC),
+          "Data should be equal");
+      m_pList4->CopyBufferRegion(
+          destRes, destOffs, sourceRes, sourceOffs,
+          sizeof(D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_CURRENT_SIZE_DESC));
+    }
+
     // Acceleration structure (AS) are created on buffer created with Acceleration structure init
     // state which helps them differentiate between non-Acceleration structure buffers (non-ASB).
 
@@ -1178,8 +1246,15 @@ void WrappedID3D12GraphicsCommandList::EmitRaytracingAccelerationStructurePostbu
     _In_reads_(NumSourceAccelerationStructures)
         const D3D12_GPU_VIRTUAL_ADDRESS *pSourceAccelerationStructureData)
 {
+  D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_DESC desc = *pDesc;
+  if(IsCaptureMode(m_State))
+  {
+    if(desc.InfoType == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_COMPACTED_SIZE)
+      desc.InfoType = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO_CURRENT_SIZE;
+  }
+
   SERIALISE_TIME_CALL(m_pList4->EmitRaytracingAccelerationStructurePostbuildInfo(
-      pDesc, NumSourceAccelerationStructures, pSourceAccelerationStructureData));
+      &desc, NumSourceAccelerationStructures, pSourceAccelerationStructureData));
 
   if(IsCaptureMode(m_State))
   {
