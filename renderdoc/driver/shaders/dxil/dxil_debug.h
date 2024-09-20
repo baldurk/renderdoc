@@ -43,7 +43,6 @@ typedef DXDebug::GatherChannel GatherChannel;
 typedef DXBCBytecode::SamplerMode SamplerMode;
 typedef DXBC::InterpolationMode InterpolationMode;
 
-typedef uint32_t Id;
 class Debugger;
 struct GlobalState;
 

@@ -110,13 +110,13 @@ bool DXIL::IsSSA(const Value *dxilValue)
 {
   if(const Instruction *inst = cast<Instruction>(dxilValue))
     return true;
+  if(const GlobalVar *gv = cast<GlobalVar>(dxilValue))
+    return true;
   if(const Constant *c = cast<Constant>(dxilValue))
     return false;
   if(const Literal *lit = cast<Literal>(dxilValue))
     return false;
   if(const Block *block = cast<Block>(dxilValue))
-    return false;
-  if(const GlobalVar *gv = cast<GlobalVar>(dxilValue))
     return false;
   if(const Function *func = cast<Function>(dxilValue))
     return false;
@@ -125,6 +125,17 @@ bool DXIL::IsSSA(const Value *dxilValue)
 
   RDCERR("Unknown DXIL::Value type");
   return false;
+}
+
+DXILDebug::Id DXIL::GetSSAId(const DXIL::Value *value)
+{
+  if(const Instruction *inst = cast<Instruction>(value))
+    return inst->slot;
+  if(const GlobalVar *gv = cast<GlobalVar>(value))
+    return gv->ssaId;
+
+  RDCERR("Unhandled DXIL::Value type");
+  return DXILDebug::INVALID_ID;
 }
 
 static const char *shaderNames[] = {
@@ -1060,6 +1071,13 @@ void Program::SettleIDs()
         AssignMetaSlot(m_MetaSlots, m_NextMetaSlot, m.children[c]);
     }
   }
+  // assign SSA ID for global variables
+  for(GlobalVar *g : m_GlobalVars)
+  {
+    if(g->ssaId == ~0U)
+      g->ssaId = m_NextSSAId++;
+  }
+
   rdcarray<Metadata *> &metaSlots = m_MetaSlots;
   uint32_t &nextMetaSlot = m_NextMetaSlot;
   for(size_t i = 0; i < m_Functions.size(); i++)
@@ -1093,6 +1111,14 @@ void Program::SettleIDs()
           inst->slot = slot++;
 #endif
       }
+#if DISABLED(DXC_COMPATIBLE_DISASM)
+      // Check all arguments have valid SSA IDs
+      for(const Value *arg : inst->args)
+      {
+        if(IsSSA(arg))
+          RDCASSERTNOTEQUAL(GetSSAId(arg), ~0U);
+      }
+#endif
       if(inst->op == Operation::Call)
       {
         Function *callFunc = (Function *)inst->getFuncCall();

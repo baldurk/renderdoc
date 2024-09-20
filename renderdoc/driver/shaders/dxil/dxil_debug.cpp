@@ -31,17 +31,6 @@
 using namespace DXIL;
 using namespace DXDebug;
 
-const uint32_t DXIL_INVALID_ID = ~0U;
-
-DXILDebug::Id GetSSAId(DXIL::Value *value)
-{
-  if(const Instruction *inst = cast<Instruction>(value))
-    return inst->slot;
-
-  RDCERR("Unhandled DXIL::Value type");
-  return DXIL_INVALID_ID;
-}
-
 static bool OperationFlushing(const Operation op, DXOp dxOpCode)
 {
   if(dxOpCode != DXOp::NumOpCodes)
@@ -1283,7 +1272,7 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
             }
             else
             {
-              resultId = DXIL_INVALID_ID;
+              resultId = DXILDebug::INVALID_ID;
               result.name.clear();
             }
             break;
@@ -2379,14 +2368,14 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       const StackAllocPointer &ptr = itPtr->second;
       Id baseMemoryId = ptr.baseMemoryId;
       RDCASSERT(ptr.backingMemory);
-      RDCASSERTNOTEQUAL(baseMemoryId, DXIL_INVALID_ID);
+      RDCASSERTNOTEQUAL(baseMemoryId, DXILDebug::INVALID_ID);
       auto itAlloc = m_StackAllocs.find(baseMemoryId);
       RDCASSERT(itAlloc != m_StackAllocs.end());
       StackAlloc &alloc = itAlloc->second;
 
       ShaderVariable arg;
       RDCASSERT(GetShaderVariable(inst.args[1], opCode, dxOpCode, arg));
-      RDCASSERTEQUAL(resultId, DXIL_INVALID_ID);
+      RDCASSERTEQUAL(resultId, DXILDebug::INVALID_ID);
 
       // Memory copy from value to backing memory
       VarType type = ConvertDXILTypeToVarType(inst.args[1]->type);
@@ -2895,8 +2884,8 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
   }
 
   // Update the result variable after the dormant variables have been brought back
-  RDCASSERT(!(result.name.empty() ^ (resultId == DXIL_INVALID_ID)));
-  if(!result.name.empty() && resultId != DXIL_INVALID_ID)
+  RDCASSERT(!(result.name.empty() ^ (resultId == DXILDebug::INVALID_ID)));
+  if(!result.name.empty() && resultId != DXILDebug::INVALID_ID)
   {
     if(recordChange)
       SetResult(resultId, result, opCode, dxOpCode, eventFlags);
@@ -4639,7 +4628,7 @@ ShaderDebugTrace *Debugger::BeginDebug(uint32_t eventId, const DXBC::DXBCContain
         const uint32_t maxInst = i + 1;
         {
           Id resultId = inst.slot;
-          if(resultId != DXIL_INVALID_ID)
+          if(resultId != DXILDebug::INVALID_ID)
           {
             // The result SSA should not have been referenced before
             RDCASSERTEQUAL(ssaRefs.count(resultId), 0);
@@ -4670,6 +4659,12 @@ ShaderDebugTrace *Debugger::BeginDebug(uint32_t eventId, const DXBC::DXBCContain
           if(DXIL::IsSSA(arg))
           {
             Id argId = GetSSAId(arg);
+            // Add GlobalVar args to the SSA refs (they won't be the result of an instruction)
+            if(cast<GlobalVar>(arg))
+            {
+              if(ssaRefs.count(argId) == 0)
+                ssaRefs.insert(argId);
+            }
             if(!isPhiNode)
             {
               // For non phi-nodes the argument SSA should already exist as the result of a previous operation

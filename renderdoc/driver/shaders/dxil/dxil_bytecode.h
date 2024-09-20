@@ -45,6 +45,8 @@ namespace DXILDebug
 {
 class Debugger;
 struct ThreadState;
+const uint32_t INVALID_ID = ~0U;
+typedef uint32_t Id;
 };
 
 namespace DXIL
@@ -1283,7 +1285,7 @@ struct Instruction : public ForwardReferencableValue<Instruction>
   // For DXC Compatibility mode: slot contains a number assigned to instructions that don't have
   // names and return a value, used for disassembly
 
-  // Otherwise a unique global ID used by the debugger and disassemvbly
+  // Otherwise a unique global ID used by the debugger and disassembly
   uint32_t slot = ~0U;
   InstructionFlags &opFlags() { return (InstructionFlags &)flags; }
   InstructionFlags opFlags() const { return (InstructionFlags)flags; }
@@ -1724,6 +1726,7 @@ bool getival(const Value *v, T &out)
 }
 
 bool IsSSA(const Value *dxilValue);
+DXILDebug::Id GetSSAId(const DXIL::Value *value);
 bool IsDXCNop(const Instruction &inst);
 bool IsLLVMDebugCall(const Instruction &inst);
 
