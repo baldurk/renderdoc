@@ -1453,9 +1453,9 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
         }
         if(srcCdPtr)
         {
-          RDCASSERT(srcWidth % srcBlockSize[0] == 0);
-          RDCASSERT(srcHeight % srcBlockSize[1] == 0);
-          RDCASSERT(srcDepth % srcBlockSize[2] == 0);
+          RDCASSERT((srcWidth % srcBlockSize[0] == 0) || (srcWidth + srcX == srcLevelWidth));
+          RDCASSERT((srcHeight % srcBlockSize[1] == 0) || (srcHeight + srcY == srcLevelHeight));
+          RDCASSERT((srcDepth % srcBlockSize[2] == 0) || (srcDepth + srcZ == srcLevelDepth));
           RDCASSERT(srcX % srcBlockSize[0] == 0);
           RDCASSERT(srcY % srcBlockSize[1] == 0);
           RDCASSERT(srcZ % srcBlockSize[2] == 0);
@@ -1510,13 +1510,20 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
                                             (GLsizei)srcBlockSize[2], srcData.internalFormat)
                     : GetByteSize(srcWidth, srcBlockSize[1], srcBlockSize[2], srcFmt, srcType);
 
-            for(size_t z = 0; z < (size_t)srcDepth; z += srcBlockSize[2])
+            // GetCompressedByteSize() will factor in the 'partial' blocks at image edges when the
+            // image size is not an integer multiple of the block size, so we need to take into
+            // account that in the loop
+            size_t roundedUpDepth =
+                srcIsCompressed ? AlignUp((uint32_t)srcDepth, srcBlockSize[2]) : srcDepth;
+            size_t roundedUpHeight =
+                srcIsCompressed ? AlignUp((uint32_t)srcHeight, srcBlockSize[1]) : srcHeight;
+            for(size_t z = 0; z < roundedUpDepth; z += srcBlockSize[2])
             {
               size_t srcOffset = srcSliceSize * ((srcZ + z) / (GLsizei)srcBlockSize[2]) +
                                  srcRowSize * (srcY / (GLsizei)srcBlockSize[1]) + srcStartOffset;
               size_t dstOffset = dstSliceSize * ((dstZ + z) / (GLsizei)dstBlockSize[2]) +
                                  dstRowSize * (dstY / (GLsizei)dstBlockSize[1]) + dstStartOffset;
-              for(size_t y = 0; y < (size_t)srcHeight; y += srcBlockSize[1])
+              for(size_t y = 0; y < roundedUpHeight; y += srcBlockSize[1])
               {
                 RDCASSERT(srcCdPtr->size() >= srcOffset + blockSize);
                 if(dstCd.size() < dstOffset + blockSize)
@@ -3784,12 +3791,14 @@ void WrappedOpenGL::StoreCompressedTexData(ResourceId texId, GLenum target, GLin
         else
         {
           rdcfixedarray<uint32_t, 3> blockSize = GetCompressedBlockSize(format);
-          RDCASSERT(xoffset % blockSize[0] == 0);
-          RDCASSERT(yoffset % blockSize[1] == 0);
-          RDCASSERT(width % blockSize[0] == 0);
-          RDCASSERT(height % blockSize[1] == 0);
           GLsizei texLevelWidth = RDCMAX(1, m_Textures[texId].width >> level);
           GLsizei texLevelHeight = RDCMAX(1, m_Textures[texId].height >> level);
+
+          RDCASSERT(xoffset % blockSize[0] == 0);
+          RDCASSERT(yoffset % blockSize[1] == 0);
+          RDCASSERT((width % blockSize[0] == 0) || (width + xoffset == texLevelWidth));
+          RDCASSERT((height % blockSize[1] == 0) || (height + yoffset == texLevelHeight));
+
           size_t startOffset = GetCompressedByteSize(texLevelWidth, texLevelHeight, 1, format) * zoff;
           size_t endOffset =
               startOffset + GetCompressedByteSize(texLevelWidth, yoffset + height, 1, format);
@@ -3800,7 +3809,12 @@ void WrappedOpenGL::StoreCompressedTexData(ResourceId texId, GLenum target, GLin
           size_t srcOffset = 0;
           size_t dstOffset = startOffset + GetCompressedByteSize(texLevelWidth, yoffset, 1, format) +
                              GetCompressedByteSize(xoffset, (GLsizei)blockSize[1], 1, format);
-          for(size_t y = 0; y < (size_t)height; y += blockSize[1])
+
+          // GetCompressedByteSize() will factor in the 'partial' blocks at image edges when the
+          // image size is not an integer multiple of the block size, so we need to take into
+          // account that in the loop
+          size_t roundedUpHeight = AlignUp((uint32_t)height, blockSize[1]);
+          for(size_t y = 0; y < roundedUpHeight; y += blockSize[1])
           {
             memcpy(cdData.data() + dstOffset, srcPixels + srcOffset, srcRowSize);
             srcOffset += srcRowSize;
