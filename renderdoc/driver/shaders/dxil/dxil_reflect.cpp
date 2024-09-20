@@ -1778,20 +1778,6 @@ rdcstr Program::GetDebugStatus()
         case Operation::SDiv:
         case Operation::URem:
         case Operation::SRem:
-        case Operation::FOrdFalse:
-        case Operation::FOrdGreater:
-        case Operation::FOrdGreaterEqual:
-        case Operation::FOrdLess:
-        case Operation::FOrdLessEqual:
-        case Operation::FOrd:
-        case Operation::FUnord:
-        case Operation::FUnordEqual:
-        case Operation::FUnordGreater:
-        case Operation::FUnordGreaterEqual:
-        case Operation::FUnordLess:
-        case Operation::FUnordLessEqual:
-        case Operation::FUnordNotEqual:
-        case Operation::FOrdTrue:
         case Operation::UGreater:
         case Operation::UGreaterEqual:
         case Operation::ULess:

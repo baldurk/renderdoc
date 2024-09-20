@@ -27,6 +27,7 @@
 #include "dxil_debug.h"
 #include "common/formatting.h"
 #include "maths/formatpacking.h"
+#include "replay/common/var_dispatch_helpers.h"
 
 using namespace DXIL;
 using namespace DXDebug;
@@ -2605,28 +2606,154 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
         result.value.f32v[0] = a.value.f32v[0] / b.value.f32v[0];
       break;
     }
+    case Operation::FOrdFalse:
     case Operation::FOrdEqual:
+    case Operation::FOrdGreater:
+    case Operation::FOrdGreaterEqual:
+    case Operation::FOrdLess:
+    case Operation::FOrdLessEqual:
     case Operation::FOrdNotEqual:
+    case Operation::FOrd:
+    case Operation::FOrdTrue:
+    case Operation::FUnord:
+    case Operation::FUnordEqual:
+    case Operation::FUnordGreater:
+    case Operation::FUnordGreaterEqual:
+    case Operation::FUnordLess:
+    case Operation::FUnordLessEqual:
+    case Operation::FUnordNotEqual:
     {
-      // TODO: handle different bitwidths
-      // TODO: support F16, F64
-      RDCASSERTEQUAL(inst.args[0]->type->type, Type::TypeKind::Scalar);
-      RDCASSERTEQUAL(inst.args[0]->type->scalarType, Type::Float);
-      RDCASSERTEQUAL(inst.args[1]->type->type, Type::TypeKind::Scalar);
-      RDCASSERTEQUAL(inst.args[1]->type->scalarType, Type::Float);
-      ShaderVariable a;
-      ShaderVariable b;
-      RDCASSERT(GetShaderVariable(inst.args[0], opCode, dxOpCode, a));
-      RDCASSERT(GetShaderVariable(inst.args[1], opCode, dxOpCode, b));
-      uint32_t res = ~0U;
-      if(opCode == Operation::FOrdEqual)
-        res = (a.value.s32v[0] == b.value.f32v[0]) ? 1 : 0;
-      else if(opCode == Operation::FOrdNotEqual)
-        res = (a.value.s32v[0] != b.value.f32v[0]) ? 1 : 0;
-
-      RDCASSERTNOTEQUAL(res, ~0U);
       RDCASSERTEQUAL(result.type, VarType::Bool);
-      result.value.u32v[0] = res;
+
+      if(opCode == Operation::FOrdFalse)
+        result.value.u32v[0] = 0;
+      else if(opCode == Operation::FOrdTrue)
+        result.value.u32v[0] = 1;
+      else
+      {
+        RDCASSERTEQUAL(inst.args[0]->type->type, Type::TypeKind::Scalar);
+        RDCASSERTEQUAL(inst.args[0]->type->scalarType, Type::Float);
+        RDCASSERTEQUAL(inst.args[1]->type->type, Type::TypeKind::Scalar);
+        RDCASSERTEQUAL(inst.args[1]->type->scalarType, Type::Float);
+        ShaderVariable a;
+        ShaderVariable b;
+        RDCASSERT(GetShaderVariable(inst.args[0], opCode, dxOpCode, a));
+        RDCASSERT(GetShaderVariable(inst.args[1], opCode, dxOpCode, b));
+        RDCASSERTEQUAL(a.type, b.type);
+        const uint32_t c = 0;
+
+        // FOrd are all floating-point comparison where both operands are guaranteed to be ordered
+        // Using normal comparison operators will give the correct result
+        if(opCode == Operation::FOrdEqual)
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(result, c) = (comp<T>(a, c) == comp<T>(b, c)) ? 1 : 0
+
+          IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, a.type);
+        }
+        else if(opCode == Operation::FOrdGreater)
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(result, c) = (comp<T>(a, c) > comp<T>(b, c)) ? 1 : 0
+
+          IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, a.type);
+        }
+        else if(opCode == Operation::FOrdGreaterEqual)
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(result, c) = (comp<T>(a, c) >= comp<T>(b, c)) ? 1 : 0
+
+          IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, a.type);
+        }
+        else if(opCode == Operation::FOrdLess)
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(result, c) = (comp<T>(a, c) < comp<T>(b, c)) ? 1 : 0
+
+          IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, a.type);
+        }
+        else if(opCode == Operation::FOrdLessEqual)
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(result, c) = (comp<T>(a, c) <= comp<T>(b, c)) ? 1 : 0
+
+          IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, a.type);
+        }
+        else if(opCode == Operation::FOrdNotEqual)
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(result, c) = (comp<T>(a, c) != comp<T>(b, c)) ? 1 : 0
+
+          IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, a.type);
+        }
+        else if(opCode == Operation::FOrd)
+        {
+          // Both operands are ordered (not NaN)
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(result, c) = !RDCISNAN(comp<T>(a, c)) && !RDCISNAN(comp<T>(b, c));
+
+          IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, a.type);
+        }
+        // FUnord are all floating-point comparison where any operands may be unordered
+        // Any comparison with unordered comparisons will return false. Since we want
+        // 'or are unordered' then we want to negate the comparison so that unordered comparisons
+        // will always return true. So we negate and invert the actual comparison so that the
+        // comparison will be unchanged effectively.
+        else if(opCode == Operation::FUnord)
+        {
+          // Either operand is unordered (NaN)
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(result, c) = RDCISNAN(comp<T>(a, c)) || RDCISNAN(comp<T>(b, c));
+
+          IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, a.type);
+        }
+        else if(opCode == Operation::FUnordEqual)
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(result, c) = (comp<T>(a, c) != comp<T>(b, c)) ? 0 : 1
+
+          IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, a.type);
+        }
+        else if(opCode == Operation::FUnordGreater)
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(result, c) = (comp<T>(a, c) <= comp<T>(b, c)) ? 0 : 1
+
+          IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, a.type);
+        }
+        else if(opCode == Operation::FUnordGreaterEqual)
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(result, c) = (comp<T>(a, c) < comp<T>(b, c)) ? 0 : 1
+
+          IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, a.type);
+        }
+        else if(opCode == Operation::FUnordLess)
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(result, c) = (comp<T>(a, c) >= comp<T>(b, c)) ? 0 : 1
+
+          IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, a.type);
+        }
+        else if(opCode == Operation::FUnordLessEqual)
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(result, c) = (comp<T>(a, c) > comp<T>(b, c)) ? 0 : 1
+
+          IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, a.type);
+        }
+        else if(opCode == Operation::FUnordNotEqual)
+        {
+#undef _IMPL
+#define _IMPL(T) comp<uint32_t>(result, c) = (comp<T>(a, c) == comp<T>(b, c)) ? 0 : 1
+
+          IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, a.type);
+        }
+        else
+        {
+          RDCERR("Unhandled opCode %s", ToStr(opCode).c_str());
+        }
+      }
       break;
     }
     case Operation::IEqual:
@@ -2769,20 +2896,6 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
     case Operation::SDiv:
     case Operation::URem:
     case Operation::SRem:
-    case Operation::FOrdFalse:
-    case Operation::FOrdGreater:
-    case Operation::FOrdGreaterEqual:
-    case Operation::FOrdLess:
-    case Operation::FOrdLessEqual:
-    case Operation::FOrd:
-    case Operation::FUnord:
-    case Operation::FUnordEqual:
-    case Operation::FUnordGreater:
-    case Operation::FUnordGreaterEqual:
-    case Operation::FUnordLess:
-    case Operation::FUnordLessEqual:
-    case Operation::FUnordNotEqual:
-    case Operation::FOrdTrue:
     case Operation::UGreater:
     case Operation::UGreaterEqual:
     case Operation::ULess:
