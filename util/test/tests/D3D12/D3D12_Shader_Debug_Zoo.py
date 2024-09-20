@@ -72,7 +72,6 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                     else:
                         rdtest.log.error("Test {} did not match. {}".format(test, str(ex)))
                         failed = True
-                    rdtest.log.end_section(shaderModels[sm] + " tests")
                     continue
                 finally:
                     self.controller.FreeTrace(trace)
