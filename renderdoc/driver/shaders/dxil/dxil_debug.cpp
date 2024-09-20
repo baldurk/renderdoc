@@ -2562,8 +2562,6 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
     case Operation::Sub:
     case Operation::Mul:
     {
-      // TODO: check the bitwidth
-      // TODO: support i1, i8, i16, i64
       RDCASSERTEQUAL(inst.args[0]->type->type, Type::TypeKind::Scalar);
       RDCASSERTEQUAL(inst.args[0]->type->scalarType, Type::Int);
       RDCASSERTEQUAL(inst.args[1]->type->type, Type::TypeKind::Scalar);
@@ -2572,12 +2570,34 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       ShaderVariable b;
       RDCASSERT(GetShaderVariable(inst.args[0], opCode, dxOpCode, a));
       RDCASSERT(GetShaderVariable(inst.args[1], opCode, dxOpCode, b));
+      RDCASSERTEQUAL(a.type, b.type);
+      const uint32_t c = 0;
+
       if(opCode == Operation::Add)
-        result.value.u64v[0] = a.value.u64v[0] + b.value.u64v[0];
-      else if(opCode == Operation::Mul)
-        result.value.u64v[0] = a.value.u64v[0] * b.value.u64v[0];
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<I>(result, c) = comp<I>(a, c) + comp<I>(b, c)
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+      }
       else if(opCode == Operation::Sub)
-        result.value.u64v[0] = a.value.u64v[0] - b.value.u64v[0];
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<I>(result, c) = comp<I>(a, c) - comp<I>(b, c)
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+      }
+      else if(opCode == Operation::Mul)
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<I>(result, c) = comp<I>(a, c) * comp<I>(b, c)
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+      }
+      else
+      {
+        RDCERR("Unhandled opCode %s", ToStr(opCode).c_str());
+      }
       break;
     }
     case Operation::FAdd:
