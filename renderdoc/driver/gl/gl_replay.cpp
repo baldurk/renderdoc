@@ -2312,17 +2312,52 @@ rdcarray<SamplerDescriptor> GLReplay::GetSamplerDescriptors(ResourceId descripto
       {
         switch(idx.type)
         {
-          case GLDescriptorMapping::Tex1D: target = eGL_TEXTURE_1D; break;
+          case GLDescriptorMapping::Tex1D:
+            target = eGL_TEXTURE_1D;
+
+            if(IsGLES)
+              continue;
+            break;
           case GLDescriptorMapping::Tex2D: target = eGL_TEXTURE_2D; break;
           case GLDescriptorMapping::Tex3D: target = eGL_TEXTURE_3D; break;
-          case GLDescriptorMapping::Tex1DArray: target = eGL_TEXTURE_1D_ARRAY; break;
+          case GLDescriptorMapping::Tex1DArray:
+            target = eGL_TEXTURE_1D_ARRAY;
+
+            if(IsGLES)
+              continue;
+            break;
           case GLDescriptorMapping::Tex2DArray: target = eGL_TEXTURE_2D_ARRAY; break;
-          case GLDescriptorMapping::TexCubeArray: target = eGL_TEXTURE_CUBE_MAP_ARRAY; break;
-          case GLDescriptorMapping::TexRect: target = eGL_TEXTURE_RECTANGLE; break;
-          case GLDescriptorMapping::TexBuffer: target = eGL_TEXTURE_BUFFER; break;
+          case GLDescriptorMapping::TexCubeArray:
+            target = eGL_TEXTURE_CUBE_MAP_ARRAY;
+
+            if(!HasExt[ARB_texture_cube_map_array])
+              continue;
+            break;
+          case GLDescriptorMapping::TexRect:
+            target = eGL_TEXTURE_RECTANGLE;
+
+            if(IsGLES)
+              continue;
+            break;
+          case GLDescriptorMapping::TexBuffer:
+            target = eGL_TEXTURE_BUFFER;
+
+            if(!HasExt[ARB_texture_buffer_object])
+              continue;
+            break;
           case GLDescriptorMapping::TexCube: target = eGL_TEXTURE_CUBE_MAP; break;
-          case GLDescriptorMapping::Tex2DMS: target = eGL_TEXTURE_2D_MULTISAMPLE; break;
-          case GLDescriptorMapping::Tex2DMSArray: target = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY; break;
+          case GLDescriptorMapping::Tex2DMS:
+            target = eGL_TEXTURE_2D_MULTISAMPLE;
+
+            if(!HasExt[ARB_texture_multisample_no_array] && !HasExt[ARB_texture_multisample])
+              continue;
+            break;
+          case GLDescriptorMapping::Tex2DMSArray:
+            target = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+
+            if(!HasExt[ARB_texture_multisample])
+              continue;
+            break;
           case GLDescriptorMapping::AtomicCounter:
           case GLDescriptorMapping::ShaderStorage:
           case GLDescriptorMapping::BareUniforms:
