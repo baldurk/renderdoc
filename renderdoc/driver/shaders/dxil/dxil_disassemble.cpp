@@ -1516,7 +1516,10 @@ rdcstr Program::DisassembleGlobalVars(int &instructionLine) const
   {
     const GlobalVar &g = *m_GlobalVars[i];
 
-    ret += StringFormat::Fmt("@%s = ", escapeStringIfNeeded(g.name).c_str());
+    rdcstr n = g.name;
+    if(!m_DXCStyle)
+      n = DXBC::BasicDemangle(g.name);
+    ret += StringFormat::Fmt("@%s = ", escapeStringIfNeeded(n).c_str());
     switch(g.flags & GlobalFlags::LinkageMask)
     {
       case GlobalFlags::ExternalLinkage:
