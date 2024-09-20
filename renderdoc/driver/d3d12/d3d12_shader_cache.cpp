@@ -25,12 +25,118 @@
 #include "d3d12_shader_cache.h"
 #include "common/shader_cache.h"
 #include "core/plugins.h"
+#include "core/settings.h"
 #include "driver/dx/official/d3dcompiler.h"
 #include "driver/dx/official/dxcapi.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "driver/shaders/dxbc/dxbc_container.h"
 #include "strings/string_utils.h"
 #include "d3d12_device.h"
+
+RDOC_CONFIG(rdcstr, D3D12_DXCPath, "", "The location of the dxcompiler.dll library to use.");
+
+static void *SearchForDXC(rdcstr &path)
+{
+  void *ret = NULL;
+
+  path = D3D12_DXCPath();
+
+  if(strlower(path).contains("dxcompiler.dll") && FileIO::exists(path))
+    return Process::LoadModule(path);
+
+  path = LocatePluginFile("d3d12", "dxcompiler.dll");
+
+  // don't do a plain load yet, only load if we got an actual file
+  if(path != "dxcompiler.dll")
+    return Process::LoadModule(path);
+
+  // Search windows SDK folders, using the registry to locate the SDK
+  for(int wow64Pass = 0; wow64Pass < 2; wow64Pass++)
+  {
+    rdcstr regpath = "SOFTWARE\\";
+    if(wow64Pass == 1)
+      regpath += "Wow6432Node\\";
+    regpath += "Microsoft\\Microsoft SDKs\\Windows\\v10.0";
+
+    HKEY key = NULL;
+    LSTATUS regret = RegOpenKeyExA(HKEY_LOCAL_MACHINE, regpath.c_str(), 0, KEY_READ, &key);
+
+    if(regret != ERROR_SUCCESS)
+    {
+      if(key)
+        RegCloseKey(key);
+      continue;
+    }
+
+    DWORD dataSize = 0;
+    regret = RegGetValueW(key, NULL, L"InstallationFolder", RRF_RT_ANY, NULL, NULL, &dataSize);
+
+    if(regret == ERROR_SUCCESS)
+    {
+      // this is the size in bytes
+      wchar_t *data = new wchar_t[dataSize / sizeof(wchar_t)];
+      RegGetValueW(key, NULL, L"InstallationFolder", RRF_RT_ANY, NULL, data, &dataSize);
+
+      rdcstr sdkpath = StringFormat::Wide2UTF8(data);
+
+      RegCloseKey(key);
+
+      delete[] data;
+
+      if(sdkpath.back() != '\\')
+        sdkpath.push_back('\\');
+
+      // next search the versioned bin folders, from newest to oldest
+      sdkpath += "bin\\";
+
+      // sort by name
+      rdcarray<PathEntry> entries;
+      FileIO::GetFilesInDirectory(sdkpath, entries);
+      std::sort(entries.begin(), entries.end());
+
+      // do a reverse iteration so we get the latest SDK first
+      for(size_t i = 0; i < entries.size(); i++)
+      {
+        const PathEntry &e = entries[entries.size() - 1 - i];
+
+        // skip any files
+        if(!(e.flags & PathProperty::Directory))
+          continue;
+
+        // we've found an SDK! check to see if it contains dxcompiler.dll
+        if(e.filename.beginsWith("10.0."))
+        {
+          path = sdkpath + e.filename + "\\x64\\dxcompiler.dll";
+
+          if(FileIO::exists(path))
+            return Process::LoadModule(path);
+        }
+      }
+
+      // try in the Redist folder
+      path = sdkpath + "..\\Redist\\D3D\\x64\\dxcompiler.dll";
+
+      if(FileIO::exists(path))
+        return Process::LoadModule(path);
+
+      // if we've gotten here and haven't returned anything, then try just the base x64 folder
+      path = sdkpath + "x64\\dxcompiler.dll";
+
+      if(FileIO::exists(path))
+        return Process::LoadModule(path);
+    }
+    else
+    {
+      RegCloseKey(key);
+    }
+  }
+
+  // if we got here without finding any specific path'd dxc, just try loading it from anywhere
+  ret = Process::LoadModule("dxcompiler.dll");
+  path = "PATH";
+
+  return ret;
+}
 
 static HMODULE GetDXC()
 {
@@ -41,202 +147,17 @@ static HMODULE GetDXC()
 
   searched = true;
 
-  // we need to load dxil.dll first before dxcompiler.dll, because if dxil.dll can't be loaded when
-  // dxcompiler.dll is loaded then validation is disabled and we might not be able to run
-  // non-validated shaders (blehchh)
+  // we actively do not try to load dxil.dll as we rely on our own hashing and the validator is not
+  // useful otherwise. This simplifies the search as we only need to find dxcompiler.dll, preferring
+  // one specified with a config variable, then our shipped version, then one in a windows SDK
+  // before finally searching PATH.
+  rdcstr path;
+  ret = (HMODULE)SearchForDXC(path);
 
-  // do two passes. First we try and find dxil.dll and dxcompiler.dll both together.
-  // In the second pass we just look for dxcompiler.dll. Hence a higher priority dxcompiler.dll
-  // without a dxil.dll will be less preferred than a lower priority dxcompiler.dll that does have a
-  // dxil.dll
-  for(int sdkPass = 0; sdkPass < 2; sdkPass++)
-  {
-    HMODULE dxilHandle = NULL;
-
-    // first try normal plugin search path. This will prioritise any one placed locally with
-    // RenderDoc, otherwise it will try just the unadorned dll in case it's in the PATH somewhere.
-    {
-      dxilHandle = (HMODULE)Process::LoadModule(LocatePluginFile("d3d12", "dxil.dll"));
-
-      // dxc is very particular/brittle, so if we get dxil try to locate a dxcompiler right next to
-      // it. Loading a different dxcompiler might produce a non-working compiler setup. If we can't,
-      // we'll fall back to finding the next best dxcompiler we can
-      if(dxilHandle)
-      {
-        wchar_t dxilPath[MAX_PATH + 1] = {};
-        GetModuleFileNameW(dxilHandle, dxilPath, MAX_PATH);
-
-        rdcstr path = StringFormat::Wide2UTF8(dxilPath);
-        HMODULE dxcompiler = (HMODULE)Process::LoadModule(get_dirname(path) + "/dxcompiler.dll");
-        if(dxcompiler)
-        {
-          ret = dxcompiler;
-          return ret;
-        }
-      }
-
-      // don't try to load dxcompiler.dll until we've got dxil.dll successfully, or if we're not
-      // trying to get dxil. Otherwise we could load dxcompiler (to check for its existence) and
-      // then find we can't get dxil and be stuck on pass 0.
-      if(dxilHandle || sdkPass == 1)
-      {
-        HMODULE dxcompiler =
-            (HMODULE)Process::LoadModule(LocatePluginFile("d3d12", "dxcompiler.dll"));
-        if(dxcompiler)
-        {
-          ret = dxcompiler;
-          return ret;
-        }
-      }
-
-      // if we didn't find dxcompiler but did find dxil, somehow, then unload it
-      if(dxilHandle)
-        FreeLibrary(dxilHandle);
-      dxilHandle = NULL;
-    }
-
-    // otherwise search windows SDK folders.
-    // First use the registry to locate the SDK
-    for(int wow64Pass = 0; wow64Pass < 2; wow64Pass++)
-    {
-      rdcstr regpath = "SOFTWARE\\";
-      if(wow64Pass == 1)
-        regpath += "Wow6432Node\\";
-      regpath += "Microsoft\\Microsoft SDKs\\Windows\\v10.0";
-
-      HKEY key = NULL;
-      LSTATUS regret = RegOpenKeyExA(HKEY_LOCAL_MACHINE, regpath.c_str(), 0, KEY_READ, &key);
-
-      if(regret != ERROR_SUCCESS)
-      {
-        if(key)
-          RegCloseKey(key);
-        continue;
-      }
-
-      DWORD dataSize = 0;
-      regret = RegGetValueW(key, NULL, L"InstallationFolder", RRF_RT_ANY, NULL, NULL, &dataSize);
-
-      if(regret == ERROR_SUCCESS)
-      {
-        // this is the size in bytes
-        wchar_t *data = new wchar_t[dataSize / sizeof(wchar_t)];
-        RegGetValueW(key, NULL, L"InstallationFolder", RRF_RT_ANY, NULL, data, &dataSize);
-
-        rdcstr path = StringFormat::Wide2UTF8(data);
-
-        RegCloseKey(key);
-
-        delete[] data;
-
-        if(path.back() != '\\')
-          path.push_back('\\');
-
-        // next search the versioned bin folders, from newest to oldest
-        path += "bin\\";
-
-        // sort by name
-        rdcarray<PathEntry> entries;
-        FileIO::GetFilesInDirectory(path, entries);
-        std::sort(entries.begin(), entries.end());
-
-        // do a reverse iteration so we get the latest SDK first
-        for(size_t i = 0; i < entries.size(); i++)
-        {
-          const PathEntry &e = entries[entries.size() - 1 - i];
-
-          // skip any files
-          if(!(e.flags & PathProperty::Directory))
-            continue;
-
-          // we've found an SDK! check to see if it contains dxcompiler.dll
-          if(e.filename.beginsWith("10.0."))
-          {
-            rdcstr dxilPath = path + e.filename + "\\x64\\dxil.dll";
-            rdcstr dxcompilerPath = path + e.filename + "\\x64\\dxcompiler.dll";
-
-            bool dxil = FileIO::exists(dxilPath);
-            bool dxcompiler = FileIO::exists(dxcompilerPath);
-
-            // if we have both, or we're on the second pass (given up on dxil.dll) and have
-            // dxcompiler, then load this.
-            if((dxil && dxcompiler) || (sdkPass == 1 && dxcompiler))
-            {
-              if(dxil)
-                dxilHandle = (HMODULE)Process::LoadModule(dxilPath);
-              ret = (HMODULE)Process::LoadModule(dxcompilerPath);
-            }
-
-            if(ret)
-              return ret;
-
-            // if we didn't find dxcompiler but did find dxil, somehow, then unload it
-            if(dxilHandle)
-              FreeLibrary(dxilHandle);
-            dxilHandle = NULL;
-          }
-        }
-
-        // try in the Redist folder
-        {
-          rdcstr dxilPath = path + "..\\Redist\\D3D\\x64\\dxil.dll";
-          rdcstr dxcompilerPath = path + "..\\Redist\\D3D\\x64\\dxcompiler.dll";
-
-          bool dxil = FileIO::exists(dxilPath);
-          bool dxcompiler = FileIO::exists(dxcompilerPath);
-
-          // if we have both, or we're on the second pass (given up on dxil.dll) and have
-          // dxcompiler, then load this.
-          if((dxil && dxcompiler) || (sdkPass == 1 && dxcompiler))
-          {
-            if(dxil)
-              dxilHandle = (HMODULE)Process::LoadModule(dxilPath);
-            ret = (HMODULE)Process::LoadModule(dxcompilerPath);
-          }
-
-          if(ret)
-            return ret;
-
-          // if we didn't find dxcompiler but did find dxil, somehow, then unload it
-          if(dxilHandle)
-            FreeLibrary(dxilHandle);
-          dxilHandle = NULL;
-        }
-
-        // if we've gotten here and haven't returned anything, then try just the base x64 folder
-        {
-          rdcstr dxilPath = path + "x64\\dxil.dll";
-          rdcstr dxcompilerPath = path + "x64\\dxcompiler.dll";
-
-          bool dxil = FileIO::exists(dxilPath);
-          bool dxcompiler = FileIO::exists(dxcompilerPath);
-
-          // if we have both, or we're on the second pass (given up on dxil.dll) and have
-          // dxcompiler, then load this.
-          if((dxil && dxcompiler) || (sdkPass == 1 && dxcompiler))
-          {
-            if(dxil)
-              dxilHandle = (HMODULE)Process::LoadModule(dxilPath);
-            ret = (HMODULE)Process::LoadModule(dxcompilerPath);
-          }
-
-          if(ret)
-            return ret;
-
-          // if we didn't find dxcompiler but did find dxil, somehow, then unload it
-          if(dxilHandle)
-            FreeLibrary(dxilHandle);
-          dxilHandle = NULL;
-        }
-
-        continue;
-      }
-
-      RegCloseKey(key);
-    }
-  }
-
-  RDCERR("Couldn't find dxcompiler.dll in any path.");
+  if(ret)
+    RDCLOG("Loaded dxcompiler.dll from %s", path.c_str());
+  else
+    RDCERR("Couldn't load dxcompiler.dll");
 
   return ret;
 }
