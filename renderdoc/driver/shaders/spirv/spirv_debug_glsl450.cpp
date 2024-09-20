@@ -27,7 +27,7 @@
 #include "maths/half_convert.h"
 #include "maths/matrix.h"
 #include "os/os_specific.h"
-#include "var_dispatch_helpers.h"
+#include "replay/common/var_dispatch_helpers.h"
 
 // add some overloads we'll use to avoid the mess of math function definitions across compilers and
 // C/C++

@@ -25,8 +25,8 @@
 #include "spirv_processor.h"
 #include "common/formatting.h"
 #include "maths/half_convert.h"
+#include "replay/common/var_dispatch_helpers.h"
 #include "spirv_op_helpers.h"
-#include "var_dispatch_helpers.h"
 
 namespace rdcspv
 {

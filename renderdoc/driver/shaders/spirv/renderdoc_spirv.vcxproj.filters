@@ -305,7 +305,6 @@
     </ClInclude>
     <ClInclude Include="spirv_processor.h" />
     <ClInclude Include="spirv_debug.h" />
-    <ClInclude Include="var_dispatch_helpers.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\GLSL.ext.ARM.h">
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>

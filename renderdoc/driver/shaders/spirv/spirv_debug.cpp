@@ -29,8 +29,8 @@
 #include "core/settings.h"
 #include "maths/half_convert.h"
 #include "os/os_specific.h"
+#include "replay/common/var_dispatch_helpers.h"
 #include "spirv_op_helpers.h"
-#include "var_dispatch_helpers.h"
 
 static bool ContainsNaNInf(const ShaderVariable &var)
 {

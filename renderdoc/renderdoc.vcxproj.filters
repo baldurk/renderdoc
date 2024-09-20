@@ -139,6 +139,9 @@
     <Filter Include="3rdparty\md5">
       <UniqueIdentifier>{fcbf71ce-3767-435c-9aa2-e1327b9016f4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Replay\Common">
+      <UniqueIdentifier>{02773850-117a-47d9-b238-d5d4b96468b3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -563,6 +566,9 @@
     </ClInclude>
     <ClInclude Include="core\gpu_address_range_tracker.h">
       <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="replay\common\var_dispatch_helpers.h">
+      <Filter>Replay\Common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

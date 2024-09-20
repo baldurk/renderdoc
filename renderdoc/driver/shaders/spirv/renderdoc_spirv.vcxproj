@@ -275,7 +275,6 @@
     <ClInclude Include="spirv_op_helpers.h" />
     <ClInclude Include="spirv_processor.h" />
     <ClInclude Include="spirv_reflect.h" />
-    <ClInclude Include="var_dispatch_helpers.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

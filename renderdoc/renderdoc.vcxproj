@@ -244,6 +244,7 @@
     </ClInclude>
     <ClInclude Include="os\win32\dia2_stubs.h" />
     <ClInclude Include="os\win32\win32_specific.h" />
+    <ClInclude Include="replay\common\var_dispatch_helpers.h" />
     <ClInclude Include="replay\dummy_driver.h" />
     <ClInclude Include="replay\replay_driver.h" />
     <ClInclude Include="replay\replay_controller.h" />

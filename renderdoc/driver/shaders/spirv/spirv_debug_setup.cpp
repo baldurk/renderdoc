@@ -25,9 +25,9 @@
 #include "spirv_debug.h"
 #include "common/formatting.h"
 #include "core/settings.h"
+#include "replay/common/var_dispatch_helpers.h"
 #include "spirv_op_helpers.h"
 #include "spirv_reflect.h"
-#include "var_dispatch_helpers.h"
 
 RDOC_CONFIG(bool, Vulkan_Debug_UseDebugColumnInformation, false,
             "Control whether column information should be read from vulkan debug info.");
