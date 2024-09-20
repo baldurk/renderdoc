@@ -567,7 +567,7 @@ int main(int argc, char *argv[])
         RDDialog::warning(
             NULL, tr("vkconfig detected - possible incompatibility"),
             tr("Configuration from 'vkconfig' tool detected.\n\n"
-               "This program has caused roblems in the past and it is \n"
+               "This program has caused problems in the past and it is \n"
                "strongly recommended that you disable it while using RenderDoc.\n\n"
                "If this program is not active check the path below for any leftover files:\n\n%1")
                 .arg(fn));
