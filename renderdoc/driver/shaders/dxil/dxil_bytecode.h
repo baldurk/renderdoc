@@ -1092,10 +1092,12 @@ struct GlobalVar : public ForwardReferencableValue<GlobalVar>
   static constexpr ValueKind Kind = ValueKind::GlobalVar;
   GlobalVar() : ForwardReferencableValue(Kind) {}
   rdcstr name;
-  uint64_t align = 0;
+  const Constant *initialiser = NULL;
+  uint32_t align = 0;
   int32_t section = -1;
   GlobalFlags flags = GlobalFlags::NoFlags;
-  const Constant *initialiser = NULL;
+  // unique global ID used by the debugger and disassembly similar to Instruction member variable slot
+  uint32_t ssaId = ~0U;
 };
 
 struct DIBase
