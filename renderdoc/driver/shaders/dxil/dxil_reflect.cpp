@@ -1778,14 +1778,6 @@ rdcstr Program::GetDebugStatus()
         case Operation::SDiv:
         case Operation::URem:
         case Operation::SRem:
-        case Operation::UGreater:
-        case Operation::UGreaterEqual:
-        case Operation::ULess:
-        case Operation::ULessEqual:
-        case Operation::SGreater:
-        case Operation::SGreaterEqual:
-        case Operation::SLess:
-        case Operation::SLessEqual:
         case Operation::ExtractElement:
         case Operation::InsertElement:
         case Operation::ShuffleVector:

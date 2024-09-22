@@ -2802,26 +2802,100 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
     }
     case Operation::IEqual:
     case Operation::INotEqual:
+    case Operation::UGreater:
+    case Operation::UGreaterEqual:
+    case Operation::ULess:
+    case Operation::ULessEqual:
+    case Operation::SGreater:
+    case Operation::SGreaterEqual:
+    case Operation::SLess:
+    case Operation::SLessEqual:
     {
       RDCASSERTEQUAL(inst.args[0]->type->type, Type::TypeKind::Scalar);
       RDCASSERTEQUAL(inst.args[0]->type->scalarType, Type::Int);
       RDCASSERTEQUAL(inst.args[1]->type->type, Type::TypeKind::Scalar);
       RDCASSERTEQUAL(inst.args[1]->type->scalarType, Type::Int);
-      // TODO: assert bitwidth
-      // TODO: support i1, i8, i16, i64
       ShaderVariable a;
       ShaderVariable b;
       RDCASSERT(GetShaderVariable(inst.args[0], opCode, dxOpCode, a));
       RDCASSERT(GetShaderVariable(inst.args[1], opCode, dxOpCode, b));
-      uint32_t res = ~0U;
-      if(opCode == Operation::IEqual)
-        res = (a.value.s32v[0] == b.value.s32v[0]) ? 1 : 0;
-      else if(opCode == Operation::INotEqual)
-        res = (a.value.s32v[0] != b.value.s32v[0]) ? 1 : 0;
+      RDCASSERTEQUAL(a.type, b.type);
+      const uint32_t c = 0;
 
-      RDCASSERTNOTEQUAL(res, ~0U);
-      RDCASSERTEQUAL(result.type, VarType::Bool);
-      result.value.u32v[0] = res;
+      if(opCode == Operation::IEqual)
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<I>(result, c) = (comp<I>(a, c) == comp<I>(b, c)) ? 1 : 0;
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+      }
+      else if(opCode == Operation::INotEqual)
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<I>(result, c) = (comp<I>(a, c) != comp<I>(b, c)) ? 1 : 0;
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+      }
+      else if(opCode == Operation::UGreater)
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(result, c) = comp<U>(a, c) > comp<U>(b, c) ? 1 : 0
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+      }
+      else if(opCode == Operation::UGreaterEqual)
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(result, c) = comp<U>(a, c) >= comp<U>(b, c) ? 1 : 0
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+      }
+      else if(opCode == Operation::ULess)
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(result, c) = comp<U>(a, c) < comp<U>(b, c) ? 1 : 0
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+      }
+      else if(opCode == Operation::ULessEqual)
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(result, c) = comp<U>(a, c) <= comp<U>(b, c) ? 1 : 0
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+      }
+      else if(opCode == Operation::SGreater)
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<S>(result, c) = comp<S>(a, c) > comp<S>(b, c) ? 1 : 0
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+      }
+      else if(opCode == Operation::SGreaterEqual)
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<S>(result, c) = comp<S>(a, c) >= comp<S>(b, c) ? 1 : 0
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+      }
+      else if(opCode == Operation::SLess)
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<S>(result, c) = comp<S>(a, c) < comp<S>(b, c) ? 1 : 0
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+      }
+      else if(opCode == Operation::SLessEqual)
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<S>(result, c) = comp<S>(a, c) <= comp<S>(b, c) ? 1 : 0
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+      }
+      else
+      {
+        RDCERR("Unhandled opCode %s", ToStr(opCode).c_str());
+      }
       break;
     }
     case Operation::FToS:
@@ -2940,14 +3014,6 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
     case Operation::SDiv:
     case Operation::URem:
     case Operation::SRem:
-    case Operation::UGreater:
-    case Operation::UGreaterEqual:
-    case Operation::ULess:
-    case Operation::ULessEqual:
-    case Operation::SGreater:
-    case Operation::SGreaterEqual:
-    case Operation::SLess:
-    case Operation::SLessEqual:
     case Operation::ExtractElement:
     case Operation::InsertElement:
     case Operation::ShuffleVector:
