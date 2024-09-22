@@ -1773,10 +1773,6 @@ rdcstr Program::GetDebugStatus()
         case Operation::PtrToI:
         case Operation::IToPtr:
         case Operation::AddrSpaceCast:
-        case Operation::UDiv:
-        case Operation::SDiv:
-        case Operation::URem:
-        case Operation::SRem:
         case Operation::ExtractElement:
         case Operation::InsertElement:
         case Operation::ShuffleVector:

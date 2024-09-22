@@ -2561,6 +2561,10 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
     case Operation::Add:
     case Operation::Sub:
     case Operation::Mul:
+    case Operation::UDiv:
+    case Operation::SDiv:
+    case Operation::URem:
+    case Operation::SRem:
     {
       RDCASSERTEQUAL(inst.args[0]->type->type, Type::TypeKind::Scalar);
       RDCASSERTEQUAL(inst.args[0]->type->scalarType, Type::Int);
@@ -2591,6 +2595,34 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       {
 #undef _IMPL
 #define _IMPL(I, S, U) comp<I>(result, c) = comp<I>(a, c) * comp<I>(b, c)
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+      }
+      else if(opCode == Operation::UDiv)
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(result, c) = comp<U>(a, c) / comp<U>(b, c)
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+      }
+      else if(opCode == Operation::SDiv)
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<S>(result, c) = comp<S>(a, c) / comp<S>(b, c)
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+      }
+      else if(opCode == Operation::URem)
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(result, c) = comp<U>(a, c) % comp<U>(b, c)
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+      }
+      else if(opCode == Operation::SRem)
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<S>(result, c) = comp<S>(a, c) % comp<S>(b, c)
 
         IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
       }
@@ -3017,10 +3049,6 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
     case Operation::PtrToI:
     case Operation::IToPtr:
     case Operation::AddrSpaceCast:
-    case Operation::UDiv:
-    case Operation::SDiv:
-    case Operation::URem:
-    case Operation::SRem:
     case Operation::ExtractElement:
     case Operation::InsertElement:
     case Operation::ShuffleVector:
