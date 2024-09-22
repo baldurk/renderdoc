@@ -2604,6 +2604,7 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
     case Operation::FSub:
     case Operation::FMul:
     case Operation::FDiv:
+    case Operation::FRem:
     {
       RDCASSERTEQUAL(inst.args[0]->type->type, Type::TypeKind::Scalar);
       RDCASSERTEQUAL(inst.args[0]->type->scalarType, Type::Float);
@@ -2641,6 +2642,13 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       {
 #undef _IMPL
 #define _IMPL(T) comp<T>(result, c) = comp<T>(a, c) / comp<T>(b, c);
+
+        IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, a.type);
+      }
+      else if(opCode == Operation::FRem)
+      {
+#undef _IMPL
+#define _IMPL(T) comp<T>(result, c) = fmod(comp<T>(a, c), comp<T>(b, c));
 
         IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, a.type);
       }
@@ -3009,7 +3017,6 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
     case Operation::PtrToI:
     case Operation::IToPtr:
     case Operation::AddrSpaceCast:
-    case Operation::FRem:
     case Operation::UDiv:
     case Operation::SDiv:
     case Operation::URem:

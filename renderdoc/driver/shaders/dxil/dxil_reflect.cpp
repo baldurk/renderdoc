@@ -1773,7 +1773,6 @@ rdcstr Program::GetDebugStatus()
         case Operation::PtrToI:
         case Operation::IToPtr:
         case Operation::AddrSpaceCast:
-        case Operation::FRem:
         case Operation::UDiv:
         case Operation::SDiv:
         case Operation::URem:
