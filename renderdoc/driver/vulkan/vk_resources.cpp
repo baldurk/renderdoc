@@ -3996,8 +3996,8 @@ VkResourceRecord::~VkResourceRecord()
   if(resType == eResCommandPool)
     SAFE_DELETE(cmdPoolInfo);
 
-  if(resType == eResAccelerationStructureKHR)
-    SAFE_DELETE(accelerationStructureInfo);
+  if(resType == eResAccelerationStructureKHR && accelerationStructureInfo)
+    accelerationStructureInfo->Release();
 }
 
 void VkResourceRecord::MarkImageFrameReferenced(VkResourceRecord *img, const ImageRange &range,

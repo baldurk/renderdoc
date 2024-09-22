@@ -24,14 +24,58 @@
 
 #pragma once
 
-#include "vk_manager.h"
+#include "vk_resources.h"
 
 class WrappedVulkan;
+struct VkInitialContents;
 
-// Just holds the built flag, will eventually hold all the AS build data
 struct VkAccelerationStructureInfo
 {
+  struct GeometryData
+  {
+    struct Triangles
+    {
+      VkFormat vertexFormat;
+      VkDeviceSize vertexStride;
+      uint32_t maxVertex;
+      VkIndexType indexType;
+      bool hasTransformData;
+    };
+
+    struct Aabbs
+    {
+      VkDeviceSize stride;
+    };
+
+    VkGeometryTypeKHR geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
+    VkGeometryFlagsKHR flags;
+
+    VkDeviceMemory readbackMem;
+    VkDeviceSize memSize;
+
+    Triangles tris;
+    Aabbs aabbs;
+
+    VkAccelerationStructureBuildRangeInfoKHR buildRangeInfo;
+  };
+
+  ~VkAccelerationStructureInfo();
+
+  void AddRef() { Atomic::Inc32(&refCount); }
+  void Release();
+
+  VkDevice device = VK_NULL_HANDLE;
+
+  VkAccelerationStructureTypeKHR type =
+      VkAccelerationStructureTypeKHR::VK_ACCELERATION_STRUCTURE_TYPE_GENERIC_KHR;
+  VkBuildAccelerationStructureFlagsKHR flags = 0;
+
+  rdcarray<GeometryData> geometryData;
+
   bool accelerationStructureBuilt = false;
+
+private:
+  int32_t refCount = 1;
 };
 
 class VulkanAccelerationStructureManager
@@ -43,7 +87,34 @@ public:
     bool isTLAS;
   };
 
+  struct Allocation
+  {
+    VkDeviceMemory mem = VK_NULL_HANDLE;
+    VkDeviceSize size = 0;
+    VkBuffer buf = VK_NULL_HANDLE;
+  };
+
+  struct RecordAndOffset
+  {
+    VkResourceRecord *record = NULL;
+    VkDeviceAddress address = 0x0;
+    VkDeviceSize offset = 0;
+  };
+
   explicit VulkanAccelerationStructureManager(WrappedVulkan *driver);
+
+  // Allocates readback mem and injects commands into the command buffer so that the input buffers
+  // are copied.
+  RDResult CopyInputBuffers(VkCommandBuffer commandBuffer,
+                            const VkAccelerationStructureBuildGeometryInfoKHR &info,
+                            const VkAccelerationStructureBuildRangeInfoKHR *buildRange,
+                            CaptureState state);
+
+  // Copies the metadata from src to dst, the input buffers are identical so don't need to be
+  // duplicated.  Compaction is ignored but the copy is still performed so the dst handle is valid
+  // on replay
+  void CopyAccelerationStructure(VkCommandBuffer commandBuffer,
+                                 const VkCopyAccelerationStructureInfoKHR &pInfo, CaptureState state);
 
   // Called when the initial state is prepared.  Any TLAS and BLAS data is copied into temporary
   // buffers and the handles for that memory and the buffers is stored in the init state
@@ -59,6 +130,13 @@ public:
   void Apply(ResourceId id, const VkInitialContents &initial);
 
 private:
+  Allocation CreateReadBackMemory(VkDevice device, VkDeviceSize size, VkDeviceSize alignment = 0);
+
+  RecordAndOffset GetDeviceAddressData(VkDeviceAddress address) const;
+
+  template <typename T>
+  void DeletePreviousInfo(VkCommandBuffer commandBuffer, T *info, CaptureState state);
+
   VkDeviceSize SerialisedASSize(VkAccelerationStructureKHR unwrappedAs);
 
   WrappedVulkan *m_pDriver;

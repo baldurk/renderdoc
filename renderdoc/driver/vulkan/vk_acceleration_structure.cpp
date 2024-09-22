@@ -25,6 +25,7 @@
 #include "vk_acceleration_structure.h"
 #include "core/settings.h"
 #include "vk_core.h"
+#include "vk_manager.h"
 
 RDOC_EXTERN_CONFIG(bool, Vulkan_Debug_SingleSubmitFlushing);
 
@@ -37,11 +38,416 @@ constexpr VkDeviceSize handleCountSize = 8;
 
 // Spec says VkCopyAccelerationStructureToMemoryInfoKHR::dst::deviceAddress must be 256 bytes aligned
 constexpr VkDeviceSize asBufferAlignment = 256;
+
+VkDeviceSize IndexTypeSize(VkIndexType type)
+{
+  switch(type)
+  {
+    case VK_INDEX_TYPE_UINT32: return 4;
+    case VK_INDEX_TYPE_UINT16: return 2;
+    case VK_INDEX_TYPE_UINT8_KHR: return 1;
+    default: return 0;
+  }
+}
+}
+
+VkAccelerationStructureInfo::~VkAccelerationStructureInfo()
+{
+  for(const GeometryData &geoData : geometryData)
+  {
+    if(geoData.readbackMem != VK_NULL_HANDLE)
+      ObjDisp(device)->FreeMemory(Unwrap(device), geoData.readbackMem, NULL);
+  }
+}
+
+void VkAccelerationStructureInfo::Release()
+{
+  const int32_t ref = Atomic::Dec32(&refCount);
+  RDCASSERT(ref >= 0);
+  if(ref <= 0)
+    delete this;
 }
 
 VulkanAccelerationStructureManager::VulkanAccelerationStructureManager(WrappedVulkan *driver)
     : m_pDriver(driver)
 {
+}
+
+RDResult VulkanAccelerationStructureManager::CopyInputBuffers(
+    VkCommandBuffer commandBuffer, const VkAccelerationStructureBuildGeometryInfoKHR &info,
+    const VkAccelerationStructureBuildRangeInfoKHR *buildRange, CaptureState state)
+{
+  VkResourceRecord *cmdRecord = GetRecord(commandBuffer);
+  RDCASSERT(cmdRecord);
+
+  VkResourceRecord *asRecord = GetRecord(info.dstAccelerationStructure);
+  RDCASSERT(asRecord);
+
+  // If this is an update then replace the existing and safely delete it
+  VkAccelerationStructureInfo *metadata = asRecord->accelerationStructureInfo;
+  if(!metadata->geometryData.empty())
+  {
+    DeletePreviousInfo(commandBuffer, metadata, state);
+    metadata = asRecord->accelerationStructureInfo = new VkAccelerationStructureInfo();
+  }
+
+  VkDevice device = cmdRecord->cmdInfo->device;
+  metadata->device = device;
+  metadata->type = info.type;
+  metadata->flags = info.flags;
+
+  metadata->geometryData.reserve(info.geometryCount);
+
+  struct BufferData
+  {
+    BufferData() = default;
+    BufferData(RecordAndOffset r) : rao(r)
+    {
+      if(rao.record != NULL)
+        buf = ToUnwrappedHandle<VkBuffer>(rao.record->Resource);
+    }
+
+    operator bool() const { return buf != VK_NULL_HANDLE; }
+    bool operator!() const { return buf == VK_NULL_HANDLE; }
+
+    void SetReadPosition(VkDeviceSize startFrom) { start = startFrom; }
+    VkDeviceSize GetReadPosition() const { return rao.offset + start; }
+
+    RecordAndOffset rao;
+    VkBuffer buf = VK_NULL_HANDLE;
+
+    VkDeviceSize alignment = 0;
+    VkDeviceSize size = 0;
+
+  private:
+    VkDeviceSize start = 0;
+  };
+
+  for(uint32_t i = 0; i < info.geometryCount; ++i)
+  {
+    // Work out the buffer size needed for each geometry type
+    const VkAccelerationStructureGeometryKHR &geometry =
+        info.pGeometries != NULL ? info.pGeometries[i] : *(info.ppGeometries[i]);
+    const VkAccelerationStructureBuildRangeInfoKHR &rangeInfo = buildRange[i];
+
+    Allocation readbackmem;
+
+    // Make sure nothing writes to our source buffers before we finish copying them
+    VkMemoryBarrier barrier = {
+        VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+        NULL,
+        VK_ACCESS_TRANSFER_WRITE_BIT,
+        VK_ACCESS_MEMORY_WRITE_BIT,
+    };
+
+    switch(geometry.geometryType)
+    {
+      case VK_GEOMETRY_TYPE_TRIANGLES_KHR:
+      {
+        const VkAccelerationStructureGeometryTrianglesDataKHR &triInfo = geometry.geometry.triangles;
+
+        // Find the associated VkBuffers
+        BufferData vertexData = GetDeviceAddressData(triInfo.vertexData.deviceAddress);
+        if(!vertexData)
+        {
+          RDCERR("Unable to find VkBuffer for vertex data at 0x%llx",
+                 triInfo.vertexData.deviceAddress);
+          continue;
+        }
+
+        BufferData indexData;
+        if(triInfo.indexType != VK_INDEX_TYPE_NONE_KHR)
+        {
+          indexData = GetDeviceAddressData(triInfo.indexData.deviceAddress);
+          if(!indexData)
+          {
+            RDCERR("Unable to find VkBuffer for index data at 0x%llx",
+                   triInfo.indexData.deviceAddress);
+            continue;
+          }
+        }
+
+        BufferData transformData;
+        if(triInfo.transformData.deviceAddress != 0x0)
+        {
+          transformData = GetDeviceAddressData(triInfo.transformData.deviceAddress);
+          if(!transformData)
+          {
+            RDCERR("Unable to find VkBuffer for transform data at 0x%llx",
+                   triInfo.transformData.deviceAddress);
+            continue;
+          }
+        }
+
+        // Find the alignment requirements for each type
+        {
+          VkMemoryRequirements mrq = {};
+
+          // Vertex buffer.  The complexity here is that the rangeInfo members are interpreted
+          // differently depending on whether or not index buffers are used
+          ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), vertexData.buf, &mrq);
+          vertexData.alignment = mrq.alignment;
+
+          if(indexData)
+          {
+            // If we're using an index buffer we don't know how much of the vertex buffer we need,
+            // and we can't trust the app to set maxVertex correctly, so we take the whole buffer
+            vertexData.size = vertexData.rao.record->memSize - vertexData.rao.offset;
+            vertexData.SetReadPosition(0);
+          }
+          else
+          {
+            vertexData.size = rangeInfo.primitiveCount * 3 * triInfo.vertexStride;
+            vertexData.SetReadPosition(rangeInfo.primitiveOffset +
+                                       (triInfo.vertexStride * rangeInfo.firstVertex));
+          }
+
+          // Index buffer
+          if(indexData)
+          {
+            ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), indexData.buf, &mrq);
+            indexData.alignment = mrq.alignment;
+            indexData.size = rangeInfo.primitiveCount * 3 * IndexTypeSize(triInfo.indexType);
+            indexData.SetReadPosition(rangeInfo.primitiveOffset);
+          }
+
+          // Transform buffer
+          if(transformData)
+          {
+            ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), transformData.buf, &mrq);
+            transformData.alignment = mrq.alignment;
+            transformData.size = sizeof(VkTransformMatrixKHR);
+            transformData.SetReadPosition(rangeInfo.transformOffset);
+          }
+        }
+        const VkDeviceSize maxAlignment =
+            RDCMAX(RDCMAX(vertexData.alignment, indexData.alignment), transformData.alignment);
+
+        // We want to copy the input buffers into one big block so sum the sizes up together
+        const VkDeviceSize totalMemSize = AlignUp(vertexData.size, vertexData.alignment) +
+                                          AlignUp(indexData.size, indexData.alignment) +
+                                          AlignUp(transformData.size, transformData.alignment);
+
+        readbackmem = CreateReadBackMemory(device, totalMemSize, maxAlignment);
+        if(readbackmem.mem == VK_NULL_HANDLE)
+        {
+          RDCERR("Unable to allocate AS triangle input buffer readback memory (size: %u bytes)",
+                 totalMemSize);
+          continue;
+        }
+
+        // Insert copy commands
+        VkBufferCopy region = {
+            vertexData.GetReadPosition(),
+            0,
+            vertexData.size,
+        };
+        ObjDisp(device)->CmdCopyBuffer(Unwrap(commandBuffer), vertexData.buf, readbackmem.buf, 1,
+                                       &region);
+
+        if(indexData)
+        {
+          region = {
+              indexData.GetReadPosition(),
+              AlignUp(vertexData.size, vertexData.alignment),
+              indexData.size,
+          };
+          ObjDisp(device)->CmdCopyBuffer(Unwrap(commandBuffer), indexData.buf, readbackmem.buf, 1,
+                                         &region);
+        }
+
+        if(transformData)
+        {
+          region = {
+              transformData.GetReadPosition(),
+              AlignUp(vertexData.size, vertexData.alignment) +
+                  AlignUp(indexData.size, indexData.alignment),
+              transformData.size,
+          };
+          ObjDisp(device)->CmdCopyBuffer(Unwrap(commandBuffer), transformData.buf, readbackmem.buf,
+                                         1, &region);
+        }
+
+        // Store the metadata
+        VkAccelerationStructureInfo::GeometryData geoData;
+        geoData.geometryType = geometry.geometryType;
+        geoData.flags = geometry.flags;
+        geoData.readbackMem = readbackmem.mem;
+        geoData.memSize = readbackmem.size;
+
+        geoData.tris.vertexFormat = geometry.geometry.triangles.vertexFormat;
+        geoData.tris.vertexStride = geometry.geometry.triangles.vertexStride;
+        geoData.tris.maxVertex = geometry.geometry.triangles.maxVertex;
+        geoData.tris.indexType = geometry.geometry.triangles.indexType;
+        geoData.tris.hasTransformData = transformData;
+
+        // Frustratingly rangeInfo.primitiveOffset represents either the offset into the index or
+        // vertex buffer depending if indices are in use or not
+        VkAccelerationStructureBuildRangeInfoKHR &buildData = geoData.buildRangeInfo;
+        buildData.primitiveCount = rangeInfo.primitiveCount;
+        buildData.primitiveOffset = 0;
+        buildData.firstVertex = 0;
+        buildData.transformOffset = 0;
+
+        if(indexData)
+        {
+          buildData.primitiveOffset = (uint32_t)AlignUp(vertexData.size, vertexData.alignment);
+          buildData.firstVertex = rangeInfo.firstVertex;
+        }
+        if(transformData)
+          buildData.transformOffset = (uint32_t)(AlignUp(vertexData.size, vertexData.alignment) +
+                                                 AlignUp(indexData.size, indexData.alignment));
+
+        metadata->geometryData.push_back(geoData);
+
+        break;
+      }
+      case VK_GEOMETRY_TYPE_AABBS_KHR:
+      {
+        const VkAccelerationStructureGeometryAabbsDataKHR &aabbInfo = geometry.geometry.aabbs;
+
+        // Find the associated VkBuffer
+        BufferData data = GetDeviceAddressData(aabbInfo.data.deviceAddress);
+        if(!data)
+        {
+          RDCERR("Unable to find VkBuffer for AABB data at 0x%llx", aabbInfo.data.deviceAddress);
+          continue;
+        }
+
+        data.size = rangeInfo.primitiveCount * sizeof(VkAabbPositionsKHR);
+        data.SetReadPosition(rangeInfo.primitiveOffset);
+
+        // Get the alignment
+        VkMemoryRequirements mrq = {};
+        ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), data.buf, &mrq);
+
+        // Allocate copy buffer
+        readbackmem = CreateReadBackMemory(device, data.size, mrq.alignment);
+        if(readbackmem.mem == VK_NULL_HANDLE)
+        {
+          RDCERR("Unable to allocate AS AABB input buffer readback memory (size: %u bytes)",
+                 mrq.size);
+          continue;
+        }
+
+        // Insert copy commands
+        VkBufferCopy region = {
+            data.GetReadPosition(),
+            0,
+            data.size,
+        };
+        ObjDisp(device)->CmdCopyBuffer(Unwrap(commandBuffer), data.buf, readbackmem.buf, 1, &region);
+
+        // Store the metadata
+        VkAccelerationStructureInfo::GeometryData geoData;
+        geoData.geometryType = geometry.geometryType;
+        geoData.flags = geometry.flags;
+        geoData.readbackMem = readbackmem.mem;
+        geoData.memSize = readbackmem.size;
+
+        geoData.aabbs.stride = aabbInfo.stride;
+
+        geoData.buildRangeInfo = rangeInfo;
+        geoData.buildRangeInfo.primitiveOffset = 0;
+
+        metadata->geometryData.push_back(geoData);
+
+        break;
+      }
+      case VK_GEOMETRY_TYPE_INSTANCES_KHR:
+      {
+        const VkAccelerationStructureGeometryInstancesDataKHR &instanceInfo =
+            geometry.geometry.instances;
+
+        if(instanceInfo.arrayOfPointers)
+          return RDResult(ResultCode::InternalError,
+                          "AS instance build arrayOfPointers unsupported");
+
+        // Find the associated VkBuffer
+        BufferData data = GetDeviceAddressData(instanceInfo.data.deviceAddress);
+        if(!data)
+        {
+          RDCERR("Unable to find VkBuffer for instance data at 0x%llx",
+                 instanceInfo.data.deviceAddress);
+          continue;
+        }
+
+        data.size = rangeInfo.primitiveCount * sizeof(VkAccelerationStructureInstanceKHR);
+        data.SetReadPosition(rangeInfo.primitiveOffset);
+
+        // Get the alignment
+        VkMemoryRequirements mrq = {};
+        ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), data.buf, &mrq);
+
+        // Allocate copy buffer
+        readbackmem = CreateReadBackMemory(device, data.size, mrq.alignment);
+        if(readbackmem.mem == VK_NULL_HANDLE)
+        {
+          RDCERR("Unable to allocate AS instance input buffer readback memory (size: %u bytes)",
+                 data.size);
+          continue;
+        }
+
+        // Insert copy commands
+        VkBufferCopy region = {
+            data.GetReadPosition(),
+            0,
+            data.size,
+        };
+        ObjDisp(device)->CmdCopyBuffer(Unwrap(commandBuffer), data.buf, readbackmem.buf, 1, &region);
+
+        // Store the metadata
+        VkAccelerationStructureInfo::GeometryData geoData;
+        geoData.geometryType = geometry.geometryType;
+        geoData.flags = geometry.flags;
+        geoData.readbackMem = readbackmem.mem;
+        geoData.memSize = readbackmem.size;
+
+        geoData.buildRangeInfo = rangeInfo;
+        geoData.buildRangeInfo.primitiveOffset = 0;
+
+        metadata->geometryData.push_back(geoData);
+
+        break;
+      }
+      default: RDCERR("Unhandled geometry type: %d", geometry.geometryType); continue;
+    }
+
+    // Insert barriers to block any other commands until the buffers are copied
+    if(readbackmem.mem != VK_NULL_HANDLE)
+    {
+      ObjDisp(device)->CmdPipelineBarrier(Unwrap(commandBuffer), VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                          VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, 1, &barrier, 0,
+                                          VK_NULL_HANDLE, 0, VK_NULL_HANDLE);
+
+      // We can schedule buffer deletion now as it isn't needed anymore
+      cmdRecord->cmdInfo->pendingSubmissionCompleteCallbacks->callbacks.push_back(
+          [device, buffer = readbackmem.buf]() {
+            ObjDisp(device)->DestroyBuffer(Unwrap(device), buffer, NULL);
+          });
+    }
+  }
+
+  return {};
+}
+
+void VulkanAccelerationStructureManager::CopyAccelerationStructure(
+    VkCommandBuffer commandBuffer, const VkCopyAccelerationStructureInfoKHR &pInfo, CaptureState state)
+{
+  VkResourceRecord *srcRecord = GetRecord(pInfo.src);
+  RDCASSERT(srcRecord->accelerationStructureInfo != NULL);
+
+  // Delete any previous data associated with AS
+  VkResourceRecord *dstRecord = GetRecord(pInfo.dst);
+  VkAccelerationStructureInfo *info = dstRecord->accelerationStructureInfo;
+  if(!info->geometryData.empty())
+    DeletePreviousInfo(commandBuffer, info, state);
+
+  // Rather than copy the backing mem, we can just increase the ref count.  If there is an update
+  // build to the AS then the ref will be replaced in the record, so there's no risk of aliasing.
+  // The copy mode is irrelevant as it doesn't affect the rebuild
+  dstRecord->accelerationStructureInfo = srcRecord->accelerationStructureInfo;
+  dstRecord->accelerationStructureInfo->AddRef();
 }
 
 bool VulkanAccelerationStructureManager::Prepare(VkAccelerationStructureKHR unwrappedAs,
@@ -359,6 +765,112 @@ void VulkanAccelerationStructureManager::Apply(ResourceId id, const VkInitialCon
     m_pDriver->FlushQ();
   }
 }
+
+VulkanAccelerationStructureManager::Allocation VulkanAccelerationStructureManager::CreateReadBackMemory(
+    VkDevice device, VkDeviceSize size, VkDeviceSize alignment)
+{
+  VkBufferCreateInfo bufInfo = {
+      VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+      NULL,
+      0,
+      size,
+      VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+  };
+
+  // we make the buffer concurrently accessible by all queue families to not invalidate the
+  // contents of the memory we're reading back from.
+  bufInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
+  bufInfo.queueFamilyIndexCount = (uint32_t)m_pDriver->GetQueueFamilyIndices().size();
+  bufInfo.pQueueFamilyIndices = m_pDriver->GetQueueFamilyIndices().data();
+
+  // spec requires that CONCURRENT must specify more than one queue family. If there is only one
+  // queue family, we can safely use exclusive.
+  if(bufInfo.queueFamilyIndexCount == 1)
+    bufInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+  Allocation readbackmem;
+  VkResult vkr = ObjDisp(device)->CreateBuffer(Unwrap(device), &bufInfo, NULL, &readbackmem.buf);
+  if(vkr != VK_SUCCESS)
+  {
+    RDCERR("Failed to create readback buffer");
+    return {};
+  }
+
+  VkMemoryRequirements mrq = {};
+  ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), readbackmem.buf, &mrq);
+
+  if(alignment != 0)
+    mrq.alignment = RDCMAX(mrq.alignment, alignment);
+
+  readbackmem.size = AlignUp(mrq.size, mrq.alignment);
+  readbackmem.size =
+      AlignUp(readbackmem.size, m_pDriver->GetDeviceProps().limits.nonCoherentAtomSize);
+
+  VkMemoryAllocateFlagsInfo flagsInfo = {
+      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
+      NULL,
+      VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT,
+  };
+  VkMemoryAllocateInfo info = {
+      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+      &flagsInfo,
+      readbackmem.size,
+      m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits),
+  };
+
+  vkr = ObjDisp(device)->AllocateMemory(Unwrap(device), &info, NULL, &readbackmem.mem);
+  if(vkr != VK_SUCCESS)
+  {
+    RDCERR("Failed to allocate readback memory");
+    return {};
+  }
+
+  vkr = ObjDisp(device)->BindBufferMemory(Unwrap(device), readbackmem.buf, readbackmem.mem, 0);
+  if(vkr != VK_SUCCESS)
+  {
+    RDCERR("Failed to bind readback memory");
+    return {};
+  }
+
+  return readbackmem;
+}
+
+VulkanAccelerationStructureManager::RecordAndOffset VulkanAccelerationStructureManager::GetDeviceAddressData(
+    VkDeviceAddress address) const
+{
+  RecordAndOffset result;
+
+  ResourceId id;
+  m_pDriver->GetResIDFromAddr(address, id, result.offset);
+
+  // No match
+  if(id == ResourceId())
+    return {};
+
+  // Convert the ID to a resource record
+  result.record = m_pDriver->GetResourceManager()->GetResourceRecord(id);
+  RDCASSERTMSG("Unable to find record", result.record, id);
+  if(!result.record)
+    return {};
+
+  result.address = address - result.offset;
+  return result;
+}
+
+template <typename T>
+void VulkanAccelerationStructureManager::DeletePreviousInfo(VkCommandBuffer commandBuffer, T *info,
+                                                            CaptureState state)
+{
+  VkResourceRecord *cmdRecord = GetRecord(commandBuffer);
+  cmdRecord->cmdInfo->pendingSubmissionCompleteCallbacks->callbacks.push_back(
+      [info]() { info->Release(); });
+}
+
+// OMM suport todo
+template void VulkanAccelerationStructureManager::DeletePreviousInfo(VkCommandBuffer commandBuffer,
+                                                                     VkAccelerationStructureInfo *info,
+                                                                     CaptureState state);
 
 VkDeviceSize VulkanAccelerationStructureManager::SerialisedASSize(VkAccelerationStructureKHR unwrappedAs)
 {

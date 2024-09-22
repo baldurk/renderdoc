@@ -77,6 +77,11 @@ void WrappedVulkan::UntrackBufferAddress(VkDevice device, VkBuffer buffer)
   m_AddressTracker.RemoveFrom(rng);
 }
 
+void WrappedVulkan::GetResIDFromAddr(GPUAddressRange::Address addr, ResourceId &id, uint64_t &offs)
+{
+  m_AddressTracker.GetResIDFromAddr(addr, id, offs);
+}
+
 void WrappedVulkan::ChooseMemoryIndices()
 {
   // we need to do this little dance because Get*MemoryIndex checks to see if the existing

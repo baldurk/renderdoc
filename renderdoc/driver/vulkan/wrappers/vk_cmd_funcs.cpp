@@ -7873,6 +7873,15 @@ void WrappedVulkan::vkCmdBuildAccelerationStructuresKHR(
 
       // Add to the command buffer metadata, so we can know when it has been submitted
       record->cmdInfo->accelerationStructures.push_back(GetRecord(geomInfo.dstAccelerationStructure));
+
+      const RDResult copyResult = GetAccelerationStructureManager()->CopyInputBuffers(
+          commandBuffer, geomInfo, ppBuildRangeInfos[i], m_State);
+      if(copyResult != ResultCode::Succeeded)
+      {
+        m_LastCaptureError = copyResult;
+        RDCERR("%s", copyResult.message.c_str());
+        m_CaptureFailure = true;
+      }
     }
   }
 }

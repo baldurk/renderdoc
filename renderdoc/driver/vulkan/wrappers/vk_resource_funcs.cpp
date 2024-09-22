@@ -3389,7 +3389,6 @@ VkResult WrappedVulkan::vkCreateAccelerationStructureKHR(
       record->baseResource = bufferRecord->GetResourceID();
       record->baseResourceMem = bufferRecord->baseResource;
       record->dedicated = bufferRecord->dedicated;
-      record->resInfo = bufferRecord->resInfo;
       record->storable = bufferRecord->storable;
       record->memOffset = bufferRecord->memOffset + pCreateInfo->offset;
       record->memSize = pCreateInfo->size;
