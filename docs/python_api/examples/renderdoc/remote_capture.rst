@@ -58,7 +58,7 @@ If the connection fails, normally we must fail but if we have a device protocol 
 
 .. note::
 
-   The remote server connection has a default timeout of 5 seconds. If the connection is unused for 5 seconds, the other side will disconnect and subsequent use of the interface will fail.
+   The remote server connection has a default timeout of 15 seconds. If the connection is unused for 15 seconds, the other side will disconnect and subsequent use of the interface will fail.
 
 Once we have a remote server connection, we can browse the remote filesystem for the executable we want to launch using :py:meth:`~renderdoc.RemoteServer.GetHomeFolder` and :py:meth:`~renderdoc.RemoteServer.ListFolder`.
 

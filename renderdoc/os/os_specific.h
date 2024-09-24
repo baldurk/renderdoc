@@ -181,7 +181,7 @@ namespace Network
 class Socket
 {
 public:
-  Socket(ptrdiff_t s) : socket(s), timeoutMS(5000) {}
+  Socket(ptrdiff_t s) : socket(s), timeoutMS(15000) {}
   ~Socket();
   void Shutdown();
 

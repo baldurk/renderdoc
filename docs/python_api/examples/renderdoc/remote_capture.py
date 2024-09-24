@@ -106,7 +106,7 @@ if result.result != rd.ResultCode.Succeeded:
     raise RuntimeError(f"Couldn't launch {exe}, got error {str(result.result)}")
 
 # Spin up a thread to keep the remote server connection alive while we make a capture,
-# as it will time out after 5 seconds of inactivity
+# as it will time out after 15 seconds of inactivity
 def ping_remote(remote, kill):
     success = True
     while success and not kill.is_set():
@@ -182,7 +182,7 @@ if result != rd.ResultCode.Succeeded:
 # The replay is tunnelled over the remote connection, so you don't have to keep
 # pinging the remote connection while using the controller. Use of the remote
 # connection and controller can be interleaved though you should only access
-# them from one thread at once. If they are both unused for 5 seconds though,
+# them from one thread at once. If they are both unused for 15 seconds though,
 # the timeout will happen, so if the controller is idle it's advisable to ping
 # the remote connection
 

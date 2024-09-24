@@ -38,7 +38,7 @@
 #include "strings/string_utils.h"
 #include "replay_proxy.h"
 
-RDOC_CONFIG(uint32_t, RemoteServer_TimeoutMS, 5000,
+RDOC_CONFIG(uint32_t, RemoteServer_TimeoutMS, 15000,
             "Timeout in milliseconds for remote server operations.");
 
 RDOC_CONFIG(bool, RemoteServer_DebugLogging, false,
