@@ -2277,9 +2277,12 @@ void D3D11PipelineStateViewer::cbuffer_itemActivated(RDTreeWidgetItem *item, int
   uint32_t reg = tag.value<uint32_t>();
 
   uint32_t index = ~0U;
-  for(uint32_t i = 0; i < stage->reflection->constantBlocks.size(); i++)
-    if(stage->reflection->constantBlocks[i].fixedBindNumber == reg)
-      index = i;
+  if(stage->reflection)
+  {
+    for(uint32_t i = 0; i < stage->reflection->constantBlocks.size(); i++)
+      if(stage->reflection->constantBlocks[i].fixedBindNumber == reg)
+        index = i;
+  }
 
   if(index == ~0U)
   {
