@@ -4546,6 +4546,37 @@ void WrappedVulkan::vkCmdCopyQueryPoolResults(VkCommandBuffer commandBuffer, VkQ
     }
     record->MarkBufferFrameReferenced(GetRecord(destBuffer), destOffset, size,
                                       eFrameRef_PartialWrite);
+
+    const QueryPoolInfo *qpInfo = GetRecord(queryPool)->queryPoolInfo;
+    if(qpInfo->HasReplacementEntries(firstQuery, queryCount))
+    {
+      // We want to record these commands into the capture so they are replayed
+      VkMemoryBarrier barrier = {
+          VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+          NULL,
+          VK_ACCESS_TRANSFER_WRITE_BIT,
+          VK_ACCESS_TRANSFER_READ_BIT,
+      };
+      vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                           VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, 1, &barrier, 0, VK_NULL_HANDLE, 0,
+                           VK_NULL_HANDLE);
+
+      qpInfo->Replace(
+          firstQuery, queryCount, [&](uint32_t queryIndexStart, rdcarray<uint64_t> results) {
+            const size_t size = (size_t)(results.size() * destStride);
+            RDCASSERT(size < (1 << 16));
+
+            const size_t resultSize = (flags & VK_QUERY_RESULT_64_BIT) ? 8 : 4;
+            byte *tmp = new byte[size];
+            size_t i = 0;
+            for(byte *ptr = tmp; ptr < (ptr + size); ptr += destStride)
+              memcpy(ptr, &results[i++], resultSize);
+
+            vkCmdUpdateBuffer(commandBuffer, destBuffer, destOffset + (queryIndexStart * destStride),
+                              size, (const uint32_t *)tmp);
+            delete[] tmp;
+          });
+    }
   }
 }
 
@@ -8018,27 +8049,35 @@ void WrappedVulkan::vkCmdWriteAccelerationStructuresPropertiesKHR(
   for(uint32_t i = 0; i < accelerationStructureCount; ++i)
     unwrappedASes[i] = Unwrap(pAccelerationStructures[i]);
 
+  // The compacted size can vary between capture and replay, so to ensure we always have enough
+  // memory we return the full AS size
+  if(queryType == VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR)
+  {
+    auto &qpInfo = GetRecord(queryPool)->queryPoolInfo;
+
+    rdcarray<uint64_t> sizes;
+    sizes.reserve(accelerationStructureCount);
+    for(uint32_t i = 0; i < accelerationStructureCount; ++i)
+      sizes.push_back(GetRecord(pAccelerationStructures[i])->memSize);
+
+    qpInfo->Add(firstQuery, std::move(sizes));
+  }
+
   ObjDisp(commandBuffer)
       ->CmdWriteAccelerationStructuresPropertiesKHR(Unwrap(commandBuffer),
                                                     accelerationStructureCount, unwrappedASes,
                                                     queryType, Unwrap(queryPool), firstQuery);
 }
 
+// CPU-side VK_KHR_acceleration_structure calls are not supported for now
 VkResult WrappedVulkan::vkWriteAccelerationStructuresPropertiesKHR(
     VkDevice device, uint32_t accelerationStructureCount,
     const VkAccelerationStructureKHR *pAccelerationStructures, VkQueryType queryType,
     size_t dataSize, void *pData, size_t stride)
 {
-  byte *memory = GetTempMemory(sizeof(VkAccelerationStructureKHR) * accelerationStructureCount);
-  VkAccelerationStructureKHR *unwrappedASes = (VkAccelerationStructureKHR *)memory;
-  for(uint32_t i = 0; i < accelerationStructureCount; ++i)
-    unwrappedASes[i] = Unwrap(pAccelerationStructures[i]);
-
-  return ObjDisp(device)->WriteAccelerationStructuresPropertiesKHR(
-      Unwrap(device), accelerationStructureCount, unwrappedASes, queryType, dataSize, pData, stride);
+  return VK_ERROR_UNKNOWN;
 }
 
-// CPU-side VK_KHR_acceleration_structure calls are not supported for now
 VkResult WrappedVulkan::vkCopyAccelerationStructureKHR(VkDevice device,
                                                        VkDeferredOperationKHR deferredOperation,
                                                        const VkCopyAccelerationStructureInfoKHR *pInfo)

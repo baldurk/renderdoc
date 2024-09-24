@@ -1649,6 +1649,8 @@ VkResult WrappedVulkan::vkCreateQueryPool(VkDevice device, const VkQueryPoolCrea
       }
 
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pQueryPool);
+      record->queryPoolInfo = new QueryPoolInfo();
+
       record->AddChunk(chunk);
     }
     else
@@ -1665,8 +1667,12 @@ VkResult WrappedVulkan::vkGetQueryPoolResults(VkDevice device, VkQueryPool query
                                               size_t dataSize, void *pData, VkDeviceSize stride,
                                               VkQueryResultFlags flags)
 {
-  return ObjDisp(device)->GetQueryPoolResults(Unwrap(device), Unwrap(queryPool), firstQuery,
-                                              queryCount, dataSize, pData, stride, flags);
+  VkResult result = ObjDisp(device)->GetQueryPoolResults(
+      Unwrap(device), Unwrap(queryPool), firstQuery, queryCount, dataSize, pData, stride, flags);
+
+  GetRecord(queryPool)->queryPoolInfo->Replace(firstQuery, queryCount, pData, stride, flags);
+
+  return result;
 }
 
 template <typename SerialiserType>
@@ -1698,6 +1704,8 @@ void WrappedVulkan::vkResetQueryPool(VkDevice device, VkQueryPool queryPool, uin
 
   SERIALISE_TIME_CALL(
       ObjDisp(device)->ResetQueryPool(Unwrap(device), Unwrap(queryPool), firstQuery, queryCount));
+
+  GetRecord(queryPool)->queryPoolInfo->Reset(firstQuery, queryCount);
 
   if(IsActiveCapturing(m_State))
   {
