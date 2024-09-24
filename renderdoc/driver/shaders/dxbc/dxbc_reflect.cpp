@@ -329,6 +329,12 @@ void MakeShaderReflection(DXBC::DXBCContainer *dxbc, const ShaderEntryPoint &ent
 
     refl->debugInfo.files = dxbc->GetDebugInfo()->Files;
 
+    // For DXIL ensure the entry point meta data has been parsed
+    if(dxbc->GetDXILByteCode())
+    {
+      dxbc->GetDXILByteCode()->FetchEntryPoint();
+    }
+
     dxbc->GetDebugInfo()->GetLineInfo(~0U, ~0U, refl->debugInfo.entryLocation);
 
     rdcstr entryFunc = entry.name;

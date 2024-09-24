@@ -1461,6 +1461,24 @@ rdcarray<ShaderEntryPoint> Program::GetEntryPoints()
   return ret;
 }
 
+void Program::FetchEntryPoint()
+{
+  if(m_EntryPoint.empty())
+  {
+    DXMeta dx(m_NamedMeta);
+    if(dx.entryPoints && dx.entryPoints->children.size() > 0 &&
+       dx.entryPoints->children[0]->children.size() > 2)
+    {
+      m_EntryPoint = dx.entryPoints->children[0]->children[1]->str;
+    }
+    else
+    {
+      RDCERR("Didn't find dx.entryPoints");
+      m_EntryPoint = "main";
+    }
+  }
+}
+
 DXBC::Reflection *Program::BuildReflection()
 {
   const bool dxcStyleFormatting = m_DXCStyle;
