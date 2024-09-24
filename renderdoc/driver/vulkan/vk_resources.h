@@ -2236,6 +2236,41 @@ inline FrameRefType MarkMemoryReferenced(std::unordered_map<ResourceId, MemRefs>
   return MarkMemoryReferenced(memRefs, mem, offset, size, refType, ComposeFrameRefs);
 }
 
+// Used to replace QueryPool results
+class QueryPoolInfo
+{
+public:
+  void Add(uint32_t firstQuery, rdcarray<uint64_t> values);
+
+  void Reset(uint32_t firstQuery, uint32_t queryCount);
+
+  void Replace(uint32_t firstQuery, uint32_t queryCount, void *pData, VkDeviceSize stride,
+               VkQueryResultFlags flags) const;
+
+  // Calls writeEntry with matching contiguous entries, buffered into an array.
+  void Replace(uint32_t firstQuery, uint32_t queryCount,
+               const std::function<void(uint32_t, rdcarray<uint64_t>)> &writeEntry) const;
+
+  bool HasReplacementEntries(uint32_t firstQuery, uint32_t queryCount) const;
+
+private:
+  struct Entry
+  {
+    Entry(uint32_t i, uint64_t v) : index(i), value(v) {}
+    bool operator<(Entry other) const { return index < other.index; }
+
+    uint32_t index;
+    uint64_t value;
+  };
+
+  rdcpair<uint32_t, uint32_t> GetIntersection(uint32_t firstQuery, uint32_t queryCount) const;
+
+  void Replace(uint32_t firstQuery, uint32_t queryCount,
+               const std::function<void(Entry)> &writeEntry) const;
+
+  rdcarray<Entry> m_Entries;
+};
+
 struct DescUpdateTemplate;
 struct ImageLayouts;
 struct VkAccelerationStructureInfo;
@@ -2332,6 +2367,7 @@ public:
     DescPoolInfo *descPoolInfo;              // only for descriptor pools
     CmdPoolInfo *cmdPoolInfo;                // only for command pools
     uint32_t queueFamilyIndex;               // only for queues
+    QueryPoolInfo *queryPoolInfo;            // only for query pools
     VkAccelerationStructureInfo *accelerationStructureInfo;    // only for acceleration structures
   };
 
