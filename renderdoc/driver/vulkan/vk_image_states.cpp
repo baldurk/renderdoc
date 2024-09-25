@@ -50,6 +50,9 @@ void ImageSubresourceState::Update(const ImageSubresourceState &other, FrameRefC
   if(other.newLayout != UNKNOWN_PREV_IMG_LAYOUT)
     newLayout = other.newLayout;
 
+  if(refType == eFrameRef_Unknown)
+    refType = other.refType;
+
   refType = compose(refType, other.refType);
 }
 
