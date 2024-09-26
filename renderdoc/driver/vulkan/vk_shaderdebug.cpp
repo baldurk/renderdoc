@@ -3949,9 +3949,11 @@ ShaderDebugTrace *VulkanReplay::DebugVertex(uint32_t eventId, uint32_t vertid, u
   m_pDriver->ReplayLog(0, eventId, eReplay_WithoutDraw);
 
   const VulkanCreationInfo::Pipeline &pipe = c.m_Pipeline[state.graphics.pipeline];
-  VulkanCreationInfo::ShaderModule &shader = c.m_ShaderModule[pipe.shaders[0].module];
-  rdcstr entryPoint = pipe.shaders[0].entryPoint;
-  const rdcarray<SpecConstant> &spec = pipe.shaders[0].specialization;
+  const VulkanCreationInfo::ShaderEntry &shaderEntry =
+      state.graphics.shaderObject ? c.m_ShaderObject[state.shaderObjects[0]].shad : pipe.shaders[0];
+  VulkanCreationInfo::ShaderModule &shader = c.m_ShaderModule[shaderEntry.module];
+  rdcstr entryPoint = shaderEntry.entryPoint;
+  const rdcarray<SpecConstant> &spec = shaderEntry.specialization;
 
   VulkanCreationInfo::ShaderModuleReflection &shadRefl =
       shader.GetReflection(ShaderStage::Vertex, entryPoint, state.graphics.pipeline);
@@ -4191,8 +4193,9 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   }
 
   const VulkanCreationInfo::Pipeline &pipe = c.m_Pipeline[state.graphics.pipeline];
+  ResourceId fragId = state.graphics.shaderObject ? state.shaderObjects[4] : pipe.shaders[4].module;
 
-  if(pipe.shaders[4].module == ResourceId())
+  if(fragId == ResourceId())
   {
     RDCLOG("No pixel shader bound at draw");
     return new ShaderDebugTrace();
@@ -4201,9 +4204,11 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   // get ourselves in pristine state before this action (without any side effects it may have had)
   m_pDriver->ReplayLog(0, eventId, eReplay_WithoutDraw);
 
-  VulkanCreationInfo::ShaderModule &shader = c.m_ShaderModule[pipe.shaders[4].module];
-  rdcstr entryPoint = pipe.shaders[4].entryPoint;
-  const rdcarray<SpecConstant> &spec = pipe.shaders[4].specialization;
+  const VulkanCreationInfo::ShaderEntry &fragEntry =
+      state.graphics.shaderObject ? c.m_ShaderObject[state.shaderObjects[4]].shad : pipe.shaders[4];
+  VulkanCreationInfo::ShaderModule &shader = c.m_ShaderModule[fragEntry.module];
+  rdcstr entryPoint = fragEntry.entryPoint;
+  const rdcarray<SpecConstant> &spec = fragEntry.specialization;
 
   VulkanCreationInfo::ShaderModuleReflection &shadRefl =
       shader.GetReflection(ShaderStage::Pixel, entryPoint, state.graphics.pipeline);
@@ -4229,11 +4234,14 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   // shader without being emitted from the geometry shader. For now, check if this semantic
   // will succeed in a new pixel shader with the rest of the pipe unchanged
   bool usePrimitiveID = false;
-  if(pipe.shaders[3].module != ResourceId())
+  ResourceId gsId = state.graphics.shaderObject ? state.shaderObjects[3] : pipe.shaders[3].module;
+  if(gsId != ResourceId())
   {
+    const VulkanCreationInfo::ShaderEntry &gsEntry =
+        state.graphics.shaderObject ? c.m_ShaderObject[state.shaderObjects[3]].shad : pipe.shaders[3];
     VulkanCreationInfo::ShaderModuleReflection &gsRefl =
-        c.m_ShaderModule[pipe.shaders[3].module].GetReflection(
-            ShaderStage::Geometry, pipe.shaders[3].entryPoint, state.graphics.pipeline);
+        c.m_ShaderModule[gsEntry.module].GetReflection(ShaderStage::Geometry, gsEntry.entryPoint,
+                                                       state.graphics.pipeline);
 
     // check to see if the shader outputs a primitive ID
     for(const SigParameter &e : gsRefl.refl->outputSignature)
@@ -4296,7 +4304,8 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
     }
     else
     {
-      useViewIndex = pipe.viewMask != 0;
+      useViewIndex =
+          (state.dynamicRendering.active ? state.dynamicRendering.viewMask : pipe.viewMask) != 0;
       if(!useViewIndex && Vulkan_Debug_ShaderDebugLogging())
         RDCLOG("Disabling useViewIndex because viewMask is zero");
     }
@@ -4466,7 +4475,9 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
 
     // create pipeline layout with new descriptor set layouts
     // don't have to handle separate vert/frag layouts as push constant ranges must be identical
-    const rdcarray<VkPushConstantRange> &push = c.m_PipelineLayout[pipe.vertLayout].pushRanges;
+    const rdcarray<VkPushConstantRange> &push = state.graphics.shaderObject
+                                                    ? c.m_ShaderObject[fragId].pushRanges
+                                                    : c.m_PipelineLayout[pipe.vertLayout].pushRanges;
 
     VkPipelineLayoutCreateInfo pipeLayoutInfo = {
         VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -4612,16 +4623,85 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   // bloat the cache. Even if we avoided the high-frequency x/y and stored them e.g. in the feedback
   // buffer, we'd still want to spec-constant the address when possible so we're always going to
   // have some varying value.
-  VkPipeline inputsPipe;
-  vkr =
-      m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &graphicsInfo, NULL, &inputsPipe);
-  CHECK_VKR(m_pDriver, vkr);
+  VkPipeline inputsPipe = VK_NULL_HANDLE;
+  if(!state.graphics.shaderObject)
+  {
+    vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &graphicsInfo, NULL,
+                                               &inputsPipe);
+    CHECK_VKR(m_pDriver, vkr);
+  }
 
   // make copy of state to draw from
   VulkanRenderState modifiedstate = state;
 
   // bind created pipeline to partial replay state
   modifiedstate.graphics.pipeline = GetResID(inputsPipe);
+
+  rdcarray<VkShaderEXT> shaderObjs;
+
+  for(uint32_t i = 0; i < NumShaderStages; i++)
+  {
+    ResourceId shadId = modifiedstate.shaderObjects[i];
+    if(shadId == ResourceId())
+      continue;
+
+    VkShaderEXT shad = VK_NULL_HANDLE;
+    VkShaderCreateInfoEXT shadCreateinfo = {};
+    m_pDriver->GetShaderCache()->MakeShaderObjectInfo(shadCreateinfo, shadId);
+
+    if(shadCreateinfo.stage == VK_SHADER_STAGE_FRAGMENT_BIT)
+    {
+      shadCreateinfo.pCode = fragspv.data();
+      shadCreateinfo.codeSize = fragspv.size() * sizeof(uint32_t);
+
+      shadCreateinfo.pSpecializationInfo = &specInfo;
+    }
+    else if(storageMode == Binding)
+    {
+      // if we're stealing a binding point, we need to patch all other shaders
+      rdcarray<uint32_t> spirv = c.m_ShaderModule[shadId].spirv.GetSPIRV();
+
+      {
+        rdcspv::Editor editor(spirv);
+
+        editor.Prepare();
+
+        // patch all bindings up by 1
+        for(rdcspv::Iter it = editor.Begin(rdcspv::Section::Annotations),
+                         end = editor.End(rdcspv::Section::Annotations);
+            it < end; ++it)
+        {
+          if(it.opcode() == rdcspv::Op::Decorate)
+          {
+            rdcspv::OpDecorate dec(it);
+            if(dec.decoration == rdcspv::Decoration::Binding)
+            {
+              RDCASSERT(dec.decoration.binding != 0xffffffff);
+              dec.decoration.binding += 1;
+              it = dec;
+            }
+          }
+        }
+      }
+
+      shadCreateinfo.pCode = spirv.data();
+      shadCreateinfo.codeSize = spirv.size() * sizeof(uint32_t);
+    }
+
+    // if we're stealing a binding point, all shaders need updated descriptor sets
+    if(storageMode == Binding)
+    {
+      shadCreateinfo.setLayoutCount = (uint32_t)setLayouts.size();
+      shadCreateinfo.pSetLayouts = setLayouts.data();
+    }
+
+    vkr = m_pDriver->vkCreateShadersEXT(dev, 1, &shadCreateinfo, NULL, &shad);
+    CHECK_VKR(m_pDriver, vkr);
+
+    shaderObjs.push_back(shad);
+
+    modifiedstate.shaderObjects[i] = GetResID(shad);
+  }
 
   if(storageMode == Binding)
   {
@@ -4912,6 +4992,11 @@ ShaderDebugTrace *VulkanReplay::DebugPixel(uint32_t eventId, uint32_t x, uint32_
   for(VkShaderModule s : modules)
     m_pDriver->vkDestroyShaderModule(dev, s, NULL);
 
+  // delete shader objects
+  for(VkShaderEXT s : shaderObjs)
+    if(s != VK_NULL_HANDLE)
+      m_pDriver->vkDestroyShaderEXT(dev, s, NULL);
+
   return ret;
 }
 
@@ -4943,9 +5028,11 @@ ShaderDebugTrace *VulkanReplay::DebugThread(uint32_t eventId,
   m_pDriver->ReplayLog(0, eventId, eReplay_WithoutDraw);
 
   const VulkanCreationInfo::Pipeline &pipe = c.m_Pipeline[state.compute.pipeline];
-  VulkanCreationInfo::ShaderModule &shader = c.m_ShaderModule[pipe.shaders[5].module];
-  rdcstr entryPoint = pipe.shaders[5].entryPoint;
-  const rdcarray<SpecConstant> &spec = pipe.shaders[5].specialization;
+  const VulkanCreationInfo::ShaderEntry &shaderEntry =
+      state.graphics.shaderObject ? c.m_ShaderObject[state.shaderObjects[5]].shad : pipe.shaders[5];
+  VulkanCreationInfo::ShaderModule &shader = c.m_ShaderModule[shaderEntry.module];
+  rdcstr entryPoint = shaderEntry.entryPoint;
+  const rdcarray<SpecConstant> &spec = shaderEntry.specialization;
 
   VulkanCreationInfo::ShaderModuleReflection &shadRefl =
       shader.GetReflection(ShaderStage::Compute, entryPoint, state.compute.pipeline);
