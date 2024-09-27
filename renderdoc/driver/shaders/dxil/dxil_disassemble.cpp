@@ -1111,14 +1111,6 @@ void Program::SettleIDs()
           inst->slot = slot++;
 #endif
       }
-#if DISABLED(DXC_COMPATIBLE_DISASM)
-      // Check all arguments have valid SSA IDs
-      for(const Value *arg : inst->args)
-      {
-        if(IsSSA(arg))
-          RDCASSERTNOTEQUAL(GetSSAId(arg), ~0U);
-      }
-#endif
       if(inst->op == Operation::Call)
       {
         Function *callFunc = (Function *)inst->getFuncCall();
@@ -1337,6 +1329,21 @@ void Program::SettleIDs()
     }
     m_Accum.exitFunction();
   }
+#if DISABLED(DXC_COMPATIBLE_DISASM)
+  // Check all instruction arguments have valid SSA IDs
+  for(size_t i = 0; i < m_Functions.size(); i++)
+  {
+    Function &func = *m_Functions[i];
+    for(Instruction *inst : func.instructions)
+    {
+      for(const Value *arg : inst->args)
+      {
+        if(IsSSA(arg))
+          RDCASSERTNOTEQUAL(GetSSAId(arg), ~0U);
+      }
+    }
+  }
+#endif
 
   m_FuncAttrGroups.clear();
   for(size_t i = 0; i < m_AttributeGroups.size(); i++)
