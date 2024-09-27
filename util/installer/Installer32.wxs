@@ -202,6 +202,12 @@
               </Component>
             </Directory>
 
+            <Directory Id='plugins_d3d12' Name='d3d12'>
+              <Component Id='d2d12_plugin' Win64="yes" Guid='383E6D55-F140-44E3-91B5-E98EEAAB28A7'>
+                <File Id='dxcompiler' Name='dxcompiler.dll' DiskId='1' Source='dist/Release64/plugins/d3d12/dxcompiler.dll' KeyPath='yes' />
+              </Component>
+            </Directory>
+
             <Directory Id='plugins_spirv' Name='spirv'>
               <Component Id='spirv_plugin' Guid='749539F5-0AAA-4A26-B8F4-B2ABD1F7754E'>
                 <File Id='spirvcross' Name='spirv-cross.exe' DiskId='1' Source='dist/Release32/plugins/spirv/spirv-cross.exe' KeyPath='yes' />
@@ -369,6 +375,7 @@
         <ComponentRef Id='gpa_plugin' />
         <ComponentRef Id='android_plugin' />
         <ComponentRef Id='spirv_plugin' />
+        <ComponentRef Id='d3d12_plugin' />
 
         <ComponentRef Id='ProgramMenuDir' />
 
