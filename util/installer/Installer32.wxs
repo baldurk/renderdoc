@@ -203,8 +203,8 @@
             </Directory>
 
             <Directory Id='plugins_d3d12' Name='d3d12'>
-              <Component Id='d2d12_plugin' Win64="yes" Guid='383E6D55-F140-44E3-91B5-E98EEAAB28A7'>
-                <File Id='dxcompiler' Name='dxcompiler.dll' DiskId='1' Source='dist/Release64/plugins/d3d12/dxcompiler.dll' KeyPath='yes' />
+              <Component Id='d3d12_plugin' Guid='383E6D55-F140-44E3-91B5-E98EEAAB28A7'>
+                <File Id='dxcompiler' Name='dxcompiler.dll' DiskId='1' Source='dist/Release32/plugins/d3d12/dxcompiler.dll' KeyPath='yes' />
               </Component>
             </Directory>
 
