@@ -152,6 +152,13 @@ struct PSVData2 : public PSVData1
   static const size_t ExpectedSize = sizeof(PSVData1) + 3 * sizeof(uint32_t);
 };
 
+struct PSVData3 : public PSVData2
+{
+  rdcstr entryName;
+
+  static const size_t ExpectedSize = sizeof(PSVData2) + sizeof(uint32_t);
+};
+
 struct PSVResource0
 {
   DXILResourceType type;
@@ -200,14 +207,15 @@ struct PSVSignature0
 
 using PSVSignature = PSVSignature0;
 
-struct PSVData : public PSVData2
+struct PSVData : public PSVData3
 {
   enum class Version
   {
     Version0 = 0,
     Version1,
     Version2,
-    VersionLatest = Version2,
+    Version3,
+    VersionLatest = Version3,
   } version = Version::VersionLatest;
 
   enum class ResourceVersion
