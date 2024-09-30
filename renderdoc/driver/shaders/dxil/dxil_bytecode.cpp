@@ -2687,6 +2687,16 @@ void LLVMOrderAccumulator::processFunction(const Function *f)
 
 void LLVMOrderAccumulator::exitFunction()
 {
+  // reset IDs for function constants, so that if they're used in a different function they get a new id
+  for(size_t i = firstFuncConst; i < firstFuncConst + numFuncConsts; i++)
+  {
+    if(cast<Constant>(values[i]))
+    {
+      Value *value = (Value *)values[i];
+      value->id = Value::UnvisitedID;
+    }
+  }
+
   values.resize(functionWaterMark);
 }
 
