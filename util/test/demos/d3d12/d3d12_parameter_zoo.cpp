@@ -231,6 +231,15 @@ void main()
     dev->CreateShaderResourceView(NULL, &srvDesc, descHeap->GetCPUDescriptorHandleForHeapStart());
 
     ID3D12PipelineStatePtr pso = psoCreator;
+
+    psoCreator.DSV(DXGI_FORMAT_D32_FLOAT);
+
+    ID3D12PipelineStatePtr psoDepth = psoCreator;
+
+    ID3D12ResourcePtr dsvtex = MakeTexture(DXGI_FORMAT_D32_FLOAT, screenWidth, screenHeight)
+                                   .DSV()
+                                   .InitialState(D3D12_RESOURCE_STATE_DEPTH_WRITE);
+
     ID3D12PipelineStatePtr pso2;
 
     if(dev2)
@@ -460,14 +469,44 @@ void main()
 
       cmd->DrawIndexedInstanced(3, 1, 0, 0, 0);
 
-      FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
       uint32_t b[4] = {111, 111, 111, 111};
+
+      setMarker(cmd, "No Sig Dispatch");
 
       cmd->SetPipelineState(psoCompNoSig);
       cmd->SetComputeRootSignature(compsig);
       cmd->SetComputeRootUnorderedAccessView(0, bufout->GetGPUVirtualAddress());
       cmd->Dispatch(1, 1, 1);
+
+      // use a temporary RTV/DSV heap to bind
+      {
+        D3D12_DESCRIPTOR_HEAP_DESC desc;
+        desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+        desc.NodeMask = 1;
+        desc.NumDescriptors = 1;
+        desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+
+        ID3D12DescriptorHeapPtr rtvTemp;
+        CHECK_HR(dev->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&rtvTemp));
+
+        desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+
+        ID3D12DescriptorHeapPtr dsvTemp;
+        CHECK_HR(dev->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&dsvTemp));
+
+        D3D12_CPU_DESCRIPTOR_HANDLE rtvTempHandle =
+            MakeRTV(bb).Format(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB).CreateCPU(rtvTemp, 0);
+        D3D12_CPU_DESCRIPTOR_HANDLE dsvTempHandle = MakeDSV(dsvtex).CreateCPU(dsvTemp, 0);
+
+        cmd->OMSetRenderTargets(1, &rtvTempHandle, FALSE, &dsvTempHandle);
+      }
+
+      setMarker(cmd, "Temp heap Draw");
+
+      cmd->SetPipelineState(psoDepth);
+      cmd->DrawIndexedInstanced(3, 1, 0, 0, 0);
+
+      FinishUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
       cmd->Close();
 

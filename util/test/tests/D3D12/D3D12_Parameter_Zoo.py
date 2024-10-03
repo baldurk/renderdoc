@@ -97,3 +97,32 @@ class D3D12_Parameter_Zoo(rdtest.TestCase):
         self.check(desc1234.GetChild(8).AsFloat() == 1.5)
 
         rdtest.log.success("Overlay color is as expected")
+
+        action = self.find_action("No Sig Draw")
+        action = action.next
+        
+        self.controller.SetFrameEvent(action.eventId, False)
+
+        pipe: rd.PipeState = self.controller.GetPipelineState()
+
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0.5, 0.5, [0.0, 1.0, 0.0, 1.0])
+
+        rdtest.log.success("No sig draw worked as expected")
+
+        action = self.find_action("No Sig Dispatch")
+        action = action.next
+        
+        self.controller.SetFrameEvent(action.eventId, False)
+
+        # nothing to actually check here
+
+        action = self.find_action("Temp heap Draw")
+        action = action.next
+        
+        self.controller.SetFrameEvent(action.eventId, False)
+
+        pipe: rd.PipeState = self.controller.GetPipelineState()
+
+        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0.5, 0.5, [0.0, 1.0, 0.0, 1.0])
+
+        rdtest.log.success("Temp heap worked as expected")
