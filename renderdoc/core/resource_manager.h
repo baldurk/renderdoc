@@ -700,7 +700,7 @@ protected:
   virtual bool Serialise_InitialState(WriteSerialiser &ser, ResourceId id, RecordType *record,
                                       const InitialContentData *initialData) = 0;
   virtual void Create_InitialState(ResourceId id, WrappedResourceType live, bool hasData) = 0;
-  virtual void Apply_InitialState(WrappedResourceType live, const InitialContentData &initial) = 0;
+  virtual void Apply_InitialState(WrappedResourceType live, InitialContentData &initial) = 0;
   virtual rdcarray<ResourceId> InitialContentResources();
 
   void UpdateLastWriteTime(ResourceId id, FrameRefType refType);
@@ -1377,7 +1377,7 @@ void ResourceManager<Configuration>::ApplyInitialContents()
   for(auto it = resources.begin(); it != resources.end(); ++it)
   {
     ResourceId id = *it;
-    const InitialContentStorage &data = m_InitialContents[id];
+    InitialContentStorage &data = m_InitialContents[id];
     WrappedResourceType live = GetLiveResource(id);
     Apply_InitialState(live, data.data);
   }

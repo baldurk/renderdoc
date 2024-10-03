@@ -1777,7 +1777,7 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool)
   }
 }
 
-void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, const VkInitialContents &initial)
+void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents &initial)
 {
   if(HasFatalError())
     return;

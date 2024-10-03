@@ -1309,7 +1309,7 @@ private:
     return Serialise_InitialState<WriteSerialiser>(ser, id, record, initial);
   }
   void Create_InitialState(ResourceId id, ID3D12DeviceChild *live, bool hasData);
-  void Apply_InitialState(ID3D12DeviceChild *live, const D3D12InitialContents &data);
+  void Apply_InitialState(ID3D12DeviceChild *live, D3D12InitialContents &data);
   rdcarray<ResourceId> InitialContentResources();
 
   WrappedID3D12Device *m_Device;

@@ -1634,8 +1634,7 @@ void D3D12ResourceManager::Create_InitialState(ResourceId id, ID3D12DeviceChild 
   }
 }
 
-void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live,
-                                              const D3D12InitialContents &data)
+void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, D3D12InitialContents &data)
 {
   if(m_Device->HasFatalError())
     return;

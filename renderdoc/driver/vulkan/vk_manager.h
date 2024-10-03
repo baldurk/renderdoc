@@ -508,7 +508,7 @@ private:
   bool Serialise_InitialState(WriteSerialiser &ser, ResourceId id, VkResourceRecord *record,
                               const VkInitialContents *initial);
   void Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData);
-  void Apply_InitialState(WrappedVkRes *live, const VkInitialContents &initial);
+  void Apply_InitialState(WrappedVkRes *live, VkInitialContents &initial);
   rdcarray<ResourceId> InitialContentResources();
 
   // dummy handle to use - starting from near highest valid pointer to minimise risk of overlap with real handles

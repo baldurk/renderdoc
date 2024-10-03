@@ -1920,7 +1920,7 @@ void GLResourceManager::Create_InitialState(ResourceId id, GLResource live, bool
   }
 }
 
-void GLResourceManager::Apply_InitialState(GLResource live, const GLInitialContents &initial)
+void GLResourceManager::Apply_InitialState(GLResource live, GLInitialContents &initial)
 {
   if(live.Namespace == eResBuffer)
   {

@@ -333,7 +333,7 @@ private:
   void PrepareTextureInitialContents(ResourceId liveid, ResourceId origid, GLResource res);
 
   void Create_InitialState(ResourceId id, GLResource live, bool hasData);
-  void Apply_InitialState(GLResource live, const GLInitialContents &initial);
+  void Apply_InitialState(GLResource live, GLInitialContents &initial);
 
   void MarkFBOAttachmentsReferenced(ResourceId id, GLResourceRecord *record, FrameRefType ref,
                                     bool markDirty);
