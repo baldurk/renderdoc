@@ -336,8 +336,10 @@ bool WrappedID3D12Device::Serialise_CreateCommandList(SerialiserType &ser, UINT 
   {
     nodeMask = 0;
 
+    // don't pass the initial state. We are about to immediately close the command list anyway, and
+    // otherwise we would need to wait on it
     ID3D12GraphicsCommandList *list = NULL;
-    HRESULT hr = CreateCommandList(nodeMask, type, pCommandAllocator, pInitialState,
+    HRESULT hr = CreateCommandList(nodeMask, type, pCommandAllocator, NULL,
                                    __uuidof(ID3D12GraphicsCommandList), (void **)&list);
 
     if(FAILED(hr))
