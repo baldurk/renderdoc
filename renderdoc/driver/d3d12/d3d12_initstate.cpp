@@ -1920,58 +1920,95 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, D3D12Init
     if(buildData)
     {
       D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC desc = {};
-
-      desc.DestAccelerationStructureData = as->GetVirtualAddress();
-
-      desc.Inputs.Type = buildData->Type;
-      desc.Inputs.Flags = buildData->Flags;
-      desc.Inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-
-      // we're not updating
-      desc.Inputs.Flags &= ~D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
-
-      if(buildData->Type == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL)
-      {
-        desc.Inputs.NumDescs = buildData->NumBLAS;
-        desc.Inputs.InstanceDescs = buildData->buffer->Address();
-      }
-      else
-      {
-        desc.Inputs.NumDescs = buildData->geoms.count();
-        // can be safely cast as the RVAs have been rebased to real VAs on serialise
-        desc.Inputs.pGeometryDescs = (D3D12_RAYTRACING_GEOMETRY_DESC *)buildData->geoms.data();
-      }
-
       D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO prebuild = {};
-      m_Device->GetRaytracingAccelerationStructurePrebuildInfo(&desc.Inputs, &prebuild);
 
-      if(!GetRTManager()->ASSerialiseBuffer ||
-         prebuild.ScratchDataSizeInBytes > GetRTManager()->ASSerialiseBuffer->Size())
+      // if we've already cached this AS don't bother doing any work to determine a rebuild
+      if(data.cachedBuiltAS == NULL)
       {
-        if(GetRTManager()->ASSerialiseBuffer)
+        desc.Inputs.Type = buildData->Type;
+        desc.Inputs.Flags = buildData->Flags;
+        desc.Inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+
+        // we're not updating
+        desc.Inputs.Flags &= ~D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
+
+        if(buildData->Type == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL)
         {
-          // synchronise the GPU to ensure any previous work is done before resizing
-          m_Device->CloseInitialStateList();
-          m_Device->ExecuteLists(NULL, true);
-          m_Device->FlushLists(true);
+          desc.Inputs.NumDescs = buildData->NumBLAS;
+          desc.Inputs.InstanceDescs = buildData->buffer->Address();
+        }
+        else
+        {
+          desc.Inputs.NumDescs = buildData->geoms.count();
+          // can be safely cast as the RVAs have been rebased to real VAs on serialise
+          desc.Inputs.pGeometryDescs = (D3D12_RAYTRACING_GEOMETRY_DESC *)buildData->geoms.data();
         }
 
-        // discourage resizes by claiming at least 4MB
-        GetRTManager()->ResizeSerialisationBuffer(
-            RDCMAX(4 * 1024 * 1024ULL, prebuild.ScratchDataSizeInBytes));
-      }
+        m_Device->GetRaytracingAccelerationStructurePrebuildInfo(&desc.Inputs, &prebuild);
 
-      desc.ScratchAccelerationStructureData = GetRTManager()->ASSerialiseBuffer->Address();
+        if(!GetRTManager()->ASSerialiseBuffer ||
+           prebuild.ScratchDataSizeInBytes > GetRTManager()->ASSerialiseBuffer->Size())
+        {
+          if(GetRTManager()->ASSerialiseBuffer)
+          {
+            // synchronise the GPU to ensure any previous work is done before resizing
+            m_Device->CloseInitialStateList();
+            m_Device->ExecuteLists(NULL, true);
+            m_Device->FlushLists(true);
+          }
+
+          // discourage resizes by claiming at least 4MB
+          GetRTManager()->ResizeSerialisationBuffer(
+              RDCMAX(4 * 1024 * 1024ULL, prebuild.ScratchDataSizeInBytes));
+        }
+
+        desc.ScratchAccelerationStructureData = GetRTManager()->ASSerialiseBuffer->Address();
+      }
 
       ID3D12GraphicsCommandListX *list = m_Device->GetInitialStateList();
 
       if(!list)
         return;
 
-      list->BuildRaytracingAccelerationStructure(&desc, 0, NULL);
-
       D3D12_RESOURCE_BARRIER barrier = {};
       barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+
+      // don't cache TLASs, rebuild every time
+      if(buildData->Type == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL)
+      {
+        desc.DestAccelerationStructureData = as->GetVirtualAddress();
+        list->BuildRaytracingAccelerationStructure(&desc, 0, NULL);
+      }
+      // if we haven't cached it, build and cache the AS then copy into place
+      else if(data.cachedBuiltAS == NULL)
+      {
+        m_GPUBufferAllocator.Alloc(D3D12GpuBufferHeapType::DefaultHeapWithUav,
+                                   D3D12GpuBufferHeapMemoryFlag::Default,
+                                   prebuild.ResultDataMaxSizeInBytes, 256, &data.cachedBuiltAS);
+
+        desc.DestAccelerationStructureData = data.cachedBuiltAS->Address();
+        list->BuildRaytracingAccelerationStructure(&desc, 0, NULL);
+
+        list->ResourceBarrier(1, &barrier);
+
+        // copy to the real location
+        list->CopyRaytracingAccelerationStructure(
+            as->GetVirtualAddress(), desc.DestAccelerationStructureData,
+            D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_CLONE);
+      }
+      // if we have a cached AS, just copy from it
+      else
+      {
+        // in future we might want to keep this to reference the geometry data, for now we can
+        // release this since we know the GPU has been synced since last time we applied initial
+        // contents and did the actual build
+        SAFE_RELEASE(data.buildData->buffer);
+
+        list->CopyRaytracingAccelerationStructure(
+            as->GetVirtualAddress(), data.cachedBuiltAS->Address(),
+            D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_CLONE);
+      }
+
       list->ResourceBarrier(1, &barrier);
     }
     else

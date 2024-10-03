@@ -767,7 +767,8 @@ struct D3D12InitialContents
         dataSize(0),
         sparseTable(NULL),
         sparseBinds(NULL),
-        buildData(NULL)
+        buildData(NULL),
+        cachedBuiltAS(NULL)
   {
   }
 
@@ -779,6 +780,7 @@ struct D3D12InitialContents
     SAFE_RELEASE(resource);
     FreeAlignedBuffer(srcData);
     SAFE_RELEASE(buildData);
+    SAFE_RELEASE(cachedBuiltAS);
   }
 
   Tag tag;
@@ -797,6 +799,8 @@ struct D3D12InitialContents
   SparseBinds *sparseBinds;
 
   ASBuildData *buildData;
+  // only on replay, we cache the result of the build so we can copy it instead to save time
+  D3D12GpuBuffer *cachedBuiltAS;
 };
 
 class WrappedID3D12GraphicsCommandList;
