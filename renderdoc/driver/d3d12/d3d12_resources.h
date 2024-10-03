@@ -1193,6 +1193,7 @@ public:
   virtual ~WrappedID3D12StateObject()
   {
     SAFE_RELEASE(properties);
+    SAFE_RELEASE(properties1);
     SAFE_RELEASE(exports);
     Shutdown();
   }
