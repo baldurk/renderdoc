@@ -4539,8 +4539,9 @@ void WrappedVulkan::vkCmdCopyQueryPoolResults(VkCommandBuffer commandBuffer, VkQ
 
     record->MarkResourceFrameReferenced(GetResID(queryPool), eFrameRef_Read);
 
+    const bool is64bit = (flags & VK_QUERY_RESULT_64_BIT) > 0;
     VkDeviceSize size = (queryCount - 1) * destStride + 4;
-    if(flags & VK_QUERY_RESULT_64_BIT)
+    if(is64bit)
     {
       size += 4;
     }
@@ -4548,34 +4549,57 @@ void WrappedVulkan::vkCmdCopyQueryPoolResults(VkCommandBuffer commandBuffer, VkQ
                                       eFrameRef_PartialWrite);
 
     const QueryPoolInfo *qpInfo = GetRecord(queryPool)->queryPoolInfo;
-    if(qpInfo->HasReplacementEntries(firstQuery, queryCount))
+    if(qpInfo)
     {
-      // We want to record these commands into the capture so they are replayed
       VkMemoryBarrier barrier = {
           VK_STRUCTURE_TYPE_MEMORY_BARRIER,
           NULL,
           VK_ACCESS_TRANSFER_WRITE_BIT,
           VK_ACCESS_TRANSFER_READ_BIT,
       };
-      vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                           VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, 1, &barrier, 0, VK_NULL_HANDLE, 0,
-                           VK_NULL_HANDLE);
+      ObjDisp(commandBuffer)
+          ->CmdPipelineBarrier(Unwrap(commandBuffer), VK_PIPELINE_STAGE_TRANSFER_BIT,
+                               VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, 1, &barrier, 0, VK_NULL_HANDLE,
+                               0, VK_NULL_HANDLE);
 
-      qpInfo->Replace(
-          firstQuery, queryCount, [&](uint32_t queryIndexStart, rdcarray<uint64_t> results) {
-            const size_t size = (size_t)(results.size() * destStride);
-            RDCASSERT(size < (1 << 16));
+      const bool hasAvailability = (flags & VK_QUERY_RESULT_WITH_AVAILABILITY_BIT) > 0;
+      const VkDeviceSize resultSize = is64bit ? sizeof(uint64_t) : sizeof(uint32_t);
 
-            const size_t resultSize = (flags & VK_QUERY_RESULT_64_BIT) ? 8 : 4;
-            byte *tmp = new byte[size];
-            size_t i = 0;
-            for(byte *ptr = tmp; ptr < (ptr + size); ptr += destStride)
-              memcpy(ptr, &results[i++], resultSize);
+      // If the stride matches the source buffer, then we can copy everything in a single region
+      if(is64bit && !hasAvailability && destStride == resultSize)
+      {
+        const VkBufferCopy region = {
+            firstQuery * resultSize,
+            destOffset,
+            queryCount * resultSize,
+        };
+        ObjDisp(commandBuffer)
+            ->CmdCopyBuffer(Unwrap(commandBuffer), Unwrap(qpInfo->m_Buffer.buf), Unwrap(destBuffer),
+                            1, &region);
+      }
+      else
+      {
+        // Copy each result into the destination, converting if required
+        rdcarray<VkBufferCopy> regions;
+        regions.reserve(queryCount);
+        for(size_t i = 0; i < queryCount; ++i)
+          regions.push_back(
+              {(firstQuery + i) * sizeof(uint64_t), destOffset + (i * destStride), resultSize});
 
-            vkCmdUpdateBuffer(commandBuffer, destBuffer, destOffset + (queryIndexStart * destStride),
-                              size, (const uint32_t *)tmp);
-            delete[] tmp;
-          });
+        ObjDisp(commandBuffer)
+            ->CmdCopyBuffer(Unwrap(commandBuffer), Unwrap(qpInfo->m_Buffer.buf), Unwrap(destBuffer),
+                            (uint32_t)regions.size(), regions.data());
+      }
+
+      if(hasAvailability)
+      {
+        const uint64_t availability = 1;
+        for(size_t i = 0; i < queryCount; ++i)
+          ObjDisp(commandBuffer)
+              ->CmdUpdateBuffer(Unwrap(commandBuffer), Unwrap(qpInfo->m_Buffer.buf),
+                                destOffset + (queryCount * resultSize) + resultSize, resultSize,
+                                (uint32_t *)&availability);
+      }
     }
   }
 }
@@ -7906,11 +7930,10 @@ void WrappedVulkan::vkCmdBuildAccelerationStructuresKHR(
       record->cmdInfo->accelerationStructures.push_back(GetRecord(geomInfo.dstAccelerationStructure));
 
       const RDResult copyResult = GetAccelerationStructureManager()->CopyInputBuffers(
-          commandBuffer, geomInfo, ppBuildRangeInfos[i], m_State);
+          commandBuffer, geomInfo, ppBuildRangeInfos[i]);
       if(copyResult != ResultCode::Succeeded)
       {
         m_LastCaptureError = copyResult;
-        RDCERR("%s", copyResult.message.c_str());
         m_CaptureFailure = true;
       }
     }
@@ -7964,6 +7987,8 @@ void WrappedVulkan::vkCmdCopyAccelerationStructureKHR(VkCommandBuffer commandBuf
 
     // Add to the command buffer metadata, so we can know when it has been submitted
     record->cmdInfo->accelerationStructures.push_back(GetRecord(pInfo->dst));
+
+    GetAccelerationStructureManager()->CopyAccelerationStructure(commandBuffer, *pInfo);
   }
 }
 
@@ -8051,16 +8076,24 @@ void WrappedVulkan::vkCmdWriteAccelerationStructuresPropertiesKHR(
 
   // The compacted size can vary between capture and replay, so to ensure we always have enough
   // memory we return the full AS size
-  if(queryType == VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR)
+  QueryPoolInfo *qpInfo = GetRecord(queryPool)->queryPoolInfo;
+  if(qpInfo)
   {
-    auto &qpInfo = GetRecord(queryPool)->queryPoolInfo;
-
     rdcarray<uint64_t> sizes;
     sizes.reserve(accelerationStructureCount);
     for(uint32_t i = 0; i < accelerationStructureCount; ++i)
       sizes.push_back(GetRecord(pAccelerationStructures[i])->memSize);
 
-    qpInfo->Add(firstQuery, std::move(sizes));
+    constexpr size_t maxTransferrableBytes = 65536;
+    const size_t totalBytes = sizes.size() * sizeof(uint64_t);
+    for(size_t i = 0; i < totalBytes; i += maxTransferrableBytes)
+    {
+      const VkDeviceSize numBytes = RDCMIN(maxTransferrableBytes, totalBytes);
+      const VkDeviceSize startOffset = (firstQuery * sizeof(uint64_t)) + i;
+      ObjDisp(commandBuffer)
+          ->CmdUpdateBuffer(Unwrap(commandBuffer), Unwrap(qpInfo->m_Buffer.buf), startOffset,
+                            numBytes, (uint32_t *)((byte *)sizes.data() + i));
+    }
   }
 
   ObjDisp(commandBuffer)

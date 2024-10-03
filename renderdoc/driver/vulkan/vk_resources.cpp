@@ -3948,105 +3948,17 @@ void ImgRefs::Split(bool splitAspects, bool splitLevels, bool splitLayers)
   areLayersSplit = newSplitLayerCount > 1;
 }
 
-void QueryPoolInfo::Add(uint32_t firstQuery, rdcarray<uint64_t> values)
+QueryPoolInfo::QueryPoolInfo(WrappedVulkan *driver, VkDevice device,
+                             const VkQueryPoolCreateInfo *pCreateInfo)
 {
-  Reset(firstQuery, (uint32_t)values.size());
-
-  m_Entries.reserve(m_Entries.size() + values.size());
-  for(uint64_t value : values)
-    m_Entries.emplace_back(firstQuery++, value);
-
-  std::sort(m_Entries.begin(), m_Entries.end());
+  m_Buffer.Create(driver, device, pCreateInfo->queryCount * 8, 1, GPUBuffer::eGPUBufferReadback);
+  m_MappedMem = (byte *)m_Buffer.Map(0, m_Buffer.totalsize);
 }
 
-void QueryPoolInfo::Reset(uint32_t firstQuery, uint32_t queryCount)
+QueryPoolInfo::~QueryPoolInfo()
 {
-  m_Entries.removeIf([&](const auto &entry) {
-    return (entry.index >= firstQuery) && (entry.index < (firstQuery + queryCount));
-  });
-}
-
-void QueryPoolInfo::Replace(uint32_t firstQuery, uint32_t queryCount, void *pData,
-                            VkDeviceSize stride, VkQueryResultFlags flags) const
-{
-  const auto writeEntry = [&](Entry queryPoolInfoEntry) {
-    const size_t num_bytes = (flags & VK_QUERY_RESULT_64_BIT) ? 8 : 4;
-
-    byte *pStart = (byte *)pData + (queryPoolInfoEntry.index * stride);
-    memcpy(pStart, &queryPoolInfoEntry.value, num_bytes);
-  };
-
-  Replace(firstQuery, queryCount, writeEntry);
-}
-
-void QueryPoolInfo::Replace(uint32_t firstQuery, uint32_t queryCount,
-                            const std::function<void(uint32_t, rdcarray<uint64_t>)> &writeEntry) const
-{
-  rdcarray<Entry> entries;
-  entries.reserve(queryCount);
-
-  // Swap out any AS compaction sizes with the replacements
-  Replace(firstQuery, queryCount, [&](Entry entry) { entries.push_back(entry); });
-
-  std::sort(entries.begin(), entries.end());
-
-  // Now batch into contiguous ranges and dispatch
-  for(size_t i = 0; i < entries.size();)
-  {
-    uint32_t queryIndex = entries[i].index;
-    rdcarray<uint64_t> batch;
-
-    while(queryIndex == entries[++i].index)
-    {
-      batch.push_back(entries[i].value);
-      ++queryIndex;
-    }
-
-    writeEntry(queryIndex, std::move(batch));
-  }
-}
-
-bool QueryPoolInfo::HasReplacementEntries(uint32_t firstQuery, uint32_t queryCount) const
-{
-  uint32_t start, end;
-  rdctie(start, end) = GetIntersection(firstQuery, queryCount);
-  return start <= end;
-}
-
-rdcpair<uint32_t, uint32_t> QueryPoolInfo::GetIntersection(uint32_t firstQuery,
-                                                           uint32_t queryCount) const
-{
-  if(m_Entries.empty())
-    return {1, 0};    // Invalid
-
-  const uint32_t start = RDCMAX(firstQuery, m_Entries.front().index);
-  const uint32_t end = RDCMIN(firstQuery + queryCount - 1, (uint32_t)m_Entries.back().index);
-  return {start, end};
-}
-
-void QueryPoolInfo::Replace(uint32_t firstQuery, uint32_t queryCount,
-                            const std::function<void(Entry)> &writeEntry) const
-{
-  if(!m_Entries.empty())
-  {
-    // Find the intersection of the two query ranges
-    uint32_t start, end;
-    rdctie(start, end) = GetIntersection(firstQuery, queryCount);
-    if(end < start)
-      return;
-
-    uint32_t j = 0;
-    for(uint32_t i = start; i < end; ++i)
-    {
-      // The indices are sparse but ordered
-      while(i != m_Entries[j].index)
-      {
-        ++j;
-      }
-
-      writeEntry(m_Entries[j]);
-    }
-  }
+  m_Buffer.Unmap();
+  m_Buffer.Destroy();
 }
 
 VkResourceRecord::~VkResourceRecord()

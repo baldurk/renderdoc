@@ -107,14 +107,13 @@ public:
   // are copied.
   RDResult CopyInputBuffers(VkCommandBuffer commandBuffer,
                             const VkAccelerationStructureBuildGeometryInfoKHR &info,
-                            const VkAccelerationStructureBuildRangeInfoKHR *buildRange,
-                            CaptureState state);
+                            const VkAccelerationStructureBuildRangeInfoKHR *buildRange);
 
   // Copies the metadata from src to dst, the input buffers are identical so don't need to be
   // duplicated.  Compaction is ignored but the copy is still performed so the dst handle is valid
   // on replay
   void CopyAccelerationStructure(VkCommandBuffer commandBuffer,
-                                 const VkCopyAccelerationStructureInfoKHR &pInfo, CaptureState state);
+                                 const VkCopyAccelerationStructureInfoKHR &pInfo);
 
   // Called when the initial state is prepared.  Any TLAS and BLAS data is copied into temporary
   // buffers and the handles for that memory and the buffers is stored in the init state
@@ -135,7 +134,7 @@ private:
   RecordAndOffset GetDeviceAddressData(VkDeviceAddress address) const;
 
   template <typename T>
-  void DeletePreviousInfo(VkCommandBuffer commandBuffer, T *info, CaptureState state);
+  void DeletePreviousInfo(VkCommandBuffer commandBuffer, T *info);
 
   VkDeviceSize SerialisedASSize(VkAccelerationStructureKHR unwrappedAs);
 

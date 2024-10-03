@@ -75,7 +75,7 @@ VulkanAccelerationStructureManager::VulkanAccelerationStructureManager(WrappedVu
 
 RDResult VulkanAccelerationStructureManager::CopyInputBuffers(
     VkCommandBuffer commandBuffer, const VkAccelerationStructureBuildGeometryInfoKHR &info,
-    const VkAccelerationStructureBuildRangeInfoKHR *buildRange, CaptureState state)
+    const VkAccelerationStructureBuildRangeInfoKHR *buildRange)
 {
   VkResourceRecord *cmdRecord = GetRecord(commandBuffer);
   RDCASSERT(cmdRecord);
@@ -87,7 +87,7 @@ RDResult VulkanAccelerationStructureManager::CopyInputBuffers(
   VkAccelerationStructureInfo *metadata = asRecord->accelerationStructureInfo;
   if(!metadata->geometryData.empty())
   {
-    DeletePreviousInfo(commandBuffer, metadata, state);
+    DeletePreviousInfo(commandBuffer, metadata);
     metadata = asRecord->accelerationStructureInfo = new VkAccelerationStructureInfo();
   }
 
@@ -360,8 +360,8 @@ RDResult VulkanAccelerationStructureManager::CopyInputBuffers(
             geometry.geometry.instances;
 
         if(instanceInfo.arrayOfPointers)
-          return RDResult(ResultCode::InternalError,
-                          "AS instance build arrayOfPointers unsupported");
+          RETURN_ERROR_RESULT(ResultCode::InternalError,
+                              "AS instance build arrayOfPointers unsupported");
 
         // Find the associated VkBuffer
         BufferData data = GetDeviceAddressData(instanceInfo.data.deviceAddress);
@@ -432,7 +432,7 @@ RDResult VulkanAccelerationStructureManager::CopyInputBuffers(
 }
 
 void VulkanAccelerationStructureManager::CopyAccelerationStructure(
-    VkCommandBuffer commandBuffer, const VkCopyAccelerationStructureInfoKHR &pInfo, CaptureState state)
+    VkCommandBuffer commandBuffer, const VkCopyAccelerationStructureInfoKHR &pInfo)
 {
   VkResourceRecord *srcRecord = GetRecord(pInfo.src);
   RDCASSERT(srcRecord->accelerationStructureInfo != NULL);
@@ -441,7 +441,7 @@ void VulkanAccelerationStructureManager::CopyAccelerationStructure(
   VkResourceRecord *dstRecord = GetRecord(pInfo.dst);
   VkAccelerationStructureInfo *info = dstRecord->accelerationStructureInfo;
   if(!info->geometryData.empty())
-    DeletePreviousInfo(commandBuffer, info, state);
+    DeletePreviousInfo(commandBuffer, info);
 
   // Rather than copy the backing mem, we can just increase the ref count.  If there is an update
   // build to the AS then the ref will be replaced in the record, so there's no risk of aliasing.
@@ -859,8 +859,7 @@ VulkanAccelerationStructureManager::RecordAndOffset VulkanAccelerationStructureM
 }
 
 template <typename T>
-void VulkanAccelerationStructureManager::DeletePreviousInfo(VkCommandBuffer commandBuffer, T *info,
-                                                            CaptureState state)
+void VulkanAccelerationStructureManager::DeletePreviousInfo(VkCommandBuffer commandBuffer, T *info)
 {
   VkResourceRecord *cmdRecord = GetRecord(commandBuffer);
   cmdRecord->cmdInfo->pendingSubmissionCompleteCallbacks->callbacks.push_back(
@@ -869,8 +868,7 @@ void VulkanAccelerationStructureManager::DeletePreviousInfo(VkCommandBuffer comm
 
 // OMM suport todo
 template void VulkanAccelerationStructureManager::DeletePreviousInfo(VkCommandBuffer commandBuffer,
-                                                                     VkAccelerationStructureInfo *info,
-                                                                     CaptureState state);
+                                                                     VkAccelerationStructureInfo *info);
 
 VkDeviceSize VulkanAccelerationStructureManager::SerialisedASSize(VkAccelerationStructureKHR unwrappedAs)
 {

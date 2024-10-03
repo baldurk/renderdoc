@@ -1649,7 +1649,15 @@ VkResult WrappedVulkan::vkCreateQueryPool(VkDevice device, const VkQueryPoolCrea
       }
 
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pQueryPool);
-      record->queryPoolInfo = new QueryPoolInfo();
+
+      // We swap out the queried compacted AS size for the uncompacted size as they can differ
+      // between capture and replay
+      if(pCreateInfo->queryType == VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR)
+      {
+        record->queryPoolInfo = new QueryPoolInfo(this, device, pCreateInfo);
+        GetResourceManager()->SetInternalResource(GetResID(record->queryPoolInfo->m_Buffer.buf));
+        GetResourceManager()->SetInternalResource(GetResID(record->queryPoolInfo->m_Buffer.mem));
+      }
 
       record->AddChunk(chunk);
     }
@@ -1670,7 +1678,41 @@ VkResult WrappedVulkan::vkGetQueryPoolResults(VkDevice device, VkQueryPool query
   VkResult result = ObjDisp(device)->GetQueryPoolResults(
       Unwrap(device), Unwrap(queryPool), firstQuery, queryCount, dataSize, pData, stride, flags);
 
-  GetRecord(queryPool)->queryPoolInfo->Replace(firstQuery, queryCount, pData, stride, flags);
+  const QueryPoolInfo *qpInfo = GetRecord(queryPool)->queryPoolInfo;
+  if(qpInfo)
+  {
+    VkMappedMemoryRange range = {
+        VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+        NULL,
+        qpInfo->m_Buffer.mem,
+        firstQuery * sizeof(uint64_t),
+        queryCount * sizeof(uint64_t),
+    };
+    vkInvalidateMappedMemoryRanges(device, 1, &range);
+
+    const bool is64bit = (flags & VK_QUERY_RESULT_64_BIT) > 0;
+    const bool hasAvailability = (flags & VK_QUERY_RESULT_WITH_AVAILABILITY_BIT) > 0;
+    const size_t resultSize = is64bit ? sizeof(uint64_t) : sizeof(uint32_t);
+
+    // If the stride matches the source buffer, then we can copy everything in a single block
+    if(is64bit && !hasAvailability && stride == resultSize)
+    {
+      memcpy(pData, qpInfo->m_MappedMem + (firstQuery * resultSize), queryCount * resultSize);
+    }
+    else
+    {
+      for(size_t i = 0; i < queryCount; ++i)
+        memcpy((byte *)pData + (i * stride), qpInfo->m_MappedMem + ((firstQuery + i) * resultSize),
+               resultSize);
+    }
+
+    if(hasAvailability)
+    {
+      const uint64_t availability = 1;
+      for(size_t i = 0; i < queryCount; ++i)
+        memcpy((byte *)pData + (queryCount * stride) + resultSize, &availability, resultSize);
+    }
+  }
 
   return result;
 }
@@ -1704,8 +1746,6 @@ void WrappedVulkan::vkResetQueryPool(VkDevice device, VkQueryPool queryPool, uin
 
   SERIALISE_TIME_CALL(
       ObjDisp(device)->ResetQueryPool(Unwrap(device), Unwrap(queryPool), firstQuery, queryCount));
-
-  GetRecord(queryPool)->queryPoolInfo->Reset(firstQuery, queryCount);
 
   if(IsActiveCapturing(m_State))
   {
