@@ -327,6 +327,11 @@ rdcstr Program::GetDebugScopeFilePath(const DIBase *d) const
       scope = scope->dwarf->As<DILexicalBlock>()->scope;
       continue;
     }
+    else if(scope->dwarf->type == DIBase::CompositeType)
+    {
+      scope = scope->dwarf->As<DICompositeType>()->file;
+      continue;
+    }
     break;
   }
   if(d->type != DIBase::File)
