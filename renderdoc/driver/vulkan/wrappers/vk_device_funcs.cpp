@@ -4413,6 +4413,14 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
     m_AccelerationStructures = true;
   }
 
+  VkPhysicalDeviceRayTracingPipelineFeaturesKHR *rtpFeatures =
+      (VkPhysicalDeviceRayTracingPipelineFeaturesKHR *)FindNextStruct(
+          &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR);
+  if(rtpFeatures && rtpFeatures->rayTracingPipeline)
+  {
+    rtpFeatures->rayTracingPipelineShaderGroupHandleCaptureReplay = VK_TRUE;
+  }
+
   VkResult ret;
   SERIALISE_TIME_CALL(ret = createFunc(Unwrap(physicalDevice), &createInfo, NULL, pDevice));
 
