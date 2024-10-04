@@ -87,9 +87,12 @@ TEST_CASE("Test basic stream I/O operations", "[streamio]")
   CHECK_FALSE(reader.IsErrored());
   CHECK(reader.AtEnd());
 
+  EXPECT_ERROR();
+
   // reading off the end should read 0s and move to error state
   reader.Read(test);
   CHECK(test == 0);
+  CHECK(DID_ERROR_HAPPEN());
 
   CHECK(reader.IsErrored());
 };
@@ -98,9 +101,11 @@ TEST_CASE("Test stream I/O with invalid/broken outputs", "[streamio]")
 {
   SECTION("NULL file writer")
   {
+    EXPECT_ERROR();
     StreamWriter writer((FILE *)NULL, Ownership::Stream);
 
     CHECK(writer.IsErrored());
+    CHECK(DID_ERROR_HAPPEN());
 
     uint32_t test = 5;
     writer.Write(test);
@@ -110,9 +115,11 @@ TEST_CASE("Test stream I/O with invalid/broken outputs", "[streamio]")
 
   SECTION("NULL socket writer")
   {
+    EXPECT_ERROR();
     StreamWriter writer((Network::Socket *)NULL, Ownership::Stream);
 
     CHECK(writer.IsErrored());
+    CHECK(DID_ERROR_HAPPEN());
 
     uint32_t test = 5;
     writer.Write(test);
@@ -122,9 +129,11 @@ TEST_CASE("Test stream I/O with invalid/broken outputs", "[streamio]")
 
   SECTION("NULL file reader")
   {
+    EXPECT_ERROR();
     StreamReader reader((FILE *)NULL, 0, Ownership::Stream);
 
     CHECK(reader.IsErrored());
+    CHECK(DID_ERROR_HAPPEN());
 
     uint32_t test = 5;
     reader.Read(test);
@@ -134,9 +143,11 @@ TEST_CASE("Test stream I/O with invalid/broken outputs", "[streamio]")
 
   SECTION("NULL file reader")
   {
+    EXPECT_ERROR();
     StreamReader reader((FILE *)NULL);
 
     CHECK(reader.IsErrored());
+    CHECK(DID_ERROR_HAPPEN());
 
     uint32_t test = 5;
     reader.Read(test);
@@ -146,9 +157,11 @@ TEST_CASE("Test stream I/O with invalid/broken outputs", "[streamio]")
 
   SECTION("NULL socket reader")
   {
+    EXPECT_ERROR();
     StreamReader reader((Network::Socket *)NULL, Ownership::Stream);
 
     CHECK(reader.IsErrored());
+    CHECK(DID_ERROR_HAPPEN());
 
     uint32_t test = 5;
     reader.Read(test);

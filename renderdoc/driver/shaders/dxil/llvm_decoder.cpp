@@ -402,14 +402,19 @@ TEST_CASE("Check LLVM bitreader", "[llvm]")
     uint32_t val1 = b.fixed<uint32_t>(17);
     CHECK(val1 == 0x18040);
 
+    EXPECT_ERROR();
+
     // second read is partially out of bounds, we should read all 0s
     uint32_t val2 = b.fixed<uint32_t>(16);
     CHECK(val2 == 0);
+
+    CHECK(DID_ERROR_HAPPEN());
 
     // should be exactly at the end of the stream
     CHECK(b.AtEndOfStream());
     CHECK(b.ByteOffset() == sizeof(bits));
     CHECK(b.BitOffset() == sizeof(bits) * 8);
+    CHECK(b.IsErrored());
   }
 
   SECTION("Check fixed encoding")

@@ -40,6 +40,10 @@
 Threading::CriticalSection detailStringLock;
 rdcarray<const rdcstr *> detailStrings;
 
+#if ENABLED(ENABLE_UNIT_TESTS)
+bool RDResult::testErrorExpected = false;
+#endif
+
 RDResult::operator ResultDetails() const
 {
   RDCCOMPILE_ASSERT(ResultCode(0) == ResultCode::Succeeded,

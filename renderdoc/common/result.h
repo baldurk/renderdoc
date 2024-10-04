@@ -49,9 +49,36 @@ struct RDResult
   bool operator==(ResultCode result) const { return code == result; }
   bool operator!=(ResultCode result) const { return code != result; }
   operator ResultDetails() const;
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+  static bool testErrorExpected;
+#endif
 };
 
 DECLARE_REFLECTION_STRUCT(RDResult);
+
+#if ENABLED(ENABLE_UNIT_TESTS)
+
+#define EXPECT_ERROR() RDResult::testErrorExpected = true;
+
+#define PRINT_ERROR(...)                    \
+  if(RDResult::testErrorExpected)           \
+  {                                         \
+    RDCLOG("Expected error: " __VA_ARGS__); \
+    RDResult::testErrorExpected = false;    \
+  }                                         \
+  else                                      \
+    RDCERR(__VA_ARGS__);
+
+#define DID_ERROR_HAPPEN() (RDResult::testErrorExpected == false)
+
+#else
+
+#define EXPECT_ERROR()
+#define PRINT_ERROR RDCERR
+#define DID_ERROR_HAPPEN() false
+
+#endif
 
 // helper macros since we often want to print the error message that gets returned.
 // one helper returns immediately, the other sets a result and prints - to allow cleanup
@@ -59,7 +86,7 @@ DECLARE_REFLECTION_STRUCT(RDResult);
   do                                                                                           \
   {                                                                                            \
     RDResult CONCAT(res, __LINE__)(code, StringFormat::Fmt(STRING_LITERAL(msg), __VA_ARGS__)); \
-    RDCERR("%s", CONCAT(res, __LINE__).message.c_str());                                       \
+    PRINT_ERROR("%s", CONCAT(res, __LINE__).message.c_str());                                  \
     return CONCAT(res, __LINE__);                                                              \
   } while(0)
 
@@ -67,7 +94,7 @@ DECLARE_REFLECTION_STRUCT(RDResult);
   do                                                                           \
   {                                                                            \
     res = RDResult(code, StringFormat::Fmt(STRING_LITERAL(msg), __VA_ARGS__)); \
-    RDCERR("%s", res.message.c_str());                                         \
+    PRINT_ERROR("%s", res.message.c_str());                                    \
   } while(0)
 
 #define RETURN_WARNING_RESULT_INTERNAL(code, msg, ...)                                         \

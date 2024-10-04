@@ -25,6 +25,7 @@
 #pragma once
 
 #include "common/common.h"
+#include "common/formatting.h"
 
 namespace LLVMBC
 {
@@ -166,9 +167,16 @@ public:
     m_Bits += (alignedByteOffs - byteOffs);
   }
 
+  bool IsErrored() { return m_Error != ResultCode::Succeeded; }
+  RDResult GetError() { return m_Error; }
+
 private:
   const byte *m_Bits, *m_Start, *m_End;
   size_t m_Offset;
+
+  // result indicating if an error has been encountered and the stream is now invalid, with details
+  // of what happened
+  RDResult m_Error;
 
   void Advance(size_t N)
   {
@@ -188,7 +196,7 @@ private:
   {
     if(BitOffset() + bitsToRead > BitLength())
     {
-      RDCERR("Reading off end of bitstream");
+      SET_ERROR_RESULT(m_Error, ResultCode::InternalError, "Reading off end of bitstream");
 
       // read 0s off the end of the stream.
       // set any whole bytes to 0:
