@@ -4627,6 +4627,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
   {
     PixelModification &mod = history[h];
 
+    uint32_t eid = mod.eventId;
     int32_t eventIndex = cb.GetEventIndex(mod.eventId);
     if(eventIndex == -1)
     {
@@ -4685,7 +4686,7 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
     RDCDEBUG(
         "PixelHistory event id: %u, fixed shader stencilValue = %u, original shader stencilValue = "
         "%u",
-        mod.eventId, ei.dsWithoutShaderDiscard[4], ei.dsWithShaderDiscard[4]);
+        eid, ei.dsWithoutShaderDiscard[4], ei.dsWithShaderDiscard[4]);
   }
   m_pDriver->vkUnmapMemory(dev, resources.bufferMemory);
 

@@ -2978,6 +2978,7 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
   {
     PixelModification &mod = history[h];
 
+    uint32_t eid = mod.eventId;
     int32_t eventIndex = cb.GetEventIndex(mod.eventId);
     if(eventIndex == -1)
     {
@@ -3036,10 +3037,14 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
       eventPremods[mod.eventId] = mod.preMod;
     }
 
-    for(int32_t f = 1; f < frags; f++)
     {
-      history.insert(h + 1, mod);
+      PixelModification duplicate = mod;
+      for(int32_t f = 1; f < frags; f++)
+      {
+        history.insert(h + 1, duplicate);
+      }
     }
+
     for(int32_t f = 0; f < frags; f++)
       history[h + f].fragIndex = f;
     h += RDCMAX(1, frags);
@@ -3047,7 +3052,7 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
         "PixelHistory event id: %u, fixed shader stencilValue = %u, "
         "original shader stencilValue = "
         "%u",
-        mod.eventId, ei.dsWithoutShaderDiscard[0], ei.dsWithShaderDiscard[0]);
+        eid, ei.dsWithoutShaderDiscard[0], ei.dsWithShaderDiscard[0]);
   }
 
   if(eventsWithFrags.size() > 0)
