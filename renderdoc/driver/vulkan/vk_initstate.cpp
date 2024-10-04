@@ -577,25 +577,18 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
   else if(type == eResAccelerationStructureKHR)
   {
     VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
-
     if(!record->accelerationStructureInfo->accelerationStructureBuilt)
     {
       RDCDEBUG("Skipping AS %s as it has not been built", ToStr(id).c_str());
       return true;
     }
 
-    VulkanAccelerationStructureManager::ASMemory result;
-    VkAccelerationStructureKHR as = ToUnwrappedHandle<VkAccelerationStructureKHR>(res);
-    if(!GetAccelerationStructureManager()->Prepare(as, m_QueueFamilyIndices, result))
-    {
-      SET_ERROR_RESULT(m_LastCaptureError, ResultCode::OutOfMemory,
-                       "Couldn't allocate readback memory");
-      m_CaptureFailure = true;
-      return false;
-    }
-
-    VkInitialContents ic = VkInitialContents(type, result.alloc);
-    ic.isTLAS = result.isTLAS;
+    // The input buffers and metadata have all been created by this point, so we just need to
+    // assemble a VkInitialContents
+    VkInitialContents ic;
+    ic.type = type;
+    ic.accelerationStructureInfo = record->accelerationStructureInfo;
+    ic.accelerationStructureInfo->AddRef();
 
     GetResourceManager()->SetInitialContents(id, ic);
     m_PreparedNotSerialisedInitStates.push_back(id);
@@ -639,11 +632,14 @@ uint64_t WrappedVulkan::GetSize_InitialState(ResourceId id, const VkInitialConte
     // buffers only have initial states when they're sparse
     return ret;
   }
-  else if(initial.type == eResImage || initial.type == eResDeviceMemory ||
-          initial.type == eResAccelerationStructureKHR)
+  else if(initial.type == eResImage || initial.type == eResDeviceMemory)
   {
     // the size primarily comes from the buffer, the size of which we conveniently have stored.
     return ret + uint64_t(128 + initial.mem.size + WriteSerialiser::GetChunkAlignment());
+  }
+  else if(initial.type == eResAccelerationStructureKHR)
+  {
+    return GetAccelerationStructureManager()->GetSize_InitialState(id, initial);
   }
 
   RDCERR("Unhandled resource type %s", ToStr(initial.type).c_str());
