@@ -223,11 +223,14 @@ private:
         // how many remaining bits are there in the next byte
         const size_t remainingBits = bufBitSize - 8;
 
-        buf++;
-        b = *buf;
-        // mask as necessary
-        if(remainingBits < 8)
-          b &= (1 << remainingBits) - 1;
+        if(remainingBits > 0)
+        {
+          buf++;
+          b = *buf;
+          // mask as necessary
+          if(remainingBits < 8)
+            b &= (1 << remainingBits) - 1;
+        }
       }
 
       bufBitSize -= 8;

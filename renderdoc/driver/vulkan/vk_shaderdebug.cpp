@@ -1612,7 +1612,8 @@ private:
       // lower_bound puts us at the same or next item. Since we want the buffer that contains
       // this address, we go to the previous iter unless we're already on the first or
       // it's an exact match
-      if(address != it->first && it != m_Creation.m_BufferAddresses.begin())
+      if(it == m_Creation.m_BufferAddresses.end() ||
+         (address != it->first && it != m_Creation.m_BufferAddresses.begin()))
         it--;
       // use the index in the map as a unique buffer identifier that's not 64-bit
       bind.arrayElement = uint32_t(it - m_Creation.m_BufferAddresses.begin());

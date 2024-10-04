@@ -6393,6 +6393,9 @@ void VulkanReplay::InitPostVSBuffers(const rdcarray<uint32_t> &events)
     break;
   }
 
+  if(first >= events.size())
+    return;
+
   // first we must replay up to the first event without replaying it. This ensures any
   // non-command buffer calls like memory unmaps etc all happen correctly before this
   // command buffer

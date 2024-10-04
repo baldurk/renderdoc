@@ -800,7 +800,7 @@ void ReconstructVarTree(GLenum query, GLuint sepProg, GLuint varIdx, GLint numPa
   int32_t c = values[1] - 1;
 
   // trim off trailing [0] if it's an array
-  if(var.name[c - 3] == '[' && var.name[c - 2] == '0' && var.name[c - 1] == ']')
+  if(var.name.size() > 3 && var.name[c - 3] == '[' && var.name[c - 2] == '0' && var.name[c - 1] == ']')
     var.name.resize(c - 3);
   else
     var.type.elements = 1;

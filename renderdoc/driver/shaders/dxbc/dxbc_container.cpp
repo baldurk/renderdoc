@@ -2531,7 +2531,7 @@ float4 main(float3 input : INPUT) : SV_Target0
       }
     }
 
-    bool dwordLength[15] = {};
+    bool dwordLength[16] = {};
 
     for(rdcstr snippet : snippets)
     {
