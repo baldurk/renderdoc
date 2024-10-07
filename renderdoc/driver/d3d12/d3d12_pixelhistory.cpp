@@ -2979,7 +2979,7 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
     PixelModification &mod = history[h];
 
     uint32_t eid = mod.eventId;
-    int32_t eventIndex = cb.GetEventIndex(mod.eventId);
+    int32_t eventIndex = cb.GetEventIndex(eid);
     if(eventIndex == -1)
     {
       // There is no information, skip the event.
