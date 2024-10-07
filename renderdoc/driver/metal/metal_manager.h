@@ -167,7 +167,7 @@ private:
   bool Serialise_InitialState(WriteSerialiser &ser, ResourceId id, MetalResourceRecord *record,
                               const MetalInitialContents *initial);
   void Create_InitialState(ResourceId id, WrappedMTLObject *live, bool hasData);
-  void Apply_InitialState(WrappedMTLObject *live, const MetalInitialContents &initial);
+  void Apply_InitialState(WrappedMTLObject *live, MetalInitialContents &initial);
   // ResourceManager interface
 
   WrappedMTLDevice *m_Device;

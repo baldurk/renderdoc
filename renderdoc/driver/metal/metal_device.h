@@ -134,7 +134,7 @@ public:
   bool Serialise_InitialState(SerialiserType &ser, ResourceId id, MetalResourceRecord *record,
                               const MetalInitialContents *initial);
   void Create_InitialState(ResourceId id, WrappedMTLObject *live, bool hasData);
-  void Apply_InitialState(WrappedMTLObject *live, const MetalInitialContents &initial);
+  void Apply_InitialState(WrappedMTLObject *live, MetalInitialContents &initial);
   // From ResourceManager interface
 
   void RegisterMetalLayer(CA::MetalLayer *mtlLayer);

@@ -161,7 +161,7 @@ void WrappedMTLDevice::Create_InitialState(ResourceId id, WrappedMTLObject *live
   METAL_NOT_IMPLEMENTED();
 }
 
-void WrappedMTLDevice::Apply_InitialState(WrappedMTLObject *live, const MetalInitialContents &initial)
+void WrappedMTLDevice::Apply_InitialState(WrappedMTLObject *live, MetalInitialContents &initial)
 {
   METAL_NOT_IMPLEMENTED();
 }

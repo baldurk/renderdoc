@@ -53,8 +53,7 @@ void MetalResourceManager::Create_InitialState(ResourceId id, WrappedMTLObject *
   return m_Device->Create_InitialState(id, live, hasData);
 }
 
-void MetalResourceManager::Apply_InitialState(WrappedMTLObject *live,
-                                              const MetalInitialContents &initial)
+void MetalResourceManager::Apply_InitialState(WrappedMTLObject *live, MetalInitialContents &initial)
 {
   return m_Device->Apply_InitialState(live, initial);
 }
