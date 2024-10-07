@@ -1279,6 +1279,7 @@ ASBuildData *D3D12RTManager::CopyBuildInputs(
   ASBuildData *ret = new ASBuildData;
   ret->Type = inputs.Type;
   ret->Flags = inputs.Flags;
+  ret->timestamp = m_Timestamp.GetMilliseconds();
 
   if(inputs.Type == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL)
   {
@@ -1335,6 +1336,7 @@ ASBuildData *D3D12RTManager::CopyBuildInputs(
 
     // calculate how much data is needed. Add 256 bytes padding
     uint64_t byteSize = 0;
+    uint64_t bytesOverhead = 0;
     for(const ASBuildData::RTGeometryDesc &desc : ret->geoms)
     {
       if(desc.Type == D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS)
@@ -1344,6 +1346,10 @@ ASBuildData *D3D12RTManager::CopyBuildInputs(
           byteSize += (desc.AABBs.AABBCount - 1) * desc.AABBs.AABBs.StrideInBytes;
           byteSize += sizeof(D3D12_RAYTRACING_AABB);
           byteSize = AlignUp16(byteSize);
+
+          if(desc.AABBs.AABBs.StrideInBytes > sizeof(D3D12_RAYTRACING_AABB))
+            bytesOverhead += (desc.AABBs.AABBCount - 1) *
+                             (desc.AABBs.AABBs.StrideInBytes - sizeof(D3D12_RAYTRACING_AABB));
         }
       }
       else
@@ -1371,10 +1377,24 @@ ASBuildData *D3D12RTManager::CopyBuildInputs(
               (untrustedVertexCount / 100) * D3D12_Debug_RTMaxVertexPercentIncrease() +
               D3D12_Debug_RTMaxVertexIncrement();
 
+          RDCASSERT(vbSize >= desc.Triangles.VertexBuffer.StrideInBytes * untrustedVertexCount);
+
           vbSize = RDCMIN(vbSize, desc.Triangles.VertexBuffer.StrideInBytes * estimatedVertexCount);
 
           byteSize += vbSize;
           byteSize = AlignUp16(byteSize);
+
+          uint64_t tightStride = GetByteSize(1, 1, 1, desc.Triangles.VertexFormat, 0);
+
+          if(desc.Triangles.VertexBuffer.StrideInBytes > tightStride)
+          {
+            bytesOverhead += vbSize - (tightStride * untrustedVertexCount);
+          }
+          else if(vbSize > desc.Triangles.VertexBuffer.StrideInBytes * untrustedVertexCount)
+          {
+            bytesOverhead +=
+                vbSize - (desc.Triangles.VertexBuffer.StrideInBytes * untrustedVertexCount);
+          }
         }
         else
         {
@@ -1382,12 +1402,20 @@ ASBuildData *D3D12RTManager::CopyBuildInputs(
           {
             byteSize += (desc.Triangles.VertexCount - 1) * desc.Triangles.VertexBuffer.StrideInBytes;
 
-            byteSize += GetByteSize(1, 1, 1, desc.Triangles.VertexFormat, 0);
+            uint64_t tightStride = GetByteSize(1, 1, 1, desc.Triangles.VertexFormat, 0);
+
+            if(desc.Triangles.VertexBuffer.StrideInBytes > tightStride)
+              bytesOverhead += (desc.Triangles.VertexCount - 1) *
+                               (desc.Triangles.VertexBuffer.StrideInBytes - tightStride);
+
+            byteSize += tightStride;
             byteSize = AlignUp16(byteSize);
           }
         }
       }
     }
+
+    ret->bytesOverhead = bytesOverhead;
 
     m_GPUBufferAllocator.Alloc(D3D12GpuBufferHeapType::ReadBackHeap,
                                D3D12GpuBufferHeapMemoryFlag::Default, byteSize, 256, &ret->buffer);
@@ -2612,8 +2640,59 @@ void ASBuildData::Release()
   unsigned int ret = InterlockedDecrement(&m_RefCount);
   if(ret == 0)
   {
+    {
+#if ENABLED(RDOC_DEVEL)
+      SCOPED_WRITELOCK(dataslock);
+      datas.removeOne(this);
+#endif
+    }
+
     SAFE_RELEASE(buffer);
 
     delete this;
   }
+}
+
+#if ENABLED(RDOC_DEVEL)
+Threading::RWLock ASBuildData::dataslock;
+rdcarray<ASBuildData *> ASBuildData::datas;
+#endif
+
+void ASBuildData::GatherASAgeStatistics(D3D12ResourceManager *rm, double now, ASStats &blasAges,
+                                        ASStats &tlasAges)
+{
+#if ENABLED(RDOC_DEVEL)
+  SCOPED_READLOCK(dataslock);
+
+  blasAges.bucket[0].msThreshold = tlasAges.bucket[0].msThreshold = 50;
+  blasAges.bucket[1].msThreshold = tlasAges.bucket[1].msThreshold = 500;
+  blasAges.bucket[2].msThreshold = tlasAges.bucket[2].msThreshold = 5000;
+  blasAges.bucket[3].msThreshold = tlasAges.bucket[3].msThreshold = ~0U;
+
+  for(ASBuildData *buildData : datas)
+  {
+    if(buildData)
+    {
+      uint32_t age = uint32_t(now - buildData->timestamp);
+
+      ASStats &ages = buildData->Type == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL
+                          ? tlasAges
+                          : blasAges;
+
+      uint64_t size = buildData->buffer ? buildData->buffer->Size() : 0;
+
+      ages.overheadBytes += buildData->bytesOverhead;
+
+      for(size_t i = 0; i < ARRAY_COUNT(tlasAges.bucket); i++)
+      {
+        if(age <= ages.bucket[i].msThreshold)
+        {
+          ages.bucket[i].count++;
+          ages.bucket[i].bytes += size;
+          break;
+        }
+      }
+    }
+  }
+#endif
 }

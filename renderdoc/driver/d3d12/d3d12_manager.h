@@ -1035,6 +1035,18 @@ struct PatchedRayDispatch
 
 struct D3D12ShaderExportDatabase;
 
+struct ASStats
+{
+  struct
+  {
+    uint32_t msThreshold;
+    uint32_t count;
+    uint64_t bytes;
+  } bucket[4];
+
+  uint64_t overheadBytes;
+};
+
 // this is a refcounted GPU buffer with the build data, together with the metadata
 struct ASBuildData
 {
@@ -1107,13 +1119,33 @@ struct ASBuildData
 
   D3D12GpuBuffer *buffer = NULL;
 
+  static void GatherASAgeStatistics(D3D12ResourceManager *rm, double now, ASStats &blasAges,
+                                    ASStats &tlasAges);
+
 private:
-  ASBuildData() = default;
+  ASBuildData()
+  {
+#if ENABLED(RDOC_DEVEL)
+    SCOPED_WRITELOCK(dataslock);
+    datas.push_back(this);
+#endif
+  }
+
+  // timestamp this build data was recorded on
+  double timestamp = 0;
+
+  // how many bytes of overhead are currently present, due to copying with strided vertex/AABB data
+  uint64_t bytesOverhead = 0;
 
   unsigned int m_RefCount = 1;
 
   friend class D3D12RTManager;
   friend class D3D12ResourceManager;
+
+#if ENABLED(RDOC_DEVEL)
+  static Threading::RWLock dataslock;
+  static rdcarray<ASBuildData *> datas;
+#endif
 };
 
 DECLARE_REFLECTION_STRUCT(ASBuildData::RVAWithStride);
@@ -1185,6 +1217,8 @@ public:
   // temp buffer for AS serialise copies
   D3D12GpuBuffer *ASSerialiseBuffer = NULL;
 
+  double GetCurrentASTimestamp() { return m_Timestamp.GetMilliseconds(); }
+
 private:
   void InitRayDispatchPatchingResources();
   void InitReplayBlasPatchingResources();
@@ -1194,6 +1228,8 @@ private:
 
   WrappedID3D12Device *m_wrappedDevice;
   D3D12GpuBufferAllocator &m_GPUBufferAllocator;
+
+  PerformanceTimer m_Timestamp;
 
   ID3D12GraphicsCommandListX *m_cmdList;
   ID3D12CommandAllocator *m_cmdAlloc;

@@ -50,6 +50,7 @@ RDOC_EXTERN_CONFIG(bool, Replay_Debug_SingleThreadedCompilation);
 RDOC_DEBUG_CONFIG(bool, D3D12_Debug_SingleSubmitFlushing, false,
                   "Every command buffer is submitted and fully flushed to the GPU, to narrow down "
                   "the source of problems.");
+RDOC_DEBUG_CONFIG(bool, D3D12_Debug_RTOverlay, false, "Add some RT tracking to the overlay.");
 
 WRAPPED_POOL_INST(WrappedID3D12Device);
 
@@ -2431,6 +2432,35 @@ HRESULT WrappedID3D12Device::Present(ID3D12GraphicsCommandList *pOverlayCommandL
 
         rdcstr overlayText =
             RenderDoc::Inst().GetOverlayText(RDCDriver::D3D12, devWnd, m_FrameCounter, 0);
+
+#if ENABLED(RDOC_DEVEL)
+        if(D3D12_Debug_RTOverlay() && m_UsedRT)
+        {
+          double now = GetResourceManager()->GetRTManager()->GetCurrentASTimestamp();
+          ASStats blasStats = {}, tlasStats = {};
+
+          ASBuildData::GatherASAgeStatistics(GetResourceManager(), now, blasStats, tlasStats);
+
+          overlayText += "       TLAS               BLAS\n";
+
+          for(size_t i = 0; i < ARRAY_COUNT(tlasStats.bucket); i++)
+          {
+            if(tlasStats.bucket[i].msThreshold == ~0U)
+              overlayText += "  older    ";
+            else
+              overlayText += StringFormat::Fmt("<=% 4ums   ", tlasStats.bucket[i].msThreshold);
+
+            overlayText += StringFormat::Fmt(
+                "% 4u (% 3.2f MB)   % 4u (%.2f MB)\n", tlasStats.bucket[i].count,
+                float(tlasStats.bucket[i].bytes) / 1048576.0f, blasStats.bucket[i].count,
+                float(blasStats.bucket[i].bytes) / 1048576.0f);
+          }
+
+          overlayText += StringFormat::Fmt(
+              "%.2f MB overhead\n",
+              float(blasStats.overheadBytes + tlasStats.overheadBytes) / 1048576.0f);
+        }
+#endif
 
         m_TextRenderer->RenderText(list, 0.0f, 0.0f, overlayText);
 

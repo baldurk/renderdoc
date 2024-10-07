@@ -723,6 +723,7 @@ private:
   uint32_t m_SubmitCounter = 0;
 
   bool m_UsedDXIL = false;
+  bool m_UsedRT = false;
 
   DriverInformation m_DriverInfo = {};
 
