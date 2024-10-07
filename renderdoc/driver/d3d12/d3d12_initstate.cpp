@@ -1459,7 +1459,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
             void *upload = mappedBuffer->Map();
             if(upload)
             {
-              memcpy(upload, BufferContents, ContentsLength);
+              memcpy(upload, BufferContents, (size_t)ContentsLength);
             }
             else
             {
