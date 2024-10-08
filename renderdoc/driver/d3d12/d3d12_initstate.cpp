@@ -1955,6 +1955,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, D3D12Init
           if(GetRTManager()->ASSerialiseBuffer)
           {
             // synchronise the GPU to ensure any previous work is done before resizing
+            m_Device->GetInitialStateList();
             m_Device->CloseInitialStateList();
             m_Device->ExecuteLists(NULL, true);
             m_Device->FlushLists(true);
