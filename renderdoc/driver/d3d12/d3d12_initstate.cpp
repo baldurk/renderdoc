@@ -1349,17 +1349,20 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
 
         mappedBuffer = initial->buildData->buffer;
 
-        BufferContents = (byte *)mappedBuffer->Map();
-        ContentsLength = mappedBuffer->Size();
-
-        if(BufferContents == NULL)
+        if(mappedBuffer)
         {
-          ContentsLength = 0;
-          BufferContents = NULL;
-          mappedBuffer = NULL;
+          BufferContents = (byte *)mappedBuffer->Map();
+          ContentsLength = mappedBuffer->Size();
 
-          RDCERR("Failed to map builddata buffer for readback!");
-          ret = false;
+          if(BufferContents == NULL)
+          {
+            ContentsLength = 0;
+            BufferContents = NULL;
+            mappedBuffer = NULL;
+
+            RDCERR("Failed to map builddata buffer for readback!");
+            ret = false;
+          }
         }
 
         buildData = initial->buildData;
@@ -1378,7 +1381,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
       SERIALISE_ELEMENT(ContentsLength);
 
       // only map on replay if we haven't encountered any errors so far
-      if(IsReplayingAndReading() && !ser.IsErrored())
+      if(IsReplayingAndReading() && !ser.IsErrored() && ContentsLength > 0)
       {
         m_GPUBufferAllocator.Alloc(D3D12GpuBufferHeapType::UploadHeap,
                                    D3D12GpuBufferHeapMemoryFlag::Default, ContentsLength, 256,
@@ -1471,7 +1474,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
           }
 
           // rebase all the geometries to the new address
-          uint64_t baseVA = mappedBuffer->Address();
+          uint64_t baseVA = mappedBuffer ? mappedBuffer->Address() : 0;
           for(ASBuildData::RTGeometryDesc &desc : buildData->geoms)
           {
             if(desc.Type == D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS)
@@ -1935,7 +1938,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, D3D12Init
         if(buildData->Type == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL)
         {
           desc.Inputs.NumDescs = buildData->NumBLAS;
-          desc.Inputs.InstanceDescs = buildData->buffer->Address();
+          desc.Inputs.InstanceDescs = buildData->buffer ? buildData->buffer->Address() : 0;
         }
         else
         {
