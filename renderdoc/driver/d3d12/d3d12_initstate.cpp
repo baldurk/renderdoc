@@ -1982,7 +1982,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, D3D12Init
       // if we haven't cached it, build and cache the AS then copy into place
       else if(data.cachedBuiltAS == NULL)
       {
-        m_GPUBufferAllocator.Alloc(D3D12GpuBufferHeapType::DefaultHeapWithUav,
+        m_GPUBufferAllocator.Alloc(D3D12GpuBufferHeapType::AccStructDefaultHeap,
                                    D3D12GpuBufferHeapMemoryFlag::Default,
                                    prebuild.ResultDataMaxSizeInBytes, 256, &data.cachedBuiltAS);
 
