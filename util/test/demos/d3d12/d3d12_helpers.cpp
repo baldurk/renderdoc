@@ -260,6 +260,13 @@ D3D12BufferCreator &D3D12BufferCreator::UAV()
   return *this;
 }
 
+D3D12BufferCreator &D3D12BufferCreator::ASB()
+{
+  m_InitialState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+  m_BufDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+  return *this;
+}
+
 D3D12BufferCreator &D3D12BufferCreator::Upload()
 {
   m_HeapDesc.Type = D3D12_HEAP_TYPE_UPLOAD;
@@ -441,6 +448,12 @@ D3D12ViewCreator::D3D12ViewCreator(ID3D12DevicePtr dev, ID3D12DescriptorHeap *he
   {
     desc.cbv.BufferLocation = m_Res->GetGPUVirtualAddress();
     desc.cbv.SizeInBytes = 0;
+  }
+  else if(m_Type == ViewType::AS)
+  {
+    desc.srv.Format = DXGI_FORMAT_UNKNOWN;
+    desc.srv.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
+    desc.srv.RaytracingAccelerationStructure.Location = m_Res->GetGPUVirtualAddress();
   }
   else if(dim == D3D12_RESOURCE_DIMENSION_BUFFER)
   {
@@ -835,6 +848,8 @@ D3D12ViewCreator &D3D12ViewCreator::Offset(UINT offset)
 {
   if(m_Type == ViewType::CBV)
     desc.cbv.BufferLocation += offset;
+  else if(m_Type == ViewType::AS)
+    desc.srv.RaytracingAccelerationStructure.Location += offset;
   else
     TEST_ERROR("This view & resource doesn't support SizeBytes");
   return *this;
@@ -968,6 +983,13 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12ViewCreator::CreateCPU(ID3D12DescriptorHeap *he
   {
     cpu.ptr += increment[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV] * descriptor;
     m_Dev->CreateConstantBufferView(&desc.cbv, cpu);
+  }
+  else if(m_Type == ViewType::AS)
+  {
+    desc.srv.Shader4ComponentMapping = Shader4ComponentMapping;
+
+    cpu.ptr += increment[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV] * descriptor;
+    m_Dev->CreateShaderResourceView(NULL, &desc.srv, cpu);
   }
   else if(m_Type == ViewType::SRV)
   {

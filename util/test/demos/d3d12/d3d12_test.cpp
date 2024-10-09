@@ -1233,6 +1233,13 @@ void D3D12GraphicsTest::ResourceBarrier(ID3D12ResourcePtr res, D3D12_RESOURCE_ST
   Submit({cmd});
 }
 
+void D3D12GraphicsTest::ResourceBarrier(ID3D12GraphicsCommandListPtr cmd)
+{
+  D3D12_RESOURCE_BARRIER barrier = {};
+  barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+  cmd->ResourceBarrier(1, &barrier);
+}
+
 void D3D12GraphicsTest::IASetVertexBuffer(ID3D12GraphicsCommandListPtr cmd, ID3D12ResourcePtr vb,
                                           UINT stride, UINT offset)
 {

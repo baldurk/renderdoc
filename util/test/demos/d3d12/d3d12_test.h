@@ -120,6 +120,11 @@ struct D3D12GraphicsTest : public GraphicsTest
     return D3D12ViewCreator(dev, m_CBVUAVSRV, NULL, ViewType::SRV, res);
   }
   template <typename T>
+  D3D12ViewCreator MakeAS(T res)
+  {
+    return D3D12ViewCreator(dev, m_CBVUAVSRV, NULL, ViewType::AS, res);
+  }
+  template <typename T>
   D3D12ViewCreator MakeRTV(T res)
   {
     return D3D12ViewCreator(dev, m_RTV, NULL, ViewType::RTV, res);
@@ -158,6 +163,7 @@ struct D3D12GraphicsTest : public GraphicsTest
                        D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after);
   void ResourceBarrier(ID3D12ResourcePtr res, D3D12_RESOURCE_STATES before,
                        D3D12_RESOURCE_STATES after);
+  void ResourceBarrier(ID3D12GraphicsCommandListPtr cmd);
 
   void IASetVertexBuffer(ID3D12GraphicsCommandListPtr cmd, ID3D12ResourcePtr vb, UINT stride,
                          UINT offset);

@@ -80,6 +80,9 @@ COM_SMARTPTR(ID3D12InfoQueue);
 
 COM_SMARTPTR(ID3D12CommandQueueDownlevel);
 
+COM_SMARTPTR(ID3D12StateObject);
+COM_SMARTPTR(ID3D12StateObjectProperties);
+
 struct D3D12GraphicsTest;
 
 class D3D12PSOCreator
@@ -130,6 +133,7 @@ public:
   D3D12BufferCreator(ID3D12DevicePtr dev, D3D12GraphicsTest *test);
 
   D3D12BufferCreator &UAV();
+  D3D12BufferCreator &ASB();
 
   D3D12BufferCreator &Upload();
   D3D12BufferCreator &Readback();

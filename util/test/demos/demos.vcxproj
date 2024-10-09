@@ -211,6 +211,7 @@
     <ClCompile Include="d3d12\d3d12_render_pass.cpp" />
     <ClCompile Include="d3d12\d3d12_resource_lifetimes.cpp" />
     <ClCompile Include="d3d12\d3d12_resource_mapping_zoo.cpp" />
+    <ClCompile Include="d3d12\d3d12_rtas_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_shader_debug_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_shader_editing.cpp" />
     <ClCompile Include="d3d12\d3d12_shader_isa.cpp" />
@@ -448,7 +449,6 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
-  
   <!-- try to find the latest dxcompiler.dll, as the redist folder isn't reliably  -->
   <UsingTask TaskName="GetDXCDLL" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>

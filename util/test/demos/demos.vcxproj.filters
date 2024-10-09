@@ -691,6 +691,9 @@
     <ClCompile Include="d3d12\d3d12_mesh_shader.cpp">
       <Filter>D3D12\demos</Filter>
     </ClCompile>
+    <ClCompile Include="d3d12\d3d12_rtas_zoo.cpp">
+      <Filter>D3D12\demos</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="D3D11">
