@@ -274,7 +274,8 @@ bool WrappedID3D12Device::Serialise_CreateResource(
   if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
   {
     type = ResourceType::Buffer;
-    if(InitialLayout.ToStates() == D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE)
+    if((desc.Flags & D3D12_RESOURCE_FLAG_RAYTRACING_ACCELERATION_STRUCTURE) ||
+       InitialLayout.ToStates() == D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE)
     {
       prefix = "AS Buffer";
       ((WrappedID3D12Resource *)ret)->MarkAsAccelerationStructureResource();
@@ -541,7 +542,8 @@ HRESULT WrappedID3D12Device::CreateResource(
     wrapped->SetResourceRecord(record);
 
     if(desc0.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER &&
-       InitialLayout.ToStates() == D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE)
+       ((desc.Flags & D3D12_RESOURCE_FLAG_RAYTRACING_ACCELERATION_STRUCTURE) ||
+        InitialLayout.ToStates() == D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE))
     {
       wrapped->MarkAsAccelerationStructureResource();
       m_UsedRT = true;
