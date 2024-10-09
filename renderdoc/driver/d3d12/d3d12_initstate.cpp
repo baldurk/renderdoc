@@ -1447,11 +1447,15 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
               UINT64 blasOffs;
               m_Device->GetResIDFromOrigAddr(instances[i].AccelerationStructure, blasId, blasOffs);
 
-              ID3D12Resource *blas = GetLiveAs<ID3D12Resource>(blasId);
+              WrappedID3D12Resource *blas = GetLiveAs<WrappedID3D12Resource>(blasId);
 
-              if(blasId == ResourceId() || blas == NULL)
+              D3D12AccelerationStructure *as = NULL;
+              if(blasId == ResourceId() || blas == NULL || blas->GetAccStructIfExist(blasOffs, &as))
               {
-                RDCWARN("BLAS referenced by TLAS is not available on replay - possibly stale TLAS");
+                RDCWARN(
+                    "  %u: BLAS referenced by TLAS is not available on replay - possibly stale "
+                    "TLAS",
+                    i);
                 instances[i].AccelerationStructure = 0;
                 continue;
               }
