@@ -3020,6 +3020,8 @@ VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCo
         GetResourceManager()->MarkMemoryFrameReferenced(
             GetResID(pBindInfos[i].memory), pBindInfos[i].memoryOffset, bufrecord->memSize,
             eFrameRef_ReadBeforeWrite);
+
+        memrecord->hasBDA = true;
       }
 
       // the memory is immediately dirty because we don't use dirty tracking, it's too expensive to
