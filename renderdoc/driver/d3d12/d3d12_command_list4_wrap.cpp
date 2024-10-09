@@ -1159,6 +1159,12 @@ void WrappedID3D12GraphicsCommandList::BuildRaytracingAccelerationStructure(
     ASBuildData *buildData =
         GetResourceManager()->GetRTManager()->CopyBuildInputs(m_pList4, pDesc->Inputs);
 
+    if(buildData->cleanupCallback)
+    {
+      AddSubmissionASBuildCallback(true, buildData->cleanupCallback);
+      buildData->cleanupCallback = std::function<bool()>();
+    }
+
     // restore state that might have been mutated by the copying process
     if(m_CaptureComputeState.compute.rootsig != ResourceId())
     {

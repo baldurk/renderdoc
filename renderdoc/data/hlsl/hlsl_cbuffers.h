@@ -283,7 +283,8 @@ struct BlasAddressPair
 // This corresponds to D3D12_RAYTRACING_INSTANCE_DESC structure
 struct InstanceDesc
 {
-  uint2 padding[7];
+  uint4 padding1[3];
+  uint2 padding2;
   GPUAddress blasAddress;
 };
 
@@ -359,6 +360,14 @@ struct PatchingExecute
   uint padding1;
 
   uint2 padding2;
+};
+
+struct TLASCopyExecute
+{
+  uint index;
+  uint2 blasPointer;
+  uint3 dispatchDim;
+  uint2 padding;
 };
 
 cbuffer DebugSampleOperation REG(b0)

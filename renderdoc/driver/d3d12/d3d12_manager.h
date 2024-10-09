@@ -979,6 +979,14 @@ enum class D3D12PatchTLASBuildParam
   Count
 };
 
+enum class D3D12TLASInstanceCopyParam
+{
+  IndirectArgumentIndex,
+  SourceSRV,
+  DestUAV,
+  Count
+};
+
 enum class D3D12IndirectPrepParam
 {
   GeneralCB,
@@ -1122,6 +1130,8 @@ struct ASBuildData
   static void GatherASAgeStatistics(D3D12ResourceManager *rm, double now, ASStats &blasAges,
                                     ASStats &tlasAges);
 
+  std::function<bool()> cleanupCallback;
+
 private:
   ASBuildData()
   {
@@ -1176,6 +1186,11 @@ public:
     SAFE_RELEASE(m_gpuFence);
     SAFE_RELEASE(m_accStructPatchInfo.m_rootSignature);
     SAFE_RELEASE(m_accStructPatchInfo.m_pipeline);
+    SAFE_RELEASE(m_TLASCopyingData.ArgsBuffer);
+    SAFE_RELEASE(m_TLASCopyingData.PreparePipe);
+    SAFE_RELEASE(m_TLASCopyingData.CopyPipe);
+    SAFE_RELEASE(m_TLASCopyingData.RootSig);
+    SAFE_RELEASE(m_TLASCopyingData.IndirectSig);
     SAFE_RELEASE(m_RayPatchingData.descPatchRootSig);
     SAFE_RELEASE(m_RayPatchingData.descPatchPipe);
     SAFE_RELEASE(m_RayPatchingData.indirectComSig);
@@ -1221,6 +1236,7 @@ public:
 
 private:
   void InitRayDispatchPatchingResources();
+  void InitTLASInstanceCopyingResources();
   void InitReplayBlasPatchingResources();
 
   void CopyFromVA(ID3D12GraphicsCommandList4 *unwrappedCmd, ID3D12Resource *dstRes,
@@ -1255,6 +1271,17 @@ private:
 
   // is the lookup buffer dirty and needs to be recreated with the latest data?
   bool m_LookupBufferDirty = true;
+
+  // pipeline data for indirect-copying instances in a TLAS build
+  struct
+  {
+    D3D12GpuBuffer *ArgsBuffer = NULL;
+    D3D12GpuBuffer *ScratchBuffer = NULL;
+    ID3D12PipelineState *PreparePipe = NULL;
+    ID3D12PipelineState *CopyPipe = NULL;
+    ID3D12RootSignature *RootSig = NULL;
+    ID3D12CommandSignature *IndirectSig = NULL;
+  } m_TLASCopyingData;
 
   // pipeline data for patching ray dispatches
   struct

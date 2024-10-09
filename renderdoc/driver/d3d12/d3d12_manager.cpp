@@ -784,6 +784,11 @@ void D3D12RTManager::InitInternalResources()
   {
     InitReplayBlasPatchingResources();
   }
+  else
+  {
+    // only needed during capture
+    InitTLASInstanceCopyingResources();
+  }
   InitRayDispatchPatchingResources();
 }
 
@@ -1313,9 +1318,76 @@ ASBuildData *D3D12RTManager::CopyBuildInputs(
         // we need to first do a pre-pass to prepare the indirect argument buffer from
         // {BLASDescAddr, BLASDescAddr, BlasDescAddr...} to
         // {BLASDescAddr, dispatch(1,1,1), BLASDescAddr, dispatch(1,1,1), ...}
-        RDCERR("Unimplemented indirect array-of-pointers input to TLAS");
 
-        ret->NumBLAS = 0;
+        const uint64_t argSize = AlignUp(sizeof(TLASCopyExecute) * ret->NumBLAS, 256ULL);
+
+        if(m_TLASCopyingData.ArgsBuffer == NULL || m_TLASCopyingData.ArgsBuffer->Size() < argSize)
+        {
+          // needs to be dedicated so we can sure it's not shared with anything when we transition it...
+          m_GPUBufferAllocator.Alloc(
+              D3D12GpuBufferHeapType::DefaultHeapWithUav, D3D12GpuBufferHeapMemoryFlag::Dedicated,
+              argSize, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT, &m_TLASCopyingData.ArgsBuffer);
+        }
+
+        if(m_TLASCopyingData.ScratchBuffer == NULL ||
+           m_TLASCopyingData.ScratchBuffer->Size() < byteSize)
+        {
+          m_GPUBufferAllocator.Alloc(D3D12GpuBufferHeapType::DefaultHeapWithUav,
+                                     D3D12GpuBufferHeapMemoryFlag::Default, byteSize,
+                                     D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT,
+                                     &m_TLASCopyingData.ScratchBuffer);
+        }
+
+        // keep these buffers around until the parent cmd executes even if we reallocate soon
+        m_TLASCopyingData.ArgsBuffer->AddRef();
+        m_TLASCopyingData.ScratchBuffer->AddRef();
+        ret->cleanupCallback = [this]() {
+          m_TLASCopyingData.ArgsBuffer->Release();
+          m_TLASCopyingData.ScratchBuffer->Release();
+          return true;
+        };
+
+        // do a normal dispatch to set up the EI argument buffer in temporary scratch memory
+        unwrappedCmd->SetPipelineState(m_TLASCopyingData.PreparePipe);
+        unwrappedCmd->SetComputeRootSignature(m_TLASCopyingData.RootSig);
+        // dummy, will be set by the EI argument
+        unwrappedCmd->SetComputeRoot32BitConstant(
+            (UINT)D3D12TLASInstanceCopyParam::IndirectArgumentIndex, 0, 0);
+        unwrappedCmd->SetComputeRootShaderResourceView((UINT)D3D12TLASInstanceCopyParam::SourceSRV,
+                                                       inputs.InstanceDescs);
+        unwrappedCmd->SetComputeRootUnorderedAccessView((UINT)D3D12TLASInstanceCopyParam::DestUAV,
+                                                        m_TLASCopyingData.ArgsBuffer->Address());
+        unwrappedCmd->Dispatch(ret->NumBLAS, 1, 1);
+
+        // make sure the argument buffer is ready
+        D3D12_RESOURCE_BARRIER barrier = {};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Transition.pResource = m_TLASCopyingData.ArgsBuffer->Resource();
+        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
+
+        unwrappedCmd->ResourceBarrier(1, &barrier);
+
+        unwrappedCmd->SetPipelineState(m_TLASCopyingData.CopyPipe);
+        unwrappedCmd->SetComputeRootSignature(m_TLASCopyingData.RootSig);
+        // dummy, will be set by the EI argument
+        unwrappedCmd->SetComputeRoot32BitConstant(
+            (UINT)D3D12TLASInstanceCopyParam::IndirectArgumentIndex, 0, 0);
+        unwrappedCmd->SetComputeRootUnorderedAccessView((UINT)D3D12TLASInstanceCopyParam::DestUAV,
+                                                        m_TLASCopyingData.ScratchBuffer->Address());
+        // the EI takes care of both setting the source SRV and the index constant
+        unwrappedCmd->ExecuteIndirect(m_TLASCopyingData.IndirectSig, ret->NumBLAS,
+                                      m_TLASCopyingData.ArgsBuffer->Resource(),
+                                      m_TLASCopyingData.ArgsBuffer->Offset(), NULL, 0);
+
+        barrier.Transition.pResource = m_TLASCopyingData.ScratchBuffer->Resource();
+        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+        unwrappedCmd->ResourceBarrier(1, &barrier);
+
+        unwrappedCmd->CopyBufferRegion(ret->buffer->Resource(), ret->buffer->Offset(),
+                                       m_TLASCopyingData.ScratchBuffer->Resource(),
+                                       m_TLASCopyingData.ScratchBuffer->Offset(), byteSize);
       }
     }
   }
@@ -1680,6 +1752,8 @@ void D3D12RTManager::InitRayDispatchPatchingResources()
     {
       RDCERR("Failed to get shader for dispatch patching");
     }
+
+    SAFE_RELEASE(shader);
   }
 
   // need 5x 2-DWORD root buffers, the rest we can have for constants.
@@ -1791,6 +1865,8 @@ void D3D12RTManager::InitRayDispatchPatchingResources()
     {
       RDCERR("Failed to get shader for indirect execute patching");
     }
+
+    SAFE_RELEASE(shader);
   }
 
   {
@@ -1830,6 +1906,144 @@ void D3D12RTManager::InitRayDispatchPatchingResources()
 
     if(!SUCCEEDED(hr))
       RDCERR("Unable to create command signature for indirect execute patching");
+  }
+}
+
+void D3D12RTManager::InitTLASInstanceCopyingResources()
+{
+  D3D12ShaderCache *shaderCache = m_wrappedDevice->GetShaderCache();
+
+  if(shaderCache == NULL)
+  {
+    RDCERR("Shadercache not available");
+    return;
+  }
+
+  // Root Signature
+  rdcarray<D3D12_ROOT_PARAMETER1> rootParameters;
+  rootParameters.reserve((uint16_t)D3D12TLASInstanceCopyParam::Count);
+
+  // only used in the EI
+  {
+    D3D12_ROOT_PARAMETER1 rootParam;
+    rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+    rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    rootParam.Constants.ShaderRegister = 0;
+    rootParam.Constants.RegisterSpace = 0;
+    rootParam.Constants.Num32BitValues = 1;
+    rootParameters.push_back(rootParam);
+  }
+
+  {
+    D3D12_ROOT_PARAMETER1 rootParam;
+    rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+    rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    rootParam.Descriptor.ShaderRegister = 0;
+    rootParam.Descriptor.RegisterSpace = 0;
+    rootParam.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
+    rootParameters.push_back(rootParam);
+  }
+
+  {
+    D3D12_ROOT_PARAMETER1 rootParam;
+    rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
+    rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    rootParam.Descriptor.ShaderRegister = 0;
+    rootParam.Descriptor.RegisterSpace = 0;
+    rootParam.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
+    rootParameters.push_back(rootParam);
+  }
+
+  RDCASSERT(rootParameters.size() == uint32_t(D3D12TLASInstanceCopyParam::Count));
+
+  bytebuf rootSig = EncodeRootSig(m_wrappedDevice->RootSigVersion(), rootParameters,
+                                  D3D12_ROOT_SIGNATURE_FLAG_NONE);
+
+  if(!rootSig.empty())
+  {
+    HRESULT result = m_wrappedDevice->GetReal()->CreateRootSignature(
+        0, rootSig.data(), rootSig.size(), __uuidof(ID3D12RootSignature),
+        (void **)&m_TLASCopyingData.RootSig);
+
+    if(!SUCCEEDED(result))
+      RDCERR("Unable to create root signature for TLAS instance copying");
+
+    // PipelineState
+    ID3DBlob *shader = NULL;
+    rdcstr hlsl = GetEmbeddedResource(raytracing_hlsl);
+    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_PrepareTLASCopyIndirectExecuteCS",
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0", &shader);
+
+    if(shader)
+    {
+      D3D12_COMPUTE_PIPELINE_STATE_DESC pipeline;
+      pipeline.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+      pipeline.NodeMask = 0;
+      pipeline.CS = {(void *)shader->GetBufferPointer(), shader->GetBufferSize()};
+      pipeline.CachedPSO = {NULL, 0};
+      pipeline.pRootSignature = m_TLASCopyingData.RootSig;
+
+      result = m_wrappedDevice->GetReal()->CreateComputePipelineState(
+          &pipeline, __uuidof(ID3D12PipelineState), (void **)&m_TLASCopyingData.PreparePipe);
+
+      if(!SUCCEEDED(result))
+        RDCERR("Unable to create pipeline for TLAS instance copying");
+    }
+    else
+    {
+      RDCERR("Failed to get shader for TLAS instance copying");
+    }
+
+    SAFE_RELEASE(shader);
+
+    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_CopyBLASInstanceCS",
+                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0", &shader);
+
+    if(shader)
+    {
+      D3D12_COMPUTE_PIPELINE_STATE_DESC pipeline;
+      pipeline.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+      pipeline.NodeMask = 0;
+      pipeline.CS = {(void *)shader->GetBufferPointer(), shader->GetBufferSize()};
+      pipeline.CachedPSO = {NULL, 0};
+      pipeline.pRootSignature = m_TLASCopyingData.RootSig;
+
+      result = m_wrappedDevice->GetReal()->CreateComputePipelineState(
+          &pipeline, __uuidof(ID3D12PipelineState), (void **)&m_TLASCopyingData.CopyPipe);
+
+      if(!SUCCEEDED(result))
+        RDCERR("Unable to create pipeline for TLAS instance copying");
+    }
+    else
+    {
+      RDCERR("Failed to get shader for TLAS instance copying");
+    }
+  }
+
+  {
+    D3D12_INDIRECT_ARGUMENT_DESC args[] = {
+        {D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT},
+        {D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW},
+        {D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH},
+    };
+
+    args[0].Constant.DestOffsetIn32BitValues = 0;
+    args[0].Constant.Num32BitValuesToSet = 1;
+    args[0].Constant.RootParameterIndex = (uint32_t)D3D12TLASInstanceCopyParam::IndirectArgumentIndex;
+
+    args[1].ShaderResourceView.RootParameterIndex = (uint32_t)D3D12TLASInstanceCopyParam::SourceSRV;
+
+    D3D12_COMMAND_SIGNATURE_DESC desc = {};
+    desc.ByteStride = (UINT)AlignUp16(sizeof(TLASCopyExecute));
+    desc.NumArgumentDescs = ARRAY_COUNT(args);
+    desc.pArgumentDescs = args;
+
+    HRESULT hr = m_wrappedDevice->GetReal()->CreateCommandSignature(
+        &desc, m_TLASCopyingData.RootSig, __uuidof(ID3D12CommandSignature),
+        (void **)&m_TLASCopyingData.IndirectSig);
+
+    if(!SUCCEEDED(hr))
+      RDCERR("Unable to create command signature for TLAS instance copying");
   }
 }
 
@@ -1906,6 +2120,8 @@ void D3D12RTManager::InitReplayBlasPatchingResources()
         if(!SUCCEEDED(result))
           RDCERR("Unable to create pipeline for patching the BLAS");
       }
+
+      SAFE_RELEASE(shader);
     }
   }
   else

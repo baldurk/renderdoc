@@ -449,3 +449,34 @@ GPUAddress AlignRecordAddress(GPUAddress x)
   // store the number of patching indirect dispatches we'll do, up to 4 per the application's number
   internalExecuteCount.Store(0, dispatchIndex);
 }
+
+StructuredBuffer<uint2> applicationBLASPointers : register(t0);
+RWStructuredBuffer<TLASCopyExecute> internalTLASCopyArguments : register(u0);
+
+[numthreads(1, 1, 1)] void RENDERDOC_PrepareTLASCopyIndirectExecuteCS(uint3 dispatchThread
+                                                                      : SV_DispatchThreadID) {
+  TLASCopyExecute execute = (TLASCopyExecute)0;
+  execute.blasPointer = applicationBLASPointers[dispatchThread.x];
+  execute.index = dispatchThread.x;
+  execute.dispatchDim = uint3(1, 1, 1);
+
+  internalTLASCopyArguments[dispatchThread.x] = execute;
+}
+
+// this is from the EI argument above, so we always copy from [0] to indirect the pointer
+StructuredBuffer<InstanceDesc> copySource : register(t0);
+
+// also from the EI argument above
+cbuffer TLASCopyExecuteCB : register(b0)
+{
+  uint blas_index;
+};
+
+// this is set globally, so we index with the index
+RWStructuredBuffer<InstanceDesc> copyDest : register(u0);
+
+// Each SV_GroupId corresponds to one shader record to patch
+[numthreads(1, 1, 1)] void RENDERDOC_CopyBLASInstanceCS(uint3 dispatchThread
+                                                        : SV_DispatchThreadID) {
+  copyDest[blas_index] = copySource[0];
+}
