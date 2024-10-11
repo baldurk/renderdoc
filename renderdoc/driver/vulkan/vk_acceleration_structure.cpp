@@ -24,6 +24,7 @@
 
 #include "vk_acceleration_structure.h"
 #include "core/settings.h"
+#include "limits"
 #include "vk_core.h"
 #include "vk_manager.h"
 
@@ -38,6 +39,28 @@ constexpr VkDeviceSize handleCountSize = 8;
 
 // Spec says VkCopyAccelerationStructureToMemoryInfoKHR::dst::deviceAddress must be 256 bytes aligned
 constexpr VkDeviceSize asBufferAlignment = 256;
+
+// Work around for compile-time checks in the serialiser types for StreamReader
+template <typename SerialiserType>
+struct CacheSerialiseDispatch
+{
+};
+
+template <>
+struct CacheSerialiseDispatch<WriteSerialiser>
+{
+  void operator()(WriteSerialiser &ser, FILE *file) const
+  {
+    StreamReader reader(file);
+    ser.SerialiseStream("AS Input"_lit, reader);
+  }
+};
+
+template <>
+struct CacheSerialiseDispatch<ReadSerialiser>
+{
+  void operator()(ReadSerialiser &ser, FILE *file) const {}
+};
 
 VkDeviceSize IndexTypeSize(VkIndexType type)
 {
@@ -63,7 +86,6 @@ void DoSerialise(SerialiserType &ser, VkAccelerationStructureInfo::GeometryData:
   SERIALISE_MEMBER(vertexStride);
   SERIALISE_MEMBER(maxVertex);
   SERIALISE_MEMBER(indexType);
-  SERIALISE_MEMBER(hasTransformData);
 }
 INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureInfo::GeometryData::Triangles);
 
@@ -79,12 +101,12 @@ void DoSerialise(SerialiserType &ser, VkAccelerationStructureInfo::GeometryData 
 {
   SERIALISE_MEMBER(geometryType);
   SERIALISE_MEMBER_TYPED(VkGeometryFlagBitsKHR, flags).TypedAs("VkGeometryFlagsKHR"_lit);
-  SERIALISE_MEMBER(memSize);
 
   SERIALISE_MEMBER(tris);
   SERIALISE_MEMBER(aabbs);
 
   SERIALISE_MEMBER(buildRangeInfo);
+  SERIALISE_MEMBER(memOffset);
 }
 INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureInfo::GeometryData);
 
@@ -95,40 +117,19 @@ void DoSerialise(SerialiserType &ser, VkAccelerationStructureInfo &el)
   SERIALISE_MEMBER_TYPED(VkBuildAccelerationStructureFlagBitsKHR, flags)
       .TypedAs("VkBuildAccelerationStructureFlagsKHR"_lit);
   SERIALISE_MEMBER(geometryData);
+  SERIALISE_MEMBER(memSize);
 }
 INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureInfo);
 
 uint64_t VkAccelerationStructureInfo::GeometryData::GetSerialisedSize() const
 {
-  const uint64_t aabbsSize = sizeof(VkDeviceSize);    // stride
-
-  // You can't just use sizeof(Triangles) due to padding
-  const uint64_t triangleSize = sizeof(VkFormat) +        // vertexFormat
-                                sizeof(VkDeviceSize) +    // vertexStride
-                                sizeof(uint32_t) +        // maxVertex
-                                sizeof(VkIndexType) +     // indexType
-                                sizeof(bool);             // hasTransformData
-
-  const uint64_t geomDataSize = sizeof(VkGeometryTypeKHR) +                          // geometryType
-                                sizeof(VkGeometryFlagsKHR) +                         // flags
-                                sizeof(VkDeviceSize) +                               // memSize
-                                triangleSize +                                       // tris
-                                aabbsSize +                                          // aabbs
-                                sizeof(VkAccelerationStructureBuildRangeInfoKHR);    // buildRangeInfo
-
-  // Add the readbackmem buffer sizes
-  const uint64_t bufferSize = sizeof(uint64_t) + memSize + WriteSerialiser::GetChunkAlignment();
-
-  return geomDataSize + bufferSize;
+  return sizeof(GeometryData);
 }
 
 VkAccelerationStructureInfo::~VkAccelerationStructureInfo()
 {
-  for(const GeometryData &geoData : geometryData)
-  {
-    if(geoData.readbackMem != VK_NULL_HANDLE)
-      ObjDisp(device)->FreeMemory(Unwrap(device), geoData.readbackMem, NULL);
-  }
+  if(readbackMem != VK_NULL_HANDLE)
+    ObjDisp(device)->FreeMemory(Unwrap(device), readbackMem, NULL);
 }
 
 void VkAccelerationStructureInfo::Release()
@@ -149,7 +150,10 @@ uint64_t VkAccelerationStructureInfo::GetSerialisedSize() const
                         sizeof(VkBuildAccelerationStructureFlagsKHR) +    // flags
                         sizeof(uint64_t) + geomDataSize;                  // geometryData;
 
-  return size;
+  // Add the readbackmem buffer sizes
+  const uint64_t bufferSize = sizeof(uint64_t) + memSize + WriteSerialiser::GetChunkAlignment();
+
+  return size + bufferSize;
 }
 
 rdcarray<VkAccelerationStructureGeometryKHR> VkAccelerationStructureInfo::convertGeometryData() const
@@ -164,16 +168,20 @@ rdcarray<VkAccelerationStructureGeometryKHR> VkAccelerationStructureInfo::conver
     {
       case VK_GEOMETRY_TYPE_TRIANGLES_KHR:
       {
+        // We'll write the offset into buffer address so when FixUpReplayBDAs is called, the real
+        // base address is just added on
         VkDeviceOrHostAddressConstKHR vData;
-        vData.deviceAddress = 0x0;
+        vData.deviceAddress = g.memOffset;
 
         VkDeviceOrHostAddressConstKHR iData;
-        iData.deviceAddress = 0x0;
+        iData.deviceAddress = g.memOffset;
 
         // vkGetAccelerationStructureBuildSizesKHR just checks if the transform BDA is non-null,
         // so fudge that here
         VkDeviceOrHostAddressConstKHR tData;
-        tData.deviceAddress = g.tris.hasTransformData ? 0x1 : 0x0;
+        tData.deviceAddress = g.buildRangeInfo.transformOffset
+                                  ? g.memOffset
+                                  : std::numeric_limits<VkDeviceAddress>::max();
 
         geoUnion.triangles = VkAccelerationStructureGeometryTrianglesDataKHR{
             VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,
@@ -191,9 +199,9 @@ rdcarray<VkAccelerationStructureGeometryKHR> VkAccelerationStructureInfo::conver
       case VK_GEOMETRY_TYPE_AABBS_KHR:
       {
         VkDeviceOrHostAddressConstKHR aData;
-        aData.deviceAddress = 0x0;
+        aData.deviceAddress = g.memOffset;
 
-        geoUnion.aabbs = VkAccelerationStructureGeometryAabbsDataKHR{
+        geoUnion.aabbs = {
             VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_AABBS_DATA_KHR,
             NULL,
             aData,
@@ -204,9 +212,9 @@ rdcarray<VkAccelerationStructureGeometryKHR> VkAccelerationStructureInfo::conver
       case VK_GEOMETRY_TYPE_INSTANCES_KHR:
       {
         VkDeviceOrHostAddressConstKHR iData;
-        iData.deviceAddress = 0x0;
+        iData.deviceAddress = g.memOffset;
 
-        geoUnion.instances = VkAccelerationStructureGeometryInstancesDataKHR{
+        geoUnion.instances = {
             VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR,
             NULL,
             false,
@@ -217,9 +225,8 @@ rdcarray<VkAccelerationStructureGeometryKHR> VkAccelerationStructureInfo::conver
       default: RDCERR("Unhandled geometry type: %d", g.geometryType); return {};
     }
 
-    result.push_back(
-        VkAccelerationStructureGeometryKHR{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR,
-                                           NULL, g.geometryType, geoUnion, g.flags});
+    result.push_back({VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR, NULL, g.geometryType,
+                      geoUnion, g.flags});
   }
 
   return result;
@@ -287,9 +294,14 @@ RDResult VulkanAccelerationStructureManager::CopyInputBuffers(
     VkDeviceSize alignment = 0;
     VkDeviceSize size = 0;
 
+    VkBufferCopy region;
+
   private:
     VkDeviceSize start = 0;
   };
+
+  VkDeviceSize currentDstOffset = 0;
+  rdcarray<BufferData> inputBuffersData;
 
   for(uint32_t i = 0; i < info.geometryCount; ++i)
   {
@@ -297,16 +309,6 @@ RDResult VulkanAccelerationStructureManager::CopyInputBuffers(
     const VkAccelerationStructureGeometryKHR &geometry =
         info.pGeometries != NULL ? info.pGeometries[i] : *(info.ppGeometries[i]);
     const VkAccelerationStructureBuildRangeInfoKHR &rangeInfo = buildRange[i];
-
-    Allocation readbackmem;
-
-    // Make sure nothing writes to our source buffers before we finish copying them
-    VkMemoryBarrier barrier = {
-        VK_STRUCTURE_TYPE_MEMORY_BARRIER,
-        NULL,
-        VK_ACCESS_TRANSFER_WRITE_BIT,
-        VK_ACCESS_MEMORY_WRITE_BIT,
-    };
 
     switch(geometry.geometryType)
     {
@@ -347,107 +349,56 @@ RDResult VulkanAccelerationStructureManager::CopyInputBuffers(
           }
         }
 
-        // Find the alignment requirements for each type
-        {
-          VkMemoryRequirements mrq = {};
+        // Gather the buffer requirements for each type
+        VkMemoryRequirements mrq = {};
 
-          // Vertex buffer.  The complexity here is that the rangeInfo members are interpreted
-          // differently depending on whether or not index buffers are used
-          ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), vertexData.buf, &mrq);
-          vertexData.alignment = mrq.alignment;
-
-          if(indexData)
-          {
-            // If we're using an index buffer we don't know how much of the vertex buffer we need,
-            // and we can't trust the app to set maxVertex correctly, so we take the whole buffer
-            vertexData.size = vertexData.rao.record->memSize - vertexData.rao.offset;
-            vertexData.SetReadPosition(0);
-          }
-          else
-          {
-            vertexData.size = rangeInfo.primitiveCount * 3 * triInfo.vertexStride;
-            vertexData.SetReadPosition(rangeInfo.primitiveOffset +
-                                       (triInfo.vertexStride * rangeInfo.firstVertex));
-          }
-
-          // Index buffer
-          if(indexData)
-          {
-            ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), indexData.buf, &mrq);
-            indexData.alignment = mrq.alignment;
-            indexData.size = rangeInfo.primitiveCount * 3 * IndexTypeSize(triInfo.indexType);
-            indexData.SetReadPosition(rangeInfo.primitiveOffset);
-          }
-
-          // Transform buffer
-          if(transformData)
-          {
-            ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), transformData.buf, &mrq);
-            transformData.alignment = mrq.alignment;
-            transformData.size = sizeof(VkTransformMatrixKHR);
-            transformData.SetReadPosition(rangeInfo.transformOffset);
-          }
-        }
-        const VkDeviceSize maxAlignment =
-            RDCMAX(RDCMAX(vertexData.alignment, indexData.alignment), transformData.alignment);
-
-        // We want to copy the input buffers into one big block so sum the sizes up together
-        const VkDeviceSize totalMemSize = AlignUp(vertexData.size, vertexData.alignment) +
-                                          AlignUp(indexData.size, indexData.alignment) +
-                                          AlignUp(transformData.size, transformData.alignment);
-
-        readbackmem = CreateReadBackMemory(device, totalMemSize, maxAlignment);
-        if(readbackmem.mem == VK_NULL_HANDLE)
-        {
-          RDCERR("Unable to allocate AS triangle input buffer readback memory (size: %u bytes)",
-                 totalMemSize);
-          continue;
-        }
-
-        // Insert copy commands
-        VkBufferCopy region = {
-            vertexData.GetReadPosition(),
-            0,
-            vertexData.size,
-        };
-        ObjDisp(device)->CmdCopyBuffer(Unwrap(commandBuffer), vertexData.buf, readbackmem.buf, 1,
-                                       &region);
+        // Vertex buffer.  The complexity here is that the rangeInfo members are interpreted
+        // differently depending on whether or not index buffers are used
+        ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), vertexData.buf, &mrq);
+        vertexData.alignment = mrq.alignment;
 
         if(indexData)
         {
-          region = {
-              indexData.GetReadPosition(),
-              AlignUp(vertexData.size, vertexData.alignment),
-              indexData.size,
-          };
-          ObjDisp(device)->CmdCopyBuffer(Unwrap(commandBuffer), indexData.buf, readbackmem.buf, 1,
-                                         &region);
+          // If we're using an index buffer we don't know how much of the vertex buffer we need,
+          // and we can't trust the app to set maxVertex correctly, so we take the whole buffer
+          vertexData.size = vertexData.rao.record->memSize - vertexData.rao.offset;
+          vertexData.SetReadPosition(0);
+        }
+        else
+        {
+          vertexData.size = rangeInfo.primitiveCount * 3 * triInfo.vertexStride;
+          vertexData.SetReadPosition(rangeInfo.primitiveOffset +
+                                     (triInfo.vertexStride * rangeInfo.firstVertex));
         }
 
+        // Index buffer
+        if(indexData)
+        {
+          ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), indexData.buf, &mrq);
+          indexData.alignment = mrq.alignment;
+          indexData.size = rangeInfo.primitiveCount * 3 * IndexTypeSize(triInfo.indexType);
+          indexData.SetReadPosition(rangeInfo.primitiveOffset);
+        }
+
+        // Transform buffer
         if(transformData)
         {
-          region = {
-              transformData.GetReadPosition(),
-              AlignUp(vertexData.size, vertexData.alignment) +
-                  AlignUp(indexData.size, indexData.alignment),
-              transformData.size,
-          };
-          ObjDisp(device)->CmdCopyBuffer(Unwrap(commandBuffer), transformData.buf, readbackmem.buf,
-                                         1, &region);
+          ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), transformData.buf, &mrq);
+          transformData.alignment = mrq.alignment;
+          transformData.size = sizeof(VkTransformMatrixKHR);
+          transformData.SetReadPosition(rangeInfo.transformOffset);
         }
 
         // Store the metadata
         VkAccelerationStructureInfo::GeometryData geoData;
         geoData.geometryType = geometry.geometryType;
         geoData.flags = geometry.flags;
-        geoData.readbackMem = readbackmem.mem;
-        geoData.memSize = readbackmem.size;
+        geoData.memOffset = currentDstOffset;
 
         geoData.tris.vertexFormat = geometry.geometry.triangles.vertexFormat;
         geoData.tris.vertexStride = geometry.geometry.triangles.vertexStride;
         geoData.tris.maxVertex = geometry.geometry.triangles.maxVertex;
         geoData.tris.indexType = geometry.geometry.triangles.indexType;
-        geoData.tris.hasTransformData = transformData;
 
         // Frustratingly rangeInfo.primitiveOffset represents either the offset into the index or
         // vertex buffer depending if indices are in use or not
@@ -457,14 +408,55 @@ RDResult VulkanAccelerationStructureManager::CopyInputBuffers(
         buildData.firstVertex = 0;
         buildData.transformOffset = 0;
 
+        // Store the data and update the current destinaton offset
+        vertexData.region = {
+            vertexData.GetReadPosition(),
+            currentDstOffset,
+            vertexData.size,
+        };
+
+        inputBuffersData.push_back(vertexData);
+        currentDstOffset += AlignUp(vertexData.size, vertexData.alignment);
+
         if(indexData)
         {
-          buildData.primitiveOffset = (uint32_t)AlignUp(vertexData.size, vertexData.alignment);
+          // The index primitiveOffset has its own alignment requirements
+          buildData.primitiveOffset = (uint32_t)(currentDstOffset - geoData.memOffset);
+          const uint32_t primOffsetAlign =
+              AlignUp(buildData.primitiveOffset, (uint32_t)IndexTypeSize(triInfo.indexType)) -
+              buildData.primitiveOffset;
+          buildData.primitiveOffset += primOffsetAlign;
+          currentDstOffset += primOffsetAlign;
+
           buildData.firstVertex = rangeInfo.firstVertex;
+
+          indexData.region = {
+              indexData.GetReadPosition(),
+              currentDstOffset,
+              indexData.size,
+          };
+
+          inputBuffersData.push_back(indexData);
+          currentDstOffset += AlignUp(indexData.size, indexData.alignment);
         }
         if(transformData)
-          buildData.transformOffset = (uint32_t)(AlignUp(vertexData.size, vertexData.alignment) +
-                                                 AlignUp(indexData.size, indexData.alignment));
+        {
+          // The transform primitiveOffset has its own alignment requirements
+          buildData.transformOffset = (uint32_t)(currentDstOffset - geoData.memOffset);
+          const uint32_t primOffsetAlign =
+              AlignUp(buildData.transformOffset, (uint32_t)16) - buildData.transformOffset;
+          buildData.transformOffset += primOffsetAlign;
+          currentDstOffset += primOffsetAlign;
+
+          transformData.region = {
+              transformData.GetReadPosition(),
+              currentDstOffset,
+              transformData.size,
+          };
+
+          inputBuffersData.push_back(transformData);
+          currentDstOffset += AlignUp(transformData.size, transformData.alignment);
+        }
 
         metadata->geometryData.push_back(geoData);
 
@@ -489,29 +481,18 @@ RDResult VulkanAccelerationStructureManager::CopyInputBuffers(
         VkMemoryRequirements mrq = {};
         ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), data.buf, &mrq);
 
-        // Allocate copy buffer
-        readbackmem = CreateReadBackMemory(device, data.size, mrq.alignment);
-        if(readbackmem.mem == VK_NULL_HANDLE)
-        {
-          RDCERR("Unable to allocate AS AABB input buffer readback memory (size: %u bytes)",
-                 mrq.size);
-          continue;
-        }
-
         // Insert copy commands
-        VkBufferCopy region = {
+        data.region = {
             data.GetReadPosition(),
-            0,
+            currentDstOffset,
             data.size,
         };
-        ObjDisp(device)->CmdCopyBuffer(Unwrap(commandBuffer), data.buf, readbackmem.buf, 1, &region);
 
         // Store the metadata
         VkAccelerationStructureInfo::GeometryData geoData;
         geoData.geometryType = geometry.geometryType;
         geoData.flags = geometry.flags;
-        geoData.readbackMem = readbackmem.mem;
-        geoData.memSize = readbackmem.size;
+        geoData.memOffset = currentDstOffset;
 
         geoData.aabbs.stride = aabbInfo.stride;
 
@@ -519,6 +500,9 @@ RDResult VulkanAccelerationStructureManager::CopyInputBuffers(
         geoData.buildRangeInfo.primitiveOffset = 0;
 
         metadata->geometryData.push_back(geoData);
+
+        currentDstOffset += AlignUp(data.size, mrq.alignment);
+        inputBuffersData.push_back(data);
 
         break;
       }
@@ -547,54 +531,71 @@ RDResult VulkanAccelerationStructureManager::CopyInputBuffers(
         VkMemoryRequirements mrq = {};
         ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), data.buf, &mrq);
 
-        // Allocate copy buffer
-        readbackmem = CreateReadBackMemory(device, data.size, mrq.alignment);
-        if(readbackmem.mem == VK_NULL_HANDLE)
-        {
-          RDCERR("Unable to allocate AS instance input buffer readback memory (size: %u bytes)",
-                 data.size);
-          continue;
-        }
-
         // Insert copy commands
-        VkBufferCopy region = {
+        data.region = {
             data.GetReadPosition(),
-            0,
+            currentDstOffset,
             data.size,
         };
-        ObjDisp(device)->CmdCopyBuffer(Unwrap(commandBuffer), data.buf, readbackmem.buf, 1, &region);
 
         // Store the metadata
         VkAccelerationStructureInfo::GeometryData geoData;
         geoData.geometryType = geometry.geometryType;
         geoData.flags = geometry.flags;
-        geoData.readbackMem = readbackmem.mem;
-        geoData.memSize = readbackmem.size;
+        geoData.memOffset = currentDstOffset;
 
         geoData.buildRangeInfo = rangeInfo;
         geoData.buildRangeInfo.primitiveOffset = 0;
 
         metadata->geometryData.push_back(geoData);
 
+        currentDstOffset += AlignUp(data.size, mrq.alignment);
+        inputBuffersData.push_back(data);
+
         break;
       }
       default: RDCERR("Unhandled geometry type: %d", geometry.geometryType); continue;
     }
-
-    // Insert barriers to block any other commands until the buffers are copied
-    if(readbackmem.mem != VK_NULL_HANDLE)
-    {
-      ObjDisp(device)->CmdPipelineBarrier(Unwrap(commandBuffer), VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                          VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, 1, &barrier, 0,
-                                          VK_NULL_HANDLE, 0, VK_NULL_HANDLE);
-
-      // We can schedule buffer deletion now as it isn't needed anymore
-      cmdRecord->cmdInfo->pendingSubmissionCompleteCallbacks->callbacks.push_back(
-          [device, buffer = readbackmem.buf]() {
-            ObjDisp(device)->DestroyBuffer(Unwrap(device), buffer, NULL);
-          });
-    }
   }
+
+  if(currentDstOffset == 0)
+  {
+    RDCWARN("Cannot copy empty AS input buffers, ignoring");
+    return {};
+  }
+
+  // Allocate the required memory block
+  Allocation readbackmem = CreateReadBackMemory(device, currentDstOffset);
+  if(readbackmem.mem == VK_NULL_HANDLE)
+  {
+    RDCERR("Unable to allocate AS input buffer readback memory (size: %u bytes)", currentDstOffset);
+    return {};
+  }
+
+  metadata->readbackMem = readbackmem.mem;
+  metadata->memSize = currentDstOffset;
+
+  // Queue the copying
+  for(const BufferData &bufData : inputBuffersData)
+    ObjDisp(device)->CmdCopyBuffer(Unwrap(commandBuffer), bufData.buf, readbackmem.buf, 1,
+                                   &bufData.region);
+
+  // Make sure nothing writes to our source buffers before we finish copying them
+  VkMemoryBarrier barrier = {
+      VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+      NULL,
+      VK_ACCESS_TRANSFER_WRITE_BIT,
+      VK_ACCESS_MEMORY_WRITE_BIT,
+  };
+  ObjDisp(device)->CmdPipelineBarrier(Unwrap(commandBuffer), VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, 1, &barrier, 0,
+                                      VK_NULL_HANDLE, 0, VK_NULL_HANDLE);
+
+  // We can schedule buffer deletion now as it isn't needed anymore
+  cmdRecord->cmdInfo->pendingSubmissionCompleteCallbacks->callbacks.push_back(
+      [device, buffer = readbackmem.buf]() {
+        ObjDisp(device)->DestroyBuffer(Unwrap(device), buffer, NULL);
+      });
 
   return {};
 }
@@ -628,66 +629,53 @@ uint64_t VulkanAccelerationStructureManager::GetSize_InitialState(ResourceId id,
   return 128ULL + infoSize + serialisedASSize;
 }
 
-bool VulkanAccelerationStructureManager::Serialise(WriteSerialiser &ser, ResourceId id,
+template <typename SerialiserType>
+bool VulkanAccelerationStructureManager::Serialise(SerialiserType &ser, ResourceId id,
                                                    const VkInitialContents *initial,
                                                    CaptureState state)
 {
-  VkAccelerationStructureInfo *asInfo = initial->accelerationStructureInfo;
-  RDCASSERT(asInfo != NULL);
-  SERIALISE_ELEMENT(*asInfo).Hidden();
-
-  VkDevice d = m_pDriver->GetDev();
+  VkDevice d = !IsStructuredExporting(state) ? m_pDriver->GetDev() : VK_NULL_HANDLE;
   VkResult vkr = VK_SUCCESS;
 
-  for(VkAccelerationStructureInfo::GeometryData &geomData : asInfo->geometryData)
+  byte *contents = NULL;
+
+  if(ser.IsWriting())
   {
-    RDCASSERT(geomData.readbackMem != VK_NULL_HANDLE);
+    VkAccelerationStructureInfo *asInfo = initial->accelerationStructureInfo;
+    RDCASSERT(asInfo != NULL);
+    SERIALISE_ELEMENT(*asInfo).Hidden();
+
+    RDCASSERT(asInfo->readbackMem != VK_NULL_HANDLE);
 
     // The input buffers have already been copied into readable memory, so they just need
     // mapping and serialising
-    byte *contents = NULL;
-    vkr = ObjDisp(d)->MapMemory(Unwrap(d), geomData.readbackMem, 0, geomData.memSize, 0,
+    vkr = ObjDisp(d)->MapMemory(Unwrap(d), asInfo->readbackMem, 0, asInfo->memSize, 0,
                                 (void **)&contents);
     CHECK_VKR(m_pDriver, vkr);
 
     // invalidate the cpu cache for this memory range to avoid reading stale data
     const VkMappedMemoryRange range = {
-        VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, geomData.readbackMem, 0, geomData.memSize,
+        VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, asInfo->readbackMem, 0, asInfo->memSize,
     };
-
     vkr = ObjDisp(d)->InvalidateMappedMemoryRanges(Unwrap(d), 1, &range);
     CHECK_VKR(m_pDriver, vkr);
 
-    ser.Serialise("AS Input"_lit, contents, geomData.memSize, SerialiserFlags::NoFlags).Hidden();
+    ser.Serialise("AS Input"_lit, contents, asInfo->memSize, SerialiserFlags::NoFlags).Hidden();
 
-    ObjDisp(d)->UnmapMemory(Unwrap(d), geomData.readbackMem);
+    ObjDisp(d)->UnmapMemory(Unwrap(d), asInfo->readbackMem);
   }
-
-  return true;
-}
-
-bool VulkanAccelerationStructureManager::Serialise(ReadSerialiser &ser, ResourceId id,
-                                                   const VkInitialContents *initial,
-                                                   CaptureState state)
-{
-  const VkDeviceSize nonCoherentAtomSize = m_pDriver->GetDeviceProps().limits.nonCoherentAtomSize;
-
-  VkAccelerationStructureInfo *asInfo = new VkAccelerationStructureInfo();
-  SERIALISE_ELEMENT(*asInfo).Hidden();
-
-  VkDevice d = !IsStructuredExporting(state) ? m_pDriver->GetDev() : VK_NULL_HANDLE;
-  VkResult vkr = VK_SUCCESS;
-
-  for(VkAccelerationStructureInfo::GeometryData &geomData : asInfo->geometryData)
+  else
   {
+    const VkDeviceSize nonCoherentAtomSize = m_pDriver->GetDeviceProps().limits.nonCoherentAtomSize;
+
+    VkAccelerationStructureInfo *asInfo = new VkAccelerationStructureInfo();
+    SERIALISE_ELEMENT(*asInfo).Hidden();
+
     Allocation uploadMemory;
-    byte *contents = NULL;
 
     if(IsReplayMode(state) && !ser.IsErrored())
     {
-      uploadMemory =
-          CreateReplayMemory(MemoryType::Upload, geomData.memSize,
-                             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR);
+      uploadMemory = CreateReplayMemory(MemoryType::Upload, asInfo->memSize);
       if(uploadMemory.mem == VK_NULL_HANDLE)
       {
         RDCERR("Failed to allocate AS build data upload buffer");
@@ -700,7 +688,7 @@ bool VulkanAccelerationStructureManager::Serialise(ReadSerialiser &ser, Resource
       });
 
       vkr = ObjDisp(d)->MapMemory(Unwrap(d), uploadMemory.mem, 0,
-                                  AlignUp(geomData.memSize, nonCoherentAtomSize), 0,
+                                  AlignUp(asInfo->memSize, nonCoherentAtomSize), 0,
                                   (void **)&contents);
       CHECK_VKR(m_pDriver, vkr);
 
@@ -717,7 +705,7 @@ bool VulkanAccelerationStructureManager::Serialise(ReadSerialiser &ser, Resource
 
     // not using SERIALISE_ELEMENT_ARRAY so we can deliberately avoid allocation - we serialise
     // directly into upload memory
-    ser.Serialise("AS Input"_lit, contents, geomData.memSize, SerialiserFlags::NoFlags).Hidden();
+    ser.Serialise("AS Input"_lit, contents, asInfo->memSize, SerialiserFlags::NoFlags).Hidden();
 
     if(!IsStructuredExporting(state) && uploadMemory.mem != VK_NULL_HANDLE)
     {
@@ -727,9 +715,8 @@ bool VulkanAccelerationStructureManager::Serialise(ReadSerialiser &ser, Resource
           NULL,
           uploadMemory.mem,
           0,
-          AlignUp(geomData.memSize, nonCoherentAtomSize),
+          AlignUp(asInfo->memSize, nonCoherentAtomSize),
       };
-
       vkr = ObjDisp(d)->FlushMappedMemoryRanges(Unwrap(d), 1, &range);
       CHECK_VKR(m_pDriver, vkr);
 
@@ -740,7 +727,7 @@ bool VulkanAccelerationStructureManager::Serialise(ReadSerialiser &ser, Resource
           VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
           NULL,
           0,
-          geomData.memSize,
+          asInfo->memSize,
           VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
               VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
               VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
@@ -772,31 +759,38 @@ bool VulkanAccelerationStructureManager::Serialise(ReadSerialiser &ser, Resource
       VkBufferCopy region = {
           0,
           0,
-          AlignUp(geomData.memSize, nonCoherentAtomSize),
+          AlignUp(asInfo->memSize, nonCoherentAtomSize),
       };
       ObjDisp(d)->CmdCopyBuffer(Unwrap(cmd), uploadMemory.buf, Unwrap(gpuBuf), 1, &region);
 
-      geomData.replayBuf = gpuBuf;
+      asInfo->replayBuf = gpuBuf;
     }
-  }
 
-  SERIALISE_CHECK_READ_ERRORS();
+    SERIALISE_CHECK_READ_ERRORS();
 
-  if(IsReplayMode(state))
-  {
-    VkInitialContents initialContents;
-    initialContents.type = eResAccelerationStructureKHR;
-    initialContents.accelerationStructureInfo = asInfo;
+    if(IsReplayMode(state))
+    {
+      VkInitialContents initialContents;
+      initialContents.type = eResAccelerationStructureKHR;
+      initialContents.accelerationStructureInfo = asInfo;
 
-    m_pDriver->GetResourceManager()->SetInitialContents(id, initialContents);
-  }
-  else
-  {
-    asInfo->Release();
+      m_pDriver->GetResourceManager()->SetInitialContents(id, initialContents);
+    }
+    else
+    {
+      asInfo->Release();
+    }
   }
 
   return true;
 }
+
+template bool VulkanAccelerationStructureManager::Serialise(WriteSerialiser &ser, ResourceId id,
+                                                            const VkInitialContents *initial,
+                                                            CaptureState state);
+template bool VulkanAccelerationStructureManager::Serialise(ReadSerialiser &ser, ResourceId id,
+                                                            const VkInitialContents *initial,
+                                                            CaptureState state);
 
 void VulkanAccelerationStructureManager::Apply(ResourceId id, const VkInitialContents &initial)
 {
@@ -869,7 +863,7 @@ void VulkanAccelerationStructureManager::Apply(ResourceId id, const VkInitialCon
   const VkAccelerationStructureBuildRangeInfoKHR *pBuildInfo = buildRangeInfos.data();
   ObjDisp(d)->CmdBuildAccelerationStructuresKHR(Unwrap(cmd), 1, &asGeomInfo, &pBuildInfo);
 
-  // We serialise the AS builds so we can have just a single scratch buffer and reuse it
+  // We serialise the AS and OMM builds so we can have just a single scratch buffer and reuse it
   m_pDriver->CloseInitStateCmd();
   m_pDriver->SubmitCmds();
   m_pDriver->FlushQ();
@@ -1011,39 +1005,39 @@ bool VulkanAccelerationStructureManager::FixUpReplayBDAs(
 
   const VkDevice d = m_pDriver->GetDev();
 
+  const VkBufferDeviceAddressInfo addrInfo = {VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO, NULL,
+                                              Unwrap(asInfo->replayBuf)};
+  const VkDeviceAddress bufAddr = ObjDisp(d)->GetBufferDeviceAddressKHR(Unwrap(d), &addrInfo);
+
   for(size_t i = 0; i < geoms.size(); ++i)
   {
-    VkBuffer buf = asInfo->geometryData[i].replayBuf;
     VkAccelerationStructureGeometryKHR &geom = geoms[i];
-
-    const VkBufferDeviceAddressInfo addrInfo = {VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO, NULL,
-                                                Unwrap(buf)};
-    const VkDeviceAddress bufAddr = ObjDisp(d)->GetBufferDeviceAddressKHR(Unwrap(d), &addrInfo);
-
     switch(geom.geometryType)
     {
       case VK_GEOMETRY_TYPE_TRIANGLES_KHR:
       {
         VkAccelerationStructureGeometryTrianglesDataKHR &tri = geom.geometry.triangles;
 
-        tri.vertexData.deviceAddress = bufAddr;
+        tri.vertexData.deviceAddress += bufAddr;
 
         if(tri.indexType != VK_INDEX_TYPE_NONE_KHR)
-          tri.indexData.deviceAddress = bufAddr;
+          tri.indexData.deviceAddress += bufAddr;
 
-        if(tri.transformData.deviceAddress != 0x0)
-          tri.transformData.deviceAddress = bufAddr;
+        if(tri.transformData.deviceAddress != std::numeric_limits<VkDeviceAddress>::max())
+          tri.transformData.deviceAddress += bufAddr;
+        else
+          tri.transformData.deviceAddress = 0x0;
 
         break;
       }
       case VK_GEOMETRY_TYPE_AABBS_KHR:
       {
-        geom.geometry.aabbs.data.deviceAddress = bufAddr;
+        geom.geometry.aabbs.data.deviceAddress += bufAddr;
         break;
       }
       case VK_GEOMETRY_TYPE_INSTANCES_KHR:
       {
-        geom.geometry.instances.data.deviceAddress = bufAddr;
+        geom.geometry.instances.data.deviceAddress += bufAddr;
         break;
       }
       default: RDCERR("Unhandled geometry type: %d", geom.geometryType); return false;

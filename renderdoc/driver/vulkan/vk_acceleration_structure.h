@@ -39,7 +39,6 @@ struct VkAccelerationStructureInfo
       VkDeviceSize vertexStride;
       uint32_t maxVertex;
       VkIndexType indexType;
-      bool hasTransformData;
     };
 
     struct Aabbs
@@ -52,15 +51,11 @@ struct VkAccelerationStructureInfo
     VkGeometryTypeKHR geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
     VkGeometryFlagsKHR flags;
 
-    VkDeviceMemory readbackMem;
-    VkDeviceSize memSize;
-
-    VkBuffer replayBuf;
-
     Triangles tris;
     Aabbs aabbs;
 
     VkAccelerationStructureBuildRangeInfoKHR buildRangeInfo;
+    VkDeviceSize memOffset;
   };
 
   ~VkAccelerationStructureInfo();
@@ -80,6 +75,11 @@ struct VkAccelerationStructureInfo
   VkBuildAccelerationStructureFlagsKHR flags = 0;
 
   rdcarray<GeometryData> geometryData;
+
+  VkDeviceMemory readbackMem = VK_NULL_HANDLE;
+  VkDeviceSize memSize = 0;
+
+  VkBuffer replayBuf = VK_NULL_HANDLE;
 
   bool accelerationStructureBuilt = false;
 
@@ -106,9 +106,8 @@ public:
 
   uint64_t GetSize_InitialState(ResourceId id, const VkInitialContents &initial);
 
-  bool Serialise(WriteSerialiser &ser, ResourceId id, const VkInitialContents *initial,
-                 CaptureState state);
-  bool Serialise(ReadSerialiser &ser, ResourceId id, const VkInitialContents *initial,
+  template <typename SerialiserType>
+  bool Serialise(SerialiserType &ser, ResourceId id, const VkInitialContents *initial,
                  CaptureState state);
 
   // Called when the initial state is applied.  The AS data is deserialised from the upload buffer
