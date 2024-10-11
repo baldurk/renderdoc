@@ -114,8 +114,7 @@ struct VkInitialContents
     SAFE_DELETE(sparseTables);
     SAFE_DELETE(sparseBind);
 
-    if(accelerationStructureInfo)
-      accelerationStructureInfo->Release();
+    SAFE_RELEASE(accelerationStructureInfo);
 
     // MemoryAllocation ise not free'd here
   }

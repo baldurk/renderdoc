@@ -92,6 +92,12 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     if(imageInfo.levelCount > 1)
       estimatedSize *= 2;
   }
+  else if(type == eResAccelerationStructureKHR)
+  {
+    VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
+    if(record && record->accelerationStructureInfo)
+      estimatedSize += record->accelerationStructureInfo->memSize;
+  }
 
   uint32_t softMemoryLimit = RenderDoc::Inst().GetCaptureOptions().softMemoryLimit;
   if(softMemoryLimit > 0 && !m_PreparedNotSerialisedInitStates.empty() &&
@@ -582,6 +588,10 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       RDCDEBUG("Skipping AS %s as it has not been built", ToStr(id).c_str());
       return true;
     }
+
+    // Skip empty AS input data (BLASes are force ref-ed)
+    if(record->accelerationStructureInfo->memSize == 0)
+      return true;
 
     // The input buffers and metadata have all been created by this point, so we just need to
     // assemble a VkInitialContents
