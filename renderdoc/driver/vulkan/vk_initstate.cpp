@@ -124,8 +124,6 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     {
       VkInitialContents initData = GetResourceManager()->GetInitialContents(flushId);
 
-      GetResourceManager()->SetInitialContents(flushId, VkInitialContents());
-
       uint64_t start = ser.GetWriter()->GetOffset();
       {
         uint64_t size = GetSize_InitialState(flushId, initData);
@@ -134,6 +132,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
         // record is not needed on vulkan
         Serialise_InitialState(ser, flushId, NULL, &initData);
+        GetResourceManager()->SetInitialContents(flushId, VkInitialContents());
       }
       uint64_t end = ser.GetWriter()->GetOffset();
 
