@@ -79,7 +79,9 @@ struct VkAccelerationStructureInfo
   VkDeviceMemory readbackMem = VK_NULL_HANDLE;
   VkDeviceSize memSize = 0;
 
-  VkBuffer replayBuf = VK_NULL_HANDLE;
+  VkDeviceMemory uploadMem = VK_NULL_HANDLE;
+  VkBuffer uploadBuf = VK_NULL_HANDLE;
+  VkAccelerationStructureKHR replayAS = VK_NULL_HANDLE;
 
   bool accelerationStructureBuilt = false;
 
@@ -110,9 +112,8 @@ public:
   bool Serialise(SerialiserType &ser, ResourceId id, const VkInitialContents *initial,
                  CaptureState state);
 
-  // Called when the initial state is applied.  The AS data is deserialised from the upload buffer
-  // into the acceleration structure
-  void Apply(ResourceId id, const VkInitialContents &initial);
+  // Called when the initial state is applied.
+  void Apply(ResourceId id, VkInitialContents &initial);
 
 private:
   struct Allocation
