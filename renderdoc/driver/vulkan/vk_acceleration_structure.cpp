@@ -40,28 +40,6 @@ constexpr VkDeviceSize handleCountSize = 8;
 // Spec says VkCopyAccelerationStructureToMemoryInfoKHR::dst::deviceAddress must be 256 bytes aligned
 constexpr VkDeviceSize asBufferAlignment = 256;
 
-// Work around for compile-time checks in the serialiser types for StreamReader
-template <typename SerialiserType>
-struct CacheSerialiseDispatch
-{
-};
-
-template <>
-struct CacheSerialiseDispatch<WriteSerialiser>
-{
-  void operator()(WriteSerialiser &ser, FILE *file) const
-  {
-    StreamReader reader(file);
-    ser.SerialiseStream("AS Input"_lit, reader);
-  }
-};
-
-template <>
-struct CacheSerialiseDispatch<ReadSerialiser>
-{
-  void operator()(ReadSerialiser &ser, FILE *file) const {}
-};
-
 VkDeviceSize IndexTypeSize(VkIndexType type)
 {
   switch(type)
@@ -675,17 +653,14 @@ bool VulkanAccelerationStructureManager::Serialise(SerialiserType &ser, Resource
 
     if(IsReplayMode(state) && !ser.IsErrored())
     {
-      uploadMemory = CreateReplayMemory(MemoryType::Upload, asInfo->memSize);
+      uploadMemory =
+          CreateReplayMemory(MemoryType::Upload, asInfo->memSize,
+                             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR);
       if(uploadMemory.mem == VK_NULL_HANDLE)
       {
         RDCERR("Failed to allocate AS build data upload buffer");
         return false;
       }
-
-      m_pDriver->AddPendingObjectCleanup([d, uploadMemory]() {
-        ObjDisp(d)->DestroyBuffer(Unwrap(d), uploadMemory.buf, NULL);
-        ObjDisp(d)->FreeMemory(Unwrap(d), uploadMemory.mem, NULL);
-      });
 
       vkr = ObjDisp(d)->MapMemory(Unwrap(d), uploadMemory.mem, 0,
                                   AlignUp(asInfo->memSize, nonCoherentAtomSize), 0,
@@ -722,48 +697,8 @@ bool VulkanAccelerationStructureManager::Serialise(SerialiserType &ser, Resource
 
       ObjDisp(d)->UnmapMemory(Unwrap(d), uploadMemory.mem);
 
-      // Allocate GPU memory and copy the AS input upload data into it
-      const VkBufferCreateInfo gpuBufInfo = {
-          VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-          NULL,
-          0,
-          asInfo->memSize,
-          VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-              VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
-              VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
-      };
-
-      VkBuffer gpuBuf = VK_NULL_HANDLE;
-      vkr = m_pDriver->vkCreateBuffer(d, &gpuBufInfo, NULL, &gpuBuf);
-      CHECK_VKR(m_pDriver, vkr);
-
-      const MemoryAllocation gpuMemory = m_pDriver->AllocateMemoryForResource(
-          gpuBuf, MemoryScope::InitialContents, MemoryType::GPULocal);
-      if(gpuMemory.mem == VK_NULL_HANDLE)
-      {
-        RDCERR("Failed to allocate AS build data GPU buffer");
-        return false;
-      }
-
-      vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(gpuBuf), Unwrap(gpuMemory.mem),
-                                         gpuMemory.offs);
-      CHECK_VKR(m_pDriver, vkr);
-
-      VkCommandBuffer cmd = m_pDriver->GetInitStateCmd();
-      if(cmd == VK_NULL_HANDLE)
-      {
-        RDCERR("Couldn't acquire command buffer");
-        return false;
-      }
-
-      VkBufferCopy region = {
-          0,
-          0,
-          AlignUp(asInfo->memSize, nonCoherentAtomSize),
-      };
-      ObjDisp(d)->CmdCopyBuffer(Unwrap(cmd), uploadMemory.buf, Unwrap(gpuBuf), 1, &region);
-
-      asInfo->replayBuf = gpuBuf;
+      asInfo->uploadMem = uploadMemory.mem;
+      asInfo->uploadBuf = uploadMemory.buf;
     }
 
     SERIALISE_CHECK_READ_ERRORS();
@@ -792,81 +727,158 @@ template bool VulkanAccelerationStructureManager::Serialise(ReadSerialiser &ser,
                                                             const VkInitialContents *initial,
                                                             CaptureState state);
 
-void VulkanAccelerationStructureManager::Apply(ResourceId id, const VkInitialContents &initial)
+void VulkanAccelerationStructureManager::Apply(ResourceId id, VkInitialContents &initial)
 {
   const VkAccelerationStructureKHR wrappedAS =
       m_pDriver->GetResourceManager()->GetCurrentHandle<VkAccelerationStructureKHR>(id);
   VkAccelerationStructureInfo *asInfo = initial.accelerationStructureInfo;
   RDCASSERT(asInfo);
 
-  rdcarray<VkAccelerationStructureBuildRangeInfoKHR> buildRangeInfos = asInfo->getBuildRanges();
-  rdcarray<VkAccelerationStructureGeometryKHR> asGeomData = asInfo->convertGeometryData();
-  RDCASSERT(!asGeomData.empty());
-  RDCASSERT(asInfo->geometryData.size() == asGeomData.size());
-
+  VkCommandBuffer cmd;
   const VkDevice d = m_pDriver->GetDev();
 
-  if(!FixUpReplayBDAs(asInfo, asGeomData))
-    return;
-
-  // Allocate the scratch buffer which involves working out how big it should be
-  VkAccelerationStructureBuildSizesInfoKHR sizeResult = {
-      VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR,
-  };
+  // If our 'base' AS has not been created yet, build it now
+  if(asInfo->replayAS == VK_NULL_HANDLE)
   {
-    const VkAccelerationStructureBuildGeometryInfoKHR sizeInfo = {
+    rdcarray<VkAccelerationStructureBuildRangeInfoKHR> buildRangeInfos = asInfo->getBuildRanges();
+    rdcarray<VkAccelerationStructureGeometryKHR> asGeomData = asInfo->convertGeometryData();
+    RDCASSERT(!asGeomData.empty());
+    RDCASSERT(asInfo->geometryData.size() == asGeomData.size());
+
+    if(!FixUpReplayBDAs(asInfo, asGeomData))
+      return;
+
+    // Allocate the scratch buffer which involves working out how big it should be
+    VkAccelerationStructureBuildSizesInfoKHR sizeResult = {
+        VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR,
+    };
+    {
+      const VkAccelerationStructureBuildGeometryInfoKHR sizeInfo = {
+          VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR,
+          NULL,
+          asInfo->type,
+          asInfo->flags,
+          VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR,
+          VK_NULL_HANDLE,
+          VK_NULL_HANDLE,
+          (uint32_t)asGeomData.size(),
+          asGeomData.data(),
+          VK_NULL_HANDLE,
+      };
+
+      rdcarray<uint32_t> counts;
+      counts.reserve(asGeomData.size());
+      for(VkAccelerationStructureBuildRangeInfoKHR numPrims : buildRangeInfos)
+        counts.push_back(numPrims.primitiveCount);
+
+      ObjDisp(d)->GetAccelerationStructureBuildSizesKHR(
+          Unwrap(d), VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &sizeInfo, counts.data(),
+          &sizeResult);
+    }
+    UpdateScratch(sizeResult.buildScratchSize);
+
+    cmd = m_pDriver->GetInitStateCmd();
+    if(cmd == VK_NULL_HANDLE)
+    {
+      RDCERR("Couldn't acquire command buffer");
+      return;
+    }
+
+    // Create the base AS
+    const VkBufferCreateInfo gpuBufInfo = {
+        VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        NULL,
+        0,
+        sizeResult.accelerationStructureSize,
+        VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
+            VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR,
+    };
+
+    VkBuffer asBuf = VK_NULL_HANDLE;
+    VkResult vkr = m_pDriver->vkCreateBuffer(d, &gpuBufInfo, NULL, &asBuf);
+    CHECK_VKR(m_pDriver, vkr);
+
+    VkMemoryRequirements mrq = {};
+    ObjDisp(d)->GetBufferMemoryRequirements(Unwrap(d), Unwrap(asBuf), &mrq);
+    mrq.alignment = AlignUp(mrq.alignment, asBufferAlignment);
+
+    const MemoryAllocation asMemory = m_pDriver->AllocateMemoryForResource(
+        true, mrq, MemoryScope::InitialContents, MemoryType::GPULocal);
+    vkr = m_pDriver->vkBindBufferMemory(d, asBuf, asMemory.mem, asMemory.offs);
+    CHECK_VKR(m_pDriver, vkr);
+
+    const VkAccelerationStructureCreateInfoKHR asCreateInfo = {
+        VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
+        NULL,
+        0,
+        asBuf,
+        0,
+        sizeResult.accelerationStructureSize,
+        asInfo->type,
+        0x0,
+    };
+    m_pDriver->vkCreateAccelerationStructureKHR(d, &asCreateInfo, NULL, &asInfo->replayAS);
+
+    // Build the AS
+    const VkAccelerationStructureBuildGeometryInfoKHR asGeomInfo = {
         VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR,
         NULL,
         asInfo->type,
         asInfo->flags,
         VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR,
         VK_NULL_HANDLE,
-        VK_NULL_HANDLE,
+        Unwrap(asInfo->replayAS),
         (uint32_t)asGeomData.size(),
         asGeomData.data(),
-        VK_NULL_HANDLE,
+        NULL,
+        scratchAddressUnion,
     };
 
-    rdcarray<uint32_t> counts;
-    counts.reserve(asGeomData.size());
-    for(VkAccelerationStructureBuildRangeInfoKHR numPrims : buildRangeInfos)
-      counts.push_back(numPrims.primitiveCount);
+    const VkAccelerationStructureBuildRangeInfoKHR *pBuildInfo = buildRangeInfos.data();
+    ObjDisp(d)->CmdBuildAccelerationStructuresKHR(Unwrap(cmd), 1, &asGeomInfo, &pBuildInfo);
 
-    ObjDisp(d)->GetAccelerationStructureBuildSizesKHR(
-        Unwrap(d), VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &sizeInfo, counts.data(),
-        &sizeResult);
+    m_pDriver->AddPendingObjectCleanup(
+        [d, uploadMem = asInfo->uploadMem, uploadBuf = asInfo->uploadBuf]() {
+          ObjDisp(d)->DestroyBuffer(Unwrap(d), uploadBuf, NULL);
+          ObjDisp(d)->FreeMemory(Unwrap(d), uploadMem, NULL);
+        });
+
+    // Make sure the AS builds are serialised as the scratch mem is shared
+    VkMemoryBarrier barrier = {
+        VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+        NULL,
+        VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
+        VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
+    };
+    ObjDisp(d)->CmdPipelineBarrier(Unwrap(cmd),
+                                   VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+                                   VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, 0, 1,
+                                   &barrier, 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE);
   }
-  UpdateScratch(sizeResult.buildScratchSize);
 
-  // Build the AS
-  VkCommandBuffer cmd = m_pDriver->GetInitStateCmd();
+  cmd = m_pDriver->GetInitStateCmd();
   if(cmd == VK_NULL_HANDLE)
   {
     RDCERR("Couldn't acquire command buffer");
     return;
   }
 
-  const VkAccelerationStructureBuildGeometryInfoKHR asGeomInfo = {
-      VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR,
+  // Copy the base AS to the captured one to reset it
+  const VkCopyAccelerationStructureInfoKHR asCopyInfo = {
+      VK_STRUCTURE_TYPE_COPY_ACCELERATION_STRUCTURE_INFO_KHR,
       NULL,
-      asInfo->type,
-      asInfo->flags,
-      VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR,
-      VK_NULL_HANDLE,
+      Unwrap(asInfo->replayAS),
       Unwrap(wrappedAS),
-      (uint32_t)asGeomData.size(),
-      asGeomData.data(),
-      NULL,
-      scratchAddressUnion,
+      VK_COPY_ACCELERATION_STRUCTURE_MODE_CLONE_KHR,
   };
+  ObjDisp(d)->CmdCopyAccelerationStructureKHR(Unwrap(cmd), &asCopyInfo);
 
-  const VkAccelerationStructureBuildRangeInfoKHR *pBuildInfo = buildRangeInfos.data();
-  ObjDisp(d)->CmdBuildAccelerationStructuresKHR(Unwrap(cmd), 1, &asGeomInfo, &pBuildInfo);
-
-  // We serialise the AS and OMM builds so we can have just a single scratch buffer and reuse it
-  m_pDriver->CloseInitStateCmd();
-  m_pDriver->SubmitCmds();
-  m_pDriver->FlushQ();
+  if(Vulkan_Debug_SingleSubmitFlushing())
+  {
+    m_pDriver->CloseInitStateCmd();
+    m_pDriver->SubmitCmds();
+    m_pDriver->FlushQ();
+  }
 }
 
 VulkanAccelerationStructureManager::Allocation VulkanAccelerationStructureManager::CreateReadBackMemory(
@@ -1006,7 +1018,7 @@ bool VulkanAccelerationStructureManager::FixUpReplayBDAs(
   const VkDevice d = m_pDriver->GetDev();
 
   const VkBufferDeviceAddressInfo addrInfo = {VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO, NULL,
-                                              Unwrap(asInfo->replayBuf)};
+                                              asInfo->uploadBuf};
   const VkDeviceAddress bufAddr = ObjDisp(d)->GetBufferDeviceAddressKHR(Unwrap(d), &addrInfo);
 
   for(size_t i = 0; i < geoms.size(); ++i)
@@ -1074,6 +1086,11 @@ void VulkanAccelerationStructureManager::UpdateScratch(VkDeviceSize requiredSize
         ObjDisp(d)->DestroyBuffer(Unwrap(d), tmp.buf, NULL);
         ObjDisp(d)->FreeMemory(Unwrap(d), tmp.mem, NULL);
       });
+
+      RDCDEBUG("AS build shared scratch changed to size %llu, flushing", requiredSize);
+      m_pDriver->CloseInitStateCmd();
+      m_pDriver->SubmitCmds();
+      m_pDriver->FlushQ();
     }
 
     scratch =
