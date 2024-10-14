@@ -571,6 +571,8 @@ int main(int argc, char *argv[])
                "strongly recommended that you disable it while using RenderDoc.\n\n"
                "If this program is not active check the path below for any leftover files:\n\n%1")
                 .arg(fn));
+
+        qInfo() << "vkconfig detected and warned";
       }
     }
 
