@@ -87,10 +87,14 @@ RD_TEST(D3D12_Sharing, D3D12GraphicsTest)
 
     IDXGIResourcePtr dxgi = d3d11vb;
     HANDLE handle = NULL;
-    dxgi->GetSharedHandle(&handle);
+    hr = dxgi->GetSharedHandle(&handle);
+    if(FAILED(hr))
+      TEST_ERROR("GetSharedHandle failed: %x", hr);
 
     ID3D12ResourcePtr d3d12vb;
-    dev->OpenSharedHandle(handle, __uuidof(ID3D12Resource), (void **)&d3d12vb);
+    hr = dev->OpenSharedHandle(handle, __uuidof(ID3D12Resource), (void **)&d3d12vb);
+    if(FAILED(hr))
+      TEST_ERROR("OpenSharedHandle failed: %x", hr);
 
     ID3D12RootSignaturePtr sig = MakeSig({});
 
