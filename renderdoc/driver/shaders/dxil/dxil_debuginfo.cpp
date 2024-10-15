@@ -307,48 +307,98 @@ uint64_t Program::GetDebugScopeLine(const DIBase *d) const
 
 rdcstr Program::GetDebugScopeFilePath(const DIBase *d) const
 {
-  const Metadata *scope = NULL;
-  if(d->type == DIBase::Subprogram)
-    scope = d->As<DISubprogram>()->scope;
-  else if(d->type == DIBase::LexicalBlock)
-    scope = d->As<DILexicalBlock>()->scope;
-  else if(d->type == DIBase::LocalVariable)
-    scope = d->As<DILocalVariable>()->scope;
-
-  while(scope && scope->dwarf)
+  const DIBase *dwarf = d;
+  const Metadata *fileMD = NULL;
+  while(dwarf)
   {
-    if(scope->dwarf->type == DIBase::Subprogram)
+    const Metadata *scope = NULL;
+    const Metadata *newFileMD = NULL;
+    switch(dwarf->type)
     {
-      scope = scope->dwarf->As<DISubprogram>()->scope;
-      continue;
+      case DIBase::CompileUnit: fileMD = dwarf->As<DICompileUnit>()->file; break;
+      case DIBase::DerivedType:
+        scope = dwarf->As<DIDerivedType>()->scope;
+        newFileMD = dwarf->As<DIDerivedType>()->file;
+        break;
+      case DIBase::CompositeType:
+        scope = dwarf->As<DICompositeType>()->scope;
+        newFileMD = dwarf->As<DICompositeType>()->file;
+        break;
+      case DIBase::Subprogram:
+        scope = dwarf->As<DISubprogram>()->scope;
+        newFileMD = dwarf->As<DISubprogram>()->file;
+        break;
+      case DIBase::GlobalVariable:
+        scope = dwarf->As<DIGlobalVariable>()->scope;
+        newFileMD = dwarf->As<DIGlobalVariable>()->file;
+        break;
+      case DIBase::LocalVariable:
+        scope = dwarf->As<DILocalVariable>()->scope;
+        newFileMD = dwarf->As<DILocalVariable>()->file;
+        break;
+      case DIBase::LexicalBlock:
+        scope = dwarf->As<DILexicalBlock>()->scope;
+        newFileMD = dwarf->As<DILexicalBlock>()->file;
+        break;
+      case DIBase::Namespace:
+        scope = dwarf->As<DINamespace>()->scope;
+        newFileMD = dwarf->As<DINamespace>()->file;
+        break;
+      case DIBase::ImportedEntity: scope = dwarf->As<DIImportedEntity>()->scope; break;
+      case DIBase::BasicType: break;
+      case DIBase::TemplateTypeParameter: break;
+      case DIBase::TemplateValueParameter: break;
+      case DIBase::SubroutineType: break;
+      case DIBase::Expression: break;
+      case DIBase::Subrange: break;
+      case DIBase::Enum: break;
+      case DIBase::File: break;
     }
-    else if(scope->dwarf->type == DIBase::LexicalBlock)
-    {
-      scope = scope->dwarf->As<DILexicalBlock>()->scope;
-      continue;
-    }
-    else if(scope->dwarf->type == DIBase::CompositeType)
-    {
-      scope = scope->dwarf->As<DICompositeType>()->file;
-      continue;
-    }
-    break;
-  }
-  if(d->type != DIBase::File)
-  {
-    if(!scope || !scope->dwarf)
-      return "???";
-  }
+    if(newFileMD)
+      fileMD = newFileMD;
 
-  const DXIL::DIBase *dwarf = (d->type != DIBase::File) ? scope->dwarf : d;
-  RDCASSERT(dwarf->type == DIBase::File);
-  const DIFile *f = dwarf->As<DIFile>();
+    if(!scope)
+      break;
+    dwarf = scope->dwarf;
+  };
+  if(!dwarf)
+    return "???";
+
+  rdcstr file;
+  rdcstr dir;
+  if(dwarf->type == DIBase::File)
+  {
+    const DIFile *f = dwarf->As<DIFile>();
+    if(f->dir)
+      dir = f->dir->str;
+    file = f->file->str;
+  }
+  else if(fileMD)
+  {
+    if(fileMD->children.size() > 0)
+    {
+      if(fileMD->children[0])
+        file = fileMD->children[0]->str;
+      else
+        file = "???";
+
+      if((fileMD->children.size() > 1) && fileMD->children[1])
+        dir = fileMD->children[1]->str;
+    }
+    else
+    {
+      file = "???";
+    }
+  }
+  else
+  {
+    file = "???";
+  }
 
   rdcstr filePath;
-  if(f->dir)
-    filePath = f->dir->str + "/";
-
-  filePath += f->file->str;
+  if(!dir.empty())
+    filePath = dir + "/";
+  filePath += file;
   return filePath;
 }
 
