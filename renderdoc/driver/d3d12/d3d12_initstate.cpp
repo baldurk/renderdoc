@@ -1450,7 +1450,7 @@ bool D3D12ResourceManager::Serialise_InitialState(SerialiserType &ser, ResourceI
               WrappedID3D12Resource *blas = GetLiveAs<WrappedID3D12Resource>(blasId);
 
               D3D12AccelerationStructure *as = NULL;
-              if(blasId == ResourceId() || blas == NULL || blas->GetAccStructIfExist(blasOffs, &as))
+              if(blasId == ResourceId() || blas == NULL || !blas->GetAccStructIfExist(blasOffs, &as))
               {
                 RDCWARN(
                     "  %u: BLAS referenced by TLAS is not available on replay - possibly stale "
