@@ -2501,63 +2501,6 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       result.value = a.value;
       break;
     }
-    case Operation::SToF:
-    {
-      const Type *argType = inst.args[0]->type;
-      RDCASSERTEQUAL(argType->type, Type::TypeKind::Scalar);
-      RDCASSERTEQUAL(argType->scalarType, Type::Int);
-      int64_t valueA = 0;
-      ShaderVariable arg;
-      RDCASSERT(GetShaderVariable(inst.args[0], opCode, dxOpCode, arg));
-      switch(argType->bitWidth)
-      {
-        case 64: valueA = arg.value.s64v[0]; break;
-        case 32: valueA = arg.value.s32v[0]; break;
-        case 16: valueA = arg.value.s16v[0]; break;
-        case 8: valueA = arg.value.s8v[0]; break;
-        case 1: valueA = arg.value.s8v[0]; break;
-        default: RDCERR("Unexpected bitWidth %d", argType->bitWidth); break;
-      }
-
-      switch(result.type)
-      {
-        case VarType::Double: result.value.f64v[0] = (double)valueA; break;
-        case VarType::Float: result.value.f32v[0] = (float)valueA; break;
-        case VarType::Half: result.value.f16v[0].set((float)valueA); break;
-        default: RDCERR("Unexpected Result VarType %s", ToStr(result.type).c_str()); break;
-      };
-      break;
-    }
-    case Operation::UToF:
-    {
-      // TODO: NEED TO GET THE ARGUMENT AT THE CORRECT INTEGER SIZE TO SUPPORT THIS
-      // TODO: NEED TO GET THE UNSIGNED VALUE AT THE CORRECT INTEGER SIZE
-      //_Y = uitofp i8 -1 to double; yields double : 255.0
-      const Type *argType = inst.args[0]->type;
-      RDCASSERTEQUAL(argType->type, Type::TypeKind::Scalar);
-      RDCASSERTEQUAL(argType->scalarType, Type::Int);
-      uint64_t valueA = 0;
-      ShaderVariable arg;
-      RDCASSERT(GetShaderVariable(inst.args[0], opCode, dxOpCode, arg));
-      switch(argType->bitWidth)
-      {
-        case 64: valueA = (uint64_t)arg.value.s64v[0]; break;
-        case 32: valueA = (uint64_t)(uint32_t)arg.value.s32v[0]; break;
-        case 16: valueA = (uint64_t)(uint16_t)arg.value.s16v[0]; break;
-        case 8: valueA = (uint64_t)(uint8_t)arg.value.s8v[0]; break;
-        case 1: valueA = (uint64_t)arg.value.s8v[0]; break;
-        default: RDCERR("Unexpected bitWidth %d", argType->bitWidth); break;
-      }
-
-      switch(result.type)
-      {
-        case VarType::Double: result.value.f64v[0] = (double)valueA; break;
-        case VarType::Float: result.value.f32v[0] = (float)valueA; break;
-        case VarType::Half: result.value.f16v[0].set((float)valueA); break;
-        default: RDCERR("Unexpected Result VarType %s", ToStr(result.type).c_str()); break;
-      };
-      break;
-    }
     case Operation::Add:
     case Operation::Sub:
     case Operation::Mul:
@@ -2940,17 +2883,74 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
     }
     case Operation::FToS:
     case Operation::FToU:
+    case Operation::SToF:
+    case Operation::UToF:
     {
       RDCASSERTEQUAL(inst.args[0]->type->type, Type::TypeKind::Scalar);
       RDCASSERTEQUAL(inst.args[0]->type->scalarType, Type::Float);
-      // TODO: handle different bitwidths
-      // TODO: support F16, F64
-      ShaderVariable arg;
-      RDCASSERT(GetShaderVariable(inst.args[0], opCode, dxOpCode, arg));
+      ShaderVariable a;
+      RDCASSERT(GetShaderVariable(inst.args[0], opCode, dxOpCode, a));
+      const uint32_t c = 0;
+
       if(opCode == Operation::FToS)
-        result.value.s64v[0] = (int64_t)arg.value.f32v[0];
+      {
+        double x = 0.0;
+#undef _IMPL
+#define _IMPL(T) x = comp<T>(a, c);
+        IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, a.type);
+
+#undef _IMPL
+#define _IMPL(I, S, U) comp<S>(result, c) = (S)x;
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, result.type);
+      }
       else if(opCode == Operation::FToU)
-        result.value.u64v[0] = (uint64_t)arg.value.f32v[0];
+      {
+        double x = 0.0;
+
+#undef _IMPL
+#define _IMPL(T) x = comp<T>(a, c);
+        IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, a.type);
+
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(result, c) = (U)x;
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, result.type);
+      }
+      else if(opCode == Operation::SToF)
+      {
+        int64_t x = 0;
+
+#undef _IMPL
+#define _IMPL(I, S, U) x = comp<S>(a, c);
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+
+        if(result.type == VarType::Float)
+          comp<float>(result, c) = (float)x;
+        else if(result.type == VarType::Half)
+          comp<half_float::half>(result, c) = (float)x;
+        else if(result.type == VarType::Double)
+          comp<double>(result, c) = (double)x;
+      }
+      else if(opCode == Operation::UToF)
+      {
+        // Need to handle this case, cast to unsigned at the width of the argument
+        //_Y = uitofp i8 -1 to double; yields double : 255.0
+        uint64_t x = 0;
+
+#undef _IMPL
+#define _IMPL(I, S, U) x = comp<U>(a, c);
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+
+        if(result.type == VarType::Float)
+          comp<float>(result, c) = (float)x;
+        else if(result.type == VarType::Half)
+          comp<half_float::half>(result, c) = (float)x;
+        else if(result.type == VarType::Double)
+          comp<double>(result, c) = (double)x;
+      }
+      else
+      {
+        RDCERR("Unhandled opCode %s", ToStr(opCode).c_str());
+      }
       break;
     }
     case Operation::Trunc:
