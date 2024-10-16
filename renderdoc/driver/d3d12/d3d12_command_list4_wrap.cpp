@@ -1223,6 +1223,42 @@ void WrappedID3D12GraphicsCommandList::BuildRaytracingAccelerationStructure(
           return ProcessASBuildAfterSubmission(asbWrappedResourceId, asbWrappedResourceBufferOffset,
                                                byteSize, buildData);
         });
+
+    // an indirect AS build will pull in buffers we can't know about
+    if(pDesc->Inputs.Type == D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL)
+    {
+      if(pDesc->Inputs.DescsLayout == D3D12_ELEMENTS_LAYOUT_ARRAY_OF_POINTERS)
+        m_ListRecord->cmdInfo->forceMapsListEvent = true;
+
+      m_ListRecord->MarkResourceFrameReferenced(
+          WrappedID3D12Resource::GetResIDFromAddr(pDesc->Inputs.InstanceDescs), eFrameRef_Read);
+    }
+    else
+    {
+      for(UINT i = 0; i < pDesc->Inputs.NumDescs; i++)
+      {
+        const D3D12_RAYTRACING_GEOMETRY_DESC &geom =
+            pDesc->Inputs.DescsLayout == D3D12_ELEMENTS_LAYOUT_ARRAY_OF_POINTERS
+                ? *pDesc->Inputs.ppGeometryDescs[i]
+                : pDesc->Inputs.pGeometryDescs[i];
+
+        if(geom.Type == D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS)
+        {
+          m_ListRecord->MarkResourceFrameReferenced(
+              WrappedID3D12Resource::GetResIDFromAddr(geom.AABBs.AABBs.StartAddress), eFrameRef_Read);
+        }
+        else if(geom.Type == D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES)
+        {
+          m_ListRecord->MarkResourceFrameReferenced(
+              WrappedID3D12Resource::GetResIDFromAddr(geom.Triangles.IndexBuffer), eFrameRef_Read);
+          m_ListRecord->MarkResourceFrameReferenced(
+              WrappedID3D12Resource::GetResIDFromAddr(geom.Triangles.Transform3x4), eFrameRef_Read);
+          m_ListRecord->MarkResourceFrameReferenced(
+              WrappedID3D12Resource::GetResIDFromAddr(geom.Triangles.VertexBuffer.StartAddress),
+              eFrameRef_Read);
+        }
+      }
+    }
   }
 }
 
@@ -1757,6 +1793,9 @@ void WrappedID3D12GraphicsCommandList::DispatchRays(_In_ const D3D12_DISPATCH_RA
     // during capture track the ray dispatches so the memory can be freed dynamically. On replay we
     // free all the memory at the end of each replay
     m_RayDispatches.push_back(patchedDispatch.resources);
+
+    // a ray dispatch certainly will pull in buffers we can't know about
+    m_ListRecord->cmdInfo->forceMapsListEvent = true;
   }
 }
 

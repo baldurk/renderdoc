@@ -489,6 +489,8 @@ struct CmdListRecordingInfo
 
   BarrierSet barriers;
 
+  bool forceMapsListEvent = false;
+
   // a list of all resources dirtied by this command list
   std::set<ResourceId> dirtied;
 
@@ -655,6 +657,7 @@ struct D3D12ResourceRecord : public ResourceRecord
     cmdInfo->dirtied.swap(bakedCommands->cmdInfo->dirtied);
     cmdInfo->boundDescs.swap(bakedCommands->cmdInfo->boundDescs);
     cmdInfo->bundles.swap(bakedCommands->cmdInfo->bundles);
+    bakedCommands->cmdInfo->forceMapsListEvent = cmdInfo->forceMapsListEvent;
     bakedCommands->cmdInfo->alloc = cmdInfo->alloc;
     bakedCommands->cmdInfo->allocRecord = cmdInfo->allocRecord;
   }
