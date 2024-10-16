@@ -1320,6 +1320,17 @@ ParsedFormat BufferFormatter::ParseFormatString(const QString &formatString, uin
           break;
         }
 
+        // evaluate any bitfield offset
+        if(bitfieldCurPos != ~0U)
+        {
+          // update final offset to account for any bits consumed by a trailing bitfield, including
+          // any bits in the last byte that weren't allocated
+          cur->offset += (bitfieldCurPos + 7) / 8;
+
+          // reset bitpacking state.
+          bitfieldCurPos = ~0U;
+        }
+
         // align to scalar size
         cur->offset = AlignUp(cur->offset, 8U);
 
@@ -5086,6 +5097,25 @@ int count;
     CHECK((ptrType.members[0].type == int_type));
     CHECK(ptrType.members[1].name == "b");
     CHECK((ptrType.members[1].type == float_type));
+
+    def = R"(
+struct inner
+{
+  int a;
+};
+
+int c : 16;
+int d : 16;
+int a : 24;
+int b : 8;
+inner *ptr;
+)";
+
+    parsed = BufferFormatter::ParseFormatString(def, 0, true);
+
+    CHECK(parsed.errors.isEmpty());
+    REQUIRE(parsed.fixed.type.members.size() == 5);
+    REQUIRE(parsed.fixed.type.arrayByteStride == 16);
   };
 
   SECTION("structs")
