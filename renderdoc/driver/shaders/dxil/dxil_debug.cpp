@@ -2954,60 +2954,71 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       break;
     }
     case Operation::Trunc:
-    {
-      uint32_t retBitWidth = retType->bitWidth;
-      RDCASSERTEQUAL(inst.args[0]->type->type, Type::TypeKind::Scalar);
-      RDCASSERTEQUAL(inst.args[0]->type->scalarType, Type::Int);
-      RDCASSERTEQUAL(retType->type, Type::TypeKind::Scalar);
-      RDCASSERTEQUAL(retType->scalarType, Type::Int);
-      RDCASSERT(inst.args[0]->type->bitWidth > retBitWidth);
-
-      ShaderVariable arg;
-      RDCASSERT(GetShaderVariable(inst.args[0], opCode, dxOpCode, arg));
-      // Removes bits
-      // %X = trunc i32 257 to i8; yields i8 : 1
-      uint64_t mask = (1UL << retBitWidth) - 1UL;
-      switch(retType->bitWidth)
-      {
-        case 32:
-        case 16:
-        case 8:
-        case 1: result.value.u64v[0] = arg.value.u64v[0] & mask; break;
-        default: RDCERR("Unexpected result bitWidth %d", retType->bitWidth); break;
-      }
-      break;
-    }
     case Operation::ZExt:
-    {
-      uint32_t srcBitWidth = inst.args[0]->type->bitWidth;
-      RDCASSERTEQUAL(inst.args[0]->type->type, Type::TypeKind::Scalar);
-      RDCASSERTEQUAL(inst.args[0]->type->scalarType, Type::Int);
-      RDCASSERTEQUAL(retType->type, Type::TypeKind::Scalar);
-      RDCASSERTEQUAL(retType->scalarType, Type::Int);
-      RDCASSERT(srcBitWidth < retType->bitWidth);
-
-      ShaderVariable arg;
-      RDCASSERT(GetShaderVariable(inst.args[0], opCode, dxOpCode, arg));
-      // Extras bits are 0's
-      // %X = zext i32 257 to i64; yields i64 : 257
-      uint64_t mask = (1UL << srcBitWidth) - 1UL;
-      switch(retType->bitWidth)
-      {
-        case 64:
-        case 32:
-        case 16:
-        case 8: result.value.u64v[0] = arg.value.u64v[0] & mask; break;
-        default: RDCERR("Unexpected result bitWidth %d", retType->bitWidth); break;
-      }
-      break;
-    }
     case Operation::SExt:
     {
-      // Value Type
-      // Value & Type must be Integer
-      // Value->Type->bit_width < Type->bit_width
-      // Sign Extend : copy sign (highest bit of Value) -> Result
-      // %X = sext i8  -1 to i16              ; yields i16   :65535
+      // Result & Value must be Integer
+      const uint32_t srcBitWidth = inst.args[0]->type->bitWidth;
+      RDCASSERTEQUAL(inst.args[0]->type->type, Type::TypeKind::Scalar);
+      RDCASSERTEQUAL(inst.args[0]->type->scalarType, Type::Int);
+      RDCASSERTEQUAL(retType->type, Type::TypeKind::Scalar);
+      RDCASSERTEQUAL(retType->scalarType, Type::Int);
+
+      ShaderVariable a;
+      RDCASSERT(GetShaderVariable(inst.args[0], opCode, dxOpCode, a));
+      const uint32_t c = 0;
+
+      if(opCode == Operation::Trunc)
+      {
+        // Result bit_width < Value bit_width
+        RDCASSERT(retType->bitWidth < srcBitWidth);
+
+        uint64_t x = 0;
+
+#undef _IMPL
+#define _IMPL(I, S, U) x = comp<U>(a, c);
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(result, c) = (U)x;
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, result.type);
+      }
+      if(opCode == Operation::ZExt)
+      {
+        // Result bit_width >= Value bit_width
+        RDCASSERT(retType->bitWidth >= srcBitWidth);
+        // Extras bits are 0's
+        // %X = zext i32 257 to i64; yields i64 : 257
+        uint64_t x = 0;
+
+#undef _IMPL
+#define _IMPL(I, S, U) x = comp<U>(a, c);
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(result, c) = (U)x;
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, result.type);
+      }
+      else if(opCode == Operation::SExt)
+      {
+        // Result bit_width >= Value bit_width
+        RDCASSERT(retType->bitWidth >= srcBitWidth);
+        // Sign Extend : copy sign (highest bit of Value) -> Result
+        // %X = sext i8  -1 to i16              ; yields i16   :65535
+        int64_t x = 0;
+
+#undef _IMPL
+#define _IMPL(I, S, U) x = comp<S>(a, c);
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+
+#undef _IMPL
+#define _IMPL(I, S, U) comp<S>(result, c) = (S)x;
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, result.type);
+      }
+      else
+      {
+        RDCERR("Unhandled opCode %s", ToStr(opCode).c_str());
+      }
       break;
     }
     case Operation::And:
