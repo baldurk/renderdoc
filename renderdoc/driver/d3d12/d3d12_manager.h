@@ -981,9 +981,10 @@ enum class D3D12PatchTLASBuildParam
 
 enum class D3D12TLASInstanceCopyParam
 {
-  IndirectArgumentIndex,
+  RootCB,
   SourceSRV,
   DestUAV,
+  RootAddressPairSrv,
   Count
 };
 
@@ -1013,9 +1014,8 @@ enum class D3D12PatchRayDispatchParam
 
 struct D3D12AccStructPatchInfo
 {
-  D3D12AccStructPatchInfo() : m_rootSignature(NULL), m_pipeline(NULL) {}
-  ID3D12RootSignature *m_rootSignature;
-  ID3D12PipelineState *m_pipeline;
+  ID3D12RootSignature *m_rootSignature = NULL;
+  ID3D12PipelineState *m_pipeline = NULL;
 };
 
 struct PatchedRayDispatch
@@ -1209,6 +1209,12 @@ public:
 
   ASBuildData *CopyBuildInputs(ID3D12GraphicsCommandList4 *unwrappedCmd,
                                const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS &inputs);
+
+  D3D12GpuBuffer *UnrollBLASInstancesList(
+      ID3D12GraphicsCommandList4 *unwrappedCmd,
+      const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS &inputs,
+      D3D12_GPU_VIRTUAL_ADDRESS addressPairResAddress, uint64_t addressCount,
+      D3D12GpuBuffer *copyDestUAV);
 
   PatchedRayDispatch PatchRayDispatch(ID3D12GraphicsCommandList4 *unwrappedCmd,
                                       rdcarray<ResourceId> heaps,

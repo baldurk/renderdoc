@@ -784,11 +784,7 @@ void D3D12RTManager::InitInternalResources()
   {
     InitReplayBlasPatchingResources();
   }
-  else
-  {
-    // only needed during capture
-    InitTLASInstanceCopyingResources();
-  }
+  InitTLASInstanceCopyingResources();
   InitRayDispatchPatchingResources();
 }
 
@@ -1319,67 +1315,21 @@ ASBuildData *D3D12RTManager::CopyBuildInputs(
         // {BLASDescAddr, BLASDescAddr, BlasDescAddr...} to
         // {BLASDescAddr, dispatch(1,1,1), BLASDescAddr, dispatch(1,1,1), ...}
 
-        const uint64_t argSize = AlignUp(sizeof(TLASCopyExecute) * ret->NumBLAS, 256ULL);
-
-        if(m_TLASCopyingData.ArgsBuffer == NULL || m_TLASCopyingData.ArgsBuffer->Size() < argSize)
-        {
-          // needs to be dedicated so we can sure it's not shared with anything when we transition it...
-          m_GPUBufferAllocator.Alloc(
-              D3D12GpuBufferHeapType::DefaultHeapWithUav, D3D12GpuBufferHeapMemoryFlag::Dedicated,
-              argSize, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT, &m_TLASCopyingData.ArgsBuffer);
-        }
+        const uint64_t unpackedLayoutSize = byteSize;
 
         if(m_TLASCopyingData.ScratchBuffer == NULL ||
-           m_TLASCopyingData.ScratchBuffer->Size() < byteSize)
+           m_TLASCopyingData.ScratchBuffer->Size() < unpackedLayoutSize)
         {
           m_GPUBufferAllocator.Alloc(D3D12GpuBufferHeapType::DefaultHeapWithUav,
-                                     D3D12GpuBufferHeapMemoryFlag::Default, byteSize,
+                                     D3D12GpuBufferHeapMemoryFlag::Default, unpackedLayoutSize,
                                      D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT,
                                      &m_TLASCopyingData.ScratchBuffer);
         }
 
-        // keep these buffers around until the parent cmd executes even if we reallocate soon
-        m_TLASCopyingData.ArgsBuffer->AddRef();
-        m_TLASCopyingData.ScratchBuffer->AddRef();
-        ret->cleanupCallback = [this]() {
-          m_TLASCopyingData.ArgsBuffer->Release();
-          m_TLASCopyingData.ScratchBuffer->Release();
-          return true;
-        };
+        UnrollBLASInstancesList(unwrappedCmd, inputs, 0, 0, m_TLASCopyingData.ScratchBuffer);
 
-        // do a normal dispatch to set up the EI argument buffer in temporary scratch memory
-        unwrappedCmd->SetPipelineState(m_TLASCopyingData.PreparePipe);
-        unwrappedCmd->SetComputeRootSignature(m_TLASCopyingData.RootSig);
-        // dummy, will be set by the EI argument
-        unwrappedCmd->SetComputeRoot32BitConstant(
-            (UINT)D3D12TLASInstanceCopyParam::IndirectArgumentIndex, 0, 0);
-        unwrappedCmd->SetComputeRootShaderResourceView((UINT)D3D12TLASInstanceCopyParam::SourceSRV,
-                                                       inputs.InstanceDescs);
-        unwrappedCmd->SetComputeRootUnorderedAccessView((UINT)D3D12TLASInstanceCopyParam::DestUAV,
-                                                        m_TLASCopyingData.ArgsBuffer->Address());
-        unwrappedCmd->Dispatch(ret->NumBLAS, 1, 1);
-
-        // make sure the argument buffer is ready
+        // copy to readback buffer (can't write to it directly)
         D3D12_RESOURCE_BARRIER barrier = {};
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Transition.pResource = m_TLASCopyingData.ArgsBuffer->Resource();
-        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
-
-        unwrappedCmd->ResourceBarrier(1, &barrier);
-
-        unwrappedCmd->SetPipelineState(m_TLASCopyingData.CopyPipe);
-        unwrappedCmd->SetComputeRootSignature(m_TLASCopyingData.RootSig);
-        // dummy, will be set by the EI argument
-        unwrappedCmd->SetComputeRoot32BitConstant(
-            (UINT)D3D12TLASInstanceCopyParam::IndirectArgumentIndex, 0, 0);
-        unwrappedCmd->SetComputeRootUnorderedAccessView((UINT)D3D12TLASInstanceCopyParam::DestUAV,
-                                                        m_TLASCopyingData.ScratchBuffer->Address());
-        // the EI takes care of both setting the source SRV and the index constant
-        unwrappedCmd->ExecuteIndirect(m_TLASCopyingData.IndirectSig, ret->NumBLAS,
-                                      m_TLASCopyingData.ArgsBuffer->Resource(),
-                                      m_TLASCopyingData.ArgsBuffer->Offset(), NULL, 0);
-
         barrier.Transition.pResource = m_TLASCopyingData.ScratchBuffer->Resource();
         barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
         barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
@@ -1387,7 +1337,16 @@ ASBuildData *D3D12RTManager::CopyBuildInputs(
 
         unwrappedCmd->CopyBufferRegion(ret->buffer->Resource(), ret->buffer->Offset(),
                                        m_TLASCopyingData.ScratchBuffer->Resource(),
-                                       m_TLASCopyingData.ScratchBuffer->Offset(), byteSize);
+                                       m_TLASCopyingData.ScratchBuffer->Offset(), unpackedLayoutSize);
+
+        // keep these buffer around until the parent cmd executes even if we reallocate soon
+        m_TLASCopyingData.ArgsBuffer->AddRef();
+        m_TLASCopyingData.ScratchBuffer->AddRef();
+        ret->cleanupCallback = [this]() {
+          m_TLASCopyingData.ArgsBuffer->Release();
+          m_TLASCopyingData.ScratchBuffer->Release();
+          return true;
+        };
       }
     }
   }
@@ -1597,6 +1556,63 @@ ASBuildData *D3D12RTManager::CopyBuildInputs(
   unwrappedCmd->ResourceBarrier(1, &barrier);
 
   return ret;
+}
+
+D3D12GpuBuffer *D3D12RTManager::UnrollBLASInstancesList(
+    ID3D12GraphicsCommandList4 *unwrappedCmd,
+    const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS &inputs,
+    D3D12_GPU_VIRTUAL_ADDRESS addressPairResAddress, uint64_t addressCount,
+    D3D12GpuBuffer *copyDestUAV)
+{
+  const uint64_t indirectArgSize = AlignUp(sizeof(TLASCopyExecute) * inputs.NumDescs, 256ULL);
+
+  if(m_TLASCopyingData.ArgsBuffer == NULL || m_TLASCopyingData.ArgsBuffer->Size() < indirectArgSize)
+  {
+    // needs to be dedicated so we can sure it's not shared with anything when we transition it...
+    m_GPUBufferAllocator.Alloc(D3D12GpuBufferHeapType::DefaultHeapWithUav,
+                               D3D12GpuBufferHeapMemoryFlag::Dedicated, indirectArgSize,
+                               D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT,
+                               &m_TLASCopyingData.ArgsBuffer);
+  }
+
+  // do a normal dispatch to set up the EI argument buffer in temporary scratch memory
+  unwrappedCmd->SetPipelineState(m_TLASCopyingData.PreparePipe);
+  unwrappedCmd->SetComputeRootSignature(m_TLASCopyingData.RootSig);
+  unwrappedCmd->SetComputeRoot32BitConstant((UINT)D3D12TLASInstanceCopyParam::RootCB,
+                                            (UINT)addressCount, 0);
+  unwrappedCmd->SetComputeRootShaderResourceView((UINT)D3D12TLASInstanceCopyParam::SourceSRV,
+                                                 inputs.InstanceDescs);
+  unwrappedCmd->SetComputeRootShaderResourceView(
+      (UINT)D3D12TLASInstanceCopyParam::RootAddressPairSrv,
+      addressPairResAddress ? addressPairResAddress : inputs.InstanceDescs);
+  unwrappedCmd->SetComputeRootUnorderedAccessView((UINT)D3D12TLASInstanceCopyParam::DestUAV,
+                                                  m_TLASCopyingData.ArgsBuffer->Address());
+  unwrappedCmd->Dispatch(inputs.NumDescs, 1, 1);
+
+  // make sure the argument buffer is ready
+  D3D12_RESOURCE_BARRIER barrier = {};
+  barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+  barrier.Transition.pResource = m_TLASCopyingData.ArgsBuffer->Resource();
+  barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+  barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
+
+  unwrappedCmd->ResourceBarrier(1, &barrier);
+
+  unwrappedCmd->SetPipelineState(m_TLASCopyingData.CopyPipe);
+  unwrappedCmd->SetComputeRootSignature(m_TLASCopyingData.RootSig);
+  // dummy, will be set by the EI argument
+  unwrappedCmd->SetComputeRoot32BitConstant((UINT)D3D12TLASInstanceCopyParam::RootCB, 0, 0);
+  unwrappedCmd->SetComputeRootShaderResourceView(
+      (UINT)D3D12TLASInstanceCopyParam::RootAddressPairSrv,
+      addressPairResAddress ? addressPairResAddress : inputs.InstanceDescs);
+  unwrappedCmd->SetComputeRootUnorderedAccessView((UINT)D3D12TLASInstanceCopyParam::DestUAV,
+                                                  copyDestUAV->Address());
+  // the EI takes care of both setting the source SRV and the index constant
+  unwrappedCmd->ExecuteIndirect(m_TLASCopyingData.IndirectSig, inputs.NumDescs,
+                                m_TLASCopyingData.ArgsBuffer->Resource(),
+                                m_TLASCopyingData.ArgsBuffer->Offset(), NULL, 0);
+
+  return m_TLASCopyingData.ArgsBuffer;
 }
 
 void D3D12RTManager::CopyFromVA(ID3D12GraphicsCommandList4 *unwrappedCmd, ID3D12Resource *dstRes,
@@ -1923,7 +1939,7 @@ void D3D12RTManager::InitTLASInstanceCopyingResources()
   rdcarray<D3D12_ROOT_PARAMETER1> rootParameters;
   rootParameters.reserve((uint16_t)D3D12TLASInstanceCopyParam::Count);
 
-  // only used in the EI
+  // used as an index in the EI, and as an address count in the prepare step
   {
     D3D12_ROOT_PARAMETER1 rootParam;
     rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
@@ -1938,7 +1954,7 @@ void D3D12RTManager::InitTLASInstanceCopyingResources()
     D3D12_ROOT_PARAMETER1 rootParam;
     rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
     rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-    rootParam.Descriptor.ShaderRegister = 0;
+    rootParam.Descriptor.ShaderRegister = 1;
     rootParam.Descriptor.RegisterSpace = 0;
     rootParam.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
     rootParameters.push_back(rootParam);
@@ -1947,6 +1963,16 @@ void D3D12RTManager::InitTLASInstanceCopyingResources()
   {
     D3D12_ROOT_PARAMETER1 rootParam;
     rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
+    rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    rootParam.Descriptor.ShaderRegister = 0;
+    rootParam.Descriptor.RegisterSpace = 0;
+    rootParam.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
+    rootParameters.push_back(rootParam);
+  }
+
+  {
+    D3D12_ROOT_PARAMETER1 rootParam;
+    rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
     rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
     rootParam.Descriptor.ShaderRegister = 0;
     rootParam.Descriptor.RegisterSpace = 0;
@@ -2029,7 +2055,7 @@ void D3D12RTManager::InitTLASInstanceCopyingResources()
 
     args[0].Constant.DestOffsetIn32BitValues = 0;
     args[0].Constant.Num32BitValuesToSet = 1;
-    args[0].Constant.RootParameterIndex = (uint32_t)D3D12TLASInstanceCopyParam::IndirectArgumentIndex;
+    args[0].Constant.RootParameterIndex = (uint32_t)D3D12TLASInstanceCopyParam::RootCB;
 
     args[1].ShaderResourceView.RootParameterIndex = (uint32_t)D3D12TLASInstanceCopyParam::SourceSRV;
 

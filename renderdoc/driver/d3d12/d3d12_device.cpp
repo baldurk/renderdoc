@@ -3228,7 +3228,6 @@ void WrappedID3D12Device::UploadBLASBufferAddresses()
     if(resManager->HasLiveResource(resId))
     {
       WrappedID3D12Resource *wrappedRes = (WrappedID3D12Resource *)resManager->GetLiveResource(resId);
-      if(wrappedRes->IsAccelerationStructureResource())
       {
         BlasAddressPair addressPair;
         addressPair.oldAddress.start = addressRange.start;
@@ -3236,7 +3235,15 @@ void WrappedID3D12Device::UploadBLASBufferAddresses()
 
         addressPair.newAddress.start = wrappedRes->GetGPUVirtualAddress();
         addressPair.newAddress.end = addressPair.newAddress.start + wrappedRes->GetDesc().Width;
-        blasAddressPair.push_back(addressPair);
+
+        // ASB addresses are far more likely to be used so put them at the front to be found first
+        // as this isn't sorted.
+        // The only time we are looking up 'normal' buffers on the GPU to patch is when we're
+        // unrolling an ARRAY_OF_POINTERS list on replay when building a TLAS
+        if(wrappedRes->IsAccelerationStructureResource())
+          blasAddressPair.insert(0, addressPair);
+        else
+          blasAddressPair.push_back(addressPair);
       }
     }
   }
