@@ -2808,7 +2808,13 @@ QString BufferFormatter::DeclareStruct(Packing::Rules pack, ResourceId shader,
         ret += lit("// unexpected matrix stride %1").arg(members[i].type.matrixByteStride);
     }
 
-    ret += QFormatStr("    %1 %2%3;\n").arg(varTypeName).arg(varName).arg(arraySize);
+    QString bitfieldSize;
+
+    if(members[i].bitFieldSize > 0)
+      bitfieldSize = QFormatStr(" : %1").arg(members[i].bitFieldSize);
+
+    ret +=
+        QFormatStr("    %1 %2%3%4;\n").arg(varTypeName).arg(varName).arg(arraySize).arg(bitfieldSize);
   }
 
   // if we don't have tight arrays, struct byte strides are always 16-byte aligned
