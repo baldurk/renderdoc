@@ -3021,6 +3021,45 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       }
       break;
     }
+    case Operation::FPTrunc:
+    case Operation::FPExt:
+    {
+      // Result & Value must be Float
+      const uint32_t srcBitWidth = inst.args[0]->type->bitWidth;
+      RDCASSERTEQUAL(inst.args[0]->type->type, Type::TypeKind::Scalar);
+      RDCASSERTEQUAL(inst.args[0]->type->scalarType, Type::Float);
+      RDCASSERTEQUAL(retType->type, Type::TypeKind::Scalar);
+      RDCASSERTEQUAL(retType->scalarType, Type::Float);
+
+      ShaderVariable a;
+      RDCASSERT(GetShaderVariable(inst.args[0], opCode, dxOpCode, a));
+      const uint32_t c = 0;
+
+      if(opCode == Operation::FPTrunc)
+      {
+        // Result bit_width < Value bit_width
+        RDCASSERT(retType->bitWidth < srcBitWidth);
+      }
+      else if(opCode == Operation::FPExt)
+      {
+        // Result bit_width > Value bit_width
+        RDCASSERT(retType->bitWidth > srcBitWidth);
+      }
+      double x = 0.0;
+
+#undef _IMPL
+#define _IMPL(T) x = comp<T>(a, c);
+      IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, a.type);
+
+      if(result.type == VarType::Float)
+        comp<float>(result, c) = (float)x;
+      else if(result.type == VarType::Half)
+        comp<half_float::half>(result, c) = (float)x;
+      else if(result.type == VarType::Double)
+        comp<double>(result, c) = (double)x;
+
+      break;
+    }
     case Operation::And:
     case Operation::Or:
     case Operation::Xor:
@@ -3055,8 +3094,6 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
         result.value.s64v[0] = a.value.s64v[0] << b.value.u64v[0];
       break;
     }
-    case Operation::FPTrunc:
-    case Operation::FPExt:
     case Operation::PtrToI:
     case Operation::IToPtr:
     case Operation::AddrSpaceCast:

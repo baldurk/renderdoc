@@ -1768,8 +1768,6 @@ rdcstr Program::GetDebugStatus()
     {
       switch(inst->op)
       {
-        case Operation::FPTrunc:
-        case Operation::FPExt:
         case Operation::PtrToI:
         case Operation::IToPtr:
         case Operation::AddrSpaceCast:
