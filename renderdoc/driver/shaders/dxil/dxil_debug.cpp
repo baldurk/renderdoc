@@ -3080,18 +3080,51 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       ShaderVariable b;
       RDCASSERT(GetShaderVariable(inst.args[0], opCode, dxOpCode, a));
       RDCASSERT(GetShaderVariable(inst.args[1], opCode, dxOpCode, b));
+      const uint32_t c = 0;
+
       if(opCode == Operation::And)
-        result.value.u64v[0] = a.value.u64v[0] & b.value.u64v[0];
-      else if(opCode == Operation::And)
-        result.value.u64v[0] = a.value.u64v[0] | b.value.u64v[0];
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(result, c) = comp<U>(a, c) & comp<U>(b, c)
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, result.type);
+      }
+      else if(opCode == Operation::Or)
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(result, c) = comp<U>(a, c) | comp<U>(b, c)
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, result.type);
+      }
       else if(opCode == Operation::Xor)
-        result.value.u64v[0] = a.value.u64v[0] ^ b.value.u64v[0];
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(result, c) = comp<U>(a, c) ^ comp<U>(b, c)
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, result.type);
+      }
       else if(opCode == Operation::ShiftLeft)
-        result.value.u64v[0] = a.value.u64v[0] << b.value.u64v[0];
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(result, c) = comp<U>(a, c) << comp<U>(b, c)
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, result.type);
+      }
       else if(opCode == Operation::LogicalShiftRight)
-        result.value.u64v[0] = a.value.u64v[0] >> b.value.u64v[0];
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(result, c) = comp<U>(a, c) >> comp<U>(b, c)
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, result.type);
+      }
       else if(opCode == Operation::ArithShiftRight)
+      {
         result.value.s64v[0] = a.value.s64v[0] << b.value.u64v[0];
+#undef _IMPL
+#define _IMPL(I, S, U) comp<S>(result, c) = comp<S>(a, c) >> comp<S>(b, c)
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, result.type);
+      }
       break;
     }
     case Operation::PtrToI:
