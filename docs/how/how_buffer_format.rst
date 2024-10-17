@@ -126,6 +126,13 @@ On APIs where GPU pointers can reside within memory, such as Vulkan, pointers ca
 
   MyStructName *pointer;
 
+It is also possible to declare pointers to basic types without a struct, which will be treated as tightly packed.
+
+.. code:: c++
+
+  float *pointer;
+  int2 *otherPointer;
+
 Packing and layout rules
 ------------------------
 
