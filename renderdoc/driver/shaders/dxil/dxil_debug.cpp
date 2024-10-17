@@ -4913,6 +4913,8 @@ void Debugger::ParseDebugData()
             SourceVariableMapping sourceVar;
             sourceVar.name = n->name;
             sourceVar.type = n->type;
+            sourceVar.rows = n->rows;
+            sourceVar.columns = n->columns;
             sourceVar.signatureIndex = -1;
             sourceVar.offset = n->offset;
             sourceVar.variables.clear();
