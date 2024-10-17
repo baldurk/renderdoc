@@ -1770,7 +1770,6 @@ rdcstr Program::GetDebugStatus()
       {
         case Operation::AddrSpaceCast:
         case Operation::InsertValue:
-        case Operation::Switch:
         case Operation::Fence:
         case Operation::CompareExchange:
         case Operation::LoadAtomic:

@@ -3254,9 +3254,47 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       }
       break;
     }
+    case Operation::Switch:
+    {
+      // Value, Default_Label then Pairs of { targetValue, label }
+      ShaderVariable val;
+      RDCASSERT(GetShaderVariable(inst.args[0], opCode, dxOpCode, val));
+      uint32_t targetArg = 1;
+      for(uint32_t a = 2; a < inst.args.size(); a += 2)
+      {
+        ShaderVariable targetVal;
+        RDCASSERT(GetShaderVariable(inst.args[a], opCode, dxOpCode, targetVal));
+        bool match = false;
+
+#undef _IMPL
+#define _IMPL(I, S, U) match = comp<I>(val, 0) == comp<I>(targetVal, 0);
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, val.type);
+
+        if(match)
+        {
+          targetArg = a + 1;
+          break;
+        }
+      }
+
+      const Block *target = cast<Block>(inst.args[targetArg]);
+      RDCASSERT(target);
+      uint32_t blockId = target->id;
+      if(blockId < m_FunctionInfo->function->blocks.size())
+      {
+        m_Block = blockId;
+        m_FunctionInstructionIdx = m_FunctionInfo->function->blocks[m_Block]->startInstructionIdx;
+        m_GlobalInstructionIdx = m_FunctionInfo->globalInstructionOffset + m_FunctionInstructionIdx;
+      }
+      else
+      {
+        RDCERR("Unknown switch target %u '%s'", m_Block, GetArgumentName(targetArg).c_str());
+      }
+      break;
+    }
     case Operation::AddrSpaceCast:
     case Operation::InsertValue:
-    case Operation::Switch:
     case Operation::Fence:
     case Operation::CompareExchange:
     case Operation::LoadAtomic:
