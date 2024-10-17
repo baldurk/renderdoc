@@ -2496,6 +2496,7 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
     }
     case Operation::Bitcast:
     {
+      RDCASSERTEQUAL(retType->bitWidth, inst.args[0]->type->bitWidth);
       ShaderVariable a;
       RDCASSERT(GetShaderVariable(inst.args[0], opCode, dxOpCode, a));
       result.value = a.value;
@@ -3128,7 +3129,47 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       break;
     }
     case Operation::PtrToI:
+    {
+      RDCASSERTEQUAL(inst.args[0]->type->type, Type::TypeKind::Pointer);
+      RDCASSERTEQUAL(inst.args[0]->type->scalarType, Type::Int);
+      RDCASSERTEQUAL(retType->type, Type::TypeKind::Scalar);
+      RDCASSERTEQUAL(retType->scalarType, Type::Int);
+      ShaderVariable a;
+      RDCASSERT(GetShaderVariable(inst.args[0], opCode, dxOpCode, a));
+      const uint32_t c = 0;
+      uint64_t x = 0;
+
+#undef _IMPL
+#define _IMPL(I, S, U) x = comp<U>(a, c);
+      IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(result, c) = (U)x;
+      IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, result.type);
+
+      break;
+    }
     case Operation::IToPtr:
+    {
+      RDCASSERTEQUAL(inst.args[0]->type->type, Type::TypeKind::Scalar);
+      RDCASSERTEQUAL(inst.args[0]->type->scalarType, Type::Int);
+      RDCASSERTEQUAL(retType->type, Type::TypeKind::Pointer);
+      RDCASSERTEQUAL(retType->scalarType, Type::Int);
+      ShaderVariable a;
+      RDCASSERT(GetShaderVariable(inst.args[0], opCode, dxOpCode, a));
+      const uint32_t c = 0;
+      uint64_t x = 0;
+
+#undef _IMPL
+#define _IMPL(I, S, U) x = comp<U>(a, c);
+      IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(result, c) = (U)x;
+      IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, result.type);
+
+      break;
+    }
     case Operation::AddrSpaceCast:
     case Operation::ExtractElement:
     case Operation::InsertElement:

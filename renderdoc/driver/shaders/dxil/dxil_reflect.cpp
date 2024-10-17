@@ -1768,8 +1768,6 @@ rdcstr Program::GetDebugStatus()
     {
       switch(inst->op)
       {
-        case Operation::PtrToI:
-        case Operation::IToPtr:
         case Operation::AddrSpaceCast:
         case Operation::ExtractElement:
         case Operation::InsertElement:
