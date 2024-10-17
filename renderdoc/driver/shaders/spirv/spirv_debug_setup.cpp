@@ -1746,6 +1746,10 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo)
             usage->type = scalar.type;
             columns = RDCMAX(1U, typeWalk->vecSize);
           }
+          else
+          {
+            usage->type = typeWalk->type;
+          }
 
           usage->debugVar = mapping.debugVar;
           // Remove any child mappings : this mapping covers everything
