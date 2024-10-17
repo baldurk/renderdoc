@@ -1042,9 +1042,17 @@ rdcarray<ResourceId> VulkanResourceManager::InitialContentResources()
     const InitialContentData &bData = m_InitialContents[b].data;
 
     // Always sort BLASs before TLASs, as a TLAS holds device addresses for it's BLASs
-    // and we make sure those addresses are valid
-    if(!aData.isTLAS && bData.isTLAS)
-      return true;
+    // and we make sure those addresses are valid.  There's no good handling for the generic types,
+    // so we just assume it is a TLAS
+    if(aData.accelerationStructureInfo && bData.accelerationStructureInfo)
+    {
+      const VkAccelerationStructureTypeKHR aType = aData.accelerationStructureInfo->type;
+      const VkAccelerationStructureTypeKHR bType = bData.accelerationStructureInfo->type;
+      if(aType == VkAccelerationStructureTypeKHR::VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR &&
+         (bType == VkAccelerationStructureTypeKHR::VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR ||
+          bType == VkAccelerationStructureTypeKHR::VK_ACCELERATION_STRUCTURE_TYPE_GENERIC_KHR))
+        return true;
+    }
 
     return aData.type < bData.type;
   });
