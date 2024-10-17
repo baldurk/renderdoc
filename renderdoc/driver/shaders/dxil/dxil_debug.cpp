@@ -3170,10 +3170,91 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
 
       break;
     }
-    case Operation::AddrSpaceCast:
     case Operation::ExtractElement:
+    {
+      RDCASSERTEQUAL(inst.args[0]->type->type, Type::TypeKind::Vector);
+      RDCASSERTEQUAL(retType->type, Type::TypeKind::Scalar);
+      RDCASSERTEQUAL(retType->scalarType, inst.args[0]->type->inner->scalarType);
+      ShaderVariable a;
+      RDCASSERT(GetShaderVariable(inst.args[0], opCode, dxOpCode, a));
+      ShaderVariable b;
+      RDCASSERT(GetShaderVariable(inst.args[1], opCode, dxOpCode, b));
+      const uint32_t idx = b.value.u32v[0];
+
+#undef _IMPL
+#define _IMPL(I, S, U) comp<I>(result, 0) = comp<I>(a, idx);
+      IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+
+#undef _IMPL
+#define _IMPL(T) comp<T>(result, 0) = comp<T>(a, idx);
+
+      IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, a.type);
+
+      break;
+    }
     case Operation::InsertElement:
+    {
+      RDCASSERTEQUAL(inst.args[0]->type->type, Type::TypeKind::Vector);
+      RDCASSERTEQUAL(retType->type, Type::TypeKind::Vector);
+      RDCASSERTEQUAL(retType->inner->scalarType, inst.args[0]->type->inner->scalarType);
+      RDCASSERTEQUAL(inst.args[1]->type->type, Type::TypeKind::Scalar);
+      RDCASSERTEQUAL(inst.args[1]->type->scalarType, inst.args[0]->type->inner->scalarType);
+      ShaderVariable a;
+      RDCASSERT(GetShaderVariable(inst.args[0], opCode, dxOpCode, a));
+      ShaderVariable b;
+      RDCASSERT(GetShaderVariable(inst.args[1], opCode, dxOpCode, b));
+      ShaderVariable c;
+      RDCASSERT(GetShaderVariable(inst.args[2], opCode, dxOpCode, c));
+      const uint32_t idx = c.value.u32v[0];
+
+      result = a;
+
+#undef _IMPL
+#define _IMPL(I, S, U) comp<I>(result, idx) = comp<I>(b, 0);
+      IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+
+#undef _IMPL
+#define _IMPL(T) comp<T>(result, idx) = comp<T>(b, 0);
+
+      IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, b.type);
+      break;
+    }
     case Operation::ShuffleVector:
+    {
+      RDCASSERTEQUAL(inst.args[0]->type->type, Type::TypeKind::Vector);
+      RDCASSERTEQUAL(inst.args[1]->type->type, Type::TypeKind::Vector);
+      RDCASSERTEQUAL(retType->type, Type::TypeKind::Vector);
+      RDCASSERTEQUAL(retType->inner->scalarType, inst.args[0]->type->inner->scalarType);
+      RDCASSERTEQUAL(inst.args[1]->type->inner->scalarType, inst.args[0]->type->inner->scalarType);
+      RDCASSERTEQUAL(retType->elemCount, inst.args[2]->type->elemCount);
+      ShaderVariable a;
+      RDCASSERT(GetShaderVariable(inst.args[0], opCode, dxOpCode, a));
+      ShaderVariable b;
+      bool bIsValid = GetShaderVariable(inst.args[1], opCode, dxOpCode, b);
+      ShaderVariable c;
+      RDCASSERT(GetShaderVariable(inst.args[2], opCode, dxOpCode, c));
+      // TODO: mask entries might be undef meaning "don’t care"
+      const uint32_t aMax = inst.args[0]->type->elemCount;
+      for(uint32_t idx = 0; idx < retType->elemCount; idx++)
+      {
+        const uint32_t mask = c.value.u32v[idx];
+        if(!bIsValid)
+          RDCASSERT(mask < aMax);
+        RDCASSERT(mask < retType->elemCount);
+
+#undef _IMPL
+#define _IMPL(I, S, U) \
+  comp<I>(result, idx) = (mask < aMax) ? comp<I>(a, mask) : comp<I>(b, mask - aMax);
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+
+#undef _IMPL
+#define _IMPL(T) comp<T>(result, idx) = (mask < aMax) ? comp<T>(a, mask) : comp<T>(b, mask - aMax);
+
+        IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, a.type);
+      }
+      break;
+    }
+    case Operation::AddrSpaceCast:
     case Operation::InsertValue:
     case Operation::Switch:
     case Operation::Fence:

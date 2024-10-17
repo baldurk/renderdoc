@@ -1769,9 +1769,6 @@ rdcstr Program::GetDebugStatus()
       switch(inst->op)
       {
         case Operation::AddrSpaceCast:
-        case Operation::ExtractElement:
-        case Operation::InsertElement:
-        case Operation::ShuffleVector:
         case Operation::InsertValue:
         case Operation::Switch:
         case Operation::Fence:
