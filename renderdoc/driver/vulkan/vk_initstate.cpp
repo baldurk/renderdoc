@@ -588,10 +588,6 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       return true;
     }
 
-    // Skip empty AS input data (BLASes are force ref-ed)
-    if(record->accelerationStructureInfo->memSize == 0)
-      return true;
-
     // The input buffers and metadata have all been created by this point, so we just need to
     // assemble a VkInitialContents
     VkInitialContents ic;

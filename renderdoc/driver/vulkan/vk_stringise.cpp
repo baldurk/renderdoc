@@ -298,6 +298,7 @@ rdcstr DoStringise(const MemoryScope &el)
   {
     STRINGISE_ENUM_CLASS(InitialContents);
     STRINGISE_ENUM_CLASS(IndirectReadback);
+    STRINGISE_ENUM_CLASS(InitialContentsFirstApplyOnly);
   }
   END_ENUM_STRINGISE()
 }

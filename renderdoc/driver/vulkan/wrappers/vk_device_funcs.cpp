@@ -957,6 +957,8 @@ void WrappedVulkan::Shutdown()
   SubmitSemaphores();
   FlushQ();
 
+  GetAccelerationStructureManager()->Shutdown();
+
   // idle the device as well so that external queues are idle.
   if(m_Device)
   {
@@ -1014,6 +1016,7 @@ void WrappedVulkan::Shutdown()
   }
 
   FreeAllMemory(MemoryScope::InitialContents);
+  FreeAllMemory(MemoryScope::InitialContentsFirstApplyOnly);
 
   if(m_MemoryFreeThread)
   {

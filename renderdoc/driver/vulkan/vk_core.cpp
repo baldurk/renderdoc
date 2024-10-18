@@ -3264,7 +3264,7 @@ RDResult WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStructured
   GetReplay()->WriteFrameRecord().frameInfo.initDataSize =
       chunkInfos[(VulkanChunk)SystemChunk::InitialContents].totalsize;
 
-  RDCDEBUG("Allocating %llu persistant bytes of memory for the log.",
+  RDCDEBUG("Allocating %llu persistent bytes of memory for the log.",
            GetReplay()->WriteFrameRecord().frameInfo.persistentSize);
 
   // ensure the capture at least created a device and fetched a queue.
@@ -3780,6 +3780,8 @@ void WrappedVulkan::ApplyInitialContents()
     SubmitCmds();
     FlushQ();
   }
+
+  FreeAllMemory(MemoryScope::InitialContentsFirstApplyOnly);
 }
 
 bool WrappedVulkan::ContextProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
