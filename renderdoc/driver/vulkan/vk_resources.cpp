@@ -4012,8 +4012,8 @@ VkResourceRecord::~VkResourceRecord()
   if(resType == eResQueryPool)
     SAFE_DELETE(queryPoolInfo);
 
-  if(resType == eResAccelerationStructureKHR && accelerationStructureInfo)
-    accelerationStructureInfo->Release();
+  if(resType == eResAccelerationStructureKHR)
+    SAFE_RELEASE(accelerationStructureInfo);
 }
 
 void VkResourceRecord::MarkImageFrameReferenced(VkResourceRecord *img, const ImageRange &range,

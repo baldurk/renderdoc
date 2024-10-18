@@ -39,7 +39,6 @@ struct VkAccelerationStructureInfo
       VkDeviceSize vertexStride;
       uint32_t maxVertex;
       VkIndexType indexType;
-      bool hasTransformData;
     };
 
     struct Aabbs
@@ -50,13 +49,11 @@ struct VkAccelerationStructureInfo
     VkGeometryTypeKHR geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
     VkGeometryFlagsKHR flags;
 
-    VkDeviceMemory readbackMem;
-    VkDeviceSize memSize;
-
     Triangles tris;
     Aabbs aabbs;
 
     VkAccelerationStructureBuildRangeInfoKHR buildRangeInfo;
+    VkDeviceSize memOffset;
   };
 
   ~VkAccelerationStructureInfo();
@@ -64,13 +61,23 @@ struct VkAccelerationStructureInfo
   void AddRef() { Atomic::Inc32(&refCount); }
   void Release();
 
-  VkDevice device = VK_NULL_HANDLE;
+  uint64_t GetSerialisedSize() const;
+
+  void convertGeometryData(rdcarray<VkAccelerationStructureGeometryKHR> &geometry) const;
+  rdcarray<VkAccelerationStructureBuildRangeInfoKHR> getBuildRanges() const;
 
   VkAccelerationStructureTypeKHR type =
       VkAccelerationStructureTypeKHR::VK_ACCELERATION_STRUCTURE_TYPE_GENERIC_KHR;
   VkBuildAccelerationStructureFlagsKHR flags = 0;
 
   rdcarray<GeometryData> geometryData;
+
+  GPUBuffer readbackMem;
+  VkDeviceSize memSize = 0;
+
+  MemoryAllocation uploadAlloc;
+  VkBuffer uploadBuf = VK_NULL_HANDLE;
+  VkAccelerationStructureKHR replayAS = VK_NULL_HANDLE;
 
   bool accelerationStructureBuilt = false;
 
@@ -81,27 +88,9 @@ private:
 class VulkanAccelerationStructureManager
 {
 public:
-  struct ASMemory
-  {
-    MemoryAllocation alloc;
-    bool isTLAS;
-  };
-
-  struct Allocation
-  {
-    VkDeviceMemory mem = VK_NULL_HANDLE;
-    VkDeviceSize size = 0;
-    VkBuffer buf = VK_NULL_HANDLE;
-  };
-
-  struct RecordAndOffset
-  {
-    VkResourceRecord *record = NULL;
-    VkDeviceAddress address = 0x0;
-    VkDeviceSize offset = 0;
-  };
-
   explicit VulkanAccelerationStructureManager(WrappedVulkan *driver);
+
+  void Shutdown();
 
   // Allocates readback mem and injects commands into the command buffer so that the input buffers
   // are copied.
@@ -115,28 +104,45 @@ public:
   void CopyAccelerationStructure(VkCommandBuffer commandBuffer,
                                  const VkCopyAccelerationStructureInfoKHR &pInfo);
 
-  // Called when the initial state is prepared.  Any TLAS and BLAS data is copied into temporary
-  // buffers and the handles for that memory and the buffers is stored in the init state
-  bool Prepare(VkAccelerationStructureKHR unwrappedAs, const rdcarray<uint32_t> &queueFamilyIndices,
-               ASMemory &result);
+  uint64_t GetSize_InitialState(ResourceId id, const VkInitialContents &initial);
 
   template <typename SerialiserType>
   bool Serialise(SerialiserType &ser, ResourceId id, const VkInitialContents *initial,
                  CaptureState state);
 
-  // Called when the initial state is applied.  The AS data is deserialised from the upload buffer
-  // into the acceleration structure
-  void Apply(ResourceId id, const VkInitialContents &initial);
+  // Called when the initial state is applied.
+  void Apply(ResourceId id, VkInitialContents &initial);
 
 private:
-  Allocation CreateReadBackMemory(VkDevice device, VkDeviceSize size, VkDeviceSize alignment = 0);
+  struct Allocation
+  {
+    MemoryAllocation memAlloc;
+    VkBuffer buf = VK_NULL_HANDLE;
+  };
+
+  struct RecordAndOffset
+  {
+    VkResourceRecord *record = NULL;
+    VkDeviceAddress address = 0x0;
+    VkDeviceSize offset = 0;
+  };
+
+  GPUBuffer CreateReadBackMemory(VkDevice device, VkDeviceSize size);
+  Allocation CreateReplayMemory(MemoryType memType, VkDeviceSize size, VkDeviceSize alignment,
+                                VkBufferUsageFlags extraUsageFlags = 0);
+
+  bool FixUpReplayBDAs(VkAccelerationStructureInfo *asInfo, VkBuffer buf,
+                       rdcarray<VkAccelerationStructureGeometryKHR> &geoms);
+
+  void UpdateScratch(VkDeviceSize requiredSize);
 
   RecordAndOffset GetDeviceAddressData(VkDeviceAddress address) const;
 
   template <typename T>
   void DeletePreviousInfo(VkCommandBuffer commandBuffer, T *info);
 
-  VkDeviceSize SerialisedASSize(VkAccelerationStructureKHR unwrappedAs);
-
   WrappedVulkan *m_pDriver;
+
+  Allocation scratch;
+  VkDeviceOrHostAddressKHR scratchAddressUnion;
 };
