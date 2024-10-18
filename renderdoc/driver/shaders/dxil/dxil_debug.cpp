@@ -3300,9 +3300,12 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       }
       break;
     }
+    case Operation::Fence:
+    {
+      break;
+    }
     case Operation::AddrSpaceCast:
     case Operation::InsertValue:
-    case Operation::Fence:
     case Operation::CompareExchange:
     case Operation::AtomicExchange:
     case Operation::AtomicAdd:
