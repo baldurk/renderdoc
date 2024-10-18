@@ -2347,8 +2347,9 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       break;
     }
     case Operation::Load:
+    case Operation::LoadAtomic:
     {
-      // TODO: full proper load from resource memory i.e. group shared
+      // TODO: full proper load from memory i.e. group shared
       // Currently only supporting Stack allocated pointers
       // Load(ptr)
       Id ptrId = GetArgumentId(0);
@@ -2359,8 +2360,9 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       break;
     }
     case Operation::Store:
+    case Operation::StoreAtomic:
     {
-      // TODO: full proper store to resource memory i.e. group shared
+      // TODO: full proper store to memory i.e. group shared
       // Currently only supporting Stack allocated pointers
       // Store(ptr, value)
       Id baseMemoryId = DXILDebug::INVALID_ID;
@@ -3043,6 +3045,10 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
         // Result bit_width > Value bit_width
         RDCASSERT(retType->bitWidth > srcBitWidth);
       }
+      else
+      {
+        RDCERR("Unhandled opCode %s", ToStr(opCode).c_str());
+      }
       double x = 0.0;
 
 #undef _IMPL
@@ -3122,6 +3128,10 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
 #define _IMPL(I, S, U) comp<S>(result, c) = comp<S>(a, c) >> comp<S>(b, c)
 
         IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, result.type);
+      }
+      else
+      {
+        RDCERR("Unhandled opCode %s", ToStr(opCode).c_str());
       }
       break;
     }
@@ -3294,8 +3304,6 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
     case Operation::InsertValue:
     case Operation::Fence:
     case Operation::CompareExchange:
-    case Operation::LoadAtomic:
-    case Operation::StoreAtomic:
     case Operation::AtomicExchange:
     case Operation::AtomicAdd:
     case Operation::AtomicSub:
