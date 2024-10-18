@@ -150,6 +150,8 @@ struct ThreadState
                          ShaderVariable &var, bool flushDenormInput = true) const;
   bool GetVariable(const Id &id, DXIL::Operation opCode, DXIL::DXOp dxOpCode,
                    ShaderVariable &var) const;
+  void UpdateBackingMemoryFromVariable(void *ptr, size_t allocSize, const ShaderVariable &var);
+  void UpdateMemoryVariableFromBackingMemory(Id memoryId, const void *ptr);
 
   void PerformGPUResourceOp(const rdcarray<ThreadState> &workgroups, DXIL::Operation opCode,
                             DXIL::DXOp dxOpCode, const DXIL::ResourceReference *resRef,

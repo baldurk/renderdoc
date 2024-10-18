@@ -2363,40 +2363,37 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       // TODO: full proper store to resource memory i.e. group shared
       // Currently only supporting Stack allocated pointers
       // Store(ptr, value)
+      Id baseMemoryId = DXILDebug::INVALID_ID;
+      void *baseMemoryBackingPtr = NULL;
+      size_t allocSize = 0;
+      void *allocMemoryBackingPtr = NULL;
       Id ptrId = GetArgumentId(0);
       auto itPtr = m_StackAllocPointers.find(ptrId);
       RDCASSERT(itPtr != m_StackAllocPointers.end());
+
       const StackAllocPointer &ptr = itPtr->second;
-      Id baseMemoryId = ptr.baseMemoryId;
-      RDCASSERT(ptr.backingMemory);
-      RDCASSERTNOTEQUAL(baseMemoryId, DXILDebug::INVALID_ID);
+      baseMemoryId = ptr.baseMemoryId;
+      baseMemoryBackingPtr = ptr.backingMemory;
+
       auto itAlloc = m_StackAllocs.find(baseMemoryId);
       RDCASSERT(itAlloc != m_StackAllocs.end());
       StackAlloc &alloc = itAlloc->second;
+      allocSize = alloc.size;
+      allocMemoryBackingPtr = alloc.backingMemory;
 
-      ShaderVariable arg;
-      RDCASSERT(GetShaderVariable(inst.args[1], opCode, dxOpCode, arg));
+      RDCASSERT(baseMemoryBackingPtr);
+      RDCASSERTNOTEQUAL(baseMemoryId, DXILDebug::INVALID_ID);
+
+      ShaderVariable val;
+      RDCASSERT(GetShaderVariable(inst.args[1], opCode, dxOpCode, val));
       RDCASSERTEQUAL(resultId, DXILDebug::INVALID_ID);
 
-      // Memory copy from value to backing memory
-      VarType type = ConvertDXILTypeToVarType(inst.args[1]->type);
-      size_t size = GetElementByteSize(type);
-      RDCASSERT(size <= alloc.size);
-      RDCASSERT(size < sizeof(arg.value.f32v));
-      memcpy(ptr.backingMemory, &arg.value.f32v[0], size);
+      UpdateBackingMemoryFromVariable(baseMemoryBackingPtr, allocSize, val);
 
       ShaderVariableChange change;
       change.before = m_LiveVariables[baseMemoryId];
-      ShaderVariable &baseMemory = m_LiveVariables[baseMemoryId];
-      // TODO: Make this be a helper function UpdateVariableFromBackingMemory()
-      // Memory copy from backing memory to base memory variable
-      const uint8_t *src = (uint8_t *)alloc.backingMemory;
-      size_t elementSize = GetElementByteSize(baseMemory.type);
-      for(uint32_t i = 0; i < baseMemory.rows; ++i)
-      {
-        memcpy(&m_LiveVariables[baseMemoryId].members[i].value.f32v[0], src, elementSize);
-        src += elementSize;
-      }
+
+      UpdateMemoryVariableFromBackingMemory(baseMemoryId, allocMemoryBackingPtr);
 
       // record the change to the base memory variable
       change.after = m_LiveVariables[baseMemoryId];
@@ -2404,10 +2401,10 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
         m_State->changes.push_back(change);
 
       // Update the ptr variable value
-      // Set the result to be the ptr variable whcih will then be reocrded as a change
-      result = m_LiveVariables[ptrId];
-      result.value = arg.value;
+      // Set the result to be the ptr variable which will then be recorded as a change
       resultId = ptrId;
+      result = m_LiveVariables[resultId];
+      result.value = val.value;
       break;
     }
     case Operation::Alloca:
@@ -3604,6 +3601,29 @@ void ThreadState::MarkResourceAccess(const rdcstr &name, const DXIL::ResourceRef
     change.before = change.after;
   else
     accessed.push_back(bp);
+}
+
+void ThreadState::UpdateBackingMemoryFromVariable(void *ptr, size_t allocSize,
+                                                  const ShaderVariable &var)
+{
+  // Memory copy from value to backing memory
+  size_t size = GetElementByteSize(var.type);
+  RDCASSERT(size <= allocSize);
+  RDCASSERT(size < sizeof(var.value.f32v));
+  memcpy(ptr, &var.value.f32v[0], size);
+}
+
+void ThreadState::UpdateMemoryVariableFromBackingMemory(Id memoryId, const void *ptr)
+{
+  ShaderVariable &baseMemory = m_LiveVariables[memoryId];
+  // Memory copy from backing memory to base memory variable
+  size_t elementSize = GetElementByteSize(baseMemory.type);
+  const uint8_t *src = (const uint8_t *)ptr;
+  for(uint32_t i = 0; i < baseMemory.rows; ++i)
+  {
+    memcpy(&baseMemory.members[i].value.f32v[0], src, elementSize);
+    src += elementSize;
+  }
 }
 
 void ThreadState::PerformGPUResourceOp(const rdcarray<ThreadState> &workgroups, Operation opCode,
