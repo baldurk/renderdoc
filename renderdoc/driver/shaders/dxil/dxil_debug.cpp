@@ -3304,9 +3304,6 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
     {
       break;
     }
-    case Operation::AddrSpaceCast:
-    case Operation::InsertValue:
-    case Operation::CompareExchange:
     case Operation::AtomicExchange:
     case Operation::AtomicAdd:
     case Operation::AtomicSub:
@@ -3317,7 +3314,158 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
     case Operation::AtomicMax:
     case Operation::AtomicMin:
     case Operation::AtomicUMax:
-    case Operation::AtomicUMin: RDCERR("Unhandled LLVM opcode %s", ToStr(opCode).c_str()); break;
+    case Operation::AtomicUMin:
+    {
+      // JAKE TODO: full proper load and store from/to memory i.e. group shared
+      // Currently only supporting Stack allocated pointers
+      size_t allocSize = 0;
+      void *allocMemoryBackingPtr = NULL;
+      void *baseMemoryBackingPtr = NULL;
+      Id baseMemoryId = DXILDebug::INVALID_ID;
+      Id ptrId = GetArgumentId(0);
+      {
+        auto itPtr = m_StackAllocPointers.find(ptrId);
+        RDCASSERT(itPtr != m_StackAllocPointers.end());
+
+        const StackAllocPointer &ptr = itPtr->second;
+        baseMemoryId = ptr.baseMemoryId;
+        baseMemoryBackingPtr = ptr.backingMemory;
+
+        auto itAlloc = m_StackAllocs.find(baseMemoryId);
+        RDCASSERT(itAlloc != m_StackAllocs.end());
+        StackAlloc &alloc = itAlloc->second;
+        allocSize = alloc.size;
+        allocMemoryBackingPtr = alloc.backingMemory;
+      }
+
+      RDCASSERT(baseMemoryBackingPtr);
+      RDCASSERTNOTEQUAL(baseMemoryId, DXILDebug::INVALID_ID);
+
+      RDCASSERTEQUAL(resultId, DXILDebug::INVALID_ID);
+      ShaderVariable a = m_LiveVariables[baseMemoryId];
+
+      ShaderVariable b;
+      RDCASSERT(GetShaderVariable(inst.args[1], opCode, dxOpCode, b));
+      const uint32_t c = 0;
+
+      ShaderVariable res;
+
+      if(opCode == Operation::AtomicExchange)
+      {
+        // *ptr = val
+#undef _IMPL
+#define _IMPL(I, S, U) comp<I>(res, c) = comp<I>(b, c)
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, b.type);
+      }
+      else if(opCode == Operation::AtomicAdd)
+      {
+        // *ptr = *ptr + val
+#undef _IMPL
+#define _IMPL(I, S, U) comp<I>(res, c) = comp<I>(a, c) + comp<I>(b, c)
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, b.type);
+      }
+      else if(opCode == Operation::AtomicSub)
+      {
+        // *ptr = *ptr - val
+#undef _IMPL
+#define _IMPL(I, S, U) comp<I>(res, c) = comp<I>(a, c) - comp<I>(b, c)
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, b.type);
+      }
+      else if(opCode == Operation::AtomicAnd)
+      {
+        // *ptr = *ptr & val
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(res, c) = comp<U>(a, c) & comp<U>(b, c);
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, b.type);
+      }
+      else if(opCode == Operation::AtomicNand)
+      {
+        // *ptr = ~(*ptr & val)
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(res, c) = ~(comp<U>(a, c) & comp<U>(b, c));
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, b.type);
+      }
+      else if(opCode == Operation::AtomicOr)
+      {
+        // *ptr = *ptr | val
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(res, c) = comp<U>(a, c) | comp<U>(b, c);
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, b.type);
+      }
+      else if(opCode == Operation::AtomicXor)
+      {
+        // *ptr = *ptr ^ val
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(res, c) = comp<U>(a, c) ^ comp<U>(b, c);
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, b.type);
+      }
+      else if(opCode == Operation::AtomicMax)
+      {
+        // *ptr = max(*ptr, val)
+#undef _IMPL
+#define _IMPL(I, S, U) comp<S>(res, c) = RDCMAX(comp<S>(a, c), comp<S>(b, c));
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, b.type);
+      }
+      else if(opCode == Operation::AtomicMin)
+      {
+        // *ptr = min(*ptr, val)
+#undef _IMPL
+#define _IMPL(I, S, U) comp<S>(res, c) = RDCMIN(comp<S>(a, c), comp<S>(b, c));
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, b.type);
+      }
+      else if(opCode == Operation::AtomicUMax)
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<S>(res, c) = RDCMAX(comp<S>(a, c), comp<S>(b, c));
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, b.type);
+      }
+      else if(opCode == Operation::AtomicUMin)
+      {
+#undef _IMPL
+#define _IMPL(I, S, U) comp<U>(res, c) = RDCMIN(comp<U>(a, c), comp<U>(b, c));
+
+        IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, b.type);
+      }
+      else
+      {
+        RDCERR("Unhandled opCode %s", ToStr(opCode).c_str());
+      }
+
+      // Save the result back
+      UpdateBackingMemoryFromVariable(baseMemoryBackingPtr, allocSize, res);
+
+      ShaderVariableChange change;
+      change.before = m_LiveVariables[baseMemoryId];
+
+      UpdateMemoryVariableFromBackingMemory(baseMemoryId, allocMemoryBackingPtr);
+
+      // record the change to the base memory variable
+      change.after = m_LiveVariables[baseMemoryId];
+      if(m_State)
+        m_State->changes.push_back(change);
+
+      // Update the ptr variable value
+      // Set the result to be the ptr variable which will then be recorded as a change
+      resultId = ptrId;
+      result = m_LiveVariables[resultId];
+      result.value = res.value;
+      break;
+    }
+    case Operation::AddrSpaceCast:
+    case Operation::InsertValue:
+    case Operation::CompareExchange:
+      RDCERR("Unhandled LLVM opcode %s", ToStr(opCode).c_str());
+      break;
   };
 
   // Remove variables which have gone out of scope

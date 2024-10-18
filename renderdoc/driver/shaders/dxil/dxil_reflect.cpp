@@ -1771,17 +1771,6 @@ rdcstr Program::GetDebugStatus()
         case Operation::AddrSpaceCast:
         case Operation::InsertValue:
         case Operation::CompareExchange:
-        case Operation::AtomicExchange:
-        case Operation::AtomicAdd:
-        case Operation::AtomicSub:
-        case Operation::AtomicAnd:
-        case Operation::AtomicNand:
-        case Operation::AtomicOr:
-        case Operation::AtomicXor:
-        case Operation::AtomicMax:
-        case Operation::AtomicMin:
-        case Operation::AtomicUMax:
-        case Operation::AtomicUMin:
           return StringFormat::Fmt("Unsupported instruction '%s'", ToStr(inst->op).c_str());
         case Operation::Call:
         {
