@@ -188,27 +188,40 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &drv, GLenum type, const rdcarra
   const char *blockIdentifiers[2] = {"in gl_PerVertex", "out gl_PerVertex"};
   rdcstr blocks[2] = {"", ""};
 
+  // if any source uses gl_CullDistance, add that to our attempted redeclaration
+  rdcstr cullDeclare;
+  for(const rdcstr &src : sources)
+  {
+    if(src.contains("gl_CullDistance"))
+    {
+      cullDeclare = "float gl_CullDistance[];";
+      break;
+    }
+  }
+
   if(type == eGL_VERTEX_SHADER)
   {
     blocks[1] =
-        "out gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; };\n";
+        "out gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; " +
+        cullDeclare + " };\n";
   }
   else if(type == eGL_TESS_CONTROL_SHADER)
   {
     blocks[0] =
-        "in gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; } "
-        "gl_in[];\n";
+        "in gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; " +
+        cullDeclare + " } gl_in[];\n";
     blocks[1] =
-        "out gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; } "
-        "gl_out[];\n";
+        "out gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; " +
+        cullDeclare + " } gl_out[];\n";
   }
   else
   {
     blocks[0] =
-        "in gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; } "
-        "gl_in[];\n";
+        "in gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; " +
+        cullDeclare + " } gl_in[];\n";
     blocks[1] =
-        "out gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; };\n";
+        "out gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; " +
+        cullDeclare + " };\n";
   }
 
   const char **strings = new const char *[sources.size()];
