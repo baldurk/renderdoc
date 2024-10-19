@@ -1564,7 +1564,8 @@ D3D12GpuBuffer *D3D12RTManager::UnrollBLASInstancesList(
     D3D12_GPU_VIRTUAL_ADDRESS addressPairResAddress, uint64_t addressCount,
     D3D12GpuBuffer *copyDestUAV)
 {
-  const uint64_t indirectArgSize = AlignUp(sizeof(TLASCopyExecute) * inputs.NumDescs, 256ULL);
+  const uint64_t indirectArgSize =
+      AlignUp(sizeof(TLASCopyExecute) * (uint64_t)inputs.NumDescs, 256ULL);
 
   if(m_TLASCopyingData.ArgsBuffer == NULL || m_TLASCopyingData.ArgsBuffer->Size() < indirectArgSize)
   {

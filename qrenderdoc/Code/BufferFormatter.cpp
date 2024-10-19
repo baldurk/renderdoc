@@ -5164,7 +5164,7 @@ ulong2 *arr[3];
 
     CHECK(parsed.errors.isEmpty());
     REQUIRE(parsed.fixed.type.members.size() == 6);
-    for(int i = 0; i < parsed.fixed.type.members.size(); i++)
+    for(size_t i = 0; i < parsed.fixed.type.members.size(); i++)
     {
       CHECK(parsed.fixed.type.members[i].type.baseType == VarType::GPUPointer);
       CHECK(parsed.fixed.type.members[i].type.arrayByteStride == 8);
