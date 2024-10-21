@@ -2305,6 +2305,8 @@ void WrappedVulkan::StartFrameCapture(DeviceOwnedWindow devWnd)
   GetResourceManager()->ClearReferencedResources();
   GetResourceManager()->ClearReferencedMemory();
 
+  CheckPendingCommandBufferCallbacks();
+
   // need to do all this atomically so that no other commands
   // will check to see if they need to markdirty or markpendingdirty
   // and go into the frame record.
@@ -2346,7 +2348,6 @@ void WrappedVulkan::StartFrameCapture(DeviceOwnedWindow devWnd)
     }
 
     m_PreparedNotSerialisedInitStates.clear();
-    CheckPendingCommandBufferCallbacks();
     GetResourceManager()->PrepareInitialContents();
 
     {
@@ -3264,7 +3265,7 @@ RDResult WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStructured
   GetReplay()->WriteFrameRecord().frameInfo.initDataSize =
       chunkInfos[(VulkanChunk)SystemChunk::InitialContents].totalsize;
 
-  RDCDEBUG("Allocating %llu persistant bytes of memory for the log.",
+  RDCDEBUG("Allocating %llu persistent bytes of memory for the log.",
            GetReplay()->WriteFrameRecord().frameInfo.persistentSize);
 
   // ensure the capture at least created a device and fetched a queue.
@@ -3780,6 +3781,8 @@ void WrappedVulkan::ApplyInitialContents()
     SubmitCmds();
     FlushQ();
   }
+
+  FreeAllMemory(MemoryScope::InitialContentsFirstApplyOnly);
 }
 
 bool WrappedVulkan::ContextProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)

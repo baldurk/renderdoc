@@ -46,8 +46,6 @@ struct VkAccelerationStructureInfo
       VkDeviceSize stride;
     };
 
-    uint64_t GetSerialisedSize() const;
-
     VkGeometryTypeKHR geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
     VkGeometryFlagsKHR flags;
 
@@ -65,10 +63,8 @@ struct VkAccelerationStructureInfo
 
   uint64_t GetSerialisedSize() const;
 
-  rdcarray<VkAccelerationStructureGeometryKHR> convertGeometryData() const;
+  void convertGeometryData(rdcarray<VkAccelerationStructureGeometryKHR> &geometry) const;
   rdcarray<VkAccelerationStructureBuildRangeInfoKHR> getBuildRanges() const;
-
-  VkDevice device = VK_NULL_HANDLE;
 
   VkAccelerationStructureTypeKHR type =
       VkAccelerationStructureTypeKHR::VK_ACCELERATION_STRUCTURE_TYPE_GENERIC_KHR;
@@ -76,10 +72,10 @@ struct VkAccelerationStructureInfo
 
   rdcarray<GeometryData> geometryData;
 
-  VkDeviceMemory readbackMem = VK_NULL_HANDLE;
+  GPUBuffer readbackMem;
   VkDeviceSize memSize = 0;
 
-  VkDeviceMemory uploadMem = VK_NULL_HANDLE;
+  MemoryAllocation uploadAlloc;
   VkBuffer uploadBuf = VK_NULL_HANDLE;
   VkAccelerationStructureKHR replayAS = VK_NULL_HANDLE;
 
@@ -118,8 +114,7 @@ public:
 private:
   struct Allocation
   {
-    VkDeviceMemory mem = VK_NULL_HANDLE;
-    VkDeviceSize size = 0;
+    MemoryAllocation memAlloc;
     VkBuffer buf = VK_NULL_HANDLE;
   };
 
@@ -130,11 +125,11 @@ private:
     VkDeviceSize offset = 0;
   };
 
-  Allocation CreateReadBackMemory(VkDevice device, VkDeviceSize size, VkDeviceSize alignment = 0);
-  Allocation CreateReplayMemory(MemoryType memType, VkDeviceSize size,
-                                VkBufferUsageFlags extraUsageFlags = 0);
+  GPUBuffer CreateTempReadBackBuffer(VkDevice device, VkDeviceSize size);
+  Allocation CreateTempReplayBuffer(MemoryType memType, VkDeviceSize size, VkDeviceSize alignment,
+                                    VkBufferUsageFlags extraUsageFlags = 0);
 
-  bool FixUpReplayBDAs(VkAccelerationStructureInfo *asInfo,
+  bool FixUpReplayBDAs(VkAccelerationStructureInfo *asInfo, VkBuffer buf,
                        rdcarray<VkAccelerationStructureGeometryKHR> &geoms);
 
   void UpdateScratch(VkDeviceSize requiredSize);

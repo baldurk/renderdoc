@@ -454,6 +454,8 @@ enum class MemoryScope : uint8_t
   // allocated the same way
   ImmutableReplayDebug = InitialContents,
   IndirectReadback,
+  // Same as initial contents but freed after first Serialise/Apply cycle
+  InitialContentsFirstApplyOnly,
   Count,
 };
 

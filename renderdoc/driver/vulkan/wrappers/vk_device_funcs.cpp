@@ -1014,6 +1014,7 @@ void WrappedVulkan::Shutdown()
   }
 
   FreeAllMemory(MemoryScope::InitialContents);
+  FreeAllMemory(MemoryScope::InitialContentsFirstApplyOnly);
 
   if(m_MemoryFreeThread)
   {
