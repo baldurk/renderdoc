@@ -240,6 +240,9 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
       // do a remoteProbe immediately to populate the device list on startup.
       remoteProbe();
 
+      // allow any early-init replay host switches now that we've populated the device list
+      m_RemoteInitialProbeReady.release();
+
       // do several small sleeps so we can respond quicker when we need to shut down
       for(int i = 0; i < 50; i++)
       {
@@ -1931,6 +1934,11 @@ void MainWindow::setRemoteHost(int hostIdx)
 {
   if(!PromptCloseCapture())
     return;
+
+  // we only want to block once before the initial remoteProbe has happened. After that once we can
+  // acquire once, we re-release so the next one can happen
+  m_RemoteInitialProbeReady.acquire();
+  m_RemoteInitialProbeReady.release();
 
   rdcarray<RemoteHost> hosts = m_Ctx.Config().GetRemoteHosts();
 

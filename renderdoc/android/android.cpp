@@ -1099,7 +1099,9 @@ struct AndroidController : public IDeviceProtocolHandler
 
     {
       SCOPED_LOCK(lock);
-      ret = devices[GetDeviceID(URL)].name;
+      auto it = devices.find(GetDeviceID(URL));
+      if(it != devices.end())
+        ret = it->second.name;
     }
 
     return ret;
@@ -1125,7 +1127,16 @@ struct AndroidController : public IDeviceProtocolHandler
     Invoke([this, &result, URL]() {
       rdcstr deviceID = GetDeviceID(URL);
 
-      Device &dev = devices[deviceID];
+      auto it = devices.find(deviceID);
+      if(it == devices.end())
+      {
+        SET_ERROR_RESULT(result, ResultCode::InternalError,
+                         "Android device %s is not a valid device ID, can't launch server",
+                         Android::GetFriendlyName(deviceID).c_str());
+        return;
+      }
+
+      Device &dev = it->second;
 
       if(!dev.active)
       {
@@ -1254,7 +1265,9 @@ struct AndroidController : public IDeviceProtocolHandler
 
     {
       SCOPED_LOCK(lock);
-      portbase = devices[deviceID].portbase;
+      auto it = devices.find(deviceID);
+      if(it != devices.end())
+        portbase = it->second.portbase;
     }
 
     if(portbase == 0)
@@ -1275,7 +1288,13 @@ struct AndroidController : public IDeviceProtocolHandler
 
     {
       SCOPED_LOCK(lock);
-      portbase = devices[deviceID].portbase;
+      auto it = devices.find(deviceID);
+      if(it == devices.end())
+      {
+        SAFE_DELETE(sock);
+        return NULL;
+      }
+      portbase = it->second.portbase;
     }
 
     return new AndroidRemoteServer(sock, deviceID, portbase);

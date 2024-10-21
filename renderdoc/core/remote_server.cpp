@@ -1257,6 +1257,9 @@ RENDERDOC_CreateRemoteServerConnection(const rdcstr &URL, IRemoteServer **rend)
   else
     *rend = new RemoteServer(sock, deviceID);
 
+  if(*rend == NULL)
+    return RDResult(ResultCode::NetworkIOFailed);
+
   return RDResult(ResultCode::Succeeded);
 }
 
