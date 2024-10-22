@@ -522,6 +522,7 @@
   DeclExt(EXT_multisampled_render_to_single_sampled);  \
   DeclExt(EXT_vertex_input_dynamic_state);             \
   DeclExt(KHR_dynamic_rendering);                      \
+  DeclExt(KHR_dynamic_rendering_local_read);           \
   DeclExt(KHR_fragment_shading_rate);                  \
   DeclExt(EXT_attachment_feedback_loop_layout);        \
   DeclExt(EXT_pageable_device_local_memory);           \
@@ -651,6 +652,7 @@
   CheckExt(EXT_multisampled_render_to_single_sampled, VKXX);  \
   CheckExt(EXT_vertex_input_dynamic_state, VKXX);             \
   CheckExt(KHR_dynamic_rendering, VK13);                      \
+  CheckExt(KHR_dynamic_rendering_local_read, VKXX);           \
   CheckExt(KHR_fragment_shading_rate, VKXX);                  \
   CheckExt(EXT_attachment_feedback_loop_layout, VKXX);        \
   CheckExt(EXT_pageable_device_local_memory, VKXX);           \
@@ -941,6 +943,8 @@
   HookInitExtension(EXT_vertex_input_dynamic_state || EXT_shader_object, CmdSetVertexInputEXT);      \
   HookInitPromotedExtension(KHR_dynamic_rendering, CmdBeginRendering, KHR);                          \
   HookInitPromotedExtension(KHR_dynamic_rendering, CmdEndRendering, KHR);                            \
+  HookInitExtension(KHR_dynamic_rendering_local_read, CmdSetRenderingAttachmentLocationsKHR);        \
+  HookInitExtension(KHR_dynamic_rendering_local_read, CmdSetRenderingInputAttachmentIndicesKHR);     \
   HookInitExtension(KHR_fragment_shading_rate, CmdSetFragmentShadingRateKHR);                        \
   HookInitExtension(EXT_pageable_device_local_memory, SetDeviceMemoryPriorityEXT);                   \
   HookInitExtension(EXT_swapchain_maintenance1, ReleaseSwapchainImagesEXT);                          \
@@ -1743,6 +1747,10 @@
   HookDefine2(void, vkCmdBeginRendering, VkCommandBuffer, commandBuffer, const VkRenderingInfo *,    \
               pRenderingInfo);                                                                       \
   HookDefine1(void, vkCmdEndRendering, VkCommandBuffer, commandBuffer);                              \
+  HookDefine2(void, vkCmdSetRenderingAttachmentLocationsKHR, VkCommandBuffer, commandBuffer,         \
+              const VkRenderingAttachmentLocationInfoKHR *, pLocationInfo);                          \
+  HookDefine2(void, vkCmdSetRenderingInputAttachmentIndicesKHR, VkCommandBuffer, commandBuffer,      \
+              const VkRenderingInputAttachmentIndexInfoKHR *, pInputAttachmentIndexInfo);            \
   HookDefine3(void, vkCmdSetFragmentShadingRateKHR, VkCommandBuffer, commandBuffer,                  \
               const VkExtent2D *, pFragmentSize, const VkFragmentShadingRateCombinerOpKHR *,         \
               combinerOps);                                                                          \

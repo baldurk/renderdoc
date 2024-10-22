@@ -144,6 +144,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_KHR_draw_indirect_count`
 * `VK_KHR_driver_properties`
 * `VK_KHR_dynamic_rendering`
+* `VK_KHR_dynamic_rendering_local_read`
 * `VK_KHR_external_fence_capabilities`
 * `VK_KHR_external_fence_fd`
 * `VK_KHR_external_fence_win32`
@@ -241,9 +242,9 @@ KHR extensions will definitely be implemented at some point, though KHR extensio
 ## KHR Extensions
 
 * `VK_KHR_cooperative_matrix`
-* `VK_KHR_dynamic_rendering_local_read`
 * `VK_KHR_maintenance5`
 * `VK_KHR_maintenance6`
+* `VK_KHR_maintenance7`
 * `VK_KHR_map_memory2`
 * `VK_KHR_shader_expect_assume`
 * `VK_KHR_shader_float_controls2`

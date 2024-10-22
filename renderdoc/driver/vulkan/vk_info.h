@@ -183,6 +183,47 @@ struct DescUpdateTemplate
   rdcarray<VkDescriptorUpdateTemplateEntry> updates;
 };
 
+struct DynamicRenderingLocalRead
+{
+  void Init(const VkRenderingAttachmentLocationInfoKHR *attachmentLocations,
+            const VkRenderingInputAttachmentIndexInfoKHR *inputAttachmentIndex);
+
+  void UpdateLocations(const VkRenderingAttachmentLocationInfoKHR &attachmentLocations);
+  void UpdateInputIndices(const VkRenderingInputAttachmentIndexInfoKHR &inputAttachmentIndex);
+
+  void CopyLocations(const DynamicRenderingLocalRead &from);
+  void CopyInputIndices(const DynamicRenderingLocalRead &from);
+
+  bool AreLocationsNonDefault() { return !colorAttachmentLocations.isEmpty(); }
+  bool AreInputIndicesNonDefault()
+  {
+    return !colorAttachmentInputIndices.isEmpty() || !isDepthInputAttachmentIndexImplicit ||
+           !isStencilInputAttachmentIndexImplicit;
+  }
+
+  void SetLocations(VkCommandBuffer cmd);
+  void SetInputIndices(VkCommandBuffer cmd);
+
+  // VkRenderingAttachmentLocationInfoKHR
+  // Notes:
+  // - If the array is empty, it indicates an identity mapping.
+  // - If an element is VK_ATTACHMENT_UNUSED, writes to it are disabled (as if the color
+  //   attachment is masked)
+  rdcarray<uint32_t> colorAttachmentLocations;
+
+  // VkRenderingInputAttachmentIndexInfoKHR
+  // Notes:
+  // - The depth/stencil indices are only set if the is..Implicit flag is false.  By default, the
+  //   depth/stencil indices are assumed to be implicit (no input_attachment_index decoration
+  //   needed in the shader).
+  // - If an element is VK_ATTACHMENT_UNUSED, it won't be used as input attachment.
+  rdcarray<uint32_t> colorAttachmentInputIndices;
+  bool isDepthInputAttachmentIndexImplicit = true;
+  bool isStencilInputAttachmentIndexImplicit = true;
+  uint32_t depthInputAttachmentIndex = 0x1234ABCD;
+  uint32_t stencilInputAttachmentIndex = 0x1234ABCD;
+};
+
 struct VulkanCreationInfo
 {
   struct ShaderModuleReflectionKey
@@ -287,6 +328,9 @@ struct VulkanCreationInfo
     rdcarray<VkFormat> colorFormats;
     VkFormat depthFormat;
     VkFormat stencilFormat;
+
+    // VkRenderingAttachmentLocationInfoKHR and VkRenderingInputAttachmentIndexInfoKHR
+    DynamicRenderingLocalRead dynamicRenderingLocalRead;
 
     // a variant of the pipeline that uses subpass 0, used for when we are replaying in isolation.
     // See loadRPs in the RenderPass info

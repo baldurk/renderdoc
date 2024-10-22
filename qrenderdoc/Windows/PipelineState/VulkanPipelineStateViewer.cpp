@@ -41,6 +41,8 @@ Q_DECLARE_METATYPE(CombinedSamplerData);
 
 namespace
 {
+constexpr uint32_t VK_ATTACHMENT_UNUSED = ~0U;
+
 QString getTextureRenderSamples(const TextureDescription *tex, const VKPipe::RenderPass &renderpass)
 {
   const uint32_t texSamples = tex ? tex->msSamp : 1;
@@ -2614,12 +2616,32 @@ void VulkanPipelineStateViewer::setState()
         {
           slotname = QFormatStr("Color %1").arg(a.localIdx);
 
+          // With dynamic rendering, the API references the framebuffer index everywhere, for
+          // example when specifying blend state for attachments or with vkCmdClearAttachments. As
+          // such, RenderDoc shows the same index in Color attachments (i.e. fbIdx == localIdx) to
+          // avoid confusion, even when VK_KHR_dynamic_rendering_local_read maps these attachments
+          // to different "locations" used by the shader.  In that case, the mapped location is
+          // shown besides the attachment index.
+          uint32_t location = a.localIdx;
+          if(a.fbIdx < rp.colorAttachmentLocations.count())
+          {
+            location = rp.colorAttachmentLocations[a.fbIdx];
+            if(location == VK_ATTACHMENT_UNUSED)
+            {
+              slotname += QFormatStr(" [disabled]");
+            }
+            else
+            {
+              slotname += QFormatStr(" [location %1]").arg(location);
+            }
+          }
+
           if(state.fragmentShader.reflection != NULL)
           {
             const rdcarray<SigParameter> &outSig = state.fragmentShader.reflection->outputSignature;
             for(int s = 0; s < outSig.count(); s++)
             {
-              if(outSig[s].regIndex == (uint32_t)a.localIdx &&
+              if(outSig[s].regIndex == location &&
                  (outSig[s].systemValue == ShaderBuiltin::Undefined ||
                   outSig[s].systemValue == ShaderBuiltin::ColorOutput))
               {
@@ -2819,6 +2841,22 @@ void VulkanPipelineStateViewer::setState()
 
       if(showNode(usedSlot, /*filledSlot*/ true))
       {
+        QString writemask = QFormatStr("%1%2%3%4")
+                                .arg((blend.writeMask & 0x1) == 0 ? lit("_") : lit("R"))
+                                .arg((blend.writeMask & 0x2) == 0 ? lit("_") : lit("G"))
+                                .arg((blend.writeMask & 0x4) == 0 ? lit("_") : lit("B"))
+                                .arg((blend.writeMask & 0x8) == 0 ? lit("_") : lit("A"));
+
+        // With VK_KHR_dynamic_rendering_local_read, if a color attachment is mapped to
+        // VK_ATTACHMENT_UNUSED, it is implicitly disabled.  The Slot name in the "Render Pass"
+        // pane already tags the attachment with [disabled], so the write mask is simply set to
+        // ____ here.
+        if(i < rp.colorAttachmentLocations.count() &&
+           rp.colorAttachmentLocations[i] == VK_ATTACHMENT_UNUSED)
+        {
+          writemask = lit("____");
+        }
+
         RDTreeWidgetItem *node = new RDTreeWidgetItem(
             {i, blend.enabled ? tr("True") : tr("False"),
 
@@ -2828,11 +2866,7 @@ void VulkanPipelineStateViewer::setState()
              ToQStr(blend.alphaBlend.source), ToQStr(blend.alphaBlend.destination),
              ToQStr(blend.alphaBlend.operation),
 
-             QFormatStr("%1%2%3%4")
-                 .arg((blend.writeMask & 0x1) == 0 ? lit("_") : lit("R"))
-                 .arg((blend.writeMask & 0x2) == 0 ? lit("_") : lit("G"))
-                 .arg((blend.writeMask & 0x4) == 0 ? lit("_") : lit("B"))
-                 .arg((blend.writeMask & 0x8) == 0 ? lit("_") : lit("A"))});
+             writemask});
 
         if(!usedSlot)
           setInactiveRow(node);
@@ -4188,6 +4222,40 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       xml.writeEndElement();
     }
 
+    if(!pass.renderpass.colorAttachmentLocations.isEmpty())
+    {
+      QList<QVariantList> locations;
+
+      for(int i = 0; i < pass.renderpass.colorAttachmentLocations.count(); i++)
+        locations.push_back({pass.renderpass.colorAttachmentLocations[i]});
+
+      m_Common.exportHTMLTable(xml,
+                               {
+                                   tr("Color Attachment Location"),
+                               },
+                               locations);
+
+      xml.writeStartElement(lit("p"));
+      xml.writeEndElement();
+    }
+
+    if(!pass.renderpass.colorAttachmentInputIndices.isEmpty())
+    {
+      QList<QVariantList> inputIndices;
+
+      for(int i = 0; i < pass.renderpass.colorAttachmentInputIndices.count(); i++)
+        inputIndices.push_back({pass.renderpass.colorAttachmentInputIndices[i]});
+
+      m_Common.exportHTMLTable(xml,
+                               {
+                                   tr("Color Attachment Input Index"),
+                               },
+                               inputIndices);
+
+      xml.writeStartElement(lit("p"));
+      xml.writeEndElement();
+    }
+
     if(!pass.renderpass.resolveAttachments.isEmpty())
     {
       QList<QVariantList> resolves;
@@ -4210,6 +4278,22 @@ void VulkanPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const VKPipe::
       xml.writeStartElement(lit("p"));
       xml.writeCharacters(
           tr("Depth-stencil Attachment: %1").arg(pass.renderpass.depthstencilAttachment));
+      xml.writeEndElement();
+    }
+
+    if(!pass.renderpass.isDepthInputAttachmentIndexImplicit)
+    {
+      xml.writeStartElement(lit("p"));
+      xml.writeCharacters(
+          tr("Depth Input Attachment Index: %1").arg(pass.renderpass.depthInputAttachmentIndex));
+      xml.writeEndElement();
+    }
+
+    if(!pass.renderpass.isStencilInputAttachmentIndexImplicit)
+    {
+      xml.writeStartElement(lit("p"));
+      xml.writeCharacters(
+          tr("Stencil Input Attachment Index: %1").arg(pass.renderpass.stencilInputAttachmentIndex));
       xml.writeEndElement();
     }
 

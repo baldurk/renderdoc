@@ -1109,6 +1109,14 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
     stencilFormat = VK_FORMAT_UNDEFINED;
   }
 
+  const VkRenderingAttachmentLocationInfoKHR *dynAttachmentLocations =
+      (const VkRenderingAttachmentLocationInfoKHR *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_LOCATION_INFO_KHR);
+  const VkRenderingInputAttachmentIndexInfoKHR *dynInputAttachmentIndex =
+      (const VkRenderingInputAttachmentIndexInfoKHR *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_RENDERING_INPUT_ATTACHMENT_INDEX_INFO_KHR);
+  dynamicRenderingLocalRead.Init(dynAttachmentLocations, dynInputAttachmentIndex);
+
   RDCEraseEl(dynamicStates);
   if(pCreateInfo->pDynamicState)
   {
@@ -1645,6 +1653,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
         shadingRateCombiners[0] = pipeInfo.shadingRateCombiners[0];
         shadingRateCombiners[1] = pipeInfo.shadingRateCombiners[1];
 
+        dynamicRenderingLocalRead.CopyInputIndices(pipeInfo.dynamicRenderingLocalRead);
+
         flags |= pipeInfo.flags;
       }
 
@@ -1673,6 +1683,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
         colorFormats = pipeInfo.colorFormats;
         depthFormat = pipeInfo.depthFormat;
         stencilFormat = pipeInfo.stencilFormat;
+
+        dynamicRenderingLocalRead.CopyLocations(pipeInfo.dynamicRenderingLocalRead);
 
         flags |= pipeInfo.flags;
       }
@@ -2984,4 +2996,100 @@ void DescUpdateTemplate::Apply(const void *pData, DescUpdateTemplateApplication 
     if(write.descriptorCount != 0)
       application.writes.push_back(write);
   }
+}
+
+void DynamicRenderingLocalRead::Init(const VkRenderingAttachmentLocationInfoKHR *attachmentLocations,
+                                     const VkRenderingInputAttachmentIndexInfoKHR *inputAttachmentIndex)
+{
+  if(attachmentLocations != nullptr)
+  {
+    UpdateLocations(*attachmentLocations);
+  }
+  if(inputAttachmentIndex != nullptr)
+  {
+    UpdateInputIndices(*inputAttachmentIndex);
+  }
+}
+
+void DynamicRenderingLocalRead::UpdateLocations(
+    const VkRenderingAttachmentLocationInfoKHR &attachmentLocations)
+{
+  // If nullptr is given, an identity mapping is assumed.  This is indicated by an empty
+  // array.  This works out because not providing VkRenderingAttachmentLocationInfoKHR has the
+  // same meaning.
+  if(attachmentLocations.pColorAttachmentLocations == nullptr)
+  {
+    colorAttachmentLocations.clear();
+  }
+  else
+  {
+    colorAttachmentLocations.assign(attachmentLocations.pColorAttachmentLocations,
+                                    attachmentLocations.colorAttachmentCount);
+  }
+}
+
+void DynamicRenderingLocalRead::UpdateInputIndices(
+    const VkRenderingInputAttachmentIndexInfoKHR &inputAttachmentIndex)
+{
+  // If nullptr is given, an identity mapping is assumed.  This is indicated by an empty
+  // array.  This works out because not providing VkRenderingInputAttachmentIndexInfoKHR has the
+  // same meaning.
+  if(inputAttachmentIndex.pColorAttachmentInputIndices == nullptr)
+  {
+    colorAttachmentInputIndices.clear();
+  }
+  else
+  {
+    colorAttachmentInputIndices.assign(inputAttachmentIndex.pColorAttachmentInputIndices,
+                                       inputAttachmentIndex.colorAttachmentCount);
+  }
+  isDepthInputAttachmentIndexImplicit = inputAttachmentIndex.pDepthInputAttachmentIndex == nullptr;
+  isStencilInputAttachmentIndexImplicit =
+      inputAttachmentIndex.pStencilInputAttachmentIndex == nullptr;
+  if(!isDepthInputAttachmentIndexImplicit)
+  {
+    depthInputAttachmentIndex = *inputAttachmentIndex.pDepthInputAttachmentIndex;
+  }
+  if(!isStencilInputAttachmentIndexImplicit)
+  {
+    stencilInputAttachmentIndex = *inputAttachmentIndex.pStencilInputAttachmentIndex;
+  }
+}
+
+void DynamicRenderingLocalRead::CopyLocations(const DynamicRenderingLocalRead &from)
+{
+  colorAttachmentLocations = from.colorAttachmentLocations;
+}
+
+void DynamicRenderingLocalRead::CopyInputIndices(const DynamicRenderingLocalRead &from)
+{
+  colorAttachmentInputIndices = from.colorAttachmentInputIndices;
+  isDepthInputAttachmentIndexImplicit = from.isDepthInputAttachmentIndexImplicit;
+  isStencilInputAttachmentIndexImplicit = from.isStencilInputAttachmentIndexImplicit;
+  depthInputAttachmentIndex = from.depthInputAttachmentIndex;
+  stencilInputAttachmentIndex = from.stencilInputAttachmentIndex;
+}
+
+void DynamicRenderingLocalRead::SetLocations(VkCommandBuffer cmd)
+{
+  VkRenderingAttachmentLocationInfoKHR attachmentLocations = {};
+  attachmentLocations.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_LOCATION_INFO_KHR;
+  attachmentLocations.colorAttachmentCount = colorAttachmentLocations.count();
+  attachmentLocations.pColorAttachmentLocations = colorAttachmentLocations.data();
+
+  ObjDisp(cmd)->CmdSetRenderingAttachmentLocationsKHR(Unwrap(cmd), &attachmentLocations);
+}
+
+void DynamicRenderingLocalRead::SetInputIndices(VkCommandBuffer cmd)
+{
+  VkRenderingInputAttachmentIndexInfoKHR inputIndices = {};
+  inputIndices.sType = VK_STRUCTURE_TYPE_RENDERING_INPUT_ATTACHMENT_INDEX_INFO_KHR;
+  inputIndices.colorAttachmentCount = colorAttachmentInputIndices.count();
+  inputIndices.pColorAttachmentInputIndices = colorAttachmentInputIndices.data();
+  inputIndices.pDepthInputAttachmentIndex =
+      isDepthInputAttachmentIndexImplicit ? nullptr : &depthInputAttachmentIndex;
+  inputIndices.pStencilInputAttachmentIndex =
+      isStencilInputAttachmentIndexImplicit ? nullptr : &stencilInputAttachmentIndex;
+
+  ObjDisp(cmd)->CmdSetRenderingInputAttachmentIndicesKHR(Unwrap(cmd), &inputIndices);
 }

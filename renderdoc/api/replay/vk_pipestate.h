@@ -859,6 +859,30 @@ samples used to render this subpass.
 If the subpass is not internally multisampled, tileOnlyMSAASampleCount is set to 0.
 )");
   uint32_t tileOnlyMSAASampleCount = 0;
+
+  DOCUMENT(R"(The color index->location mapping set up by dynamic rendering local read.
+
+:type: List[int]
+)");
+  rdcarray<uint32_t> colorAttachmentLocations;
+
+  DOCUMENT(R"(The color index->input index mapping set up by dynamic rendering local read.
+
+:type: List[int]
+)");
+  rdcarray<uint32_t> colorAttachmentInputIndices;
+
+  DOCUMENT("Whether or not depth input attachment index is implicit (dynamic rendering).");
+  bool isDepthInputAttachmentIndexImplicit = true;
+
+  DOCUMENT("Whether or not stencil  input attachment index is implicit (dynamic rendering).");
+  bool isStencilInputAttachmentIndexImplicit = true;
+
+  DOCUMENT("Depth input attachment index if explicit (dynamic rendering).");
+  uint32_t depthInputAttachmentIndex = 0x1234ABCD;
+
+  DOCUMENT("Stencil input attachment index if explicit (dynamic rendering).");
+  uint32_t stencilInputAttachmentIndex = 0x1234ABCD;
 };
 
 DOCUMENT("Describes a framebuffer object and its attachments.");

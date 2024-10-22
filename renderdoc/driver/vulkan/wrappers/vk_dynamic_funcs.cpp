@@ -3566,6 +3566,147 @@ void WrappedVulkan::vkCmdSetRayTracingPipelineStackSizeKHR(VkCommandBuffer comma
   }
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdSetRenderingAttachmentLocationsKHR(
+    SerialiserType &ser, VkCommandBuffer commandBuffer,
+    const VkRenderingAttachmentLocationInfoKHR *pLocationInfo)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT_LOCAL(locationInfo, *pLocationInfo).Named("pLocationInfo"_lit).Important();
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicRendering.localRead.UpdateLocations(locationInfo);
+        }
+      }
+      else
+      {
+        commandBuffer = VK_NULL_HANDLE;
+      }
+    }
+    else
+    {
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.dynamicRendering.localRead.UpdateLocations(
+          locationInfo);
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+      ObjDisp(commandBuffer)->CmdSetRenderingAttachmentLocationsKHR(Unwrap(commandBuffer), &locationInfo);
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdSetRenderingAttachmentLocationsKHR(
+    VkCommandBuffer commandBuffer, const VkRenderingAttachmentLocationInfoKHR *pLocationInfo)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)
+          ->CmdSetRenderingAttachmentLocationsKHR(Unwrap(commandBuffer), pLocationInfo));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetRenderingAttachmentLocationsKHR);
+    Serialise_vkCmdSetRenderingAttachmentLocationsKHR(ser, commandBuffer, pLocationInfo);
+
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
+  }
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdSetRenderingInputAttachmentIndicesKHR(
+    SerialiserType &ser, VkCommandBuffer commandBuffer,
+    const VkRenderingInputAttachmentIndexInfoKHR *pInputAttachmentIndexInfo)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT_LOCAL(inputAttachmentIndex, *pInputAttachmentIndexInfo)
+      .Named("pInputAttachmentIndexInfo"_lit)
+      .Important();
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+
+          renderstate.dynamicRendering.localRead.UpdateInputIndices(inputAttachmentIndex);
+        }
+      }
+      else
+      {
+        commandBuffer = VK_NULL_HANDLE;
+      }
+    }
+    else
+    {
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.dynamicRendering.localRead.UpdateInputIndices(
+          inputAttachmentIndex);
+    }
+
+    if(commandBuffer != VK_NULL_HANDLE)
+      ObjDisp(commandBuffer)
+          ->CmdSetRenderingInputAttachmentIndicesKHR(Unwrap(commandBuffer), &inputAttachmentIndex);
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdSetRenderingInputAttachmentIndicesKHR(
+    VkCommandBuffer commandBuffer,
+    const VkRenderingInputAttachmentIndexInfoKHR *pInputAttachmentIndexInfo)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(ObjDisp(commandBuffer)
+                          ->CmdSetRenderingInputAttachmentIndicesKHR(Unwrap(commandBuffer),
+                                                                     pInputAttachmentIndexInfo));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdSetRenderingInputAttachmentIndicesKHR);
+    Serialise_vkCmdSetRenderingInputAttachmentIndicesKHR(ser, commandBuffer,
+                                                         pInputAttachmentIndexInfo);
+
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
+  }
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetViewport, VkCommandBuffer commandBuffer,
                                 uint32_t firstViewport, uint32_t viewportCount,
                                 const VkViewport *pViewports);
@@ -3707,3 +3848,10 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetTessellationDomainOriginEXT,
                                 VkTessellationDomainOrigin domainOrigin);
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetRayTracingPipelineStackSizeKHR,
                                 VkCommandBuffer commandBuffer, uint32_t pipelineStackSize)
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetRenderingAttachmentLocationsKHR,
+                                VkCommandBuffer commandBuffer,
+                                const VkRenderingAttachmentLocationInfoKHR *pLocationInfo);
+INSTANTIATE_FUNCTION_SERIALISED(
+    void, vkCmdSetRenderingInputAttachmentIndicesKHR, VkCommandBuffer commandBuffer,
+    const VkRenderingInputAttachmentIndexInfoKHR *pInputAttachmentIndexInfo);

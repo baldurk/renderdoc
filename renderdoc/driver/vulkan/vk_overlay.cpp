@@ -325,6 +325,21 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
         pipestate.BindShaderObjects(m_pDriver, cmd, VulkanRenderState::BindGraphics);
       else
         pipestate.BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics, false);
+
+      // Reset the attachment mapping, if any
+      if(m_PrevState.dynamicRendering.localRead.AreLocationsNonDefault())
+      {
+        VkRenderingAttachmentLocationInfoKHR attachmentLocations = {};
+        attachmentLocations.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_LOCATION_INFO_KHR;
+        m_pDriver->vkCmdSetRenderingAttachmentLocationsKHR(cmd, &attachmentLocations);
+      }
+      if(m_PrevState.dynamicRendering.localRead.AreInputIndicesNonDefault())
+      {
+        VkRenderingInputAttachmentIndexInfoKHR inputIndices = {};
+        inputIndices.sType = VK_STRUCTURE_TYPE_RENDERING_INPUT_ATTACHMENT_INDEX_INFO_KHR;
+
+        m_pDriver->vkCmdSetRenderingInputAttachmentIndicesKHR(cmd, &inputIndices);
+      }
     }
   }
 
@@ -343,6 +358,17 @@ struct VulkanQuadOverdrawCallback : public VulkanActionCallback
     else
       m_pDriver->GetCmdRenderState().BindPipeline(m_pDriver, cmd, VulkanRenderState::BindGraphics,
                                                   false);
+
+    // Restore the attachment mappings, if any.
+    if(m_PrevState.dynamicRendering.localRead.AreLocationsNonDefault())
+    {
+      m_PrevState.dynamicRendering.localRead.SetLocations(cmd);
+    }
+
+    if(m_PrevState.dynamicRendering.localRead.AreInputIndicesNonDefault())
+    {
+      m_PrevState.dynamicRendering.localRead.SetInputIndices(cmd);
+    }
 
     return true;
   }

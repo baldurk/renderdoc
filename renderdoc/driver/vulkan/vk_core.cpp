@@ -1491,6 +1491,10 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_KHR_DYNAMIC_RENDERING_SPEC_VERSION,
     },
     {
+        VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME,
+        VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_SPEC_VERSION,
+    },
+    {
         VK_KHR_EXTERNAL_FENCE_EXTENSION_NAME,
         VK_KHR_EXTERNAL_FENCE_SPEC_VERSION,
     },
@@ -4230,6 +4234,10 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     case VulkanChunk::vkCmdBeginRendering:
       return Serialise_vkCmdBeginRendering(ser, VK_NULL_HANDLE, NULL);
     case VulkanChunk::vkCmdEndRendering: return Serialise_vkCmdEndRendering(ser, VK_NULL_HANDLE);
+    case VulkanChunk::vkCmdSetRenderingAttachmentLocationsKHR:
+      return Serialise_vkCmdSetRenderingAttachmentLocationsKHR(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdSetRenderingInputAttachmentIndicesKHR:
+      return Serialise_vkCmdSetRenderingInputAttachmentIndicesKHR(ser, VK_NULL_HANDLE, NULL);
 
     case VulkanChunk::vkCmdSetFragmentShadingRateKHR:
       return Serialise_vkCmdSetFragmentShadingRateKHR(ser, VK_NULL_HANDLE, NULL, NULL);

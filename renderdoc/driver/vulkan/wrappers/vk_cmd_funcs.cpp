@@ -1258,6 +1258,17 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
               BeginInfo.pInheritanceInfo->subpass;
           // framebuffer is not useful here since it may be incomplete (imageless) and it's
           // optional, so we should just treat it as never present.
+
+          const VkRenderingAttachmentLocationInfoKHR *dynAttachmentLocations =
+              (const VkRenderingAttachmentLocationInfoKHR *)FindNextStruct(
+                  BeginInfo.pInheritanceInfo,
+                  VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_LOCATION_INFO_KHR);
+          const VkRenderingInputAttachmentIndexInfoKHR *dynInputAttachmentIndex =
+              (const VkRenderingInputAttachmentIndexInfoKHR *)FindNextStruct(
+                  BeginInfo.pInheritanceInfo,
+                  VK_STRUCTURE_TYPE_RENDERING_INPUT_ATTACHMENT_INDEX_INFO_KHR);
+          m_BakedCmdBufferInfo[BakedCommandBuffer].state.dynamicRendering.localRead.Init(
+              dynAttachmentLocations, dynInputAttachmentIndex);
         }
 
         ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &unwrappedBeginInfo);
@@ -1342,6 +1353,19 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
 
         m_BakedCmdBufferInfo[BakedCommandBuffer].beginChunk =
             uint32_t(m_StructuredFile->chunks.size() - 1);
+      }
+
+      if(AllocateInfo.level == VK_COMMAND_BUFFER_LEVEL_SECONDARY)
+      {
+        const VkRenderingAttachmentLocationInfoKHR *dynAttachmentLocations =
+            (const VkRenderingAttachmentLocationInfoKHR *)FindNextStruct(
+                BeginInfo.pInheritanceInfo, VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_LOCATION_INFO_KHR);
+        const VkRenderingInputAttachmentIndexInfoKHR *dynInputAttachmentIndex =
+            (const VkRenderingInputAttachmentIndexInfoKHR *)FindNextStruct(
+                BeginInfo.pInheritanceInfo,
+                VK_STRUCTURE_TYPE_RENDERING_INPUT_ATTACHMENT_INDEX_INFO_KHR);
+        m_BakedCmdBufferInfo[BakedCommandBuffer].state.dynamicRendering.localRead.Init(
+            dynAttachmentLocations, dynInputAttachmentIndex);
       }
 
       ObjDisp(device)->BeginCommandBuffer(Unwrap(cmd), &unwrappedBeginInfo);

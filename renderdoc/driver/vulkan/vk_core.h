@@ -2787,6 +2787,15 @@ public:
 
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndRendering, VkCommandBuffer commandBuffer);
 
+  // VK_KHR_dynamic_rendering_local_read
+
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetRenderingAttachmentLocationsKHR,
+                                VkCommandBuffer commandBuffer,
+                                const VkRenderingAttachmentLocationInfoKHR *pLocationInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetRenderingInputAttachmentIndicesKHR,
+                                VkCommandBuffer commandBuffer,
+                                const VkRenderingInputAttachmentIndexInfoKHR *pLocationInfo);
+
   // VK_KHR_fragment_shading_rate
 
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdSetFragmentShadingRateKHR, VkCommandBuffer commandBuffer,
