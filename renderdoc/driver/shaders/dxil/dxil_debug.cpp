@@ -3827,14 +3827,6 @@ void ThreadState::PerformGPUResourceOp(const rdcarray<ThreadState> &workgroups, 
   resourceData.binding.registerSpace = resRef->resourceBase.space;
   resourceData.binding.shaderRegister = resRef->resourceBase.regBase;
 
-  // TODO: SET THIS TO INCLUDE UINT FORMATS
-  if(result.type == VarType::Float)
-    resourceData.retType = DXBC::RETURN_TYPE_FLOAT;
-  else if(result.type == VarType::SInt)
-    resourceData.retType = DXBC::RETURN_TYPE_SINT;
-  else
-    RDCERR("Unhanded return type %s", ToStr(result.type).c_str());
-
   ShaderVariable uv;
   int8_t texelOffsets[3] = {0, 0, 0};
   int msIndex = 0;
