@@ -3105,8 +3105,10 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
           DisassemblyAddNewLine();
       }
 
-      // Show the compute shader thread group size
-      if(reflection && m_Type == DXBC::ShaderType::Compute)
+      // Show the compute shader,Amplification shader, mesh shader thread group size
+      if(reflection &&
+         ((m_Type == DXBC::ShaderType::Compute) || (m_Type == DXBC::ShaderType::Amplification) ||
+          (m_Type == DXBC::ShaderType::Mesh)))
       {
         m_Disassembly += StringFormat::Fmt(
             "[numthreads(%u, %u, %u)]", reflection->DispatchThreadsDimension[0],
