@@ -1223,8 +1223,6 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
   bool recordChange = true;
   switch(opCode)
   {
-      // TODO: increment the basic block
-      // Operation::Switch
     case Operation::Call:
     {
       const Function *callFunc = inst.getFuncCall();
@@ -1241,13 +1239,22 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
             RDCASSERT(GetShaderVariable(inst.args[1], opCode, dxOpCode, arg));
             uint32_t inputIdx = arg.value.u32v[0];
             RDCASSERT(GetShaderVariable(inst.args[2], opCode, dxOpCode, arg));
-            // uint32_t rowIdx = arg.value.u32v[0];
+            uint32_t rowIdx = arg.value.u32v[0];
             RDCASSERT(GetShaderVariable(inst.args[3], opCode, dxOpCode, arg));
             uint32_t colIdx = arg.value.u32v[0];
-            // TODO: get the type of the result and copy the correct value(s)
-            // TODO: rowIdx
-            // TODO: matrices
-            result.value.f32v[0] = m_Input.members[inputIdx].value.f32v[colIdx];
+            const ShaderVariable &a = m_Input.members[inputIdx];
+            RDCASSERT(rowIdx < a.rows, rowIdx, a.rows);
+            RDCASSERT(colIdx < a.columns, colIdx, a.columns);
+            const uint32_t c = a.ColMajor() ? rowIdx * a.columns + colIdx : colIdx * a.rows + rowIdx;
+
+#undef _IMPL
+#define _IMPL(I, S, U) comp<I>(result, 0) = comp<I>(a, c)
+
+            IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, result.type);
+
+#undef _IMPL
+#define _IMPL(T) comp<T>(result, 0) = comp<T>(a, c)
+            IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, result.type);
             break;
           }
           case DXOp::StoreOutput:
@@ -1257,17 +1264,28 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
             RDCASSERT(GetShaderVariable(inst.args[1], opCode, dxOpCode, arg));
             uint32_t outputIdx = arg.value.u32v[0];
             RDCASSERT(GetShaderVariable(inst.args[2], opCode, dxOpCode, arg));
-            // uint32_t rowIdx = arg.value.u32v[0];
+            uint32_t rowIdx = arg.value.u32v[0];
             RDCASSERT(GetShaderVariable(inst.args[3], opCode, dxOpCode, arg));
             uint32_t colIdx = arg.value.u32v[0];
             RDCASSERT(GetShaderVariable(inst.args[4], opCode, dxOpCode, arg));
-            // TODO: get the type of the result and copy the correct value(s)
-            // TODO: rowIdx
-            // TODO: matrices
+
             // Only the active lane stores outputs
             if(m_State)
             {
-              m_Output.members[outputIdx].value.f32v[colIdx] = arg.value.f32v[0];
+              ShaderVariable &a = m_Output.members[outputIdx];
+              RDCASSERT(rowIdx < a.rows, rowIdx, a.rows);
+              RDCASSERT(colIdx < a.columns, colIdx, a.columns);
+              const uint32_t c =
+                  a.ColMajor() ? rowIdx * a.columns + colIdx : colIdx * a.rows + rowIdx;
+#undef _IMPL
+#define _IMPL(I, S, U) comp<I>(a, c) = comp<I>(arg, 0)
+
+              IMPL_FOR_INT_TYPES_FOR_TYPE(_IMPL, a.type);
+
+#undef _IMPL
+#define _IMPL(T) comp<T>(a, c) = comp<T>(arg, 0)
+              IMPL_FOR_FLOAT_TYPES_FOR_TYPE(_IMPL, a.type);
+
               result = m_Output;
               resultId = m_OutputSSAId;
             }
@@ -3649,7 +3667,7 @@ bool ThreadState::GetShaderVariable(const DXIL::Value *dxilValue, Operation op, 
       }
       else if(c->op != Operation::NoOp)
       {
-        RDCERR("Constant isCompound DXIL Value with unsupported operaiton %s", ToStr(c->op).c_str());
+        RDCERR("Constant isCompound DXIL Value with unsupported operation %s", ToStr(c->op).c_str());
       }
     }
     else
