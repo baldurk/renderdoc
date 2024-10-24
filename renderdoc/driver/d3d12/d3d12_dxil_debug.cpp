@@ -1110,7 +1110,7 @@ bool D3D12APIWrapper::CalculateMathIntrinsic(DXIL::DXOp dxOp, const ShaderVariab
 bool D3D12APIWrapper::CalculateSampleGather(
     DXIL::DXOp dxOp, SampleGatherResourceData resourceData, SampleGatherSamplerData samplerData,
     const ShaderVariable &uv, const ShaderVariable &ddxCalc, const ShaderVariable &ddyCalc,
-    const int8_t texelOffsets[3], int multisampleIndex, float lodOrCompareValue,
+    const int8_t texelOffsets[3], int multisampleIndex, float lodValue, float compareValue,
     const uint8_t swizzle[4], GatherChannel gatherChannel, DXBC::ShaderType shaderType,
     uint32_t instructionIdx, const char *opString, ShaderVariable &output)
 {
@@ -1144,7 +1144,7 @@ bool D3D12APIWrapper::CalculateSampleGather(
 
   return D3D12ShaderDebug::CalculateSampleGather(
       true, m_Device, sampleOp, resourceData, samplerData, uv, ddxCalc, ddyCalc, texelOffsets,
-      multisampleIndex, lodOrCompareValue, swizzle, gatherChannel, shaderType, instructionIdx,
+      multisampleIndex, lodValue, compareValue, swizzle, gatherChannel, shaderType, instructionIdx,
       opString, output);
 }
 

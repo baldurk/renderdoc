@@ -381,7 +381,8 @@ cbuffer DebugSampleOperation REG(b0)
   int debugSampleGatherChannel;
   int debugSampleSampleIndex;
   int debugSampleOperation;
-  float debugSampleLodCompare;
+  float debugSampleLod;
+  float debugSampleCompare;
 };
 
 #define DEBUG_SAMPLE_MATH_DXBC_RCP 1000

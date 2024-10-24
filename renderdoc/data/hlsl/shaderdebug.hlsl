@@ -130,8 +130,8 @@ float4 DoFloatOpcode(float4 uv)
   float4 ddx_ = debugSampleDDX;
   float4 ddy_ = debugSampleDDY;
   int4 offsets = debugSampleOffsets;
-  float lod = debugSampleLodCompare;
-  float compare = debugSampleLodCompare;
+  float lod = debugSampleLod;
+  float compare = debugSampleCompare;
 
   if(opcode == DEBUG_SAMPLE_TEX_SAMPLE || opcode == DEBUG_SAMPLE_TEX_SAMPLE_BIAS ||
      opcode == DEBUG_SAMPLE_TEX_SAMPLE_GRAD)
@@ -673,7 +673,7 @@ int4 DoIntOpcode(float4 uv)
   float4 ddx_ = debugSampleDDX;
   float4 ddy_ = debugSampleDDY;
   int4 offsets = debugSampleOffsets;
-  float lod = debugSampleLodCompare;
+  float lod = debugSampleLod;
 
   if(opcode == DEBUG_SAMPLE_TEX_LOAD || opcode == DEBUG_SAMPLE_TEX_LOAD_MS)
   {
@@ -738,7 +738,7 @@ uint4 DoUIntOpcode(float4 uv)
   float4 ddx_ = debugSampleDDX;
   float4 ddy_ = debugSampleDDY;
   int4 offsets = debugSampleOffsets;
-  float lod = debugSampleLodCompare;
+  float lod = debugSampleLod;
 
   if(opcode == DEBUG_SAMPLE_TEX_LOAD || opcode == DEBUG_SAMPLE_TEX_LOAD_MS)
   {

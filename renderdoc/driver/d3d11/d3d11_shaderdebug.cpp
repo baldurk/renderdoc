@@ -1175,7 +1175,8 @@ bool D3D11DebugAPIWrapper::CalculateSampleGather(
   cbufferData.debugSampleGatherChannel = (int)gatherChannel;
   cbufferData.debugSampleSampleIndex = multisampleIndex;
   cbufferData.debugSampleOperation = sampleOp;
-  cbufferData.debugSampleLodCompare = lodOrCompareValue;
+  cbufferData.debugSampleLod = lodOrCompareValue;
+  cbufferData.debugSampleCompare = lodOrCompareValue;
 
   D3D11RenderStateTracker tracker(m_pDevice->GetImmediateContext());
 

@@ -3848,7 +3848,8 @@ void ThreadState::PerformGPUResourceOp(const rdcarray<ThreadState> &workgroups, 
   ShaderVariable uv;
   int8_t texelOffsets[3] = {0, 0, 0};
   int msIndex = 0;
-  float lodOrCompareValue = 0.0f;
+  float lodValue = 0.0f;
+  float compareValue = 0.0f;
 
   SampleGatherSamplerData samplerData = {};
   samplerData.mode = SamplerMode::NUM_SAMPLERS;
@@ -3902,7 +3903,8 @@ void ThreadState::PerformGPUResourceOp(const rdcarray<ThreadState> &workgroups, 
       if(GetShaderVariable(inst.args[10], opCode, dxOpCode, arg))
       {
         RDCASSERTEQUAL(arg.type, VarType::Float);
-        lodOrCompareValue = arg.value.f32v[0];
+        lodValue = arg.value.f32v[0];
+        compareValue = arg.value.f32v[0];
       }
     }
   }
@@ -3913,7 +3915,8 @@ void ThreadState::PerformGPUResourceOp(const rdcarray<ThreadState> &workgroups, 
     if(GetShaderVariable(inst.args[2], opCode, dxOpCode, arg))
     {
       msIndex = arg.value.u32v[0];
-      lodOrCompareValue = arg.value.f32v[0];
+      lodValue = arg.value.f32v[0];
+      compareValue = arg.value.f32v[0];
     }
 
     // UV is int data in args 3,4,5
@@ -3975,7 +3978,7 @@ void ThreadState::PerformGPUResourceOp(const rdcarray<ThreadState> &workgroups, 
   ShaderVariable data;
 
   apiWrapper->CalculateSampleGather(dxOpCode, resourceData, samplerData, uv, ddx, ddy, texelOffsets,
-                                    msIndex, lodOrCompareValue, swizzle, gatherChannel,
+                                    msIndex, lodValue, compareValue, swizzle, gatherChannel,
                                     m_ShaderType, instructionIdx, opString, data);
 
   result.value = data.value;

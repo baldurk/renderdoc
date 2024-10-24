@@ -51,8 +51,8 @@ public:
   bool CalculateSampleGather(DXIL::DXOp dxOp, SampleGatherResourceData resourceData,
                              SampleGatherSamplerData samplerData, const ShaderVariable &uv,
                              const ShaderVariable &ddxCalc, const ShaderVariable &ddyCalc,
-                             const int8_t texelOffsets[3], int multisampleIndex,
-                             float lodOrCompareValue, const uint8_t swizzle[4],
+                             const int8_t texelOffsets[3], int multisampleIndex, float lodValue,
+                             float compareValue, const uint8_t swizzle[4],
                              GatherChannel gatherChannel, DXBC::ShaderType shaderType,
                              uint32_t instructionIdx, const char *opString, ShaderVariable &output);
   ShaderVariable GetResourceInfo(DXIL::ResourceClass resClass, const DXDebug::BindingSlot &slot,

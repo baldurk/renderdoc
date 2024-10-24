@@ -165,7 +165,7 @@ bool D3D12ShaderDebug::CalculateSampleGather(
     bool dxil, WrappedID3D12Device *device, int sampleOp, SampleGatherResourceData resourceData,
     SampleGatherSamplerData samplerData, const ShaderVariable &uvIn,
     const ShaderVariable &ddxCalcIn, const ShaderVariable &ddyCalcIn, const int8_t texelOffsets[3],
-    int multisampleIndex, float lodOrCompareValue, const uint8_t swizzle[4],
+    int multisampleIndex, float lodValue, float compareValue, const uint8_t swizzle[4],
     GatherChannel gatherChannel, const DXBC::ShaderType shaderType, uint32_t instruction,
     const char *opString, ShaderVariable &output)
 {
@@ -280,7 +280,8 @@ bool D3D12ShaderDebug::CalculateSampleGather(
   cbufferData.debugSampleGatherChannel = (int)gatherChannel;
   cbufferData.debugSampleSampleIndex = multisampleIndex;
   cbufferData.debugSampleOperation = sampleOp;
-  cbufferData.debugSampleLodCompare = lodOrCompareValue;
+  cbufferData.debugSampleLod = lodValue;
+  cbufferData.debugSampleCompare = compareValue;
 
   D3D12RenderState &rs = device->GetQueue()->GetCommandData()->m_RenderState;
   D3D12RenderState prevState = rs;
@@ -1459,8 +1460,8 @@ bool D3D12DebugAPIWrapper::CalculateSampleGather(
 
   return D3D12ShaderDebug::CalculateSampleGather(
       false, m_pDevice, sampleOp, resourceData, samplerData, uv, ddxCalc, ddyCalc, texelOffsets,
-      multisampleIndex, lodOrCompareValue, swizzle, gatherChannel, GetShaderType(), m_instruction,
-      opString, output);
+      multisampleIndex, lodOrCompareValue, lodOrCompareValue, swizzle, gatherChannel,
+      GetShaderType(), m_instruction, opString, output);
 }
 
 void GatherConstantBuffers(WrappedID3D12Device *pDevice, const DXBCBytecode::Program &program,

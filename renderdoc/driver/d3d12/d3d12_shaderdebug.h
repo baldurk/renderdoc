@@ -44,10 +44,11 @@ bool CalculateMathIntrinsic(bool dxil, WrappedID3D12Device *device, int mathOp,
                             ShaderVariable &output2);
 
 bool CalculateSampleGather(bool dxil, WrappedID3D12Device *device, int sampleOp,
-                           SampleGatherResourceData resourceData, SampleGatherSamplerData samplerData,
-                           const ShaderVariable &uv, const ShaderVariable &ddxCalc,
-                           const ShaderVariable &ddyCalc, const int8_t texelOffsets[3],
-                           int multisampleIndex, float lodOrCompareValue, const uint8_t swizzle[4],
+                           SampleGatherResourceData resourceData,
+                           SampleGatherSamplerData samplerData, const ShaderVariable &uv,
+                           const ShaderVariable &ddxCalc, const ShaderVariable &ddyCalc,
+                           const int8_t texelOffsets[3], int multisampleIndex, float lodValue,
+                           float compareValue, const uint8_t swizzle[4],
                            GatherChannel gatherChannel, const DXBC::ShaderType shaderType,
                            uint32_t instruction, const char *opString, ShaderVariable &output);
 
