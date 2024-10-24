@@ -2898,13 +2898,13 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
     case Operation::UToF:
     {
       RDCASSERTEQUAL(inst.args[0]->type->type, Type::TypeKind::Scalar);
-      RDCASSERTEQUAL(inst.args[0]->type->scalarType, Type::Float);
       ShaderVariable a;
       RDCASSERT(GetShaderVariable(inst.args[0], opCode, dxOpCode, a));
       const uint32_t c = 0;
 
       if(opCode == Operation::FToS)
       {
+        RDCASSERTEQUAL(inst.args[0]->type->scalarType, Type::Float);
         double x = 0.0;
 #undef _IMPL
 #define _IMPL(T) x = comp<T>(a, c);
@@ -2916,6 +2916,7 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       }
       else if(opCode == Operation::FToU)
       {
+        RDCASSERTEQUAL(inst.args[0]->type->scalarType, Type::Float);
         double x = 0.0;
 
 #undef _IMPL
@@ -2928,6 +2929,7 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       }
       else if(opCode == Operation::SToF)
       {
+        RDCASSERTEQUAL(inst.args[0]->type->scalarType, Type::Int);
         int64_t x = 0;
 
 #undef _IMPL
@@ -2943,6 +2945,7 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       }
       else if(opCode == Operation::UToF)
       {
+        RDCASSERTEQUAL(inst.args[0]->type->scalarType, Type::Int);
         // Need to handle this case, cast to unsigned at the width of the argument
         //_Y = uitofp i8 -1 to double; yields double : 255.0
         uint64_t x = 0;
