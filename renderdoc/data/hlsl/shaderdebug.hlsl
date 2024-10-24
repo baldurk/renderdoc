@@ -269,7 +269,7 @@ float4 DoFloatOpcode(float4 uv)
       }
     }
   }
-  else if(opcode == DEBUG_SAMPLE_TEX_SAMPLE_CMP)
+  else if(opcode == DEBUG_SAMPLE_TEX_SAMPLE_CMP || opcode == DEBUG_SAMPLE_TEX_SAMPLE_CMP_BIAS)
   {
     switch(debugSampleTexDim)
     {
@@ -660,6 +660,102 @@ float4 DoFloatOpcode(float4 uv)
       }
     }
   }
+#if __SHADER_TARGET_MAJOR >= 6
+#if __SHADER_TARGET_MINOR >= 7
+  else if(opcode == DEBUG_SAMPLE_TEX_SAMPLE_CMP_LEVEL)    // SM6.7
+  {
+    switch(debugSampleTexDim)
+    {
+      default:
+      case DEBUG_SAMPLE_TEX1D:
+      {
+        switch(debugSampleRetType)
+        {
+          case DEBUG_SAMPLE_UNORM:
+            return t1D_unorm.SampleCmpLevel(sc, uv.xy, compare, lod, offsets.x);
+          case DEBUG_SAMPLE_SNORM:
+            return t1D_snorm.SampleCmpLevel(sc, uv.xy, compare, lod, offsets.x);
+          default: return t1D_float.SampleCmpLevel(sc, uv.xy, compare, lod, offsets.x);
+        }
+      }
+      case DEBUG_SAMPLE_TEX2D:
+      {
+        switch(debugSampleRetType)
+        {
+          case DEBUG_SAMPLE_UNORM:
+            return t2D_unorm.SampleCmpLevel(sc, uv.xyz, compare, lod, offsets.xy);
+          case DEBUG_SAMPLE_SNORM:
+            return t2D_snorm.SampleCmpLevel(sc, uv.xyz, compare, lod, offsets.xy);
+          default: return t2D_float.SampleCmpLevel(sc, uv.xyz, compare, lod, offsets.xy);
+        }
+      }
+      case DEBUG_SAMPLE_TEXCUBE:
+      {
+        switch(debugSampleRetType)
+        {
+          case DEBUG_SAMPLE_UNORM: return tCube_unorm.SampleCmpLevel(sc, uv, compare, lod);
+          case DEBUG_SAMPLE_SNORM: return tCube_snorm.SampleCmpLevel(sc, uv, compare, lod);
+          default: return tCube_float.SampleCmpLevel(sc, uv, compare, lod);
+        }
+      }
+    }
+  }
+#endif    // #if __SHADER_TARGET_MINOR >= 7
+#if __SHADER_TARGET_MINOR >= 8
+  else if(opcode == DEBUG_SAMPLE_TEX_SAMPLE_CMP_GRAD)    // SM6.8
+  {
+    switch(debugSampleTexDim)
+    {
+      default:
+      case DEBUG_SAMPLE_TEX1D:
+      {
+        switch(debugSampleRetType)
+        {
+          case DEBUG_SAMPLE_UNORM:
+            return t1D_unorm.SampleCmpGrad(s, uv.xy, compare, ddx_.x, ddy_.x, offsets.x);
+          case DEBUG_SAMPLE_SNORM:
+            return t1D_snorm.SampleCmpGrad(s, uv.xy, compare, ddx_.x, ddy_.x, offsets.x);
+          default: return t1D_float.SampleCmpGrad(s, uv.xy, compare, ddx_.x, ddy_.x, offsets.x);
+        }
+      }
+      case DEBUG_SAMPLE_TEX2D:
+      {
+        switch(debugSampleRetType)
+        {
+          case DEBUG_SAMPLE_UNORM:
+            return t2D_unorm.SampleCmpGrad(s, uv.xyz, compare, ddx_.xy, ddy_.xy, offsets.xy);
+          case DEBUG_SAMPLE_SNORM:
+            return t2D_snorm.SampleCmpGrad(s, uv.xyz, compare, ddx_.xy, ddy_.xy, offsets.xy);
+          default: return t2D_float.SampleCmpGrad(s, uv.xyz, compare, ddx_.xy, ddy_.xy, offsets.xy);
+        }
+      }
+      case DEBUG_SAMPLE_TEX3D:
+      {
+        switch(debugSampleRetType)
+        {
+          case DEBUG_SAMPLE_UNORM:
+            return t3D_unorm.SampleCmpGrad(s, uv.xyz, compare, ddx_.xyz, ddy_.xyz, offsets.xyz);
+          case DEBUG_SAMPLE_SNORM:
+            return t3D_snorm.SampleCmpGrad(s, uv.xyz, compare, ddx_.xyz, ddy_.xyz, offsets.xyz);
+          default:
+            return t3D_float.SampleCmpGrad(s, uv.xyz, compare, ddx_.xyz, ddy_.xyz, offsets.xyz);
+        }
+      }
+      case DEBUG_SAMPLE_TEXCUBE:
+      {
+        switch(debugSampleRetType)
+        {
+          case DEBUG_SAMPLE_UNORM:
+            return tCube_unorm.SampleCmpGrad(s, uv, compare, ddx_.xyz, ddy_.xyz);
+          case DEBUG_SAMPLE_SNORM:
+            return tCube_snorm.SampleCmpGrad(s, uv, compare, ddx_.xyz, ddy_.xyz);
+          default: return tCube_float.SampleCmpGrad(s, uv, compare, ddx_.xyz, ddy_.xyz);
+        }
+      }
+    }
+  }
+#endif    // #if __SHADER_TARGET_MINOR >= 8
+#endif    // #if __SHADER_TARGET_MAJOR >= 6
   else
   {
     return float4(0, 0, 0, 0);

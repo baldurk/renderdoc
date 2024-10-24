@@ -1118,23 +1118,23 @@ bool D3D12APIWrapper::CalculateSampleGather(
   switch(dxOp)
   {
     case DXOp::Sample: sampleOp = DEBUG_SAMPLE_TEX_SAMPLE; break;
-    case DXOp::SampleLevel: sampleOp = DEBUG_SAMPLE_TEX_SAMPLE_LEVEL; break;
     case DXOp::SampleBias: sampleOp = DEBUG_SAMPLE_TEX_SAMPLE_BIAS; break;
-    case DXOp::SampleCmp: sampleOp = DEBUG_SAMPLE_TEX_SAMPLE_CMP; break;
+    case DXOp::SampleLevel: sampleOp = DEBUG_SAMPLE_TEX_SAMPLE_LEVEL; break;
     case DXOp::SampleGrad: sampleOp = DEBUG_SAMPLE_TEX_SAMPLE_GRAD; break;
+    case DXOp::SampleCmp: sampleOp = DEBUG_SAMPLE_TEX_SAMPLE_CMP; break;
+    case DXOp::SampleCmpBias: sampleOp = DEBUG_SAMPLE_TEX_SAMPLE_CMP_BIAS; break;
+    case DXOp::SampleCmpLevel: sampleOp = DEBUG_SAMPLE_TEX_SAMPLE_CMP_LEVEL; break;
+    case DXOp::SampleCmpGrad: sampleOp = DEBUG_SAMPLE_TEX_SAMPLE_CMP_GRAD; break;
     case DXOp::SampleCmpLevelZero: sampleOp = DEBUG_SAMPLE_TEX_SAMPLE_CMP_LEVEL_ZERO; break;
     case DXOp::TextureGather: sampleOp = DEBUG_SAMPLE_TEX_GATHER4; break;
     case DXOp::TextureGatherCmp: sampleOp = DEBUG_SAMPLE_TEX_GATHER4_CMP; break;
     case DXOp::CalculateLOD: sampleOp = DEBUG_SAMPLE_TEX_LOD; break;
+    // In the shader DEBUG_SAMPLE_TEX_LOAD and DEBUG_SAMPLE_TEX_LOAD_MS behave equivalently
     case DXOp::TextureLoad: sampleOp = DEBUG_SAMPLE_TEX_LOAD; break;
     // TODO: consider these DXIL opcode operations
-    // DXOp::SampleCmpBias
-    // DXOp::SampleCmpGrad
-    // DXOp::SampleCmpLevel
     // DXOp::TextureGatherRaw
     // TODO: consider these DXBC opcode operations
     // DEBUG_SAMPLE_TEX_GATHER4_PARAM_OFFSET_CMP
-    // DEBUG_SAMPLE_TEX_LOAD_MS
     default:
       // To support a new instruction, the shader created in
       // D3D12DebugManager::CreateShaderDebugResources will need updating

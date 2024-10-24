@@ -836,8 +836,12 @@ bool D3D12DebugManager::CreateShaderDebugResources()
       return false;
     }
     ID3DBlob *dxilPsBlob = NULL;
+    D3D12_FEATURE_DATA_SHADER_MODEL smMaxSupport = {D3D_SHADER_MODEL_6_8};
+    m_pDevice->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &smMaxSupport, sizeof(smMaxSupport));
+    D3D_SHADER_MODEL smModel = smMaxSupport.HighestShaderModel;
+    rdcstr psSM = StringFormat::Fmt("ps_%d_%d", (smModel >> 4), (smModel & 0xf));
     if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DebugSamplePS",
-                                                  D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_6_0",
+                                                  D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, psSM.c_str(),
                                                   &dxilPsBlob) != "")
     {
       RDCASSERT(!dxilPsBlob);

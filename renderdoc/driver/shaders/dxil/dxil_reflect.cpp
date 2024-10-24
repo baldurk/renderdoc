@@ -1806,13 +1806,8 @@ rdcstr Program::GetDebugStatus()
               case DXOp::Ubfe:
               case DXOp::Bfi:
               case DXOp::CBufferLoad:
-              case DXOp::SampleBias:
-              case DXOp::SampleGrad:
-              case DXOp::SampleCmp:
               case DXOp::BufferUpdateCounter:
               case DXOp::CheckAccessFullyMapped:
-              case DXOp::TextureGather:
-              case DXOp::TextureGatherCmp:
               case DXOp::AtomicBinOp:
               case DXOp::AtomicCompareExchange:
               case DXOp::Barrier:
@@ -1949,7 +1944,6 @@ rdcstr Program::GetDebugStatus()
               case DXOp::IsHelperLane:
               case DXOp::QuadVote:
               case DXOp::TextureGatherRaw:
-              case DXOp::SampleCmpLevel:
               case DXOp::TextureStoreSample:
               case DXOp::WaveMatrix_Annotate:
               case DXOp::WaveMatrix_Depth:
@@ -1979,8 +1973,6 @@ rdcstr Program::GetDebugStatus()
               case DXOp::AnnotateNodeRecordHandle:
               case DXOp::NodeOutputIsValid:
               case DXOp::GetRemainingRecursionLevels:
-              case DXOp::SampleCmpGrad:
-              case DXOp::SampleCmpBias:
               case DXOp::StartVertexLocation:
               case DXOp::StartInstanceLocation:
               case DXOp::NumOpCodes:

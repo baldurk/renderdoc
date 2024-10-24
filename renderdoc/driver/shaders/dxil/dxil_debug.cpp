@@ -1389,16 +1389,17 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
             break;
           }
           case DXOp::Sample:
+          case DXOp::SampleBias:
           case DXOp::SampleLevel:
+          case DXOp::SampleGrad:
+          case DXOp::SampleCmp:
+          case DXOp::SampleCmpBias:
+          case DXOp::SampleCmpLevel:
+          case DXOp::SampleCmpGrad:
           case DXOp::SampleCmpLevelZero:
+          case DXOp::TextureGather:
+          case DXOp::TextureGatherCmp:
           {
-            // TODO
-            // case DXOp::SampleBias:
-            // case DXOp::SampleGrad:
-            // case DXOp::SampleCmp:
-            // case DXOp::SampleCmpLevel:
-            // case DXOp::SampleCmpGrad:
-            // case DXOp::SampleCmpBias:
             rdcstr handleId = GetArgumentName(1);
             const ResourceReference *resRef = GetResource(handleId);
             if(!resRef)
@@ -2067,13 +2068,8 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
           case DXOp::Ubfe:
           case DXOp::Bfi:
           case DXOp::CBufferLoad:
-          case DXOp::SampleBias:
-          case DXOp::SampleGrad:
-          case DXOp::SampleCmp:
           case DXOp::BufferUpdateCounter:
           case DXOp::CheckAccessFullyMapped:
-          case DXOp::TextureGather:
-          case DXOp::TextureGatherCmp:
           case DXOp::AtomicBinOp:
           case DXOp::AtomicCompareExchange:
           case DXOp::Barrier:
@@ -2210,7 +2206,6 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
           case DXOp::IsHelperLane:
           case DXOp::QuadVote:
           case DXOp::TextureGatherRaw:
-          case DXOp::SampleCmpLevel:
           case DXOp::TextureStoreSample:
           case DXOp::WaveMatrix_Annotate:
           case DXOp::WaveMatrix_Depth:
@@ -2240,8 +2235,6 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
           case DXOp::AnnotateNodeRecordHandle:
           case DXOp::NodeOutputIsValid:
           case DXOp::GetRemainingRecursionLevels:
-          case DXOp::SampleCmpGrad:
-          case DXOp::SampleCmpBias:
           case DXOp::StartVertexLocation:
           case DXOp::StartInstanceLocation:
           case DXOp::NumOpCodes:
@@ -2439,7 +2432,7 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       }
       RDCASSERT((resultType->type == DXIL::Type::TypeKind::Scalar) ||
                 (resultType->type == DXIL::Type::TypeKind::Struct));
-      // TODO: NEED TO DEMANGLE THE NAME TO DEMANGLE TO MATCH DISASSEMBLY
+      // TODO: NEED TO DEMANGLE THE NAME TO MATCH DISASSEMBLY
       result.type = baseType;
       result.rows = (uint8_t)countElems;
       result.members.resize(countElems);
@@ -3334,7 +3327,7 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
     case Operation::AtomicUMax:
     case Operation::AtomicUMin:
     {
-      // JAKE TODO: full proper load and store from/to memory i.e. group shared
+      // TODO: full proper load and store from/to memory i.e. group shared
       // Currently only supporting Stack allocated pointers
       size_t allocSize = 0;
       void *allocMemoryBackingPtr = NULL;
@@ -3810,16 +3803,18 @@ void ThreadState::PerformGPUResourceOp(const rdcarray<ThreadState> &workgroups, 
 {
   // TextureLoad(srv,mipLevelOrSampleCount,coord0,coord1,coord2,offset0,offset1,offset2)
   // Sample(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,clamp)
-  // SampleLevel(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,LOD)
-  // SampleCmpLevelZero(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue)
-
-  // TODO
   // SampleBias(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,bias,clamp)
+  // SampleLevel(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,LOD)
   // SampleGrad(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,ddx0,ddx1,ddx2,ddy0,ddy1,ddy2,clamp)
   // SampleCmp(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,clamp)
+  // SampleCmpBias(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,bias,clamp)
   // SampleCmpLevel(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,lod)
   // SampleCmpGrad(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,ddx0,ddx1,ddx2,ddy0,ddy1,ddy2,clamp)
-  // SampleCmpBias(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue,bias,clamp)
+  // SampleCmpLevelZero(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,offset2,compareValue)
+  // CalculateLOD(handle,sampler,coord0,coord1,coord2,clamped)
+
+  // TextureGather(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,channel)
+  // TextureGatherCmp(srv,sampler,coord0,coord1,coord2,coord3,offset0,offset1,channel,compareValue)
 
   // DXIL reports the vector result as a struct of N members of Element type, plus an int.
   const Type *retType = inst.type;
@@ -3855,8 +3850,39 @@ void ThreadState::PerformGPUResourceOp(const rdcarray<ThreadState> &workgroups, 
   samplerData.mode = SamplerMode::NUM_SAMPLERS;
 
   bool uvDDXY[4] = {false, false, false, false};
+  GatherChannel gatherChannel = GatherChannel::Red;
 
-  if(dxOpCode != DXOp::TextureLoad)
+  if(dxOpCode == DXOp::TextureLoad)
+  {
+    ShaderVariable arg;
+    // mipLevelOrSampleCount is in arg 2
+    if(GetShaderVariable(inst.args[2], opCode, dxOpCode, arg, false))
+    {
+      uint32_t mipLevelOrSampleCount = arg.value.u32v[0];
+      // The debug shader uses arrays of resources for 1D, 2D textures
+      // mipLevel goes into UV[N] : N = 1D: 2, 2D: 3, 3D: 3
+      switch(srv.shape)
+      {
+        case DXIL::ResourceKind::Texture1D: uv.value.u32v[2] = mipLevelOrSampleCount; break;
+        case DXIL::ResourceKind::Texture2D: uv.value.u32v[3] = mipLevelOrSampleCount; break;
+        case DXIL::ResourceKind::Texture3D: uv.value.u32v[3] = mipLevelOrSampleCount; break;
+        case DXIL::ResourceKind::Texture2DMS: msIndex = mipLevelOrSampleCount; break;
+        case DXIL::ResourceKind::Texture2DMSArray: msIndex = mipLevelOrSampleCount; break;
+        default: break;
+      }
+    }
+
+    // UV is int data in args 3,4,5
+    // Offset is int data in args 6,7,8
+    for(uint32_t i = 0; i < 3; ++i)
+    {
+      if(GetShaderVariable(inst.args[3 + i], opCode, dxOpCode, arg, false))
+        uv.value.s32v[i] = arg.value.s32v[0];
+      if(GetShaderVariable(inst.args[6 + i], opCode, dxOpCode, arg, false))
+        texelOffsets[i] = (int8_t)arg.value.s32v[0];
+    }
+  }
+  else
   {
     // Sampler is in arg 2
     rdcstr samplerId = GetArgumentName(2);
@@ -3867,15 +3893,63 @@ void ThreadState::PerformGPUResourceOp(const rdcarray<ThreadState> &workgroups, 
     RDCASSERTEQUAL(samplerRef->resourceBase.resClass, ResourceClass::Sampler);
     // samplerRef->resourceBase must be a Sampler
     const DXIL::EntryPointInterface::Sampler &sampler = resRef->resourceBase.samplerData;
-    // TODO: BIAS COMES FROM THE Sample*Bias arguments
     samplerData.bias = 0.0f;
     samplerData.binding.registerSpace = samplerRef->resourceBase.space;
     samplerData.binding.shaderRegister = samplerRef->resourceBase.regBase;
     samplerData.mode = ConvertSamplerKindToSamplerMode(sampler.samplerType);
 
+    int32_t biasArg = -1;
+    int32_t lodArg = -1;
+    int32_t compareArg = -1;
+    int32_t gatherArg = -1;
+    uint32_t countOffset = 3;
+    uint32_t countUV = 4;
+    // TODO: Sample*: Clamp is in arg 10
+    // TODO: CalculateLOD: clamped is in arg 6
+    // CalculateSampleGather returns {CalculateLevelOfDetail(), CalculateLevelOfDetailUnclamped()}
+
+    // SampleBias : bias is arg 10
+    // SampleLevel: lod is in arg 10
+    // SampleCmp: compare is in arg 10
+    // SampleCmpBias: compare is in arg 10, bias is in arg 11
+    // SampleCmpLevel: compare is in arg 10, LOD is in arg 11
+    // SampleCmpGrad: compare is in arg 10
+    // SampleCmpLevelZero: compare is in arg 10
+    // TextureGather: compare is in arg 10, gather is in 9
+    // TextureGatherCmp: compare is in arg 10, gather is in 9
+    switch(dxOpCode)
+    {
+      case DXOp::Sample: break;
+      case DXOp::SampleBias: biasArg = 10; break;
+      case DXOp::SampleLevel: lodArg = 10; break;
+      case DXOp::SampleGrad: break;
+      case DXOp::SampleCmp: compareArg = 10; break;
+      case DXOp::SampleCmpBias:
+        compareArg = 10;
+        biasArg = 11;
+        break;
+      case DXOp::SampleCmpLevel:
+        compareArg = 10;
+        lodArg = 11;
+        break;
+      case DXOp::SampleCmpGrad: compareArg = 10; break;
+      case DXOp::SampleCmpLevelZero: compareArg = 10; break;
+      case DXOp::TextureGather:
+        countOffset = 2;
+        gatherArg = 9;
+        break;
+      case DXOp::CalculateLOD: countUV = 3; break;
+      case DXOp::TextureGatherCmp:
+        countOffset = 2;
+        gatherArg = 9;
+        compareArg = 10;
+        break;
+      default: RDCERR("Unhandled DX Operation %s", ToStr(dxOpCode).c_str()); break;
+    }
+
     ShaderVariable arg;
-    // UV is float data in args 3,4,5,6
-    for(uint32_t i = 0; i < 4; ++i)
+    // UV is float data in args: Sample* 3,4,5,6 ; CalculateLOD 3,4,5
+    for(uint32_t i = 0; i < countUV; ++i)
     {
       if(GetShaderVariable(inst.args[3 + i], opCode, dxOpCode, arg))
       {
@@ -3886,62 +3960,54 @@ void ThreadState::PerformGPUResourceOp(const rdcarray<ThreadState> &workgroups, 
       }
     }
 
-    // Offset is int data in args 7,8,9
-    if(GetShaderVariable(inst.args[7], opCode, dxOpCode, arg, false))
-      texelOffsets[0] = (int8_t)arg.value.s32v[0];
-    if(GetShaderVariable(inst.args[8], opCode, dxOpCode, arg, false))
-      texelOffsets[1] = (int8_t)arg.value.s32v[0];
-    if(GetShaderVariable(inst.args[9], opCode, dxOpCode, arg, false))
-      texelOffsets[2] = (int8_t)arg.value.s32v[0];
-
-    // TODO: Sample: Clamp is in arg 10
-
-    // SampleLevel: LOD is in arg 10
-    // SampleCmpLevelZero: compare is in arg 10
-    if((dxOpCode == DXOp::SampleLevel) || (dxOpCode == DXOp::SampleCmpLevelZero))
+    // Offset is int data in args: Sample* 7,8,9 ; Gather* 7,8
+    for(uint32_t i = 0; i < countOffset; ++i)
     {
-      if(GetShaderVariable(inst.args[10], opCode, dxOpCode, arg))
+      if(GetShaderVariable(inst.args[7 + i], opCode, dxOpCode, arg, false))
+        texelOffsets[i] = (int8_t)arg.value.s32v[0];
+    }
+
+    if((lodArg > 0))
+    {
+      if(GetShaderVariable(inst.args[lodArg], opCode, dxOpCode, arg))
       {
         RDCASSERTEQUAL(arg.type, VarType::Float);
         lodValue = arg.value.f32v[0];
+      }
+    }
+    if((compareArg > 0))
+    {
+      if(GetShaderVariable(inst.args[compareArg], opCode, dxOpCode, arg))
+      {
+        RDCASSERTEQUAL(arg.type, VarType::Float);
         compareValue = arg.value.f32v[0];
       }
     }
-  }
-  else
-  {
-    ShaderVariable arg;
-    // TODO : mipLevelOrSampleCount is in arg 2
-    if(GetShaderVariable(inst.args[2], opCode, dxOpCode, arg))
+
+    if(biasArg > 0)
     {
-      msIndex = arg.value.u32v[0];
-      lodValue = arg.value.f32v[0];
-      compareValue = arg.value.f32v[0];
+      if(GetShaderVariable(inst.args[biasArg], opCode, dxOpCode, arg))
+      {
+        RDCASSERTEQUAL(arg.type, VarType::Float);
+        samplerData.bias = arg.value.f32v[0];
+      }
     }
 
-    // UV is int data in args 3,4,5
-    if(GetShaderVariable(inst.args[3], opCode, dxOpCode, arg))
-      uv.value.s32v[0] = arg.value.s32v[0];
-    if(GetShaderVariable(inst.args[4], opCode, dxOpCode, arg))
-      uv.value.s32v[1] = arg.value.s32v[0];
-    if(GetShaderVariable(inst.args[5], opCode, dxOpCode, arg))
-      uv.value.s32v[2] = arg.value.s32v[0];
-
-    // Offset is int data in args 6,7,8
-    if(GetShaderVariable(inst.args[6], opCode, dxOpCode, arg))
-      texelOffsets[0] = (int8_t)arg.value.s32v[0];
-    if(GetShaderVariable(inst.args[7], opCode, dxOpCode, arg))
-      texelOffsets[1] = (int8_t)arg.value.s32v[0];
-    if(GetShaderVariable(inst.args[8], opCode, dxOpCode, arg))
-      texelOffsets[2] = (int8_t)arg.value.s32v[0];
+    if(gatherArg > 0)
+    {
+      if(GetShaderVariable(inst.args[gatherArg], opCode, dxOpCode, arg))
+      {
+        RDCASSERTEQUAL(arg.type, VarType::SInt);
+        // Red = 0, Green = 1, Blue = 2, Alpha = 3
+        gatherChannel = (DXILDebug::GatherChannel)arg.value.s32v[0];
+      }
+    }
   }
 
-  // TODO: DDX & DDY
   ShaderVariable ddx;
   ShaderVariable ddy;
-  // Sample, SampleBias, SampleCmp, CalculateLOD need DDX, DDY
-  if((dxOpCode == DXOp::Sample) || (dxOpCode == DXOp::SampleBias) ||
-     (dxOpCode == DXOp::SampleCmp) || (dxOpCode == DXOp::CalculateLOD))
+  // Sample, SampleBias, CalculateLOD need DDX, DDY
+  if((dxOpCode == DXOp::Sample) || (dxOpCode == DXOp::SampleBias) || (dxOpCode == DXOp::CalculateLOD))
   {
     if(m_ShaderType != DXBC::ShaderType::Pixel || workgroups.size() != 4)
     {
@@ -3950,7 +4016,6 @@ void ThreadState::PerformGPUResourceOp(const rdcarray<ThreadState> &workgroups, 
     else
     {
       // texture samples use coarse derivatives
-      // TODO: the UV should be the ID per UV compponent
       ShaderValue delta;
       for(uint32_t i = 0; i < 4; i++)
       {
@@ -3964,19 +4029,37 @@ void ThreadState::PerformGPUResourceOp(const rdcarray<ThreadState> &workgroups, 
       }
     }
   }
-  else if(dxOpCode == DXOp::SampleGrad)
+  else if((dxOpCode == DXOp::SampleGrad) || (dxOpCode == DXOp::SampleCmpGrad))
   {
-    // TODO: get from arguments
+    // SampleGrad DDX is argument 10, DDY is argument 14
+    // SampleCmpGrad DDX is argument 11, DDY is argument 15
+    uint32_t ddx0 = dxOpCode == DXOp::SampleGrad ? 10 : 11;
+    uint32_t ddy0 = ddx0 + 4;
+    ShaderVariable arg;
+    for(uint32_t i = 0; i < 4; i++)
+    {
+      if(uvDDXY[i])
+      {
+        RDCASSERT(GetShaderVariable(inst.args[ddx0 + i], opCode, dxOpCode, arg));
+        ddx.value.f32v[i] = arg.value.f32v[0];
+        RDCASSERT(GetShaderVariable(inst.args[ddy0 + i], opCode, dxOpCode, arg));
+        ddy.value.f32v[i] = arg.value.f32v[0];
+      }
+    }
   }
 
   uint8_t swizzle[4] = {0, 1, 2, 3};
 
-  // TODO: GATHER CHANNEL
-  GatherChannel gatherChannel = GatherChannel::Red;
   uint32_t instructionIdx = m_FunctionInstructionIdx - 1;
   const char *opString = ToStr(dxOpCode).c_str();
-  ShaderVariable data;
 
+  // TODO: TextureGatherRaw // SM 6.7
+  // Return types for TextureGatherRaw
+  // DXGI_FORMAT_R16_UINT : u16
+  // DXGI_FORMAT_R32_UINT : u32
+  // DXGI_FORMAT_R32G32_UINT : u32x2
+
+  ShaderVariable data;
   apiWrapper->CalculateSampleGather(dxOpCode, resourceData, samplerData, uv, ddx, ddy, texelOffsets,
                                     msIndex, lodValue, compareValue, swizzle, gatherChannel,
                                     m_ShaderType, instructionIdx, opString, data);
