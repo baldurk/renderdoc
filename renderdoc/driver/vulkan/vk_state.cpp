@@ -230,6 +230,16 @@ void VulkanRenderState::BeginRenderPassAndApplyState(WrappedVulkan *vk, VkComman
 
     ObjDisp(cmd)->CmdBeginConditionalRenderingEXT(Unwrap(cmd), &beginInfo);
   }
+
+  if(dynamicRendering.localRead.AreLocationsNonDefault())
+  {
+    dynamicRendering.localRead.SetLocations(cmd);
+  }
+
+  if(dynamicRendering.localRead.AreInputIndicesNonDefault())
+  {
+    dynamicRendering.localRead.SetInputIndices(cmd);
+  }
 }
 
 void VulkanRenderState::EndRenderPass(VkCommandBuffer cmd)

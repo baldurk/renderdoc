@@ -272,6 +272,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkPhysicalDeviceDriverProperties);                                                     \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES,                          \
               VkPhysicalDeviceDynamicRenderingFeatures)                                              \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_LOCAL_READ_FEATURES_KHR,           \
+              VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR)                                  \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT,                 \
               VkPhysicalDeviceExtendedDynamicStateFeaturesEXT);                                      \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT,               \
@@ -998,7 +1000,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEVICE_MEMORY_REPORT_FEATURES_EXT:                 \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DIAGNOSTICS_CONFIG_FEATURES_NV:                    \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRM_PROPERTIES_EXT:                                \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_LOCAL_READ_FEATURES_KHR:         \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_FEATURES_EXT: \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXCLUSIVE_SCISSOR_FEATURES_NV:                     \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_SPARSE_ADDRESS_SPACE_FEATURES_NV:         \
@@ -1140,8 +1141,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_RENDER_PASS_SUBPASS_FEEDBACK_CREATE_INFO_EXT:                      \
   case VK_STRUCTURE_TYPE_RENDER_PASS_TRANSFORM_BEGIN_INFO_QCOM:                             \
   case VK_STRUCTURE_TYPE_RENDERING_AREA_INFO_KHR:                                           \
-  case VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_LOCATION_INFO_KHR:                            \
-  case VK_STRUCTURE_TYPE_RENDERING_INPUT_ATTACHMENT_INDEX_INFO_KHR:                         \
   case VK_STRUCTURE_TYPE_SAMPLER_BLOCK_MATCH_WINDOW_CREATE_INFO_QCOM:                       \
   case VK_STRUCTURE_TYPE_SAMPLER_CAPTURE_DESCRIPTOR_DATA_INFO_EXT:                          \
   case VK_STRUCTURE_TYPE_SAMPLER_CUBIC_WEIGHTS_CREATE_INFO_QCOM:                            \
@@ -1591,6 +1590,30 @@ size_t GetNextPatchSize(const void *pNext)
 
         VkRenderPassAttachmentBeginInfo *info = (VkRenderPassAttachmentBeginInfo *)next;
         memSize += info->attachmentCount * sizeof(VkImageView);
+        break;
+      }
+      case VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_LOCATION_INFO_KHR:
+      {
+        memSize += sizeof(VkRenderingAttachmentLocationInfoKHR);
+
+        VkRenderingAttachmentLocationInfoKHR *info = (VkRenderingAttachmentLocationInfoKHR *)next;
+        memSize += info->colorAttachmentCount * sizeof(uint32_t);
+        break;
+      }
+      case VK_STRUCTURE_TYPE_RENDERING_INPUT_ATTACHMENT_INDEX_INFO_KHR:
+      {
+        memSize += sizeof(VkRenderingInputAttachmentIndexInfoKHR);
+
+        VkRenderingInputAttachmentIndexInfoKHR *info = (VkRenderingInputAttachmentIndexInfoKHR *)next;
+        memSize += info->colorAttachmentCount * sizeof(uint32_t);
+        if(info->pDepthInputAttachmentIndex)
+        {
+          memSize += sizeof(*info->pDepthInputAttachmentIndex);
+        }
+        if(info->pStencilInputAttachmentIndex)
+        {
+          memSize += sizeof(*info->pStencilInputAttachmentIndex);
+        }
         break;
       }
       case VK_STRUCTURE_TYPE_RESOLVE_IMAGE_INFO_2:
@@ -2711,6 +2734,71 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
 
         break;
       }
+      case VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_LOCATION_INFO_KHR:
+      {
+        const VkRenderingAttachmentLocationInfoKHR *in =
+            (const VkRenderingAttachmentLocationInfoKHR *)nextInput;
+        VkRenderingAttachmentLocationInfoKHR *out = (VkRenderingAttachmentLocationInfoKHR *)tempMem;
+
+        // append immediately so tempMem is incremented
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
+
+        // allocate unwrapped array
+        uint32_t *outLocations = (uint32_t *)tempMem;
+        tempMem += sizeof(uint32_t) * in->colorAttachmentCount;
+
+        *out = *in;
+
+        out->pColorAttachmentLocations = outLocations;
+        for(uint32_t i = 0; i < in->colorAttachmentCount; i++)
+        {
+          outLocations[i] = in->pColorAttachmentLocations[i];
+        }
+
+        break;
+      }
+      case VK_STRUCTURE_TYPE_RENDERING_INPUT_ATTACHMENT_INDEX_INFO_KHR:
+      {
+        const VkRenderingInputAttachmentIndexInfoKHR *in =
+            (const VkRenderingInputAttachmentIndexInfoKHR *)nextInput;
+        VkRenderingInputAttachmentIndexInfoKHR *out =
+            (VkRenderingInputAttachmentIndexInfoKHR *)tempMem;
+
+        // append immediately so tempMem is incremented
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
+
+        // allocate unwrapped array
+        uint32_t *outColorIndices = (uint32_t *)tempMem;
+        tempMem += sizeof(uint32_t) * in->colorAttachmentCount;
+
+        *out = *in;
+
+        out->pColorAttachmentInputIndices = outColorIndices;
+        for(uint32_t i = 0; i < in->colorAttachmentCount; i++)
+        {
+          outColorIndices[i] = in->pColorAttachmentInputIndices[i];
+        }
+
+        if(in->pDepthInputAttachmentIndex)
+        {
+          uint32_t *depthIndex = (uint32_t *)tempMem;
+          out->pDepthInputAttachmentIndex = depthIndex;
+          tempMem += sizeof(uint32_t);
+
+          *depthIndex = *in->pDepthInputAttachmentIndex;
+        }
+
+        if(in->pStencilInputAttachmentIndex)
+        {
+          uint32_t *stencilIndex = (uint32_t *)tempMem;
+          out->pStencilInputAttachmentIndex = stencilIndex;
+          tempMem += sizeof(uint32_t);
+
+          *stencilIndex = *in->pStencilInputAttachmentIndex;
+        }
+
+        break;
+      }
       case VK_STRUCTURE_TYPE_RESOLVE_IMAGE_INFO_2:
       {
         const VkResolveImageInfo2 *in = (const VkResolveImageInfo2 *)nextInput;
@@ -3253,6 +3341,14 @@ void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInSt
         break;
       case VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO:
         CopyNextChainedStruct(sizeof(VkRenderPassAttachmentBeginInfo), tempMem, nextInput,
+                              nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_LOCATION_INFO_KHR:
+        CopyNextChainedStruct(sizeof(VkRenderingAttachmentLocationInfoKHR), tempMem, nextInput,
+                              nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_RENDERING_INPUT_ATTACHMENT_INDEX_INFO_KHR:
+        CopyNextChainedStruct(sizeof(VkRenderingInputAttachmentIndexInfoKHR), tempMem, nextInput,
                               nextChainTail);
         break;
       case VK_STRUCTURE_TYPE_RESOLVE_IMAGE_INFO_2:

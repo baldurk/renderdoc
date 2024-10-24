@@ -1786,7 +1786,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     rpState.resourceId = ResourceId();
     rpState.subpass = 0;
     rpState.fragmentDensityOffsets.clear();
-    rpState.tileOnlyMSAASampleCount = 0;
+    rpState.tileOnlyMSAASampleCount = dyn.tileOnlyMSAASampleCount;
 
     fbState.resourceId = ResourceId();
     // dynamic rendering does not provide a framebuffer dimension, it's implicit from the image
@@ -1942,6 +1942,17 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
       if(dyn.viewMask & (1 << v))
         rpState.multiviews.push_back(v);
     }
+
+    ret.currentPass.renderpass.colorAttachmentLocations = dyn.localRead.colorAttachmentLocations;
+    ret.currentPass.renderpass.colorAttachmentInputIndices =
+        dyn.localRead.colorAttachmentInputIndices;
+    ret.currentPass.renderpass.isDepthInputAttachmentIndexImplicit =
+        dyn.localRead.isDepthInputAttachmentIndexImplicit;
+    ret.currentPass.renderpass.isStencilInputAttachmentIndexImplicit =
+        dyn.localRead.isStencilInputAttachmentIndexImplicit;
+    ret.currentPass.renderpass.depthInputAttachmentIndex = dyn.localRead.depthInputAttachmentIndex;
+    ret.currentPass.renderpass.stencilInputAttachmentIndex =
+        dyn.localRead.stencilInputAttachmentIndex;
   }
   else if(state.GetRenderPass() != ResourceId())
   {
