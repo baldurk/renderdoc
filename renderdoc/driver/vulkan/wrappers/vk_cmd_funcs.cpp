@@ -7883,6 +7883,11 @@ bool WrappedVulkan::Serialise_vkCmdBuildAccelerationStructuresKHR(
     ObjDisp(commandBuffer)
         ->CmdBuildAccelerationStructuresKHR(Unwrap(commandBuffer), infoCount, unwrappedInfos,
                                             tmpBuildRangeInfos.data());
+
+    AddEvent();
+    ActionDescription action;
+    action.flags = ActionFlags::BuildAccStruct;
+    AddAction(action);
   }
 
   return true;
@@ -7964,6 +7969,11 @@ bool WrappedVulkan::Serialise_vkCmdCopyAccelerationStructureKHR(
     unwrappedInfo.dst = Unwrap(unwrappedInfo.dst);
 
     ObjDisp(commandBuffer)->CmdCopyAccelerationStructureKHR(Unwrap(commandBuffer), &unwrappedInfo);
+
+    AddEvent();
+    ActionDescription action;
+    action.flags = ActionFlags::BuildAccStruct;
+    AddAction(action);
   }
 
   return true;
@@ -8042,6 +8052,11 @@ bool WrappedVulkan::Serialise_vkCmdCopyMemoryToAccelerationStructureKHR(
     unwrappedInfo.dst = Unwrap(unwrappedInfo.dst);
 
     ObjDisp(commandBuffer)->CmdCopyMemoryToAccelerationStructureKHR(Unwrap(commandBuffer), &unwrappedInfo);
+
+    AddEvent();
+    ActionDescription action;
+    action.flags = ActionFlags::BuildAccStruct;
+    AddAction(action);
   }
 
   return true;
