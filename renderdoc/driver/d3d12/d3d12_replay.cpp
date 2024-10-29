@@ -1585,9 +1585,9 @@ void D3D12Replay::SavePipelineState(uint32_t eventId)
     {
       const D3D12Descriptor &desc = rs.rts[i];
 
+      state.outputMerger.renderTargets.push_back(Descriptor());
       if(desc.GetResResourceId() != ResourceId())
       {
-        state.outputMerger.renderTargets.push_back(Descriptor());
         FillDescriptor(state.outputMerger.renderTargets.back(), &desc);
       }
     }
