@@ -42,6 +42,10 @@ GPUAddressRange WrappedVulkan::CreateAddressRange(VkDevice device, VkBuffer buff
   VkResourceRecord *record = GetRecord(buffer);
   VkResourceRecord *memrecord = GetResourceManager()->GetResourceRecord(record->baseResourceMem);
 
+  // Just in case this is called when a buffer is being destroyed without being bound
+  if(!memrecord)
+    return {};
+
   const VkBufferDeviceAddressInfo addrInfo = {
       VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
       NULL,
