@@ -1912,10 +1912,16 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
         ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), Unwrap(*pBuffer),
                                                      &record->resInfo->memreqs);
 
-        // initialise the sparse page table
         if(isSparse)
+        {
+          // initialise the sparse page table
           record->resInfo->sparseTable.Initialise(pCreateInfo->size,
                                                   record->resInfo->memreqs.alignment & 0xFFFFFFFFU);
+
+          // Track the buffer address.  We only do this here for sparse buffers as they aren't
+          // bound against a single allocation
+          TrackBufferAddress(device, *pBuffer);
+        }
 
         // for external buffers, try creating a non-external version and take the worst case of
         // memory requirements, in case the non-external one (as we will replay it) needs more
