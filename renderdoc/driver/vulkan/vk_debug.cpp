@@ -2381,9 +2381,16 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
   if(buf == VK_NULL_HANDLE)
   {
     GPUBuffer &stage = m_DiscardStage[key];
-    bytebuf pattern = GetDiscardPattern(key.second, MakeResourceFormat(key.first));
 
     BlockShape shape = GetBlockShape(key.first, 0);
+    if((PatternBatchWidth % shape.width) != 0 || (PatternBatchHeight % shape.height) != 0)
+    {
+      RDCWARN("Skipping discard pattern for %s as block size is incompatible (%d * %d)",
+              ToStr(MakeResourceFormat(key.first).type).c_str(), shape.width, shape.height);
+      return;
+    }
+
+    bytebuf pattern = GetDiscardPattern(key.second, MakeResourceFormat(key.first));
 
     if(key.first == VK_FORMAT_D32_SFLOAT_S8_UINT)
       shape = {1, 1, 4};
