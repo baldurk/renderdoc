@@ -1027,8 +1027,10 @@ struct ResourceInfo
   rdcarray<AspectSparseTable> altSparseAspects;
 
   // for external images if we query both external and non-external and the sizes are different, we
-  // can't allow dedicated memory as it is required to precisely match in size.
+  // can't allow dedicated memory as it is required to precisely match in size,
+  // unless it is required by certain VkExportMemoryAllocateInfo::handleTypes.
   bool banDedicated = false;
+  VkExternalMemoryFeatureFlags externalMemoryFeatures = 0;
 
   VkImageAspectFlags sparseAspect;
 

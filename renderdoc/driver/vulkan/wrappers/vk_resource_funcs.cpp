@@ -522,7 +522,19 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
       VkResourceRecord *imageRecord = GetRecord(dedicated->image);
 
       if(imageRecord->resInfo->banDedicated)
-        RemoveNextStruct(&unwrapped, VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO);
+      {
+        VkExportMemoryAllocateInfo *exportMem = (VkExportMemoryAllocateInfo *)FindNextStruct(
+            pAllocateInfo, VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO);
+        if(exportMem && exportMem->handleTypes & imageRecord->resInfo->externalMemoryFeatures)
+        {
+          RDCWARN(
+              "Can't ban dedicated memory per Vulkan spec VUID-VkMemoryAllocateInfo-pNext-00639.");
+        }
+        else
+        {
+          RemoveNextStruct(&unwrapped, VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO);
+        }
+      }
     }
   }
 
@@ -2509,6 +2521,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
       bool isLinear = (pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR);
 
       bool isExternal = false;
+      VkExternalMemoryHandleTypeFlags externalHandleTypes = 0;
 
       const VkBaseInStructure *next = (const VkBaseInStructure *)pCreateInfo->pNext;
 
@@ -2528,6 +2541,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
             resInfo.imageInfo.isAHB =
                 (extCreateInfo->handleTypes &
                  VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID) != 0;
+            externalHandleTypes = extCreateInfo->handleTypes;
             break;
           }
         }
@@ -2617,6 +2631,44 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
                       "Required size changed on image between external/non-external, banning "
                       "dedicated memory");
                   resInfo.banDedicated = true;
+
+                  // Per Vulkan spec VUID-VkMemoryAllocateInfo-pNext-00639,
+                  // we need to make sure the dedicated memory is not required.
+                  // We query the externalMemoryFeatures here based on the image's properties.
+                  // Then check the memory's handleType upon vkAllocateMemory().
+                  // externalMemoryFeatures need to be checked bit by bit.
+                  for(VkFlags handleType = 0x01; externalHandleTypes;
+                      externalHandleTypes &= ~handleType, handleType <<= 1)
+                  {
+                    if(!(externalHandleTypes & handleType))
+                      continue;
+
+                    VkPhysicalDeviceExternalImageFormatInfo extImageFormatInfo = {
+                        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_IMAGE_FORMAT_INFO};
+                    extImageFormatInfo.handleType = (VkExternalMemoryHandleTypeFlagBits)handleType;
+
+                    VkPhysicalDeviceImageFormatInfo2 imageFormatInfo = {
+                        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2};
+                    imageFormatInfo.pNext = &extImageFormatInfo;
+                    imageFormatInfo.format = createInfo_adjusted.format;
+                    imageFormatInfo.type = createInfo_adjusted.imageType;
+                    imageFormatInfo.tiling = createInfo_adjusted.tiling;
+                    imageFormatInfo.usage = createInfo_adjusted.usage;
+                    imageFormatInfo.flags = createInfo_adjusted.flags;
+
+                    VkExternalImageFormatProperties extImageFormatProperties = {
+                        VK_STRUCTURE_TYPE_EXTERNAL_IMAGE_FORMAT_PROPERTIES};
+                    VkImageFormatProperties2 imageFormatProperties = {
+                        VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2};
+                    imageFormatProperties.pNext = &extImageFormatProperties;
+
+                    if(VK_SUCCESS ==
+                       ObjDisp(m_PhysicalDevice)
+                           ->GetPhysicalDeviceImageFormatProperties2(
+                               Unwrap(m_PhysicalDevice), &imageFormatInfo, &imageFormatProperties))
+                      resInfo.externalMemoryFeatures |=
+                          extImageFormatProperties.externalMemoryProperties.externalMemoryFeatures;
+                  }
                 }
 
                 resInfo.memreqs.size = RDCMAX(resInfo.memreqs.size, mrq.size);
