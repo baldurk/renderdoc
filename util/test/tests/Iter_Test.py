@@ -260,6 +260,10 @@ class Iter_Test(rdtest.TestCase):
 
             pipe: rd.PipeState = self.controller.GetPipelineState()
 
+            if pipe.GetShader(rd.ShaderStage.Pixel) == rd.ResourceId.Null():
+                rdtest.log.print("Nothing to debug. No pixel shader bound at {}".format(action.eventId))
+                return
+
             inputs = rd.DebugPixelInputs()
             inputs.sample = 0
             inputs.primitive = lastmod.primitiveID;

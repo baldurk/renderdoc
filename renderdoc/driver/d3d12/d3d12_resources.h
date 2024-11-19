@@ -1359,6 +1359,12 @@ public:
   {
     m_Addresses.GetResIDFromAddrAllowOutOfBounds(addr, id, offs);
   }
+  static void GetResIDBoundForAddr(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &lower,
+                                   D3D12_GPU_VIRTUAL_ADDRESS &lowerVA, ResourceId &upper,
+                                   D3D12_GPU_VIRTUAL_ADDRESS &upperVA)
+  {
+    m_Addresses.GetResIDBoundForAddr(addr, lower, lowerVA, upper, upperVA);
+  }
 
   UINT64 GetOriginalVA() const { return m_OrigAddress; }
 

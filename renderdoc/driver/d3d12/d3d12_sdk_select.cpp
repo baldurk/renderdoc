@@ -608,6 +608,12 @@ D3D12DevConfiguration *D3D12_PrepareReplaySDKVersion(bool untrustedCapture, UINT
           ret->debug = debug;
           ret->devconfig = devConfig;
 
+          hr = devfactory->GetConfigurationInterface(
+              CLSID_D3D12DeviceRemovedExtendedData,
+              __uuidof(ID3D12DeviceRemovedExtendedDataSettings), (void **)&ret->dred);
+          if(FAILED(hr))
+            SAFE_RELEASE(ret->dred);
+
           RDCLOG("Accessing D3D12 dll via SDK configuration API");
 
           return ret;

@@ -15,6 +15,7 @@
     <ClCompile Include="dxil_debug.cpp" />
     <ClCompile Include="dxil_stringise.cpp" />
     <ClCompile Include="dxil_metadata.cpp" />
+    <ClCompile Include="dxil_controlflow.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="precompiled.h">
@@ -31,6 +32,7 @@
     <ClInclude Include="llvm_common.h" />
     <ClInclude Include="dxil_debug.h" />
     <ClInclude Include="dxil_metadata.h" />
+    <ClInclude Include="dxil_controlflow.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="PCH">

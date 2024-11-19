@@ -5349,6 +5349,21 @@ ResourceId WrappedVulkan::GetPartialCommandBuffer()
   return m_Partial.partialStack.back().cmdId;
 }
 
+void WrappedVulkan::AddForcedReference(VkResourceRecord *record)
+{
+  {
+    SCOPED_LOCK(m_ForcedReferencesLock);
+    m_ForcedReferences.push_back(record);
+  }
+
+  // in case we're currently capturing, immediately consider the resource as referenced. If we're
+  // not capturing this will naturally be cleared before the frame capture starts and we don't have
+  // to consider races as this is internally locked. If we're racing with a frame capture starting
+  // we will either add this redundantly (after clear but before forced references are added) or as
+  // required (after references are cleared and after forced references are added)
+  GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+}
+
 void WrappedVulkan::AddAction(const ActionDescription &a)
 {
   m_AddedAction = true;

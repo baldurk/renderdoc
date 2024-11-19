@@ -225,6 +225,7 @@ void miss(inout RayPayload payload)
                                    .InitialState(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
     MakeUAV(uavtex).CreateCPU(1);
+    MakeAS(asb).Offset(tlasOffset).CreateCPU(0);
 
     while(Running())
     {
@@ -261,7 +262,10 @@ void miss(inout RayPayload payload)
           tables->GetGPUVirtualAddress() + D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT * 2;
       rayDispatch.HitGroupTable.StrideInBytes = 0;
       rayDispatch.HitGroupTable.SizeInBytes = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
-      cmd4->DispatchRays(&rayDispatch);
+
+      // first frame the TLAS hasn't been built yet
+      if(curFrame > 1)
+        cmd4->DispatchRays(&rayDispatch);
 
       ResourceBarrier(cmd);
 
@@ -283,7 +287,6 @@ void miss(inout RayPayload payload)
       desc.Inputs.InstanceDescs = instIndirectData->GetGPUVirtualAddress();
 
       cmd4->BuildRaytracingAccelerationStructure(&desc, 0, NULL);
-      MakeAS(asb).Offset(tlasOffset).CreateCPU(0);
 
       ResourceBarrier(cmd);
 

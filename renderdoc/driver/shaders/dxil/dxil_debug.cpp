@@ -22,12 +22,11 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#pragma once
-
 #include "dxil_debug.h"
 #include "common/formatting.h"
 #include "maths/formatpacking.h"
 #include "replay/common/var_dispatch_helpers.h"
+#include "dxil_controlflow.h"
 
 // normal is not zero, not subnormal, not infinite, not NaN
 inline bool RDCISNORMAL(float input)
@@ -1445,12 +1444,17 @@ void ThreadState::InitialiseHelper(const ThreadState &activeState)
 {
   m_Input = activeState.m_Input;
   m_Semantics = activeState.m_Semantics;
-  m_LiveVariables = activeState.m_LiveVariables;
+  m_Variables = activeState.m_Variables;
 }
 
 bool ThreadState::Finished() const
 {
   return m_Killed || m_Ended || m_Callstack.empty();
+}
+
+bool ThreadState::InUniformBlock() const
+{
+  return m_FunctionInfo->uniformBlocks.contains(m_Block);
 }
 
 void ThreadState::ProcessScopeChange(const rdcarray<Id> &oldLive, const rdcarray<Id> &newLive)
@@ -1469,7 +1473,7 @@ void ThreadState::ProcessScopeChange(const rdcarray<Id> &oldLive, const rdcarray
     if(liveGlobals.contains(id))
       continue;
 
-    m_State->changes.push_back({m_LiveVariables[id]});
+    m_State->changes.push_back({m_Variables[id]});
   }
 
   for(const Id &id : newLive)
@@ -1477,7 +1481,7 @@ void ThreadState::ProcessScopeChange(const rdcarray<Id> &oldLive, const rdcarray
     if(liveGlobals.contains(id))
       continue;
 
-    m_State->changes.push_back({ShaderVariable(), m_LiveVariables[id]});
+    m_State->changes.push_back({ShaderVariable(), m_Variables[id]});
   }
 }
 
@@ -1507,6 +1511,7 @@ void ThreadState::EnterFunction(const Function *function, const rdcarray<Value *
 
   ShaderDebugState *state = m_State;
   m_State = state;
+  StepOverNopInstructions();
 }
 
 void ThreadState::EnterEntryPoint(const Function *function, ShaderDebugState *state)
@@ -1516,7 +1521,7 @@ void ThreadState::EnterEntryPoint(const Function *function, ShaderDebugState *st
   EnterFunction(function, {});
 
   for(const GlobalVariable &gv : m_GlobalState.globals)
-    m_LiveVariables[gv.id] = gv.var;
+    m_Variables[gv.id] = gv.var;
 
   m_State = NULL;
 }
@@ -2204,8 +2209,8 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
             uint32_t regIndex = arg.value.u32v[0];
 
             RDCASSERT(m_Live.contains(handleId));
-            auto itVar = m_LiveVariables.find(handleId);
-            RDCASSERT(itVar != m_LiveVariables.end());
+            auto itVar = m_Variables.find(handleId);
+            RDCASSERT(itVar != m_Variables.end());
             result.value = itVar->second.members[regIndex].value;
 
             // DXIL will create a vector of a single type with total size of 16-bytes
@@ -2517,7 +2522,7 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
             }
             else
             {
-              RDCASSERT(ThreadsAreConverged(workgroups));
+              RDCASSERT(!ThreadsAreDiverged(workgroups));
               Id id = GetArgumentId(1);
               if(dxOpCode == DXOp::DerivCoarseX)
                 result.value = DDX(false, opCode, dxOpCode, workgroups, id);
@@ -2627,7 +2632,7 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
             BarrierMode barrierMode = (BarrierMode)arg.value.u32v[0];
             // For thread barriers the threads must be converged
             if(barrierMode & BarrierMode::SyncThreadGroup)
-              RDCASSERT(ThreadsAreConverged(workgroups));
+              RDCASSERT(!ThreadsAreDiverged(workgroups));
             break;
           }
           case DXOp::Discard:
@@ -2908,7 +2913,7 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
     case Operation::ExtractVal:
     {
       Id src = GetArgumentId(0);
-      const ShaderVariable &srcVal = m_LiveVariables[src];
+      const ShaderVariable &srcVal = m_Variables[src];
       RDCASSERT(srcVal.members.empty());
       // TODO: handle greater than one index
       RDCASSERTEQUAL(inst.args.size(), 2);
@@ -2984,19 +2989,19 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       UpdateBackingMemoryFromVariable(baseMemoryBackingPtr, allocSize, val);
 
       ShaderVariableChange change;
-      change.before = m_LiveVariables[baseMemoryId];
+      change.before = m_Variables[baseMemoryId];
 
       UpdateMemoryVariableFromBackingMemory(baseMemoryId, allocMemoryBackingPtr);
 
       // record the change to the base memory variable
-      change.after = m_LiveVariables[baseMemoryId];
+      change.after = m_Variables[baseMemoryId];
       if(m_State)
         m_State->changes.push_back(change);
 
       // Update the ptr variable value
       // Set the result to be the ptr variable which will then be recorded as a change
       resultId = ptrId;
-      result = m_LiveVariables[resultId];
+      result = m_Variables[resultId];
       result.value = val.value;
       break;
     }
@@ -3012,7 +3017,7 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       Id ptrId = GetArgumentId(0);
 
       RDCASSERT(m_MemoryAllocs.count(ptrId) == 1);
-      RDCASSERT(m_LiveVariables.count(ptrId) == 1);
+      RDCASSERT(m_Variables.count(ptrId) == 1);
 
       // arg[1..] : indices 1...N
       rdcarray<uint64_t> indexes;
@@ -3029,7 +3034,7 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       uint64_t offset = 0;
 
       // TODO: Resolve indexes to a single offset
-      const ShaderVariable &basePtr = m_LiveVariables[ptrId];
+      const ShaderVariable &basePtr = m_Variables[ptrId];
       if(indexes.size() > 1)
         offset += indexes[1] * GetElementByteSize(basePtr.type);
       RDCASSERT(indexes.size() <= 2);
@@ -3907,7 +3912,7 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       RDCASSERTNOTEQUAL(baseMemoryId, DXILDebug::INVALID_ID);
 
       RDCASSERTEQUAL(resultId, DXILDebug::INVALID_ID);
-      ShaderVariable a = m_LiveVariables[baseMemoryId];
+      ShaderVariable a = m_Variables[baseMemoryId];
 
       ShaderVariable b;
       RDCASSERT(GetShaderVariable(inst.args[1], opCode, dxOpCode, b));
@@ -4010,19 +4015,19 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
       UpdateBackingMemoryFromVariable(baseMemoryBackingPtr, allocSize, res);
 
       ShaderVariableChange change;
-      change.before = m_LiveVariables[baseMemoryId];
+      change.before = m_Variables[baseMemoryId];
 
       UpdateMemoryVariableFromBackingMemory(baseMemoryId, allocMemoryBackingPtr);
 
       // record the change to the base memory variable
-      change.after = m_LiveVariables[baseMemoryId];
+      change.after = m_Variables[baseMemoryId];
       if(m_State)
         m_State->changes.push_back(change);
 
       // Update the ptr variable value
       // Set the result to be the ptr variable which will then be recorded as a change
       resultId = ptrId;
-      result = m_LiveVariables[resultId];
+      result = m_Variables[resultId];
       result.value = res.value;
       break;
     }
@@ -4048,18 +4053,15 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
     {
       RDCASSERTNOTEQUAL(id, resultId);
       liveIdsToRemove.push_back(id);
-      m_DormantVariables[id] = m_LiveVariables[id];
       if(!m_Dormant.contains(id))
         m_Dormant.push_back(id);
 
       if(m_State)
       {
         ShaderVariableChange change;
-        change.before = m_LiveVariables[id];
+        change.before = m_Variables[id];
         m_State->changes.push_back(change);
       }
-
-      m_LiveVariables.erase(id);
     }
   }
   for(const Id &id : liveIdsToRemove)
@@ -4082,14 +4084,12 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
         if(m_FunctionInstructionIdx <= maxInstruction)
         {
           dormantIdsToRemove.push_back(id);
-          m_LiveVariables[id] = m_DormantVariables[id];
-          m_DormantVariables.erase(id);
 
           // Do not record the change for the resultId of the next instruction
           if(m_State && (id != nextResultId))
           {
             ShaderVariableChange change;
-            change.after = m_LiveVariables[id];
+            change.after = m_Variables[id];
             m_State->changes.push_back(change);
           }
         }
@@ -4115,7 +4115,7 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
 
     if(!m_Live.contains(resultId))
       m_Live.push_back(resultId);
-    m_LiveVariables[resultId] = result;
+    m_Variables[resultId] = result;
   }
 
   return true;
@@ -4123,9 +4123,12 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
 
 void ThreadState::StepOverNopInstructions()
 {
+  if(m_Ended)
+    return;
   do
   {
     m_GlobalInstructionIdx = m_FunctionInfo->globalInstructionOffset + m_FunctionInstructionIdx;
+    RDCASSERT(m_FunctionInstructionIdx < m_FunctionInfo->function->instructions.size());
     const Instruction *inst = m_FunctionInfo->function->instructions[m_FunctionInstructionIdx];
     if(!IsNopInstruction(*inst))
     {
@@ -4266,7 +4269,7 @@ bool ThreadState::GetShaderVariable(const DXIL::Value *dxilValue, Operation op, 
     GetVariable(inst->slot, op, dxOpCode, var);
     return true;
   }
-  RDCERR("Unandled DXIL Value type");
+  RDCERR("Unhandled DXIL Value type");
 
   return false;
 }
@@ -4274,8 +4277,8 @@ bool ThreadState::GetShaderVariable(const DXIL::Value *dxilValue, Operation op, 
 bool ThreadState::GetVariable(const Id &id, Operation op, DXOp dxOpCode, ShaderVariable &var) const
 {
   RDCASSERT(m_Live.contains(id));
-  auto it = m_LiveVariables.find(id);
-  RDCASSERT(it != m_LiveVariables.end());
+  auto it = m_Variables.find(id);
+  RDCASSERT(it != m_Variables.end());
   var = it->second;
 
   bool flushDenorm = OperationFlushing(op, dxOpCode);
@@ -4304,7 +4307,7 @@ void ThreadState::SetResult(const Id &id, ShaderVariable &result, Operation op, 
   {
     ShaderVariableChange change;
     m_State->flags |= flags;
-    change.before = m_LiveVariables[id];
+    change.before = m_Variables[id];
     change.after = result;
     m_State->changes.push_back(change);
   }
@@ -4393,7 +4396,7 @@ void ThreadState::UpdateBackingMemoryFromVariable(void *ptr, size_t &allocSize,
 
 void ThreadState::UpdateMemoryVariableFromBackingMemory(Id memoryId, const void *ptr)
 {
-  ShaderVariable &baseMemory = m_LiveVariables[memoryId];
+  ShaderVariable &baseMemory = m_Variables[memoryId];
   // Memory copy from backing memory to base memory variable
   size_t elementSize = GetElementByteSize(baseMemory.type);
   const uint8_t *src = (const uint8_t *)ptr;
@@ -4637,7 +4640,7 @@ void ThreadState::PerformGPUResourceOp(const rdcarray<ThreadState> &workgroups, 
     }
     else
     {
-      RDCASSERT(ThreadsAreConverged(workgroups));
+      RDCASSERT(!ThreadsAreDiverged(workgroups));
       // texture samples use coarse derivatives
       ShaderValue delta;
       for(uint32_t i = 0; i < 4; i++)
@@ -4705,10 +4708,10 @@ const DXIL::ResourceReference *ThreadState::GetResource(Id handleId, ShaderBindI
                                                         bool &annotatedHandle)
 {
   RDCASSERT(m_Live.contains(handleId));
-  auto it = m_LiveVariables.find(handleId);
-  if(it != m_LiveVariables.end())
+  auto it = m_Variables.find(handleId);
+  if(it != m_Variables.end())
   {
-    const ShaderVariable &var = m_LiveVariables.at(handleId);
+    const ShaderVariable &var = m_Variables.at(handleId);
     const DXIL::ResourceReference *resRef = m_Program.GetResourceReference(handleId);
     if(resRef)
     {
@@ -4743,7 +4746,7 @@ void ThreadState::Sub(const ShaderVariable &a, const ShaderVariable &b, ShaderVa
 ShaderValue ThreadState::DDX(bool fine, Operation opCode, DXOp dxOpCode,
                              const rdcarray<ThreadState> &quad, const Id &id) const
 {
-  RDCASSERT(ThreadsAreConverged(quad));
+  RDCASSERT(!ThreadsAreDiverged(quad));
   uint32_t index = ~0U;
   int quadIndex = m_WorkgroupIndex;
 
@@ -4774,7 +4777,7 @@ ShaderValue ThreadState::DDX(bool fine, Operation opCode, DXOp dxOpCode,
 ShaderValue ThreadState::DDY(bool fine, Operation opCode, DXOp dxOpCode,
                              const rdcarray<ThreadState> &quad, const Id &id) const
 {
-  RDCASSERT(ThreadsAreConverged(quad));
+  RDCASSERT(!ThreadsAreDiverged(quad));
   uint32_t index = ~0U;
   int quadIndex = m_WorkgroupIndex;
 
@@ -4802,21 +4805,20 @@ ShaderValue ThreadState::DDY(bool fine, Operation opCode, DXOp dxOpCode,
   return ret;
 }
 
-bool ThreadState::ThreadsAreConverged(const rdcarray<ThreadState> &workgroups) const
+bool ThreadState::ThreadsAreDiverged(const rdcarray<ThreadState> &workgroups)
 {
   const uint32_t block0 = workgroups[0].m_Block;
   const uint32_t instr0 = workgroups[0].m_ActiveGlobalInstructionIdx;
   for(size_t i = 1; i < workgroups.size(); i++)
   {
-    // Check all threads are in the basic block
+    // not in the same basic block
     if(workgroups[i].m_Block != block0)
-      return false;
-    // Check executing the same instruction
+      return true;
+    // not executing the same instruction
     if(workgroups[i].m_ActiveGlobalInstructionIdx != instr0)
-      return false;
+      return true;
   }
-  // TODO: Implement pixel shader convergence and check the basic block is a convergence block
-  return true;
+  return false;
 }
 
 // static helper function
@@ -4856,7 +4858,18 @@ void Debugger::CalcActiveMask(rdcarray<bool> &activeMask)
   if(m_Stage != ShaderStage::Pixel)
     return;
 
-  // TODO: implement pixel shader convergence
+  // Not diverged then all active
+  if(!ThreadState::ThreadsAreDiverged(m_Workgroups))
+    return;
+
+  for(size_t i = 0; i < m_Workgroups.size(); i++)
+  {
+    if(!activeMask[i])
+      continue;
+    // Run any thread that is not in a uniform block
+    // Stop any thread that is not in a uniform block
+    activeMask[i] = !m_Workgroups[i].InUniformBlock();
+  }
   return;
 }
 
@@ -5888,6 +5901,7 @@ ShaderDebugTrace *Debugger::BeginDebug(uint32_t eventId, const DXBC::DXBCContain
   m_EventId = eventId;
   m_ActiveLaneIndex = activeLaneIndex;
   m_Steps = 0;
+  m_Stage = shaderStage;
 
   // Ensure the DXIL reflection data is built
   DXIL::Program *program = ((DXIL::Program *)m_Program);
@@ -6067,6 +6081,7 @@ ShaderDebugTrace *Debugger::BeginDebug(uint32_t eventId, const DXBC::DXBCContain
   // global instruction offset
   // all SSA Ids referenced
   // minimum and maximum instruction per SSA reference
+  // uniform control blocks
   for(const Function *f : m_Program->m_Functions)
   {
     if(!f->external)
@@ -6147,6 +6162,28 @@ ShaderDebugTrace *Debugger::BeginDebug(uint32_t eventId, const DXBC::DXBCContain
       }
       // If these do not match in size that means there is a result SSA that is never read
       RDCASSERTEQUAL(ssaRefs.size(), ssaRange.size());
+
+      // Find the uniform control blocks in the function
+      rdcarray<rdcpair<uint32_t, uint32_t>> links;
+      for(const Block *block : f->blocks)
+      {
+        for(const Block *pred : block->preds)
+        {
+          if(pred->name.empty())
+          {
+            uint32_t from = pred->id;
+            uint32_t to = block->id;
+            links.push_back({from, to});
+          }
+        }
+      }
+      DXIL::FindUniformBlocks(links, info.uniformBlocks);
+      // Handle de-generate case when a single block
+      if(info.uniformBlocks.empty())
+      {
+        RDCASSERTEQUAL(f->blocks.size(), 1);
+        info.uniformBlocks.push_back(f->blocks[0]->id);
+      }
     }
   }
 
@@ -6475,16 +6512,6 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug(DebugAPIWrapper *apiWrapper)
     // calculate the current mask of which threads are active
     CalcActiveMask(activeMask);
 
-    // step all active members of the workgroup over Nop instructions and set the active instruction
-    for(size_t lane = 0; lane < m_Workgroups.size(); lane++)
-    {
-      if(activeMask[lane])
-      {
-        ThreadState &thread = m_Workgroups[lane];
-        thread.StepOverNopInstructions();
-      }
-    }
-
     // step all active members of the workgroup
     for(size_t lane = 0; lane < m_Workgroups.size(); lane++)
     {
@@ -6514,6 +6541,11 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug(DebugAPIWrapper *apiWrapper)
           thread.StepNext(NULL, apiWrapper, m_Workgroups);
         }
       }
+    }
+    for(size_t lane = 0; lane < m_Workgroups.size(); lane++)
+    {
+      if(activeMask[lane])
+        m_Workgroups[lane].StepOverNopInstructions();
     }
   }
   return ret;

@@ -104,6 +104,7 @@
     <ClCompile Include="dxil_bytecode.cpp" />
     <ClCompile Include="dxil_bytecode_editor.cpp" />
     <ClCompile Include="dxil_common.cpp" />
+    <ClCompile Include="dxil_controlflow.cpp" />
     <ClCompile Include="dxil_debug.cpp" />
     <ClCompile Include="dxil_debuginfo.cpp" />
     <ClCompile Include="dxil_disassemble.cpp" />
@@ -120,6 +121,7 @@
     <ClInclude Include="dxil_bytecode.h" />
     <ClInclude Include="dxil_bytecode_editor.h" />
     <ClInclude Include="dxil_common.h" />
+    <ClInclude Include="dxil_controlflow.h" />
     <ClInclude Include="dxil_debug.h" />
     <ClInclude Include="dxil_debuginfo.h" />
     <ClInclude Include="dxil_metadata.h" />

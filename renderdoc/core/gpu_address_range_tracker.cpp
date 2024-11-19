@@ -78,7 +78,7 @@ void GPUAddressRangeTracker::GetResIDFromAddr(GPUAddressRange::Address addr, Res
     // find the largest resource containing this address - not perfect but helps with trivially bad
     // aliases where a tiny resource and a large resource are co-situated and the larger resource
     // needs to be used for validity
-    while((it + 1)->start <= addr && (it + 1)->realEnd > range.realEnd)
+    while((it + 1) != addresses.end() && (it + 1)->start <= addr && (it + 1)->realEnd > range.realEnd)
     {
       it++;
       range = *it;
@@ -115,7 +115,7 @@ void GPUAddressRangeTracker::GetResIDFromAddrAllowOutOfBounds(GPUAddressRange::A
     // find the largest resource containing this address - not perfect but helps with trivially bad
     // aliases where a tiny resource and a large resource are co-situated and the larger resource
     // needs to be used for validity
-    while((it + 1)->start <= addr && (it + 1)->realEnd > range.realEnd)
+    while((it + 1) != addresses.end() && (it + 1)->start <= addr && (it + 1)->realEnd > range.realEnd)
     {
       it++;
       range = *it;
@@ -132,4 +132,60 @@ void GPUAddressRangeTracker::GetResIDFromAddrAllowOutOfBounds(GPUAddressRange::A
 
   id = range.id;
   offs = addr - range.start;
+}
+
+void GPUAddressRangeTracker::GetResIDBoundForAddr(GPUAddressRange::Address addr, ResourceId &lower,
+                                                  GPUAddressRange::Address &lowerVA,
+                                                  ResourceId &upper,
+                                                  GPUAddressRange::Address &upperVA)
+{
+  lower = upper = ResourceId();
+  lowerVA = upperVA = 0;
+
+  if(addr == 0)
+    return;
+
+  if(addresses.empty())
+    return;
+
+  {
+    SCOPED_READLOCK(addressLock);
+
+    auto it = std::lower_bound(addresses.begin(), addresses.end(), addr);
+    if(it == addresses.end())
+    {
+      --it;
+
+      lower = it->id;
+      lowerVA = it->start;
+      return;
+    }
+
+    // find the last resource containing this address if there are multiple overlapping
+    while((it + 1) != addresses.end() && (it + 1)->start <= addr && (it + 1)->realEnd > addr)
+    {
+      it++;
+    }
+
+    lower = it->id;
+    lowerVA = it->start;
+
+    // if this range contains the address exactly, return it as a tight bound
+    if(it->realEnd > addr)
+    {
+      upper = it->id;
+      upperVA = it->realEnd;
+    }
+
+    // otherwise the address is past its end but before the next. Move one allocation along - we
+    // already know that we picked the largest allocation that covers this address
+    ++it;
+
+    // if this wasn't the end, return the upper bound
+    if(it != addresses.end())
+    {
+      upper = it->id;
+      upperVA = it->realEnd;
+    }
+  }
 }

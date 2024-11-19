@@ -1522,9 +1522,8 @@ VkResult WrappedVulkan::vkBindBufferMemory(VkDevice device, VkBuffer buffer, VkD
     // if the buffer was force-referenced, do the same with the memory
     if(IsForcedReference(record))
     {
-      // in case we're currently capturing, immediately consider the buffer and backing memory as
-      // read-before-write referenced
-      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+      // AddForcedReference will also call MarkResourceFrameReferenced() on the buffer in case
+      // we're currently capturing, do the same with the memory with the correct semantics.
       GetResourceManager()->MarkMemoryFrameReferenced(id, memoryOffset, record->memSize,
                                                       eFrameRef_ReadBeforeWrite);
 
@@ -3072,9 +3071,8 @@ VkResult WrappedVulkan::vkBindBufferMemory2(VkDevice device, uint32_t bindInfoCo
       // if the buffer was force-referenced, do the same with the memory
       if(IsForcedReference(bufrecord))
       {
-        // in case we're currently capturing, immediately consider the buffer and backing memory as
-        // read-before-write referenced
-        GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
+        // AddForcedReference will also call MarkResourceFrameReferenced() on the buffer in case
+        // we're currently capturing, do the same with the memory with the correct semantics.
         GetResourceManager()->MarkMemoryFrameReferenced(
             GetResID(pBindInfos[i].memory), pBindInfos[i].memoryOffset, bufrecord->memSize,
             eFrameRef_ReadBeforeWrite);
@@ -3461,6 +3459,9 @@ VkResult WrappedVulkan::vkCreateAccelerationStructureKHR(
         // reference them.  We force ref generics too as they could bottom or top level so we
         // conservatively assume they are bottom
         AddForcedReference(record);
+
+        // in case we're currently capturing, immediately consider the AS as referenced
+        GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
       }
     }
     else

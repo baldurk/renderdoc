@@ -24,43 +24,10 @@
 
 #pragma once
 
-#include <functional>
-
-#include "api/replay/resourceid.h"
-#include "common/threading.h"
-
-struct GPUAddressRange
+namespace DXIL
 {
-  using Address = uint64_t;
+typedef rdcpair<uint32_t, uint32_t> BlockLink;
 
-  Address start, realEnd, oobEnd;
-  ResourceId id;
+void FindUniformBlocks(const rdcarray<BlockLink> &links, rdcarray<uint32_t> &uniformBlocks);
 
-  bool operator<(const Address &o) const
-  {
-    if(o < start)
-      return true;
-
-    return false;
-  }
-};
-
-struct GPUAddressRangeTracker
-{
-  GPUAddressRangeTracker() {}
-  // no copying
-  GPUAddressRangeTracker(const GPUAddressRangeTracker &) = delete;
-  GPUAddressRangeTracker &operator=(const GPUAddressRangeTracker &) = delete;
-
-  rdcarray<GPUAddressRange> addresses;
-  Threading::RWLock addressLock;
-
-  void AddTo(const GPUAddressRange &range);
-  void RemoveFrom(const GPUAddressRange &range);
-  void GetResIDFromAddr(GPUAddressRange::Address addr, ResourceId &id, uint64_t &offs);
-  void GetResIDFromAddrAllowOutOfBounds(GPUAddressRange::Address addr, ResourceId &id,
-                                        uint64_t &offs);
-  void GetResIDBoundForAddr(GPUAddressRange::Address addr, ResourceId &lower,
-                            GPUAddressRange::Address &lowerVA, ResourceId &upper,
-                            GPUAddressRange::Address &upperVA);
-};
+};    // namespace DXIL

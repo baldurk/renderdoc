@@ -783,6 +783,9 @@ bool WrappedID3D12GraphicsCommandList::ProcessASBuildAfterSubmission(ResourceId 
       m_pDevice->CreateAS(dstASB, destASBOffset, byteSize, accStructAtDestOffset);
 
       m_pDevice->AddForcedReference(record);
+      // in case we're currently capturing, immediately consider the AS as referenced
+      GetResourceManager()->MarkResourceFrameReferenced(accStructAtDestOffset->GetResourceID(),
+                                                        eFrameRef_Read);
     }
     else
     {

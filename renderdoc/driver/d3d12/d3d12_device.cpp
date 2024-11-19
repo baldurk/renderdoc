@@ -3331,6 +3331,21 @@ void WrappedID3D12Device::UploadBLASBufferAddresses()
   m_addressBufferUploaded = true;
 }
 
+void WrappedID3D12Device::AddForcedReference(D3D12ResourceRecord *record)
+{
+  {
+    SCOPED_LOCK(m_ForcedReferencesLock);
+    m_ForcedReferences.push_back(record);
+  }
+
+  // in case we're currently capturing, immediately consider the resource as referenced. If we're
+  // not capturing this will naturally be cleared before the frame capture starts and we don't have
+  // to consider races as this is internally locked. If we're racing with a frame capture starting
+  // we will either add this redundantly (after clear but before forced references are added) or as
+  // required (after references are cleared and after forced references are added)
+  GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+}
+
 void WrappedID3D12Device::ReleaseResource(ID3D12DeviceChild *res)
 {
   ResourceId id = GetResID(res);
@@ -3627,6 +3642,96 @@ rdcarray<DebugMessage> WrappedID3D12Device::GetDebugMessages()
   return ret;
 }
 
+void WrappedID3D12Device::DumpDREDPageFault(const D3D12_DRED_PAGE_FAULT_OUTPUT &DredPageFaultOutput)
+{
+  if(DredPageFaultOutput.PageFaultVA == 0)
+  {
+    RDCLOG("No DRED page fault information");
+    return;
+  }
+
+  ResourceId lower, upper;
+  D3D12_GPU_VIRTUAL_ADDRESS lowerVA = 0, upperVA = 0;
+  WrappedID3D12Resource::GetResIDBoundForAddr(DredPageFaultOutput.PageFaultVA, lower, lowerVA,
+                                              upper, upperVA);
+
+  RDCLOG("DRED Page fault at VA %llx, between %s at %llx and %s at %llx",
+         DredPageFaultOutput.PageFaultVA, ToStr(lower).c_str(), lowerVA, ToStr(upper).c_str(),
+         upperVA);
+
+  const D3D12_DRED_ALLOCATION_NODE *existing = DredPageFaultOutput.pHeadExistingAllocationNode;
+  const D3D12_DRED_ALLOCATION_NODE *freed = DredPageFaultOutput.pHeadRecentFreedAllocationNode;
+
+  while(existing)
+  {
+    RDCLOG("Existing allocation %s (%s / %ls)", ToStr(existing->AllocationType).c_str(),
+           existing->ObjectNameA, existing->ObjectNameW);
+    existing = existing->pNext;
+  }
+
+  while(freed)
+  {
+    RDCLOG("Free'd allocation %s (%s / %ls)", ToStr(freed->AllocationType).c_str(),
+           freed->ObjectNameA, freed->ObjectNameW);
+    freed = freed->pNext;
+  }
+}
+
+void WrappedID3D12Device::DumpDRED(D3D12_AUTO_BREADCRUMB_NODE *node,
+                                   D3D12_DRED_BREADCRUMB_CONTEXT *contexts, UINT numContexts)
+{
+  rdcstr cmdName = "";
+  rdcstr qName = "";
+
+  if(node->pCommandListDebugNameA)
+    cmdName = node->pCommandListDebugNameA;
+  else if(node->pCommandListDebugNameW)
+    cmdName = StringFormat::Wide2UTF8(node->pCommandListDebugNameW);
+
+  if(cmdName.empty() && node->pCommandList)
+  {
+    ID3D12CommandList *cmd =
+        (ID3D12CommandList *)GetResourceManager()->GetWrapper(node->pCommandList);
+    if(cmd)
+      cmdName = ToStr(GetResourceManager()->GetOriginalID(GetResID(cmd)));
+  }
+
+  if(node->pCommandQueueDebugNameA)
+    qName = node->pCommandListDebugNameA;
+  else if(node->pCommandQueueDebugNameW)
+    qName = StringFormat::Wide2UTF8(node->pCommandQueueDebugNameW);
+
+  if(qName.empty() && node->pCommandQueue)
+  {
+    ID3D12CommandQueue *q =
+        (ID3D12CommandQueue *)GetResourceManager()->GetWrapper(node->pCommandList);
+    if(q)
+      qName = ToStr(GetResourceManager()->GetOriginalID(GetResID(q)));
+  }
+
+  uint32_t lastExecuted = *node->pLastBreadcrumbValue;
+  D3D12_DRED_BREADCRUMB_CONTEXT *ctx = contexts;
+
+  RDCLOG("DRED Node on queue '%s' executing cmd '%s'", qName.c_str(), cmdName.c_str());
+
+  for(uint32_t i = 0; i < node->BreadcrumbCount; i++)
+  {
+    if(ctx && numContexts > 0 && ctx->BreadcrumbIndex == i)
+    {
+      RDCLOG("  [%u]: %s -- %ls", i, ToStr(node->pCommandHistory[i]).c_str(), ctx->pContextString);
+      ctx++;
+      numContexts--;
+    }
+    else
+    {
+      RDCLOG("  [%u]: %s", i, ToStr(node->pCommandHistory[i]).c_str());
+    }
+
+    if(lastExecuted == i)
+      RDCLOG("------ Last executed ------");
+  }
+}
+
 void WrappedID3D12Device::CheckHRESULT(const char *file, int line, HRESULT hr)
 {
   if(SUCCEEDED(hr) || HasFatalError())
@@ -3637,6 +3742,35 @@ void WrappedID3D12Device::CheckHRESULT(const char *file, int line, HRESULT hr)
   {
     SET_ERROR_RESULT(m_FatalError, ResultCode::DeviceLost,
                      "Logging device lost fatal error at %s:%d: %s", file, line, ToStr(hr).c_str());
+
+    ID3D12DeviceRemovedExtendedData *dred = NULL;
+    m_pDevice->QueryInterface(__uuidof(ID3D12DeviceRemovedExtendedData), (void **)&dred);
+
+    D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT DredAutoBreadcrumbsOutput = {};
+    D3D12_DRED_AUTO_BREADCRUMBS_OUTPUT1 DredAutoBreadcrumbsOutput1 = {};
+    D3D12_DRED_PAGE_FAULT_OUTPUT DredPageFaultOutput = {};
+    if(dred)
+    {
+      dred->GetAutoBreadcrumbsOutput(&DredAutoBreadcrumbsOutput);
+      dred->GetPageFaultAllocationOutput(&DredPageFaultOutput);
+
+      DumpDREDPageFault(DredPageFaultOutput);
+
+      ID3D12DeviceRemovedExtendedData1 *dred1 = NULL;
+      dred->QueryInterface(__uuidof(ID3D12DeviceRemovedExtendedData1), (void **)&dred1);
+      if(dred1)
+      {
+        dred1->GetAutoBreadcrumbsOutput1(&DredAutoBreadcrumbsOutput1);
+        SAFE_RELEASE(dred1);
+        DumpDRED(DredAutoBreadcrumbsOutput1.pHeadAutoBreadcrumbNode);
+      }
+      else
+      {
+        DumpDRED(DredAutoBreadcrumbsOutput.pHeadAutoBreadcrumbNode);
+      }
+
+      SAFE_RELEASE(dred);
+    }
   }
   else if(hr == E_OUTOFMEMORY)
   {
@@ -4378,7 +4512,12 @@ void WrappedID3D12Device::GPUSync(ID3D12CommandQueue *queue, ID3D12Fence *fence)
   RDCASSERTEQUAL(hr, S_OK);
 
   fence->SetEventOnCompletion(m_GPUSyncCounter, m_GPUSyncHandle);
-  WaitForSingleObject(m_GPUSyncHandle, 10000);
+
+  // wait 10s for hardware GPUs, 100s for CPU
+  if(m_Replay && m_Replay->GetDriverInfo().vendor == GPUVendor::Software)
+    WaitForSingleObject(m_GPUSyncHandle, 100000);
+  else
+    WaitForSingleObject(m_GPUSyncHandle, 10000);
 
   hr = m_pDevice->GetDeviceRemovedReason();
   CHECK_HR(this, hr);
@@ -5132,6 +5271,8 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
 
     m_GPUSyncCounter++;
 
+    GPUSyncAllQueues();
+
     // I'm not sure the reason for this, but the debug layer warns about being unable to resubmit
     // command lists due to the 'previous queue fence' not being ready yet, even if no fences are
     // signalled or waited. So instead we just signal a dummy fence each new 'frame'
@@ -5161,6 +5302,8 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
 
     ExecuteLists();
     FlushLists(true);
+
+    GPUSyncAllQueues();
 
     // clear any previous ray dispatch references
     D3D12CommandData &cmd = *m_Queue->GetCommandData();

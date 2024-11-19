@@ -62,10 +62,12 @@ struct D3D12DevConfiguration
   ID3D12DeviceFactory *devfactory = NULL;
   ID3D12DeviceConfiguration *devconfig = NULL;
   ID3D12Debug *debug = NULL;
+  ID3D12DeviceRemovedExtendedDataSettings *dred = NULL;
 };
 
 bool EnableD3D12DebugLayer(D3D12DevConfiguration *devConfig,
                            PFN_D3D12_GET_DEBUG_INTERFACE getDebugInterface);
+bool EnableDRED(D3D12DevConfiguration *devConfig, PFN_D3D12_GET_DEBUG_INTERFACE getDebugInterface);
 HRESULT EnumAdapterByLuid(IDXGIFactory1 *factory, LUID luid, IDXGIAdapter **pAdapter);
 
 D3D12DevConfiguration *D3D12_PrepareReplaySDKVersion(bool untrustedCapture, UINT SDKVersion,

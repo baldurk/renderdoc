@@ -82,6 +82,7 @@ void D3D12Replay::Shutdown()
     SAFE_RELEASE(m_DevConfig->debug);
     SAFE_RELEASE(m_DevConfig->devconfig);
     SAFE_RELEASE(m_DevConfig->devfactory);
+    SAFE_RELEASE(m_DevConfig->dred);
 
     m_DevConfig->sdkconfig->FreeUnusedSDKs();
     SAFE_RELEASE(m_DevConfig->sdkconfig);
@@ -4706,6 +4707,11 @@ RDResult D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IRepl
           "feature needed or if using a locally distributed D3D12 dll ensure you have "
           "D3D12SDKLayers.dll available next to it.");
     }
+  }
+
+  if(EnableDRED(config, NULL))
+  {
+    RDCLOG("DRED enabled");
   }
 
   ID3D12Device *dev = NULL;

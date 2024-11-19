@@ -109,7 +109,14 @@ def make_c_type(ret: str, pattern: bool, typelist: List[str]):
             inner = ',\s*'.join(inners)
         else:
             inner = ', '.join(inners)
-        ret = '(const )?rdcpair<{}> ?[&*]?'.format(inner) if pattern else 'rdcpair<{}>'.format(inner)
+
+        tuple_len = len(inners)
+
+        if tuple_len > 2 and len(list(set(inners))) == 1:
+            inner = inners[0]
+            ret = '(const )?rdcfixedarray<{}, {}> ?[&*]?'.format(inner, tuple_len) if pattern else 'rdcfixedarray<{}, {}>'.format(inner, tuple_len)
+        else:
+            ret = '(const )?rdcpair<{}> ?[&*]?'.format(inner) if pattern else 'rdcpair<{}>'.format(inner)
     elif pattern:
         if ret[-8:] == 'Callback':
             ret = '(RENDERDOC_)?{}'.format(ret)
@@ -291,11 +298,15 @@ for mod_name in ['renderdoc', 'qrenderdoc']:
                 member = obj.__dict__[member_name]
 
                 # Skip some known functions that cannot be easily matched this way
-                if '{}.{}'.format(objname, member_name) in ['RemoteHost.Connect',
+                if '{}.{}'.format(objname, member_name) in [
+                                                            # pointer output remapped to tuple return
+                                                            'RemoteHost.Connect',
+                                                            # class-local callbacks
                                                             'CaptureContext.EditShader',
-                                                            'ReplayController.DebugThread',
-                                                            'ReplayController.GetHistogram',
+                                                            # Renamed in the interface from DuplicateAndAddChild
                                                             'SDObject.AddChild',
+                                                            # not defined in the actual code since we have typed AsInt32 etc.
+                                                            # Instead defined in the swig interface
                                                             'SDObject.AsInt',
                                                             'SDObject.AsFloat',
                                                             'SDObject.AsString']:

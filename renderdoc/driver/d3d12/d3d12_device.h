@@ -795,6 +795,64 @@ private:
   bool Serialise_CaptureScope(SerialiserType &ser);
   void EndCaptureFrame();
 
+  void DumpDREDPageFault(const D3D12_DRED_PAGE_FAULT_OUTPUT &DredPageFaultOutput);
+
+  template <typename DRED_NODE>
+  void GetDREDContexts(DRED_NODE *node, D3D12_DRED_BREADCRUMB_CONTEXT **contexts, UINT &numContexts)
+  {
+    *contexts = NULL;
+    numContexts = 0;
+  }
+
+  template <>
+  void GetDREDContexts(D3D12_AUTO_BREADCRUMB_NODE1 *node, D3D12_DRED_BREADCRUMB_CONTEXT **contexts,
+                       UINT &numContexts)
+  {
+    *contexts = node->pBreadcrumbContexts;
+    numContexts = node->BreadcrumbContextsCount;
+  }
+
+  template <typename DRED_NODE>
+  void DumpDRED(DRED_NODE *head)
+  {
+    uint32_t i = 0, count = 0;
+    while(head && i < 100)
+    {
+      D3D12_AUTO_BREADCRUMB_NODE *node = (D3D12_AUTO_BREADCRUMB_NODE *)head;
+
+      // stop if this is a terminal node
+      if(node == NULL || node->pLastBreadcrumbValue == NULL)
+        break;
+
+      count++;
+
+      // if this node is fully executed or not executed at all keep going to get the count, but don't process
+      if(*node->pLastBreadcrumbValue == node->BreadcrumbCount || *node->pLastBreadcrumbValue == 0)
+      {
+        head = head->pNext;
+        i++;
+        continue;
+      }
+
+      D3D12_DRED_BREADCRUMB_CONTEXT *contexts = NULL;
+      UINT numContexts = 0;
+
+      GetDREDContexts(head, &contexts, numContexts);
+
+      RDCLOG("DRED node %u:", i);
+
+      DumpDRED(node, contexts, numContexts);
+
+      head = head->pNext;
+      i++;
+    }
+
+    RDCLOG("%u DRED nodes found", count);
+  }
+
+  void DumpDRED(D3D12_AUTO_BREADCRUMB_NODE *head, D3D12_DRED_BREADCRUMB_CONTEXT *contexts,
+                UINT numContexts);
+
   bool m_debugLayerEnabled;
 
   static Threading::CriticalSection m_DeviceWrappersLock;
@@ -830,11 +888,7 @@ public:
   const D3D12_FEATURE_DATA_D3D12_OPTIONS16 &GetOpts16() { return m_D3D12Opts16; }
   void RemoveQueue(WrappedID3D12CommandQueue *queue);
 
-  void AddForcedReference(D3D12ResourceRecord *record)
-  {
-    SCOPED_LOCK(m_ForcedReferencesLock);
-    m_ForcedReferences.push_back(record);
-  }
+  void AddForcedReference(D3D12ResourceRecord *record);
 
   // only valid on replay
   const std::map<ResourceId, WrappedID3D12Resource *> &GetResourceList() { return *m_ResourceList; }
