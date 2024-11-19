@@ -410,6 +410,19 @@ RDResult WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVersion
     instNext = &flagsEXT;
   }
 
+  VkInstanceCreateFlags instCreateFlags = 0;
+#ifdef VK_USE_PLATFORM_MACOS_MVK
+  if(supportedExtensions.find(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) !=
+     supportedExtensions.end())
+  {
+    if(!params.Extensions.contains(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME))
+    {
+      params.Extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+    }
+    instCreateFlags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+  }
+#endif
+
   const char **layerscstr = new const char *[params.Layers.size()];
   for(size_t i = 0; i < params.Layers.size(); i++)
     layerscstr[i] = params.Layers[i].c_str();
@@ -421,7 +434,7 @@ RDResult WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVersion
   VkInstanceCreateInfo instinfo = {
       VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
       instNext,
-      0,
+      instCreateFlags,
       &renderdocAppInfo,
       (uint32_t)params.Layers.size(),
       layerscstr,
