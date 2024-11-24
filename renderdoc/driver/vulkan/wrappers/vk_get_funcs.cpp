@@ -802,6 +802,24 @@ void WrappedVulkan::vkGetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice
     }
   }
 
+  // Vulkan 1.2 also promoted the old core extension query. This would have been invalid to use
+  // before since we would have hidden the extension itself, but on vulkan 1.2 it is valid so we
+  // intercept it unconditionally
+  VkPhysicalDeviceBufferDeviceAddressFeatures *bda =
+      (VkPhysicalDeviceBufferDeviceAddressFeatures *)FindNextStruct(
+          pFeatures, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES);
+
+  if(bda)
+  {
+    if(bda->bufferDeviceAddressCaptureReplay == VK_FALSE)
+    {
+      RDCWARN(
+          "VkPhysicalDeviceBufferDeviceAddressFeatures::bufferDeviceAddressCaptureReplay is false, "
+          "can't support capture of bufferDeviceAddress");
+      bda->bufferDeviceAddress = bda->bufferDeviceAddressMultiDevice = VK_FALSE;
+    }
+  }
+
   // we don't want to report support for mesh shaders + multiview
   VkPhysicalDeviceMeshShaderFeaturesEXT *mesh =
       (VkPhysicalDeviceMeshShaderFeaturesEXT *)FindNextStruct(

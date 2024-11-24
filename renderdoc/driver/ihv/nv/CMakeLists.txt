@@ -1,15 +1,22 @@
 set(sources
-    nv_counter_enumerator.cpp
-    nv_counter_enumerator.h
-    nv_gl_counters.h
-    nv_vk_counters.h)
+    nv_aftermath.h
+    nv_aftermath.cpp)
 
-if(ENABLE_GL OR ENABLE_GLES)
-    set(sources_gl nv_gl_counters.cpp)
-endif()
+# only include counters on normal windows/linux platforms, others just get aftermath stubs
+if(NOT ANDROID AND NOT APPLE)
+    list(APPEND sources
+        nv_counter_enumerator.cpp
+        nv_counter_enumerator.h
+        nv_gl_counters.h
+        nv_vk_counters.h)
 
-if(ENABLE_VULKAN)
-    set(sources_vulkan nv_vk_counters.cpp)
+    if(ENABLE_GL OR ENABLE_GLES)
+        set(sources_gl nv_gl_counters.cpp)
+    endif()
+
+    if(ENABLE_VULKAN)
+        set(sources_vulkan nv_vk_counters.cpp)
+    endif()
 endif()
 
 set(include_dirs

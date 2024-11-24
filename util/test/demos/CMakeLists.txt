@@ -141,6 +141,7 @@ set(VULKAN_SRC
         vk/vk_pixel_history.cpp
         vk/vk_postponed.cpp
         vk/vk_query_pool.cpp
+        vk/vk_ray_query.cpp
         vk/vk_read_before_overwrite.cpp
         vk/vk_resource_lifetimes.cpp
         vk/vk_robustness2.cpp

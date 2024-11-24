@@ -24,7 +24,6 @@
 
 #include "nv_aftermath.h"
 
-#include <windows.h>
 #include <unordered_map>
 #include "common/formatting.h"
 #include "common/threading.h"
@@ -37,18 +36,20 @@ RDOC_CONFIG(bool, Replay_Debug_EnableAftermath, false,
 RDOC_CONFIG(bool, Replay_Debug_EnableNVRTValidation, false,
             "Enable nvidia Raytracing validation on D3D12 and Vulkan.");
 
-#include "driver/dx/official/d3d12.h"
-#include "driver/dx/official/dxgi.h"
-#include "driver/vulkan/official/vulkan_core.h"
-
 #include "driver/ihv/nv/official/aftermath/GFSDK_Aftermath.h"
 #include "driver/ihv/nv/official/aftermath/GFSDK_Aftermath_GpuCrashDump.h"
 #include "driver/ihv/nv/official/aftermath/GFSDK_Aftermath_GpuCrashDumpDecoding.h"
 
+// assume this macro is only available if we got the real headers
+#if defined(GFSDK_AFTERMATH_CALL) && ENABLED(RDOC_WIN32)
+
 #include "official/nvapi/nvapi.h"
 
-// assume this macro is only available if we got the real headers
-#if defined(GFSDK_AFTERMATH_CALL)
+#include <windows.h>
+
+#include "driver/dx/official/d3d12.h"
+#include "driver/dx/official/dxgi.h"
+#include "driver/vulkan/official/vulkan_core.h"
 
 namespace
 {

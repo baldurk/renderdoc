@@ -4061,6 +4061,11 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       uint32_t qidx = createInfo.pQueueCreateInfos[i].queueFamilyIndex;
       m_ExternalQueues.resize(RDCMAX((uint32_t)m_ExternalQueues.size(), qidx + 1));
 
+      // Resize also the image barriers, as ImageBarrierSequence::SetMaxQueueFamilyIndex
+      // just sets the static MaxQueueFamilyIndex
+      m_setupImageBarriers.ResizeForMaxQueueFamilyIndex(qidx);
+      m_cleanupImageBarriers.ResizeForMaxQueueFamilyIndex(qidx);
+
       ImageBarrierSequence::SetMaxQueueFamilyIndex(qidx);
 
       VkCommandPoolCreateInfo poolInfo = {
@@ -4547,6 +4552,11 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
     {
       uint32_t qidx = createInfo.pQueueCreateInfos[i].queueFamilyIndex;
       m_ExternalQueues.resize(RDCMAX((uint32_t)m_ExternalQueues.size(), qidx + 1));
+
+      // Resize also the image barriers, as ImageBarrierSequence::SetMaxQueueFamilyIndex
+      // just sets the static MaxQueueFamilyIndex
+      m_setupImageBarriers.ResizeForMaxQueueFamilyIndex(qidx);
+      m_cleanupImageBarriers.ResizeForMaxQueueFamilyIndex(qidx);
 
       ImageBarrierSequence::SetMaxQueueFamilyIndex(qidx);
 

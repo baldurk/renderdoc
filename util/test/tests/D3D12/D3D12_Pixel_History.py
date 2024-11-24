@@ -471,7 +471,7 @@ class D3D12_Pixel_History(rdtest.TestCase):
         rdtest.log.print("Testing pixel {}, {}".format(x, y))
         modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         events = [
-            [[event_id, begin_renderpass_eid], [passed, True], [get_post_mod_depth, 1.0]],
+            [[event_id, begin_renderpass_eid], [passed, True], [get_post_mod_depth, -1.0]],
             [[event_id, background_eid], [passed, True], [primitive_id, 0], [get_pre_mod_depth, 1.0], [get_post_mod_depth, 0.95]],
             [[event_id, test_eid], [passed, True], [depth_test_failed, False], [primitive_id, 0], [get_shader_out_depth, 0.5], [get_post_mod_depth, 0.5]],
             [[event_id, test_eid], [passed, False], [depth_test_failed, True], [primitive_id, 1], [get_shader_out_depth, 0.6], [get_post_mod_depth, 0.5]],
@@ -549,6 +549,9 @@ class D3D12_Pixel_History(rdtest.TestCase):
             if self.is_depth:
                 a = (modifs[i].postMod.depth, modifs[i].postMod.stencil)
                 b = (modifs[i + 1].preMod.depth, modifs[i + 1].preMod.stencil)
+                # ignore if postmod depth data is unknwon
+                if a[0] == -1 and a[1] == -1:
+                    continue
 
             if a != b:
                 raise rdtest.TestFailureException(

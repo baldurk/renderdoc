@@ -90,7 +90,7 @@
 #include "d3d12_shader_cache.h"
 
 const uint32_t D3D12_PIXEL_HISTORY_MIN_EVENTS_TO_STORE = 128;
-const uint32_t D3D12_PIXEL_HISTORY_MIN_FRAGMENTS_TO_STORE = 256;
+const uint32_t D3D12_PIXEL_HISTORY_AVG_FRAGMENTS_PER_EVENT = 8;
 
 struct D3D12CopyPixelParams
 {
@@ -653,6 +653,15 @@ protected:
 
   void CopyImagePixel(ID3D12GraphicsCommandListX *cmd, D3D12CopyPixelParams &p, size_t offset)
   {
+    D3D12_RESOURCE_DESC srcDesc = p.srcImage->GetDesc();
+    if((p.x < 0 || p.y < 0 || p.x >= srcDesc.Width || p.y >= srcDesc.Height))
+    {
+      // If the pixel is out of bounds, we can't read from the target image
+      RDCERR("Pixel is out of bounds %d,%d Dimensions %d x %d", p.x, p.y, srcDesc.Width,
+             srcDesc.Height);
+      return;
+    }
+
     uint32_t baseMip = m_CallbackInfo.targetSubresource.mip;
     bool copy3d = m_CallbackInfo.targetDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D;
     uint32_t baseSlice = m_CallbackInfo.targetSubresource.slice;
@@ -990,15 +999,21 @@ private:
   rdcarray<uint64_t> m_OcclusionResults;
 };
 
+struct EventInfo
+{
+  D3D12_RESOURCE_STATES resourceState;
+  bool hasDepth;
+};
+
 struct D3D12ColorAndStencilCallback : public D3D12PixelHistoryCallback
 {
   D3D12ColorAndStencilCallback(WrappedID3D12Device *device, D3D12PixelHistoryShaderCache *shaderCache,
                                const D3D12PixelHistoryCallbackInfo &callbackInfo,
                                const rdcarray<uint32_t> &events,
-                               std::map<uint32_t, D3D12_RESOURCE_STATES> resourceStates)
+                               const std::map<uint32_t, EventInfo> &eventInfos)
       : D3D12PixelHistoryCallback(device, shaderCache, callbackInfo, NULL),
         m_Events(events),
-        m_ResourceStates(resourceStates)
+        m_EventInfos(eventInfos)
   {
   }
 
@@ -1178,7 +1193,9 @@ private:
     targetCopyParams.mip = m_CallbackInfo.targetSubresource.mip;
     targetCopyParams.arraySlice = m_CallbackInfo.targetSubresource.slice;
     targetCopyParams.multisampled = (m_CallbackInfo.targetDesc.SampleDesc.Count != 1);
-    D3D12_RESOURCE_STATES nonRtFallback = m_ResourceStates[eid];
+    const EventInfo &eventInfo = m_EventInfos.at(eid);
+    bool hasDepth = eventInfo.hasDepth;
+    D3D12_RESOURCE_STATES nonRtFallback = eventInfo.resourceState;
     bool rtOutput = (nonRtFallback == D3D12_RESOURCE_STATE_RENDER_TARGET);
     D3D12_RESOURCE_STATES fallback = D3D12_RESOURCE_STATE_RENDER_TARGET;
 
@@ -1216,6 +1233,10 @@ private:
 
     // If the target image is a depth/stencil view, we already copied the value above.
     if(depthTarget)
+      return;
+
+    // return if the event does not have valid depth i.e. Clear, Copy, Dispatch
+    if(!hasDepth)
       return;
 
     // Get the bound depth format for this event
@@ -1356,7 +1377,7 @@ private:
   D3D12RenderState m_SavedState;
   std::map<ResourceId, D3D12PipelineReplacements> m_PipeCache;
   rdcarray<uint32_t> m_Events;
-  std::map<uint32_t, D3D12_RESOURCE_STATES> m_ResourceStates;
+  const std::map<uint32_t, EventInfo> &m_EventInfos;
   // Key is event ID, and value is an index of where the event data is stored.
   std::map<uint32_t, size_t> m_EventIndices;
   std::map<uint32_t, DXGI_FORMAT> m_DepthFormats;
@@ -2416,6 +2437,7 @@ struct D3D12PixelHistoryPerFragmentCallback : D3D12PixelHistoryCallback
   void PreCloseCommandList(ID3D12GraphicsCommandListX *cmd) {}
   void AliasEvent(uint32_t primary, uint32_t alias) {}
 
+  bool ContainsEvent(uint32_t eid) { return (m_EventIndices.count(eid) > 0); }
   uint32_t GetEventOffset(uint32_t eid)
   {
     auto it = m_EventIndices.find(eid);
@@ -2736,7 +2758,7 @@ bool D3D12DebugManager::PixelHistorySetupResources(D3D12PixelHistoryResources &r
   numEvents = RDCMAX(numEvents, D3D12_PIXEL_HISTORY_MIN_EVENTS_TO_STORE);
   uint32_t bufferEventsSize = numEvents * sizeof(D3D12EventInfo);
 
-  uint32_t numFragments = D3D12_PIXEL_HISTORY_MIN_FRAGMENTS_TO_STORE;
+  uint32_t numFragments = numEvents * D3D12_PIXEL_HISTORY_AVG_FRAGMENTS_PER_EVENT;
   uint32_t bufferFragmentsSize = numFragments * sizeof(D3D12PerFragmentInfo);
 
   uint32_t bufferSize = RDCMAX(bufferEventsSize, bufferFragmentsSize);
@@ -2886,12 +2908,17 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
   // to determine if these draws failed for some reason (for ex., depth test).
   rdcarray<uint32_t> modEvents;
   rdcarray<uint32_t> drawEvents;
-  std::map<uint32_t, D3D12_RESOURCE_STATES> resourceStates;
+  std::map<uint32_t, EventInfo> eventInfos;
   for(size_t ev = 0; ev < events.size(); ev++)
   {
     ResourceUsage usage = events[ev].usage;
+    const uint32_t eventId = events[ev].eventId;
     bool clear = (usage == ResourceUsage::Clear);
-    bool directWrite = IsDirectWrite(events[ev].usage);
+    bool directWrite = IsDirectWrite(usage);
+    EventInfo eventInfo = {};
+    const ActionDescription *action = m_pDevice->GetAction(eventId);
+    eventInfo.hasDepth =
+        (action->flags & (ActionFlags::MeshDispatch | ActionFlags::Drawcall)) ? true : false;
 
     D3D12_RESOURCE_STATES resourceState = D3D12_RESOURCE_STATE_RENDER_TARGET;
     if(IsUavWrite(usage))
@@ -2900,26 +2927,28 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
       resourceState = D3D12_RESOURCE_STATE_RESOLVE_DEST;
     else if(IsCopyWrite(usage))
       resourceState = D3D12_RESOURCE_STATE_COPY_DEST;
-    resourceStates[events[ev].eventId] = resourceState;
+    eventInfo.resourceState = resourceState;
 
     if(directWrite || clear)
     {
-      modEvents.push_back(events[ev].eventId);
+      modEvents.push_back(eventId);
+      RDCASSERT(eventInfo.hasDepth == false);
     }
     else
     {
-      uint64_t occlData = occlCb.GetOcclusionResult((uint32_t)events[ev].eventId);
+      uint64_t occlData = occlCb.GetOcclusionResult(eventId);
       if(occlData > 0)
       {
         D3D12MarkerRegion::Set(m_pDevice->GetQueue()->GetReal(),
-                               StringFormat::Fmt("%u has occl %llu", events[ev].eventId, occlData));
-        drawEvents.push_back(events[ev].eventId);
-        modEvents.push_back(events[ev].eventId);
+                               StringFormat::Fmt("%u has occl %llu", eventId, occlData));
+        drawEvents.push_back(eventId);
+        modEvents.push_back(eventId);
       }
     }
+    eventInfos[eventId] = eventInfo;
   }
 
-  D3D12ColorAndStencilCallback cb(m_pDevice, shaderCache, callbackInfo, modEvents, resourceStates);
+  D3D12ColorAndStencilCallback cb(m_pDevice, shaderCache, callbackInfo, modEvents, eventInfos);
   {
     D3D12MarkerRegion colorStencilRegion(m_pDevice->GetQueue()->GetReal(),
                                          "D3D12ColorAndStencilCallback");
@@ -3033,21 +3062,34 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
       FillInColor(fmt, ei.postmod, mod.postMod);
     }
 
-    DXGI_FORMAT depthFormat = cb.GetDepthFormat(mod.eventId);
-    if(depthFormat != DXGI_FORMAT_UNKNOWN)
+    EventInfo eventInfo = eventInfos[eid];
+    bool hasDepth = eventInfo.hasDepth;
+
+    if(hasDepth)
     {
-      mod.preMod.stencil = ei.premod.stencil;
-      mod.postMod.stencil = ei.postmod.stencil;
-      if(multisampled)
+      DXGI_FORMAT depthFormat = cb.GetDepthFormat(mod.eventId);
+      if(depthFormat != DXGI_FORMAT_UNKNOWN)
       {
-        mod.preMod.depth = ei.premod.depth.fdepth;
-        mod.postMod.depth = ei.postmod.depth.fdepth;
+        mod.preMod.stencil = ei.premod.stencil;
+        mod.postMod.stencil = ei.postmod.stencil;
+        if(multisampled)
+        {
+          mod.preMod.depth = ei.premod.depth.fdepth;
+          mod.postMod.depth = ei.postmod.depth.fdepth;
+        }
+        else
+        {
+          mod.preMod.depth = GetDepthValue(depthFormat, ei.premod);
+          mod.postMod.depth = GetDepthValue(depthFormat, ei.postmod);
+        }
       }
-      else
-      {
-        mod.preMod.depth = GetDepthValue(depthFormat, ei.premod);
-        mod.postMod.depth = GetDepthValue(depthFormat, ei.postmod);
-      }
+    }
+    else
+    {
+      mod.preMod.stencil = -1;
+      mod.preMod.depth = -1;
+      mod.postMod.stencil = -1;
+      mod.postMod.depth = -1;
     }
 
     int32_t frags = int32_t(ei.dsWithoutShaderDiscard[0]);
@@ -3107,14 +3149,22 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
       uint32_t eid = history[h].eventId;
       if(eventsWithFrags.find(eid) == eventsWithFrags.end())
         continue;
-      uint32_t f = history[h].fragIndex;
-      bool someFragsClipped = (history[h].primitiveID == 1);
-      int32_t primId = fragInfo[perFragmentCB.GetEventOffset(eid) + f].primitiveID;
-      history[h].primitiveID = primId;
-      if(someFragsClipped)
+      if(perFragmentCB.ContainsEvent(eid))
       {
-        discardedPrimsEvents[eid].push_back(primId);
-        primitivesToCheck++;
+        uint32_t f = history[h].fragIndex;
+        bool someFragsClipped = (history[h].primitiveID == 1);
+        int32_t primId = fragInfo[perFragmentCB.GetEventOffset(eid) + f].primitiveID;
+        history[h].primitiveID = primId;
+        if(someFragsClipped)
+        {
+          discardedPrimsEvents[eid].push_back(primId);
+          primitivesToCheck++;
+        }
+      }
+      else
+      {
+        RDCWARN("Failed to find fragment data for event %d", eid);
+        eventsWithFrags.erase(eid);
       }
     }
 
@@ -3167,37 +3217,45 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
             history[h].postMod = history[h - 1].postMod;
           continue;
         }
-        uint32_t offset = perFragmentCB.GetEventOffset(eid) + f - discardOffset;
-        if(multisampled)
-          memcpy(history[h].shaderOut.col.floatValue.data(), &fragInfo[offset].shaderOut.color[0],
-                 history[h].shaderOut.col.floatValue.byteSize());
-        else
-          FillInColor(shaderOutFormat, fragInfo[offset].shaderOut, history[h].shaderOut);
-
-        if(multisampled)
-          history[h].shaderOut.depth = fragInfo[offset].shaderOut.depth.fdepth;
-        else
-          history[h].shaderOut.depth =
-              GetDepthValue(DXGI_FORMAT_D32_FLOAT_S8X24_UINT, fragInfo[offset].shaderOut);
-
-        if((h < history.size() - 1) && (history[h].eventId == history[h + 1].eventId))
+        if(perFragmentCB.ContainsEvent(eid))
         {
-          // Get post-modification value if this is not the last fragment for the event.
-          ConvertAndFillInColor(shaderOutFormat, fragInfo[offset].postMod, fmt, history[h].postMod);
-
-          // MSAA depth is expanded out to floats in the compute shader
+          uint32_t offset = perFragmentCB.GetEventOffset(eid) + f - discardOffset;
           if(multisampled)
-            history[h].postMod.depth = fragInfo[offset].postMod.depth.fdepth;
+            memcpy(history[h].shaderOut.col.floatValue.data(), &fragInfo[offset].shaderOut.color[0],
+                   history[h].shaderOut.col.floatValue.byteSize());
           else
-            history[h].postMod.depth =
-                GetDepthValue(DXGI_FORMAT_D32_FLOAT_S8X24_UINT, fragInfo[offset].postMod);
-          history[h].postMod.stencil = -2;
+            FillInColor(shaderOutFormat, fragInfo[offset].shaderOut, history[h].shaderOut);
+
+          if(multisampled)
+            history[h].shaderOut.depth = fragInfo[offset].shaderOut.depth.fdepth;
+          else
+            history[h].shaderOut.depth =
+                GetDepthValue(DXGI_FORMAT_D32_FLOAT_S8X24_UINT, fragInfo[offset].shaderOut);
+
+          if((h < history.size() - 1) && (history[h].eventId == history[h + 1].eventId))
+          {
+            // Get post-modification value if this is not the last fragment for the event.
+            ConvertAndFillInColor(shaderOutFormat, fragInfo[offset].postMod, fmt, history[h].postMod);
+
+            // MSAA depth is expanded out to floats in the compute shader
+            if(multisampled)
+              history[h].postMod.depth = fragInfo[offset].postMod.depth.fdepth;
+            else
+              history[h].postMod.depth =
+                  GetDepthValue(DXGI_FORMAT_D32_FLOAT_S8X24_UINT, fragInfo[offset].postMod);
+            history[h].postMod.stencil = -2;
+          }
+          // If it is not the first fragment for the event, set the preMod to the
+          // postMod of the previous fragment.
+          if(h > 0 && (history[h].eventId == history[h - 1].eventId))
+          {
+            history[h].preMod = history[h - 1].postMod;
+          }
         }
-        // If it is not the first fragment for the event, set the preMod to the
-        // postMod of the previous fragment.
-        if(h > 0 && (history[h].eventId == history[h - 1].eventId))
+        else
         {
-          history[h].preMod = history[h - 1].postMod;
+          RDCWARN("Failed to find fragment data for event %d", eid);
+          eventsWithFrags.erase(eid);
         }
       }
 
