@@ -1761,7 +1761,7 @@ struct ImageBarrierSequence
     if(maxQueueFamilyIndex > MaxQueueFamilyIndex)
       MaxQueueFamilyIndex = maxQueueFamilyIndex;
   }
-  
+
   void ResizeForMaxQueueFamilyIndex(uint32_t maxQueueFamilyIndex)
   {
     for(uint32_t i = 0; i < MAX_BATCH_COUNT; i++)
