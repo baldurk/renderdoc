@@ -331,6 +331,7 @@
     <ClCompile Include="vk\vk_multi_thread_windows.cpp" />
     <ClCompile Include="vk\vk_postponed.cpp" />
     <ClCompile Include="vk\vk_query_pool.cpp" />
+    <ClCompile Include="vk\vk_ray_query.cpp" />
     <ClCompile Include="vk\vk_read_before_overwrite.cpp" />
     <ClCompile Include="vk\vk_robustness2.cpp" />
     <ClCompile Include="vk\vk_separate_depth_stencil_layouts.cpp" />

@@ -41,7 +41,7 @@ RDOC_CONFIG(bool, Replay_Debug_EnableNVRTValidation, false,
 #include "driver/ihv/nv/official/aftermath/GFSDK_Aftermath_GpuCrashDumpDecoding.h"
 
 // assume this macro is only available if we got the real headers
-#if defined(GFSDK_AFTERMATH_CALL)
+#if defined(GFSDK_AFTERMATH_CALL) && ENABLED(RDOC_WIN32)
 
 #include "official/nvapi/nvapi.h"
 

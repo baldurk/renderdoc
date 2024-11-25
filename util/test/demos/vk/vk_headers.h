@@ -85,8 +85,12 @@
 // then include volk
 #include "3rdparty/volk/volk.h"
 
+#if defined(__linux__) && defined(__GLIBCXX__) && defined(_GLIBCXX_HAVE_ALIGNED_ALLOC)
+#define VMA_SYSTEM_ALIGNED_MALLOC(size, alignment) aligned_alloc(alignment, size)
+#endif
+
 // avoid warning about unused variables
-#define VMA_DEBUG_LOG_FORMAT(format, ...) (void)(__VA_ARGS__);
+#define VMA_DEBUG_LOG_FORMAT(format, ...) (void)(#__VA_ARGS__)
 
 // finally VMA
 #include "3rdparty/VulkanMemoryAllocator/vk_mem_alloc.h"
