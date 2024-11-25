@@ -93,6 +93,7 @@ void main()
 
 #pragma warning(push)
 #pragma warning(disable : 4127)
+#pragma warning(disable : 4189)
 #pragma warning(disable : 4324)
 #pragma warning(disable : 4505)
 
@@ -1215,6 +1216,11 @@ VkDescriptorSet VulkanGraphicsTest::allocateDescriptorSet(VkDescriptorSetLayout 
 
       inlineCreateInfo.maxInlineUniformBlockBindings = 1024;
       next = &inlineCreateInfo;
+    }
+
+    if(hasExt(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME))
+    {
+      poolSizes.push_back({VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1024});
     }
 
     CHECK_VKR(vkCreateDescriptorPool(
