@@ -22,8 +22,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include <map>
-#include <set>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "dxil_controlflow.h"
 
@@ -31,6 +31,7 @@
 
 Inputs are links of blocks : from -> to (can be forwards or backwards links)
 Output is a list of uniform control flow blocks which all possible flows go through (not diverged)
+and are not in a loop
 
 The algorithm is:
 
@@ -46,8 +47,10 @@ already computed
 
 3. Find Uniform Blocks
   * Generate a list of path indexes for each block in the paths
-  * uniform block is defined by any block which appears in all paths
-  * all paths includes walking any paths linked at the end node of the path being walked
+  * Generate a list of all paths blocks which are blocks which appear in all possible paths
+    * all paths includes walking any paths linked at the end node of the path being walked
+  * Generate a list of loop blocks which are blocks which appear in any path starting from the block
+  * uniform blocks are defined to be blocks which are all paths blocks minus loop blocks
 */
 
 namespace DXIL
@@ -62,16 +65,17 @@ private:
   typedef rdcarray<uint32_t> BlockPath;
 
   bool TraceBlockFlow(const uint32_t from, BlockPath &path);
-  bool BlockInPath(uint32_t block, uint32_t pathIdx, uint32_t startIdx);
+  bool BlockInAllPaths(uint32_t block, uint32_t pathIdx, uint32_t startIdx);
+  bool BlockInAnyPath(uint32_t block, uint32_t pathIdx, uint32_t startIdx);
 
   const uint32_t PATH_END = ~0U;
 
-  std::set<uint32_t> m_Blocks;
-  std::map<uint32_t, BlockPath> m_BlockLinks;
+  std::unordered_set<uint32_t> m_Blocks;
+  std::unordered_map<uint32_t, BlockPath> m_BlockLinks;
 
-  std::map<uint32_t, rdcarray<uint32_t>> m_BlockPathLinks;
-  std::set<uint32_t> m_TracedBlocks;
-  std::set<uint32_t> m_CheckedPaths;
+  std::unordered_map<uint32_t, rdcarray<uint32_t>> m_BlockPathLinks;
+  std::unordered_set<uint32_t> m_TracedBlocks;
+  std::unordered_set<uint32_t> m_CheckedPaths;
   rdcarray<BlockPath> m_Paths;
 };
 
@@ -130,8 +134,8 @@ bool ControlFlow::TraceBlockFlow(const uint32_t from, BlockPath &path)
     return true;
   }
   m_TracedBlocks.insert(from);
-  rdcarray<uint32_t> newPath = path;
-  const BlockPath &gotos = m_BlockLinks.at(from);
+  BlockPath newPath = path;
+  const rdcarray<uint32_t> &gotos = m_BlockLinks.at(from);
   for(uint32_t to : gotos)
   {
     newPath.push_back(to);
@@ -141,9 +145,55 @@ bool ControlFlow::TraceBlockFlow(const uint32_t from, BlockPath &path)
   return true;
 }
 
-bool ControlFlow::BlockInPath(uint32_t block, uint32_t pathIdx, uint32_t startIdx)
+bool ControlFlow::BlockInAnyPath(uint32_t block, uint32_t pathIdx, uint32_t startIdx)
 {
-  const rdcarray<uint32_t> &path = m_Paths[pathIdx];
+  const BlockPath &path = m_Paths[pathIdx];
+  if(path.size() == 0)
+    return false;
+
+  // Check the current path
+  for(uint32_t i = startIdx; i < path.size(); ++i)
+  {
+    if(block == path[i])
+      return true;
+  }
+
+  uint32_t endNode = path[path.size() - 1];
+  if(endNode == PATH_END)
+    return false;
+
+  m_CheckedPaths.insert(endNode);
+
+  // Check any paths linked to by the end node of the current path
+  const rdcarray<uint32_t> &childPathsToCheck = m_BlockPathLinks[endNode];
+  for(uint32_t childPathIdx : childPathsToCheck)
+  {
+    if(m_CheckedPaths.count(childPathIdx) != 0)
+      continue;
+
+    m_CheckedPaths.insert(childPathIdx);
+    const BlockPath &childPath = m_Paths[childPathIdx];
+    uint32_t childPartStartIdx = ~0U;
+    for(uint32_t i = 0; i < childPath.size(); ++i)
+    {
+      if(childPath[i] == endNode)
+      {
+        childPartStartIdx = i;
+        break;
+      }
+    }
+    if(childPartStartIdx != ~0U)
+    {
+      if(BlockInAnyPath(block, childPathIdx, childPartStartIdx))
+        return true;
+    }
+  }
+  return false;
+}
+
+bool ControlFlow::BlockInAllPaths(uint32_t block, uint32_t pathIdx, uint32_t startIdx)
+{
+  const BlockPath &path = m_Paths[pathIdx];
   if(path.size() == 0)
     return false;
 
@@ -167,14 +217,18 @@ bool ControlFlow::BlockInPath(uint32_t block, uint32_t pathIdx, uint32_t startId
       continue;
 
     m_CheckedPaths.insert(childPathIdx);
-    const rdcarray<uint32_t> &childPath = m_Paths[childPathIdx];
+    const BlockPath &childPath = m_Paths[childPathIdx];
     uint32_t childPartStartIdx = ~0U;
-    for(childPartStartIdx = 0; childPartStartIdx < childPath.size(); ++childPartStartIdx)
+    for(uint32_t i = 0; i < childPath.size(); ++i)
     {
-      if(childPath[childPartStartIdx] == endNode)
+      if(childPath[i] == endNode)
+      {
+        childPartStartIdx = i;
         break;
+      }
     }
-    if(!BlockInPath(block, childPathIdx, childPartStartIdx))
+    RDCASSERTNOTEQUAL(childPartStartIdx, ~0U);
+    if(!BlockInAllPaths(block, childPathIdx, childPartStartIdx))
       return false;
   }
   return true;
@@ -197,9 +251,57 @@ void ControlFlow::FindUniformBlocks(rdcarray<uint32_t> &uniformBlocks)
     }
   }
 
-  uniformBlocks.clear();
+  // For each path that does not end with PATH_END
+  // append the child path nodes which only have a single path and are not already in the path
+  // This is an optimisation to reduce the amount of recursion required when tracing paths
+  // In particular to help the speed of BlockInAnyPath()
+  for(uint32_t p = 0; p < m_Paths.size(); ++p)
+  {
+    BlockPath &path = m_Paths[p];
+    uint32_t endNode = path[path.size() - 1];
+    while(endNode != PATH_END)
+    {
+      const rdcarray<uint32_t> &gotos = m_BlockLinks.at(endNode);
+      if(gotos.size() > 1)
+        break;
+      endNode = gotos[0];
+      if(path.contains(endNode))
+        break;
+      path.push_back(endNode);
+    }
+  }
 
-  // A uniform block is defined by any block which appears in all paths
+  rdcarray<uint32_t> loopBlocks;
+  // A loop block is defined by any block which appears in any path starting from the block
+  for(uint32_t block : m_Blocks)
+  {
+    bool loop = false;
+    for(uint32_t pathIdx = 0; pathIdx < m_Paths.size(); ++pathIdx)
+    {
+      m_CheckedPaths.clear();
+      uint32_t startIdx = ~0U;
+      for(uint32_t i = 0; i < m_Paths[pathIdx].size() - 1; ++i)
+      {
+        if(m_Paths[pathIdx][i] == block)
+        {
+          startIdx = i;
+          break;
+        }
+      }
+      // BlockInAllPaths will also check all paths linked to from the end node of the path
+      if(startIdx != ~0U && BlockInAnyPath(block, pathIdx, startIdx + 1))
+      {
+        loop = true;
+        break;
+      }
+    }
+    if(loop)
+      loopBlocks.push_back(block);
+  }
+
+  rdcarray<uint32_t> allPathsBlocks;
+
+  // An all paths block is defined by any block which appears in all paths
   // all paths includes walking any paths linked at the end node of the path being walked
   for(uint32_t block : m_Blocks)
   {
@@ -207,14 +309,22 @@ void ControlFlow::FindUniformBlocks(rdcarray<uint32_t> &uniformBlocks)
     for(uint32_t pathIdx = 0; pathIdx < m_Paths.size(); ++pathIdx)
     {
       m_CheckedPaths.clear();
-      // BlockInPath will also check all paths linked to from the end node of the path
-      if(!BlockInPath(block, pathIdx, 0))
+      // BlockInAllPaths will also check all paths linked to from the end node of the path
+      if(!BlockInAllPaths(block, pathIdx, 0))
       {
         uniform = false;
         break;
       }
     }
     if(uniform)
+      allPathsBlocks.push_back(block);
+  }
+
+  // A uniform block is defined as an all paths block which is not part of a loop
+  uniformBlocks.clear();
+  for(uint32_t block : allPathsBlocks)
+  {
+    if(!loopBlocks.contains(block))
       uniformBlocks.push_back(block);
   }
 }
@@ -276,7 +386,28 @@ TEST_CASE("DXIL Control Flow", "[dxil]")
     }
 
     {
-      // Finite Loop (3 -> 4 -> 5 -> 3)
+      // Simple branch
+      // 0 -> 1
+      // 0 -> 2
+      // 1 -> 2
+      // 2 -> 3
+      // 2 -> 4
+      // 3 -> 4
+      rdcarray<BlockLink> inputs;
+      inputs.push_back({0, 1});
+      inputs.push_back({0, 2});
+      inputs.push_back({1, 2});
+      inputs.push_back({2, 3});
+      inputs.push_back({2, 4});
+      inputs.push_back({3, 4});
+      DXIL::FindUniformBlocks(inputs, outputs);
+      REQUIRE(3 == outputs.count());
+      REQUIRE(outputs.contains(0U));
+      REQUIRE(outputs.contains(2U));
+      REQUIRE(outputs.contains(4U));
+    }
+    {
+      // Finite loop (3 -> 4 -> 5 -> 3)
       // 0 -> 1 -> 3
       // 0 -> 2 -> 3
       // 3 -> 4 -> 5
@@ -294,10 +425,26 @@ TEST_CASE("DXIL Control Flow", "[dxil]")
       inputs.push_back({5, 3});
       inputs.push_back({5, 6});
       DXIL::FindUniformBlocks(inputs, outputs);
-      REQUIRE(4 == outputs.count());
+      REQUIRE(2 == outputs.count());
       REQUIRE(outputs.contains(0U));
-      REQUIRE(outputs.contains(3U));
-      REQUIRE(outputs.contains(4U));
+      REQUIRE(outputs.contains(6U));
+    }
+    {
+      // Finite loop (3 -> 4 -> 5 -> 3)
+      rdcarray<BlockLink> inputs;
+      inputs.push_back({0, 1});
+      inputs.push_back({1, 2});
+      inputs.push_back({0, 2});
+      inputs.push_back({5, 3});
+      inputs.push_back({2, 3});
+      inputs.push_back({3, 4});
+      inputs.push_back({4, 5});
+      inputs.push_back({3, 5});
+      inputs.push_back({5, 6});
+      DXIL::FindUniformBlocks(inputs, outputs);
+      REQUIRE(3 == outputs.count());
+      REQUIRE(outputs.contains(0U));
+      REQUIRE(outputs.contains(2U));
       REQUIRE(outputs.contains(6U));
     }
 

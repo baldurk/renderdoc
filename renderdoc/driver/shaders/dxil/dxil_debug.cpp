@@ -2271,14 +2271,17 @@ bool ThreadState::ExecuteInstruction(DebugAPIWrapper *apiWrapper,
             {
               const bytebuf &cbufferData = m_GlobalState.constantBlocksData[cbufferIndex];
               const uint32_t bufferSize = (uint32_t)cbufferData.size();
-              const uint32_t maxIndex = bufferSize / 16;
+              const uint32_t maxIndex = AlignUp16(bufferSize) / 16;
               RDCASSERTMSG("Out of bounds cbuffer load", regIndex < maxIndex, regIndex, maxIndex);
               if(regIndex < maxIndex)
               {
-                const byte *data = cbufferData.data() + regIndex * 16;
+                const uint32_t dataOffset = regIndex * 16;
+                const uint32_t byteWidth = 4;
+                const byte *data = cbufferData.data() + dataOffset;
+                const uint32_t numComps = RDCMIN(4U, (bufferSize - dataOffset) / byteWidth);
                 GlobalState::ViewFmt cbufferFmt;
-                cbufferFmt.byteWidth = 4;
-                cbufferFmt.numComps = 4;
+                cbufferFmt.byteWidth = byteWidth;
+                cbufferFmt.numComps = numComps;
                 cbufferFmt.fmt = CompType::Float;
                 cbufferFmt.stride = 16;
 
@@ -4933,10 +4936,18 @@ GlobalState::~GlobalState()
 
 bool ThreadState::ThreadsAreDiverged(const rdcarray<ThreadState> &workgroups)
 {
-  const uint32_t block0 = workgroups[0].m_Block;
-  const uint32_t instr0 = workgroups[0].m_ActiveGlobalInstructionIdx;
-  for(size_t i = 1; i < workgroups.size(); i++)
+  uint32_t block0 = ~0U;
+  uint32_t instr0 = ~0U;
+  for(size_t i = 0; i < workgroups.size(); i++)
   {
+    if(workgroups[i].Finished())
+      continue;
+    if(block0 == ~0U)
+    {
+      block0 = workgroups[i].m_Block;
+      instr0 = workgroups[i].m_ActiveGlobalInstructionIdx;
+      continue;
+    }
     // not in the same basic block
     if(workgroups[i].m_Block != block0)
       return true;
@@ -4988,6 +4999,7 @@ void Debugger::CalcActiveMask(rdcarray<bool> &activeMask)
   if(!ThreadState::ThreadsAreDiverged(m_Workgroups))
     return;
 
+  bool anyActive = false;
   for(size_t i = 0; i < m_Workgroups.size(); i++)
   {
     if(!activeMask[i])
@@ -4995,6 +5007,13 @@ void Debugger::CalcActiveMask(rdcarray<bool> &activeMask)
     // Run any thread that is not in a uniform block
     // Stop any thread that is not in a uniform block
     activeMask[i] = !m_Workgroups[i].InUniformBlock();
+    anyActive |= activeMask[i];
+  }
+  if(!anyActive)
+  {
+    RDCERR("No active threads, forcing all unfinished threads to run");
+    for(size_t i = 0; i < m_Workgroups.size(); i++)
+      activeMask[i] = !m_Workgroups[i].Finished();
   }
   return;
 }
