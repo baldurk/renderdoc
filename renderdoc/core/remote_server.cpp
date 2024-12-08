@@ -86,6 +86,7 @@ enum RemoteServerPacket
   eRemoteServer_GetSectionContents,
   eRemoteServer_WriteSection,
   eRemoteServer_GetAvailableGPUs,
+  eRemoteServer_CopyConfToRemote,
   eRemoteServer_RemoteServerCount,
 };
 
@@ -130,6 +131,7 @@ rdcstr DoStringise(const RemoteServerPacket &el)
     STRINGISE_ENUM_NAMED(eRemoteServer_GetSectionContents, "GetSectionContents");
     STRINGISE_ENUM_NAMED(eRemoteServer_WriteSection, "WriteSection");
     STRINGISE_ENUM_NAMED(eRemoteServer_GetAvailableGPUs, "GetAvailableGPUs");
+    STRINGISE_ENUM_NAMED(eRemoteServer_CopyConfToRemote, "CopyConfToRemote");
     STRINGISE_ENUM_NAMED(eRemoteServer_RemoteServerCount, "RemoteServerCount");
   }
   END_ENUM_STRINGISE();
@@ -481,6 +483,49 @@ static void ActiveRemoteClientThread(ClientThread *threadData,
         SCOPED_SERIALISE_CHUNK(eRemoteServer_GetAvailableGPUs);
         SERIALISE_ELEMENT(gpus);
       }
+    }
+    else if(type == eRemoteServer_CopyConfToRemote)
+    {
+      rdcstr confFile;
+      rdcstr confFileTmp;
+
+      {
+        READ_DATA_SCOPE();
+
+        SERIALISE_ELEMENT(confFile);
+
+        // If dst is empty then the default platform-specific path is used
+        if(confFile.empty())
+          confFile = FileIO::GetAppFolderFilename("renderdoc.conf");
+
+        RDCLOG("Copying new configuration to local path '%s'.", confFile.c_str());
+
+        confFileTmp = confFile + ".tmp";
+
+        StreamWriter streamWriter(FileIO::fopen(confFileTmp, FileIO::WriteBinary), Ownership::Stream);
+        ser.SerialiseStream(confFileTmp, streamWriter, NULL);
+      }
+
+      reader.EndChunk();
+
+      if(reader.IsErrored())
+      {
+        FileIO::Delete(confFileTmp);
+
+        RDCERR("Network error receiving file");
+        break;
+      }
+
+      if(!FileIO::Copy(confFileTmp, confFile, true))
+      {
+        RDCERR("Failed to replace configuration");
+        break;
+      }
+
+      tempFiles.push_back(confFileTmp);
+
+      RDCLOG("New configuration received.");
+      RenderDoc::Inst().ProcessConfig();
     }
     else if(type == eRemoteServer_ShutdownServer)
     {
@@ -1255,7 +1300,12 @@ RENDERDOC_CreateRemoteServerConnection(const rdcstr &URL, IRemoteServer **rend)
   if(protocol)
     *rend = protocol->CreateRemoteServer(sock, deviceID);
   else
-    *rend = new RemoteServer(sock, deviceID);
+  {
+    RemoteServer *server = new RemoteServer(sock, deviceID);
+    server->CopyConfToRemote();
+
+    *rend = server;
+  }
 
   if(*rend == NULL)
     return RDResult(ResultCode::NetworkIOFailed);
@@ -1800,6 +1850,22 @@ rdcarray<GPUDevice> RemoteServer::GetAvailableGPUs()
   }
 
   return gpus;
+}
+
+void RemoteServer::CopyConfToRemote(const rdcstr &dst)
+{
+  rdcstr confFile = FileIO::GetAppFolderFilename("renderdoc.conf");
+
+  {
+    WRITE_DATA_SCOPE();
+    SCOPED_SERIALISE_CHUNK(eRemoteServer_CopyConfToRemote);
+
+    SERIALISE_ELEMENT(dst);
+
+    // this will take ownership of and close the file
+    StreamReader fileReader(FileIO::fopen(confFile, FileIO::ReadBinary));
+    ser.SerialiseStream(confFile, fileReader, NULL);
+  }
 }
 
 int RemoteServer::GetSectionCount()

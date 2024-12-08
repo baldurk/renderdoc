@@ -1231,18 +1231,11 @@ struct AndroidController : public IDeviceProtocolHandler
           deviceID,
           "shell setprop debug.oculus.usepackagedvvl." RENDERDOC_ANDROID_PACKAGE_BASE ".arm64 1");
 
-      rdcstr package = GetRenderDocPackageForABI(abis.back());
-
-      rdcstr folderName = Android::GetFolderName(deviceID);
-
-      // push settings file into our folder
-      Android::adbExecCommand(deviceID, "push \"" + FileIO::GetAppFolderFilename("renderdoc.conf") +
-                                            "\" /sdcard/Android/" + folderName + package +
-                                            "/files/renderdoc.conf");
-
       // launch the last ABI, as the 64-bit version where possible, or 32-bit version where not.
       // Captures are portable across bitness and in some cases a 64-bit capture can't replay on a
       // 32-bit remote server.
+      rdcstr package = GetRenderDocPackageForABI(abis.back());
+
       Android::adbExecCommand(
           deviceID, "shell am start -n " + package + "/.Loader -e renderdoccmd remoteserver");
     });
@@ -1297,7 +1290,10 @@ struct AndroidController : public IDeviceProtocolHandler
       portbase = it->second.portbase;
     }
 
-    return new AndroidRemoteServer(sock, deviceID, portbase);
+    AndroidRemoteServer *server = new AndroidRemoteServer(sock, deviceID, portbase);
+    server->CopyConfToRemote();
+
+    return server;
   }
 
   int32_t running = 0;
@@ -1492,9 +1488,7 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const rdcstr &packageAndActi
                                               opts.EncodeAsString().c_str()));
 
     // try to push our settings file into the appdata folder
-    Android::adbExecCommand(m_deviceID, "push \"" + FileIO::GetAppFolderFilename("renderdoc.conf") +
-                                            "\" /sdcard/Android/" + folderName + processName +
-                                            "/files/renderdoc.conf");
+    CopyConfToRemote("/sdcard/Android/" + folderName + processName + "/files/renderdoc.conf");
 
     rdcstr installedPath = Android::GetPathForPackage(m_deviceID, packageName);
 

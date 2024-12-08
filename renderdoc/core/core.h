@@ -614,6 +614,8 @@ public:
   void CycleActiveWindow();
   uint32_t GetCapturableWindowCount();
 
+  void ProcessConfig();
+
 private:
   RenderDoc();
   ~RenderDoc();
@@ -719,8 +721,6 @@ private:
 
   ICrashHandler *m_ExHandler;
   Threading::RWLock m_ExHandlerLock;
-
-  void ProcessConfig();
 
   SDObject *FindConfigSetting(const rdcstr &name);
 

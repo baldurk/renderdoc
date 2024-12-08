@@ -82,6 +82,9 @@ public:
 
   virtual rdcarray<GPUDevice> GetAvailableGPUs();
 
+  // If dst is empty then the default platform-specific path is used
+  virtual void CopyConfToRemote(const rdcstr &dst = "");
+
   virtual int32_t GetSectionCount();
 
   virtual int32_t FindSectionByName(const rdcstr &name);
