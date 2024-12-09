@@ -3364,6 +3364,19 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         VkPhysicalDeviceProperties2 availPropsBase = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
         availPropsBase.pNext = &rayProps;
         ObjDisp(physicalDevice)->GetPhysicalDeviceProperties2(Unwrap(physicalDevice), &availPropsBase);
+
+        if(ext->rayTracingPipeline && !avail.rayTracingPipelineShaderGroupHandleCaptureReplay)
+        {
+          SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+                           "Capture requires rayTracingPipeline support, which is available, but "
+                           "rayTracingPipelineShaderGroupHandleCaptureReplay support is not "
+                           "available which is required to replay\n"
+                           "\n%s",
+                           GetPhysDeviceCompatString(false, false).c_str());
+          return false;
+        }
+        if(ext->rayTracingPipeline)
+          ext->rayTracingPipelineShaderGroupHandleCaptureReplay = VK_TRUE;
       }
       END_PHYS_EXT_CHECK();
     }
