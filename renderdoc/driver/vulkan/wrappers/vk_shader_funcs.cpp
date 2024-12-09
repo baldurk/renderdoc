@@ -1464,14 +1464,29 @@ VkResult WrappedVulkan::vkCreateRayTracingPipelinesKHR(
 {
   VkResult ret;
 
-  // to be extra sure just in case the driver doesn't, set pipelines to VK_NULL_HANDLE first.
+  VkRayTracingPipelineCreateInfoKHR *unwrappedCreateInfos =
+      UnwrapInfos(m_State, pCreateInfos, createInfoCount);
+
   for(uint32_t i = 0; i < createInfoCount; i++)
+  {
+    // to be extra sure just in case the driver doesn't, set pipelines to VK_NULL_HANDLE first.
     pPipelines[i] = VK_NULL_HANDLE;
+
+    // Patch in capture/replay creation flags
+    VkPipelineCreateFlags2CreateInfoKHR *flagsInfo =
+        (VkPipelineCreateFlags2CreateInfoKHR *)FindNextStruct(
+            &unwrappedCreateInfos[i], VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO_KHR);
+    if(flagsInfo)
+      flagsInfo->flags |= VK_PIPELINE_CREATE_2_RAY_TRACING_SHADER_GROUP_HANDLE_CAPTURE_REPLAY_BIT_KHR;
+    else
+      unwrappedCreateInfos[i].flags |=
+          VK_PIPELINE_CREATE_RAY_TRACING_SHADER_GROUP_HANDLE_CAPTURE_REPLAY_BIT_KHR;
+  }
 
   // deferred operations are currently not wrapped
   SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateRayTracingPipelinesKHR(
                           Unwrap(device), VK_NULL_HANDLE, Unwrap(pipelineCache), createInfoCount,
-                          UnwrapInfos(m_State, pCreateInfos, createInfoCount), NULL, pPipelines));
+                          unwrappedCreateInfos, NULL, pPipelines));
 
   if(ret == VK_SUCCESS || ret == VK_PIPELINE_COMPILE_REQUIRED)
   {
@@ -1491,25 +1506,24 @@ VkResult WrappedVulkan::vkCreateRayTracingPipelinesKHR(
         {
           CACHE_THREAD_SERIALISER();
 
-          VkRayTracingPipelineCreateInfoKHR modifiedCreateInfo;
-          const VkRayTracingPipelineCreateInfoKHR *createInfo = &pCreateInfos[i];
+          VkRayTracingPipelineCreateInfoKHR modifiedCreateInfo = pCreateInfos[i];
+          modifiedCreateInfo.flags |=
+              VK_PIPELINE_CREATE_RAY_TRACING_SHADER_GROUP_HANDLE_CAPTURE_REPLAY_BIT_KHR;
 
-          if(createInfo->flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
+          if(pCreateInfos[i].flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
           {
             // since we serialise one by one, we need to fixup basePipelineIndex
-            if(createInfo->basePipelineIndex != -1 && createInfo->basePipelineIndex < (int)i)
+            if(pCreateInfos[i].basePipelineIndex != -1 && pCreateInfos[i].basePipelineIndex < (int)i)
             {
-              modifiedCreateInfo = *createInfo;
               modifiedCreateInfo.basePipelineHandle =
                   pPipelines[modifiedCreateInfo.basePipelineIndex];
               modifiedCreateInfo.basePipelineIndex = -1;
-              createInfo = &modifiedCreateInfo;
             }
           }
 
           SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCreateRayTracingPipelinesKHR);
           Serialise_vkCreateRayTracingPipelinesKHR(ser, device, deferredOperation, pipelineCache, 1,
-                                                   createInfo, NULL, &pPipelines[i]);
+                                                   &modifiedCreateInfo, NULL, &pPipelines[i]);
 
           chunk = scope.Get();
         }
