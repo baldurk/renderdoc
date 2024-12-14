@@ -7,7 +7,7 @@
   <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
   <uses-permission android:name="android.permission.INTERNET" />
-
+  
   <!-- Use GL ES 3.2 version -->
   <uses-feature android:glEsVersion="0x00030000" android:required="true" />
 
@@ -15,7 +15,9 @@
     <activity android:name=".Loader" android:label="RenderDoc" android:exported="true" android:screenOrientation="landscape" android:configChanges="orientation|keyboardHidden" android:theme="@android:style/Theme.NoTitleBar">
       <meta-data android:name="android.app.lib_name" android:value="renderdoccmd"/>
     </activity>
-
+    
+    <service android:name=".DummyService" android:exported="false" />
+    
   </application>
 </manifest>
 <!-- END_INCLUDE(manifest) -->

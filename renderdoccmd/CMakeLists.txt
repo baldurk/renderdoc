@@ -224,6 +224,7 @@ if(ANDROID)
 
     # Copy in android package files, replacing the package name with the architecture-specific package name
     configure_file(android/Loader.java ${CMAKE_CURRENT_BINARY_DIR}/src/org/renderdoc/renderdoccmd/Loader.java)
+    configure_file(android/DummyService.java ${CMAKE_CURRENT_BINARY_DIR}/src/org/renderdoc/renderdoccmd/DummyService.java)
     configure_file(android/AndroidManifest.xml ${CMAKE_CURRENT_BINARY_DIR}/AndroidManifest.xml)
     configure_file(android/icon.png ${CMAKE_CURRENT_BINARY_DIR}/res/drawable/icon.png COPYONLY)
 

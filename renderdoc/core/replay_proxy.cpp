@@ -246,6 +246,7 @@ ReplayProxy::ReplayProxy(ReadSerialiser &reader, WriteSerialiser &writer, IRepla
       m_Proxy(proxy),
       m_Remote(NULL),
       m_Replay(NULL),
+      m_PreviewWindow(NULL),
       m_RemoteServer(false)
 {
   m_StructuredFile = new SDFile;

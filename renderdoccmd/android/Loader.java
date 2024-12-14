@@ -1,9 +1,10 @@
 package @RENDERDOC_ANDROID_PACKAGE_NAME@;
-import android.os.Build;
 import android.app.Activity;
-import android.view.WindowManager;
-import android.os.Environment;
+import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
+import android.os.Environment;
+import android.view.WindowManager;
 
 public class Loader extends android.app.NativeActivity
 {
@@ -16,6 +17,11 @@ public class Loader extends android.app.NativeActivity
     protected void onCreate(android.os.Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        Context context = getApplicationContext();
+        if(context != null) {
+            context.startService(new Intent(this, DummyService.class));
+        }
 
         // if we're running on something older than Android M (6.0), return now
         // before requesting permissions as it's not supported
