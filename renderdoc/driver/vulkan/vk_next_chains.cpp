@@ -340,6 +340,10 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkPhysicalDeviceFragmentShadingRateKHR);                                                \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_PROPERTIES_KHR,                 \
               VkPhysicalDeviceFragmentShadingRatePropertiesKHR);                                      \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_IMAGE_COPY_FEATURES,                             \
+              VkPhysicalDeviceHostImageCopyFeatures);                                                 \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_IMAGE_COPY_PROPERTIES,                           \
+              VkPhysicalDeviceHostImageCopyProperties);                                               \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES,                            \
               VkPhysicalDeviceHostQueryResetFeatures);                                                \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES, VkPhysicalDeviceIDProperties);         \
@@ -715,6 +719,12 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_RENDERING_AREA_INFO, VkRenderingAreaInfo);                            \
   COPY_STRUCT(VK_STRUCTURE_TYPE_RENDERING_INPUT_ATTACHMENT_INDEX_INFO,                                \
               VkRenderingInputAttachmentIndexInfo);                                                   \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_HOST_IMAGE_COPY_DEVICE_PERFORMANCE_QUERY,                             \
+              VkHostImageCopyDevicePerformanceQuery);                                                 \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_HOST_IMAGE_LAYOUT_TRANSITION_INFO, VkHostImageLayoutTransitionInfo);  \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_SUBRESOURCE_HOST_MEMCPY_SIZE, VkSubresourceHostMemcpySize);           \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_TO_MEMORY_COPY, VkImageToMemoryCopy);                           \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_MEMORY_TO_IMAGE_COPY, VkMemoryToImageCopy);                           \
   COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO,                             \
                            VkLayerInstanceCreateInfo);                                                \
   COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_LOADER_DEVICE_CREATE_INFO, VkLayerDeviceCreateInfo);     \
@@ -843,6 +853,12 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
                 UnwrapInPlace(out->semaphore));                                                       \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO, VkSemaphoreSubmitInfo,                       \
                 UnwrapInPlace(out->semaphore));                                                       \
+  UNWRAP_STRUCT(VK_STRUCTURE_TYPE_COPY_IMAGE_TO_IMAGE_INFO, VkCopyImageToImageInfo,                   \
+                UnwrapInPlace(out->srcImage), UnwrapInPlace(out->dstImage));                          \
+  UNWRAP_STRUCT(VK_STRUCTURE_TYPE_COPY_IMAGE_TO_MEMORY_INFO, VkCopyImageToMemoryInfo,                 \
+                UnwrapInPlace(out->srcImage));                                                        \
+  UNWRAP_STRUCT(VK_STRUCTURE_TYPE_COPY_MEMORY_TO_IMAGE_INFO, VkCopyMemoryToImageInfo,                 \
+                UnwrapInPlace(out->dstImage));                                                        \
   UNWRAP_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_ACQUIRE_NEXT_IMAGE_INFO_KHR,                           \
                              VkAcquireNextImageInfoKHR, UnwrapInPlace(out->swapchain),                \
                              UnwrapInPlace(out->semaphore), UnwrapInPlace(out->fence));               \
@@ -930,9 +946,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_COOPERATIVE_MATRIX_PROPERTIES_NV:                                      \
   case VK_STRUCTURE_TYPE_COOPERATIVE_VECTOR_PROPERTIES_NV:                                      \
   case VK_STRUCTURE_TYPE_COPY_COMMAND_TRANSFORM_INFO_QCOM:                                      \
-  case VK_STRUCTURE_TYPE_COPY_IMAGE_TO_IMAGE_INFO:                                              \
-  case VK_STRUCTURE_TYPE_COPY_IMAGE_TO_MEMORY_INFO:                                             \
-  case VK_STRUCTURE_TYPE_COPY_MEMORY_TO_IMAGE_INFO:                                             \
   case VK_STRUCTURE_TYPE_COPY_MEMORY_TO_MICROMAP_INFO_EXT:                                      \
   case VK_STRUCTURE_TYPE_COPY_MICROMAP_INFO_EXT:                                                \
   case VK_STRUCTURE_TYPE_COPY_MICROMAP_TO_MEMORY_INFO_EXT:                                      \
@@ -1009,15 +1022,12 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_GRAPHICS_SHADER_GROUP_CREATE_INFO_NV:                                  \
   case VK_STRUCTURE_TYPE_HDR_VIVID_DYNAMIC_METADATA_HUAWEI:                                     \
   case VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT:                                      \
-  case VK_STRUCTURE_TYPE_HOST_IMAGE_COPY_DEVICE_PERFORMANCE_QUERY:                              \
-  case VK_STRUCTURE_TYPE_HOST_IMAGE_LAYOUT_TRANSITION_INFO:                                     \
   case VK_STRUCTURE_TYPE_IMAGE_ALIGNMENT_CONTROL_CREATE_INFO_MESA:                              \
   case VK_STRUCTURE_TYPE_IMAGE_CONSTRAINTS_INFO_FUCHSIA:                                        \
   case VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT:                    \
   case VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT:                        \
   case VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT:                              \
   case VK_STRUCTURE_TYPE_IMAGE_FORMAT_CONSTRAINTS_INFO_FUCHSIA:                                 \
-  case VK_STRUCTURE_TYPE_IMAGE_TO_MEMORY_COPY:                                                  \
   case VK_STRUCTURE_TYPE_IMAGE_VIEW_ADDRESS_PROPERTIES_NVX:                                     \
   case VK_STRUCTURE_TYPE_IMAGE_VIEW_HANDLE_INFO_NVX:                                            \
   case VK_STRUCTURE_TYPE_IMAGE_VIEW_SAMPLE_WEIGHT_CREATE_INFO_QCOM:                             \
@@ -1056,7 +1066,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_MEMORY_MAP_INFO:                                                       \
   case VK_STRUCTURE_TYPE_MEMORY_MAP_PLACED_INFO_EXT:                                            \
   case VK_STRUCTURE_TYPE_MEMORY_METAL_HANDLE_PROPERTIES_EXT:                                    \
-  case VK_STRUCTURE_TYPE_MEMORY_TO_IMAGE_COPY:                                                  \
   case VK_STRUCTURE_TYPE_MEMORY_UNMAP_INFO:                                                     \
   case VK_STRUCTURE_TYPE_MEMORY_ZIRCON_HANDLE_PROPERTIES_FUCHSIA:                               \
   case VK_STRUCTURE_TYPE_MICROMAP_BUILD_INFO_EXT:                                               \
@@ -1138,8 +1147,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_ENUMS_PROPERTIES_NV:             \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAME_BOUNDARY_FEATURES_EXT:                           \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HDR_VIVID_FEATURES_HUAWEI:                             \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_IMAGE_COPY_FEATURES:                              \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_IMAGE_COPY_PROPERTIES:                            \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_ALIGNMENT_CONTROL_FEATURES_MESA:                 \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_ALIGNMENT_CONTROL_PROPERTIES_MESA:               \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_DRM_FORMAT_MODIFIER_INFO_EXT:                    \
@@ -1318,7 +1325,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_SHADER_MODULE_IDENTIFIER_EXT:                                          \
   case VK_STRUCTURE_TYPE_STREAM_DESCRIPTOR_SURFACE_CREATE_INFO_GGP:                             \
   case VK_STRUCTURE_TYPE_SUBPASS_SHADING_PIPELINE_CREATE_INFO_HUAWEI:                           \
-  case VK_STRUCTURE_TYPE_SUBRESOURCE_HOST_MEMCPY_SIZE:                                          \
   case VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_PRESENT_BARRIER_NV:                               \
   case VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_PRESENT_ID_2_KHR:                                 \
   case VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_PRESENT_WAIT_2_KHR:                               \
@@ -2053,8 +2059,10 @@ size_t GetNextPatchSize(const void *pNext)
         }
 
       case VK_STRUCTURE_TYPE_MAX_ENUM:
+      {
         RDCERR("Invalid value %u in pNext chain", next->sType);
         break;
+      }
     }
 
     next = next->pNext;

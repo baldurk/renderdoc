@@ -487,6 +487,7 @@
   DeclExt(EXT_sample_locations);                       \
   DeclExt(EXT_discard_rectangles);                     \
   DeclExt(EXT_calibrated_timestamps);                  \
+  DeclExt(EXT_host_image_copy);                        \
   DeclExt(EXT_host_query_reset);                       \
   DeclExt(EXT_buffer_device_address);                  \
   DeclExt(EXT_full_screen_exclusive);                  \
@@ -628,6 +629,7 @@
   CheckExt(EXT_sample_locations, VKXX);                       \
   CheckExt(EXT_discard_rectangles, VKXX);                     \
   CheckExt(EXT_calibrated_timestamps, VKXX);                  \
+  CheckExt(EXT_host_image_copy, VKXX);                        \
   CheckExt(EXT_host_query_reset, VK12);                       \
   CheckExt(EXT_buffer_device_address, VKXX);                  \
   CheckExt(EXT_hdr_metadata, VKXX);                           \
@@ -889,6 +891,10 @@
   HookInitExtension(EXT_sample_locations, CmdSetSampleLocationsEXT);                                 \
   HookInitExtension(EXT_discard_rectangles, CmdSetDiscardRectangleEXT);                              \
   HookInitExtension(EXT_calibrated_timestamps, GetCalibratedTimestampsEXT);                          \
+  HookInitExtension(EXT_host_image_copy, CopyImageToImageEXT);                                       \
+  HookInitExtension(EXT_host_image_copy, CopyImageToMemoryEXT);                                      \
+  HookInitExtension(EXT_host_image_copy, CopyMemoryToImageEXT);                                      \
+  HookInitExtension(EXT_host_image_copy, TransitionImageLayoutEXT);                                  \
   HookInitPromotedExtension(EXT_host_query_reset, ResetQueryPool, EXT);                              \
   HookInitExtension(EXT_buffer_device_address, GetBufferDeviceAddressEXT);                           \
   HookInitExtension(EXT_hdr_metadata, SetHdrMetadataEXT);                                            \
@@ -1063,7 +1069,8 @@
   HookInitExtension(KHR_maintenance5, GetDeviceImageSubresourceLayoutKHR);                           \
   HookInitExtension(KHR_maintenance5, GetImageSubresourceLayout2KHR);                                \
   HookInitExtension(KHR_maintenance5, GetRenderingAreaGranularityKHR);                               \
-  HookInitExtension(EXT_image_compression_control, GetImageSubresourceLayout2EXT);                   \
+  HookInitExtension(EXT_image_compression_control || EXT_host_image_copy,                            \
+                    GetImageSubresourceLayout2EXT);                                                  \
   HookInitExtension(EXT_descriptor_buffer, CmdBindDescriptorBufferEmbeddedSamplersEXT);              \
   HookInitExtension(EXT_descriptor_buffer, CmdBindDescriptorBuffersEXT);                             \
   HookInitExtension(EXT_descriptor_buffer, CmdSetDescriptorBufferOffsetsEXT);                        \
@@ -1644,6 +1651,14 @@
   HookDefine5(VkResult, vkGetCalibratedTimestampsEXT, VkDevice, device, uint32_t, timestampCount,    \
               const VkCalibratedTimestampInfoKHR *, pTimestampInfos, uint64_t *, pTimestamps,        \
               uint64_t *, pMaxDeviation);                                                            \
+  HookDefine2(VkResult, vkCopyImageToImageEXT, VkDevice, device, const VkCopyImageToImageInfo *,     \
+              pCopyImageToImageInfo);                                                                \
+  HookDefine2(VkResult, vkCopyImageToMemoryEXT, VkDevice, device, const VkCopyImageToMemoryInfo *,   \
+              pCopyImageToMemoryInfo);                                                               \
+  HookDefine2(VkResult, vkCopyMemoryToImageEXT, VkDevice, device, const VkCopyMemoryToImageInfo *,   \
+              pCopyMemoryToImageInfo);                                                               \
+  HookDefine3(VkResult, vkTransitionImageLayoutEXT, VkDevice, device, uint32_t, transitionCount,     \
+              const VkHostImageLayoutTransitionInfo *, pTransitions);                                \
   HookDefine4(void, vkResetQueryPool, VkDevice, device, VkQueryPool, queryPool, uint32_t,            \
               firstQuery, uint32_t, queryCount);                                                     \
   HookDefine2(VkDeviceAddress, vkGetBufferDeviceAddressEXT, VkDevice, device,                        \

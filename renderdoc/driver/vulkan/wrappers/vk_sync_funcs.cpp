@@ -1505,6 +1505,118 @@ void WrappedVulkan::vkCmdWaitEvents2(VkCommandBuffer commandBuffer, uint32_t eve
   }
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkTransitionImageLayoutEXT(
+    SerialiserType &ser, VkDevice device, uint32_t transitionCount,
+    const VkHostImageLayoutTransitionInfo *pTransitions)
+{
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT(transitionCount);
+  SERIALISE_ELEMENT_ARRAY(pTransitions, transitionCount);
+  if(transitionCount > 0)
+    ser.Important();
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  rdcarray<VkHostImageLayoutTransitionInfo> imgBarriers;
+
+  if(IsReplayingAndReading())
+  {
+    for(uint32_t i = 0; i < transitionCount; i++)
+    {
+      if(pTransitions[i].image != VK_NULL_HANDLE)
+      {
+        VkImage image = pTransitions[i].image;
+
+        imgBarriers.push_back(pTransitions[i]);
+        imgBarriers.back().image = Unwrap(image);
+
+        SanitiseOldImageLayout(imgBarriers.back().oldLayout);
+        SanitiseReplayImageLayout(imgBarriers.back().newLayout);
+
+        if(IsActiveReplaying(m_State) &&
+           m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest)
+        {
+          if(pTransitions[i].oldLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+          {
+            VkImageLayout newLayout = pTransitions[i].newLayout;
+            SanitiseNewImageLayout(newLayout);
+
+            GetDebugManager()->FillWithDiscardPatternOnHost(
+                device, DiscardType::UndefinedTransition, image, newLayout,
+                pTransitions[i].subresourceRange, {{0, 0}, {65536, 65536}});
+          }
+        }
+      }
+    }
+
+    ObjDisp(device)->TransitionImageLayoutEXT(Unwrap(device), (uint32_t)imgBarriers.size(),
+                                              imgBarriers.data());
+  }
+
+  return true;
+}
+
+VkResult WrappedVulkan::vkTransitionImageLayoutEXT(VkDevice device, uint32_t transitionCount,
+                                                   const VkHostImageLayoutTransitionInfo *pTransitions)
+{
+  SCOPED_DBG_SINK();
+
+  VkResult ret;
+  {
+    byte *memory = GetTempMemory(sizeof(VkHostImageLayoutTransitionInfo) * transitionCount);
+    VkHostImageLayoutTransitionInfo *im = (VkHostImageLayoutTransitionInfo *)memory;
+
+    for(uint32_t i = 0; i < transitionCount; i++)
+    {
+      im[i] = pTransitions[i];
+      im[i].image = Unwrap(im[i].image);
+    }
+
+    SERIALISE_TIME_CALL(
+        ret = ObjDisp(device)->TransitionImageLayoutEXT(Unwrap(device), transitionCount, im));
+  }
+
+  if(IsActiveCapturing(m_State))
+  {
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkTransitionImageLayout);
+    Serialise_vkTransitionImageLayoutEXT(ser, device, transitionCount, pTransitions);
+
+    m_FrameCaptureRecord->AddChunk(scope.Get());
+
+    for(uint32_t i = 0; i < transitionCount; ++i)
+    {
+      const VkHostImageLayoutTransitionInfo &transition = pTransitions[i];
+
+      // Since this transition is done on the host, record a barrier for this image and immediately
+      // apply it.
+
+      // Convert the transition information to VkImageMemoryBarrier to use the existing helpers.
+      VkImageMemoryBarrier barrier;
+      barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+      // Access masks are unused by RecordBarriers() and UpdateImageStates().
+      barrier.srcAccessMask = 0;
+      barrier.dstAccessMask = 0;
+      barrier.oldLayout = transition.oldLayout;
+      barrier.newLayout = transition.newLayout;
+      barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      barrier.image = transition.image;
+      barrier.subresourceRange = transition.subresourceRange;
+
+      rdcflatmap<ResourceId, ImageState> imageStates;
+      GetResourceManager()->RecordBarriers(imageStates, VK_QUEUE_FAMILY_IGNORED, 1, &barrier);
+      UpdateImageStates(imageStates);
+    }
+  }
+
+  return ret;
+}
+
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 
 VkResult WrappedVulkan::vkImportSemaphoreWin32HandleKHR(
@@ -1602,3 +1714,7 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdResetEvent2, VkCommandBuffer commandB
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdWaitEvents2, VkCommandBuffer commandBuffer,
                                 uint32_t eventCount, const VkEvent *pEvents,
                                 const VkDependencyInfo *pDependencyInfos);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkTransitionImageLayoutEXT, VkDevice device,
+                                uint32_t transitionCount,
+                                const VkHostImageLayoutTransitionInfo *pTransitions);

@@ -2686,6 +2686,18 @@ public:
                                         const VkCalibratedTimestampInfoKHR *pTimestampInfos,
                                         uint64_t *pTimestamps, uint64_t *pMaxDeviation);
 
+  // VK_EXT_host_image_copy
+
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCopyImageToImageEXT, VkDevice device,
+                                const VkCopyImageToImageInfo *pCopyImageToImageInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCopyImageToMemoryEXT, VkDevice device,
+                                const VkCopyImageToMemoryInfo *pCopyImageToMemoryInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCopyMemoryToImageEXT, VkDevice device,
+                                const VkCopyMemoryToImageInfo *pCopyMemoryToImageInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkTransitionImageLayoutEXT, VkDevice device,
+                                uint32_t transitionCount,
+                                const VkHostImageLayoutTransitionInfo *pTransitions);
+
   // VK_EXT_host_query_reset
 
   IMPLEMENT_FUNCTION_SERIALISED(void, vkResetQueryPool, VkDevice device, VkQueryPool queryPool,
@@ -3206,7 +3218,7 @@ public:
                                         const VkRenderingAreaInfo *pRenderingAreaInfo,
                                         VkExtent2D *pGranularity);
 
-  // VK_EXT_image_compression_control
+  // VK_EXT_image_compression_control, VK_EXT_host_image_copy
   void vkGetImageSubresourceLayout2EXT(VkDevice device, VkImage image,
                                        const VkImageSubresource2 *pSubresource,
                                        VkSubresourceLayout2 *pLayout);

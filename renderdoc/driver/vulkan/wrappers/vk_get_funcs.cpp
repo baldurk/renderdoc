@@ -30,13 +30,15 @@ static char fakeRenderDocUUID[VK_UUID_SIZE] = {};
 
 void MakeFakeUUID()
 {
-  // assign a fake UUID, so that we get SPIR-V instead of cached pipeline data.
-  // the start is "rdoc", and the end is the time that this call was first made
+  // Assign a fake UUID, so that we get SPIR-V instead of cached shader data, etc.
   if(fakeRenderDocUUID[0] == 0)
   {
-    // 0123456789ABCDEF
-    // rdocyymmddHHMMSS
-    // we pass size+1 so that there's room for a null terminator (the UUID doesn't
+    // The start is "rdoc", and the end is the time that this call was first made
+    //
+    //     0123456789ABCDEF
+    //     rdocyymmddHHMMSS
+    //
+    // We pass size+1 so that there's room for a null terminator (the UUID doesn't
     // need a null terminator as it's a fixed size non-string array)
     rdcstr uuid = StringFormat::sntimef(Timing::GetUTCTime(), "rdoc%y%m%d%H%M%S");
     RDCASSERT(uuid.size() == sizeof(fakeRenderDocUUID));
@@ -869,16 +871,29 @@ void WrappedVulkan::vkGetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevi
 
   ClampPhysDevAPIVersion(&pProperties->properties, physicalDevice);
 
-  // internal RenderDoc UUID for shader object binary
-  VkPhysicalDeviceShaderObjectPropertiesEXT *shadObj =
+  // Internal RenderDoc UUID for:
+  //
+  // * Shader object binary, so we always get SPIR-V
+  // * Optimal image layout, so we never get VK_HOST_IMAGE_COPY_MEMCPY_BIT
+  VkPhysicalDeviceShaderObjectPropertiesEXT *shaderObject =
       (VkPhysicalDeviceShaderObjectPropertiesEXT *)FindNextStruct(
           pProperties, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_PROPERTIES_EXT);
+  VkPhysicalDeviceHostImageCopyProperties *hostImageCopy =
+      (VkPhysicalDeviceHostImageCopyProperties *)FindNextStruct(
+          pProperties, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_IMAGE_COPY_PROPERTIES);
 
-  if(shadObj)
+  if(shaderObject || hostImageCopy)
   {
     MakeFakeUUID();
+  }
 
-    memcpy(shadObj->shaderBinaryUUID, fakeRenderDocUUID, VK_UUID_SIZE);
+  if(shaderObject)
+  {
+    memcpy(shaderObject->shaderBinaryUUID, fakeRenderDocUUID, VK_UUID_SIZE);
+  }
+  if(hostImageCopy)
+  {
+    memcpy(hostImageCopy->optimalTilingLayoutUUID, fakeRenderDocUUID, VK_UUID_SIZE);
   }
 
   VkPhysicalDeviceDescriptorBufferPropertiesEXT *descBufferProperties =
@@ -1364,6 +1379,14 @@ void WrappedVulkan::vkGetImageSubresourceLayout2KHR(VkDevice device, VkImage ima
 {
   ObjDisp(device)->GetImageSubresourceLayout2KHR(Unwrap(device), Unwrap(image), pSubresource,
                                                  pLayout);
+
+  // RenderDoc removes calls with VK_HOST_IMAGE_COPY_MEMCPY_BIT flag, so the
+  // VkSubresourceHostMemcpySize struct chained to VkSubresourceLayout2 is overriden to
+  // provide a fixed size.
+  VkSubresourceHostMemcpySize *memcpySize = (VkSubresourceHostMemcpySize *)FindNextStruct(
+      pLayout, VK_STRUCTURE_TYPE_SUBRESOURCE_HOST_MEMCPY_SIZE);
+  if(memcpySize)
+    memcpySize->size = 64;
 }
 
 void WrappedVulkan::vkGetRenderingAreaGranularityKHR(VkDevice device,
@@ -1379,6 +1402,14 @@ void WrappedVulkan::vkGetImageSubresourceLayout2EXT(VkDevice device, VkImage ima
 {
   ObjDisp(device)->GetImageSubresourceLayout2EXT(Unwrap(device), Unwrap(image), pSubresource,
                                                  pLayout);
+
+  // RenderDoc removes calls with VK_HOST_IMAGE_COPY_MEMCPY_BIT flag, so the
+  // VkSubresourceHostMemcpySize struct chained to VkSubresourceLayout2 is overriden to
+  // provide a fixed size.
+  VkSubresourceHostMemcpySize *memcpySize = (VkSubresourceHostMemcpySize *)FindNextStruct(
+      pLayout, VK_STRUCTURE_TYPE_SUBRESOURCE_HOST_MEMCPY_SIZE);
+  if(memcpySize)
+    memcpySize->size = 64;
 }
 
 void WrappedVulkan::vkGetDescriptorSetLayoutSizeEXT(VkDevice device, VkDescriptorSetLayout layout,

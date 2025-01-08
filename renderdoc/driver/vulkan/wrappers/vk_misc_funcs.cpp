@@ -1902,6 +1902,292 @@ VkResult WrappedVulkan::vkGetQueryPoolResults(VkDevice device, VkQueryPool query
 }
 
 template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCopyImageToImageEXT(SerialiserType &ser, VkDevice device,
+                                                    const VkCopyImageToImageInfo *pCopyImageToImageInfo)
+{
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT_LOCAL(CopyImageToImageInfo, *pCopyImageToImageInfo).Important();
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    CopyImageToImageInfo.srcImage = Unwrap(CopyImageToImageInfo.srcImage);
+    CopyImageToImageInfo.dstImage = Unwrap(CopyImageToImageInfo.dstImage);
+
+    ObjDisp(device)->CopyImageToImageEXT(Unwrap(device), &CopyImageToImageInfo);
+
+    if(!IsActiveReplaying(m_State))
+    {
+      AddEvent();
+
+      ResourceId srcid = GetResourceManager()->GetOriginalID(GetResID(CopyImageToImageInfo.srcImage));
+      ResourceId dstid = GetResourceManager()->GetOriginalID(GetResID(CopyImageToImageInfo.dstImage));
+
+      ActionDescription action;
+      action.flags |= ActionFlags::Copy;
+
+      action.copySource = srcid;
+      action.copySourceSubresource = Subresource();
+      action.copyDestination = dstid;
+      action.copyDestinationSubresource = Subresource();
+      if(CopyImageToImageInfo.regionCount > 0)
+      {
+        action.copySourceSubresource =
+            Subresource(CopyImageToImageInfo.pRegions[0].srcSubresource.mipLevel,
+                        CopyImageToImageInfo.pRegions[0].srcSubresource.baseArrayLayer);
+        action.copyDestinationSubresource =
+            Subresource(CopyImageToImageInfo.pRegions[0].dstSubresource.mipLevel,
+                        CopyImageToImageInfo.pRegions[0].dstSubresource.baseArrayLayer);
+      }
+
+      AddAction(action);
+
+      VulkanActionTreeNode &actionNode = GetActionStack().back()->children.back();
+
+      if(CopyImageToImageInfo.srcImage == CopyImageToImageInfo.dstImage)
+      {
+        actionNode.resourceUsage.push_back(
+            make_rdcpair(GetResID(CopyImageToImageInfo.srcImage),
+                         EventUsage(actionNode.action.eventId, ResourceUsage::Copy)));
+      }
+      else
+      {
+        actionNode.resourceUsage.push_back(
+            make_rdcpair(GetResID(CopyImageToImageInfo.srcImage),
+                         EventUsage(actionNode.action.eventId, ResourceUsage::CopySrc)));
+        actionNode.resourceUsage.push_back(
+            make_rdcpair(GetResID(CopyImageToImageInfo.dstImage),
+                         EventUsage(actionNode.action.eventId, ResourceUsage::CopyDst)));
+      }
+    }
+  }
+
+  return true;
+}
+
+VkResult WrappedVulkan::vkCopyImageToImageEXT(VkDevice device,
+                                              const VkCopyImageToImageInfo *pCopyImageToImageInfo)
+{
+  SCOPED_DBG_SINK();
+
+  byte *tempMem = GetTempMemory(GetNextPatchSize(pCopyImageToImageInfo));
+  VkCopyImageToImageInfo *unwrappedInfo =
+      UnwrapStructAndChain(m_State, tempMem, pCopyImageToImageInfo);
+
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CopyImageToImageEXT(Unwrap(device), unwrappedInfo));
+
+  {
+    SCOPED_READLOCK(m_CapTransitionLock);
+
+    if(IsActiveCapturing(m_State))
+    {
+      CACHE_THREAD_SERIALISER();
+
+      ser.SetActionChunk();
+      SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCopyImageToImage);
+      Serialise_vkCopyImageToImageEXT(ser, device, pCopyImageToImageInfo);
+
+      m_FrameCaptureRecord->AddChunk(scope.Get());
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(pCopyImageToImageInfo->srcImage),
+                                                        eFrameRef_Read);
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(pCopyImageToImageInfo->dstImage),
+                                                        eFrameRef_PartialWrite);
+    }
+  }
+
+  return ret;
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCopyImageToMemoryEXT(
+    SerialiserType &ser, VkDevice device, const VkCopyImageToMemoryInfo *pCopyImageToMemoryInfo)
+{
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT_LOCAL(CopyImageToMemoryInfo, *pCopyImageToMemoryInfo).Important();
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    VkImage srcImage = CopyImageToMemoryInfo.srcImage;
+    CopyImageToMemoryInfo.srcImage = Unwrap(srcImage);
+
+    ObjDisp(device)->CopyImageToMemoryEXT(Unwrap(device), &CopyImageToMemoryInfo);
+
+    if(!IsActiveReplaying(m_State))
+    {
+      AddEvent();
+
+      ResourceId srcid = GetResourceManager()->GetOriginalID(GetResID(srcImage));
+
+      ActionDescription action;
+      action.flags |= ActionFlags::Copy;
+
+      action.copySource = srcid;
+      action.copySourceSubresource = Subresource();
+      if(CopyImageToMemoryInfo.regionCount > 0)
+      {
+        action.copySourceSubresource =
+            Subresource(CopyImageToMemoryInfo.pRegions[0].imageSubresource.mipLevel,
+                        CopyImageToMemoryInfo.pRegions[0].imageSubresource.baseArrayLayer);
+      }
+
+      AddAction(action);
+
+      VulkanActionTreeNode &actionNode = GetActionStack().back()->children.back();
+
+      actionNode.resourceUsage.push_back(make_rdcpair(
+          GetResID(srcImage), EventUsage(actionNode.action.eventId, ResourceUsage::CopySrc)));
+    }
+  }
+
+  return true;
+}
+
+VkResult WrappedVulkan::vkCopyImageToMemoryEXT(VkDevice device,
+                                               const VkCopyImageToMemoryInfo *pCopyImageToMemoryInfo)
+{
+  SCOPED_DBG_SINK();
+
+  // Calls with VK_HOST_IMAGE_COPY_MEMCPY_BIT are not supported, and are not expected from typical
+  // applications. See comment in vkCopyMemoryToImageEXT() for more details.
+  if((pCopyImageToMemoryInfo->flags & VK_HOST_IMAGE_COPY_MEMCPY_BIT) != 0)
+  {
+    return VK_SUCCESS;
+  }
+
+  byte *tempMem = GetTempMemory(GetNextPatchSize(pCopyImageToMemoryInfo));
+  VkCopyImageToMemoryInfo *unwrappedInfo =
+      UnwrapStructAndChain(m_State, tempMem, pCopyImageToMemoryInfo);
+
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CopyImageToMemoryEXT(Unwrap(device), unwrappedInfo));
+
+  {
+    SCOPED_READLOCK(m_CapTransitionLock);
+
+    if(IsActiveCapturing(m_State))
+    {
+      CACHE_THREAD_SERIALISER();
+
+      ser.SetActionChunk();
+      SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCopyImageToMemory);
+      Serialise_vkCopyImageToMemoryEXT(ser, device, pCopyImageToMemoryInfo);
+
+      m_FrameCaptureRecord->AddChunk(scope.Get());
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(pCopyImageToMemoryInfo->srcImage),
+                                                        eFrameRef_Read);
+    }
+  }
+
+  return ret;
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCopyMemoryToImageEXT(
+    SerialiserType &ser, VkDevice device, const VkCopyMemoryToImageInfo *pCopyMemoryToImageInfo)
+{
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT_LOCAL(CopyMemoryToImageInfo, *pCopyMemoryToImageInfo).Important();
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    VkImage dstImage = CopyMemoryToImageInfo.dstImage;
+    CopyMemoryToImageInfo.dstImage = Unwrap(dstImage);
+
+    ObjDisp(device)->CopyMemoryToImageEXT(Unwrap(device), &CopyMemoryToImageInfo);
+
+    if(!IsActiveReplaying(m_State))
+    {
+      AddEvent();
+
+      ResourceId dstid = GetResourceManager()->GetOriginalID(GetResID(dstImage));
+
+      ActionDescription action;
+      action.flags |= ActionFlags::Copy;
+
+      action.copySource = dstid;
+      action.copySourceSubresource = Subresource();
+      if(CopyMemoryToImageInfo.regionCount > 0)
+      {
+        action.copySourceSubresource =
+            Subresource(CopyMemoryToImageInfo.pRegions[0].imageSubresource.mipLevel,
+                        CopyMemoryToImageInfo.pRegions[0].imageSubresource.baseArrayLayer);
+      }
+
+      AddAction(action);
+
+      VulkanActionTreeNode &actionNode = GetActionStack().back()->children.back();
+
+      actionNode.resourceUsage.push_back(make_rdcpair(
+          GetResID(dstImage), EventUsage(actionNode.action.eventId, ResourceUsage::CopyDst)));
+    }
+  }
+
+  return true;
+}
+
+VkResult WrappedVulkan::vkCopyMemoryToImageEXT(VkDevice device,
+                                               const VkCopyMemoryToImageInfo *pCopyMemoryToImageInfo)
+{
+  SCOPED_DBG_SINK();
+
+  // Calls with VK_HOST_IMAGE_COPY_MEMCPY_BIT are not supported, and are not expected from typical
+  // applications. RenderDoc sets optimalTilingLayoutUUID to a fake UUID, meaning the applications
+  // cannot have any preconceived notion of what the preswizzled image data should look like and
+  // must provide linear data.
+  //
+  // Technically dropping these calls is a spec violation, since an application may read back
+  // preswizzled data with memcpy and provide that again to another VkImage in the same run. Outside
+  // of tests, this usage is highly unlikely. On the other hand, supporting
+  // VK_HOST_IMAGE_COPY_MEMCPY_BIT complicates RenderDoc as the size of preswizzled memory is not
+  // obviously known and requires a driver call using VkSubresourceHostMemcpySize at inconvenient
+  // times. Additionally, it reduces the portability of RenderDoc captures.
+  //
+  // Given the little benefit from this complication, it's decided not to support this bit.
+  if((pCopyMemoryToImageInfo->flags & VK_HOST_IMAGE_COPY_MEMCPY_BIT) != 0)
+  {
+    return VK_SUCCESS;
+  }
+
+  byte *tempMem = GetTempMemory(GetNextPatchSize(pCopyMemoryToImageInfo));
+  VkCopyMemoryToImageInfo *unwrappedInfo =
+      UnwrapStructAndChain(m_State, tempMem, pCopyMemoryToImageInfo);
+
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CopyMemoryToImageEXT(Unwrap(device), unwrappedInfo));
+
+  {
+    SCOPED_READLOCK(m_CapTransitionLock);
+
+    if(IsActiveCapturing(m_State))
+    {
+      CACHE_THREAD_SERIALISER();
+
+      ser.SetActionChunk();
+      SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCopyMemoryToImage);
+      Serialise_vkCopyMemoryToImageEXT(ser, device, pCopyMemoryToImageInfo);
+
+      m_FrameCaptureRecord->AddChunk(scope.Get());
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(pCopyMemoryToImageInfo->dstImage),
+                                                        eFrameRef_PartialWrite);
+    }
+  }
+
+  return ret;
+}
+
+template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkResetQueryPool(SerialiserType &ser, VkDevice device,
                                                VkQueryPool queryPool, uint32_t firstQuery,
                                                uint32_t queryCount)
@@ -2838,6 +3124,15 @@ INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateSamplerYcbcrConversion, VkDevi
                                 const VkSamplerYcbcrConversionCreateInfo *pCreateInfo,
                                 const VkAllocationCallbacks *,
                                 VkSamplerYcbcrConversion *pYcbcrConversion);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCopyImageToImageEXT, VkDevice device,
+                                const VkCopyImageToImageInfo *pCopyImageToImageInfo);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCopyImageToMemoryEXT, VkDevice device,
+                                const VkCopyImageToMemoryInfo *pCopyImageToMemoryInfo);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCopyMemoryToImageEXT, VkDevice device,
+                                const VkCopyMemoryToImageInfo *pCopyMemoryToImageInfo);
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkResetQueryPool, VkDevice device, VkQueryPool queryPool,
                                 uint32_t firstQuery, uint32_t queryCount);

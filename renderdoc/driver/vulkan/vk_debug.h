@@ -79,6 +79,9 @@ public:
   void FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType type, VkImage image,
                               VkImageLayout curLayout, VkImageSubresourceRange discardRange,
                               VkRect2D discardRect);
+  void FillWithDiscardPatternOnHost(VkDevice device, DiscardType type, VkImage image,
+                                    VkImageLayout curLayout, VkImageSubresourceRange discardRange,
+                                    VkRect2D discardRect);
 
   void InitReadbackBuffer(VkDeviceSize sz);
   byte *GetReadbackPtr() { return m_ReadbackPtr; }

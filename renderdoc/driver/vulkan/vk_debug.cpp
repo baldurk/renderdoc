@@ -403,6 +403,85 @@ static void create(WrappedVulkan *driver, const char *objName, const int line, V
     RDCERR("Failed creating object %s at line %i, vkr was %s", objName, line, ToStr(vkr).c_str());
 }
 
+// Assuming a buffer is set up with the discard pattern, the image is divided and copy regions are
+// prepared for uploading data from the buffer to the image, filling it with the discard pattern.
+static void GetDiscardPatternCopyRegions(const VulkanCreationInfo::Image &imInfo,
+                                         VkImageAspectFlags aspectFlags,
+                                         VkImageSubresourceRange &discardRange, VkRect2D &discardRect,
+                                         uint32_t patternBatchWidth, uint32_t patternBatchHeight,
+                                         rdcarray<VkBufferImageCopy> &mainCopies,
+                                         rdcarray<VkBufferImageCopy> &stencilCopies)
+{
+  // copy each slice/mip individually
+  for(uint32_t a = 0; a < imInfo.arrayLayers; a++)
+  {
+    if(a < discardRange.baseArrayLayer || a >= discardRange.baseArrayLayer + discardRange.layerCount)
+      continue;
+
+    VkExtent3D extent = imInfo.extent;
+    extent.width = RDCMIN(extent.width, discardRect.offset.x + discardRect.extent.width);
+    extent.height = RDCMIN(extent.height, discardRect.offset.y + discardRect.extent.height);
+
+    for(uint32_t m = 0; m < imInfo.mipLevels; m++)
+    {
+      if(m >= discardRange.baseMipLevel && m < discardRange.baseMipLevel + discardRange.levelCount)
+      {
+        for(uint32_t z = 0; z < extent.depth; z++)
+        {
+          for(uint32_t y = discardRect.offset.y; y < extent.height; y += patternBatchHeight)
+          {
+            for(uint32_t x = discardRect.offset.x; x < extent.width; x += patternBatchWidth)
+            {
+              VkBufferImageCopy region = {
+                  0,
+                  0,
+                  0,
+                  {aspectFlags, m, a, 1},
+                  {
+                      (int)x,
+                      (int)y,
+                      (int)z,
+                  },
+              };
+
+              region.imageExtent.width = RDCMIN(patternBatchWidth, extent.width - x);
+              region.imageExtent.height = RDCMIN(patternBatchHeight, extent.height - y);
+              region.imageExtent.depth = 1;
+
+              region.bufferRowLength = patternBatchWidth;
+
+              // for depth/stencil copies, write depth first
+              if(aspectFlags == (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT))
+                region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+              if(aspectFlags != VK_IMAGE_ASPECT_STENCIL_BIT)
+                mainCopies.push_back(region);
+
+              if(aspectFlags & VK_IMAGE_ASPECT_STENCIL_BIT)
+              {
+                uint32_t depthStride = (imInfo.format == VK_FORMAT_D16_UNORM_S8_UINT ? 2 : 4);
+                VkDeviceSize depthOffset = patternBatchWidth * patternBatchHeight * depthStride;
+
+                // if it's a depth/stencil format, write stencil separately
+                region.bufferOffset = depthOffset;
+                region.bufferRowLength = patternBatchWidth;
+                region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+
+                stencilCopies.push_back(region);
+              }
+            }
+          }
+        }
+      }
+
+      // update the extent for the next mip
+      extent.width = RDCMAX(extent.width >> 1, 1U);
+      extent.height = RDCMAX(extent.height >> 1, 1U);
+      extent.depth = RDCMAX(extent.depth >> 1, 1U);
+    }
+  }
+}
+
 // utility macro that lets us check for VkResult failures inside the utility helpers while
 // preserving context from outside
 #define CREATE_OBJECT(obj, ...) create(driver, #obj, __LINE__, &obj, __VA_ARGS__)
@@ -2517,77 +2596,8 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
   }
 
   rdcarray<VkBufferImageCopy> mainCopies, stencilCopies;
-
-  VkExtent3D extent;
-
-  // copy each slice/mip individually
-  for(uint32_t a = 0; a < imInfo.arrayLayers; a++)
-  {
-    if(a < discardRange.baseArrayLayer || a >= discardRange.baseArrayLayer + discardRange.layerCount)
-      continue;
-
-    extent = imInfo.extent;
-    extent.width = RDCMIN(extent.width, discardRect.offset.x + discardRect.extent.width);
-    extent.height = RDCMIN(extent.height, discardRect.offset.y + discardRect.extent.height);
-
-    for(uint32_t m = 0; m < imInfo.mipLevels; m++)
-    {
-      if(m >= discardRange.baseMipLevel && m < discardRange.baseMipLevel + discardRange.levelCount)
-      {
-        for(uint32_t z = 0; z < extent.depth; z++)
-        {
-          for(uint32_t y = discardRect.offset.y; y < extent.height; y += PatternBatchHeight)
-          {
-            for(uint32_t x = discardRect.offset.x; x < extent.width; x += PatternBatchWidth)
-            {
-              VkBufferImageCopy region = {
-                  0,
-                  0,
-                  0,
-                  {aspectFlags, m, a, 1},
-                  {
-                      (int)x,
-                      (int)y,
-                      (int)z,
-                  },
-              };
-
-              region.imageExtent.width = RDCMIN(PatternBatchWidth, extent.width - x);
-              region.imageExtent.height = RDCMIN(PatternBatchHeight, extent.height - y);
-              region.imageExtent.depth = 1;
-
-              region.bufferRowLength = PatternBatchWidth;
-
-              // for depth/stencil copies, write depth first
-              if(aspectFlags == (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT))
-                region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-
-              if(aspectFlags != VK_IMAGE_ASPECT_STENCIL_BIT)
-                mainCopies.push_back(region);
-
-              if(aspectFlags & VK_IMAGE_ASPECT_STENCIL_BIT)
-              {
-                uint32_t depthStride = (imInfo.format == VK_FORMAT_D16_UNORM_S8_UINT ? 2 : 4);
-                VkDeviceSize depthOffset = PatternBatchWidth * PatternBatchHeight * depthStride;
-
-                // if it's a depth/stencil format, write stencil separately
-                region.bufferOffset = depthOffset;
-                region.bufferRowLength = PatternBatchWidth;
-                region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-
-                stencilCopies.push_back(region);
-              }
-            }
-          }
-        }
-      }
-
-      // update the extent for the next mip
-      extent.width = RDCMAX(extent.width >> 1, 1U);
-      extent.height = RDCMAX(extent.height >> 1, 1U);
-      extent.depth = RDCMAX(extent.depth >> 1, 1U);
-    }
-  }
+  GetDiscardPatternCopyRegions(imInfo, aspectFlags, discardRange, discardRect, PatternBatchWidth,
+                               PatternBatchHeight, mainCopies, stencilCopies);
 
   VkImageMemoryBarrier dstimBarrier = {
       VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -2620,6 +2630,80 @@ void VulkanDebugManager::FillWithDiscardPattern(VkCommandBuffer cmd, DiscardType
   dstimBarrier.dstAccessMask = VK_ACCESS_ALL_WRITE_BITS | VK_ACCESS_ALL_READ_BITS;
 
   DoPipelineBarrier(cmd, 1, &dstimBarrier);
+}
+
+void VulkanDebugManager::FillWithDiscardPatternOnHost(VkDevice device, DiscardType type,
+                                                      VkImage image, VkImageLayout curLayout,
+                                                      VkImageSubresourceRange discardRange,
+                                                      VkRect2D discardRect)
+{
+  // State tracking will not be accurate during loading
+  if(IsLoading(m_pDriver->m_State))
+    return;
+
+  const VulkanCreationInfo::Image &imInfo = GetImageInfo(GetResID(image));
+  const VkImageAspectFlags aspectFlags = discardRange.aspectMask & FormatImageAspects(imInfo.format);
+
+  // Not supported for multisampled images.
+  if(imInfo.samples > 1)
+  {
+    RDCWARN("Skipping discard pattern for MSAA image as host copy is unimplemented");
+    return;
+  }
+
+  VkFormat format = imInfo.format;
+  if(format == VK_FORMAT_X8_D24_UNORM_PACK32)
+    format = VK_FORMAT_D24_UNORM_S8_UINT;
+  if(format == VK_FORMAT_S8_UINT)
+    format = VK_FORMAT_D32_SFLOAT_S8_UINT;
+
+  BlockShape shape = GetBlockShape(format, 0);
+  if((DiscardPatternWidth % shape.width) != 0 || (DiscardPatternHeight % shape.height) != 0)
+  {
+    RDCWARN("Skipping discard pattern for %s as block size is incompatible (%d * %d)",
+            ToStr(MakeResourceFormat(format).type).c_str(), shape.width, shape.height);
+    return;
+  }
+
+  bytebuf pattern = GetDiscardPattern(type, MakeResourceFormat(format));
+
+  rdcarray<VkBufferImageCopy> mainCopies, stencilCopies;
+  GetDiscardPatternCopyRegions(imInfo, aspectFlags, discardRange, discardRect, DiscardPatternWidth,
+                               DiscardPatternHeight, mainCopies, stencilCopies);
+
+  VkMemoryToImageCopy hostCopy = {
+      VK_STRUCTURE_TYPE_MEMORY_TO_IMAGE_COPY, NULL, pattern.data(),
+      // The rest of the parameters are copied from `mainCopies` and `stencilCopies`.
+  };
+
+  VkCopyMemoryToImageInfo info = {
+      VK_STRUCTURE_TYPE_COPY_MEMORY_TO_IMAGE_INFO, NULL, 0, Unwrap(image), curLayout, 1, &hostCopy,
+  };
+
+  for(const VkBufferImageCopy &copy : mainCopies)
+  {
+    hostCopy.memoryRowLength = copy.bufferRowLength;
+    hostCopy.memoryImageHeight = copy.bufferImageHeight;
+    hostCopy.imageSubresource = copy.imageSubresource;
+    hostCopy.imageOffset = copy.imageOffset;
+    hostCopy.imageExtent = copy.imageExtent;
+
+    ObjDisp(device)->CopyMemoryToImageEXT(Unwrap(device), &info);
+  }
+
+  // For stencil, the pattern data is found after depth.
+  hostCopy.pHostPointer = pattern.data() + DiscardPatternWidth * DiscardPatternHeight * shape.bytes;
+
+  for(const VkBufferImageCopy &copy : stencilCopies)
+  {
+    hostCopy.memoryRowLength = copy.bufferRowLength;
+    hostCopy.memoryImageHeight = copy.bufferImageHeight;
+    hostCopy.imageSubresource = copy.imageSubresource;
+    hostCopy.imageOffset = copy.imageOffset;
+    hostCopy.imageExtent = copy.imageExtent;
+
+    ObjDisp(device)->CopyMemoryToImageEXT(Unwrap(device), &info);
+  }
 }
 
 void VulkanDebugManager::InitReadbackBuffer(VkDeviceSize sz)
