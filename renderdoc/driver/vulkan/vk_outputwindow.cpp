@@ -33,8 +33,6 @@ VulkanReplay::OutputWindow::OutputWindow()
 {
   surface = VK_NULL_HANDLE;
   swap = VK_NULL_HANDLE;
-  for(size_t i = 0; i < ARRAY_COUNT(colimg); i++)
-    colimg[i] = VK_NULL_HANDLE;
 
   WINDOW_HANDLE_INIT;
 
@@ -58,7 +56,6 @@ VulkanReplay::OutputWindow::OutputWindow()
   rp = VK_NULL_HANDLE;
   rpdepth = VK_NULL_HANDLE;
 
-  numImgs = 0;
   curidx = 0;
 
   m_ResourceManager = NULL;
@@ -75,9 +72,6 @@ VulkanReplay::OutputWindow::OutputWindow()
       VK_NULL_HANDLE,
       {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
   };
-  for(size_t i = 0; i < ARRAY_COUNT(colBarrier); i++)
-    colBarrier[i] = t;
-
   bbBarrier = t;
 
   t.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -118,12 +112,12 @@ void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
   }
 
   // not owned - freed with the swapchain
-  for(size_t i = 0; i < ARRAY_COUNT(colimg); i++)
+  for(size_t i = 0; i < colimg.size(); i++)
   {
-    if(colimg[i] != VK_NULL_HANDLE)
-      GetResourceManager()->ReleaseWrappedResource(colimg[i]);
-    colimg[i] = VK_NULL_HANDLE;
+    GetResourceManager()->ReleaseWrappedResource(colimg[i]);
   }
+  colimg.clear();
+  colBarrier.clear();
 
   if(dsimg != VK_NULL_HANDLE)
   {
@@ -216,8 +210,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
     ObjDisp(inst)->GetPhysicalDeviceSurfaceCapabilitiesKHR(Unwrap(phys), Unwrap(surface),
                                                            &capabilities);
 
-    if(capabilities.minImageCount < 8)
-      numImages = RDCMAX(numImages, capabilities.minImageCount);
+    numImages = RDCMAX(numImages, capabilities.minImageCount);
 
     if(capabilities.supportedUsageFlags == 0)
     {
@@ -401,24 +394,33 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
     GetResourceManager()->WrapResource(Unwrap(device), swap);
 
+    uint32_t numImgs = 0;
     vkr = vt->GetSwapchainImagesKHR(Unwrap(device), Unwrap(swap), &numImgs, NULL);
     CHECK_VKR(driver, vkr);
 
-    RDCASSERT(numImgs <= 8, numImgs);
+    colimg.resize(numImgs);
+    colBarrier.resize(numImgs);
 
-    VkImage *imgs = new VkImage[numImgs];
-    vkr = vt->GetSwapchainImagesKHR(Unwrap(device), Unwrap(swap), &numImgs, imgs);
+    vkr = vt->GetSwapchainImagesKHR(Unwrap(device), Unwrap(swap), &numImgs, colimg.data());
     CHECK_VKR(driver, vkr);
 
     for(size_t i = 0; i < numImgs; i++)
     {
-      colimg[i] = imgs[i];
       GetResourceManager()->WrapResource(Unwrap(device), colimg[i]);
-      colBarrier[i].image = Unwrap(colimg[i]);
-      colBarrier[i].oldLayout = colBarrier[i].newLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    }
 
-    delete[] imgs;
+      colBarrier[i] = {
+          VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+          NULL,
+          0,
+          0,
+          VK_IMAGE_LAYOUT_UNDEFINED,
+          VK_IMAGE_LAYOUT_UNDEFINED,
+          VK_QUEUE_FAMILY_IGNORED,
+          VK_QUEUE_FAMILY_IGNORED,
+          Unwrap(colimg[i]),
+          {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
+      };
+    }
   }
 
   curidx = 0;
@@ -1021,20 +1023,22 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 
   outw.bbBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
   outw.bbBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-  outw.colBarrier[outw.curidx].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-  outw.colBarrier[outw.curidx].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
   DoPipelineBarrier(cmd, 1, &outw.bbBarrier);
-  if(outw.colimg[0] != VK_NULL_HANDLE)
+  if(outw.colBarrier.size() > 0)
+  {
+    outw.colBarrier[outw.curidx].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    outw.colBarrier[outw.curidx].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     DoPipelineBarrier(cmd, 1, &outw.colBarrier[outw.curidx]);
+    outw.colBarrier[outw.curidx].oldLayout = outw.colBarrier[outw.curidx].newLayout;
+    outw.colBarrier[outw.curidx].srcAccessMask = outw.colBarrier[outw.curidx].dstAccessMask;
+  }
   if(outw.dsimg != VK_NULL_HANDLE)
     DoPipelineBarrier(cmd, 1, &outw.depthBarrier);
 
   outw.depthBarrier.oldLayout = outw.depthBarrier.newLayout;
   outw.bbBarrier.oldLayout = outw.bbBarrier.newLayout;
   outw.bbBarrier.srcAccessMask = outw.bbBarrier.dstAccessMask;
-  outw.colBarrier[outw.curidx].oldLayout = outw.colBarrier[outw.curidx].newLayout;
-  outw.colBarrier[outw.curidx].srcAccessMask = outw.colBarrier[outw.curidx].dstAccessMask;
 
   vt->EndCommandBuffer(Unwrap(cmd));
 

@@ -549,9 +549,8 @@ private:
 
     VkSurfaceKHR surface;
     VkSwapchainKHR swap;
-    uint32_t numImgs;
-    VkImage colimg[8];
-    VkImageMemoryBarrier colBarrier[8];
+    rdcarray<VkImage> colimg;
+    rdcarray<VkImageMemoryBarrier> colBarrier;
 
     VkImage bb;
     VkImageView bbview;
