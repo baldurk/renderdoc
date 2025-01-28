@@ -4624,6 +4624,9 @@ void VulkanPipelineStateViewer::AddFossilizeNexts(QVariantMap &info, const SDObj
                     // VkDescriptorSetLayoutBindingFlagsCreateInfoEXT
                     {"bindingCount", ""},
                     {"pBindingFlags", "bindingFlags"},
+                    // VkMutableDescriptorTypeCreateInfoEXT
+                    {"mutableDescriptorTypeListCount", ""},
+                    {"pMutableDescriptorTypeLists", "mutableDescriptorTypeLists"},
                     // VkSubpassDescriptionDepthStencilResolve
                     {"pDepthStencilResolveAttachment", "depthStencilResolveAttachment"},
                     // VkFragmentShadingRateAttachmentInfoKHR
@@ -4682,6 +4685,12 @@ QVariant VulkanPipelineStateViewer::ConvertSDObjectToFossilizeJSON(const SDObjec
         if(v.isValid())
           map[key] = v;
       }
+
+      // VkMutableDescriptorTypeListEXT
+      if(map.contains(lit("pDescriptorTypes")))
+        return map[lit("pDescriptorTypes")];
+      else if(map.contains(lit("descriptorTypeCount")))
+        return QVariantList();
 
       AddFossilizeNexts(map, obj);
 
