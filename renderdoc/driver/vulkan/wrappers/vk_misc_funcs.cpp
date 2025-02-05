@@ -2321,6 +2321,22 @@ VkResult WrappedVulkan::vkDebugMarkerSetObjectNameEXT(VkDevice device,
 
       Chunk *chunk = scope.Get();
 
+      data.record->LockChunks();
+      while(data.record->HasChunks())
+      {
+        Chunk *end = data.record->GetLastChunk();
+
+        if(end->GetChunkType<VulkanChunk>() == VulkanChunk::vkDebugMarkerSetObjectNameEXT)
+        {
+          end->Delete();
+          data.record->PopChunk();
+          continue;
+        }
+
+        break;
+      }
+      data.record->UnlockChunks();
+
       data.record->AddChunk(chunk);
     }
   }
@@ -2448,6 +2464,22 @@ VkResult WrappedVulkan::vkSetDebugUtilsObjectNameEXT(VkDevice device,
       Serialise_vkSetDebugUtilsObjectNameEXT(ser, device, pNameInfo);
 
       Chunk *chunk = scope.Get();
+
+      data.record->LockChunks();
+      while(data.record->HasChunks())
+      {
+        Chunk *end = data.record->GetLastChunk();
+
+        if(end->GetChunkType<VulkanChunk>() == VulkanChunk::vkSetDebugUtilsObjectNameEXT)
+        {
+          end->Delete();
+          data.record->PopChunk();
+          continue;
+        }
+
+        break;
+      }
+      data.record->UnlockChunks();
 
       data.record->AddChunk(chunk);
     }
