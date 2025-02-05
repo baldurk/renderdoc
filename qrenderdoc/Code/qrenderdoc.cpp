@@ -203,10 +203,9 @@ int main(int argc, char *argv[])
   {
     const char *qpa_plat = getenv("QT_QPA_PLATFORM");
     // if not set or empty, force non-wayland to help go through backwards compatibility path on wayland.
-    char env_set[] = "QT_QPA_PLATFORM=xcb\0";
     if(!qpa_plat || qpa_plat[0] == 0)
     {
-      putenv(env_set);
+      setenv("QT_QPA_PLATFORM", "xcb", 1);
       envChanged = true;
     }
   }
