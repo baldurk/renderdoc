@@ -2587,8 +2587,8 @@ ASBuildData *D3D12RTManager::CopyBuildInputs(
           unwrappedCmd->CopyBufferRegion(dstRes, dstOffset, Unwrap(sourceBuffer), srcOffs, vbSize);
 
           desc.Triangles.VertexBuffer.RVA = dstOffset - baseOffset;
-          RDCASSERT(desc.Triangles.VertexBuffer.RVA + byteSize <= allocedByteSize,
-                    desc.Triangles.VertexBuffer.RVA, byteSize, allocedByteSize);
+          RDCASSERT(desc.Triangles.VertexBuffer.RVA + vbSize <= allocedByteSize,
+                    desc.Triangles.VertexBuffer.RVA, vbSize, allocedByteSize);
 
           dstOffset = AlignUp16(dstOffset + vbSize);
         }
