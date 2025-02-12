@@ -7920,9 +7920,20 @@ bool WrappedVulkan::Serialise_vkCmdBuildAccelerationStructuresKHR(
       if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::BuildAccStruct);
+
         ObjDisp(commandBuffer)
             ->CmdBuildAccelerationStructuresKHR(Unwrap(commandBuffer), infoCount, unwrappedInfos,
                                                 tmpBuildRangeInfos.data());
+
+        if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::BuildAccStruct, commandBuffer))
+        {
+          ObjDisp(commandBuffer)
+              ->CmdBuildAccelerationStructuresKHR(Unwrap(commandBuffer), infoCount, unwrappedInfos,
+                                                  tmpBuildRangeInfos.data());
+          m_ActionCallback->PostRemisc(eventId, ActionFlags::BuildAccStruct, commandBuffer);
+        }
       }
     }
     else
@@ -8023,7 +8034,17 @@ bool WrappedVulkan::Serialise_vkCmdCopyAccelerationStructureKHR(
       if(InRerecordRange(m_LastCmdBufferID))
       {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::BuildAccStruct);
+
         ObjDisp(commandBuffer)->CmdCopyAccelerationStructureKHR(Unwrap(commandBuffer), &unwrappedInfo);
+
+        if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::BuildAccStruct, commandBuffer))
+        {
+          ObjDisp(commandBuffer)->CmdCopyAccelerationStructureKHR(Unwrap(commandBuffer), &unwrappedInfo);
+
+          m_ActionCallback->PostRemisc(eventId, ActionFlags::BuildAccStruct, commandBuffer);
+        }
       }
     }
     else
