@@ -941,7 +941,7 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   VkGraphicsPipelineCreateInfo ret = {
       VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
       NULL,
-      pipeInfo.flags,
+      0,
       stageCount,
       stages,
       &vi,
@@ -1056,11 +1056,28 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
     rs.pNext = &provokeSetup;
   }
 
+  uint64_t flags = pipeInfo.flags;
   // never create derivatives
-  ret.flags &= ~VK_PIPELINE_CREATE_DERIVATIVE_BIT;
+  flags &= ~VK_PIPELINE_CREATE_DERIVATIVE_BIT;
 
-  ret.flags &= ~VK_PIPELINE_CREATE_LIBRARY_BIT_KHR;
-  ret.flags &= ~VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
+  flags &= ~VK_PIPELINE_CREATE_LIBRARY_BIT_KHR;
+  flags &= ~VK_PIPELINE_CREATE_RETAIN_LINK_TIME_OPTIMIZATION_INFO_BIT_EXT;
+
+  static VkPipelineCreateFlags2CreateInfo createFlags = {
+      VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO,
+  };
+
+  if(pipeInfo.useCreateFlags2 && m_pDriver->Maintenance5())
+  {
+    createFlags.flags = flags;
+
+    createFlags.pNext = rs.pNext;
+    rs.pNext = &createFlags;
+  }
+  else
+  {
+    rs.flags = (uint32_t)flags;
+  }
 
   pipeCreateInfo = ret;
 }
@@ -1132,15 +1149,32 @@ void VulkanShaderCache::MakeComputePipelineInfo(VkComputePipelineCreateInfo &pip
   VkComputePipelineCreateInfo ret = {
       VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
       NULL,
-      pipeInfo.flags,
+      0,
       stage,
       rm->GetCurrentHandle<VkPipelineLayout>(pipeInfo.compLayout),
       VK_NULL_HANDLE,    // base pipeline handle
       0,                 // base pipeline index
   };
 
+  uint64_t flags = pipeInfo.flags;
   // never create derivatives
-  ret.flags &= ~VK_PIPELINE_CREATE_DERIVATIVE_BIT;
+  flags &= ~VK_PIPELINE_CREATE_DERIVATIVE_BIT;
+
+  static VkPipelineCreateFlags2CreateInfo createFlags = {
+      VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO,
+  };
+
+  if(pipeInfo.useCreateFlags2 && m_pDriver->Maintenance5())
+  {
+    createFlags.flags = flags;
+
+    createFlags.pNext = ret.pNext;
+    ret.pNext = &createFlags;
+  }
+  else
+  {
+    ret.flags = (uint32_t)flags;
+  }
 
   pipeCreateInfo = ret;
 }

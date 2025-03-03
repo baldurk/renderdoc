@@ -1331,6 +1331,7 @@ void VulkanReplay::SavePipelineState(uint32_t eventId)
     // Input Assembly
     ret.inputAssembly.indexBuffer.resourceId = rm->GetOriginalID(state.ibuffer.buf);
     ret.inputAssembly.indexBuffer.byteOffset = state.ibuffer.offs;
+    ret.inputAssembly.indexBuffer.byteSize = state.ibuffer.size;
     ret.inputAssembly.indexBuffer.byteStride = state.ibuffer.bytewidth;
     ret.inputAssembly.primitiveRestartEnable = state.primRestartEnable != VK_FALSE;
     ret.inputAssembly.topology =
@@ -5062,8 +5063,10 @@ void VulkanReplay::RefreshDerivedReplacements()
         // if we have pipeline executable properties, capture the data
         if(m_pDriver->GetExtensions(NULL).ext_KHR_pipeline_executable_properties)
         {
-          pipeCreateInfo.flags |= (VK_PIPELINE_CREATE_CAPTURE_STATISTICS_BIT_KHR |
-                                   VK_PIPELINE_CREATE_CAPTURE_INTERNAL_REPRESENTATIONS_BIT_KHR);
+          uint64_t flags = GetPipelineCreateFlags(&pipeCreateInfo);
+          flags |= (VK_PIPELINE_CREATE_CAPTURE_STATISTICS_BIT_KHR |
+                    VK_PIPELINE_CREATE_CAPTURE_INTERNAL_REPRESENTATIONS_BIT_KHR);
+          SetPipelineCreateFlags(&pipeCreateInfo, flags);
         }
 
         // create the new graphics pipeline
@@ -5110,8 +5113,10 @@ void VulkanReplay::RefreshDerivedReplacements()
         // if we have pipeline executable properties, capture the data
         if(m_pDriver->GetExtensions(NULL).ext_KHR_pipeline_executable_properties)
         {
-          pipeCreateInfo.flags |= (VK_PIPELINE_CREATE_CAPTURE_STATISTICS_BIT_KHR |
-                                   VK_PIPELINE_CREATE_CAPTURE_INTERNAL_REPRESENTATIONS_BIT_KHR);
+          uint64_t flags = GetPipelineCreateFlags(&pipeCreateInfo);
+          flags |= (VK_PIPELINE_CREATE_CAPTURE_STATISTICS_BIT_KHR |
+                    VK_PIPELINE_CREATE_CAPTURE_INTERNAL_REPRESENTATIONS_BIT_KHR);
+          SetPipelineCreateFlags(&pipeCreateInfo, flags);
         }
 
         // create the new compute pipeline

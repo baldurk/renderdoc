@@ -3465,6 +3465,14 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         CHECK_PHYS_EXT_FEATURE(rayTracingPositionFetch);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceMaintenance5Features,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_FEATURES);
+      {
+        CHECK_PHYS_EXT_FEATURE(maintenance5);
+        m_Maintenance5 = ext->maintenance5 != VK_FALSE;
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)

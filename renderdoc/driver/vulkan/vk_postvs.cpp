@@ -4228,8 +4228,21 @@ void VulkanReplay::FetchVSOut(uint32_t eventId, VulkanRenderState &state)
 
     // fetch ibuffer
     if(state.ibuffer.buf != ResourceId())
+    {
+      uint64_t readSizeBytes = uint64_t(action->numIndices) * state.ibuffer.bytewidth;
+      // clamp to handle subrange bound via vkCmdBindIndexBuffer2
+      if(state.ibuffer.size != VK_WHOLE_SIZE)
+      {
+        uint64_t offsetBytes = uint64_t(action->indexOffset) * state.ibuffer.bytewidth;
+        uint64_t maxSubrangeBytes =
+            state.ibuffer.size > offsetBytes ? state.ibuffer.size - offsetBytes : 0;
+
+        readSizeBytes = RDCMIN(readSizeBytes, maxSubrangeBytes);
+      }
+
       GetBufferData(state.ibuffer.buf, state.ibuffer.offs + action->indexOffset * idxsize,
-                    uint64_t(action->numIndices) * idxsize, idxdata);
+                    readSizeBytes, idxdata);
+    }
 
     // figure out what the maximum index could be, so we can clamp our index buffer to something
     // sane

@@ -626,6 +626,7 @@ void main()
   void Prepare(int argc, char **argv)
   {
     devExts.push_back(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
+    devExts.push_back(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
     optDevExts.push_back(VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME);
 
     features.sampleRateShading = true;
@@ -1009,6 +1010,8 @@ void main()
                   VK_FORMAT_B5G5R5A1_UNORM_PACK16, 0, 0, DataType::UNorm),
         TEST_CASE(TextureType::R5G5B5A1, VK_FORMAT_A1R5G5B5_UNORM_PACK16,
                   VK_FORMAT_A1R5G5B5_UNORM_PACK16, 0, 0, DataType::UNorm),
+        TEST_CASE(TextureType::R5G5B5A1, VK_FORMAT_A1B5G5R5_UNORM_PACK16,
+                  VK_FORMAT_A1B5G5R5_UNORM_PACK16, 0, 0, DataType::UNorm),
 
         TEST_CASE(TextureType::RGB10A2, VK_FORMAT_A2R10G10B10_UINT_PACK32,
                   VK_FORMAT_A2R10G10B10_UNORM_PACK32, 1, 4, DataType::UNorm),
@@ -1039,6 +1042,8 @@ void main()
                   VK_FORMAT_A2B10G10R10_UINT_PACK32, 1, 4, DataType::UInt),
         TEST_CASE(TextureType::Unknown, VK_FORMAT_A2B10G10R10_SINT_PACK32,
                   VK_FORMAT_A2B10G10R10_SINT_PACK32, 1, 4, DataType::SInt),
+
+        TEST_CASE(TextureType::A8, VK_FORMAT_A8_UNORM, VK_FORMAT_A8_UNORM, 1, 1, DataType::UNorm),
 
         TEST_CASE(TextureType::Unknown, VK_FORMAT_B10G11R11_UFLOAT_PACK32,
                   VK_FORMAT_B10G11R11_UFLOAT_PACK32, 0, 0, DataType::Float),
@@ -1228,6 +1233,8 @@ void main()
         flags |= 2;
       if(bgra)
         flags |= 4;
+      if(t.fmt.viewFmt == VK_FORMAT_A8_UNORM)
+        flags |= 8;
 
       renderPassCreateInfo.attachments[0].format = t.fmt.viewFmt;
 

@@ -1075,7 +1075,12 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
                                         VulkanCreationInfo &info, ResourceId id,
                                         const VkGraphicsPipelineCreateInfo *pCreateInfo)
 {
-  flags = pCreateInfo->flags;
+  const VkPipelineCreateFlags2CreateInfo *createFlags2 =
+      (const VkPipelineCreateFlags2CreateInfo *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO);
+
+  flags = createFlags2 ? createFlags2->flags : pCreateInfo->flags;
+  useCreateFlags2 = createFlags2 != NULL;
 
   graphicsPipe = true;
 
@@ -1768,7 +1773,12 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
 void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
                                         ResourceId id, const VkComputePipelineCreateInfo *pCreateInfo)
 {
-  flags = pCreateInfo->flags;
+  const VkPipelineCreateFlags2CreateInfo *createFlags2 =
+      (const VkPipelineCreateFlags2CreateInfo *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO);
+
+  flags = createFlags2 ? createFlags2->flags : pCreateInfo->flags;
+  useCreateFlags2 = createFlags2 != NULL;
 
   graphicsPipe = false;
 
@@ -1880,7 +1890,12 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
                                         VulkanCreationInfo &info, ResourceId id,
                                         const VkRayTracingPipelineCreateInfoKHR *pCreateInfo)
 {
-  flags = pCreateInfo->flags;
+  const VkPipelineCreateFlags2CreateInfo *createFlags2 =
+      (const VkPipelineCreateFlags2CreateInfo *)FindNextStruct(
+          pCreateInfo, VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO);
+
+  flags = createFlags2 ? createFlags2->flags : pCreateInfo->flags;
+  useCreateFlags2 = createFlags2 != NULL;
 
   graphicsPipe = false;
 

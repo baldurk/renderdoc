@@ -5,9 +5,12 @@ import rdtest
 # Not a direct test, re-used by API-specific tests
 class Buffer_Truncation(rdtest.TestCase):
     internal = True
+    draw_action = None
 
     def check_capture(self):
-        action = self.find_action("Draw")
+        action = self.draw_action
+        if action is None:
+            action = self.find_action("Draw")
 
         self.check(action is not None)
 

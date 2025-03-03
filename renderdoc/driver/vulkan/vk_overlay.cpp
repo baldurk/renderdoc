@@ -558,9 +558,19 @@ void VulkanDebugManager::PatchLineStripIndexBuffer(const ActionDescription *acti
 
   if(action->flags & ActionFlags::Indexed)
   {
+    uint64_t readSizeBytes = uint64_t(action->numIndices) * rs.ibuffer.bytewidth;
+    // clamp to handle subrange bound via vkCmdBindIndexBuffer2
+    if(rs.ibuffer.size != VK_WHOLE_SIZE)
+    {
+      uint64_t offsetBytes = uint64_t(action->indexOffset) * rs.ibuffer.bytewidth;
+      uint64_t maxSubrangeBytes = rs.ibuffer.size > offsetBytes ? rs.ibuffer.size - offsetBytes : 0;
+
+      readSizeBytes = RDCMIN(readSizeBytes, maxSubrangeBytes);
+    }
+
     GetBufferData(rs.ibuffer.buf,
                   rs.ibuffer.offs + uint64_t(action->indexOffset) * rs.ibuffer.bytewidth,
-                  uint64_t(action->numIndices) * rs.ibuffer.bytewidth, indices);
+                  readSizeBytes, indices);
 
     if(rs.ibuffer.bytewidth == 4)
       idx32 = (uint32_t *)indices.data();

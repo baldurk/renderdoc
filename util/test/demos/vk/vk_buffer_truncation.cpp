@@ -70,6 +70,8 @@ void main()
     // we don't care what behaviour we get but we don't want to completely crash
     features.robustBufferAccess = VK_TRUE;
 
+    devExts.push_back(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
+
     VulkanGraphicsTest::Prepare(argc, argv);
   }
 
@@ -93,6 +95,8 @@ void main()
         {Vec3f(8.8f, 0.0f, 0.0f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
     };
     uint16_t indices[] = {99, 99, 99, 1, 2, 3, 4, 5};
+    uint16_t indeces2[] = {99, 99, 99, 1, 2, 3, 4, 5, 88, 88, 88, 88, 88};
+
     Vec4f cbufferdata[64] = {};
     cbufferdata[32] = Vec4f(1.0f, 2.0f, 3.0f, 4.0f);
 
@@ -135,6 +139,13 @@ void main()
 
     ib.upload(indices);
 
+    AllocatedBuffer ib2(this,
+                        vkh::BufferCreateInfo(sizeof(indeces2), VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+                                                                    VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+                        VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_CPU_TO_GPU}));
+
+    ib2.upload(indeces2);
+
     AllocatedBuffer cb(
         this,
         vkh::BufferCreateInfo(sizeof(cbufferdata), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
@@ -174,6 +185,10 @@ void main()
       vkCmdBindIndexBuffer(cmd, ib.buffer, sizeof(uint16_t) * 3, VK_INDEX_TYPE_UINT16);
       vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {sizeof(DefaultA2V) * 3});
       vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, {descset}, {});
+      vkCmdDrawIndexed(cmd, 6, 1, 0, 0, 0);
+
+      vkCmdBindIndexBuffer2KHR(cmd, ib2.buffer, sizeof(uint16_t) * 3, sizeof(uint16_t) * 5,
+                               VK_INDEX_TYPE_UINT16);
       vkCmdDrawIndexed(cmd, 6, 1, 0, 0, 0);
 
       vkCmdEndRenderPass(cmd);

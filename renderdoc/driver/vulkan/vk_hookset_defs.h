@@ -545,7 +545,8 @@
   DeclExt(EXT_shader_subgroup_ballot);                 \
   DeclExt(EXT_shader_subgroup_vote);                   \
   DeclExt(KHR_shader_subgroup_uniform_control_flow);   \
-  DeclExt(KHR_ray_tracing_maintenance1);
+  DeclExt(KHR_ray_tracing_maintenance1);               \
+  DeclExt(KHR_maintenance5);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -680,7 +681,8 @@
   CheckExt(EXT_shader_subgroup_ballot, VK11);                 \
   CheckExt(EXT_shader_subgroup_vote, VK11);                   \
   CheckExt(KHR_shader_subgroup_uniform_control_flow, VKXX);   \
-  CheckExt(KHR_ray_tracing_maintenance1, VKXX);
+  CheckExt(KHR_ray_tracing_maintenance1, VKXX);               \
+  CheckExt(KHR_maintenance5, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
@@ -1047,6 +1049,10 @@
   HookInitExtension(KHR_ray_tracing_pipeline, GetRayTracingShaderGroupHandlesKHR);                   \
   HookInitExtension(KHR_ray_tracing_pipeline, GetRayTracingShaderGroupStackSizeKHR);                 \
   HookInitExtension(KHR_ray_tracing_maintenance1, CmdTraceRaysIndirect2KHR);                         \
+  HookInitExtension(KHR_maintenance5, CmdBindIndexBuffer2KHR);                                       \
+  HookInitExtension(KHR_maintenance5, GetDeviceImageSubresourceLayoutKHR);                           \
+  HookInitExtension(KHR_maintenance5, GetImageSubresourceLayout2KHR);                                \
+  HookInitExtension(KHR_maintenance5, GetRenderingAreaGranularityKHR);                               \
   HookInitExtension_Device_Win32();                                                                  \
   HookInitExtension_Device_Linux();                                                                  \
   HookInitExtension_Device_Android();                                                                \
@@ -1954,6 +1960,14 @@
               uint32_t, pipelineStackSize);                                                          \
   HookDefine2(void, vkCmdTraceRaysIndirect2KHR, VkCommandBuffer, commandBuffer, VkDeviceAddress,     \
               indirectDeviceAddress);                                                                \
+  HookDefine5(void, vkCmdBindIndexBuffer2KHR, VkCommandBuffer, commandBuffer, VkBuffer, buffer,      \
+              VkDeviceSize, offset, VkDeviceSize, size, VkIndexType, indexType);                     \
+  HookDefine3(void, vkGetDeviceImageSubresourceLayoutKHR, VkDevice, device,                          \
+              const VkDeviceImageSubresourceInfo *, pInfo, VkSubresourceLayout2 *, pLayout);         \
+  HookDefine4(void, vkGetImageSubresourceLayout2KHR, VkDevice, device, VkImage, image,               \
+              const VkImageSubresource2 *, pSubresource, VkSubresourceLayout2 *, pLayout);           \
+  HookDefine3(void, vkGetRenderingAreaGranularityKHR, VkDevice, device,                              \
+              const VkRenderingAreaInfo *, pRenderingAreaInfo, VkExtent2D *, pGranularity);          \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
   HookDefine_Android();                                                                              \

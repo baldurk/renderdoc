@@ -87,6 +87,105 @@ void ClampPhysDevAPIVersion(VkPhysicalDeviceProperties *pProperties, VkPhysicalD
     pProperties->apiVersion = VK_API_VERSION_1_3;
 }
 
+void WrappedVulkan::PatchImageCreateInfo(VkImageCreateInfo *info, VkFormat *newViewFormatsTempMem)
+{
+  info->usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+  if(IsCaptureMode(m_State))
+  {
+    info->usage |= VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    info->usage &= ~VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
+  }
+
+  if(IsYUVFormat(info->format))
+    info->flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+
+  if(info->samples != VK_SAMPLE_COUNT_1_BIT)
+  {
+    info->usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+    info->flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+
+    if(IsCaptureMode(m_State))
+    {
+      if(!IsDepthOrStencilFormat(info->format))
+      {
+        if(GetDebugManager() && GetShaderCache()->IsBuffer2MSSupported())
+          info->usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+      }
+      else
+      {
+        info->usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+      }
+    }
+  }
+
+  info->flags &= ~VK_IMAGE_CREATE_SUBSAMPLED_BIT_EXT;
+
+  VkImageStencilUsageCreateInfo *separateStencilUsage =
+      (VkImageStencilUsageCreateInfo *)FindNextStruct(
+          info, VK_STRUCTURE_TYPE_IMAGE_STENCIL_USAGE_CREATE_INFO);
+  if(separateStencilUsage)
+  {
+    separateStencilUsage->stencilUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+    if(IsCaptureMode(m_State))
+    {
+      info->usage |= VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+      info->usage &= ~VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
+    }
+
+    if(info->samples != VK_SAMPLE_COUNT_1_BIT)
+    {
+      separateStencilUsage->stencilUsage |=
+          VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    }
+  }
+
+  // similarly for the image format list for MSAA textures, add the UINT cast format we will need
+  if(info->samples != VK_SAMPLE_COUNT_1_BIT)
+  {
+    VkImageFormatListCreateInfo *formatListInfo = (VkImageFormatListCreateInfo *)FindNextStruct(
+        info, VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO);
+
+    if(formatListInfo)
+    {
+      uint32_t bs = (uint32_t)GetByteSize(1, 1, 1, info->format, 0);
+
+      VkFormat msaaCopyFormat = VK_FORMAT_UNDEFINED;
+      if(bs == 1)
+        msaaCopyFormat = VK_FORMAT_R8_UINT;
+      else if(bs == 2)
+        msaaCopyFormat = VK_FORMAT_R16_UINT;
+      else if(bs == 4)
+        msaaCopyFormat = VK_FORMAT_R32_UINT;
+      else if(bs == 8)
+        msaaCopyFormat = VK_FORMAT_R32G32_UINT;
+      else if(bs == 16)
+        msaaCopyFormat = VK_FORMAT_R32G32B32A32_UINT;
+
+      const VkFormat *oldFmts = formatListInfo->pViewFormats;
+      formatListInfo->pViewFormats = newViewFormatsTempMem;
+
+      bool needAdded = true;
+      uint32_t i = 0;
+      for(; i < formatListInfo->viewFormatCount; i++)
+      {
+        newViewFormatsTempMem[i] = oldFmts[i];
+        if(newViewFormatsTempMem[i] == msaaCopyFormat)
+          needAdded = false;
+      }
+
+      if(needAdded)
+      {
+        newViewFormatsTempMem[i] = msaaCopyFormat;
+        formatListInfo->viewFormatCount++;
+      }
+
+      newViewFormatsTempMem += formatListInfo->viewFormatCount;
+    }
+  }
+}
+
 void WrappedVulkan::vkGetPhysicalDeviceFeatures(VkPhysicalDevice physicalDevice,
                                                 VkPhysicalDeviceFeatures *pFeatures)
 {
@@ -332,10 +431,12 @@ void WrappedVulkan::vkGetDeviceBufferMemoryRequirements(VkDevice device,
   VkBufferCreateInfo *info = (VkBufferCreateInfo *)unwrappedInfo->pCreateInfo;
 
   // patch the create info the same as we would for vkCreateBuffer
-  info->usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-  info->usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+  uint64_t usage = GetBufferUsageFlags(info);
+  usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+  usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+  SetBufferUsageFlags(info, usage);
 
-  if(IsCaptureMode(m_State) && (info->usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT))
+  if(IsCaptureMode(m_State) && (usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT))
     info->flags |= VK_BUFFER_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT;
 
   ObjDisp(device)->GetDeviceBufferMemoryRequirements(Unwrap(device), unwrappedInfo,
@@ -402,100 +503,7 @@ void WrappedVulkan::vkGetDeviceImageMemoryRequirements(VkDevice device,
 
   VkImageCreateInfo *info = (VkImageCreateInfo *)unwrappedInfo->pCreateInfo;
 
-  info->usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-
-  if(IsCaptureMode(m_State))
-  {
-    info->usage |= VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-    info->usage &= ~VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
-  }
-
-  if(IsYUVFormat(info->format))
-    info->flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
-
-  if(info->samples != VK_SAMPLE_COUNT_1_BIT)
-  {
-    info->usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
-    info->flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
-
-    if(IsCaptureMode(m_State))
-    {
-      if(!IsDepthOrStencilFormat(info->format))
-      {
-        if(GetDebugManager() && GetShaderCache()->IsBuffer2MSSupported())
-          info->usage |= VK_IMAGE_USAGE_STORAGE_BIT;
-      }
-      else
-      {
-        info->usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-      }
-    }
-  }
-
-  info->flags &= ~VK_IMAGE_CREATE_SUBSAMPLED_BIT_EXT;
-
-  VkImageStencilUsageCreateInfo *separateStencilUsage =
-      (VkImageStencilUsageCreateInfo *)FindNextStruct(
-          info, VK_STRUCTURE_TYPE_IMAGE_STENCIL_USAGE_CREATE_INFO);
-  if(separateStencilUsage)
-  {
-    separateStencilUsage->stencilUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-
-    if(IsCaptureMode(m_State))
-    {
-      info->usage |= VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-      info->usage &= ~VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
-    }
-
-    if(info->samples != VK_SAMPLE_COUNT_1_BIT)
-    {
-      separateStencilUsage->stencilUsage |=
-          VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    }
-  }
-
-  // similarly for the image format list for MSAA textures, add the UINT cast format we will need
-  if(info->samples != VK_SAMPLE_COUNT_1_BIT)
-  {
-    VkImageFormatListCreateInfo *formatListInfo = (VkImageFormatListCreateInfo *)FindNextStruct(
-        info, VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO);
-
-    if(formatListInfo)
-    {
-      uint32_t bs = (uint32_t)GetByteSize(1, 1, 1, info->format, 0);
-
-      VkFormat msaaCopyFormat = VK_FORMAT_UNDEFINED;
-      if(bs == 1)
-        msaaCopyFormat = VK_FORMAT_R8_UINT;
-      else if(bs == 2)
-        msaaCopyFormat = VK_FORMAT_R16_UINT;
-      else if(bs == 4)
-        msaaCopyFormat = VK_FORMAT_R32_UINT;
-      else if(bs == 8)
-        msaaCopyFormat = VK_FORMAT_R32G32_UINT;
-      else if(bs == 16)
-        msaaCopyFormat = VK_FORMAT_R32G32B32A32_UINT;
-
-      const VkFormat *oldFmts = formatListInfo->pViewFormats;
-      VkFormat *newFmts = (VkFormat *)tempMem;
-      formatListInfo->pViewFormats = newFmts;
-
-      bool needAdded = true;
-      uint32_t i = 0;
-      for(; i < formatListInfo->viewFormatCount; i++)
-      {
-        newFmts[i] = oldFmts[i];
-        if(newFmts[i] == msaaCopyFormat)
-          needAdded = false;
-      }
-
-      if(needAdded)
-      {
-        newFmts[i] = msaaCopyFormat;
-        formatListInfo->viewFormatCount++;
-      }
-    }
-  }
+  PatchImageCreateInfo(info, (VkFormat *)tempMem);
 
   ObjDisp(device)->GetDeviceImageMemoryRequirements(Unwrap(device), unwrappedInfo,
                                                     pMemoryRequirements);
@@ -1275,4 +1283,44 @@ VkDeviceSize WrappedVulkan::vkGetRayTracingShaderGroupStackSizeKHR(
 {
   return ObjDisp(device)->GetRayTracingShaderGroupStackSizeKHR(Unwrap(device), Unwrap(pipeline),
                                                                group, groupShader);
+}
+
+void WrappedVulkan::vkGetDeviceImageSubresourceLayoutKHR(VkDevice device,
+                                                         const VkDeviceImageSubresourceInfo *pInfo,
+                                                         VkSubresourceLayout2 *pLayout)
+{
+  size_t tempMemSize = GetNextPatchSize(pInfo);
+
+  // reserve space for a patched view format list if necessary
+  if(pInfo->pCreateInfo->samples != VK_SAMPLE_COUNT_1_BIT)
+  {
+    const VkImageFormatListCreateInfo *formatListInfo =
+        (const VkImageFormatListCreateInfo *)FindNextStruct(
+            pInfo->pCreateInfo, VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO);
+
+    if(formatListInfo)
+      tempMemSize += sizeof(VkFormat) * (formatListInfo->viewFormatCount + 1);
+  }
+
+  byte *tempMem = GetTempMemory(tempMemSize);
+  VkDeviceImageSubresourceInfo *unwrappedInfo = UnwrapStructAndChain(m_State, tempMem, pInfo);
+
+  PatchImageCreateInfo((VkImageCreateInfo *)unwrappedInfo->pCreateInfo, (VkFormat *)tempMem);
+
+  ObjDisp(device)->GetDeviceImageSubresourceLayoutKHR(Unwrap(device), unwrappedInfo, pLayout);
+}
+
+void WrappedVulkan::vkGetImageSubresourceLayout2KHR(VkDevice device, VkImage image,
+                                                    const VkImageSubresource2 *pSubresource,
+                                                    VkSubresourceLayout2 *pLayout)
+{
+  ObjDisp(device)->GetImageSubresourceLayout2KHR(Unwrap(device), Unwrap(image), pSubresource,
+                                                 pLayout);
+}
+
+void WrappedVulkan::vkGetRenderingAreaGranularityKHR(VkDevice device,
+                                                     const VkRenderingAreaInfo *pRenderingAreaInfo,
+                                                     VkExtent2D *pGranularity)
+{
+  ObjDisp(device)->GetRenderingAreaGranularityKHR(Unwrap(device), pRenderingAreaInfo, pGranularity);
 }

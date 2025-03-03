@@ -1627,6 +1627,10 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_KHR_MAINTENANCE_4_SPEC_VERSION,
     },
     {
+        VK_KHR_MAINTENANCE_5_EXTENSION_NAME,
+        VK_KHR_MAINTENANCE_5_SPEC_VERSION,
+    },
+    {
         VK_KHR_MULTIVIEW_EXTENSION_NAME,
         VK_KHR_MULTIVIEW_SPEC_VERSION,
     },
@@ -4365,6 +4369,9 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     case VulkanChunk::vkCmdWriteAccelerationStructuresPropertiesKHR:
       return Serialise_vkCmdWriteAccelerationStructuresPropertiesKHR(
           ser, VK_NULL_HANDLE, 0, NULL, VK_QUERY_TYPE_MAX_ENUM, VK_NULL_HANDLE, 0);
+    case VulkanChunk::vkCmdBindIndexBuffer2KHR:
+      return Serialise_vkCmdBindIndexBuffer2KHR(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0,
+                                                VK_INDEX_TYPE_MAX_ENUM);
 
     // chunks that are reserved but not yet serialised
     case VulkanChunk::vkResetCommandPool:

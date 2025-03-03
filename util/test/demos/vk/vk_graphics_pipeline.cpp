@@ -105,6 +105,7 @@ void main()
   {
     devExts.push_back(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME);
     devExts.push_back(VK_EXT_GRAPHICS_PIPELINE_LIBRARY_EXTENSION_NAME);
+    devExts.push_back(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
 
     VulkanGraphicsTest::Prepare(argc, argv);
 
@@ -177,8 +178,13 @@ void main()
 
     VkRenderPass renderPass = createRenderPass(renderPassCreateInfo);
 
+    VkPipelineCreateFlags2CreateInfo libCreateFlag = {};
+    libCreateFlag.sType = VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO;
+    libCreateFlag.flags = VK_PIPELINE_CREATE_2_LIBRARY_BIT_KHR;
+
     VkGraphicsPipelineLibraryCreateInfoEXT libInfo = {};
     libInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT;
+    libInfo.pNext = &libCreateFlag;
 
     vkh::GraphicsPipelineCreateInfo pipeCreateInfo;
 
@@ -189,7 +195,7 @@ void main()
         vkh::vertexAttr(2, 0, DefaultA2V, uv),
     };
 
-    pipeCreateInfo.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR;
+    pipeCreateInfo.flags = 0;
     pipeCreateInfo.pNext = &libInfo;
 
     VkPipeline libList[4] = {};
@@ -202,7 +208,6 @@ void main()
     info->pMultisampleState = NULL;
     info->pDepthStencilState = NULL;
     info->pColorBlendState = NULL;
-    info->flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR;
     libList[0] = createGraphicsPipeline(info);
 
     pipeCreateInfo.vertexInputState.vertexBindingDescriptions = {};
@@ -225,8 +230,10 @@ void main()
     info = pipeCreateInfo;
     info->pTessellationState = NULL;
     info->pMultisampleState = NULL;
-    info->flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR;
     libList[1] = createGraphicsPipeline(info);
+
+    libInfo.pNext = NULL;
+    pipeCreateInfo.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR;
 
     spirv = ::CompileShaderToSpv(pixel, SPIRVTarget::vulkan12, ShaderLang::glsl, ShaderStage::frag,
                                  "main", {});
@@ -262,7 +269,6 @@ void main()
     info->pTessellationState = NULL;
     info->pViewportState = NULL;
     info->pColorBlendState = NULL;
-    info->flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR;
     libList[2] = createGraphicsPipeline(info);
 
     pipeCreateInfo.stages = {};
@@ -292,7 +298,6 @@ void main()
     info->pTessellationState = NULL;
     info->pViewportState = NULL;
     info->pRasterizationState = NULL;
-    info->flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR;
     libList[3] = createGraphicsPipeline(info);
 
     VkPipelineLibraryCreateInfoKHR libs = {};

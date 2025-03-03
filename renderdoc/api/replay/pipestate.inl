@@ -515,7 +515,7 @@ BoundVBuffer PipeState::GetIBuffer() const
       ret.resourceId = m_Vulkan->inputAssembly.indexBuffer.resourceId;
       ret.byteOffset = m_Vulkan->inputAssembly.indexBuffer.byteOffset;
       ret.byteStride = m_Vulkan->inputAssembly.indexBuffer.byteStride;
-      ret.byteSize = ~0ULL;
+      ret.byteSize = m_Vulkan->inputAssembly.indexBuffer.byteSize;
     }
   }
 

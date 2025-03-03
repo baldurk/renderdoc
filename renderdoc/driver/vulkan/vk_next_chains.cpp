@@ -120,6 +120,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2, VkBufferImageCopy2);                            \
   COPY_STRUCT(VK_STRUCTURE_TYPE_BUFFER_OPAQUE_CAPTURE_ADDRESS_CREATE_INFO,                           \
               VkBufferOpaqueCaptureAddressCreateInfo);                                               \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_BUFFER_USAGE_FLAGS_2_CREATE_INFO, VkBufferUsageFlags2CreateInfo);    \
   COPY_STRUCT(VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_KHR, VkCalibratedTimestampInfoKHR);        \
   COPY_STRUCT(VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, VkCommandBufferBeginInfo);                \
   COPY_STRUCT(VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_CONDITIONAL_RENDERING_INFO_EXT,           \
@@ -193,6 +194,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_PLANE_MEMORY_REQUIREMENTS_INFO,                                \
               VkImagePlaneMemoryRequirementsInfo);                                                   \
   COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_RESOLVE_2, VkImageResolve2);                                   \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_SUBRESOURCE_2, VkImageSubresource2);                           \
   COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_STENCIL_USAGE_CREATE_INFO, VkImageStencilUsageCreateInfo);     \
   COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_VIEW_ASTC_DECODE_MODE_EXT, VkImageViewASTCDecodeModeEXT);      \
   COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_VIEW_MIN_LOD_CREATE_INFO_EXT, VkImageViewMinLodCreateInfoEXT); \
@@ -351,6 +353,10 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkPhysicalDeviceMaintenance4Features);                                                 \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_PROPERTIES,                            \
               VkPhysicalDeviceMaintenance4Properties);                                               \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_FEATURES,                              \
+              VkPhysicalDeviceMaintenance5Features);                                                 \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_PROPERTIES,                            \
+              VkPhysicalDeviceMaintenance5Properties);                                               \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT,                        \
               VkPhysicalDeviceMemoryBudgetPropertiesEXT);                                            \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2,                                 \
@@ -556,6 +562,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkPipelineColorBlendStateCreateInfo);                                                  \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_COLOR_WRITE_CREATE_INFO_EXT,                                \
               VkPipelineColorWriteCreateInfoEXT);                                                    \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO,                                 \
+              VkPipelineCreateFlags2CreateInfo);                                                     \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,                            \
               VkPipelineDepthStencilStateCreateInfo);                                                \
   COPY_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_DISCARD_RECTANGLE_STATE_CREATE_INFO_EXT,                    \
@@ -655,6 +663,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_END_INFO, VkSubpassEndInfo);                                 \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SUBPASS_RESOLVE_PERFORMANCE_QUERY_EXT,                               \
               VkSubpassResolvePerformanceQueryEXT);                                                  \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_SUBRESOURCE_LAYOUT_2, VkSubresourceLayout2);                         \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_EXT, VkSurfaceCapabilities2EXT);              \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR, VkSurfaceCapabilities2KHR);              \
   COPY_STRUCT(VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR, VkSurfaceFormat2KHR);                          \
@@ -685,6 +694,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
               VkWriteDescriptorSetInlineUniformBlock);                                               \
   COPY_STRUCT(VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_LOCATION_INFO,                                  \
               VkRenderingAttachmentLocationInfo);                                                    \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_RENDERING_AREA_INFO, VkRenderingAreaInfo);                           \
   COPY_STRUCT(VK_STRUCTURE_TYPE_RENDERING_INPUT_ATTACHMENT_INDEX_INFO,                               \
               VkRenderingInputAttachmentIndexInfo);                                                  \
   COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO,                            \
@@ -871,7 +881,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_BUFFER_COLLECTION_IMAGE_CREATE_INFO_FUCHSIA:                        \
   case VK_STRUCTURE_TYPE_BUFFER_COLLECTION_PROPERTIES_FUCHSIA:                               \
   case VK_STRUCTURE_TYPE_BUFFER_CONSTRAINTS_INFO_FUCHSIA:                                    \
-  case VK_STRUCTURE_TYPE_BUFFER_USAGE_FLAGS_2_CREATE_INFO:                                   \
   case VK_STRUCTURE_TYPE_BUILD_PARTITIONED_ACCELERATION_STRUCTURE_INFO_NV:                   \
   case VK_STRUCTURE_TYPE_CHECKPOINT_DATA_2_NV:                                               \
   case VK_STRUCTURE_TYPE_CHECKPOINT_DATA_NV:                                                 \
@@ -915,7 +924,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_DEVICE_DIAGNOSTICS_CONFIG_CREATE_INFO_NV:                           \
   case VK_STRUCTURE_TYPE_DEVICE_FAULT_COUNTS_EXT:                                            \
   case VK_STRUCTURE_TYPE_DEVICE_FAULT_INFO_EXT:                                              \
-  case VK_STRUCTURE_TYPE_DEVICE_IMAGE_SUBRESOURCE_INFO:                                      \
   case VK_STRUCTURE_TYPE_DEVICE_MEMORY_REPORT_CALLBACK_DATA_EXT:                             \
   case VK_STRUCTURE_TYPE_DEVICE_PIPELINE_BINARY_INTERNAL_CACHE_CONTROL_KHR:                  \
   case VK_STRUCTURE_TYPE_DEVICE_QUEUE_SHADER_CORE_CONTROL_CREATE_INFO_ARM:                   \
@@ -962,7 +970,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT:                     \
   case VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT:                           \
   case VK_STRUCTURE_TYPE_IMAGE_FORMAT_CONSTRAINTS_INFO_FUCHSIA:                              \
-  case VK_STRUCTURE_TYPE_IMAGE_SUBRESOURCE_2:                                                \
   case VK_STRUCTURE_TYPE_IMAGE_TO_MEMORY_COPY:                                               \
   case VK_STRUCTURE_TYPE_IMAGE_VIEW_ADDRESS_PROPERTIES_NVX:                                  \
   case VK_STRUCTURE_TYPE_IMAGE_VIEW_CAPTURE_DESCRIPTOR_DATA_INFO_EXT:                        \
@@ -1102,8 +1109,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LEGACY_VERTEX_ATTRIBUTES_FEATURES_EXT:              \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LEGACY_VERTEX_ATTRIBUTES_PROPERTIES_EXT:            \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINEAR_COLOR_ATTACHMENT_FEATURES_NV:                \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_FEATURES:                             \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_PROPERTIES:                           \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_6_FEATURES:                             \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_6_PROPERTIES:                           \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_7_FEATURES_KHR:                         \
@@ -1190,7 +1195,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_PIPELINE_COVERAGE_MODULATION_STATE_CREATE_INFO_NV:                  \
   case VK_STRUCTURE_TYPE_PIPELINE_COVERAGE_REDUCTION_STATE_CREATE_INFO_NV:                   \
   case VK_STRUCTURE_TYPE_PIPELINE_COVERAGE_TO_COLOR_STATE_CREATE_INFO_NV:                    \
-  case VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO:                                \
   case VK_STRUCTURE_TYPE_PIPELINE_CREATE_INFO_KHR:                                           \
   case VK_STRUCTURE_TYPE_PIPELINE_FRAGMENT_SHADING_RATE_ENUM_STATE_CREATE_INFO_NV:           \
   case VK_STRUCTURE_TYPE_PIPELINE_INDIRECT_DEVICE_ADDRESS_INFO_NV:                           \
@@ -1227,7 +1231,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_RENDER_PASS_STRIPE_SUBMIT_INFO_ARM:                                 \
   case VK_STRUCTURE_TYPE_RENDER_PASS_SUBPASS_FEEDBACK_CREATE_INFO_EXT:                       \
   case VK_STRUCTURE_TYPE_RENDER_PASS_TRANSFORM_BEGIN_INFO_QCOM:                              \
-  case VK_STRUCTURE_TYPE_RENDERING_AREA_INFO:                                                \
   case VK_STRUCTURE_TYPE_SAMPLER_BLOCK_MATCH_WINDOW_CREATE_INFO_QCOM:                        \
   case VK_STRUCTURE_TYPE_SAMPLER_CAPTURE_DESCRIPTOR_DATA_INFO_EXT:                           \
   case VK_STRUCTURE_TYPE_SAMPLER_CUBIC_WEIGHTS_CREATE_INFO_QCOM:                             \
@@ -1242,7 +1245,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_STREAM_DESCRIPTOR_SURFACE_CREATE_INFO_GGP:                          \
   case VK_STRUCTURE_TYPE_SUBPASS_SHADING_PIPELINE_CREATE_INFO_HUAWEI:                        \
   case VK_STRUCTURE_TYPE_SUBRESOURCE_HOST_MEMCPY_SIZE:                                       \
-  case VK_STRUCTURE_TYPE_SUBRESOURCE_LAYOUT_2:                                               \
   case VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_PRESENT_BARRIER_NV:                            \
   case VK_STRUCTURE_TYPE_SWAPCHAIN_LATENCY_CREATE_INFO_NV:                                   \
   case VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_BARRIER_CREATE_INFO_NV:                           \
@@ -1519,6 +1521,15 @@ size_t GetNextPatchSize(const void *pNext)
 
         VkDeviceImageMemoryRequirements *info = (VkDeviceImageMemoryRequirements *)next;
         memSize += GetNextPatchSize(info->pCreateInfo);
+        break;
+      }
+      case VK_STRUCTURE_TYPE_DEVICE_IMAGE_SUBRESOURCE_INFO:
+      {
+        memSize += sizeof(VkDeviceImageSubresourceInfo);
+
+        VkDeviceImageSubresourceInfo *info = (VkDeviceImageSubresourceInfo *)next;
+        memSize += GetNextPatchSize(info->pCreateInfo);
+        memSize += GetNextPatchSize(info->pSubresource);
         break;
       }
       case VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO:
@@ -2190,7 +2201,7 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
         *out = *in;
         UnwrapInPlace(out->layout);
         UnwrapInPlace(out->stage.module);
-        if(out->flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
+        if(GetPipelineCreateFlags(out) & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
           UnwrapInPlace(out->basePipelineHandle);
 
         AppendModifiedChainedStruct(tempMem, out, nextChainTail);
@@ -2454,6 +2465,24 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
 
         break;
       }
+      case VK_STRUCTURE_TYPE_DEVICE_IMAGE_SUBRESOURCE_INFO:
+      {
+        const VkDeviceImageSubresourceInfo *in = (const VkDeviceImageSubresourceInfo *)nextInput;
+        VkDeviceImageSubresourceInfo *out = (VkDeviceImageSubresourceInfo *)tempMem;
+
+        // append immediately so tempMem is incremented
+        AppendModifiedChainedStruct(tempMem, out, nextChainTail);
+
+        *out = *in;
+        out->pCreateInfo = AllocStructCopy(tempMem, in->pCreateInfo);
+        UnwrapNextChain(state, "VkImageCreateInfo", tempMem, (VkBaseInStructure *)out->pCreateInfo);
+
+        out->pSubresource = AllocStructCopy(tempMem, in->pSubresource);
+        UnwrapNextChain(state, "VkImageSubresource2", tempMem,
+                        (VkBaseInStructure *)out->pSubresource);
+
+        break;
+      }
       case VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO:
       {
         const VkFramebufferCreateInfo *in = (const VkFramebufferCreateInfo *)nextInput;
@@ -2584,7 +2613,7 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
         out->layout = Unwrap(in->layout);
         out->renderPass = Unwrap(in->renderPass);
         out->subpass = in->subpass;
-        if(out->flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
+        if(GetPipelineCreateFlags(out) & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
           out->basePipelineHandle = Unwrap(in->basePipelineHandle);
         else
           out->basePipelineHandle = VK_NULL_HANDLE;
@@ -2733,7 +2762,7 @@ void UnwrapNextChain(CaptureState state, const char *structName, byte *&tempMem,
         UnwrapNextChain(state, "VkPipelineDynamicStateCreateInfo", tempMem,
                         (VkBaseInStructure *)out->pDynamicState);
         UnwrapInPlace(out->layout);
-        if(out->flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
+        if(GetPipelineCreateFlags(out) & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
           UnwrapInPlace(out->basePipelineHandle);
         else
           out->basePipelineHandle = VK_NULL_HANDLE;
@@ -3330,6 +3359,10 @@ void CopyNextChainForPatching(const char *structName, byte *&tempMem, VkBaseInSt
         break;
       case VK_STRUCTURE_TYPE_DEVICE_IMAGE_MEMORY_REQUIREMENTS:
         CopyNextChainedStruct(sizeof(VkDeviceImageMemoryRequirements), tempMem, nextInput,
+                              nextChainTail);
+        break;
+      case VK_STRUCTURE_TYPE_DEVICE_IMAGE_SUBRESOURCE_INFO:
+        CopyNextChainedStruct(sizeof(VkDeviceImageSubresourceInfo), tempMem, nextInput,
                               nextChainTail);
         break;
       case VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO:

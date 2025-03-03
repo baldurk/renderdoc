@@ -408,6 +408,7 @@ enum class TextureType
   BC5,
   BC6,
   BC7,
+  A8,
 };
 
 static const uint32_t texWidth = 8;

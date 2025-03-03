@@ -126,7 +126,7 @@ When not using pipeline libraries, this will be identical to :data:`pipelinePreR
 )");
   ResourceId pipelineFragmentLayoutResourceId;
   DOCUMENT("The flags used to create the pipeline object.");
-  uint32_t flags = 0;
+  uint64_t flags = 0;
 
   DOCUMENT(R"(The bound descriptor sets.
 
@@ -148,6 +148,9 @@ struct IndexBuffer
 
   DOCUMENT("The byte offset from the start of the buffer to the beginning of the index data.");
   uint64_t byteOffset = 0;
+
+  DOCUMENT("The byte size from the start offset to the end of the index data.");
+  uint64_t byteSize = 0;
 
   DOCUMENT(R"(The number of bytes for each index in the index buffer. Typically 2 or 4 bytes but
 it can be 0 if no index buffer is bound.

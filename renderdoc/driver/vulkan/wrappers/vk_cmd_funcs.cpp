@@ -3875,6 +3875,7 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(SerialiserType &ser,
           VulkanRenderState &renderstate = GetCmdRenderState();
           renderstate.ibuffer.buf = GetResID(buffer);
           renderstate.ibuffer.offs = offset;
+          renderstate.ibuffer.size = VK_WHOLE_SIZE;
 
           if(indexType == VK_INDEX_TYPE_UINT32)
             renderstate.ibuffer.bytewidth = 4;
@@ -8513,6 +8514,94 @@ void WrappedVulkan::vkCmdBindShadersEXT(VkCommandBuffer commandBuffer, uint32_t 
   }
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer2KHR(SerialiserType &ser,
+                                                       VkCommandBuffer commandBuffer,
+                                                       VkBuffer buffer, VkDeviceSize offset,
+                                                       VkDeviceSize size, VkIndexType indexType)
+{
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT(buffer).Important();
+  SERIALISE_ELEMENT(offset).OffsetOrSize();
+  SERIALISE_ELEMENT(size).OffsetOrSize();
+  SERIALISE_ELEMENT(indexType).Important();
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+        ObjDisp(commandBuffer)
+            ->CmdBindIndexBuffer2KHR(Unwrap(commandBuffer), Unwrap(buffer), offset, size, indexType);
+
+        {
+          VulkanRenderState &renderstate = GetCmdRenderState();
+          renderstate.ibuffer.buf = GetResID(buffer);
+          renderstate.ibuffer.offs = offset;
+          renderstate.ibuffer.size = size;
+
+          if(indexType == VK_INDEX_TYPE_UINT32)
+            renderstate.ibuffer.bytewidth = 4;
+          else if(indexType == VK_INDEX_TYPE_UINT8_KHR)
+            renderstate.ibuffer.bytewidth = 1;
+          else
+            renderstate.ibuffer.bytewidth = 2;
+        }
+      }
+    }
+    else
+    {
+      // track while reading, as we need to bind current topology & index byte width in AddAction
+      if(indexType == VK_INDEX_TYPE_UINT32)
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.bytewidth = 4;
+      else if(indexType == VK_INDEX_TYPE_UINT8_KHR)
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.bytewidth = 1;
+      else
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.bytewidth = 2;
+
+      // track while reading, as we need to track resource usage
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.buf = GetResID(buffer);
+
+      ObjDisp(commandBuffer)
+          ->CmdBindIndexBuffer2KHR(Unwrap(commandBuffer), Unwrap(buffer), offset, size, indexType);
+    }
+  }
+
+  return true;
+}
+
+void WrappedVulkan::vkCmdBindIndexBuffer2KHR(VkCommandBuffer commandBuffer, VkBuffer buffer,
+                                             VkDeviceSize offset, VkDeviceSize size,
+                                             VkIndexType indexType)
+{
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)
+          ->CmdBindIndexBuffer2KHR(Unwrap(commandBuffer), Unwrap(buffer), offset, size, indexType));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdBindIndexBuffer2KHR);
+    Serialise_vkCmdBindIndexBuffer2KHR(ser, commandBuffer, buffer, offset, size, indexType);
+
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
+    record->MarkBufferFrameReferenced(GetRecord(buffer), offset, size, eFrameRef_Read);
+  }
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateCommandPool, VkDevice device,
                                 const VkCommandPoolCreateInfo *pCreateInfo,
                                 const VkAllocationCallbacks *, VkCommandPool *pCommandPool);
@@ -8704,3 +8793,7 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdWriteAccelerationStructuresProperties
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBindShadersEXT, VkCommandBuffer commandBuffer,
                                 uint32_t stageCount, const VkShaderStageFlagBits *pStages,
                                 const VkShaderEXT *pShaders);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBindIndexBuffer2KHR, VkCommandBuffer commandBuffer,
+                                VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size,
+                                VkIndexType indexType);

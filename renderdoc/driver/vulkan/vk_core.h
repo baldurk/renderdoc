@@ -484,6 +484,7 @@ private:
   bool m_ListRestart = false;
   bool m_AccelerationStructures = false;
   bool m_ShaderObject = false;
+  bool m_Maintenance5 = false;
 
   uint32_t m_RTCaptureReplayHandleSize = 0;
 
@@ -1024,6 +1025,7 @@ private:
                        VkSampleCountFlagBits samples);
   void PatchImageViewUsage(VkImageViewUsageCreateInfo *usage, VkFormat imgFormat,
                            VkSampleCountFlagBits samples);
+  void PatchImageCreateInfo(VkImageCreateInfo *pInfo, VkFormat *newViewFormats);
 
   VkIndirectPatchData FetchIndirectData(VkIndirectPatchType type, VkCommandBuffer commandBuffer,
                                         VkBuffer dataBuffer, VkDeviceSize dataOffset, uint32_t count,
@@ -1378,6 +1380,7 @@ public:
   bool ListRestart() const { return m_ListRestart; }
   bool AccelerationStructures() const { return m_AccelerationStructures; }
   bool ShaderObject() const { return m_ShaderObject; }
+  bool Maintenance5() const { return m_Maintenance5; }
   VulkanRenderState &GetRenderState() { return m_RenderState; }
   void SetActionCB(VulkanActionCallback *cb) { m_ActionCallback = cb; }
   void SetSubmitChain(void *submitChain) { m_SubmitChain = submitChain; }
@@ -3028,4 +3031,18 @@ public:
   // VK_KHR_ray_tracing_maintenance1
   IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdTraceRaysIndirect2KHR, VkCommandBuffer commandBuffer,
                                 VkDeviceAddress indirectDeviceAddress);
+
+  // VK_KHR_maintenance5
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindIndexBuffer2KHR, VkCommandBuffer commandBuffer,
+                                VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size,
+                                VkIndexType indexType);
+  void vkGetDeviceImageSubresourceLayoutKHR(VkDevice device,
+                                            const VkDeviceImageSubresourceInfo *pInfo,
+                                            VkSubresourceLayout2 *pLayout);
+  void vkGetImageSubresourceLayout2KHR(VkDevice device, VkImage image,
+                                       const VkImageSubresource2 *pSubresource,
+                                       VkSubresourceLayout2 *pLayout);
+  void vkGetRenderingAreaGranularityKHR(VkDevice device,
+                                        const VkRenderingAreaInfo *pRenderingAreaInfo,
+                                        VkExtent2D *pGranularity);
 };
