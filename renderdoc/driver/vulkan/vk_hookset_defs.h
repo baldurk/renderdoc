@@ -547,7 +547,8 @@
   DeclExt(KHR_shader_subgroup_uniform_control_flow);   \
   DeclExt(KHR_ray_tracing_maintenance1);               \
   DeclExt(KHR_maintenance5);                           \
-  DeclExt(EXT_image_compression_control);
+  DeclExt(EXT_image_compression_control);              \
+  DeclExt(EXT_image_compression_control_swapchain);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -684,7 +685,8 @@
   CheckExt(KHR_shader_subgroup_uniform_control_flow, VKXX);   \
   CheckExt(KHR_ray_tracing_maintenance1, VKXX);               \
   CheckExt(KHR_maintenance5, VKXX);                           \
-  CheckExt(EXT_image_compression_control, VKXX);
+  CheckExt(EXT_image_compression_control, VKXX);              \
+  CheckExt(EXT_image_compression_control_swapchain, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
