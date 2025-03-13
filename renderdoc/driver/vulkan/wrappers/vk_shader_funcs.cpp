@@ -29,16 +29,22 @@
 
 RDOC_EXTERN_CONFIG(bool, Replay_Debug_SingleThreadedCompilation);
 
-static RDResult DeferredPipelineCompile(VkDevice device,
+RDOC_CONFIG(bool, Vulkan_Debug_UsePipelineCacheForReplay, true,
+            "Use application-provided pipeline cache when compiling shaders on replay");
+
+static RDResult DeferredPipelineCompile(VkDevice device, VkPipelineCache pipelineCache,
                                         const VkGraphicsPipelineCreateInfo &createInfo,
                                         WrappedVkPipeline *wrappedPipe)
 {
+  if(!Vulkan_Debug_UsePipelineCacheForReplay())
+    pipelineCache = VK_NULL_HANDLE;
+
   byte *mem = AllocAlignedBuffer(GetNextPatchSize(&createInfo));
   VkGraphicsPipelineCreateInfo *unwrapped =
       UnwrapStructAndChain(CaptureState::LoadingReplaying, mem, &createInfo);
 
   VkPipeline realPipe;
-  VkResult ret = ObjDisp(device)->CreateGraphicsPipelines(Unwrap(device), VK_NULL_HANDLE, 1,
+  VkResult ret = ObjDisp(device)->CreateGraphicsPipelines(Unwrap(device), Unwrap(pipelineCache), 1,
                                                           unwrapped, NULL, &realPipe);
 
   FreeAlignedBuffer((byte *)unwrapped);
@@ -54,16 +60,19 @@ static RDResult DeferredPipelineCompile(VkDevice device,
   return ResultCode::Succeeded;
 }
 
-static RDResult DeferredPipelineCompile(VkDevice device,
+static RDResult DeferredPipelineCompile(VkDevice device, VkPipelineCache pipelineCache,
                                         const VkComputePipelineCreateInfo &createInfo,
                                         WrappedVkPipeline *wrappedPipe)
 {
+  if(!Vulkan_Debug_UsePipelineCacheForReplay())
+    pipelineCache = VK_NULL_HANDLE;
+
   byte *mem = AllocAlignedBuffer(GetNextPatchSize(&createInfo));
   VkComputePipelineCreateInfo *unwrapped =
       UnwrapStructAndChain(CaptureState::LoadingReplaying, mem, &createInfo);
 
   VkPipeline realPipe;
-  VkResult ret = ObjDisp(device)->CreateComputePipelines(Unwrap(device), VK_NULL_HANDLE, 1,
+  VkResult ret = ObjDisp(device)->CreateComputePipelines(Unwrap(device), Unwrap(pipelineCache), 1,
                                                          unwrapped, NULL, &realPipe);
 
   FreeAlignedBuffer((byte *)unwrapped);
@@ -79,12 +88,15 @@ static RDResult DeferredPipelineCompile(VkDevice device,
   return ResultCode::Succeeded;
 }
 
-static RDResult DeferredPipelineCompile(VkDevice device,
+static RDResult DeferredPipelineCompile(VkDevice device, VkPipelineCache pipelineCache,
                                         const VkRayTracingPipelineCreateInfoKHR &createInfo,
                                         const bytebuf &replayHandles,
                                         uint32_t captureReplayHandleSize,
                                         WrappedVkPipeline *wrappedPipe)
 {
+  if(!Vulkan_Debug_UsePipelineCacheForReplay())
+    pipelineCache = VK_NULL_HANDLE;
+
   byte *mem = AllocAlignedBuffer(GetNextPatchSize(&createInfo));
   VkRayTracingPipelineCreateInfoKHR *unwrapped =
       UnwrapStructAndChain(CaptureState::LoadingReplaying, mem, &createInfo);
@@ -98,7 +110,7 @@ static RDResult DeferredPipelineCompile(VkDevice device,
 
   VkPipeline realPipe;
   VkResult ret = ObjDisp(device)->CreateRayTracingPipelinesKHR(
-      Unwrap(device), VK_NULL_HANDLE, VK_NULL_HANDLE, 1, unwrapped, NULL, &realPipe);
+      Unwrap(device), VK_NULL_HANDLE, Unwrap(pipelineCache), 1, unwrapped, NULL, &realPipe);
 
   FreeAlignedBuffer((byte *)unwrapped);
 
@@ -660,18 +672,7 @@ VkResult WrappedVulkan::vkCreatePipelineCache(VkDevice device,
                                               const VkAllocationCallbacks *,
                                               VkPipelineCache *pPipelineCache)
 {
-  // pretend the user didn't provide any cache data
-
   VkPipelineCacheCreateInfo createInfo = *pCreateInfo;
-  createInfo.initialDataSize = 0;
-  createInfo.pInitialData = NULL;
-
-  if(pCreateInfo->initialDataSize > 0)
-  {
-    RDCWARN(
-        "Application provided pipeline cache data! This is invalid, as RenderDoc reports "
-        "incompatibility with previous caches");
-  }
 
   VkResult ret;
   SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreatePipelineCache(Unwrap(device), &createInfo, NULL,
@@ -726,10 +727,6 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
     VkPipeline pipe = VK_NULL_HANDLE;
 
     VkRenderPass origRP = CreateInfo.renderPass;
-    VkPipelineCache origCache = pipelineCache;
-
-    // don't use pipeline caches on replay
-    pipelineCache = VK_NULL_HANDLE;
 
     // if we have pipeline executable properties, capture the data
     if(GetExtensions(NULL).ext_KHR_pipeline_executable_properties)
@@ -852,8 +849,8 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
     }
 
     DerivedResource(device, Pipeline);
-    if(origCache != VK_NULL_HANDLE)
-      DerivedResource(origCache, Pipeline);
+    if(pipelineCache != VK_NULL_HANDLE)
+      DerivedResource(pipelineCache, Pipeline);
     if(OrigCreateInfo.flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
     {
       if(OrigCreateInfo.basePipelineHandle != VK_NULL_HANDLE)
@@ -887,8 +884,8 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
     {
       for(rdcpair<VkGraphicsPipelineCreateInfo, VkPipeline> &deferredPipe : pipelinesToCompile)
       {
-        RDResult res =
-            DeferredPipelineCompile(device, deferredPipe.first, GetWrapped(deferredPipe.second));
+        RDResult res = DeferredPipelineCompile(device, pipelineCache, deferredPipe.first,
+                                               GetWrapped(deferredPipe.second));
 
         if(res != ResultCode::Succeeded)
         {
@@ -908,10 +905,11 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
       {
         WrappedVkPipeline *wrappedPipe = GetWrapped(deferredPipe.second);
         wrappedPipe->deferredJob = Threading::JobSystem::AddJob(
-            [wrappedVulkan = this, device, createInfo = deferredPipe.first, wrappedPipe]() {
+            [wrappedVulkan = this, device, pipelineCache, createInfo = deferredPipe.first,
+             wrappedPipe]() {
               PerformanceTimer timer;
               wrappedVulkan->CheckDeferredResult(
-                  DeferredPipelineCompile(device, createInfo, wrappedPipe));
+                  DeferredPipelineCompile(device, pipelineCache, createInfo, wrappedPipe));
               wrappedVulkan->AddDeferredTime(timer.GetMilliseconds());
             },
             parents);
@@ -1074,11 +1072,6 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
   {
     VkPipeline pipe = VK_NULL_HANDLE;
 
-    VkPipelineCache origCache = pipelineCache;
-
-    // don't use pipeline caches on replay
-    pipelineCache = VK_NULL_HANDLE;
-
     // if we have pipeline executable properties, capture the data
     if(GetExtensions(NULL).ext_KHR_pipeline_executable_properties)
     {
@@ -1152,7 +1145,7 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
 
     if(Replay_Debug_SingleThreadedCompilation())
     {
-      RDResult res = DeferredPipelineCompile(device, OrigCreateInfo, GetWrapped(pipe));
+      RDResult res = DeferredPipelineCompile(device, pipelineCache, OrigCreateInfo, GetWrapped(pipe));
       Deserialise(OrigCreateInfo);
 
       if(res != ResultCode::Succeeded)
@@ -1164,11 +1157,11 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
     else
     {
       WrappedVkPipeline *wrappedPipe = GetWrapped(pipe);
-      wrappedPipe->deferredJob =
-          Threading::JobSystem::AddJob([wrappedVulkan = this, device, OrigCreateInfo, wrappedPipe]() {
+      wrappedPipe->deferredJob = Threading::JobSystem::AddJob(
+          [wrappedVulkan = this, device, pipelineCache, OrigCreateInfo, wrappedPipe]() {
             PerformanceTimer timer;
             wrappedVulkan->CheckDeferredResult(
-                DeferredPipelineCompile(device, OrigCreateInfo, wrappedPipe));
+                DeferredPipelineCompile(device, pipelineCache, OrigCreateInfo, wrappedPipe));
             wrappedVulkan->AddDeferredTime(timer.GetMilliseconds());
 
             Deserialise(OrigCreateInfo);
@@ -1176,8 +1169,8 @@ bool WrappedVulkan::Serialise_vkCreateComputePipelines(SerialiserType &ser, VkDe
     }
 
     DerivedResource(device, Pipeline);
-    if(origCache != VK_NULL_HANDLE)
-      DerivedResource(origCache, Pipeline);
+    if(pipelineCache != VK_NULL_HANDLE)
+      DerivedResource(pipelineCache, Pipeline);
     if(OrigCreateInfo.flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
     {
       if(OrigCreateInfo.basePipelineHandle != VK_NULL_HANDLE)
@@ -1360,11 +1353,6 @@ bool WrappedVulkan::Serialise_vkCreateRayTracingPipelinesKHR(
 
     VkPipeline pipe = VK_NULL_HANDLE;
 
-    VkPipelineCache origCache = pipelineCache;
-
-    // don't use pipeline caches on replay
-    pipelineCache = VK_NULL_HANDLE;
-
     // don't fail when a compile is required because we don't currently replay caches so this will
     // always happen. This still allows application to use this flag at runtime where it will be
     // valid
@@ -1390,8 +1378,8 @@ bool WrappedVulkan::Serialise_vkCreateRayTracingPipelinesKHR(
     pipeInfo.Init(GetResourceManager(), m_CreationInfo, live, &OrigCreateInfo);
 
     DerivedResource(device, Pipeline);
-    if(origCache != VK_NULL_HANDLE)
-      DerivedResource(origCache, Pipeline);
+    if(pipelineCache != VK_NULL_HANDLE)
+      DerivedResource(pipelineCache, Pipeline);
     if(OrigCreateInfo.flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)
     {
       if(OrigCreateInfo.basePipelineHandle != VK_NULL_HANDLE)
@@ -1418,8 +1406,9 @@ bool WrappedVulkan::Serialise_vkCreateRayTracingPipelinesKHR(
 
     if(Replay_Debug_SingleThreadedCompilation())
     {
-      RDResult res = DeferredPipelineCompile(device, OrigCreateInfo, *OrigReplayHandles,
-                                             captureReplayHandleSize, GetWrapped(pipe));
+      RDResult res =
+          DeferredPipelineCompile(device, pipelineCache, OrigCreateInfo, *OrigReplayHandles,
+                                  captureReplayHandleSize, GetWrapped(pipe));
       if(res == ResultCode::APIHardwareUnsupported)
         res.message = rdcstr(res.message) + "\n" + GetPhysDeviceCompatString(false, false);
       Deserialise(OrigCreateInfo);
@@ -1435,11 +1424,12 @@ bool WrappedVulkan::Serialise_vkCreateRayTracingPipelinesKHR(
     {
       WrappedVkPipeline *wrappedPipe = GetWrapped(pipe);
       wrappedPipe->deferredJob = Threading::JobSystem::AddJob(
-          [wrappedVulkan = this, device, OrigCreateInfo, OrigReplayHandles, captureReplayHandleSize,
-           wrappedPipe]() {
+          [wrappedVulkan = this, device, pipelineCache, OrigCreateInfo, OrigReplayHandles,
+           captureReplayHandleSize, wrappedPipe]() {
             PerformanceTimer timer;
-            RDResult res = DeferredPipelineCompile(device, OrigCreateInfo, *OrigReplayHandles,
-                                                   captureReplayHandleSize, wrappedPipe);
+            RDResult res =
+                DeferredPipelineCompile(device, pipelineCache, OrigCreateInfo, *OrigReplayHandles,
+                                        captureReplayHandleSize, wrappedPipe);
             wrappedVulkan->AddDeferredTime(timer.GetMilliseconds());
             if(res == ResultCode::APIHardwareUnsupported)
               res.message = rdcstr(res.message) + "\n" +

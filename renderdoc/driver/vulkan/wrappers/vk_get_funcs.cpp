@@ -234,10 +234,6 @@ void WrappedVulkan::vkGetPhysicalDeviceProperties(VkPhysicalDevice physicalDevic
 {
   ObjDisp(physicalDevice)->GetPhysicalDeviceProperties(Unwrap(physicalDevice), pProperties);
 
-  MakeFakeUUID();
-
-  memcpy(pProperties->pipelineCacheUUID, fakeRenderDocUUID, VK_UUID_SIZE);
-
   ClampPhysDevAPIVersion(pProperties, physicalDevice);
 }
 
@@ -639,49 +635,8 @@ void WrappedVulkan::vkGetRenderAreaGranularity(VkDevice device, VkRenderPass ren
 VkResult WrappedVulkan::vkGetPipelineCacheData(VkDevice device, VkPipelineCache pipelineCache,
                                                size_t *pDataSize, void *pData)
 {
-  // required header and 4 NULL bytes
-  size_t totalSize = sizeof(VkPipelineCacheHeaderVersionOne) + 4;
-
-  if(pDataSize && !pData)
-    *pDataSize = totalSize;
-
-  if(pDataSize && pData)
-  {
-    if(*pDataSize < totalSize)
-    {
-      memset(pData, 0, *pDataSize);
-      return VK_INCOMPLETE;
-    }
-
-    VkPipelineCacheHeaderVersionOne *header = (VkPipelineCacheHeaderVersionOne *)pData;
-
-    RDCCOMPILE_ASSERT(sizeof(VkPipelineCacheHeaderVersionOne) == 16 + VK_UUID_SIZE,
-                      "Pipeline cache header size is wrong");
-
-    header->headerSize = sizeof(VkPipelineCacheHeaderVersionOne);
-    header->headerVersion = VK_PIPELINE_CACHE_HEADER_VERSION_ONE;
-    // just in case the user expects a valid vendorID/deviceID, write the real one
-    // MULTIDEVICE need to get the right physical device for this device
-    header->vendorID = m_PhysicalDeviceData.props.vendorID;
-    header->deviceID = m_PhysicalDeviceData.props.deviceID;
-
-    MakeFakeUUID();
-
-    memcpy(header->pipelineCacheUUID, fakeRenderDocUUID, VK_UUID_SIZE);
-
-    RDCCOMPILE_ASSERT(VK_UUID_SIZE == 16, "VK_UUID_SIZE has changed");
-
-    // empty bytes
-    uint32_t *ptr = (uint32_t *)(header + 1);
-    *ptr = 0;
-  }
-
-  // we don't want the application to use pipeline caches at all, and especially
-  // don't want to return any data for future use. We thus return a technically
-  // valid but empty pipeline cache. Our UUID changes every run so in theory the
-  // application should never provide an old cache, but just in case we will nop
-  // it out in create pipeline cache
-  return VK_SUCCESS;
+  return ObjDisp(device)->GetPipelineCacheData(Unwrap(device), Unwrap(pipelineCache), pDataSize,
+                                               pData);
 }
 
 VkResult WrappedVulkan::vkMergePipelineCaches(VkDevice device, VkPipelineCache destCache,
@@ -689,7 +644,16 @@ VkResult WrappedVulkan::vkMergePipelineCaches(VkDevice device, VkPipelineCache d
                                               const VkPipelineCache *pSrcCaches)
 {
   // do nothing, our pipeline caches are always dummies
-  return VK_SUCCESS;
+  rdcarray<VkPipelineCache> unwrappedPipelineCaches;
+
+  unwrappedPipelineCaches.reserve(srcCacheCount);
+  for(uint32_t cacheIndex = 0; cacheIndex < srcCacheCount; cacheIndex++)
+  {
+    unwrappedPipelineCaches.push_back(Unwrap(pSrcCaches[cacheIndex]));
+  }
+
+  return ObjDisp(device)->MergePipelineCaches(Unwrap(device), Unwrap(destCache), srcCacheCount,
+                                              unwrappedPipelineCaches.data());
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceExternalImageFormatPropertiesNV(
@@ -893,10 +857,6 @@ void WrappedVulkan::vkGetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevi
 {
   ObjDisp(physicalDevice)->GetPhysicalDeviceProperties2(Unwrap(physicalDevice), pProperties);
 
-  MakeFakeUUID();
-
-  memcpy(pProperties->properties.pipelineCacheUUID, fakeRenderDocUUID, VK_UUID_SIZE);
-
   ClampPhysDevAPIVersion(&pProperties->properties, physicalDevice);
 
   // internal RenderDoc UUID for shader object binary
@@ -906,6 +866,8 @@ void WrappedVulkan::vkGetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevi
 
   if(shadObj)
   {
+    MakeFakeUUID();
+
     memcpy(shadObj->shaderBinaryUUID, fakeRenderDocUUID, VK_UUID_SIZE);
   }
 }
