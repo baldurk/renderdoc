@@ -1324,3 +1324,11 @@ void WrappedVulkan::vkGetRenderingAreaGranularityKHR(VkDevice device,
 {
   ObjDisp(device)->GetRenderingAreaGranularityKHR(Unwrap(device), pRenderingAreaInfo, pGranularity);
 }
+
+void WrappedVulkan::vkGetImageSubresourceLayout2EXT(VkDevice device, VkImage image,
+                                                    const VkImageSubresource2 *pSubresource,
+                                                    VkSubresourceLayout2 *pLayout)
+{
+  ObjDisp(device)->GetImageSubresourceLayout2EXT(Unwrap(device), Unwrap(image), pSubresource,
+                                                 pLayout);
+}

@@ -3045,4 +3045,9 @@ public:
   void vkGetRenderingAreaGranularityKHR(VkDevice device,
                                         const VkRenderingAreaInfo *pRenderingAreaInfo,
                                         VkExtent2D *pGranularity);
+
+  // VK_EXT_image_compression_control
+  void vkGetImageSubresourceLayout2EXT(VkDevice device, VkImage image,
+                                       const VkImageSubresource2 *pSubresource,
+                                       VkSubresourceLayout2 *pLayout);
 };

@@ -546,7 +546,8 @@
   DeclExt(EXT_shader_subgroup_vote);                   \
   DeclExt(KHR_shader_subgroup_uniform_control_flow);   \
   DeclExt(KHR_ray_tracing_maintenance1);               \
-  DeclExt(KHR_maintenance5);
+  DeclExt(KHR_maintenance5);                           \
+  DeclExt(EXT_image_compression_control);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -682,7 +683,8 @@
   CheckExt(EXT_shader_subgroup_vote, VK11);                   \
   CheckExt(KHR_shader_subgroup_uniform_control_flow, VKXX);   \
   CheckExt(KHR_ray_tracing_maintenance1, VKXX);               \
-  CheckExt(KHR_maintenance5, VKXX);
+  CheckExt(KHR_maintenance5, VKXX);                           \
+  CheckExt(EXT_image_compression_control, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
@@ -1053,6 +1055,7 @@
   HookInitExtension(KHR_maintenance5, GetDeviceImageSubresourceLayoutKHR);                           \
   HookInitExtension(KHR_maintenance5, GetImageSubresourceLayout2KHR);                                \
   HookInitExtension(KHR_maintenance5, GetRenderingAreaGranularityKHR);                               \
+  HookInitExtension(EXT_image_compression_control, GetImageSubresourceLayout2EXT);                   \
   HookInitExtension_Device_Win32();                                                                  \
   HookInitExtension_Device_Linux();                                                                  \
   HookInitExtension_Device_Android();                                                                \
@@ -1968,6 +1971,8 @@
               const VkImageSubresource2 *, pSubresource, VkSubresourceLayout2 *, pLayout);           \
   HookDefine3(void, vkGetRenderingAreaGranularityKHR, VkDevice, device,                              \
               const VkRenderingAreaInfo *, pRenderingAreaInfo, VkExtent2D *, pGranularity);          \
+  HookDefine4(void, vkGetImageSubresourceLayout2EXT, VkDevice, device, VkImage, image,               \
+              const VkImageSubresource2 *, pSubresource, VkSubresourceLayout2 *, pLayout);           \
   HookDefine_Win32();                                                                                \
   HookDefine_Linux();                                                                                \
   HookDefine_Android();                                                                              \

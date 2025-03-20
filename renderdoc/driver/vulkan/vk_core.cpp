@@ -1153,6 +1153,10 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_IMAGE_2D_VIEW_OF_3D_SPEC_VERSION,
     },
     {
+        VK_EXT_IMAGE_COMPRESSION_CONTROL_EXTENSION_NAME,
+        VK_EXT_IMAGE_COMPRESSION_CONTROL_SPEC_VERSION,
+    },
+    {
         VK_EXT_IMAGE_ROBUSTNESS_EXTENSION_NAME,
         VK_EXT_IMAGE_ROBUSTNESS_SPEC_VERSION,
     },
