@@ -175,9 +175,7 @@ bool AMDCounters::Init(ApiType apiType, void *pContext)
     return false;
   }
 
-  status = m_pGPUPerfAPI->GpaOpenContext(
-      pContext, kGpaOpenContextHideSoftwareCountersBit | kGpaOpenContextClockModeNoneBit,
-      &m_gpaContextId);
+  status = m_pGPUPerfAPI->GpaOpenContext(pContext, kGpaOpenContextClockModeNoneBit, &m_gpaContextId);
   if(AMD_FAILED(status))
   {
     GPA_WARNING("Open context for counters failed", status);
@@ -229,7 +227,17 @@ std::map<uint32_t, CounterDescription> AMDCounters::EnumerateCounters()
   std::map<uint32_t, CounterDescription> counters;
 
   GpaUInt32 num;
-  GpaStatus status = m_pGPUPerfAPI->GpaGetNumCounters(m_gpaContextId, &num);
+  GpaSessionId sessionId;
+  GpaStatus status = m_pGPUPerfAPI->GpaCreateSession(
+      m_gpaContextId, kGpaSessionSampleTypeDiscreteCounter, &sessionId);
+
+  if(AMD_FAILED(status))
+  {
+    GPA_ERROR("Unable to create GPA session for counter interrogation.", status);
+    return counters;
+  }
+
+  status = m_pGPUPerfAPI->GpaGetNumCounters(sessionId, &num);
   if(AMD_FAILED(status))
   {
     GPA_ERROR("Get number of counters", status);
@@ -240,7 +248,7 @@ std::map<uint32_t, CounterDescription> AMDCounters::EnumerateCounters()
   {
     GpaUsageType usageType;
 
-    status = m_pGPUPerfAPI->GpaGetCounterUsageType(m_gpaContextId, i, &usageType);
+    status = m_pGPUPerfAPI->GpaGetCounterUsageType(sessionId, i, &usageType);
     if(AMD_FAILED(status))
     {
       GPA_ERROR("Get counter usage type.", status);
@@ -253,12 +261,18 @@ std::map<uint32_t, CounterDescription> AMDCounters::EnumerateCounters()
       continue;
     }
 
-    CounterDescription desc = InternalGetCounterDescription(i);
+    CounterDescription desc = InternalGetCounterDescription(sessionId, i);
 
     desc.counter = MakeAMDCounter(i);
     counters[i] = desc;
 
     m_PublicToInternalCounter[desc.counter] = i;
+  }
+
+  status = m_pGPUPerfAPI->GpaDeleteSession(sessionId);
+  if(AMD_FAILED(status))
+  {
+    GPA_ERROR("Unable to close the GPA session.", status);
   }
 
   return counters;
@@ -280,11 +294,12 @@ CounterDescription AMDCounters::GetCounterDescription(GPUCounter counter)
   return m_Counters[m_PublicToInternalCounter[counter]];
 }
 
-CounterDescription AMDCounters::InternalGetCounterDescription(uint32_t internalIndex)
+CounterDescription AMDCounters::InternalGetCounterDescription(GpaSessionId sessionId,
+                                                              uint32_t internalIndex)
 {
   CounterDescription desc = {};
   const char *tmp = NULL;
-  GpaStatus status = m_pGPUPerfAPI->GpaGetCounterName(m_gpaContextId, internalIndex, &tmp);
+  GpaStatus status = m_pGPUPerfAPI->GpaGetCounterName(sessionId, internalIndex, &tmp);
   if(AMD_FAILED(status))
   {
     GPA_ERROR("Get counter name.", status);
@@ -292,7 +307,7 @@ CounterDescription AMDCounters::InternalGetCounterDescription(uint32_t internalI
   }
 
   desc.name = tmp;
-  status = m_pGPUPerfAPI->GpaGetCounterDescription(m_gpaContextId, internalIndex, &tmp);
+  status = m_pGPUPerfAPI->GpaGetCounterDescription(sessionId, internalIndex, &tmp);
   if(AMD_FAILED(status))
   {
     GPA_ERROR("Get counter description.", status);
@@ -300,7 +315,7 @@ CounterDescription AMDCounters::InternalGetCounterDescription(uint32_t internalI
   }
 
   desc.description = tmp;
-  status = m_pGPUPerfAPI->GpaGetCounterGroup(m_gpaContextId, internalIndex, &tmp);
+  status = m_pGPUPerfAPI->GpaGetCounterGroup(sessionId, internalIndex, &tmp);
   if(AMD_FAILED(status))
   {
     GPA_ERROR("Get counter category.", status);
@@ -310,7 +325,7 @@ CounterDescription AMDCounters::InternalGetCounterDescription(uint32_t internalI
   desc.category = tmp;
 
   GpaUsageType usageType;
-  status = m_pGPUPerfAPI->GpaGetCounterUsageType(m_gpaContextId, internalIndex, &usageType);
+  status = m_pGPUPerfAPI->GpaGetCounterUsageType(sessionId, internalIndex, &usageType);
   if(AMD_FAILED(status))
   {
     GPA_ERROR("Get counter usage type.", status);
@@ -345,7 +360,7 @@ CounterDescription AMDCounters::InternalGetCounterDescription(uint32_t internalI
   }
 
   GpaDataType type;
-  status = m_pGPUPerfAPI->GpaGetCounterDataType(m_gpaContextId, internalIndex, &type);
+  status = m_pGPUPerfAPI->GpaGetCounterDataType(sessionId, internalIndex, &type);
   if(AMD_FAILED(status))
   {
     GPA_ERROR("Get counter data type.", status);
@@ -367,7 +382,7 @@ CounterDescription AMDCounters::InternalGetCounterDescription(uint32_t internalI
   }
 
   GpaUuid gpa_uuid;
-  status = m_pGPUPerfAPI->GpaGetCounterUuid(m_gpaContextId, internalIndex, &gpa_uuid);
+  status = m_pGPUPerfAPI->GpaGetCounterUuid(sessionId, internalIndex, &gpa_uuid);
   if(AMD_FAILED(status))
   {
     GPA_ERROR("Get counter UUID.", status);
@@ -419,9 +434,8 @@ bool AMDCounters::BeginMeasurementMode(ApiType apiType, void *pContext)
   RDCASSERT(pContext);
   RDCASSERT(!m_gpaContextId);
 
-  GpaStatus status = m_pGPUPerfAPI->GpaOpenContext(
-      pContext, kGpaOpenContextHideSoftwareCountersBit | kGpaOpenContextClockModePeakBit,
-      &m_gpaContextId);
+  GpaStatus status =
+      m_pGPUPerfAPI->GpaOpenContext(pContext, kGpaOpenContextClockModePeakBit, &m_gpaContextId);
   if(AMD_FAILED(status))
   {
     GPA_WARNING("Creating context for analysis failed", status);
@@ -592,7 +606,7 @@ rdcarray<CounterResult> AMDCounters::GetCounterData(uint32_t sessionID, uint32_t
       const uint32_t internalIndex = m_PublicToInternalCounter[counters[c]];
 
       GpaUsageType usageType;
-      status = m_pGPUPerfAPI->GpaGetCounterUsageType(m_gpaContextId, internalIndex, &usageType);
+      status = m_pGPUPerfAPI->GpaGetCounterUsageType(gpaSessionId, internalIndex, &usageType);
 
       if(AMD_FAILED(status))
       {
