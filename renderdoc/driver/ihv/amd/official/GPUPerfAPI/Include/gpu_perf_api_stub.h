@@ -1,5 +1,5 @@
 //==============================================================================
-// Copyright (c) 2018-2021 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2018-2025 Advanced Micro Devices, Inc. All rights reserved.
 /// @author AMD Developer Tools Team
 /// @file
 /// @brief  GPA Stub entry points.
@@ -57,47 +57,61 @@ static inline GpaStatus GpaGetDeviceName(GpaContextId gpa_context_id, const char
     RETURN_GPA_SUCCESS;
 }
 
-static inline GpaStatus GpaGetNumCounters(GpaContextId gpa_context_id, GpaUInt32* number_of_counters)
+static inline GpaStatus GpaUpdateDeviceInformation(GpaContextId context_id,
+                                                   GpaUInt32    num_shader_engines,
+                                                   GpaUInt32    num_compute_units,
+                                                   GpaUInt32    num_simds,
+                                                   GpaUInt32    num_waves_per_simd)
 {
     RETURN_GPA_SUCCESS;
 }
 
-static inline GpaStatus GpaGetCounterName(GpaContextId gpa_context_id, GpaUInt32 index, const char** counter_name)
+static inline GpaStatus GpaGetDeviceGeneration(GpaContextId gpa_context_id, GpaHwGeneration* hardware_generation)
 {
     RETURN_GPA_SUCCESS;
 }
 
-static inline GpaStatus GpaGetCounterIndex(GpaContextId gpa_context_id, const char* counter_name, GpaUInt32* counter_index)
+static inline GpaStatus GpaGetNumCounters(GpaSessionId gpa_session_id, GpaUInt32* number_of_counters)
 {
     RETURN_GPA_SUCCESS;
 }
 
-static inline GpaStatus GpaGetCounterGroup(GpaContextId gpa_context_id, GpaUInt32 index, const char** counter_group)
+static inline GpaStatus GpaGetCounterName(GpaSessionId gpa_session_id, GpaUInt32 index, const char** counter_name)
 {
     RETURN_GPA_SUCCESS;
 }
 
-static inline GpaStatus GpaGetCounterDescription(GpaContextId gpa_context_id, GpaUInt32 index, const char** counter_description)
+static inline GpaStatus GpaGetCounterIndex(GpaSessionId gpa_session_id, const char* counter_name, GpaUInt32* counter_index)
 {
     RETURN_GPA_SUCCESS;
 }
 
-static inline GpaStatus GpaGetCounterDataType(GpaContextId gpa_context_id, GpaUInt32 index, GpaDataType* counter_data_type)
+static inline GpaStatus GpaGetCounterGroup(GpaSessionId gpa_session_id, GpaUInt32 index, const char** counter_group)
 {
     RETURN_GPA_SUCCESS;
 }
 
-static inline GpaStatus GpaGetCounterUsageType(GpaContextId gpa_context_id, GpaUInt32 index, GpaUsageType* counter_usage_type)
+static inline GpaStatus GpaGetCounterDescription(GpaSessionId gpa_session_id, GpaUInt32 index, const char** counter_description)
 {
     RETURN_GPA_SUCCESS;
 }
 
-static inline GpaStatus GpaGetCounterUuid(GpaContextId gpa_context_id, GpaUInt32 index, GpaUuid* counter_uuid)
+static inline GpaStatus GpaGetCounterDataType(GpaSessionId gpa_session_id, GpaUInt32 index, GpaDataType* counter_data_type)
 {
     RETURN_GPA_SUCCESS;
 }
 
-static inline GpaStatus GpaGetCounterSampleType(GpaContextId gpa_context_id, GpaUInt32 index, GpaCounterSampleType* counter_sample_type)
+static inline GpaStatus GpaGetCounterUsageType(GpaSessionId gpa_session_id, GpaUInt32 index, GpaUsageType* counter_usage_type)
+{
+    RETURN_GPA_SUCCESS;
+}
+
+static inline GpaStatus GpaGetCounterUuid(GpaSessionId gpa_session_id, GpaUInt32 index, GpaUuid* counter_uuid)
+{
+    RETURN_GPA_SUCCESS;
+}
+
+static inline GpaStatus GpaGetCounterSampleType(GpaSessionId gpa_session_id, GpaUInt32 index, GpaCounterSampleType* counter_sample_type)
 {
     RETURN_GPA_SUCCESS;
 }
@@ -123,6 +137,94 @@ static inline GpaStatus GpaDeleteSession(GpaSessionId gpa_session_id)
 }
 
 static inline GpaStatus GpaBeginSession(GpaSessionId gpa_session_id)
+{
+    RETURN_GPA_SUCCESS;
+}
+
+static inline GpaStatus GpaResetSession(GpaSessionId gpa_session_id)
+{
+    RETURN_GPA_SUCCESS;
+}
+
+static inline GpaStatus GpaAbortSession(GpaSessionId gpa_session_id)
+{
+    RETURN_GPA_SUCCESS;
+}
+
+static inline GpaStatus GpaSqttGetInstructionMask(GpaSessionId gpa_session_id, GpaSqttInstructionFlags* sqtt_instruction_mask)
+{
+    RETURN_GPA_SUCCESS;
+}
+
+static inline GpaStatus GpaSqttSetInstructionMask(GpaSessionId gpa_session_id, GpaSqttInstructionFlags sqtt_instruction_mask)
+{
+    RETURN_GPA_SUCCESS;
+}
+
+static inline GpaStatus GpaSqttGetComputeUnitId(GpaSessionId gpa_session_id, GpaUInt32* sqtt_compute_unit_id)
+{
+    RETURN_GPA_SUCCESS;
+}
+
+static inline GpaStatus GpaSqttSetComputeUnitId(GpaSessionId gpa_session_id, GpaUInt32 sqtt_compute_unit_id)
+{
+    RETURN_GPA_SUCCESS;
+}
+
+static inline GpaStatus GpaSqttBegin(GpaSessionId gpa_session_id, void* command_list)
+{
+    RETURN_GPA_SUCCESS;
+}
+
+static inline GpaStatus GpaSqttEnd(GpaSessionId gpa_session_id, void* command_list)
+{
+    RETURN_GPA_SUCCESS;
+}
+
+static inline GpaStatus GpaSqttGetSampleResultSize(GpaSessionId gpa_session_id, size_t* sample_result_size_in_bytes)
+{
+    RETURN_GPA_SUCCESS;
+}
+
+static inline GpaStatus GpaSqttGetSampleResult(GpaSessionId gpa_session_id, size_t sample_result_size_in_bytes, void* sqtt_results)
+{
+    RETURN_GPA_SUCCESS;
+}
+
+static inline GpaStatus GpaSpmSetSampleInterval(GpaSessionId gpa_session_id, GpaUInt32 interval)
+{
+    RETURN_GPA_SUCCESS;
+}
+
+static inline GpaStatus GpaSpmSetDuration(GpaSessionId gpa_session_id, GpaUInt32 ns_duration)
+{
+    RETURN_GPA_SUCCESS;
+}
+
+static inline GpaStatus GpaSpmBegin(GpaSessionId gpa_session_id, void* command_list)
+{
+    RETURN_GPA_SUCCESS;
+}
+
+static inline GpaStatus GpaSpmEnd(GpaSessionId gpa_session_id, void* command_list)
+{
+    RETURN_GPA_SUCCESS;
+}
+
+static inline GpaStatus GpaSpmGetSampleResultSize(GpaSessionId gpa_session_id, size_t* sample_result_size_in_bytes)
+{
+    RETURN_GPA_SUCCESS;
+}
+
+static inline GpaStatus GpaSpmGetSampleResult(GpaSessionId gpa_session_id, size_t sample_result_size_in_bytes, void* spm_results)
+{
+    RETURN_GPA_SUCCESS;
+}
+
+static inline GpaStatus GpaSpmCalculateDerivedCounters(GpaSessionId gpa_session_id,
+                                                       GpaSpmData*  spm_data,
+                                                       GpaUInt32    derived_counter_count,
+                                                       GpaUInt64*   derived_counter_results)
 {
     RETURN_GPA_SUCCESS;
 }

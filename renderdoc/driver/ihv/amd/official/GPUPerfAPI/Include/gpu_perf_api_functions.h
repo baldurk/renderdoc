@@ -1,5 +1,5 @@
 //==============================================================================
-// Copyright (c) 2014-2021 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2014-2025 Advanced Micro Devices, Inc. All rights reserved.
 /// @author AMD Developer Tools Team
 /// @file
 /// @brief  GPA required public function declarations wrapped in a macro.
@@ -29,6 +29,8 @@ GPA_FUNCTION_PREFIX(GpaGetSupportedSampleTypes)
 GPA_FUNCTION_PREFIX(GpaGetDeviceAndRevisionId)
 GPA_FUNCTION_PREFIX(GpaGetDeviceName)
 
+GPA_FUNCTION_PREFIX(GpaUpdateDeviceInformation)
+
 // Counter Interrogation.
 GPA_FUNCTION_PREFIX(GpaGetNumCounters)
 GPA_FUNCTION_PREFIX(GpaGetCounterName)
@@ -47,6 +49,30 @@ GPA_FUNCTION_PREFIX(GpaCreateSession)
 GPA_FUNCTION_PREFIX(GpaDeleteSession)
 GPA_FUNCTION_PREFIX(GpaBeginSession)
 GPA_FUNCTION_PREFIX(GpaEndSession)
+GPA_FUNCTION_PREFIX(GpaResetSession)
+
+GPA_FUNCTION_PREFIX(GpaAbortSession)
+
+// Session Interrogation / Configuration
+GPA_FUNCTION_PREFIX(GpaSqttGetInstructionMask)
+GPA_FUNCTION_PREFIX(GpaSqttSetInstructionMask)
+GPA_FUNCTION_PREFIX(GpaSqttGetComputeUnitId)
+GPA_FUNCTION_PREFIX(GpaSqttSetComputeUnitId)
+
+// SQTT functions
+GPA_FUNCTION_PREFIX(GpaSqttBegin)
+GPA_FUNCTION_PREFIX(GpaSqttEnd)
+GPA_FUNCTION_PREFIX(GpaSqttGetSampleResultSize)
+GPA_FUNCTION_PREFIX(GpaSqttGetSampleResult)
+
+// SPM functions
+GPA_FUNCTION_PREFIX(GpaSpmSetSampleInterval)
+GPA_FUNCTION_PREFIX(GpaSpmSetDuration)
+GPA_FUNCTION_PREFIX(GpaSpmBegin)
+GPA_FUNCTION_PREFIX(GpaSpmEnd)
+GPA_FUNCTION_PREFIX(GpaSpmGetSampleResultSize)
+GPA_FUNCTION_PREFIX(GpaSpmGetSampleResult)
+GPA_FUNCTION_PREFIX(GpaSpmCalculateDerivedCounters)
 
 // Counter Scheduling.
 GPA_FUNCTION_PREFIX(GpaEnableCounter)
@@ -85,6 +111,9 @@ GPA_FUNCTION_PREFIX(GpaGetSampleId)
 
 // GPA API Version.
 GPA_FUNCTION_PREFIX(GpaGetVersion)
+
+// Context interrogation; added in 3.10
+GPA_FUNCTION_PREFIX(GpaGetDeviceGeneration)
 
 #ifdef NEED_TO_UNDEFINE_GPA_FUNCTION_PREFIX
 #undef GPA_FUNCTION_PREFIX

@@ -11,9 +11,9 @@
 #ifndef GPU_PERFORMANCE_API_GPU_PERF_API_VK_H_
 #define GPU_PERFORMANCE_API_GPU_PERF_API_VK_H_
 
-#ifndef AMD_GPUPERFAPI_SKIP_VULKAN_INCLUDE
+#ifndef VULKAN_H_
 #include <vulkan/vulkan.h>
-#endif // AMD_GPUPERFAPI_SKIP_VULKAN_INCLUDE
+#endif  // VULKAN_H_
 
 /// Define the AMD GPA extension name.
 #define VK_AMD_GPA_INTERFACE_EXTENSION_NAME "VK_AMD_gpa_interface"

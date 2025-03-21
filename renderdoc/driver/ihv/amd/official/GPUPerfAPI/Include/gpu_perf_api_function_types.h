@@ -1,5 +1,5 @@
 //==============================================================================
-// Copyright (c) 2010-2021 Advanced Micro Devices, Inc. All rights reserved.
+// Copyright (c) 2010-2024 Advanced Micro Devices, Inc. All rights reserved.
 /// @author AMD Developer Tools Team
 /// @file
 /// @brief  This file defines function types to make it easier to dynamically load
@@ -46,32 +46,38 @@ typedef GpaStatus (*GpaGetDeviceAndRevisionIdPtrType)(GpaContextId, GpaUInt32*, 
 /// Typedef for a function pointer for GpaGetDeviceName.
 typedef GpaStatus (*GpaGetDeviceNamePtrType)(GpaContextId, const char**);
 
+/// Typedef for a function pointer for GpaUpdateDeviceInformation
+typedef GpaStatus (*GpaUpdateDeviceInformationPtrType)(GpaContextId, GpaUInt32, GpaUInt32, GpaUInt32, GpaUInt32);
+
+/// Typedef for a function pointer for GpaGetDeviceGeneration.
+typedef GpaStatus (*GpaGetDeviceGenerationPtrType)(GpaContextId, GpaHwGeneration*);
+
 /// Typedef for a function pointer for GpaGetNumCounters.
-typedef GpaStatus (*GpaGetNumCountersPtrType)(GpaContextId, GpaUInt32*);
+typedef GpaStatus (*GpaGetNumCountersPtrType)(GpaSessionId, GpaUInt32*);
 
 /// Typedef for a function pointer for GpaGetCounterName.
-typedef GpaStatus (*GpaGetCounterNamePtrType)(GpaContextId, GpaUInt32, const char**);
+typedef GpaStatus (*GpaGetCounterNamePtrType)(GpaSessionId, GpaUInt32, const char**);
 
 /// Typedef for a function pointer for GpaGetCounterIndex.
-typedef GpaStatus (*GpaGetCounterIndexPtrType)(GpaContextId, const char*, GpaUInt32*);
+typedef GpaStatus (*GpaGetCounterIndexPtrType)(GpaSessionId, const char*, GpaUInt32*);
 
 /// Typedef for a function pointer for GpaGetCounterGroup.
-typedef GpaStatus (*GpaGetCounterGroupPtrType)(GpaContextId, GpaUInt32, const char**);
+typedef GpaStatus (*GpaGetCounterGroupPtrType)(GpaSessionId, GpaUInt32, const char**);
 
 /// Typedef for a function pointer for GpaGetCounterDescription.
-typedef GpaStatus (*GpaGetCounterDescriptionPtrType)(GpaContextId, GpaUInt32, const char**);
+typedef GpaStatus (*GpaGetCounterDescriptionPtrType)(GpaSessionId, GpaUInt32, const char**);
 
 /// Typedef for a function pointer for GpaGetCounterDataType.
-typedef GpaStatus (*GpaGetCounterDataTypePtrType)(GpaContextId, GpaUInt32, GpaDataType*);
+typedef GpaStatus (*GpaGetCounterDataTypePtrType)(GpaSessionId, GpaUInt32, GpaDataType*);
 
 /// Typedef for a function pointer for GpaGetCounterUsageType.
-typedef GpaStatus (*GpaGetCounterUsageTypePtrType)(GpaContextId, GpaUInt32, GpaUsageType*);
+typedef GpaStatus (*GpaGetCounterUsageTypePtrType)(GpaSessionId, GpaUInt32, GpaUsageType*);
 
 /// Typedef for a function pointer for GpaGetCounterUuid.
-typedef GpaStatus (*GpaGetCounterUuidPtrType)(GpaContextId, GpaUInt32, GpaUuid*);
+typedef GpaStatus (*GpaGetCounterUuidPtrType)(GpaSessionId, GpaUInt32, GpaUuid*);
 
 /// Typedef for a function pointer for GpaGetCounterSampleType.
-typedef GpaStatus (*GpaGetCounterSampleTypePtrType)(GpaContextId, GpaUInt32, GpaCounterSampleType*);
+typedef GpaStatus (*GpaGetCounterSampleTypePtrType)(GpaSessionId, GpaUInt32, GpaCounterSampleType*);
 
 /// Typedef for a function pointer for GpaGetDataTypeAsStr.
 typedef GpaStatus (*GpaGetDataTypeAsStrPtrType)(GpaDataType, const char**);
@@ -87,6 +93,57 @@ typedef GpaStatus (*GpaDeleteSessionPtrType)(GpaSessionId);
 
 /// Typedef for a function pointer for GpaBeginSession.
 typedef GpaStatus (*GpaBeginSessionPtrType)(GpaSessionId);
+
+/// Typedef for a function pointer for GpaResetSession.
+typedef GpaStatus (*GpaResetSessionPtrType)(GpaSessionId);
+
+/// Typedef for a function pointer for GpaAbortSession.
+typedef GpaStatus (*GpaAbortSessionPtrType)(GpaSessionId);
+
+/// Typedef for a function pointer for GpaSqttGetInstructionMask
+typedef GpaStatus (*GpaSqttGetInstructionMaskPtrType)(GpaSessionId, GpaSqttInstructionFlags*);
+
+/// Typedef for a function pointer for GpaSqttSetInstructionMask
+typedef GpaStatus (*GpaSqttSetInstructionMaskPtrType)(GpaSessionId, GpaSqttInstructionFlags);
+
+/// Typedef for a function pointer for GpaSqttGetComputeUnitId
+typedef GpaStatus (*GpaSqttGetComputeUnitIdPtrType)(GpaSessionId, GpaUInt32*);
+
+/// Typedef for a function pointer for GpaSqttSetComputeUnitId
+typedef GpaStatus (*GpaSqttSetComputeUnitIdPtrType)(GpaSessionId, GpaUInt32);
+
+/// Typedef for a function pointer for GpaSqttBegin
+typedef GpaStatus (*GpaSqttBeginPtrType)(GpaSessionId, void*);
+
+/// Typedef for a function pointer for GpaSqttEnd
+typedef GpaStatus (*GpaSqttEndPtrType)(GpaSessionId, void*);
+
+/// Typedef for a function pointer for GpaSqttGetSampleResultSize
+typedef GpaStatus (*GpaSqttGetSampleResultSizePtrType)(GpaSessionId, size_t*);
+
+/// Typedef for a function pointer for GpaSqttGetSampleResult
+typedef GpaStatus (*GpaSqttGetSampleResultPtrType)(GpaSessionId, size_t, void*);
+
+/// Typedef for a function pointer for GpaSpmSetSampleInterval
+typedef GpaStatus (*GpaSpmSetSampleIntervalPtrType)(GpaSessionId, GpaUInt32);
+
+/// Typedef for a function pointer for GpaSpmSetDuration
+typedef GpaStatus (*GpaSpmSetDurationPtrType)(GpaSessionId, GpaUInt32);
+
+/// Typedef for a function pointer for GpaSpmBegin
+typedef GpaStatus (*GpaSpmBeginPtrType)(GpaSessionId, void*);
+
+/// Typedef for a function pointer for GpaSpmEnd
+typedef GpaStatus (*GpaSpmEndPtrType)(GpaSessionId, void*);
+
+/// Typedef for a function pointer for GpaSpmGetSampleResultSize
+typedef GpaStatus (*GpaSpmGetSampleResultSizePtrType)(GpaSessionId, size_t*);
+
+/// Typedef for a function pointer for GpaSpmGetSampleResult
+typedef GpaStatus (*GpaSpmGetSampleResultPtrType)(GpaSessionId, size_t, void*);
+
+/// Typedef for a function pointer for GpaSpmCalculateDerivedCounters
+typedef GpaStatus (*GpaSpmCalculateDerivedCountersPtrType)(GpaSessionId, GpaSpmData*, GpaUInt32, GpaUInt64*);
 
 /// Typedef for a function pointer for GpaEndSession.
 typedef GpaStatus (*GpaEndSessionPtrType)(GpaSessionId);
@@ -134,14 +191,10 @@ typedef GpaStatus (*GpaBeginSamplePtrType)(GpaUInt32, GpaCommandListId);
 typedef GpaStatus (*GpaEndSamplePtrType)(GpaCommandListId);
 
 /// Typedef for a function pointer for GpaContinueSampleOnCommandList.
-typedef GpaStatus (*GpaContinueSampleOnCommandListPtrType)(GpaUInt32,
-                                                           GpaCommandListId);
+typedef GpaStatus (*GpaContinueSampleOnCommandListPtrType)(GpaUInt32, GpaCommandListId);
 
 /// Typedef for a function pointer for GpaCopySecondarySamples.
-typedef GpaStatus (*GpaCopySecondarySamplesPtrType)(GpaCommandListId,
-                                                    GpaCommandListId,
-                                                    GpaUInt32,
-                                                    GpaUInt32*);
+typedef GpaStatus (*GpaCopySecondarySamplesPtrType)(GpaCommandListId, GpaCommandListId, GpaUInt32, GpaUInt32*);
 
 /// Typedef for a function pointer for GpaGetSampleCount.
 typedef GpaStatus (*GpaGetSampleCountPtrType)(GpaSessionId, GpaUInt32*);
