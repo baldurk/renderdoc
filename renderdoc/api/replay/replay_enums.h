@@ -4216,6 +4216,10 @@ a remote server.
 .. data:: CompressionFailed
 
   Compression or decompression failed.
+
+.. data:: AndroidLayerConfFailed
+
+  Debug layer configuration failed on Android.
 )");
 enum class ResultCode : uint32_t
 {
@@ -4251,6 +4255,7 @@ enum class ResultCode : uint32_t
   DataNotAvailable,
   InvalidParameter,
   CompressionFailed,
+  AndroidLayerConfFailed,
 };
 
 DECLARE_REFLECTION_ENUM(ResultCode);

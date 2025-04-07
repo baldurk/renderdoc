@@ -1459,10 +1459,13 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const rdcstr &packageAndActi
       {
         info =
             "Do you have a strange device that requires extra setup?\n"
-            "E.g. Xiaomi requires a developer account and \"USB debugging (Security Settings)\"\n";
+            "E.g. Xiaomi requires a developer account and \"USB debugging (Security Settings)\"";
 
         RDCERR("Couldn't verify that debug settings are set:\n%s\n%s", inString.c_str(),
                info.c_str());
+
+        result = RDResult(ResultCode::AndroidLayerConfFailed);
+        result.message = info;
 
         hookWithJDWP = true;
 
@@ -1601,11 +1604,17 @@ ExecuteResult AndroidRemoteServer::ExecuteAndInject(const rdcstr &packageAndActi
       {
         RDCERR("Failed to inject using JDWP");
         ident = 0;
-        result = RDResult(ResultCode::JDWPFailure);
-        result.message = StringFormat::Fmt(
-            "Failed to inject using JDWP when launching '%s' with activity '%s' and intent args "
-            "'%s'",
-            packageName.c_str(), activityName.c_str(), intentArgs.c_str());
+
+        // If layer configuration failed first, then report that to the user as it is usually easier
+        // to fix
+        if(result.code != ResultCode::AndroidLayerConfFailed)
+        {
+          result = RDResult(ResultCode::JDWPFailure);
+          result.message = StringFormat::Fmt(
+              "Failed to inject using JDWP when launching '%s' with activity '%s' and intent args "
+              "'%s'",
+              packageName.c_str(), activityName.c_str(), intentArgs.c_str());
+        }
         return;
       }
     }
