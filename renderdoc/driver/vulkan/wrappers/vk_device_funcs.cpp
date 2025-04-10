@@ -4557,7 +4557,17 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
           &createInfo, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR);
   if(rtpFeatures && rtpFeatures->rayTracingPipeline)
   {
-    rtpFeatures->rayTracingPipelineShaderGroupHandleCaptureReplay = VK_TRUE;
+    VkPhysicalDeviceRayTracingPipelineFeaturesKHR supportedFeatures = {};
+    supportedFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+
+    VkPhysicalDeviceFeatures2 features2 = {};
+    features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    features2.pNext = &supportedFeatures;
+
+    vkGetPhysicalDeviceFeatures2(physicalDevice, &features2);
+
+    if(supportedFeatures.rayTracingPipelineShaderGroupHandleCaptureReplay)
+      rtpFeatures->rayTracingPipelineShaderGroupHandleCaptureReplay = VK_TRUE;
   }
 
   VkResult ret;
