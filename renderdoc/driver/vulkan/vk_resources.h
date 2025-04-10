@@ -1593,6 +1593,16 @@ public:
     m_value = ImageSubresourceState(VK_QUEUE_FAMILY_IGNORED, UNKNOWN_PREV_IMG_LAYOUT, refType);
   }
 
+  bool IsInitialised() const
+  {
+    // When merging image states from a secondary command buffer into a primary, some of those image
+    // states may have been added in an unknown layout when the image was referenced and never
+    // updated. These cases need to be detected and handled separately, otherwise the layout
+    // transitions recorded to the primary may be improperly overwritten.
+    return (!m_values.empty() || m_value.oldLayout != UNKNOWN_PREV_IMG_LAYOUT ||
+            m_value.newLayout != UNKNOWN_PREV_IMG_LAYOUT);
+  }
+
   void ToArray(rdcarray<ImageSubresourceStateForRange> &arr);
 
   void FromArray(const rdcarray<ImageSubresourceStateForRange> &arr);

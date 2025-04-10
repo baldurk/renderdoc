@@ -941,7 +941,15 @@ void ImageState::Merge(rdcflatmap<ResourceId, ImageState> &states,
   {
     if(it == states.end() || dstIt->first < it->first)
     {
-      it = states.insert(it, {dstIt->first, dstIt->second.InitialState()});
+      // If we're merging in an image state our source hasn't seen before, we first add an initial
+      // state for that image, then merge in the current image state. However, if the destination
+      // only referenced the image and never recorded an explicit layout transition the layout of
+      // that image will be unknown. In that case we copy it as-is to avoid improperly recording a
+      // transition back to initial state.
+      if(dstIt->second.subresourceStates.IsInitialised())
+        it = states.insert(it, {dstIt->first, dstIt->second.InitialState()});
+      else
+        it = states.insert(it, *dstIt);
     }
     else if(it->first < dstIt->first)
     {
