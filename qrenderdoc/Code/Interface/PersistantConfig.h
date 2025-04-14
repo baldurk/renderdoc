@@ -475,6 +475,13 @@ DECLARE_REFLECTION_STRUCT(BugReport);
   CONFIG_SETTING_VAL(public, bool, bool, AllowProcessInject, false)                                \
                                                                                                    \
   DOCUMENT(                                                                                        \
+      "``True`` if the user wishes to be prompted to save unsaved or modified captures on "        \
+      "closing the application.\n"                                                                 \
+      "\n"                                                                                         \
+      "Defaults to ``True``.");                                                                    \
+  CONFIG_SETTING_VAL(public, bool, bool, PromptOnClose, true)                                      \
+                                                                                                   \
+  DOCUMENT(                                                                                        \
       "A list of :class:`ShaderProcessingTool` detailing shader processing programs. The list "    \
       "comes in priority order, with earlier processors preferred over later ones.\n"              \
       "\n"                                                                                         \

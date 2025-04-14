@@ -199,6 +199,8 @@ SettingsDialog::SettingsDialog(ICaptureContext &ctx, QWidget *parent)
 
   ui->AlwaysReplayLocally->setChecked(m_Ctx.Config().AlwaysReplayLocally);
 
+  ui->PromptOnClose->setChecked(m_Ctx.Config().PromptOnClose);
+
   {
     const SDObject *getPaths = RENDERDOC_GetConfigSetting("DXBC.Debug.SearchDirPaths");
     if(!getPaths)
@@ -556,6 +558,13 @@ void SettingsDialog::on_Font_PreferMonospaced_toggled(bool checked)
 void SettingsDialog::on_AlwaysReplayLocally_toggled(bool checked)
 {
   m_Ctx.Config().AlwaysReplayLocally = ui->AlwaysReplayLocally->isChecked();
+
+  m_Ctx.Config().Save();
+}
+
+void SettingsDialog::on_PromptOnClose_toggled(bool checked)
+{
+  m_Ctx.Config().PromptOnClose = ui->PromptOnClose->isChecked();
 
   m_Ctx.Config().Save();
 }

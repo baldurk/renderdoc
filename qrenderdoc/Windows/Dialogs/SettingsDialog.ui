@@ -473,7 +473,27 @@ This option overrides that and will always replay locally if the local context i
             </property>
            </widget>
           </item>
+          <item row="19" column="0">
+            <widget class="QLabel" name="label_11">
+              <property name="toolTip">
+                <string>Creates a prompt to save unsaved or modified captures to appear when renderdoc is closing.</string>
+              </property>
+              <property name="text">
+                <string>Prompt to save captures on close</string>
+              </property>
+            </widget>
+          </item>
           <item row="19" column="1">
+            <widget class="QCheckBox" name="PromptOnClose">
+              <property name="toolTip">
+                <string>Creates a prompt to save unsaved or modified captures to appear when renderdoc is closing.</string>
+              </property>
+              <property name="text">
+                <string/>
+              </property>
+            </widget>
+          </item>
+          <item row="20" column="1">
            <spacer name="verticalSpacer">
             <property name="orientation">
              <enum>Qt::Vertical</enum>

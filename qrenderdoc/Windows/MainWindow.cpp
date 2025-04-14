@@ -2947,13 +2947,18 @@ void MainWindow::closeEvent(QCloseEvent *event)
     return;
   }
 
-  if(!PromptCloseCapture())
+  if(m_Ctx.Config().PromptOnClose)
   {
-    event->ignore();
-    return;
+    if(!PromptCloseCapture())
+    {
+      event->ignore();
+      return;
+    }
   }
 
-  bool noToAll = false;
+  // if the user doesn't want to be prompted on close, that can be treated as saying 'no to all'
+  // when asked to save all live captures
+  bool noToAll = !m_Ctx.Config().PromptOnClose;
 
   QList<QPointer<LiveCapture>> liveCaptures;
 
