@@ -4189,6 +4189,7 @@ void VulkanReplay::GetTextureData(ResourceId tex, const Subresource &sub,
     // no longer depth, if it was
     isDepth = false;
     isStencil = false;
+    isPlanar = false;
   }
   else if(wasms && resolve)
   {
