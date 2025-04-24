@@ -219,6 +219,10 @@ float2 RD_SelectedRange()
 
 const char GLSL_CUSTOM_PREFIX[] =
     R"EOPREFIX(
+#ifdef GL_ES
+precision highp float;
+#endif
+
 #define RD_FLOAT_1D_ARRAY_BINDING 6
 #define RD_FLOAT_1D_BINDING 6 // all textures treated as arrays, add macro aliases
 
@@ -372,6 +376,10 @@ vec2 RD_SelectedRange()
 
 const char GLSL_CUSTOM_PREFIX[] =
     R"EOPREFIX(
+#ifdef GL_ES
+precision highp float;
+#endif
+
 #define RD_FLOAT_1D_BINDING 1
 #define RD_FLOAT_2D_BINDING 2
 #define RD_FLOAT_3D_BINDING 3
