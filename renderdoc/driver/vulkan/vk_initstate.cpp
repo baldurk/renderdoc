@@ -132,7 +132,11 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
         // record is not needed on vulkan
         Serialise_InitialState(ser, flushId, NULL, &initData);
-        GetResourceManager()->SetInitialContents(flushId, VkInitialContents());
+
+        // Clear the existing init contents, but retain the type
+        VkInitialContents clearedContents;
+        clearedContents.type = initData.type;
+        GetResourceManager()->SetInitialContents(flushId, clearedContents);
       }
       uint64_t end = ser.GetWriter()->GetOffset();
 
