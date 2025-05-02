@@ -1152,7 +1152,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
     // when loading, allocate a new resource ID for each push descriptor slot in this command buffer
     if(IsLoading(m_State))
     {
-      for(int p = 0; p < 2; p++)
+      for(size_t p = 0; p < ARRAY_COUNT(BakedCmdBufferInfo::pushDescriptorID); p++)
       {
         for(size_t i = 0; i < ARRAY_COUNT(BakedCmdBufferInfo::pushDescriptorID[p]); i++)
         {
@@ -1165,7 +1165,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
     }
 
     // clear/invalidate descriptor set state for this command buffer.
-    for(int p = 0; p < 2; p++)
+    for(size_t p = 0; p < ARRAY_COUNT(BakedCmdBufferInfo::pushDescriptorID); p++)
     {
       for(size_t i = 0; i < ARRAY_COUNT(BakedCmdBufferInfo::pushDescriptorID[p]); i++)
       {
@@ -5429,7 +5429,8 @@ void WrappedVulkan::ApplyPushDescriptorWrites(VkPipelineBindPoint pipelineBindPo
   const VulkanCreationInfo::PipelineLayout &pipeLayoutInfo =
       m_CreationInfo.m_PipelineLayout[GetResID(layout)];
 
-  ResourceId setId = m_BakedCmdBufferInfo[m_LastCmdBufferID].pushDescriptorID[pipelineBindPoint][set];
+  ResourceId setId =
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].GetPushDescriptorID(pipelineBindPoint, set);
 
   const rdcarray<ResourceId> &descSetLayouts = pipeLayoutInfo.descSetLayouts;
 
@@ -5573,7 +5574,7 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetKHR(SerialiserType &ser,
     m_LastCmdBufferID = GetResourceManager()->GetOriginalID(GetResID(commandBuffer));
 
     ResourceId setId =
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].pushDescriptorID[pipelineBindPoint][set];
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].GetPushDescriptorID(pipelineBindPoint, set);
 
     if(IsActiveReplaying(m_State))
     {
@@ -5688,80 +5689,136 @@ void WrappedVulkan::vkCmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer,
 
   {
     // need to count up number of descriptor infos, to be able to alloc enough space
-    uint32_t numInfos = 0;
+    size_t unwrappedSize = sizeof(VkWriteDescriptorSet) * descriptorWriteCount;
     for(uint32_t i = 0; i < descriptorWriteCount; i++)
-      numInfos += pDescriptorWrites[i].descriptorCount;
+    {
+      switch(pDescriptorWrites[i].descriptorType)
+      {
+        case VK_DESCRIPTOR_TYPE_SAMPLER:
+        case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+        case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+        case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+        case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+          unwrappedSize += pDescriptorWrites[i].descriptorCount * sizeof(VkDescriptorImageInfo);
+          break;
+        case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+        case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+          unwrappedSize += pDescriptorWrites[i].descriptorCount * sizeof(VkBufferView);
+          break;
+        case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK:
+          // The inline data does not need unwrapping
+          break;
+        case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+          unwrappedSize +=
+              sizeof(VkWriteDescriptorSetAccelerationStructureKHR) +
+              (pDescriptorWrites[i].descriptorCount * sizeof(VkAccelerationStructureKHR));
+          break;
+        default:
+          unwrappedSize += pDescriptorWrites[i].descriptorCount * sizeof(VkDescriptorBufferInfo);
+          break;
+      }
+    }
 
-    byte *memory = GetTempMemory(sizeof(VkDescriptorBufferInfo) * numInfos +
-                                 sizeof(VkWriteDescriptorSet) * descriptorWriteCount);
-
-    RDCCOMPILE_ASSERT(sizeof(VkDescriptorBufferInfo) >= sizeof(VkDescriptorImageInfo),
-                      "Descriptor structs sizes are unexpected, ensure largest size is used");
+    byte *memory = GetTempMemory(unwrappedSize);
 
     VkWriteDescriptorSet *unwrappedWrites = (VkWriteDescriptorSet *)memory;
-    VkDescriptorBufferInfo *nextDescriptors =
-        (VkDescriptorBufferInfo *)(unwrappedWrites + descriptorWriteCount);
+    byte *nextDescriptors = (byte *)(unwrappedWrites + descriptorWriteCount);
 
     for(uint32_t i = 0; i < descriptorWriteCount; i++)
     {
       unwrappedWrites[i] = pDescriptorWrites[i];
       unwrappedWrites[i].dstSet = VK_NULL_HANDLE;    // ignored, may be invalid
 
-      VkDescriptorBufferInfo *bufInfos = nextDescriptors;
-      VkDescriptorImageInfo *imInfos = (VkDescriptorImageInfo *)bufInfos;
-      VkBufferView *bufViews = (VkBufferView *)bufInfos;
-      nextDescriptors += pDescriptorWrites[i].descriptorCount;
-
-      RDCCOMPILE_ASSERT(sizeof(VkDescriptorBufferInfo) >= sizeof(VkDescriptorImageInfo),
-                        "Structure sizes mean not enough space is allocated for write data");
-      RDCCOMPILE_ASSERT(sizeof(VkDescriptorBufferInfo) >= sizeof(VkBufferView),
-                        "Structure sizes mean not enough space is allocated for write data");
-
-      // unwrap and assign the appropriate array
-      if(pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
-         pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
+      switch(pDescriptorWrites[i].descriptorType)
       {
-        unwrappedWrites[i].pTexelBufferView = (VkBufferView *)bufInfos;
-        for(uint32_t j = 0; j < pDescriptorWrites[i].descriptorCount; j++)
-          bufViews[j] = Unwrap(pDescriptorWrites[i].pTexelBufferView[j]);
-      }
-      else if(pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
-              pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
-              pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
-              pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
-              pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
-      {
-        bool hasSampler =
-            (pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
-             pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        bool hasImage =
-            (pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
-             pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
-             pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
-             pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT);
-
-        unwrappedWrites[i].pImageInfo = (VkDescriptorImageInfo *)bufInfos;
-        for(uint32_t j = 0; j < pDescriptorWrites[i].descriptorCount; j++)
+        case VK_DESCRIPTOR_TYPE_SAMPLER:
+        case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+        case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+        case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+        case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
         {
-          if(hasImage)
-            imInfos[j].imageView = Unwrap(pDescriptorWrites[i].pImageInfo[j].imageView);
-          if(hasSampler)
-            imInfos[j].sampler = Unwrap(pDescriptorWrites[i].pImageInfo[j].sampler);
-          imInfos[j].imageLayout = pDescriptorWrites[i].pImageInfo[j].imageLayout;
+          VkDescriptorImageInfo *imInfos = (VkDescriptorImageInfo *)nextDescriptors;
+
+          bool hasSampler =
+              (pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+               pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+          bool hasImage =
+              (pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+               pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
+               pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
+               pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT);
+
+          unwrappedWrites[i].pImageInfo = imInfos;
+          for(uint32_t j = 0; j < pDescriptorWrites[i].descriptorCount; j++)
+          {
+            if(hasImage)
+              imInfos[j].imageView = Unwrap(pDescriptorWrites[i].pImageInfo[j].imageView);
+            if(hasSampler)
+              imInfos[j].sampler = Unwrap(pDescriptorWrites[i].pImageInfo[j].sampler);
+            imInfos[j].imageLayout = pDescriptorWrites[i].pImageInfo[j].imageLayout;
+          }
+
+          nextDescriptors = (byte *)(imInfos + pDescriptorWrites[i].descriptorCount);
+          break;
         }
-      }
-      else if(pDescriptorWrites[i].descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK)
-      {
-        // nothing to unwrap, the next chain contains the data which we can leave as-is
-      }
-      else
-      {
-        unwrappedWrites[i].pBufferInfo = bufInfos;
-        for(uint32_t j = 0; j < pDescriptorWrites[i].descriptorCount; j++)
+        case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+        case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
         {
-          bufInfos[j].buffer = Unwrap(pDescriptorWrites[i].pBufferInfo[j].buffer);
-          bufInfos[j].offset = pDescriptorWrites[i].pBufferInfo[j].offset;
-          bufInfos[j].range = pDescriptorWrites[i].pBufferInfo[j].range;
+          VkBufferView *bufViews = (VkBufferView *)nextDescriptors;
+
+          unwrappedWrites[i].pTexelBufferView = bufViews;
+          for(uint32_t j = 0; j < pDescriptorWrites[i].descriptorCount; j++)
+            bufViews[j] = Unwrap(pDescriptorWrites[i].pTexelBufferView[j]);
+
+          nextDescriptors = (byte *)(bufViews + pDescriptorWrites[i].descriptorCount);
+          break;
+        }
+        case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK:
+          // The inline data does not need unwrapping
+          break;
+        case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+        {
+          // Copy the pNext entry
+          VkWriteDescriptorSetAccelerationStructureKHR *inAccStruct =
+              (VkWriteDescriptorSetAccelerationStructureKHR *)FindNextStruct(
+                  &pDescriptorWrites[i],
+                  VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR);
+          RDCASSERT(inAccStruct);
+          RDCASSERTEQUAL(inAccStruct->accelerationStructureCount,
+                         pDescriptorWrites[i].descriptorCount);
+
+          VkWriteDescriptorSetAccelerationStructureKHR *outAccStruct =
+              (VkWriteDescriptorSetAccelerationStructureKHR *)nextDescriptors;
+
+          *outAccStruct = *inAccStruct;
+          unwrappedWrites[i].pNext = outAccStruct;
+          nextDescriptors = (byte *)(outAccStruct + 1);
+
+          // Point the AS list to the unwrapped memory
+          VkAccelerationStructureKHR *outAccs = (VkAccelerationStructureKHR *)nextDescriptors;
+          outAccStruct->pAccelerationStructures = outAccs;
+
+          // Unwrap and populate
+          for(uint32_t j = 0; j < pDescriptorWrites[i].descriptorCount; j++)
+            outAccs[j] = Unwrap(inAccStruct->pAccelerationStructures[j]);
+
+          nextDescriptors = (byte *)(outAccs + pDescriptorWrites[i].descriptorCount);
+          break;
+        }
+        default:
+        {
+          VkDescriptorBufferInfo *bufInfos = (VkDescriptorBufferInfo *)nextDescriptors;
+
+          unwrappedWrites[i].pBufferInfo = bufInfos;
+          for(uint32_t j = 0; j < pDescriptorWrites[i].descriptorCount; j++)
+          {
+            bufInfos[j].buffer = Unwrap(pDescriptorWrites[i].pBufferInfo[j].buffer);
+            bufInfos[j].offset = pDescriptorWrites[i].pBufferInfo[j].offset;
+            bufInfos[j].range = pDescriptorWrites[i].pBufferInfo[j].range;
+          }
+
+          nextDescriptors = (byte *)(bufInfos + pDescriptorWrites[i].descriptorCount);
+          break;
         }
       }
     }
@@ -5833,6 +5890,15 @@ void WrappedVulkan::vkCmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer,
         {
           // no bindings in this type
         }
+        else if(write.descriptorType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+        {
+          VkWriteDescriptorSetAccelerationStructureKHR *accStruct =
+              (VkWriteDescriptorSetAccelerationStructureKHR *)FindNextStruct(
+                  &write, VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR);
+
+          record->MarkResourceFrameReferenced(GetResID(accStruct->pAccelerationStructures[d]),
+                                              eFrameRef_Read);
+        }
         else
         {
           if(write.pBufferInfo[d].buffer != VK_NULL_HANDLE)
@@ -5881,7 +5947,7 @@ bool WrappedVulkan::Serialise_vkCmdPushDescriptorSetWithTemplateKHR(
     VkPipelineBindPoint bindPoint =
         m_CreationInfo.m_DescUpdateTemplate[GetResID(descriptorUpdateTemplate)].bindPoint;
 
-    ResourceId setId = m_BakedCmdBufferInfo[m_LastCmdBufferID].pushDescriptorID[bindPoint][set];
+    ResourceId setId = m_BakedCmdBufferInfo[m_LastCmdBufferID].GetPushDescriptorID(bindPoint, set);
 
     if(IsActiveReplaying(m_State))
     {

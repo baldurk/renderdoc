@@ -740,7 +740,11 @@ private:
     // vkCmdNextSubpass for valid barrier counting.
     int activeSubpass = 0;
 
-    ResourceId pushDescriptorID[2][64];
+    ResourceId GetPushDescriptorID(VkPipelineBindPoint bindpoint, uint32_t set)
+    {
+      return pushDescriptorID[bindpoint == VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR ? 2 : bindpoint][set];
+    }
+    ResourceId pushDescriptorID[3][64];
 
     VulkanActionTreeNode *action;    // the root action to copy from when submitting
     uint32_t eventCount;             // how many events are in this cmd buffer, for quick skipping
