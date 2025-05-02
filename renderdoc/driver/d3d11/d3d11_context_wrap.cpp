@@ -7861,7 +7861,8 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(SerialiserType &ser, ID3D11Reso
     // while actively capturing, on large buffers being updated, try to locate the range of data
     // being
     // updated and update the diffStart/diffEnd/len variables
-    if(IsActiveCapturing(m_State) && len > 512 && intercept.MapType != D3D11_MAP_WRITE_DISCARD)
+    if(IsActiveCapturing(m_State) && len > 512 && intercept.MapType != D3D11_MAP_WRITE_DISCARD &&
+       record->GetShadowPtr(ctxMapID, 1))
     {
       size_t s = diffStart;
       size_t e = diffEnd;
