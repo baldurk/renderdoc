@@ -553,7 +553,7 @@ class TestCase:
 
         if self.controller is not None:
             if not util.get_remote_server() is None:
-                util.get_remote_server().remote.CloseCapture(self.controller)
+                util.get_remote_server().CloseCapture(self.controller)
             else:
                 self.controller.Shutdown()
 
@@ -814,7 +814,7 @@ class TestCase:
 
         dest = util.get_tmp_path(self.capture_filename.split('/')[-1])
         log.print("Copying remote capture from '{}' to '{}'".format(self.capture_filename, dest))
-        util.get_remote_server().remote.CopyCaptureFromRemote(self.capture_filename, dest, None)
+        util.get_remote_server().CopyCaptureFromRemote(self.capture_filename, dest, None)
         return dest
 
     def check_export(self, capture_filename):

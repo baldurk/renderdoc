@@ -54,8 +54,8 @@ def open_capture(filename="", cap: rd.CaptureFile=None, opts: rd.ReplayOptions=N
             raise ValueError("Cannot call analyse.open_capture() with capture handle for remote {}"
                         .format(util.get_remote_server().remote))
 
-        result, controller = util.get_remote_server().remote.OpenCapture(rd.RemoteServer.NoPreference,
-                                                                   filename, opts, None)
+        result, controller = util.get_remote_server().OpenCapture(rd.RemoteServer.NoPreference,
+                                                                  filename, opts, None)
         if result == rd.ResultCode.Succeeded:
             api = util.get_remote_server().remote.DriverName()
 

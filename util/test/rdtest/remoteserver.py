@@ -7,7 +7,7 @@ from .logging import log
 from pathlib import Path
 import os
 import re
-
+import threading
 from time import sleep
 from abc import ABC, abstractmethod
 
@@ -82,7 +82,26 @@ class RemoteServer(ABC):
     def retrieve_comms_log(self, timeout):
         pass
 
+    @abstractmethod
+    def Ping(self):
+        pass
+        
+    @abstractmethod
+    def OpenCapture(self):
+        pass
+    
+    @abstractmethod
+    def CloseCapture(self, controller):
+        pass
 
+    @abstractmethod
+    def ExecuteAndInject(self):
+        pass
+
+    @abstractmethod
+    def CopyCaptureFromRemote(self, src, dst, progress_callback):
+        pass
+    
 class AndroidRemoteServer(RemoteServer):
     # Android app IDs for the server
     ADRD_SERVER_APP64 = 'org.renderdoc.renderdoccmd.arm64'
@@ -176,11 +195,20 @@ class AndroidRemoteServer(RemoteServer):
         self.remote = remote
 
         log.print("Connected!")
+        
+        # spawn a thread to keep connection alive
+        self.mutex = threading.Lock()
+        self.pingThread = threading.Thread(target=self.PingThread)
+        self.pingThread.start()
+        
         return remote
 
     def disconnect(self):
         self.remote.ShutdownConnection()
         self.remote = None
+        
+        # wait for thread completion
+        self.pingThread.join()
 
     def shutdown(self):
         # If we running over ADB, close down the server.  This will involve first establishing a
@@ -255,7 +283,7 @@ class AndroidRemoteServer(RemoteServer):
 
         log.print("Running package:'{}' cmd:'{}' with env:'{}'".format(
             package_and_activity, cmdline, envmods))
-        res = util.get_remote_server().remote.ExecuteAndInject(
+        res = util.get_remote_server().ExecuteAndInject(
             package_and_activity, "", args, envmods, opts)
 
         if res.result != rd.ResultCode.Succeeded:
@@ -311,7 +339,7 @@ class AndroidRemoteServer(RemoteServer):
         dst = os.path.join(dst, latestlog)
         src = os.path.join(src, latestlog)
         log.print(f"Copying remote server log from '{src}' to '{dst}'")
-        self.remote.CopyCaptureFromRemote(src, dst, None)
+        self.CopyCaptureFromRemote(src, dst, None)
 
         return dst
 
@@ -328,8 +356,32 @@ class AndroidRemoteServer(RemoteServer):
 
         dst = os.path.join(util.get_tmp_dir(), 'RenderDoc_Server.log')
         log.print("Copying remote server comms log from '{}' to '{}'".format(src, dst))
-        self.remote.CopyCaptureFromRemote(src, dst, None)
+        self.CopyCaptureFromRemote(src, dst, None)
 
         return dst
+    
+    def PingThread(self):
+        while self.remote is not None:
+            self.Ping()
+            sleep(0.175)
 
+    def Ping(self):
+        with self.mutex:
+            return self.remote.Ping()
+        
+    def OpenCapture(self, proxyid, logfile, replayOptions, progressCallback):
+        with self.mutex:
+            return self.remote.OpenCapture(proxyid, logfile, replayOptions, progressCallback)
+    
+    def CloseCapture(self, controller):
+        with self.mutex:
+            return self.remote.CloseCapture(controller)
+
+    def ExecuteAndInject(self, app, workingDir, cmdLine, env, captureOptions):
+        with self.mutex:
+            return self.remote.ExecuteAndInject(app, workingDir, cmdLine, env, captureOptions) 
+
+    def CopyCaptureFromRemote(self, src, dst, progressCallback):
+        with self.mutex:
+            return self.remote.CopyCaptureFromRemote(src, dst, progressCallback)
 
