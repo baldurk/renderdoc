@@ -527,12 +527,14 @@ void VulkanRenderState::BindDynamicState(WrappedVulkan *vk, VkCommandBuffer cmd)
   if(vk->ExtendedDynamicState2Logic() || vk->ShaderObject())
   {
     if(dynamicStates[VkDynamicLogicOpEXT])
-      ObjDisp(cmd)->CmdSetLogicOpEXT(Unwrap(cmd), logicOp);
+      if(ObjDisp(cmd)->CmdSetLogicOpEXT)
+        ObjDisp(cmd)->CmdSetLogicOpEXT(Unwrap(cmd), logicOp);
   }
   if(vk->ExtendedDynamicState2CPs() || vk->ShaderObject())
   {
     if(dynamicStates[VkDynamicControlPointsEXT])
-      ObjDisp(cmd)->CmdSetPatchControlPointsEXT(Unwrap(cmd), patchControlPoints);
+      if(ObjDisp(cmd)->CmdSetPatchControlPointsEXT)
+        ObjDisp(cmd)->CmdSetPatchControlPointsEXT(Unwrap(cmd), patchControlPoints);
   }
 
   if(vk->ExtendedDynamicState3AlphaToCover() || vk->ShaderObject())
