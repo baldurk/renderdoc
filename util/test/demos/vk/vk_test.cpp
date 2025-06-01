@@ -1434,23 +1434,6 @@ VulkanWindow::VulkanWindow(VulkanGraphicsTest *test, GraphicsWindow *win)
   {
     std::lock_guard<std::mutex> lock(m_Test->mutex);
 
-    for(size_t i = 0; i < ARRAY_COUNT(renderStartSemaphore); i++)
-    {
-      CHECK_VKR(vkCreateSemaphore(m_Test->device, vkh::SemaphoreCreateInfo(), NULL,
-                                  &renderStartSemaphore[i]));
-      CHECK_VKR(vkCreateSemaphore(m_Test->device, vkh::SemaphoreCreateInfo(), NULL,
-                                  &renderEndSemaphore[i]));
-
-      test->setName(renderStartSemaphore[i], title + " renderStartSemaphore" + std::to_string(i));
-      test->setName(renderEndSemaphore[i], title + " renderEndSemaphore" + std::to_string(i));
-
-      // create signalled so the first wait works
-      CHECK_VKR(vkCreateFence(m_Test->device, vkh::FenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT),
-                              NULL, &imageFences[i]));
-
-      test->setName(imageFences[i], title + " fence" + std::to_string(i));
-    }
-
 #if defined(WIN32)
     VkWin32SurfaceCreateInfoKHR createInfo;
 
@@ -1503,7 +1486,12 @@ VulkanWindow::~VulkanWindow()
   DestroySwapchain();
 
   {
-    for(size_t i = 0; i < ARRAY_COUNT(renderStartSemaphore); i++)
+    TEST_ASSERT(renderStartSemaphore.size() == renderEndSemaphore.size(),
+                "size mismatch between start/end semaphore");
+    TEST_ASSERT(renderStartSemaphore.size() == imageFences.size(),
+                "size mismatch between render/image semaphore");
+
+    for(size_t i = 0; i < renderStartSemaphore.size(); i++)
     {
       vkDestroySemaphore(m_Test->device, renderStartSemaphore[i], NULL);
       vkDestroySemaphore(m_Test->device, renderEndSemaphore[i], NULL);
@@ -1595,9 +1583,9 @@ bool VulkanWindow::CreateSwapchain()
 
   CHECK_VKR(vkCreateSwapchainKHR(
       m_Test->device,
-      vkh::SwapchainCreateInfoKHR(
-          surface, mode, surfaceFormat, {width, height},
-          VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT),
+      vkh::SwapchainCreateInfoKHR(surface, mode, surfaceFormat, {width, height},
+                                  VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                  VK_NULL_HANDLE, capabilities.minImageCount),
       NULL, &swap));
 
   CHECK_VKR(vkh::getSwapchainImagesKHR(imgs, m_Test->device, swap));
@@ -1614,8 +1602,24 @@ bool VulkanWindow::CreateSwapchain()
     rp = m_Test->createRenderPass(renderPassCreateInfo);
   }
 
-  TEST_ASSERT(imgs.size() <= ARRAY_COUNT(renderStartSemaphore),
-              "Expected to have one semaphore set per image");
+  renderStartSemaphore.resize(imgs.size());
+  renderEndSemaphore.resize(imgs.size());
+  imageFences.resize(imgs.size());
+  for(size_t i = 0; i < renderStartSemaphore.size(); i++)
+  {
+    CHECK_VKR(vkCreateSemaphore(m_Test->device, vkh::SemaphoreCreateInfo(), NULL,
+                                &renderStartSemaphore[i]));
+    CHECK_VKR(vkCreateSemaphore(m_Test->device, vkh::SemaphoreCreateInfo(), NULL,
+                                &renderEndSemaphore[i]));
+
+    m_Test->setName(renderStartSemaphore[i], title + " renderStartSemaphore" + std::to_string(i));
+    m_Test->setName(renderEndSemaphore[i], title + " renderEndSemaphore" + std::to_string(i));
+
+    CHECK_VKR(vkCreateFence(m_Test->device, vkh::FenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT),
+                            NULL, &imageFences[i]));
+
+    m_Test->setName(imageFences[i], title + " fence" + std::to_string(i));
+  }
 
   imgviews.resize(imgs.size());
   for(size_t i = 0; i < imgs.size(); i++)
@@ -1636,7 +1640,7 @@ void VulkanWindow::Acquire()
   if(swap == VK_NULL_HANDLE)
     return;
 
-  semIdx = (semIdx + 1) % ARRAY_COUNT(renderStartSemaphore);
+  semIdx = (semIdx + 1) % renderStartSemaphore.size();
 
   // acquire next image stupidly does not properly block, do a manual block
   vkWaitForFences(m_Test->device, 1, &imageFences[semIdx], VK_FALSE, UINT64_MAX);
