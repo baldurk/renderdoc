@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2022  NVIDIA Corporation.  All rights reserved.
+ * Copyright 2014-2025 NVIDIA Corporation.  All rights reserved.
  *
  * NOTICE TO USER:
  *
@@ -52,15 +52,15 @@
 #include <nvperf_device_target.h>
 #include <nvperf_vulkan_host.h>
 #include <nvperf_vulkan_target.h>
+#include <nvperf_vulkansc_host.h>
+#include <nvperf_vulkansc_target.h>
 #include <nvperf_opengl_host.h>
 #include <nvperf_opengl_target.h>
+#include <nvperf_egl_host.h>
+#include <nvperf_egl_target.h>
 
 #if defined(__GNUC__) && !defined(__clang__) && (__GNUC__ >= 8)
 #pragma GCC diagnostic ignored "-Wcast-function-type"
-#endif
-
-#if defined(__clang__) && defined(__GNUC__) && (__clang_major__ >= 19)
-#pragma clang diagnostic ignored "-Wcast-function-type"
 #endif
 
 #ifdef __cplusplus
@@ -70,15 +70,6 @@ typedef NVPA_GenericFn (*NVPA_GetProcAddress_Fn)(const char* pFunctionName);
 typedef NVPA_Status (*NVPW_SetLibraryLoadPaths_Fn)(NVPW_SetLibraryLoadPaths_Params* pParams);
 typedef NVPA_Status (*NVPW_SetLibraryLoadPathsW_Fn)(NVPW_SetLibraryLoadPathsW_Params* pParams);
 typedef NVPA_Status (*NVPW_InitializeHost_Fn)(NVPW_InitializeHost_Params* pParams);
-typedef NVPA_Status (*NVPW_CounterData_CalculateCounterDataImageCopySize_Fn)(NVPW_CounterData_CalculateCounterDataImageCopySize_Params* pParams);
-typedef NVPA_Status (*NVPW_CounterData_InitializeCounterDataImageCopy_Fn)(NVPW_CounterData_InitializeCounterDataImageCopy_Params* pParams);
-typedef NVPA_Status (*NVPW_CounterDataCombiner_Create_Fn)(NVPW_CounterDataCombiner_Create_Params* pParams);
-typedef NVPA_Status (*NVPW_CounterDataCombiner_Destroy_Fn)(NVPW_CounterDataCombiner_Destroy_Params* pParams);
-typedef NVPA_Status (*NVPW_CounterDataCombiner_CreateRange_Fn)(NVPW_CounterDataCombiner_CreateRange_Params* pParams);
-typedef NVPA_Status (*NVPW_CounterDataCombiner_CopyIntoRange_Fn)(NVPW_CounterDataCombiner_CopyIntoRange_Params* pParams);
-typedef NVPA_Status (*NVPW_CounterDataCombiner_AccumulateIntoRange_Fn)(NVPW_CounterDataCombiner_AccumulateIntoRange_Params* pParams);
-typedef NVPA_Status (*NVPW_CounterDataCombiner_SumIntoRange_Fn)(NVPW_CounterDataCombiner_SumIntoRange_Params* pParams);
-typedef NVPA_Status (*NVPW_CounterDataCombiner_WeightedSumIntoRange_Fn)(NVPW_CounterDataCombiner_WeightedSumIntoRange_Params* pParams);
 typedef NVPA_Status (*NVPW_GetSupportedChipNames_Fn)(NVPW_GetSupportedChipNames_Params* pParams);
 typedef NVPA_Status (*NVPW_RawMetricsConfig_Destroy_Fn)(NVPW_RawMetricsConfig_Destroy_Params* pParams);
 typedef NVPA_Status (*NVPW_RawMetricsConfig_SetCounterAvailability_Fn)(NVPW_RawMetricsConfig_SetCounterAvailability_Params* pParams);
@@ -91,12 +82,30 @@ typedef NVPA_Status (*NVPW_RawMetricsConfig_IsAddMetricsPossible_Fn)(NVPW_RawMet
 typedef NVPA_Status (*NVPW_RawMetricsConfig_GenerateConfigImage_Fn)(NVPW_RawMetricsConfig_GenerateConfigImage_Params* pParams);
 typedef NVPA_Status (*NVPW_RawMetricsConfig_GetConfigImage_Fn)(NVPW_RawMetricsConfig_GetConfigImage_Params* pParams);
 typedef NVPA_Status (*NVPW_RawMetricsConfig_GetNumPasses_V2_Fn)(NVPW_RawMetricsConfig_GetNumPasses_V2_Params* pParams);
+typedef NVPA_Status (*NVPW_RawCounterConfig_RawCounterDomainToString_Fn)(NVPW_RawCounterConfig_RawCounterDomainToString_Params* pParams);
+typedef NVPA_Status (*NVPW_RawCounterConfig_StringToRawCounterDomain_Fn)(NVPW_RawCounterConfig_StringToRawCounterDomain_Params* pParams);
+typedef NVPA_Status (*NVPW_RawCounterConfig_GetSupportedChipNames_Fn)(NVPW_RawCounterConfig_GetSupportedChipNames_Params* pParams);
+typedef NVPA_Status (*NVPW_RawCounterConfig_Destroy_Fn)(NVPW_RawCounterConfig_Destroy_Params* pParams);
+typedef NVPA_Status (*NVPW_RawCounterConfig_SetCounterAvailability_Fn)(NVPW_RawCounterConfig_SetCounterAvailability_Params* pParams);
+typedef NVPA_Status (*NVPW_RawCounterConfig_GetAllAvailableRawCounterDomains_Fn)(NVPW_RawCounterConfig_GetAllAvailableRawCounterDomains_Params* pParams);
+typedef NVPA_Status (*NVPW_RawCounterConfig_GetAllAvailableCooperativeDomainGroups_Fn)(NVPW_RawCounterConfig_GetAllAvailableCooperativeDomainGroups_Params* pParams);
+typedef NVPA_Status (*NVPW_RawCounterConfig_IsCooperativeDomainGroup_Fn)(NVPW_RawCounterConfig_IsCooperativeDomainGroup_Params* pParams);
+typedef NVPA_Status (*NVPW_RawCounterConfig_CooperativeDomainGroup_GetMemberDomains_Fn)(NVPW_RawCounterConfig_CooperativeDomainGroup_GetMemberDomains_Params* pParams);
+typedef NVPA_Status (*NVPW_RawCounterConfig_BeginPassGroup_Fn)(NVPW_RawCounterConfig_BeginPassGroup_Params* pParams);
+typedef NVPA_Status (*NVPW_RawCounterConfig_EndPassGroup_Fn)(NVPW_RawCounterConfig_EndPassGroup_Params* pParams);
+typedef NVPA_Status (*NVPW_RawCounterConfig_GetNumRawCounters_Fn)(NVPW_RawCounterConfig_GetNumRawCounters_Params* pParams);
+typedef NVPA_Status (*NVPW_RawCounterConfig_GetRawCounterName_Fn)(NVPW_RawCounterConfig_GetRawCounterName_Params* pParams);
+typedef NVPA_Status (*NVPW_RawCounterConfig_GetRawCounterProperties_Fn)(NVPW_RawCounterConfig_GetRawCounterProperties_Params* pParams);
+typedef NVPA_Status (*NVPW_RawCounterConfig_AddRawCounters_Fn)(NVPW_RawCounterConfig_AddRawCounters_Params* pParams);
+typedef NVPA_Status (*NVPW_RawCounterConfig_AreRawCountersSchedulable_Fn)(NVPW_RawCounterConfig_AreRawCountersSchedulable_Params* pParams);
+typedef NVPA_Status (*NVPW_RawCounterConfig_MergePassGroups_Fn)(NVPW_RawCounterConfig_MergePassGroups_Params* pParams);
+typedef NVPA_Status (*NVPW_RawCounterConfig_GenerateConfigImage_Fn)(NVPW_RawCounterConfig_GenerateConfigImage_Params* pParams);
+typedef NVPA_Status (*NVPW_RawCounterConfig_GetConfigImage_Fn)(NVPW_RawCounterConfig_GetConfigImage_Params* pParams);
+typedef NVPA_Status (*NVPW_RawCounterConfig_GetNumPasses_Fn)(NVPW_RawCounterConfig_GetNumPasses_Params* pParams);
+typedef NVPA_Status (*NVPW_Config_GetRawCounterInfo_Fn)(NVPW_Config_GetRawCounterInfo_Params* pParams);
+typedef NVPA_Status (*NVPW_Config_GetRawCounters_Fn)(NVPW_Config_GetRawCounters_Params* pParams);
 typedef NVPA_Status (*NVPW_PeriodicSampler_Config_GetSocEstimatedSampleSize_Fn)(NVPW_PeriodicSampler_Config_GetSocEstimatedSampleSize_Params* pParams);
 typedef NVPA_Status (*NVPW_PeriodicSampler_Config_GetGpuEstimatedSampleSize_Fn)(NVPW_PeriodicSampler_Config_GetGpuEstimatedSampleSize_Params* pParams);
-typedef NVPA_Status (*NVPW_CounterDataBuilder_Create_Fn)(NVPW_CounterDataBuilder_Create_Params* pParams);
-typedef NVPA_Status (*NVPW_CounterDataBuilder_Destroy_Fn)(NVPW_CounterDataBuilder_Destroy_Params* pParams);
-typedef NVPA_Status (*NVPW_CounterDataBuilder_AddMetrics_Fn)(NVPW_CounterDataBuilder_AddMetrics_Params* pParams);
-typedef NVPA_Status (*NVPW_CounterDataBuilder_GetCounterDataPrefix_Fn)(NVPW_CounterDataBuilder_GetCounterDataPrefix_Params* pParams);
 typedef NVPA_Status (*NVPW_MetricsEvaluator_Destroy_Fn)(NVPW_MetricsEvaluator_Destroy_Params* pParams);
 typedef NVPA_Status (*NVPW_MetricsEvaluator_GetMetricNames_Fn)(NVPW_MetricsEvaluator_GetMetricNames_Params* pParams);
 typedef NVPA_Status (*NVPW_MetricsEvaluator_GetMetricTypeAndIndex_Fn)(NVPW_MetricsEvaluator_GetMetricTypeAndIndex_Params* pParams);
@@ -112,6 +121,25 @@ typedef NVPA_Status (*NVPW_MetricsEvaluator_GetMetricDimUnits_Fn)(NVPW_MetricsEv
 typedef NVPA_Status (*NVPW_MetricsEvaluator_SetUserData_Fn)(NVPW_MetricsEvaluator_SetUserData_Params* pParams);
 typedef NVPA_Status (*NVPW_MetricsEvaluator_EvaluateToGpuValues_Fn)(NVPW_MetricsEvaluator_EvaluateToGpuValues_Params* pParams);
 typedef NVPA_Status (*NVPW_MetricsEvaluator_SetDeviceAttributes_Fn)(NVPW_MetricsEvaluator_SetDeviceAttributes_Params* pParams);
+typedef NVPA_Status (*NVPW_MetricsEvaluator_UserDefinedMetrics_Initialize_Fn)(NVPW_MetricsEvaluator_UserDefinedMetrics_Initialize_Params* pParams);
+typedef NVPA_Status (*NVPW_MetricsEvaluator_UserDefinedMetrics_ExecuteScriptFromString_Fn)(NVPW_MetricsEvaluator_UserDefinedMetrics_ExecuteScriptFromString_Params* pParams);
+typedef NVPA_Status (*NVPW_MetricsEvaluator_UserDefinedMetrics_Commit_Fn)(NVPW_MetricsEvaluator_UserDefinedMetrics_Commit_Params* pParams);
+typedef NVPA_Status (*NVPW_MetricsEvaluator_UserDefinedMetrics_GetMetricNames_Fn)(NVPW_MetricsEvaluator_UserDefinedMetrics_GetMetricNames_Params* pParams);
+typedef NVPA_Status (*NVPW_CounterData_CalculateCounterDataImageCopySize_Fn)(NVPW_CounterData_CalculateCounterDataImageCopySize_Params* pParams);
+typedef NVPA_Status (*NVPW_CounterData_InitializeCounterDataImageCopy_Fn)(NVPW_CounterData_InitializeCounterDataImageCopy_Params* pParams);
+typedef NVPA_Status (*NVPW_CounterData_ExtractCounterDataPrefix_Fn)(NVPW_CounterData_ExtractCounterDataPrefix_Params* pParams);
+typedef NVPA_Status (*NVPW_CounterDataCombiner_Create_Fn)(NVPW_CounterDataCombiner_Create_Params* pParams);
+typedef NVPA_Status (*NVPW_CounterDataCombiner_Destroy_Fn)(NVPW_CounterDataCombiner_Destroy_Params* pParams);
+typedef NVPA_Status (*NVPW_CounterDataCombiner_CreateRange_Fn)(NVPW_CounterDataCombiner_CreateRange_Params* pParams);
+typedef NVPA_Status (*NVPW_CounterDataCombiner_CopyIntoRange_Fn)(NVPW_CounterDataCombiner_CopyIntoRange_Params* pParams);
+typedef NVPA_Status (*NVPW_CounterDataCombiner_AccumulateIntoRange_Fn)(NVPW_CounterDataCombiner_AccumulateIntoRange_Params* pParams);
+typedef NVPA_Status (*NVPW_CounterDataCombiner_SumIntoRange_Fn)(NVPW_CounterDataCombiner_SumIntoRange_Params* pParams);
+typedef NVPA_Status (*NVPW_CounterDataCombiner_WeightedSumIntoRange_Fn)(NVPW_CounterDataCombiner_WeightedSumIntoRange_Params* pParams);
+typedef NVPA_Status (*NVPW_CounterDataBuilder_Create_Fn)(NVPW_CounterDataBuilder_Create_Params* pParams);
+typedef NVPA_Status (*NVPW_CounterDataBuilder_Destroy_Fn)(NVPW_CounterDataBuilder_Destroy_Params* pParams);
+typedef NVPA_Status (*NVPW_CounterDataBuilder_AddMetrics_Fn)(NVPW_CounterDataBuilder_AddMetrics_Params* pParams);
+typedef NVPA_Status (*NVPW_CounterDataBuilder_AddRawCounters_Fn)(NVPW_CounterDataBuilder_AddRawCounters_Params* pParams);
+typedef NVPA_Status (*NVPW_CounterDataBuilder_GetCounterDataPrefix_Fn)(NVPW_CounterDataBuilder_GetCounterDataPrefix_Params* pParams);
 typedef NVPA_Status (*NVPW_InitializeTarget_Fn)(NVPW_InitializeTarget_Params* pParams);
 typedef NVPA_Status (*NVPW_GetDeviceCount_Fn)(NVPW_GetDeviceCount_Params* pParams);
 typedef NVPA_Status (*NVPW_Device_GetNames_Fn)(NVPW_Device_GetNames_Params* pParams);
@@ -130,6 +158,8 @@ typedef NVPA_Status (*NVPW_PeriodicSampler_CounterData_GetSampleTime_Fn)(NVPW_Pe
 typedef NVPA_Status (*NVPW_PeriodicSampler_CounterData_TrimInPlace_Fn)(NVPW_PeriodicSampler_CounterData_TrimInPlace_Params* pParams);
 typedef NVPA_Status (*NVPW_PeriodicSampler_CounterData_GetInfo_Fn)(NVPW_PeriodicSampler_CounterData_GetInfo_Params* pParams);
 typedef NVPA_Status (*NVPW_PeriodicSampler_CounterData_GetTriggerCount_Fn)(NVPW_PeriodicSampler_CounterData_GetTriggerCount_Params* pParams);
+typedef NVPA_Status (*NVPW_PeriodicSampler_CounterData_IsDataComplete_Fn)(NVPW_PeriodicSampler_CounterData_IsDataComplete_Params* pParams);
+typedef NVPA_Status (*NVPW_Device_RawCounterConfig_Create_Fn)(NVPW_Device_RawCounterConfig_Create_Params* pParams);
 typedef NVPA_Status (*NVPW_Device_RawMetricsConfig_Create_Fn)(NVPW_Device_RawMetricsConfig_Create_Params* pParams);
 typedef NVPA_Status (*NVPW_Device_MetricsEvaluator_CalculateScratchBufferSize_Fn)(NVPW_Device_MetricsEvaluator_CalculateScratchBufferSize_Params* pParams);
 typedef NVPA_Status (*NVPW_Device_MetricsEvaluator_Initialize_Fn)(NVPW_Device_MetricsEvaluator_Initialize_Params* pParams);
@@ -150,6 +180,12 @@ typedef NVPA_Status (*NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_Fn)(NVPW_GP
 typedef NVPA_Status (*NVPW_GPU_PeriodicSampler_DecodeCounters_Fn)(NVPW_GPU_PeriodicSampler_DecodeCounters_Params* pParams);
 typedef NVPA_Status (*NVPW_GPU_PeriodicSampler_DecodeCounters_V2_Fn)(NVPW_GPU_PeriodicSampler_DecodeCounters_V2_Params* pParams);
 typedef NVPA_Status (*NVPW_GPU_PeriodicSampler_IsRecordBufferKeepLatestModeSupported_Fn)(NVPW_GPU_PeriodicSampler_IsRecordBufferKeepLatestModeSupported_Params* pParams);
+typedef NVPA_Status (*NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2_Fn)(NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2_Params* pParams);
+typedef NVPA_Status (*NVPW_GPU_PeriodicSampler_GetGpuTimestamp_Fn)(NVPW_GPU_PeriodicSampler_GetGpuTimestamp_Params* pParams);
+typedef NVPA_Status (*NVPW_GPU_PeriodicSampler_AcknowledgeRecordBuffer_Fn)(NVPW_GPU_PeriodicSampler_AcknowledgeRecordBuffer_Params* pParams);
+typedef NVPA_Status (*NVPW_GPU_PeriodicSampler_SetRecordBufferReadOffset_Fn)(NVPW_GPU_PeriodicSampler_SetRecordBufferReadOffset_Params* pParams);
+typedef NVPA_Status (*NVPW_GPU_PeriodicSampler_DecodeCounters_V3_Fn)(NVPW_GPU_PeriodicSampler_DecodeCounters_V3_Params* pParams);
+typedef NVPA_Status (*NVPW_VK_RawCounterConfig_Create_Fn)(NVPW_VK_RawCounterConfig_Create_Params* pParams);
 typedef NVPA_Status (*NVPW_VK_RawMetricsConfig_Create_Fn)(NVPW_VK_RawMetricsConfig_Create_Params* pParams);
 typedef NVPA_Status (*NVPW_VK_MetricsEvaluator_CalculateScratchBufferSize_Fn)(NVPW_VK_MetricsEvaluator_CalculateScratchBufferSize_Params* pParams);
 typedef NVPA_Status (*NVPW_VK_MetricsEvaluator_Initialize_Fn)(NVPW_VK_MetricsEvaluator_Initialize_Params* pParams);
@@ -182,9 +218,39 @@ typedef NVPA_Status (*NVPW_VK_MiniTrace_Queue_Unregister_Fn)(NVPW_VK_MiniTrace_Q
 typedef NVPA_Status (*NVPW_VK_MiniTrace_CommandBuffer_FrontEndTrigger_Fn)(NVPW_VK_MiniTrace_CommandBuffer_FrontEndTrigger_Params* pParams);
 typedef NVPA_Status (*NVPW_VK_MiniTrace_CommandBuffer_MarkerCpu_Fn)(NVPW_VK_MiniTrace_CommandBuffer_MarkerCpu_Params* pParams);
 typedef NVPA_Status (*NVPW_VK_MiniTrace_CommandBuffer_HostTimestamp_Fn)(NVPW_VK_MiniTrace_CommandBuffer_HostTimestamp_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_RawCounterConfig_Create_Fn)(NVPW_VKSC_RawCounterConfig_Create_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_RawMetricsConfig_Create_Fn)(NVPW_VKSC_RawMetricsConfig_Create_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_MetricsEvaluator_CalculateScratchBufferSize_Fn)(NVPW_VKSC_MetricsEvaluator_CalculateScratchBufferSize_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_MetricsEvaluator_Initialize_Fn)(NVPW_VKSC_MetricsEvaluator_Initialize_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_CounterDataImage_CalculateSize_Fn)(NVPW_VKSC_Profiler_CounterDataImage_CalculateSize_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_CounterDataImage_Initialize_Fn)(NVPW_VKSC_Profiler_CounterDataImage_Initialize_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_CounterDataImage_CalculateScratchBufferSize_Fn)(NVPW_VKSC_Profiler_CounterDataImage_CalculateScratchBufferSize_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_CounterDataImage_InitializeScratchBuffer_Fn)(NVPW_VKSC_Profiler_CounterDataImage_InitializeScratchBuffer_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_LoadDriver_Fn)(NVPW_VKSC_LoadDriver_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Device_GetDeviceIndex_Fn)(NVPW_VKSC_Device_GetDeviceIndex_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_GetRequiredInstanceExtensions_Fn)(NVPW_VKSC_Profiler_GetRequiredInstanceExtensions_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_GetRequiredDeviceExtensions_Fn)(NVPW_VKSC_Profiler_GetRequiredDeviceExtensions_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_CalcTraceBufferSize_Fn)(NVPW_VKSC_Profiler_CalcTraceBufferSize_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_CalcPerfmonBufferSize_Fn)(NVPW_VKSC_Profiler_CalcPerfmonBufferSize_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_GetDeviceObjectReservation_Fn)(NVPW_VKSC_Profiler_GetDeviceObjectReservation_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_Queue_BeginSession_Fn)(NVPW_VKSC_Profiler_Queue_BeginSession_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_Queue_EndSession_Fn)(NVPW_VKSC_Profiler_Queue_EndSession_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_Queue_ServicePendingGpuOperations_Fn)(NVPW_VKSC_Profiler_Queue_ServicePendingGpuOperations_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_Queue_SetConfig_Fn)(NVPW_VKSC_Profiler_Queue_SetConfig_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_Queue_ClearConfig_Fn)(NVPW_VKSC_Profiler_Queue_ClearConfig_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_Queue_BeginPass_Fn)(NVPW_VKSC_Profiler_Queue_BeginPass_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_Queue_EndPass_Fn)(NVPW_VKSC_Profiler_Queue_EndPass_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_CommandBuffer_PushRangeGraphics_Fn)(NVPW_VKSC_Profiler_CommandBuffer_PushRangeGraphics_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_CommandBuffer_PopRangeGraphics_Fn)(NVPW_VKSC_Profiler_CommandBuffer_PopRangeGraphics_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_CommandBuffer_PushRangeCompute_Fn)(NVPW_VKSC_Profiler_CommandBuffer_PushRangeCompute_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_CommandBuffer_PopRangeCompute_Fn)(NVPW_VKSC_Profiler_CommandBuffer_PopRangeCompute_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_Queue_InitializeRangeCommands_Fn)(NVPW_VKSC_Profiler_Queue_InitializeRangeCommands_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_Queue_DecodeCounters_Fn)(NVPW_VKSC_Profiler_Queue_DecodeCounters_Params* pParams);
+typedef NVPA_Status (*NVPW_VKSC_Profiler_IsGpuSupported_Fn)(NVPW_VKSC_Profiler_IsGpuSupported_Params* pParams);
 typedef NVPA_Status (*NVPW_OpenGL_RawMetricsConfig_Create_Fn)(NVPW_OpenGL_RawMetricsConfig_Create_Params* pParams);
 typedef NVPA_Status (*NVPW_OpenGL_MetricsEvaluator_CalculateScratchBufferSize_Fn)(NVPW_OpenGL_MetricsEvaluator_CalculateScratchBufferSize_Params* pParams);
 typedef NVPA_Status (*NVPW_OpenGL_MetricsEvaluator_Initialize_Fn)(NVPW_OpenGL_MetricsEvaluator_Initialize_Params* pParams);
+typedef NVPA_Status (*NVPW_OpenGL_RawCounterConfig_Create_Fn)(NVPW_OpenGL_RawCounterConfig_Create_Params* pParams);
 typedef NVPA_Status (*NVPW_OpenGL_LoadDriver_Fn)(NVPW_OpenGL_LoadDriver_Params* pParams);
 typedef NVPA_Status (*NVPW_OpenGL_GetCurrentGraphicsContext_Fn)(NVPW_OpenGL_GetCurrentGraphicsContext_Params* pParams);
 typedef NVPA_Status (*NVPW_OpenGL_GraphicsContext_GetDeviceIndex_Fn)(NVPW_OpenGL_GraphicsContext_GetDeviceIndex_Params* pParams);
@@ -204,9 +270,32 @@ typedef NVPA_Status (*NVPW_OpenGL_Profiler_GraphicsContext_PushRange_Fn)(NVPW_Op
 typedef NVPA_Status (*NVPW_OpenGL_Profiler_GraphicsContext_PopRange_Fn)(NVPW_OpenGL_Profiler_GraphicsContext_PopRange_Params* pParams);
 typedef NVPA_Status (*NVPW_OpenGL_Profiler_GraphicsContext_DecodeCounters_Fn)(NVPW_OpenGL_Profiler_GraphicsContext_DecodeCounters_Params* pParams);
 typedef NVPA_Status (*NVPW_OpenGL_Profiler_GraphicsContext_GetCounterAvailability_Fn)(NVPW_OpenGL_Profiler_GraphicsContext_GetCounterAvailability_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_RawMetricsConfig_Create_Fn)(NVPW_EGL_RawMetricsConfig_Create_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_MetricsEvaluator_CalculateScratchBufferSize_Fn)(NVPW_EGL_MetricsEvaluator_CalculateScratchBufferSize_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_MetricsEvaluator_Initialize_Fn)(NVPW_EGL_MetricsEvaluator_Initialize_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_RawCounterConfig_Create_Fn)(NVPW_EGL_RawCounterConfig_Create_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_LoadDriver_Fn)(NVPW_EGL_LoadDriver_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_GetCurrentGraphicsContext_Fn)(NVPW_EGL_GetCurrentGraphicsContext_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_GraphicsContext_GetDeviceIndex_Fn)(NVPW_EGL_GraphicsContext_GetDeviceIndex_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_Profiler_IsGpuSupported_Fn)(NVPW_EGL_Profiler_IsGpuSupported_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_Profiler_CounterDataImage_CalculateSize_Fn)(NVPW_EGL_Profiler_CounterDataImage_CalculateSize_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_Profiler_CounterDataImage_Initialize_Fn)(NVPW_EGL_Profiler_CounterDataImage_Initialize_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_Profiler_CounterDataImage_CalculateScratchBufferSize_Fn)(NVPW_EGL_Profiler_CounterDataImage_CalculateScratchBufferSize_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_Profiler_CounterDataImage_InitializeScratchBuffer_Fn)(NVPW_EGL_Profiler_CounterDataImage_InitializeScratchBuffer_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_Profiler_CalcTraceBufferSize_Fn)(NVPW_EGL_Profiler_CalcTraceBufferSize_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_Profiler_GraphicsContext_BeginSession_Fn)(NVPW_EGL_Profiler_GraphicsContext_BeginSession_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_Profiler_GraphicsContext_EndSession_Fn)(NVPW_EGL_Profiler_GraphicsContext_EndSession_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_Profiler_GraphicsContext_SetConfig_Fn)(NVPW_EGL_Profiler_GraphicsContext_SetConfig_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_Profiler_GraphicsContext_ClearConfig_Fn)(NVPW_EGL_Profiler_GraphicsContext_ClearConfig_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_Profiler_GraphicsContext_BeginPass_Fn)(NVPW_EGL_Profiler_GraphicsContext_BeginPass_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_Profiler_GraphicsContext_EndPass_Fn)(NVPW_EGL_Profiler_GraphicsContext_EndPass_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_Profiler_GraphicsContext_PushRange_Fn)(NVPW_EGL_Profiler_GraphicsContext_PushRange_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_Profiler_GraphicsContext_PopRange_Fn)(NVPW_EGL_Profiler_GraphicsContext_PopRange_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_Profiler_GraphicsContext_DecodeCounters_Fn)(NVPW_EGL_Profiler_GraphicsContext_DecodeCounters_Params* pParams);
+typedef NVPA_Status (*NVPW_EGL_Profiler_GraphicsContext_GetCounterAvailability_Fn)(NVPW_EGL_Profiler_GraphicsContext_GetCounterAvailability_Params* pParams);
 
 // Default implementations
-static NVPA_Status g_defaultStatus = NVPA_STATUS_NOT_LOADED;
+static NVPA_Status g_defaultStatus = NVPA_STATUS_NOT_INITIALIZED;
 
 static NVPA_GenericFn NVPA_GetProcAddress_Default(const char* pFunctionName)
 {
@@ -217,51 +306,6 @@ static NVPA_GenericFn NVPA_GetProcAddress_Default(const char* pFunctionName);
 static NVPA_Status NVPW_SetLibraryLoadPaths_Default(NVPW_SetLibraryLoadPaths_Params* pParams);
 static NVPA_Status NVPW_SetLibraryLoadPathsW_Default(NVPW_SetLibraryLoadPathsW_Params* pParams);
 static NVPA_Status NVPW_InitializeHost_Default(NVPW_InitializeHost_Params* pParams);
-static NVPA_Status NVPW_CounterData_CalculateCounterDataImageCopySize_Default(NVPW_CounterData_CalculateCounterDataImageCopySize_Params* pParams)
-{
-    (void)pParams;
-    return g_defaultStatus;
-}
-static NVPA_Status NVPW_CounterData_InitializeCounterDataImageCopy_Default(NVPW_CounterData_InitializeCounterDataImageCopy_Params* pParams)
-{
-    (void)pParams;
-    return g_defaultStatus;
-}
-static NVPA_Status NVPW_CounterDataCombiner_Create_Default(NVPW_CounterDataCombiner_Create_Params* pParams)
-{
-    (void)pParams;
-    return g_defaultStatus;
-}
-static NVPA_Status NVPW_CounterDataCombiner_Destroy_Default(NVPW_CounterDataCombiner_Destroy_Params* pParams)
-{
-    (void)pParams;
-    return g_defaultStatus;
-}
-static NVPA_Status NVPW_CounterDataCombiner_CreateRange_Default(NVPW_CounterDataCombiner_CreateRange_Params* pParams)
-{
-    (void)pParams;
-    return g_defaultStatus;
-}
-static NVPA_Status NVPW_CounterDataCombiner_CopyIntoRange_Default(NVPW_CounterDataCombiner_CopyIntoRange_Params* pParams)
-{
-    (void)pParams;
-    return g_defaultStatus;
-}
-static NVPA_Status NVPW_CounterDataCombiner_AccumulateIntoRange_Default(NVPW_CounterDataCombiner_AccumulateIntoRange_Params* pParams)
-{
-    (void)pParams;
-    return g_defaultStatus;
-}
-static NVPA_Status NVPW_CounterDataCombiner_SumIntoRange_Default(NVPW_CounterDataCombiner_SumIntoRange_Params* pParams)
-{
-    (void)pParams;
-    return g_defaultStatus;
-}
-static NVPA_Status NVPW_CounterDataCombiner_WeightedSumIntoRange_Default(NVPW_CounterDataCombiner_WeightedSumIntoRange_Params* pParams)
-{
-    (void)pParams;
-    return g_defaultStatus;
-}
 static NVPA_Status NVPW_GetSupportedChipNames_Default(NVPW_GetSupportedChipNames_Params* pParams)
 {
     (void)pParams;
@@ -322,32 +366,122 @@ static NVPA_Status NVPW_RawMetricsConfig_GetNumPasses_V2_Default(NVPW_RawMetrics
     (void)pParams;
     return g_defaultStatus;
 }
+static NVPA_Status NVPW_RawCounterConfig_RawCounterDomainToString_Default(NVPW_RawCounterConfig_RawCounterDomainToString_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_RawCounterConfig_StringToRawCounterDomain_Default(NVPW_RawCounterConfig_StringToRawCounterDomain_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_RawCounterConfig_GetSupportedChipNames_Default(NVPW_RawCounterConfig_GetSupportedChipNames_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_RawCounterConfig_Destroy_Default(NVPW_RawCounterConfig_Destroy_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_RawCounterConfig_SetCounterAvailability_Default(NVPW_RawCounterConfig_SetCounterAvailability_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_RawCounterConfig_GetAllAvailableRawCounterDomains_Default(NVPW_RawCounterConfig_GetAllAvailableRawCounterDomains_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_RawCounterConfig_GetAllAvailableCooperativeDomainGroups_Default(NVPW_RawCounterConfig_GetAllAvailableCooperativeDomainGroups_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_RawCounterConfig_IsCooperativeDomainGroup_Default(NVPW_RawCounterConfig_IsCooperativeDomainGroup_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_RawCounterConfig_CooperativeDomainGroup_GetMemberDomains_Default(NVPW_RawCounterConfig_CooperativeDomainGroup_GetMemberDomains_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_RawCounterConfig_BeginPassGroup_Default(NVPW_RawCounterConfig_BeginPassGroup_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_RawCounterConfig_EndPassGroup_Default(NVPW_RawCounterConfig_EndPassGroup_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_RawCounterConfig_GetNumRawCounters_Default(NVPW_RawCounterConfig_GetNumRawCounters_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_RawCounterConfig_GetRawCounterName_Default(NVPW_RawCounterConfig_GetRawCounterName_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_RawCounterConfig_GetRawCounterProperties_Default(NVPW_RawCounterConfig_GetRawCounterProperties_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_RawCounterConfig_AddRawCounters_Default(NVPW_RawCounterConfig_AddRawCounters_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_RawCounterConfig_AreRawCountersSchedulable_Default(NVPW_RawCounterConfig_AreRawCountersSchedulable_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_RawCounterConfig_MergePassGroups_Default(NVPW_RawCounterConfig_MergePassGroups_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_RawCounterConfig_GenerateConfigImage_Default(NVPW_RawCounterConfig_GenerateConfigImage_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_RawCounterConfig_GetConfigImage_Default(NVPW_RawCounterConfig_GetConfigImage_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_RawCounterConfig_GetNumPasses_Default(NVPW_RawCounterConfig_GetNumPasses_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_Config_GetRawCounterInfo_Default(NVPW_Config_GetRawCounterInfo_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_Config_GetRawCounters_Default(NVPW_Config_GetRawCounters_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
 static NVPA_Status NVPW_PeriodicSampler_Config_GetSocEstimatedSampleSize_Default(NVPW_PeriodicSampler_Config_GetSocEstimatedSampleSize_Params* pParams)
 {
     (void)pParams;
     return g_defaultStatus;
 }
 static NVPA_Status NVPW_PeriodicSampler_Config_GetGpuEstimatedSampleSize_Default(NVPW_PeriodicSampler_Config_GetGpuEstimatedSampleSize_Params* pParams)
-{
-    (void)pParams;
-    return g_defaultStatus;
-}
-static NVPA_Status NVPW_CounterDataBuilder_Create_Default(NVPW_CounterDataBuilder_Create_Params* pParams)
-{
-    (void)pParams;
-    return g_defaultStatus;
-}
-static NVPA_Status NVPW_CounterDataBuilder_Destroy_Default(NVPW_CounterDataBuilder_Destroy_Params* pParams)
-{
-    (void)pParams;
-    return g_defaultStatus;
-}
-static NVPA_Status NVPW_CounterDataBuilder_AddMetrics_Default(NVPW_CounterDataBuilder_AddMetrics_Params* pParams)
-{
-    (void)pParams;
-    return g_defaultStatus;
-}
-static NVPA_Status NVPW_CounterDataBuilder_GetCounterDataPrefix_Default(NVPW_CounterDataBuilder_GetCounterDataPrefix_Params* pParams)
 {
     (void)pParams;
     return g_defaultStatus;
@@ -423,6 +557,101 @@ static NVPA_Status NVPW_MetricsEvaluator_EvaluateToGpuValues_Default(NVPW_Metric
     return g_defaultStatus;
 }
 static NVPA_Status NVPW_MetricsEvaluator_SetDeviceAttributes_Default(NVPW_MetricsEvaluator_SetDeviceAttributes_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_MetricsEvaluator_UserDefinedMetrics_Initialize_Default(NVPW_MetricsEvaluator_UserDefinedMetrics_Initialize_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_MetricsEvaluator_UserDefinedMetrics_ExecuteScriptFromString_Default(NVPW_MetricsEvaluator_UserDefinedMetrics_ExecuteScriptFromString_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_MetricsEvaluator_UserDefinedMetrics_Commit_Default(NVPW_MetricsEvaluator_UserDefinedMetrics_Commit_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_MetricsEvaluator_UserDefinedMetrics_GetMetricNames_Default(NVPW_MetricsEvaluator_UserDefinedMetrics_GetMetricNames_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_CounterData_CalculateCounterDataImageCopySize_Default(NVPW_CounterData_CalculateCounterDataImageCopySize_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_CounterData_InitializeCounterDataImageCopy_Default(NVPW_CounterData_InitializeCounterDataImageCopy_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_CounterData_ExtractCounterDataPrefix_Default(NVPW_CounterData_ExtractCounterDataPrefix_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_CounterDataCombiner_Create_Default(NVPW_CounterDataCombiner_Create_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_CounterDataCombiner_Destroy_Default(NVPW_CounterDataCombiner_Destroy_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_CounterDataCombiner_CreateRange_Default(NVPW_CounterDataCombiner_CreateRange_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_CounterDataCombiner_CopyIntoRange_Default(NVPW_CounterDataCombiner_CopyIntoRange_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_CounterDataCombiner_AccumulateIntoRange_Default(NVPW_CounterDataCombiner_AccumulateIntoRange_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_CounterDataCombiner_SumIntoRange_Default(NVPW_CounterDataCombiner_SumIntoRange_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_CounterDataCombiner_WeightedSumIntoRange_Default(NVPW_CounterDataCombiner_WeightedSumIntoRange_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_CounterDataBuilder_Create_Default(NVPW_CounterDataBuilder_Create_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_CounterDataBuilder_Destroy_Default(NVPW_CounterDataBuilder_Destroy_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_CounterDataBuilder_AddMetrics_Default(NVPW_CounterDataBuilder_AddMetrics_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_CounterDataBuilder_AddRawCounters_Default(NVPW_CounterDataBuilder_AddRawCounters_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_CounterDataBuilder_GetCounterDataPrefix_Default(NVPW_CounterDataBuilder_GetCounterDataPrefix_Params* pParams)
 {
     (void)pParams;
     return g_defaultStatus;
@@ -509,6 +738,16 @@ static NVPA_Status NVPW_PeriodicSampler_CounterData_GetInfo_Default(NVPW_Periodi
     return g_defaultStatus;
 }
 static NVPA_Status NVPW_PeriodicSampler_CounterData_GetTriggerCount_Default(NVPW_PeriodicSampler_CounterData_GetTriggerCount_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_PeriodicSampler_CounterData_IsDataComplete_Default(NVPW_PeriodicSampler_CounterData_IsDataComplete_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_Device_RawCounterConfig_Create_Default(NVPW_Device_RawCounterConfig_Create_Params* pParams)
 {
     (void)pParams;
     return g_defaultStatus;
@@ -609,6 +848,36 @@ static NVPA_Status NVPW_GPU_PeriodicSampler_DecodeCounters_V2_Default(NVPW_GPU_P
     return g_defaultStatus;
 }
 static NVPA_Status NVPW_GPU_PeriodicSampler_IsRecordBufferKeepLatestModeSupported_Default(NVPW_GPU_PeriodicSampler_IsRecordBufferKeepLatestModeSupported_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2_Default(NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_GPU_PeriodicSampler_GetGpuTimestamp_Default(NVPW_GPU_PeriodicSampler_GetGpuTimestamp_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_GPU_PeriodicSampler_AcknowledgeRecordBuffer_Default(NVPW_GPU_PeriodicSampler_AcknowledgeRecordBuffer_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_GPU_PeriodicSampler_SetRecordBufferReadOffset_Default(NVPW_GPU_PeriodicSampler_SetRecordBufferReadOffset_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_GPU_PeriodicSampler_DecodeCounters_V3_Default(NVPW_GPU_PeriodicSampler_DecodeCounters_V3_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VK_RawCounterConfig_Create_Default(NVPW_VK_RawCounterConfig_Create_Params* pParams)
 {
     (void)pParams;
     return g_defaultStatus;
@@ -773,6 +1042,151 @@ static NVPA_Status NVPW_VK_MiniTrace_CommandBuffer_HostTimestamp_Default(NVPW_VK
     (void)pParams;
     return g_defaultStatus;
 }
+static NVPA_Status NVPW_VKSC_RawCounterConfig_Create_Default(NVPW_VKSC_RawCounterConfig_Create_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_RawMetricsConfig_Create_Default(NVPW_VKSC_RawMetricsConfig_Create_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_MetricsEvaluator_CalculateScratchBufferSize_Default(NVPW_VKSC_MetricsEvaluator_CalculateScratchBufferSize_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_MetricsEvaluator_Initialize_Default(NVPW_VKSC_MetricsEvaluator_Initialize_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_CounterDataImage_CalculateSize_Default(NVPW_VKSC_Profiler_CounterDataImage_CalculateSize_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_CounterDataImage_Initialize_Default(NVPW_VKSC_Profiler_CounterDataImage_Initialize_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_CounterDataImage_CalculateScratchBufferSize_Default(NVPW_VKSC_Profiler_CounterDataImage_CalculateScratchBufferSize_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_CounterDataImage_InitializeScratchBuffer_Default(NVPW_VKSC_Profiler_CounterDataImage_InitializeScratchBuffer_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_LoadDriver_Default(NVPW_VKSC_LoadDriver_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Device_GetDeviceIndex_Default(NVPW_VKSC_Device_GetDeviceIndex_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_GetRequiredInstanceExtensions_Default(NVPW_VKSC_Profiler_GetRequiredInstanceExtensions_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_GetRequiredDeviceExtensions_Default(NVPW_VKSC_Profiler_GetRequiredDeviceExtensions_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_CalcTraceBufferSize_Default(NVPW_VKSC_Profiler_CalcTraceBufferSize_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_CalcPerfmonBufferSize_Default(NVPW_VKSC_Profiler_CalcPerfmonBufferSize_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_GetDeviceObjectReservation_Default(NVPW_VKSC_Profiler_GetDeviceObjectReservation_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_Queue_BeginSession_Default(NVPW_VKSC_Profiler_Queue_BeginSession_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_Queue_EndSession_Default(NVPW_VKSC_Profiler_Queue_EndSession_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_Queue_ServicePendingGpuOperations_Default(NVPW_VKSC_Profiler_Queue_ServicePendingGpuOperations_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_Queue_SetConfig_Default(NVPW_VKSC_Profiler_Queue_SetConfig_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_Queue_ClearConfig_Default(NVPW_VKSC_Profiler_Queue_ClearConfig_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_Queue_BeginPass_Default(NVPW_VKSC_Profiler_Queue_BeginPass_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_Queue_EndPass_Default(NVPW_VKSC_Profiler_Queue_EndPass_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_CommandBuffer_PushRangeGraphics_Default(NVPW_VKSC_Profiler_CommandBuffer_PushRangeGraphics_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_CommandBuffer_PopRangeGraphics_Default(NVPW_VKSC_Profiler_CommandBuffer_PopRangeGraphics_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_CommandBuffer_PushRangeCompute_Default(NVPW_VKSC_Profiler_CommandBuffer_PushRangeCompute_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_CommandBuffer_PopRangeCompute_Default(NVPW_VKSC_Profiler_CommandBuffer_PopRangeCompute_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_Queue_InitializeRangeCommands_Default(NVPW_VKSC_Profiler_Queue_InitializeRangeCommands_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_Queue_DecodeCounters_Default(NVPW_VKSC_Profiler_Queue_DecodeCounters_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_VKSC_Profiler_IsGpuSupported_Default(NVPW_VKSC_Profiler_IsGpuSupported_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
 static NVPA_Status NVPW_OpenGL_RawMetricsConfig_Create_Default(NVPW_OpenGL_RawMetricsConfig_Create_Params* pParams)
 {
     (void)pParams;
@@ -784,6 +1198,11 @@ static NVPA_Status NVPW_OpenGL_MetricsEvaluator_CalculateScratchBufferSize_Defau
     return g_defaultStatus;
 }
 static NVPA_Status NVPW_OpenGL_MetricsEvaluator_Initialize_Default(NVPW_OpenGL_MetricsEvaluator_Initialize_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_OpenGL_RawCounterConfig_Create_Default(NVPW_OpenGL_RawCounterConfig_Create_Params* pParams)
 {
     (void)pParams;
     return g_defaultStatus;
@@ -883,20 +1302,126 @@ static NVPA_Status NVPW_OpenGL_Profiler_GraphicsContext_GetCounterAvailability_D
     (void)pParams;
     return g_defaultStatus;
 }
+static NVPA_Status NVPW_EGL_RawMetricsConfig_Create_Default(NVPW_EGL_RawMetricsConfig_Create_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_EGL_MetricsEvaluator_CalculateScratchBufferSize_Default(NVPW_EGL_MetricsEvaluator_CalculateScratchBufferSize_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_EGL_MetricsEvaluator_Initialize_Default(NVPW_EGL_MetricsEvaluator_Initialize_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_EGL_RawCounterConfig_Create_Default(NVPW_EGL_RawCounterConfig_Create_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_EGL_LoadDriver_Default(NVPW_EGL_LoadDriver_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_EGL_GetCurrentGraphicsContext_Default(NVPW_EGL_GetCurrentGraphicsContext_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_EGL_GraphicsContext_GetDeviceIndex_Default(NVPW_EGL_GraphicsContext_GetDeviceIndex_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_EGL_Profiler_IsGpuSupported_Default(NVPW_EGL_Profiler_IsGpuSupported_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_EGL_Profiler_CounterDataImage_CalculateSize_Default(NVPW_EGL_Profiler_CounterDataImage_CalculateSize_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_EGL_Profiler_CounterDataImage_Initialize_Default(NVPW_EGL_Profiler_CounterDataImage_Initialize_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_EGL_Profiler_CounterDataImage_CalculateScratchBufferSize_Default(NVPW_EGL_Profiler_CounterDataImage_CalculateScratchBufferSize_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_EGL_Profiler_CounterDataImage_InitializeScratchBuffer_Default(NVPW_EGL_Profiler_CounterDataImage_InitializeScratchBuffer_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_EGL_Profiler_CalcTraceBufferSize_Default(NVPW_EGL_Profiler_CalcTraceBufferSize_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_EGL_Profiler_GraphicsContext_BeginSession_Default(NVPW_EGL_Profiler_GraphicsContext_BeginSession_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_EGL_Profiler_GraphicsContext_EndSession_Default(NVPW_EGL_Profiler_GraphicsContext_EndSession_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_EGL_Profiler_GraphicsContext_SetConfig_Default(NVPW_EGL_Profiler_GraphicsContext_SetConfig_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_EGL_Profiler_GraphicsContext_ClearConfig_Default(NVPW_EGL_Profiler_GraphicsContext_ClearConfig_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_EGL_Profiler_GraphicsContext_BeginPass_Default(NVPW_EGL_Profiler_GraphicsContext_BeginPass_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_EGL_Profiler_GraphicsContext_EndPass_Default(NVPW_EGL_Profiler_GraphicsContext_EndPass_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_EGL_Profiler_GraphicsContext_PushRange_Default(NVPW_EGL_Profiler_GraphicsContext_PushRange_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_EGL_Profiler_GraphicsContext_PopRange_Default(NVPW_EGL_Profiler_GraphicsContext_PopRange_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_EGL_Profiler_GraphicsContext_DecodeCounters_Default(NVPW_EGL_Profiler_GraphicsContext_DecodeCounters_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
+static NVPA_Status NVPW_EGL_Profiler_GraphicsContext_GetCounterAvailability_Default(NVPW_EGL_Profiler_GraphicsContext_GetCounterAvailability_Params* pParams)
+{
+    (void)pParams;
+    return g_defaultStatus;
+}
 typedef struct NvPerfApi {
     NVPA_GetProcAddress_Fn                                       NVPA_GetProcAddress;
     NVPW_SetLibraryLoadPaths_Fn                                  NVPW_SetLibraryLoadPaths;
     NVPW_SetLibraryLoadPathsW_Fn                                 NVPW_SetLibraryLoadPathsW;
     NVPW_InitializeHost_Fn                                       NVPW_InitializeHost;
-    NVPW_CounterData_CalculateCounterDataImageCopySize_Fn        NVPW_CounterData_CalculateCounterDataImageCopySize;
-    NVPW_CounterData_InitializeCounterDataImageCopy_Fn           NVPW_CounterData_InitializeCounterDataImageCopy;
-    NVPW_CounterDataCombiner_Create_Fn                           NVPW_CounterDataCombiner_Create;
-    NVPW_CounterDataCombiner_Destroy_Fn                          NVPW_CounterDataCombiner_Destroy;
-    NVPW_CounterDataCombiner_CreateRange_Fn                      NVPW_CounterDataCombiner_CreateRange;
-    NVPW_CounterDataCombiner_CopyIntoRange_Fn                    NVPW_CounterDataCombiner_CopyIntoRange;
-    NVPW_CounterDataCombiner_AccumulateIntoRange_Fn              NVPW_CounterDataCombiner_AccumulateIntoRange;
-    NVPW_CounterDataCombiner_SumIntoRange_Fn                     NVPW_CounterDataCombiner_SumIntoRange;
-    NVPW_CounterDataCombiner_WeightedSumIntoRange_Fn             NVPW_CounterDataCombiner_WeightedSumIntoRange;
     NVPW_GetSupportedChipNames_Fn                                NVPW_GetSupportedChipNames;
     NVPW_RawMetricsConfig_Destroy_Fn                             NVPW_RawMetricsConfig_Destroy;
     NVPW_RawMetricsConfig_SetCounterAvailability_Fn              NVPW_RawMetricsConfig_SetCounterAvailability;
@@ -909,12 +1434,30 @@ typedef struct NvPerfApi {
     NVPW_RawMetricsConfig_GenerateConfigImage_Fn                 NVPW_RawMetricsConfig_GenerateConfigImage;
     NVPW_RawMetricsConfig_GetConfigImage_Fn                      NVPW_RawMetricsConfig_GetConfigImage;
     NVPW_RawMetricsConfig_GetNumPasses_V2_Fn                     NVPW_RawMetricsConfig_GetNumPasses_V2;
+    NVPW_RawCounterConfig_RawCounterDomainToString_Fn            NVPW_RawCounterConfig_RawCounterDomainToString;
+    NVPW_RawCounterConfig_StringToRawCounterDomain_Fn            NVPW_RawCounterConfig_StringToRawCounterDomain;
+    NVPW_RawCounterConfig_GetSupportedChipNames_Fn               NVPW_RawCounterConfig_GetSupportedChipNames;
+    NVPW_RawCounterConfig_Destroy_Fn                             NVPW_RawCounterConfig_Destroy;
+    NVPW_RawCounterConfig_SetCounterAvailability_Fn              NVPW_RawCounterConfig_SetCounterAvailability;
+    NVPW_RawCounterConfig_GetAllAvailableRawCounterDomains_Fn    NVPW_RawCounterConfig_GetAllAvailableRawCounterDomains;
+    NVPW_RawCounterConfig_GetAllAvailableCooperativeDomainGroups_Fn NVPW_RawCounterConfig_GetAllAvailableCooperativeDomainGroups;
+    NVPW_RawCounterConfig_IsCooperativeDomainGroup_Fn            NVPW_RawCounterConfig_IsCooperativeDomainGroup;
+    NVPW_RawCounterConfig_CooperativeDomainGroup_GetMemberDomains_Fn NVPW_RawCounterConfig_CooperativeDomainGroup_GetMemberDomains;
+    NVPW_RawCounterConfig_BeginPassGroup_Fn                      NVPW_RawCounterConfig_BeginPassGroup;
+    NVPW_RawCounterConfig_EndPassGroup_Fn                        NVPW_RawCounterConfig_EndPassGroup;
+    NVPW_RawCounterConfig_GetNumRawCounters_Fn                   NVPW_RawCounterConfig_GetNumRawCounters;
+    NVPW_RawCounterConfig_GetRawCounterName_Fn                   NVPW_RawCounterConfig_GetRawCounterName;
+    NVPW_RawCounterConfig_GetRawCounterProperties_Fn             NVPW_RawCounterConfig_GetRawCounterProperties;
+    NVPW_RawCounterConfig_AddRawCounters_Fn                      NVPW_RawCounterConfig_AddRawCounters;
+    NVPW_RawCounterConfig_AreRawCountersSchedulable_Fn           NVPW_RawCounterConfig_AreRawCountersSchedulable;
+    NVPW_RawCounterConfig_MergePassGroups_Fn                     NVPW_RawCounterConfig_MergePassGroups;
+    NVPW_RawCounterConfig_GenerateConfigImage_Fn                 NVPW_RawCounterConfig_GenerateConfigImage;
+    NVPW_RawCounterConfig_GetConfigImage_Fn                      NVPW_RawCounterConfig_GetConfigImage;
+    NVPW_RawCounterConfig_GetNumPasses_Fn                        NVPW_RawCounterConfig_GetNumPasses;
+    NVPW_Config_GetRawCounterInfo_Fn                             NVPW_Config_GetRawCounterInfo;
+    NVPW_Config_GetRawCounters_Fn                                NVPW_Config_GetRawCounters;
     NVPW_PeriodicSampler_Config_GetSocEstimatedSampleSize_Fn     NVPW_PeriodicSampler_Config_GetSocEstimatedSampleSize;
     NVPW_PeriodicSampler_Config_GetGpuEstimatedSampleSize_Fn     NVPW_PeriodicSampler_Config_GetGpuEstimatedSampleSize;
-    NVPW_CounterDataBuilder_Create_Fn                            NVPW_CounterDataBuilder_Create;
-    NVPW_CounterDataBuilder_Destroy_Fn                           NVPW_CounterDataBuilder_Destroy;
-    NVPW_CounterDataBuilder_AddMetrics_Fn                        NVPW_CounterDataBuilder_AddMetrics;
-    NVPW_CounterDataBuilder_GetCounterDataPrefix_Fn              NVPW_CounterDataBuilder_GetCounterDataPrefix;
     NVPW_MetricsEvaluator_Destroy_Fn                             NVPW_MetricsEvaluator_Destroy;
     NVPW_MetricsEvaluator_GetMetricNames_Fn                      NVPW_MetricsEvaluator_GetMetricNames;
     NVPW_MetricsEvaluator_GetMetricTypeAndIndex_Fn               NVPW_MetricsEvaluator_GetMetricTypeAndIndex;
@@ -930,6 +1473,25 @@ typedef struct NvPerfApi {
     NVPW_MetricsEvaluator_SetUserData_Fn                         NVPW_MetricsEvaluator_SetUserData;
     NVPW_MetricsEvaluator_EvaluateToGpuValues_Fn                 NVPW_MetricsEvaluator_EvaluateToGpuValues;
     NVPW_MetricsEvaluator_SetDeviceAttributes_Fn                 NVPW_MetricsEvaluator_SetDeviceAttributes;
+    NVPW_MetricsEvaluator_UserDefinedMetrics_Initialize_Fn       NVPW_MetricsEvaluator_UserDefinedMetrics_Initialize;
+    NVPW_MetricsEvaluator_UserDefinedMetrics_ExecuteScriptFromString_Fn NVPW_MetricsEvaluator_UserDefinedMetrics_ExecuteScriptFromString;
+    NVPW_MetricsEvaluator_UserDefinedMetrics_Commit_Fn           NVPW_MetricsEvaluator_UserDefinedMetrics_Commit;
+    NVPW_MetricsEvaluator_UserDefinedMetrics_GetMetricNames_Fn   NVPW_MetricsEvaluator_UserDefinedMetrics_GetMetricNames;
+    NVPW_CounterData_CalculateCounterDataImageCopySize_Fn        NVPW_CounterData_CalculateCounterDataImageCopySize;
+    NVPW_CounterData_InitializeCounterDataImageCopy_Fn           NVPW_CounterData_InitializeCounterDataImageCopy;
+    NVPW_CounterData_ExtractCounterDataPrefix_Fn                 NVPW_CounterData_ExtractCounterDataPrefix;
+    NVPW_CounterDataCombiner_Create_Fn                           NVPW_CounterDataCombiner_Create;
+    NVPW_CounterDataCombiner_Destroy_Fn                          NVPW_CounterDataCombiner_Destroy;
+    NVPW_CounterDataCombiner_CreateRange_Fn                      NVPW_CounterDataCombiner_CreateRange;
+    NVPW_CounterDataCombiner_CopyIntoRange_Fn                    NVPW_CounterDataCombiner_CopyIntoRange;
+    NVPW_CounterDataCombiner_AccumulateIntoRange_Fn              NVPW_CounterDataCombiner_AccumulateIntoRange;
+    NVPW_CounterDataCombiner_SumIntoRange_Fn                     NVPW_CounterDataCombiner_SumIntoRange;
+    NVPW_CounterDataCombiner_WeightedSumIntoRange_Fn             NVPW_CounterDataCombiner_WeightedSumIntoRange;
+    NVPW_CounterDataBuilder_Create_Fn                            NVPW_CounterDataBuilder_Create;
+    NVPW_CounterDataBuilder_Destroy_Fn                           NVPW_CounterDataBuilder_Destroy;
+    NVPW_CounterDataBuilder_AddMetrics_Fn                        NVPW_CounterDataBuilder_AddMetrics;
+    NVPW_CounterDataBuilder_AddRawCounters_Fn                    NVPW_CounterDataBuilder_AddRawCounters;
+    NVPW_CounterDataBuilder_GetCounterDataPrefix_Fn              NVPW_CounterDataBuilder_GetCounterDataPrefix;
     NVPW_InitializeTarget_Fn                                     NVPW_InitializeTarget;
     NVPW_GetDeviceCount_Fn                                       NVPW_GetDeviceCount;
     NVPW_Device_GetNames_Fn                                      NVPW_Device_GetNames;
@@ -948,6 +1510,8 @@ typedef struct NvPerfApi {
     NVPW_PeriodicSampler_CounterData_TrimInPlace_Fn              NVPW_PeriodicSampler_CounterData_TrimInPlace;
     NVPW_PeriodicSampler_CounterData_GetInfo_Fn                  NVPW_PeriodicSampler_CounterData_GetInfo;
     NVPW_PeriodicSampler_CounterData_GetTriggerCount_Fn          NVPW_PeriodicSampler_CounterData_GetTriggerCount;
+    NVPW_PeriodicSampler_CounterData_IsDataComplete_Fn           NVPW_PeriodicSampler_CounterData_IsDataComplete;
+    NVPW_Device_RawCounterConfig_Create_Fn                       NVPW_Device_RawCounterConfig_Create;
     NVPW_Device_RawMetricsConfig_Create_Fn                       NVPW_Device_RawMetricsConfig_Create;
     NVPW_Device_MetricsEvaluator_CalculateScratchBufferSize_Fn   NVPW_Device_MetricsEvaluator_CalculateScratchBufferSize;
     NVPW_Device_MetricsEvaluator_Initialize_Fn                   NVPW_Device_MetricsEvaluator_Initialize;
@@ -968,6 +1532,12 @@ typedef struct NvPerfApi {
     NVPW_GPU_PeriodicSampler_DecodeCounters_Fn                   NVPW_GPU_PeriodicSampler_DecodeCounters;
     NVPW_GPU_PeriodicSampler_DecodeCounters_V2_Fn                NVPW_GPU_PeriodicSampler_DecodeCounters_V2;
     NVPW_GPU_PeriodicSampler_IsRecordBufferKeepLatestModeSupported_Fn NVPW_GPU_PeriodicSampler_IsRecordBufferKeepLatestModeSupported;
+    NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2_Fn         NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2;
+    NVPW_GPU_PeriodicSampler_GetGpuTimestamp_Fn                  NVPW_GPU_PeriodicSampler_GetGpuTimestamp;
+    NVPW_GPU_PeriodicSampler_AcknowledgeRecordBuffer_Fn          NVPW_GPU_PeriodicSampler_AcknowledgeRecordBuffer;
+    NVPW_GPU_PeriodicSampler_SetRecordBufferReadOffset_Fn        NVPW_GPU_PeriodicSampler_SetRecordBufferReadOffset;
+    NVPW_GPU_PeriodicSampler_DecodeCounters_V3_Fn                NVPW_GPU_PeriodicSampler_DecodeCounters_V3;
+    NVPW_VK_RawCounterConfig_Create_Fn                           NVPW_VK_RawCounterConfig_Create;
     NVPW_VK_RawMetricsConfig_Create_Fn                           NVPW_VK_RawMetricsConfig_Create;
     NVPW_VK_MetricsEvaluator_CalculateScratchBufferSize_Fn       NVPW_VK_MetricsEvaluator_CalculateScratchBufferSize;
     NVPW_VK_MetricsEvaluator_Initialize_Fn                       NVPW_VK_MetricsEvaluator_Initialize;
@@ -1000,9 +1570,39 @@ typedef struct NvPerfApi {
     NVPW_VK_MiniTrace_CommandBuffer_FrontEndTrigger_Fn           NVPW_VK_MiniTrace_CommandBuffer_FrontEndTrigger;
     NVPW_VK_MiniTrace_CommandBuffer_MarkerCpu_Fn                 NVPW_VK_MiniTrace_CommandBuffer_MarkerCpu;
     NVPW_VK_MiniTrace_CommandBuffer_HostTimestamp_Fn             NVPW_VK_MiniTrace_CommandBuffer_HostTimestamp;
+    NVPW_VKSC_RawCounterConfig_Create_Fn                         NVPW_VKSC_RawCounterConfig_Create;
+    NVPW_VKSC_RawMetricsConfig_Create_Fn                         NVPW_VKSC_RawMetricsConfig_Create;
+    NVPW_VKSC_MetricsEvaluator_CalculateScratchBufferSize_Fn     NVPW_VKSC_MetricsEvaluator_CalculateScratchBufferSize;
+    NVPW_VKSC_MetricsEvaluator_Initialize_Fn                     NVPW_VKSC_MetricsEvaluator_Initialize;
+    NVPW_VKSC_Profiler_CounterDataImage_CalculateSize_Fn         NVPW_VKSC_Profiler_CounterDataImage_CalculateSize;
+    NVPW_VKSC_Profiler_CounterDataImage_Initialize_Fn            NVPW_VKSC_Profiler_CounterDataImage_Initialize;
+    NVPW_VKSC_Profiler_CounterDataImage_CalculateScratchBufferSize_Fn NVPW_VKSC_Profiler_CounterDataImage_CalculateScratchBufferSize;
+    NVPW_VKSC_Profiler_CounterDataImage_InitializeScratchBuffer_Fn NVPW_VKSC_Profiler_CounterDataImage_InitializeScratchBuffer;
+    NVPW_VKSC_LoadDriver_Fn                                      NVPW_VKSC_LoadDriver;
+    NVPW_VKSC_Device_GetDeviceIndex_Fn                           NVPW_VKSC_Device_GetDeviceIndex;
+    NVPW_VKSC_Profiler_GetRequiredInstanceExtensions_Fn          NVPW_VKSC_Profiler_GetRequiredInstanceExtensions;
+    NVPW_VKSC_Profiler_GetRequiredDeviceExtensions_Fn            NVPW_VKSC_Profiler_GetRequiredDeviceExtensions;
+    NVPW_VKSC_Profiler_CalcTraceBufferSize_Fn                    NVPW_VKSC_Profiler_CalcTraceBufferSize;
+    NVPW_VKSC_Profiler_CalcPerfmonBufferSize_Fn                  NVPW_VKSC_Profiler_CalcPerfmonBufferSize;
+    NVPW_VKSC_Profiler_GetDeviceObjectReservation_Fn             NVPW_VKSC_Profiler_GetDeviceObjectReservation;
+    NVPW_VKSC_Profiler_Queue_BeginSession_Fn                     NVPW_VKSC_Profiler_Queue_BeginSession;
+    NVPW_VKSC_Profiler_Queue_EndSession_Fn                       NVPW_VKSC_Profiler_Queue_EndSession;
+    NVPW_VKSC_Profiler_Queue_ServicePendingGpuOperations_Fn      NVPW_VKSC_Profiler_Queue_ServicePendingGpuOperations;
+    NVPW_VKSC_Profiler_Queue_SetConfig_Fn                        NVPW_VKSC_Profiler_Queue_SetConfig;
+    NVPW_VKSC_Profiler_Queue_ClearConfig_Fn                      NVPW_VKSC_Profiler_Queue_ClearConfig;
+    NVPW_VKSC_Profiler_Queue_BeginPass_Fn                        NVPW_VKSC_Profiler_Queue_BeginPass;
+    NVPW_VKSC_Profiler_Queue_EndPass_Fn                          NVPW_VKSC_Profiler_Queue_EndPass;
+    NVPW_VKSC_Profiler_CommandBuffer_PushRangeGraphics_Fn        NVPW_VKSC_Profiler_CommandBuffer_PushRangeGraphics;
+    NVPW_VKSC_Profiler_CommandBuffer_PopRangeGraphics_Fn         NVPW_VKSC_Profiler_CommandBuffer_PopRangeGraphics;
+    NVPW_VKSC_Profiler_CommandBuffer_PushRangeCompute_Fn         NVPW_VKSC_Profiler_CommandBuffer_PushRangeCompute;
+    NVPW_VKSC_Profiler_CommandBuffer_PopRangeCompute_Fn          NVPW_VKSC_Profiler_CommandBuffer_PopRangeCompute;
+    NVPW_VKSC_Profiler_Queue_InitializeRangeCommands_Fn          NVPW_VKSC_Profiler_Queue_InitializeRangeCommands;
+    NVPW_VKSC_Profiler_Queue_DecodeCounters_Fn                   NVPW_VKSC_Profiler_Queue_DecodeCounters;
+    NVPW_VKSC_Profiler_IsGpuSupported_Fn                         NVPW_VKSC_Profiler_IsGpuSupported;
     NVPW_OpenGL_RawMetricsConfig_Create_Fn                       NVPW_OpenGL_RawMetricsConfig_Create;
     NVPW_OpenGL_MetricsEvaluator_CalculateScratchBufferSize_Fn   NVPW_OpenGL_MetricsEvaluator_CalculateScratchBufferSize;
     NVPW_OpenGL_MetricsEvaluator_Initialize_Fn                   NVPW_OpenGL_MetricsEvaluator_Initialize;
+    NVPW_OpenGL_RawCounterConfig_Create_Fn                       NVPW_OpenGL_RawCounterConfig_Create;
     NVPW_OpenGL_LoadDriver_Fn                                    NVPW_OpenGL_LoadDriver;
     NVPW_OpenGL_GetCurrentGraphicsContext_Fn                     NVPW_OpenGL_GetCurrentGraphicsContext;
     NVPW_OpenGL_GraphicsContext_GetDeviceIndex_Fn                NVPW_OpenGL_GraphicsContext_GetDeviceIndex;
@@ -1022,6 +1622,29 @@ typedef struct NvPerfApi {
     NVPW_OpenGL_Profiler_GraphicsContext_PopRange_Fn             NVPW_OpenGL_Profiler_GraphicsContext_PopRange;
     NVPW_OpenGL_Profiler_GraphicsContext_DecodeCounters_Fn       NVPW_OpenGL_Profiler_GraphicsContext_DecodeCounters;
     NVPW_OpenGL_Profiler_GraphicsContext_GetCounterAvailability_Fn NVPW_OpenGL_Profiler_GraphicsContext_GetCounterAvailability;
+    NVPW_EGL_RawMetricsConfig_Create_Fn                          NVPW_EGL_RawMetricsConfig_Create;
+    NVPW_EGL_MetricsEvaluator_CalculateScratchBufferSize_Fn      NVPW_EGL_MetricsEvaluator_CalculateScratchBufferSize;
+    NVPW_EGL_MetricsEvaluator_Initialize_Fn                      NVPW_EGL_MetricsEvaluator_Initialize;
+    NVPW_EGL_RawCounterConfig_Create_Fn                          NVPW_EGL_RawCounterConfig_Create;
+    NVPW_EGL_LoadDriver_Fn                                       NVPW_EGL_LoadDriver;
+    NVPW_EGL_GetCurrentGraphicsContext_Fn                        NVPW_EGL_GetCurrentGraphicsContext;
+    NVPW_EGL_GraphicsContext_GetDeviceIndex_Fn                   NVPW_EGL_GraphicsContext_GetDeviceIndex;
+    NVPW_EGL_Profiler_IsGpuSupported_Fn                          NVPW_EGL_Profiler_IsGpuSupported;
+    NVPW_EGL_Profiler_CounterDataImage_CalculateSize_Fn          NVPW_EGL_Profiler_CounterDataImage_CalculateSize;
+    NVPW_EGL_Profiler_CounterDataImage_Initialize_Fn             NVPW_EGL_Profiler_CounterDataImage_Initialize;
+    NVPW_EGL_Profiler_CounterDataImage_CalculateScratchBufferSize_Fn NVPW_EGL_Profiler_CounterDataImage_CalculateScratchBufferSize;
+    NVPW_EGL_Profiler_CounterDataImage_InitializeScratchBuffer_Fn NVPW_EGL_Profiler_CounterDataImage_InitializeScratchBuffer;
+    NVPW_EGL_Profiler_CalcTraceBufferSize_Fn                     NVPW_EGL_Profiler_CalcTraceBufferSize;
+    NVPW_EGL_Profiler_GraphicsContext_BeginSession_Fn            NVPW_EGL_Profiler_GraphicsContext_BeginSession;
+    NVPW_EGL_Profiler_GraphicsContext_EndSession_Fn              NVPW_EGL_Profiler_GraphicsContext_EndSession;
+    NVPW_EGL_Profiler_GraphicsContext_SetConfig_Fn               NVPW_EGL_Profiler_GraphicsContext_SetConfig;
+    NVPW_EGL_Profiler_GraphicsContext_ClearConfig_Fn             NVPW_EGL_Profiler_GraphicsContext_ClearConfig;
+    NVPW_EGL_Profiler_GraphicsContext_BeginPass_Fn               NVPW_EGL_Profiler_GraphicsContext_BeginPass;
+    NVPW_EGL_Profiler_GraphicsContext_EndPass_Fn                 NVPW_EGL_Profiler_GraphicsContext_EndPass;
+    NVPW_EGL_Profiler_GraphicsContext_PushRange_Fn               NVPW_EGL_Profiler_GraphicsContext_PushRange;
+    NVPW_EGL_Profiler_GraphicsContext_PopRange_Fn                NVPW_EGL_Profiler_GraphicsContext_PopRange;
+    NVPW_EGL_Profiler_GraphicsContext_DecodeCounters_Fn          NVPW_EGL_Profiler_GraphicsContext_DecodeCounters;
+    NVPW_EGL_Profiler_GraphicsContext_GetCounterAvailability_Fn  NVPW_EGL_Profiler_GraphicsContext_GetCounterAvailability;
 } NvPerfApi;
 
 #if _WIN32
@@ -1047,15 +1670,6 @@ static NVPW_User_Api g_api = {
         , &NVPW_SetLibraryLoadPaths_Default
         , &NVPW_SetLibraryLoadPathsW_Default
         , &NVPW_InitializeHost_Default
-        , &NVPW_CounterData_CalculateCounterDataImageCopySize_Default
-        , &NVPW_CounterData_InitializeCounterDataImageCopy_Default
-        , &NVPW_CounterDataCombiner_Create_Default
-        , &NVPW_CounterDataCombiner_Destroy_Default
-        , &NVPW_CounterDataCombiner_CreateRange_Default
-        , &NVPW_CounterDataCombiner_CopyIntoRange_Default
-        , &NVPW_CounterDataCombiner_AccumulateIntoRange_Default
-        , &NVPW_CounterDataCombiner_SumIntoRange_Default
-        , &NVPW_CounterDataCombiner_WeightedSumIntoRange_Default
         , &NVPW_GetSupportedChipNames_Default
         , &NVPW_RawMetricsConfig_Destroy_Default
         , &NVPW_RawMetricsConfig_SetCounterAvailability_Default
@@ -1068,12 +1682,30 @@ static NVPW_User_Api g_api = {
         , &NVPW_RawMetricsConfig_GenerateConfigImage_Default
         , &NVPW_RawMetricsConfig_GetConfigImage_Default
         , &NVPW_RawMetricsConfig_GetNumPasses_V2_Default
+        , &NVPW_RawCounterConfig_RawCounterDomainToString_Default
+        , &NVPW_RawCounterConfig_StringToRawCounterDomain_Default
+        , &NVPW_RawCounterConfig_GetSupportedChipNames_Default
+        , &NVPW_RawCounterConfig_Destroy_Default
+        , &NVPW_RawCounterConfig_SetCounterAvailability_Default
+        , &NVPW_RawCounterConfig_GetAllAvailableRawCounterDomains_Default
+        , &NVPW_RawCounterConfig_GetAllAvailableCooperativeDomainGroups_Default
+        , &NVPW_RawCounterConfig_IsCooperativeDomainGroup_Default
+        , &NVPW_RawCounterConfig_CooperativeDomainGroup_GetMemberDomains_Default
+        , &NVPW_RawCounterConfig_BeginPassGroup_Default
+        , &NVPW_RawCounterConfig_EndPassGroup_Default
+        , &NVPW_RawCounterConfig_GetNumRawCounters_Default
+        , &NVPW_RawCounterConfig_GetRawCounterName_Default
+        , &NVPW_RawCounterConfig_GetRawCounterProperties_Default
+        , &NVPW_RawCounterConfig_AddRawCounters_Default
+        , &NVPW_RawCounterConfig_AreRawCountersSchedulable_Default
+        , &NVPW_RawCounterConfig_MergePassGroups_Default
+        , &NVPW_RawCounterConfig_GenerateConfigImage_Default
+        , &NVPW_RawCounterConfig_GetConfigImage_Default
+        , &NVPW_RawCounterConfig_GetNumPasses_Default
+        , &NVPW_Config_GetRawCounterInfo_Default
+        , &NVPW_Config_GetRawCounters_Default
         , &NVPW_PeriodicSampler_Config_GetSocEstimatedSampleSize_Default
         , &NVPW_PeriodicSampler_Config_GetGpuEstimatedSampleSize_Default
-        , &NVPW_CounterDataBuilder_Create_Default
-        , &NVPW_CounterDataBuilder_Destroy_Default
-        , &NVPW_CounterDataBuilder_AddMetrics_Default
-        , &NVPW_CounterDataBuilder_GetCounterDataPrefix_Default
         , &NVPW_MetricsEvaluator_Destroy_Default
         , &NVPW_MetricsEvaluator_GetMetricNames_Default
         , &NVPW_MetricsEvaluator_GetMetricTypeAndIndex_Default
@@ -1089,6 +1721,25 @@ static NVPW_User_Api g_api = {
         , &NVPW_MetricsEvaluator_SetUserData_Default
         , &NVPW_MetricsEvaluator_EvaluateToGpuValues_Default
         , &NVPW_MetricsEvaluator_SetDeviceAttributes_Default
+        , &NVPW_MetricsEvaluator_UserDefinedMetrics_Initialize_Default
+        , &NVPW_MetricsEvaluator_UserDefinedMetrics_ExecuteScriptFromString_Default
+        , &NVPW_MetricsEvaluator_UserDefinedMetrics_Commit_Default
+        , &NVPW_MetricsEvaluator_UserDefinedMetrics_GetMetricNames_Default
+        , &NVPW_CounterData_CalculateCounterDataImageCopySize_Default
+        , &NVPW_CounterData_InitializeCounterDataImageCopy_Default
+        , &NVPW_CounterData_ExtractCounterDataPrefix_Default
+        , &NVPW_CounterDataCombiner_Create_Default
+        , &NVPW_CounterDataCombiner_Destroy_Default
+        , &NVPW_CounterDataCombiner_CreateRange_Default
+        , &NVPW_CounterDataCombiner_CopyIntoRange_Default
+        , &NVPW_CounterDataCombiner_AccumulateIntoRange_Default
+        , &NVPW_CounterDataCombiner_SumIntoRange_Default
+        , &NVPW_CounterDataCombiner_WeightedSumIntoRange_Default
+        , &NVPW_CounterDataBuilder_Create_Default
+        , &NVPW_CounterDataBuilder_Destroy_Default
+        , &NVPW_CounterDataBuilder_AddMetrics_Default
+        , &NVPW_CounterDataBuilder_AddRawCounters_Default
+        , &NVPW_CounterDataBuilder_GetCounterDataPrefix_Default
         , &NVPW_InitializeTarget_Default
         , &NVPW_GetDeviceCount_Default
         , &NVPW_Device_GetNames_Default
@@ -1107,6 +1758,8 @@ static NVPW_User_Api g_api = {
         , &NVPW_PeriodicSampler_CounterData_TrimInPlace_Default
         , &NVPW_PeriodicSampler_CounterData_GetInfo_Default
         , &NVPW_PeriodicSampler_CounterData_GetTriggerCount_Default
+        , &NVPW_PeriodicSampler_CounterData_IsDataComplete_Default
+        , &NVPW_Device_RawCounterConfig_Create_Default
         , &NVPW_Device_RawMetricsConfig_Create_Default
         , &NVPW_Device_MetricsEvaluator_CalculateScratchBufferSize_Default
         , &NVPW_Device_MetricsEvaluator_Initialize_Default
@@ -1127,6 +1780,12 @@ static NVPW_User_Api g_api = {
         , &NVPW_GPU_PeriodicSampler_DecodeCounters_Default
         , &NVPW_GPU_PeriodicSampler_DecodeCounters_V2_Default
         , &NVPW_GPU_PeriodicSampler_IsRecordBufferKeepLatestModeSupported_Default
+        , &NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2_Default
+        , &NVPW_GPU_PeriodicSampler_GetGpuTimestamp_Default
+        , &NVPW_GPU_PeriodicSampler_AcknowledgeRecordBuffer_Default
+        , &NVPW_GPU_PeriodicSampler_SetRecordBufferReadOffset_Default
+        , &NVPW_GPU_PeriodicSampler_DecodeCounters_V3_Default
+        , &NVPW_VK_RawCounterConfig_Create_Default
         , &NVPW_VK_RawMetricsConfig_Create_Default
         , &NVPW_VK_MetricsEvaluator_CalculateScratchBufferSize_Default
         , &NVPW_VK_MetricsEvaluator_Initialize_Default
@@ -1159,9 +1818,39 @@ static NVPW_User_Api g_api = {
         , &NVPW_VK_MiniTrace_CommandBuffer_FrontEndTrigger_Default
         , &NVPW_VK_MiniTrace_CommandBuffer_MarkerCpu_Default
         , &NVPW_VK_MiniTrace_CommandBuffer_HostTimestamp_Default
+        , &NVPW_VKSC_RawCounterConfig_Create_Default
+        , &NVPW_VKSC_RawMetricsConfig_Create_Default
+        , &NVPW_VKSC_MetricsEvaluator_CalculateScratchBufferSize_Default
+        , &NVPW_VKSC_MetricsEvaluator_Initialize_Default
+        , &NVPW_VKSC_Profiler_CounterDataImage_CalculateSize_Default
+        , &NVPW_VKSC_Profiler_CounterDataImage_Initialize_Default
+        , &NVPW_VKSC_Profiler_CounterDataImage_CalculateScratchBufferSize_Default
+        , &NVPW_VKSC_Profiler_CounterDataImage_InitializeScratchBuffer_Default
+        , &NVPW_VKSC_LoadDriver_Default
+        , &NVPW_VKSC_Device_GetDeviceIndex_Default
+        , &NVPW_VKSC_Profiler_GetRequiredInstanceExtensions_Default
+        , &NVPW_VKSC_Profiler_GetRequiredDeviceExtensions_Default
+        , &NVPW_VKSC_Profiler_CalcTraceBufferSize_Default
+        , &NVPW_VKSC_Profiler_CalcPerfmonBufferSize_Default
+        , &NVPW_VKSC_Profiler_GetDeviceObjectReservation_Default
+        , &NVPW_VKSC_Profiler_Queue_BeginSession_Default
+        , &NVPW_VKSC_Profiler_Queue_EndSession_Default
+        , &NVPW_VKSC_Profiler_Queue_ServicePendingGpuOperations_Default
+        , &NVPW_VKSC_Profiler_Queue_SetConfig_Default
+        , &NVPW_VKSC_Profiler_Queue_ClearConfig_Default
+        , &NVPW_VKSC_Profiler_Queue_BeginPass_Default
+        , &NVPW_VKSC_Profiler_Queue_EndPass_Default
+        , &NVPW_VKSC_Profiler_CommandBuffer_PushRangeGraphics_Default
+        , &NVPW_VKSC_Profiler_CommandBuffer_PopRangeGraphics_Default
+        , &NVPW_VKSC_Profiler_CommandBuffer_PushRangeCompute_Default
+        , &NVPW_VKSC_Profiler_CommandBuffer_PopRangeCompute_Default
+        , &NVPW_VKSC_Profiler_Queue_InitializeRangeCommands_Default
+        , &NVPW_VKSC_Profiler_Queue_DecodeCounters_Default
+        , &NVPW_VKSC_Profiler_IsGpuSupported_Default
         , &NVPW_OpenGL_RawMetricsConfig_Create_Default
         , &NVPW_OpenGL_MetricsEvaluator_CalculateScratchBufferSize_Default
         , &NVPW_OpenGL_MetricsEvaluator_Initialize_Default
+        , &NVPW_OpenGL_RawCounterConfig_Create_Default
         , &NVPW_OpenGL_LoadDriver_Default
         , &NVPW_OpenGL_GetCurrentGraphicsContext_Default
         , &NVPW_OpenGL_GraphicsContext_GetDeviceIndex_Default
@@ -1181,6 +1870,29 @@ static NVPW_User_Api g_api = {
         , &NVPW_OpenGL_Profiler_GraphicsContext_PopRange_Default
         , &NVPW_OpenGL_Profiler_GraphicsContext_DecodeCounters_Default
         , &NVPW_OpenGL_Profiler_GraphicsContext_GetCounterAvailability_Default
+        , &NVPW_EGL_RawMetricsConfig_Create_Default
+        , &NVPW_EGL_MetricsEvaluator_CalculateScratchBufferSize_Default
+        , &NVPW_EGL_MetricsEvaluator_Initialize_Default
+        , &NVPW_EGL_RawCounterConfig_Create_Default
+        , &NVPW_EGL_LoadDriver_Default
+        , &NVPW_EGL_GetCurrentGraphicsContext_Default
+        , &NVPW_EGL_GraphicsContext_GetDeviceIndex_Default
+        , &NVPW_EGL_Profiler_IsGpuSupported_Default
+        , &NVPW_EGL_Profiler_CounterDataImage_CalculateSize_Default
+        , &NVPW_EGL_Profiler_CounterDataImage_Initialize_Default
+        , &NVPW_EGL_Profiler_CounterDataImage_CalculateScratchBufferSize_Default
+        , &NVPW_EGL_Profiler_CounterDataImage_InitializeScratchBuffer_Default
+        , &NVPW_EGL_Profiler_CalcTraceBufferSize_Default
+        , &NVPW_EGL_Profiler_GraphicsContext_BeginSession_Default
+        , &NVPW_EGL_Profiler_GraphicsContext_EndSession_Default
+        , &NVPW_EGL_Profiler_GraphicsContext_SetConfig_Default
+        , &NVPW_EGL_Profiler_GraphicsContext_ClearConfig_Default
+        , &NVPW_EGL_Profiler_GraphicsContext_BeginPass_Default
+        , &NVPW_EGL_Profiler_GraphicsContext_EndPass_Default
+        , &NVPW_EGL_Profiler_GraphicsContext_PushRange_Default
+        , &NVPW_EGL_Profiler_GraphicsContext_PopRange_Default
+        , &NVPW_EGL_Profiler_GraphicsContext_DecodeCounters_Default
+        , &NVPW_EGL_Profiler_GraphicsContext_GetCounterAvailability_Default
       }
     , 0 /* numSearchPaths */
     , 0 /* ppSearchPaths */
@@ -1195,15 +1907,6 @@ static void InitNvPerfProcs(void)
     g_api.fn.NVPW_SetLibraryLoadPaths = (NVPW_SetLibraryLoadPaths_Fn)GetNvPerfProc("NVPW_SetLibraryLoadPaths", (NVPA_GenericFn)g_api.fn.NVPW_SetLibraryLoadPaths);
     g_api.fn.NVPW_SetLibraryLoadPathsW = (NVPW_SetLibraryLoadPathsW_Fn)GetNvPerfProc("NVPW_SetLibraryLoadPathsW", (NVPA_GenericFn)g_api.fn.NVPW_SetLibraryLoadPathsW);
     g_api.fn.NVPW_InitializeHost = (NVPW_InitializeHost_Fn)GetNvPerfProc("NVPW_InitializeHost", (NVPA_GenericFn)g_api.fn.NVPW_InitializeHost);
-    g_api.fn.NVPW_CounterData_CalculateCounterDataImageCopySize = (NVPW_CounterData_CalculateCounterDataImageCopySize_Fn)GetNvPerfProc("NVPW_CounterData_CalculateCounterDataImageCopySize", (NVPA_GenericFn)g_api.fn.NVPW_CounterData_CalculateCounterDataImageCopySize);
-    g_api.fn.NVPW_CounterData_InitializeCounterDataImageCopy = (NVPW_CounterData_InitializeCounterDataImageCopy_Fn)GetNvPerfProc("NVPW_CounterData_InitializeCounterDataImageCopy", (NVPA_GenericFn)g_api.fn.NVPW_CounterData_InitializeCounterDataImageCopy);
-    g_api.fn.NVPW_CounterDataCombiner_Create = (NVPW_CounterDataCombiner_Create_Fn)GetNvPerfProc("NVPW_CounterDataCombiner_Create", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataCombiner_Create);
-    g_api.fn.NVPW_CounterDataCombiner_Destroy = (NVPW_CounterDataCombiner_Destroy_Fn)GetNvPerfProc("NVPW_CounterDataCombiner_Destroy", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataCombiner_Destroy);
-    g_api.fn.NVPW_CounterDataCombiner_CreateRange = (NVPW_CounterDataCombiner_CreateRange_Fn)GetNvPerfProc("NVPW_CounterDataCombiner_CreateRange", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataCombiner_CreateRange);
-    g_api.fn.NVPW_CounterDataCombiner_CopyIntoRange = (NVPW_CounterDataCombiner_CopyIntoRange_Fn)GetNvPerfProc("NVPW_CounterDataCombiner_CopyIntoRange", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataCombiner_CopyIntoRange);
-    g_api.fn.NVPW_CounterDataCombiner_AccumulateIntoRange = (NVPW_CounterDataCombiner_AccumulateIntoRange_Fn)GetNvPerfProc("NVPW_CounterDataCombiner_AccumulateIntoRange", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataCombiner_AccumulateIntoRange);
-    g_api.fn.NVPW_CounterDataCombiner_SumIntoRange = (NVPW_CounterDataCombiner_SumIntoRange_Fn)GetNvPerfProc("NVPW_CounterDataCombiner_SumIntoRange", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataCombiner_SumIntoRange);
-    g_api.fn.NVPW_CounterDataCombiner_WeightedSumIntoRange = (NVPW_CounterDataCombiner_WeightedSumIntoRange_Fn)GetNvPerfProc("NVPW_CounterDataCombiner_WeightedSumIntoRange", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataCombiner_WeightedSumIntoRange);
     g_api.fn.NVPW_GetSupportedChipNames = (NVPW_GetSupportedChipNames_Fn)GetNvPerfProc("NVPW_GetSupportedChipNames", (NVPA_GenericFn)g_api.fn.NVPW_GetSupportedChipNames);
     g_api.fn.NVPW_RawMetricsConfig_Destroy = (NVPW_RawMetricsConfig_Destroy_Fn)GetNvPerfProc("NVPW_RawMetricsConfig_Destroy", (NVPA_GenericFn)g_api.fn.NVPW_RawMetricsConfig_Destroy);
     g_api.fn.NVPW_RawMetricsConfig_SetCounterAvailability = (NVPW_RawMetricsConfig_SetCounterAvailability_Fn)GetNvPerfProc("NVPW_RawMetricsConfig_SetCounterAvailability", (NVPA_GenericFn)g_api.fn.NVPW_RawMetricsConfig_SetCounterAvailability);
@@ -1216,12 +1919,30 @@ static void InitNvPerfProcs(void)
     g_api.fn.NVPW_RawMetricsConfig_GenerateConfigImage = (NVPW_RawMetricsConfig_GenerateConfigImage_Fn)GetNvPerfProc("NVPW_RawMetricsConfig_GenerateConfigImage", (NVPA_GenericFn)g_api.fn.NVPW_RawMetricsConfig_GenerateConfigImage);
     g_api.fn.NVPW_RawMetricsConfig_GetConfigImage = (NVPW_RawMetricsConfig_GetConfigImage_Fn)GetNvPerfProc("NVPW_RawMetricsConfig_GetConfigImage", (NVPA_GenericFn)g_api.fn.NVPW_RawMetricsConfig_GetConfigImage);
     g_api.fn.NVPW_RawMetricsConfig_GetNumPasses_V2 = (NVPW_RawMetricsConfig_GetNumPasses_V2_Fn)GetNvPerfProc("NVPW_RawMetricsConfig_GetNumPasses_V2", (NVPA_GenericFn)g_api.fn.NVPW_RawMetricsConfig_GetNumPasses_V2);
+    g_api.fn.NVPW_RawCounterConfig_RawCounterDomainToString = (NVPW_RawCounterConfig_RawCounterDomainToString_Fn)GetNvPerfProc("NVPW_RawCounterConfig_RawCounterDomainToString", (NVPA_GenericFn)g_api.fn.NVPW_RawCounterConfig_RawCounterDomainToString);
+    g_api.fn.NVPW_RawCounterConfig_StringToRawCounterDomain = (NVPW_RawCounterConfig_StringToRawCounterDomain_Fn)GetNvPerfProc("NVPW_RawCounterConfig_StringToRawCounterDomain", (NVPA_GenericFn)g_api.fn.NVPW_RawCounterConfig_StringToRawCounterDomain);
+    g_api.fn.NVPW_RawCounterConfig_GetSupportedChipNames = (NVPW_RawCounterConfig_GetSupportedChipNames_Fn)GetNvPerfProc("NVPW_RawCounterConfig_GetSupportedChipNames", (NVPA_GenericFn)g_api.fn.NVPW_RawCounterConfig_GetSupportedChipNames);
+    g_api.fn.NVPW_RawCounterConfig_Destroy = (NVPW_RawCounterConfig_Destroy_Fn)GetNvPerfProc("NVPW_RawCounterConfig_Destroy", (NVPA_GenericFn)g_api.fn.NVPW_RawCounterConfig_Destroy);
+    g_api.fn.NVPW_RawCounterConfig_SetCounterAvailability = (NVPW_RawCounterConfig_SetCounterAvailability_Fn)GetNvPerfProc("NVPW_RawCounterConfig_SetCounterAvailability", (NVPA_GenericFn)g_api.fn.NVPW_RawCounterConfig_SetCounterAvailability);
+    g_api.fn.NVPW_RawCounterConfig_GetAllAvailableRawCounterDomains = (NVPW_RawCounterConfig_GetAllAvailableRawCounterDomains_Fn)GetNvPerfProc("NVPW_RawCounterConfig_GetAllAvailableRawCounterDomains", (NVPA_GenericFn)g_api.fn.NVPW_RawCounterConfig_GetAllAvailableRawCounterDomains);
+    g_api.fn.NVPW_RawCounterConfig_GetAllAvailableCooperativeDomainGroups = (NVPW_RawCounterConfig_GetAllAvailableCooperativeDomainGroups_Fn)GetNvPerfProc("NVPW_RawCounterConfig_GetAllAvailableCooperativeDomainGroups", (NVPA_GenericFn)g_api.fn.NVPW_RawCounterConfig_GetAllAvailableCooperativeDomainGroups);
+    g_api.fn.NVPW_RawCounterConfig_IsCooperativeDomainGroup = (NVPW_RawCounterConfig_IsCooperativeDomainGroup_Fn)GetNvPerfProc("NVPW_RawCounterConfig_IsCooperativeDomainGroup", (NVPA_GenericFn)g_api.fn.NVPW_RawCounterConfig_IsCooperativeDomainGroup);
+    g_api.fn.NVPW_RawCounterConfig_CooperativeDomainGroup_GetMemberDomains = (NVPW_RawCounterConfig_CooperativeDomainGroup_GetMemberDomains_Fn)GetNvPerfProc("NVPW_RawCounterConfig_CooperativeDomainGroup_GetMemberDomains", (NVPA_GenericFn)g_api.fn.NVPW_RawCounterConfig_CooperativeDomainGroup_GetMemberDomains);
+    g_api.fn.NVPW_RawCounterConfig_BeginPassGroup = (NVPW_RawCounterConfig_BeginPassGroup_Fn)GetNvPerfProc("NVPW_RawCounterConfig_BeginPassGroup", (NVPA_GenericFn)g_api.fn.NVPW_RawCounterConfig_BeginPassGroup);
+    g_api.fn.NVPW_RawCounterConfig_EndPassGroup = (NVPW_RawCounterConfig_EndPassGroup_Fn)GetNvPerfProc("NVPW_RawCounterConfig_EndPassGroup", (NVPA_GenericFn)g_api.fn.NVPW_RawCounterConfig_EndPassGroup);
+    g_api.fn.NVPW_RawCounterConfig_GetNumRawCounters = (NVPW_RawCounterConfig_GetNumRawCounters_Fn)GetNvPerfProc("NVPW_RawCounterConfig_GetNumRawCounters", (NVPA_GenericFn)g_api.fn.NVPW_RawCounterConfig_GetNumRawCounters);
+    g_api.fn.NVPW_RawCounterConfig_GetRawCounterName = (NVPW_RawCounterConfig_GetRawCounterName_Fn)GetNvPerfProc("NVPW_RawCounterConfig_GetRawCounterName", (NVPA_GenericFn)g_api.fn.NVPW_RawCounterConfig_GetRawCounterName);
+    g_api.fn.NVPW_RawCounterConfig_GetRawCounterProperties = (NVPW_RawCounterConfig_GetRawCounterProperties_Fn)GetNvPerfProc("NVPW_RawCounterConfig_GetRawCounterProperties", (NVPA_GenericFn)g_api.fn.NVPW_RawCounterConfig_GetRawCounterProperties);
+    g_api.fn.NVPW_RawCounterConfig_AddRawCounters = (NVPW_RawCounterConfig_AddRawCounters_Fn)GetNvPerfProc("NVPW_RawCounterConfig_AddRawCounters", (NVPA_GenericFn)g_api.fn.NVPW_RawCounterConfig_AddRawCounters);
+    g_api.fn.NVPW_RawCounterConfig_AreRawCountersSchedulable = (NVPW_RawCounterConfig_AreRawCountersSchedulable_Fn)GetNvPerfProc("NVPW_RawCounterConfig_AreRawCountersSchedulable", (NVPA_GenericFn)g_api.fn.NVPW_RawCounterConfig_AreRawCountersSchedulable);
+    g_api.fn.NVPW_RawCounterConfig_MergePassGroups = (NVPW_RawCounterConfig_MergePassGroups_Fn)GetNvPerfProc("NVPW_RawCounterConfig_MergePassGroups", (NVPA_GenericFn)g_api.fn.NVPW_RawCounterConfig_MergePassGroups);
+    g_api.fn.NVPW_RawCounterConfig_GenerateConfigImage = (NVPW_RawCounterConfig_GenerateConfigImage_Fn)GetNvPerfProc("NVPW_RawCounterConfig_GenerateConfigImage", (NVPA_GenericFn)g_api.fn.NVPW_RawCounterConfig_GenerateConfigImage);
+    g_api.fn.NVPW_RawCounterConfig_GetConfigImage = (NVPW_RawCounterConfig_GetConfigImage_Fn)GetNvPerfProc("NVPW_RawCounterConfig_GetConfigImage", (NVPA_GenericFn)g_api.fn.NVPW_RawCounterConfig_GetConfigImage);
+    g_api.fn.NVPW_RawCounterConfig_GetNumPasses = (NVPW_RawCounterConfig_GetNumPasses_Fn)GetNvPerfProc("NVPW_RawCounterConfig_GetNumPasses", (NVPA_GenericFn)g_api.fn.NVPW_RawCounterConfig_GetNumPasses);
+    g_api.fn.NVPW_Config_GetRawCounterInfo = (NVPW_Config_GetRawCounterInfo_Fn)GetNvPerfProc("NVPW_Config_GetRawCounterInfo", (NVPA_GenericFn)g_api.fn.NVPW_Config_GetRawCounterInfo);
+    g_api.fn.NVPW_Config_GetRawCounters = (NVPW_Config_GetRawCounters_Fn)GetNvPerfProc("NVPW_Config_GetRawCounters", (NVPA_GenericFn)g_api.fn.NVPW_Config_GetRawCounters);
     g_api.fn.NVPW_PeriodicSampler_Config_GetSocEstimatedSampleSize = (NVPW_PeriodicSampler_Config_GetSocEstimatedSampleSize_Fn)GetNvPerfProc("NVPW_PeriodicSampler_Config_GetSocEstimatedSampleSize", (NVPA_GenericFn)g_api.fn.NVPW_PeriodicSampler_Config_GetSocEstimatedSampleSize);
     g_api.fn.NVPW_PeriodicSampler_Config_GetGpuEstimatedSampleSize = (NVPW_PeriodicSampler_Config_GetGpuEstimatedSampleSize_Fn)GetNvPerfProc("NVPW_PeriodicSampler_Config_GetGpuEstimatedSampleSize", (NVPA_GenericFn)g_api.fn.NVPW_PeriodicSampler_Config_GetGpuEstimatedSampleSize);
-    g_api.fn.NVPW_CounterDataBuilder_Create = (NVPW_CounterDataBuilder_Create_Fn)GetNvPerfProc("NVPW_CounterDataBuilder_Create", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataBuilder_Create);
-    g_api.fn.NVPW_CounterDataBuilder_Destroy = (NVPW_CounterDataBuilder_Destroy_Fn)GetNvPerfProc("NVPW_CounterDataBuilder_Destroy", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataBuilder_Destroy);
-    g_api.fn.NVPW_CounterDataBuilder_AddMetrics = (NVPW_CounterDataBuilder_AddMetrics_Fn)GetNvPerfProc("NVPW_CounterDataBuilder_AddMetrics", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataBuilder_AddMetrics);
-    g_api.fn.NVPW_CounterDataBuilder_GetCounterDataPrefix = (NVPW_CounterDataBuilder_GetCounterDataPrefix_Fn)GetNvPerfProc("NVPW_CounterDataBuilder_GetCounterDataPrefix", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataBuilder_GetCounterDataPrefix);
     g_api.fn.NVPW_MetricsEvaluator_Destroy = (NVPW_MetricsEvaluator_Destroy_Fn)GetNvPerfProc("NVPW_MetricsEvaluator_Destroy", (NVPA_GenericFn)g_api.fn.NVPW_MetricsEvaluator_Destroy);
     g_api.fn.NVPW_MetricsEvaluator_GetMetricNames = (NVPW_MetricsEvaluator_GetMetricNames_Fn)GetNvPerfProc("NVPW_MetricsEvaluator_GetMetricNames", (NVPA_GenericFn)g_api.fn.NVPW_MetricsEvaluator_GetMetricNames);
     g_api.fn.NVPW_MetricsEvaluator_GetMetricTypeAndIndex = (NVPW_MetricsEvaluator_GetMetricTypeAndIndex_Fn)GetNvPerfProc("NVPW_MetricsEvaluator_GetMetricTypeAndIndex", (NVPA_GenericFn)g_api.fn.NVPW_MetricsEvaluator_GetMetricTypeAndIndex);
@@ -1237,6 +1958,25 @@ static void InitNvPerfProcs(void)
     g_api.fn.NVPW_MetricsEvaluator_SetUserData = (NVPW_MetricsEvaluator_SetUserData_Fn)GetNvPerfProc("NVPW_MetricsEvaluator_SetUserData", (NVPA_GenericFn)g_api.fn.NVPW_MetricsEvaluator_SetUserData);
     g_api.fn.NVPW_MetricsEvaluator_EvaluateToGpuValues = (NVPW_MetricsEvaluator_EvaluateToGpuValues_Fn)GetNvPerfProc("NVPW_MetricsEvaluator_EvaluateToGpuValues", (NVPA_GenericFn)g_api.fn.NVPW_MetricsEvaluator_EvaluateToGpuValues);
     g_api.fn.NVPW_MetricsEvaluator_SetDeviceAttributes = (NVPW_MetricsEvaluator_SetDeviceAttributes_Fn)GetNvPerfProc("NVPW_MetricsEvaluator_SetDeviceAttributes", (NVPA_GenericFn)g_api.fn.NVPW_MetricsEvaluator_SetDeviceAttributes);
+    g_api.fn.NVPW_MetricsEvaluator_UserDefinedMetrics_Initialize = (NVPW_MetricsEvaluator_UserDefinedMetrics_Initialize_Fn)GetNvPerfProc("NVPW_MetricsEvaluator_UserDefinedMetrics_Initialize", (NVPA_GenericFn)g_api.fn.NVPW_MetricsEvaluator_UserDefinedMetrics_Initialize);
+    g_api.fn.NVPW_MetricsEvaluator_UserDefinedMetrics_ExecuteScriptFromString = (NVPW_MetricsEvaluator_UserDefinedMetrics_ExecuteScriptFromString_Fn)GetNvPerfProc("NVPW_MetricsEvaluator_UserDefinedMetrics_ExecuteScriptFromString", (NVPA_GenericFn)g_api.fn.NVPW_MetricsEvaluator_UserDefinedMetrics_ExecuteScriptFromString);
+    g_api.fn.NVPW_MetricsEvaluator_UserDefinedMetrics_Commit = (NVPW_MetricsEvaluator_UserDefinedMetrics_Commit_Fn)GetNvPerfProc("NVPW_MetricsEvaluator_UserDefinedMetrics_Commit", (NVPA_GenericFn)g_api.fn.NVPW_MetricsEvaluator_UserDefinedMetrics_Commit);
+    g_api.fn.NVPW_MetricsEvaluator_UserDefinedMetrics_GetMetricNames = (NVPW_MetricsEvaluator_UserDefinedMetrics_GetMetricNames_Fn)GetNvPerfProc("NVPW_MetricsEvaluator_UserDefinedMetrics_GetMetricNames", (NVPA_GenericFn)g_api.fn.NVPW_MetricsEvaluator_UserDefinedMetrics_GetMetricNames);
+    g_api.fn.NVPW_CounterData_CalculateCounterDataImageCopySize = (NVPW_CounterData_CalculateCounterDataImageCopySize_Fn)GetNvPerfProc("NVPW_CounterData_CalculateCounterDataImageCopySize", (NVPA_GenericFn)g_api.fn.NVPW_CounterData_CalculateCounterDataImageCopySize);
+    g_api.fn.NVPW_CounterData_InitializeCounterDataImageCopy = (NVPW_CounterData_InitializeCounterDataImageCopy_Fn)GetNvPerfProc("NVPW_CounterData_InitializeCounterDataImageCopy", (NVPA_GenericFn)g_api.fn.NVPW_CounterData_InitializeCounterDataImageCopy);
+    g_api.fn.NVPW_CounterData_ExtractCounterDataPrefix = (NVPW_CounterData_ExtractCounterDataPrefix_Fn)GetNvPerfProc("NVPW_CounterData_ExtractCounterDataPrefix", (NVPA_GenericFn)g_api.fn.NVPW_CounterData_ExtractCounterDataPrefix);
+    g_api.fn.NVPW_CounterDataCombiner_Create = (NVPW_CounterDataCombiner_Create_Fn)GetNvPerfProc("NVPW_CounterDataCombiner_Create", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataCombiner_Create);
+    g_api.fn.NVPW_CounterDataCombiner_Destroy = (NVPW_CounterDataCombiner_Destroy_Fn)GetNvPerfProc("NVPW_CounterDataCombiner_Destroy", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataCombiner_Destroy);
+    g_api.fn.NVPW_CounterDataCombiner_CreateRange = (NVPW_CounterDataCombiner_CreateRange_Fn)GetNvPerfProc("NVPW_CounterDataCombiner_CreateRange", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataCombiner_CreateRange);
+    g_api.fn.NVPW_CounterDataCombiner_CopyIntoRange = (NVPW_CounterDataCombiner_CopyIntoRange_Fn)GetNvPerfProc("NVPW_CounterDataCombiner_CopyIntoRange", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataCombiner_CopyIntoRange);
+    g_api.fn.NVPW_CounterDataCombiner_AccumulateIntoRange = (NVPW_CounterDataCombiner_AccumulateIntoRange_Fn)GetNvPerfProc("NVPW_CounterDataCombiner_AccumulateIntoRange", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataCombiner_AccumulateIntoRange);
+    g_api.fn.NVPW_CounterDataCombiner_SumIntoRange = (NVPW_CounterDataCombiner_SumIntoRange_Fn)GetNvPerfProc("NVPW_CounterDataCombiner_SumIntoRange", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataCombiner_SumIntoRange);
+    g_api.fn.NVPW_CounterDataCombiner_WeightedSumIntoRange = (NVPW_CounterDataCombiner_WeightedSumIntoRange_Fn)GetNvPerfProc("NVPW_CounterDataCombiner_WeightedSumIntoRange", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataCombiner_WeightedSumIntoRange);
+    g_api.fn.NVPW_CounterDataBuilder_Create = (NVPW_CounterDataBuilder_Create_Fn)GetNvPerfProc("NVPW_CounterDataBuilder_Create", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataBuilder_Create);
+    g_api.fn.NVPW_CounterDataBuilder_Destroy = (NVPW_CounterDataBuilder_Destroy_Fn)GetNvPerfProc("NVPW_CounterDataBuilder_Destroy", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataBuilder_Destroy);
+    g_api.fn.NVPW_CounterDataBuilder_AddMetrics = (NVPW_CounterDataBuilder_AddMetrics_Fn)GetNvPerfProc("NVPW_CounterDataBuilder_AddMetrics", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataBuilder_AddMetrics);
+    g_api.fn.NVPW_CounterDataBuilder_AddRawCounters = (NVPW_CounterDataBuilder_AddRawCounters_Fn)GetNvPerfProc("NVPW_CounterDataBuilder_AddRawCounters", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataBuilder_AddRawCounters);
+    g_api.fn.NVPW_CounterDataBuilder_GetCounterDataPrefix = (NVPW_CounterDataBuilder_GetCounterDataPrefix_Fn)GetNvPerfProc("NVPW_CounterDataBuilder_GetCounterDataPrefix", (NVPA_GenericFn)g_api.fn.NVPW_CounterDataBuilder_GetCounterDataPrefix);
     g_api.fn.NVPW_InitializeTarget = (NVPW_InitializeTarget_Fn)GetNvPerfProc("NVPW_InitializeTarget", (NVPA_GenericFn)g_api.fn.NVPW_InitializeTarget);
     g_api.fn.NVPW_GetDeviceCount = (NVPW_GetDeviceCount_Fn)GetNvPerfProc("NVPW_GetDeviceCount", (NVPA_GenericFn)g_api.fn.NVPW_GetDeviceCount);
     g_api.fn.NVPW_Device_GetNames = (NVPW_Device_GetNames_Fn)GetNvPerfProc("NVPW_Device_GetNames", (NVPA_GenericFn)g_api.fn.NVPW_Device_GetNames);
@@ -1255,6 +1995,8 @@ static void InitNvPerfProcs(void)
     g_api.fn.NVPW_PeriodicSampler_CounterData_TrimInPlace = (NVPW_PeriodicSampler_CounterData_TrimInPlace_Fn)GetNvPerfProc("NVPW_PeriodicSampler_CounterData_TrimInPlace", (NVPA_GenericFn)g_api.fn.NVPW_PeriodicSampler_CounterData_TrimInPlace);
     g_api.fn.NVPW_PeriodicSampler_CounterData_GetInfo = (NVPW_PeriodicSampler_CounterData_GetInfo_Fn)GetNvPerfProc("NVPW_PeriodicSampler_CounterData_GetInfo", (NVPA_GenericFn)g_api.fn.NVPW_PeriodicSampler_CounterData_GetInfo);
     g_api.fn.NVPW_PeriodicSampler_CounterData_GetTriggerCount = (NVPW_PeriodicSampler_CounterData_GetTriggerCount_Fn)GetNvPerfProc("NVPW_PeriodicSampler_CounterData_GetTriggerCount", (NVPA_GenericFn)g_api.fn.NVPW_PeriodicSampler_CounterData_GetTriggerCount);
+    g_api.fn.NVPW_PeriodicSampler_CounterData_IsDataComplete = (NVPW_PeriodicSampler_CounterData_IsDataComplete_Fn)GetNvPerfProc("NVPW_PeriodicSampler_CounterData_IsDataComplete", (NVPA_GenericFn)g_api.fn.NVPW_PeriodicSampler_CounterData_IsDataComplete);
+    g_api.fn.NVPW_Device_RawCounterConfig_Create = (NVPW_Device_RawCounterConfig_Create_Fn)GetNvPerfProc("NVPW_Device_RawCounterConfig_Create", (NVPA_GenericFn)g_api.fn.NVPW_Device_RawCounterConfig_Create);
     g_api.fn.NVPW_Device_RawMetricsConfig_Create = (NVPW_Device_RawMetricsConfig_Create_Fn)GetNvPerfProc("NVPW_Device_RawMetricsConfig_Create", (NVPA_GenericFn)g_api.fn.NVPW_Device_RawMetricsConfig_Create);
     g_api.fn.NVPW_Device_MetricsEvaluator_CalculateScratchBufferSize = (NVPW_Device_MetricsEvaluator_CalculateScratchBufferSize_Fn)GetNvPerfProc("NVPW_Device_MetricsEvaluator_CalculateScratchBufferSize", (NVPA_GenericFn)g_api.fn.NVPW_Device_MetricsEvaluator_CalculateScratchBufferSize);
     g_api.fn.NVPW_Device_MetricsEvaluator_Initialize = (NVPW_Device_MetricsEvaluator_Initialize_Fn)GetNvPerfProc("NVPW_Device_MetricsEvaluator_Initialize", (NVPA_GenericFn)g_api.fn.NVPW_Device_MetricsEvaluator_Initialize);
@@ -1275,6 +2017,12 @@ static void InitNvPerfProcs(void)
     g_api.fn.NVPW_GPU_PeriodicSampler_DecodeCounters = (NVPW_GPU_PeriodicSampler_DecodeCounters_Fn)GetNvPerfProc("NVPW_GPU_PeriodicSampler_DecodeCounters", (NVPA_GenericFn)g_api.fn.NVPW_GPU_PeriodicSampler_DecodeCounters);
     g_api.fn.NVPW_GPU_PeriodicSampler_DecodeCounters_V2 = (NVPW_GPU_PeriodicSampler_DecodeCounters_V2_Fn)GetNvPerfProc("NVPW_GPU_PeriodicSampler_DecodeCounters_V2", (NVPA_GenericFn)g_api.fn.NVPW_GPU_PeriodicSampler_DecodeCounters_V2);
     g_api.fn.NVPW_GPU_PeriodicSampler_IsRecordBufferKeepLatestModeSupported = (NVPW_GPU_PeriodicSampler_IsRecordBufferKeepLatestModeSupported_Fn)GetNvPerfProc("NVPW_GPU_PeriodicSampler_IsRecordBufferKeepLatestModeSupported", (NVPA_GenericFn)g_api.fn.NVPW_GPU_PeriodicSampler_IsRecordBufferKeepLatestModeSupported);
+    g_api.fn.NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2 = (NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2_Fn)GetNvPerfProc("NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2", (NVPA_GenericFn)g_api.fn.NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2);
+    g_api.fn.NVPW_GPU_PeriodicSampler_GetGpuTimestamp = (NVPW_GPU_PeriodicSampler_GetGpuTimestamp_Fn)GetNvPerfProc("NVPW_GPU_PeriodicSampler_GetGpuTimestamp", (NVPA_GenericFn)g_api.fn.NVPW_GPU_PeriodicSampler_GetGpuTimestamp);
+    g_api.fn.NVPW_GPU_PeriodicSampler_AcknowledgeRecordBuffer = (NVPW_GPU_PeriodicSampler_AcknowledgeRecordBuffer_Fn)GetNvPerfProc("NVPW_GPU_PeriodicSampler_AcknowledgeRecordBuffer", (NVPA_GenericFn)g_api.fn.NVPW_GPU_PeriodicSampler_AcknowledgeRecordBuffer);
+    g_api.fn.NVPW_GPU_PeriodicSampler_SetRecordBufferReadOffset = (NVPW_GPU_PeriodicSampler_SetRecordBufferReadOffset_Fn)GetNvPerfProc("NVPW_GPU_PeriodicSampler_SetRecordBufferReadOffset", (NVPA_GenericFn)g_api.fn.NVPW_GPU_PeriodicSampler_SetRecordBufferReadOffset);
+    g_api.fn.NVPW_GPU_PeriodicSampler_DecodeCounters_V3 = (NVPW_GPU_PeriodicSampler_DecodeCounters_V3_Fn)GetNvPerfProc("NVPW_GPU_PeriodicSampler_DecodeCounters_V3", (NVPA_GenericFn)g_api.fn.NVPW_GPU_PeriodicSampler_DecodeCounters_V3);
+    g_api.fn.NVPW_VK_RawCounterConfig_Create = (NVPW_VK_RawCounterConfig_Create_Fn)GetNvPerfProc("NVPW_VK_RawCounterConfig_Create", (NVPA_GenericFn)g_api.fn.NVPW_VK_RawCounterConfig_Create);
     g_api.fn.NVPW_VK_RawMetricsConfig_Create = (NVPW_VK_RawMetricsConfig_Create_Fn)GetNvPerfProc("NVPW_VK_RawMetricsConfig_Create", (NVPA_GenericFn)g_api.fn.NVPW_VK_RawMetricsConfig_Create);
     g_api.fn.NVPW_VK_MetricsEvaluator_CalculateScratchBufferSize = (NVPW_VK_MetricsEvaluator_CalculateScratchBufferSize_Fn)GetNvPerfProc("NVPW_VK_MetricsEvaluator_CalculateScratchBufferSize", (NVPA_GenericFn)g_api.fn.NVPW_VK_MetricsEvaluator_CalculateScratchBufferSize);
     g_api.fn.NVPW_VK_MetricsEvaluator_Initialize = (NVPW_VK_MetricsEvaluator_Initialize_Fn)GetNvPerfProc("NVPW_VK_MetricsEvaluator_Initialize", (NVPA_GenericFn)g_api.fn.NVPW_VK_MetricsEvaluator_Initialize);
@@ -1307,9 +2055,39 @@ static void InitNvPerfProcs(void)
     g_api.fn.NVPW_VK_MiniTrace_CommandBuffer_FrontEndTrigger = (NVPW_VK_MiniTrace_CommandBuffer_FrontEndTrigger_Fn)GetNvPerfProc("NVPW_VK_MiniTrace_CommandBuffer_FrontEndTrigger", (NVPA_GenericFn)g_api.fn.NVPW_VK_MiniTrace_CommandBuffer_FrontEndTrigger);
     g_api.fn.NVPW_VK_MiniTrace_CommandBuffer_MarkerCpu = (NVPW_VK_MiniTrace_CommandBuffer_MarkerCpu_Fn)GetNvPerfProc("NVPW_VK_MiniTrace_CommandBuffer_MarkerCpu", (NVPA_GenericFn)g_api.fn.NVPW_VK_MiniTrace_CommandBuffer_MarkerCpu);
     g_api.fn.NVPW_VK_MiniTrace_CommandBuffer_HostTimestamp = (NVPW_VK_MiniTrace_CommandBuffer_HostTimestamp_Fn)GetNvPerfProc("NVPW_VK_MiniTrace_CommandBuffer_HostTimestamp", (NVPA_GenericFn)g_api.fn.NVPW_VK_MiniTrace_CommandBuffer_HostTimestamp);
+    g_api.fn.NVPW_VKSC_RawCounterConfig_Create = (NVPW_VKSC_RawCounterConfig_Create_Fn)GetNvPerfProc("NVPW_VKSC_RawCounterConfig_Create", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_RawCounterConfig_Create);
+    g_api.fn.NVPW_VKSC_RawMetricsConfig_Create = (NVPW_VKSC_RawMetricsConfig_Create_Fn)GetNvPerfProc("NVPW_VKSC_RawMetricsConfig_Create", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_RawMetricsConfig_Create);
+    g_api.fn.NVPW_VKSC_MetricsEvaluator_CalculateScratchBufferSize = (NVPW_VKSC_MetricsEvaluator_CalculateScratchBufferSize_Fn)GetNvPerfProc("NVPW_VKSC_MetricsEvaluator_CalculateScratchBufferSize", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_MetricsEvaluator_CalculateScratchBufferSize);
+    g_api.fn.NVPW_VKSC_MetricsEvaluator_Initialize = (NVPW_VKSC_MetricsEvaluator_Initialize_Fn)GetNvPerfProc("NVPW_VKSC_MetricsEvaluator_Initialize", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_MetricsEvaluator_Initialize);
+    g_api.fn.NVPW_VKSC_Profiler_CounterDataImage_CalculateSize = (NVPW_VKSC_Profiler_CounterDataImage_CalculateSize_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_CounterDataImage_CalculateSize", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_CounterDataImage_CalculateSize);
+    g_api.fn.NVPW_VKSC_Profiler_CounterDataImage_Initialize = (NVPW_VKSC_Profiler_CounterDataImage_Initialize_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_CounterDataImage_Initialize", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_CounterDataImage_Initialize);
+    g_api.fn.NVPW_VKSC_Profiler_CounterDataImage_CalculateScratchBufferSize = (NVPW_VKSC_Profiler_CounterDataImage_CalculateScratchBufferSize_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_CounterDataImage_CalculateScratchBufferSize", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_CounterDataImage_CalculateScratchBufferSize);
+    g_api.fn.NVPW_VKSC_Profiler_CounterDataImage_InitializeScratchBuffer = (NVPW_VKSC_Profiler_CounterDataImage_InitializeScratchBuffer_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_CounterDataImage_InitializeScratchBuffer", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_CounterDataImage_InitializeScratchBuffer);
+    g_api.fn.NVPW_VKSC_LoadDriver = (NVPW_VKSC_LoadDriver_Fn)GetNvPerfProc("NVPW_VKSC_LoadDriver", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_LoadDriver);
+    g_api.fn.NVPW_VKSC_Device_GetDeviceIndex = (NVPW_VKSC_Device_GetDeviceIndex_Fn)GetNvPerfProc("NVPW_VKSC_Device_GetDeviceIndex", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Device_GetDeviceIndex);
+    g_api.fn.NVPW_VKSC_Profiler_GetRequiredInstanceExtensions = (NVPW_VKSC_Profiler_GetRequiredInstanceExtensions_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_GetRequiredInstanceExtensions", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_GetRequiredInstanceExtensions);
+    g_api.fn.NVPW_VKSC_Profiler_GetRequiredDeviceExtensions = (NVPW_VKSC_Profiler_GetRequiredDeviceExtensions_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_GetRequiredDeviceExtensions", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_GetRequiredDeviceExtensions);
+    g_api.fn.NVPW_VKSC_Profiler_CalcTraceBufferSize = (NVPW_VKSC_Profiler_CalcTraceBufferSize_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_CalcTraceBufferSize", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_CalcTraceBufferSize);
+    g_api.fn.NVPW_VKSC_Profiler_CalcPerfmonBufferSize = (NVPW_VKSC_Profiler_CalcPerfmonBufferSize_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_CalcPerfmonBufferSize", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_CalcPerfmonBufferSize);
+    g_api.fn.NVPW_VKSC_Profiler_GetDeviceObjectReservation = (NVPW_VKSC_Profiler_GetDeviceObjectReservation_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_GetDeviceObjectReservation", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_GetDeviceObjectReservation);
+    g_api.fn.NVPW_VKSC_Profiler_Queue_BeginSession = (NVPW_VKSC_Profiler_Queue_BeginSession_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_Queue_BeginSession", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_Queue_BeginSession);
+    g_api.fn.NVPW_VKSC_Profiler_Queue_EndSession = (NVPW_VKSC_Profiler_Queue_EndSession_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_Queue_EndSession", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_Queue_EndSession);
+    g_api.fn.NVPW_VKSC_Profiler_Queue_ServicePendingGpuOperations = (NVPW_VKSC_Profiler_Queue_ServicePendingGpuOperations_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_Queue_ServicePendingGpuOperations", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_Queue_ServicePendingGpuOperations);
+    g_api.fn.NVPW_VKSC_Profiler_Queue_SetConfig = (NVPW_VKSC_Profiler_Queue_SetConfig_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_Queue_SetConfig", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_Queue_SetConfig);
+    g_api.fn.NVPW_VKSC_Profiler_Queue_ClearConfig = (NVPW_VKSC_Profiler_Queue_ClearConfig_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_Queue_ClearConfig", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_Queue_ClearConfig);
+    g_api.fn.NVPW_VKSC_Profiler_Queue_BeginPass = (NVPW_VKSC_Profiler_Queue_BeginPass_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_Queue_BeginPass", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_Queue_BeginPass);
+    g_api.fn.NVPW_VKSC_Profiler_Queue_EndPass = (NVPW_VKSC_Profiler_Queue_EndPass_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_Queue_EndPass", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_Queue_EndPass);
+    g_api.fn.NVPW_VKSC_Profiler_CommandBuffer_PushRangeGraphics = (NVPW_VKSC_Profiler_CommandBuffer_PushRangeGraphics_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_CommandBuffer_PushRangeGraphics", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_CommandBuffer_PushRangeGraphics);
+    g_api.fn.NVPW_VKSC_Profiler_CommandBuffer_PopRangeGraphics = (NVPW_VKSC_Profiler_CommandBuffer_PopRangeGraphics_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_CommandBuffer_PopRangeGraphics", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_CommandBuffer_PopRangeGraphics);
+    g_api.fn.NVPW_VKSC_Profiler_CommandBuffer_PushRangeCompute = (NVPW_VKSC_Profiler_CommandBuffer_PushRangeCompute_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_CommandBuffer_PushRangeCompute", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_CommandBuffer_PushRangeCompute);
+    g_api.fn.NVPW_VKSC_Profiler_CommandBuffer_PopRangeCompute = (NVPW_VKSC_Profiler_CommandBuffer_PopRangeCompute_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_CommandBuffer_PopRangeCompute", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_CommandBuffer_PopRangeCompute);
+    g_api.fn.NVPW_VKSC_Profiler_Queue_InitializeRangeCommands = (NVPW_VKSC_Profiler_Queue_InitializeRangeCommands_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_Queue_InitializeRangeCommands", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_Queue_InitializeRangeCommands);
+    g_api.fn.NVPW_VKSC_Profiler_Queue_DecodeCounters = (NVPW_VKSC_Profiler_Queue_DecodeCounters_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_Queue_DecodeCounters", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_Queue_DecodeCounters);
+    g_api.fn.NVPW_VKSC_Profiler_IsGpuSupported = (NVPW_VKSC_Profiler_IsGpuSupported_Fn)GetNvPerfProc("NVPW_VKSC_Profiler_IsGpuSupported", (NVPA_GenericFn)g_api.fn.NVPW_VKSC_Profiler_IsGpuSupported);
     g_api.fn.NVPW_OpenGL_RawMetricsConfig_Create = (NVPW_OpenGL_RawMetricsConfig_Create_Fn)GetNvPerfProc("NVPW_OpenGL_RawMetricsConfig_Create", (NVPA_GenericFn)g_api.fn.NVPW_OpenGL_RawMetricsConfig_Create);
     g_api.fn.NVPW_OpenGL_MetricsEvaluator_CalculateScratchBufferSize = (NVPW_OpenGL_MetricsEvaluator_CalculateScratchBufferSize_Fn)GetNvPerfProc("NVPW_OpenGL_MetricsEvaluator_CalculateScratchBufferSize", (NVPA_GenericFn)g_api.fn.NVPW_OpenGL_MetricsEvaluator_CalculateScratchBufferSize);
     g_api.fn.NVPW_OpenGL_MetricsEvaluator_Initialize = (NVPW_OpenGL_MetricsEvaluator_Initialize_Fn)GetNvPerfProc("NVPW_OpenGL_MetricsEvaluator_Initialize", (NVPA_GenericFn)g_api.fn.NVPW_OpenGL_MetricsEvaluator_Initialize);
+    g_api.fn.NVPW_OpenGL_RawCounterConfig_Create = (NVPW_OpenGL_RawCounterConfig_Create_Fn)GetNvPerfProc("NVPW_OpenGL_RawCounterConfig_Create", (NVPA_GenericFn)g_api.fn.NVPW_OpenGL_RawCounterConfig_Create);
     g_api.fn.NVPW_OpenGL_LoadDriver = (NVPW_OpenGL_LoadDriver_Fn)GetNvPerfProc("NVPW_OpenGL_LoadDriver", (NVPA_GenericFn)g_api.fn.NVPW_OpenGL_LoadDriver);
     g_api.fn.NVPW_OpenGL_GetCurrentGraphicsContext = (NVPW_OpenGL_GetCurrentGraphicsContext_Fn)GetNvPerfProc("NVPW_OpenGL_GetCurrentGraphicsContext", (NVPA_GenericFn)g_api.fn.NVPW_OpenGL_GetCurrentGraphicsContext);
     g_api.fn.NVPW_OpenGL_GraphicsContext_GetDeviceIndex = (NVPW_OpenGL_GraphicsContext_GetDeviceIndex_Fn)GetNvPerfProc("NVPW_OpenGL_GraphicsContext_GetDeviceIndex", (NVPA_GenericFn)g_api.fn.NVPW_OpenGL_GraphicsContext_GetDeviceIndex);
@@ -1329,6 +2107,29 @@ static void InitNvPerfProcs(void)
     g_api.fn.NVPW_OpenGL_Profiler_GraphicsContext_PopRange = (NVPW_OpenGL_Profiler_GraphicsContext_PopRange_Fn)GetNvPerfProc("NVPW_OpenGL_Profiler_GraphicsContext_PopRange", (NVPA_GenericFn)g_api.fn.NVPW_OpenGL_Profiler_GraphicsContext_PopRange);
     g_api.fn.NVPW_OpenGL_Profiler_GraphicsContext_DecodeCounters = (NVPW_OpenGL_Profiler_GraphicsContext_DecodeCounters_Fn)GetNvPerfProc("NVPW_OpenGL_Profiler_GraphicsContext_DecodeCounters", (NVPA_GenericFn)g_api.fn.NVPW_OpenGL_Profiler_GraphicsContext_DecodeCounters);
     g_api.fn.NVPW_OpenGL_Profiler_GraphicsContext_GetCounterAvailability = (NVPW_OpenGL_Profiler_GraphicsContext_GetCounterAvailability_Fn)GetNvPerfProc("NVPW_OpenGL_Profiler_GraphicsContext_GetCounterAvailability", (NVPA_GenericFn)g_api.fn.NVPW_OpenGL_Profiler_GraphicsContext_GetCounterAvailability);
+    g_api.fn.NVPW_EGL_RawMetricsConfig_Create = (NVPW_EGL_RawMetricsConfig_Create_Fn)GetNvPerfProc("NVPW_EGL_RawMetricsConfig_Create", (NVPA_GenericFn)g_api.fn.NVPW_EGL_RawMetricsConfig_Create);
+    g_api.fn.NVPW_EGL_MetricsEvaluator_CalculateScratchBufferSize = (NVPW_EGL_MetricsEvaluator_CalculateScratchBufferSize_Fn)GetNvPerfProc("NVPW_EGL_MetricsEvaluator_CalculateScratchBufferSize", (NVPA_GenericFn)g_api.fn.NVPW_EGL_MetricsEvaluator_CalculateScratchBufferSize);
+    g_api.fn.NVPW_EGL_MetricsEvaluator_Initialize = (NVPW_EGL_MetricsEvaluator_Initialize_Fn)GetNvPerfProc("NVPW_EGL_MetricsEvaluator_Initialize", (NVPA_GenericFn)g_api.fn.NVPW_EGL_MetricsEvaluator_Initialize);
+    g_api.fn.NVPW_EGL_RawCounterConfig_Create = (NVPW_EGL_RawCounterConfig_Create_Fn)GetNvPerfProc("NVPW_EGL_RawCounterConfig_Create", (NVPA_GenericFn)g_api.fn.NVPW_EGL_RawCounterConfig_Create);
+    g_api.fn.NVPW_EGL_LoadDriver = (NVPW_EGL_LoadDriver_Fn)GetNvPerfProc("NVPW_EGL_LoadDriver", (NVPA_GenericFn)g_api.fn.NVPW_EGL_LoadDriver);
+    g_api.fn.NVPW_EGL_GetCurrentGraphicsContext = (NVPW_EGL_GetCurrentGraphicsContext_Fn)GetNvPerfProc("NVPW_EGL_GetCurrentGraphicsContext", (NVPA_GenericFn)g_api.fn.NVPW_EGL_GetCurrentGraphicsContext);
+    g_api.fn.NVPW_EGL_GraphicsContext_GetDeviceIndex = (NVPW_EGL_GraphicsContext_GetDeviceIndex_Fn)GetNvPerfProc("NVPW_EGL_GraphicsContext_GetDeviceIndex", (NVPA_GenericFn)g_api.fn.NVPW_EGL_GraphicsContext_GetDeviceIndex);
+    g_api.fn.NVPW_EGL_Profiler_IsGpuSupported = (NVPW_EGL_Profiler_IsGpuSupported_Fn)GetNvPerfProc("NVPW_EGL_Profiler_IsGpuSupported", (NVPA_GenericFn)g_api.fn.NVPW_EGL_Profiler_IsGpuSupported);
+    g_api.fn.NVPW_EGL_Profiler_CounterDataImage_CalculateSize = (NVPW_EGL_Profiler_CounterDataImage_CalculateSize_Fn)GetNvPerfProc("NVPW_EGL_Profiler_CounterDataImage_CalculateSize", (NVPA_GenericFn)g_api.fn.NVPW_EGL_Profiler_CounterDataImage_CalculateSize);
+    g_api.fn.NVPW_EGL_Profiler_CounterDataImage_Initialize = (NVPW_EGL_Profiler_CounterDataImage_Initialize_Fn)GetNvPerfProc("NVPW_EGL_Profiler_CounterDataImage_Initialize", (NVPA_GenericFn)g_api.fn.NVPW_EGL_Profiler_CounterDataImage_Initialize);
+    g_api.fn.NVPW_EGL_Profiler_CounterDataImage_CalculateScratchBufferSize = (NVPW_EGL_Profiler_CounterDataImage_CalculateScratchBufferSize_Fn)GetNvPerfProc("NVPW_EGL_Profiler_CounterDataImage_CalculateScratchBufferSize", (NVPA_GenericFn)g_api.fn.NVPW_EGL_Profiler_CounterDataImage_CalculateScratchBufferSize);
+    g_api.fn.NVPW_EGL_Profiler_CounterDataImage_InitializeScratchBuffer = (NVPW_EGL_Profiler_CounterDataImage_InitializeScratchBuffer_Fn)GetNvPerfProc("NVPW_EGL_Profiler_CounterDataImage_InitializeScratchBuffer", (NVPA_GenericFn)g_api.fn.NVPW_EGL_Profiler_CounterDataImage_InitializeScratchBuffer);
+    g_api.fn.NVPW_EGL_Profiler_CalcTraceBufferSize = (NVPW_EGL_Profiler_CalcTraceBufferSize_Fn)GetNvPerfProc("NVPW_EGL_Profiler_CalcTraceBufferSize", (NVPA_GenericFn)g_api.fn.NVPW_EGL_Profiler_CalcTraceBufferSize);
+    g_api.fn.NVPW_EGL_Profiler_GraphicsContext_BeginSession = (NVPW_EGL_Profiler_GraphicsContext_BeginSession_Fn)GetNvPerfProc("NVPW_EGL_Profiler_GraphicsContext_BeginSession", (NVPA_GenericFn)g_api.fn.NVPW_EGL_Profiler_GraphicsContext_BeginSession);
+    g_api.fn.NVPW_EGL_Profiler_GraphicsContext_EndSession = (NVPW_EGL_Profiler_GraphicsContext_EndSession_Fn)GetNvPerfProc("NVPW_EGL_Profiler_GraphicsContext_EndSession", (NVPA_GenericFn)g_api.fn.NVPW_EGL_Profiler_GraphicsContext_EndSession);
+    g_api.fn.NVPW_EGL_Profiler_GraphicsContext_SetConfig = (NVPW_EGL_Profiler_GraphicsContext_SetConfig_Fn)GetNvPerfProc("NVPW_EGL_Profiler_GraphicsContext_SetConfig", (NVPA_GenericFn)g_api.fn.NVPW_EGL_Profiler_GraphicsContext_SetConfig);
+    g_api.fn.NVPW_EGL_Profiler_GraphicsContext_ClearConfig = (NVPW_EGL_Profiler_GraphicsContext_ClearConfig_Fn)GetNvPerfProc("NVPW_EGL_Profiler_GraphicsContext_ClearConfig", (NVPA_GenericFn)g_api.fn.NVPW_EGL_Profiler_GraphicsContext_ClearConfig);
+    g_api.fn.NVPW_EGL_Profiler_GraphicsContext_BeginPass = (NVPW_EGL_Profiler_GraphicsContext_BeginPass_Fn)GetNvPerfProc("NVPW_EGL_Profiler_GraphicsContext_BeginPass", (NVPA_GenericFn)g_api.fn.NVPW_EGL_Profiler_GraphicsContext_BeginPass);
+    g_api.fn.NVPW_EGL_Profiler_GraphicsContext_EndPass = (NVPW_EGL_Profiler_GraphicsContext_EndPass_Fn)GetNvPerfProc("NVPW_EGL_Profiler_GraphicsContext_EndPass", (NVPA_GenericFn)g_api.fn.NVPW_EGL_Profiler_GraphicsContext_EndPass);
+    g_api.fn.NVPW_EGL_Profiler_GraphicsContext_PushRange = (NVPW_EGL_Profiler_GraphicsContext_PushRange_Fn)GetNvPerfProc("NVPW_EGL_Profiler_GraphicsContext_PushRange", (NVPA_GenericFn)g_api.fn.NVPW_EGL_Profiler_GraphicsContext_PushRange);
+    g_api.fn.NVPW_EGL_Profiler_GraphicsContext_PopRange = (NVPW_EGL_Profiler_GraphicsContext_PopRange_Fn)GetNvPerfProc("NVPW_EGL_Profiler_GraphicsContext_PopRange", (NVPA_GenericFn)g_api.fn.NVPW_EGL_Profiler_GraphicsContext_PopRange);
+    g_api.fn.NVPW_EGL_Profiler_GraphicsContext_DecodeCounters = (NVPW_EGL_Profiler_GraphicsContext_DecodeCounters_Fn)GetNvPerfProc("NVPW_EGL_Profiler_GraphicsContext_DecodeCounters", (NVPA_GenericFn)g_api.fn.NVPW_EGL_Profiler_GraphicsContext_DecodeCounters);
+    g_api.fn.NVPW_EGL_Profiler_GraphicsContext_GetCounterAvailability = (NVPW_EGL_Profiler_GraphicsContext_GetCounterAvailability_Fn)GetNvPerfProc("NVPW_EGL_Profiler_GraphicsContext_GetCounterAvailability", (NVPA_GenericFn)g_api.fn.NVPW_EGL_Profiler_GraphicsContext_GetCounterAvailability);
 }
 static NVPA_Status NVPW_InitializeHost_Default(NVPW_InitializeHost_Params* pParams)
 {
@@ -1363,42 +2164,6 @@ NVPA_Status NVPW_SetLibraryLoadPathsW(NVPW_SetLibraryLoadPathsW_Params* pParams)
 NVPA_Status NVPW_InitializeHost(NVPW_InitializeHost_Params* pParams)
 {
     return g_api.fn.NVPW_InitializeHost(pParams);
-}
-NVPA_Status NVPW_CounterData_CalculateCounterDataImageCopySize(NVPW_CounterData_CalculateCounterDataImageCopySize_Params* pParams)
-{
-    return g_api.fn.NVPW_CounterData_CalculateCounterDataImageCopySize(pParams);
-}
-NVPA_Status NVPW_CounterData_InitializeCounterDataImageCopy(NVPW_CounterData_InitializeCounterDataImageCopy_Params* pParams)
-{
-    return g_api.fn.NVPW_CounterData_InitializeCounterDataImageCopy(pParams);
-}
-NVPA_Status NVPW_CounterDataCombiner_Create(NVPW_CounterDataCombiner_Create_Params* pParams)
-{
-    return g_api.fn.NVPW_CounterDataCombiner_Create(pParams);
-}
-NVPA_Status NVPW_CounterDataCombiner_Destroy(NVPW_CounterDataCombiner_Destroy_Params* pParams)
-{
-    return g_api.fn.NVPW_CounterDataCombiner_Destroy(pParams);
-}
-NVPA_Status NVPW_CounterDataCombiner_CreateRange(NVPW_CounterDataCombiner_CreateRange_Params* pParams)
-{
-    return g_api.fn.NVPW_CounterDataCombiner_CreateRange(pParams);
-}
-NVPA_Status NVPW_CounterDataCombiner_CopyIntoRange(NVPW_CounterDataCombiner_CopyIntoRange_Params* pParams)
-{
-    return g_api.fn.NVPW_CounterDataCombiner_CopyIntoRange(pParams);
-}
-NVPA_Status NVPW_CounterDataCombiner_AccumulateIntoRange(NVPW_CounterDataCombiner_AccumulateIntoRange_Params* pParams)
-{
-    return g_api.fn.NVPW_CounterDataCombiner_AccumulateIntoRange(pParams);
-}
-NVPA_Status NVPW_CounterDataCombiner_SumIntoRange(NVPW_CounterDataCombiner_SumIntoRange_Params* pParams)
-{
-    return g_api.fn.NVPW_CounterDataCombiner_SumIntoRange(pParams);
-}
-NVPA_Status NVPW_CounterDataCombiner_WeightedSumIntoRange(NVPW_CounterDataCombiner_WeightedSumIntoRange_Params* pParams)
-{
-    return g_api.fn.NVPW_CounterDataCombiner_WeightedSumIntoRange(pParams);
 }
 NVPA_Status NVPW_GetSupportedChipNames(NVPW_GetSupportedChipNames_Params* pParams)
 {
@@ -1448,6 +2213,94 @@ NVPA_Status NVPW_RawMetricsConfig_GetNumPasses_V2(NVPW_RawMetricsConfig_GetNumPa
 {
     return g_api.fn.NVPW_RawMetricsConfig_GetNumPasses_V2(pParams);
 }
+NVPA_Status NVPW_RawCounterConfig_RawCounterDomainToString(NVPW_RawCounterConfig_RawCounterDomainToString_Params* pParams)
+{
+    return g_api.fn.NVPW_RawCounterConfig_RawCounterDomainToString(pParams);
+}
+NVPA_Status NVPW_RawCounterConfig_StringToRawCounterDomain(NVPW_RawCounterConfig_StringToRawCounterDomain_Params* pParams)
+{
+    return g_api.fn.NVPW_RawCounterConfig_StringToRawCounterDomain(pParams);
+}
+NVPA_Status NVPW_RawCounterConfig_GetSupportedChipNames(NVPW_RawCounterConfig_GetSupportedChipNames_Params* pParams)
+{
+    return g_api.fn.NVPW_RawCounterConfig_GetSupportedChipNames(pParams);
+}
+NVPA_Status NVPW_RawCounterConfig_Destroy(NVPW_RawCounterConfig_Destroy_Params* pParams)
+{
+    return g_api.fn.NVPW_RawCounterConfig_Destroy(pParams);
+}
+NVPA_Status NVPW_RawCounterConfig_SetCounterAvailability(NVPW_RawCounterConfig_SetCounterAvailability_Params* pParams)
+{
+    return g_api.fn.NVPW_RawCounterConfig_SetCounterAvailability(pParams);
+}
+NVPA_Status NVPW_RawCounterConfig_GetAllAvailableRawCounterDomains(NVPW_RawCounterConfig_GetAllAvailableRawCounterDomains_Params* pParams)
+{
+    return g_api.fn.NVPW_RawCounterConfig_GetAllAvailableRawCounterDomains(pParams);
+}
+NVPA_Status NVPW_RawCounterConfig_GetAllAvailableCooperativeDomainGroups(NVPW_RawCounterConfig_GetAllAvailableCooperativeDomainGroups_Params* pParams)
+{
+    return g_api.fn.NVPW_RawCounterConfig_GetAllAvailableCooperativeDomainGroups(pParams);
+}
+NVPA_Status NVPW_RawCounterConfig_IsCooperativeDomainGroup(NVPW_RawCounterConfig_IsCooperativeDomainGroup_Params* pParams)
+{
+    return g_api.fn.NVPW_RawCounterConfig_IsCooperativeDomainGroup(pParams);
+}
+NVPA_Status NVPW_RawCounterConfig_CooperativeDomainGroup_GetMemberDomains(NVPW_RawCounterConfig_CooperativeDomainGroup_GetMemberDomains_Params* pParams)
+{
+    return g_api.fn.NVPW_RawCounterConfig_CooperativeDomainGroup_GetMemberDomains(pParams);
+}
+NVPA_Status NVPW_RawCounterConfig_BeginPassGroup(NVPW_RawCounterConfig_BeginPassGroup_Params* pParams)
+{
+    return g_api.fn.NVPW_RawCounterConfig_BeginPassGroup(pParams);
+}
+NVPA_Status NVPW_RawCounterConfig_EndPassGroup(NVPW_RawCounterConfig_EndPassGroup_Params* pParams)
+{
+    return g_api.fn.NVPW_RawCounterConfig_EndPassGroup(pParams);
+}
+NVPA_Status NVPW_RawCounterConfig_GetNumRawCounters(NVPW_RawCounterConfig_GetNumRawCounters_Params* pParams)
+{
+    return g_api.fn.NVPW_RawCounterConfig_GetNumRawCounters(pParams);
+}
+NVPA_Status NVPW_RawCounterConfig_GetRawCounterName(NVPW_RawCounterConfig_GetRawCounterName_Params* pParams)
+{
+    return g_api.fn.NVPW_RawCounterConfig_GetRawCounterName(pParams);
+}
+NVPA_Status NVPW_RawCounterConfig_GetRawCounterProperties(NVPW_RawCounterConfig_GetRawCounterProperties_Params* pParams)
+{
+    return g_api.fn.NVPW_RawCounterConfig_GetRawCounterProperties(pParams);
+}
+NVPA_Status NVPW_RawCounterConfig_AddRawCounters(NVPW_RawCounterConfig_AddRawCounters_Params* pParams)
+{
+    return g_api.fn.NVPW_RawCounterConfig_AddRawCounters(pParams);
+}
+NVPA_Status NVPW_RawCounterConfig_AreRawCountersSchedulable(NVPW_RawCounterConfig_AreRawCountersSchedulable_Params* pParams)
+{
+    return g_api.fn.NVPW_RawCounterConfig_AreRawCountersSchedulable(pParams);
+}
+NVPA_Status NVPW_RawCounterConfig_MergePassGroups(NVPW_RawCounterConfig_MergePassGroups_Params* pParams)
+{
+    return g_api.fn.NVPW_RawCounterConfig_MergePassGroups(pParams);
+}
+NVPA_Status NVPW_RawCounterConfig_GenerateConfigImage(NVPW_RawCounterConfig_GenerateConfigImage_Params* pParams)
+{
+    return g_api.fn.NVPW_RawCounterConfig_GenerateConfigImage(pParams);
+}
+NVPA_Status NVPW_RawCounterConfig_GetConfigImage(NVPW_RawCounterConfig_GetConfigImage_Params* pParams)
+{
+    return g_api.fn.NVPW_RawCounterConfig_GetConfigImage(pParams);
+}
+NVPA_Status NVPW_RawCounterConfig_GetNumPasses(NVPW_RawCounterConfig_GetNumPasses_Params* pParams)
+{
+    return g_api.fn.NVPW_RawCounterConfig_GetNumPasses(pParams);
+}
+NVPA_Status NVPW_Config_GetRawCounterInfo(NVPW_Config_GetRawCounterInfo_Params* pParams)
+{
+    return g_api.fn.NVPW_Config_GetRawCounterInfo(pParams);
+}
+NVPA_Status NVPW_Config_GetRawCounters(NVPW_Config_GetRawCounters_Params* pParams)
+{
+    return g_api.fn.NVPW_Config_GetRawCounters(pParams);
+}
 NVPA_Status NVPW_PeriodicSampler_Config_GetSocEstimatedSampleSize(NVPW_PeriodicSampler_Config_GetSocEstimatedSampleSize_Params* pParams)
 {
     return g_api.fn.NVPW_PeriodicSampler_Config_GetSocEstimatedSampleSize(pParams);
@@ -1455,22 +2308,6 @@ NVPA_Status NVPW_PeriodicSampler_Config_GetSocEstimatedSampleSize(NVPW_PeriodicS
 NVPA_Status NVPW_PeriodicSampler_Config_GetGpuEstimatedSampleSize(NVPW_PeriodicSampler_Config_GetGpuEstimatedSampleSize_Params* pParams)
 {
     return g_api.fn.NVPW_PeriodicSampler_Config_GetGpuEstimatedSampleSize(pParams);
-}
-NVPA_Status NVPW_CounterDataBuilder_Create(NVPW_CounterDataBuilder_Create_Params* pParams)
-{
-    return g_api.fn.NVPW_CounterDataBuilder_Create(pParams);
-}
-NVPA_Status NVPW_CounterDataBuilder_Destroy(NVPW_CounterDataBuilder_Destroy_Params* pParams)
-{
-    return g_api.fn.NVPW_CounterDataBuilder_Destroy(pParams);
-}
-NVPA_Status NVPW_CounterDataBuilder_AddMetrics(NVPW_CounterDataBuilder_AddMetrics_Params* pParams)
-{
-    return g_api.fn.NVPW_CounterDataBuilder_AddMetrics(pParams);
-}
-NVPA_Status NVPW_CounterDataBuilder_GetCounterDataPrefix(NVPW_CounterDataBuilder_GetCounterDataPrefix_Params* pParams)
-{
-    return g_api.fn.NVPW_CounterDataBuilder_GetCounterDataPrefix(pParams);
 }
 NVPA_Status NVPW_MetricsEvaluator_Destroy(NVPW_MetricsEvaluator_Destroy_Params* pParams)
 {
@@ -1531,6 +2368,82 @@ NVPA_Status NVPW_MetricsEvaluator_EvaluateToGpuValues(NVPW_MetricsEvaluator_Eval
 NVPA_Status NVPW_MetricsEvaluator_SetDeviceAttributes(NVPW_MetricsEvaluator_SetDeviceAttributes_Params* pParams)
 {
     return g_api.fn.NVPW_MetricsEvaluator_SetDeviceAttributes(pParams);
+}
+NVPA_Status NVPW_MetricsEvaluator_UserDefinedMetrics_Initialize(NVPW_MetricsEvaluator_UserDefinedMetrics_Initialize_Params* pParams)
+{
+    return g_api.fn.NVPW_MetricsEvaluator_UserDefinedMetrics_Initialize(pParams);
+}
+NVPA_Status NVPW_MetricsEvaluator_UserDefinedMetrics_ExecuteScriptFromString(NVPW_MetricsEvaluator_UserDefinedMetrics_ExecuteScriptFromString_Params* pParams)
+{
+    return g_api.fn.NVPW_MetricsEvaluator_UserDefinedMetrics_ExecuteScriptFromString(pParams);
+}
+NVPA_Status NVPW_MetricsEvaluator_UserDefinedMetrics_Commit(NVPW_MetricsEvaluator_UserDefinedMetrics_Commit_Params* pParams)
+{
+    return g_api.fn.NVPW_MetricsEvaluator_UserDefinedMetrics_Commit(pParams);
+}
+NVPA_Status NVPW_MetricsEvaluator_UserDefinedMetrics_GetMetricNames(NVPW_MetricsEvaluator_UserDefinedMetrics_GetMetricNames_Params* pParams)
+{
+    return g_api.fn.NVPW_MetricsEvaluator_UserDefinedMetrics_GetMetricNames(pParams);
+}
+NVPA_Status NVPW_CounterData_CalculateCounterDataImageCopySize(NVPW_CounterData_CalculateCounterDataImageCopySize_Params* pParams)
+{
+    return g_api.fn.NVPW_CounterData_CalculateCounterDataImageCopySize(pParams);
+}
+NVPA_Status NVPW_CounterData_InitializeCounterDataImageCopy(NVPW_CounterData_InitializeCounterDataImageCopy_Params* pParams)
+{
+    return g_api.fn.NVPW_CounterData_InitializeCounterDataImageCopy(pParams);
+}
+NVPA_Status NVPW_CounterData_ExtractCounterDataPrefix(NVPW_CounterData_ExtractCounterDataPrefix_Params* pParams)
+{
+    return g_api.fn.NVPW_CounterData_ExtractCounterDataPrefix(pParams);
+}
+NVPA_Status NVPW_CounterDataCombiner_Create(NVPW_CounterDataCombiner_Create_Params* pParams)
+{
+    return g_api.fn.NVPW_CounterDataCombiner_Create(pParams);
+}
+NVPA_Status NVPW_CounterDataCombiner_Destroy(NVPW_CounterDataCombiner_Destroy_Params* pParams)
+{
+    return g_api.fn.NVPW_CounterDataCombiner_Destroy(pParams);
+}
+NVPA_Status NVPW_CounterDataCombiner_CreateRange(NVPW_CounterDataCombiner_CreateRange_Params* pParams)
+{
+    return g_api.fn.NVPW_CounterDataCombiner_CreateRange(pParams);
+}
+NVPA_Status NVPW_CounterDataCombiner_CopyIntoRange(NVPW_CounterDataCombiner_CopyIntoRange_Params* pParams)
+{
+    return g_api.fn.NVPW_CounterDataCombiner_CopyIntoRange(pParams);
+}
+NVPA_Status NVPW_CounterDataCombiner_AccumulateIntoRange(NVPW_CounterDataCombiner_AccumulateIntoRange_Params* pParams)
+{
+    return g_api.fn.NVPW_CounterDataCombiner_AccumulateIntoRange(pParams);
+}
+NVPA_Status NVPW_CounterDataCombiner_SumIntoRange(NVPW_CounterDataCombiner_SumIntoRange_Params* pParams)
+{
+    return g_api.fn.NVPW_CounterDataCombiner_SumIntoRange(pParams);
+}
+NVPA_Status NVPW_CounterDataCombiner_WeightedSumIntoRange(NVPW_CounterDataCombiner_WeightedSumIntoRange_Params* pParams)
+{
+    return g_api.fn.NVPW_CounterDataCombiner_WeightedSumIntoRange(pParams);
+}
+NVPA_Status NVPW_CounterDataBuilder_Create(NVPW_CounterDataBuilder_Create_Params* pParams)
+{
+    return g_api.fn.NVPW_CounterDataBuilder_Create(pParams);
+}
+NVPA_Status NVPW_CounterDataBuilder_Destroy(NVPW_CounterDataBuilder_Destroy_Params* pParams)
+{
+    return g_api.fn.NVPW_CounterDataBuilder_Destroy(pParams);
+}
+NVPA_Status NVPW_CounterDataBuilder_AddMetrics(NVPW_CounterDataBuilder_AddMetrics_Params* pParams)
+{
+    return g_api.fn.NVPW_CounterDataBuilder_AddMetrics(pParams);
+}
+NVPA_Status NVPW_CounterDataBuilder_AddRawCounters(NVPW_CounterDataBuilder_AddRawCounters_Params* pParams)
+{
+    return g_api.fn.NVPW_CounterDataBuilder_AddRawCounters(pParams);
+}
+NVPA_Status NVPW_CounterDataBuilder_GetCounterDataPrefix(NVPW_CounterDataBuilder_GetCounterDataPrefix_Params* pParams)
+{
+    return g_api.fn.NVPW_CounterDataBuilder_GetCounterDataPrefix(pParams);
 }
 NVPA_Status NVPW_InitializeTarget(NVPW_InitializeTarget_Params* pParams)
 {
@@ -1603,6 +2516,14 @@ NVPA_Status NVPW_PeriodicSampler_CounterData_GetInfo(NVPW_PeriodicSampler_Counte
 NVPA_Status NVPW_PeriodicSampler_CounterData_GetTriggerCount(NVPW_PeriodicSampler_CounterData_GetTriggerCount_Params* pParams)
 {
     return g_api.fn.NVPW_PeriodicSampler_CounterData_GetTriggerCount(pParams);
+}
+NVPA_Status NVPW_PeriodicSampler_CounterData_IsDataComplete(NVPW_PeriodicSampler_CounterData_IsDataComplete_Params* pParams)
+{
+    return g_api.fn.NVPW_PeriodicSampler_CounterData_IsDataComplete(pParams);
+}
+NVPA_Status NVPW_Device_RawCounterConfig_Create(NVPW_Device_RawCounterConfig_Create_Params* pParams)
+{
+    return g_api.fn.NVPW_Device_RawCounterConfig_Create(pParams);
 }
 NVPA_Status NVPW_Device_RawMetricsConfig_Create(NVPW_Device_RawMetricsConfig_Create_Params* pParams)
 {
@@ -1683,6 +2604,30 @@ NVPA_Status NVPW_GPU_PeriodicSampler_DecodeCounters_V2(NVPW_GPU_PeriodicSampler_
 NVPA_Status NVPW_GPU_PeriodicSampler_IsRecordBufferKeepLatestModeSupported(NVPW_GPU_PeriodicSampler_IsRecordBufferKeepLatestModeSupported_Params* pParams)
 {
     return g_api.fn.NVPW_GPU_PeriodicSampler_IsRecordBufferKeepLatestModeSupported(pParams);
+}
+NVPA_Status NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2(NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2_Params* pParams)
+{
+    return g_api.fn.NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2(pParams);
+}
+NVPA_Status NVPW_GPU_PeriodicSampler_GetGpuTimestamp(NVPW_GPU_PeriodicSampler_GetGpuTimestamp_Params* pParams)
+{
+    return g_api.fn.NVPW_GPU_PeriodicSampler_GetGpuTimestamp(pParams);
+}
+NVPA_Status NVPW_GPU_PeriodicSampler_AcknowledgeRecordBuffer(NVPW_GPU_PeriodicSampler_AcknowledgeRecordBuffer_Params* pParams)
+{
+    return g_api.fn.NVPW_GPU_PeriodicSampler_AcknowledgeRecordBuffer(pParams);
+}
+NVPA_Status NVPW_GPU_PeriodicSampler_SetRecordBufferReadOffset(NVPW_GPU_PeriodicSampler_SetRecordBufferReadOffset_Params* pParams)
+{
+    return g_api.fn.NVPW_GPU_PeriodicSampler_SetRecordBufferReadOffset(pParams);
+}
+NVPA_Status NVPW_GPU_PeriodicSampler_DecodeCounters_V3(NVPW_GPU_PeriodicSampler_DecodeCounters_V3_Params* pParams)
+{
+    return g_api.fn.NVPW_GPU_PeriodicSampler_DecodeCounters_V3(pParams);
+}
+NVPA_Status NVPW_VK_RawCounterConfig_Create(NVPW_VK_RawCounterConfig_Create_Params* pParams)
+{
+    return g_api.fn.NVPW_VK_RawCounterConfig_Create(pParams);
 }
 NVPA_Status NVPW_VK_RawMetricsConfig_Create(NVPW_VK_RawMetricsConfig_Create_Params* pParams)
 {
@@ -1812,6 +2757,122 @@ NVPA_Status NVPW_VK_MiniTrace_CommandBuffer_HostTimestamp(NVPW_VK_MiniTrace_Comm
 {
     return g_api.fn.NVPW_VK_MiniTrace_CommandBuffer_HostTimestamp(pParams);
 }
+NVPA_Status NVPW_VKSC_RawCounterConfig_Create(NVPW_VKSC_RawCounterConfig_Create_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_RawCounterConfig_Create(pParams);
+}
+NVPA_Status NVPW_VKSC_RawMetricsConfig_Create(NVPW_VKSC_RawMetricsConfig_Create_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_RawMetricsConfig_Create(pParams);
+}
+NVPA_Status NVPW_VKSC_MetricsEvaluator_CalculateScratchBufferSize(NVPW_VKSC_MetricsEvaluator_CalculateScratchBufferSize_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_MetricsEvaluator_CalculateScratchBufferSize(pParams);
+}
+NVPA_Status NVPW_VKSC_MetricsEvaluator_Initialize(NVPW_VKSC_MetricsEvaluator_Initialize_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_MetricsEvaluator_Initialize(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_CounterDataImage_CalculateSize(NVPW_VKSC_Profiler_CounterDataImage_CalculateSize_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_CounterDataImage_CalculateSize(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_CounterDataImage_Initialize(NVPW_VKSC_Profiler_CounterDataImage_Initialize_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_CounterDataImage_Initialize(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_CounterDataImage_CalculateScratchBufferSize(NVPW_VKSC_Profiler_CounterDataImage_CalculateScratchBufferSize_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_CounterDataImage_CalculateScratchBufferSize(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_CounterDataImage_InitializeScratchBuffer(NVPW_VKSC_Profiler_CounterDataImage_InitializeScratchBuffer_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_CounterDataImage_InitializeScratchBuffer(pParams);
+}
+NVPA_Status NVPW_VKSC_LoadDriver(NVPW_VKSC_LoadDriver_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_LoadDriver(pParams);
+}
+NVPA_Status NVPW_VKSC_Device_GetDeviceIndex(NVPW_VKSC_Device_GetDeviceIndex_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Device_GetDeviceIndex(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_GetRequiredInstanceExtensions(NVPW_VKSC_Profiler_GetRequiredInstanceExtensions_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_GetRequiredInstanceExtensions(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_GetRequiredDeviceExtensions(NVPW_VKSC_Profiler_GetRequiredDeviceExtensions_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_GetRequiredDeviceExtensions(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_CalcTraceBufferSize(NVPW_VKSC_Profiler_CalcTraceBufferSize_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_CalcTraceBufferSize(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_CalcPerfmonBufferSize(NVPW_VKSC_Profiler_CalcPerfmonBufferSize_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_CalcPerfmonBufferSize(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_GetDeviceObjectReservation(NVPW_VKSC_Profiler_GetDeviceObjectReservation_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_GetDeviceObjectReservation(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_Queue_BeginSession(NVPW_VKSC_Profiler_Queue_BeginSession_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_Queue_BeginSession(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_Queue_EndSession(NVPW_VKSC_Profiler_Queue_EndSession_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_Queue_EndSession(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_Queue_ServicePendingGpuOperations(NVPW_VKSC_Profiler_Queue_ServicePendingGpuOperations_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_Queue_ServicePendingGpuOperations(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_Queue_SetConfig(NVPW_VKSC_Profiler_Queue_SetConfig_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_Queue_SetConfig(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_Queue_ClearConfig(NVPW_VKSC_Profiler_Queue_ClearConfig_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_Queue_ClearConfig(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_Queue_BeginPass(NVPW_VKSC_Profiler_Queue_BeginPass_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_Queue_BeginPass(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_Queue_EndPass(NVPW_VKSC_Profiler_Queue_EndPass_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_Queue_EndPass(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_CommandBuffer_PushRangeGraphics(NVPW_VKSC_Profiler_CommandBuffer_PushRangeGraphics_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_CommandBuffer_PushRangeGraphics(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_CommandBuffer_PopRangeGraphics(NVPW_VKSC_Profiler_CommandBuffer_PopRangeGraphics_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_CommandBuffer_PopRangeGraphics(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_CommandBuffer_PushRangeCompute(NVPW_VKSC_Profiler_CommandBuffer_PushRangeCompute_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_CommandBuffer_PushRangeCompute(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_CommandBuffer_PopRangeCompute(NVPW_VKSC_Profiler_CommandBuffer_PopRangeCompute_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_CommandBuffer_PopRangeCompute(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_Queue_InitializeRangeCommands(NVPW_VKSC_Profiler_Queue_InitializeRangeCommands_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_Queue_InitializeRangeCommands(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_Queue_DecodeCounters(NVPW_VKSC_Profiler_Queue_DecodeCounters_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_Queue_DecodeCounters(pParams);
+}
+NVPA_Status NVPW_VKSC_Profiler_IsGpuSupported(NVPW_VKSC_Profiler_IsGpuSupported_Params* pParams)
+{
+    return g_api.fn.NVPW_VKSC_Profiler_IsGpuSupported(pParams);
+}
 NVPA_Status NVPW_OpenGL_RawMetricsConfig_Create(NVPW_OpenGL_RawMetricsConfig_Create_Params* pParams)
 {
     return g_api.fn.NVPW_OpenGL_RawMetricsConfig_Create(pParams);
@@ -1823,6 +2884,10 @@ NVPA_Status NVPW_OpenGL_MetricsEvaluator_CalculateScratchBufferSize(NVPW_OpenGL_
 NVPA_Status NVPW_OpenGL_MetricsEvaluator_Initialize(NVPW_OpenGL_MetricsEvaluator_Initialize_Params* pParams)
 {
     return g_api.fn.NVPW_OpenGL_MetricsEvaluator_Initialize(pParams);
+}
+NVPA_Status NVPW_OpenGL_RawCounterConfig_Create(NVPW_OpenGL_RawCounterConfig_Create_Params* pParams)
+{
+    return g_api.fn.NVPW_OpenGL_RawCounterConfig_Create(pParams);
 }
 NVPA_Status NVPW_OpenGL_LoadDriver(NVPW_OpenGL_LoadDriver_Params* pParams)
 {
@@ -1899,6 +2964,98 @@ NVPA_Status NVPW_OpenGL_Profiler_GraphicsContext_DecodeCounters(NVPW_OpenGL_Prof
 NVPA_Status NVPW_OpenGL_Profiler_GraphicsContext_GetCounterAvailability(NVPW_OpenGL_Profiler_GraphicsContext_GetCounterAvailability_Params* pParams)
 {
     return g_api.fn.NVPW_OpenGL_Profiler_GraphicsContext_GetCounterAvailability(pParams);
+}
+NVPA_Status NVPW_EGL_RawMetricsConfig_Create(NVPW_EGL_RawMetricsConfig_Create_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_RawMetricsConfig_Create(pParams);
+}
+NVPA_Status NVPW_EGL_MetricsEvaluator_CalculateScratchBufferSize(NVPW_EGL_MetricsEvaluator_CalculateScratchBufferSize_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_MetricsEvaluator_CalculateScratchBufferSize(pParams);
+}
+NVPA_Status NVPW_EGL_MetricsEvaluator_Initialize(NVPW_EGL_MetricsEvaluator_Initialize_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_MetricsEvaluator_Initialize(pParams);
+}
+NVPA_Status NVPW_EGL_RawCounterConfig_Create(NVPW_EGL_RawCounterConfig_Create_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_RawCounterConfig_Create(pParams);
+}
+NVPA_Status NVPW_EGL_LoadDriver(NVPW_EGL_LoadDriver_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_LoadDriver(pParams);
+}
+NVPA_Status NVPW_EGL_GetCurrentGraphicsContext(NVPW_EGL_GetCurrentGraphicsContext_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_GetCurrentGraphicsContext(pParams);
+}
+NVPA_Status NVPW_EGL_GraphicsContext_GetDeviceIndex(NVPW_EGL_GraphicsContext_GetDeviceIndex_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_GraphicsContext_GetDeviceIndex(pParams);
+}
+NVPA_Status NVPW_EGL_Profiler_IsGpuSupported(NVPW_EGL_Profiler_IsGpuSupported_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_Profiler_IsGpuSupported(pParams);
+}
+NVPA_Status NVPW_EGL_Profiler_CounterDataImage_CalculateSize(NVPW_EGL_Profiler_CounterDataImage_CalculateSize_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_Profiler_CounterDataImage_CalculateSize(pParams);
+}
+NVPA_Status NVPW_EGL_Profiler_CounterDataImage_Initialize(NVPW_EGL_Profiler_CounterDataImage_Initialize_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_Profiler_CounterDataImage_Initialize(pParams);
+}
+NVPA_Status NVPW_EGL_Profiler_CounterDataImage_CalculateScratchBufferSize(NVPW_EGL_Profiler_CounterDataImage_CalculateScratchBufferSize_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_Profiler_CounterDataImage_CalculateScratchBufferSize(pParams);
+}
+NVPA_Status NVPW_EGL_Profiler_CounterDataImage_InitializeScratchBuffer(NVPW_EGL_Profiler_CounterDataImage_InitializeScratchBuffer_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_Profiler_CounterDataImage_InitializeScratchBuffer(pParams);
+}
+NVPA_Status NVPW_EGL_Profiler_CalcTraceBufferSize(NVPW_EGL_Profiler_CalcTraceBufferSize_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_Profiler_CalcTraceBufferSize(pParams);
+}
+NVPA_Status NVPW_EGL_Profiler_GraphicsContext_BeginSession(NVPW_EGL_Profiler_GraphicsContext_BeginSession_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_Profiler_GraphicsContext_BeginSession(pParams);
+}
+NVPA_Status NVPW_EGL_Profiler_GraphicsContext_EndSession(NVPW_EGL_Profiler_GraphicsContext_EndSession_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_Profiler_GraphicsContext_EndSession(pParams);
+}
+NVPA_Status NVPW_EGL_Profiler_GraphicsContext_SetConfig(NVPW_EGL_Profiler_GraphicsContext_SetConfig_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_Profiler_GraphicsContext_SetConfig(pParams);
+}
+NVPA_Status NVPW_EGL_Profiler_GraphicsContext_ClearConfig(NVPW_EGL_Profiler_GraphicsContext_ClearConfig_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_Profiler_GraphicsContext_ClearConfig(pParams);
+}
+NVPA_Status NVPW_EGL_Profiler_GraphicsContext_BeginPass(NVPW_EGL_Profiler_GraphicsContext_BeginPass_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_Profiler_GraphicsContext_BeginPass(pParams);
+}
+NVPA_Status NVPW_EGL_Profiler_GraphicsContext_EndPass(NVPW_EGL_Profiler_GraphicsContext_EndPass_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_Profiler_GraphicsContext_EndPass(pParams);
+}
+NVPA_Status NVPW_EGL_Profiler_GraphicsContext_PushRange(NVPW_EGL_Profiler_GraphicsContext_PushRange_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_Profiler_GraphicsContext_PushRange(pParams);
+}
+NVPA_Status NVPW_EGL_Profiler_GraphicsContext_PopRange(NVPW_EGL_Profiler_GraphicsContext_PopRange_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_Profiler_GraphicsContext_PopRange(pParams);
+}
+NVPA_Status NVPW_EGL_Profiler_GraphicsContext_DecodeCounters(NVPW_EGL_Profiler_GraphicsContext_DecodeCounters_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_Profiler_GraphicsContext_DecodeCounters(pParams);
+}
+NVPA_Status NVPW_EGL_Profiler_GraphicsContext_GetCounterAvailability(NVPW_EGL_Profiler_GraphicsContext_GetCounterAvailability_Params* pParams)
+{
+    return g_api.fn.NVPW_EGL_Profiler_GraphicsContext_GetCounterAvailability(pParams);
 }
 static void* LibOpen(char const* name)
 {
@@ -1981,6 +3138,7 @@ static int InitNvPerf(void)
         g_api.hModNvPerf = LoadNvPerfLibrary();
         if (!g_api.hModNvPerf)
         {
+            g_defaultStatus = NVPA_STATUS_NOT_LOADED;
             return 0;
         }
     }

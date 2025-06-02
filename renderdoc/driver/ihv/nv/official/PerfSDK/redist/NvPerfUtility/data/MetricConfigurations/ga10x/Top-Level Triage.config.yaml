@@ -1,0 +1,116 @@
+version: 1.0.0
+gpu: ga10x
+metricGroups:
+  - GfxTriage_GPC:
+      metrics:
+        - GPC_A.TriageSCG.prop__throughput
+        - GPC_A.TriageSCG.raster__throughput
+        - GPC_A.TriageSCG.raster__zcull_input_samples_op_rejected_realtime
+        - GPC_A.TriageSCG.raster__zcull_input_samples_realtime
+        - GPC_B.TriageSCG.pes__throughput
+        - ROP.TriageSCG.crop__throughput
+        - ROP.TriageSCG.zrop__throughput
+        - TPC.TriageSCG.vaf__throughput
+        - gpc__cycles_elapsed
+  - GfxTriage_HUB:
+      metrics:
+        - HOST.TriageSCG.gpu__engine_cycles_active_any_asyncce
+        - HOST.TriageSCG.gpu__engine_cycles_active_any_syncce
+        - HOST.TriageSCG.gpu__engine_cycles_active_gr_or_ce
+        - PCI.TriageSCG.pcie__read_bytes
+        - PCI.TriageSCG.pcie__throughput
+        - PCI.TriageSCG.pcie__write_bytes
+        - pcie__rx_requests_aperture_bar0_op_read
+        - pcie__rx_requests_aperture_bar0_op_write
+        - pcie__rx_requests_aperture_bar1_op_read
+        - pcie__rx_requests_aperture_bar1_op_write
+        - pcie__rx_requests_aperture_bar2_op_read
+        - pcie__rx_requests_aperture_bar2_op_write
+        - sys__cycles_elapsed
+  - GfxTriage_SysPipe:
+      metrics:
+        - FE_A.TriageSCG.fe__cycles_stalled_cmd_wfi_queue_async
+        - FE_A.TriageSCG.fe__cycles_stalled_cmd_wfi_queue_sync
+        - FE_A.TriageSCG.fe__draw_count
+        - FE_A.TriageSCG.fe__pixel_shader_barriers
+        - FE_A.TriageSCG.gr__compute_cycles_active_queue_async
+        - FE_A.TriageSCG.gr__compute_cycles_active_queue_sync
+        - FE_A.TriageSCG.gr__cycles_active
+        - FE_A.TriageSCG.gr__dispatch_count
+        - FE_B.TriageSCG.fe__output_ops_cmd_go_idle_queue_async
+        - FE_B.TriageSCG.fe__output_ops_cmd_go_idle_queue_sync
+        - FE_B.TriageSCG.fe__output_ops_cmd_subchsw_queue_async
+        - FE_B.TriageSCG.fe__output_ops_cmd_subchsw_queue_sync
+        - HUB_B.TriageSCG.pda__throughput
+        - fe__throughput
+  - GfxTriage_TPC:
+      schedulingHints:
+        - gpu_sm_b:
+            - '0x429f51824686c32f'
+            - '0x5405725d0bccb9f2'
+            - '0xc83feae1569676cb'
+            - '0xfd93b866902c2630'
+        - gpu_sm_c:
+            - '0x00e5e253feae6516'
+            - '0x7e270ac90fa0e410'
+            - '0x817da99c7eb73a7e'
+            - '0x9ad8b1f11f309619'
+      metrics:
+        - SM_A.TriageSCG.l1tex__data_pipe_lsu_wavefronts
+        - SM_A.TriageSCG.l1tex__data_pipe_lsu_wavefronts_mem_lg
+        - SM_A.TriageSCG.l1tex__data_pipe_lsu_wavefronts_mem_shared_realtime
+        - SM_A.TriageSCG.l1tex__data_pipe_lsu_wavefronts_mem_surface_realtime
+        - SM_A.TriageSCG.l1tex__data_pipe_tex_wavefronts
+        - SM_A.TriageSCG.l1tex__f_wavefronts_realtime
+        - SM_A.TriageSCG.l1tex__lsu_writeback_active
+        - SM_A.TriageSCG.l1tex__tex_writeback_active
+        - SM_A.TriageSCG.l1tex__throughput
+        - SM_A.TriageSCG.sm__inst_executed_pipe_alu_realtime
+        - SM_A.TriageSCG.sm__inst_executed_pipe_xu_realtime
+        - SM_A.TriageSCG.sm__inst_executed_realtime
+        - SM_B.TriageSCG.l1tex__t_sector_hit_rate
+        - SM_B.TriageSCG.sm__ctas_active
+        - SM_B.TriageSCG.tpc__warps_active_shader_vtg_realtime
+        - SM_C.TriageSCG.smsp__inst_executed_pipe_fma
+        - SM_C.TriageSCG.smsp__inst_executed_pipe_fmaheavy
+        - TPC.TriageSCG.tpc__l1tex_mem_shared_data_compute_bytes_allocated_queue_async_realtime
+        - TPC.TriageSCG.tpc__l1tex_mem_shared_data_compute_bytes_allocated_queue_sync_realtime
+        - TPC.TriageSCG.tpc__l1tex_mem_shared_data_isbe_bytes_allocated_realtime
+        - TPC.TriageSCG.tpc__l1tex_mem_shared_data_tram_bytes_allocated_realtime
+        - TPC.TriageSCG.tpc__sm_rf_registers_allocated_shader_3d_realtime
+        - TPC.TriageSCG.tpc__sm_rf_registers_allocated_shader_cs_realtime
+        - TPC.TriageSCG.tpc__warps_active_shader_cs_realtime
+        - TPC.TriageSCG.tpc__warps_active_shader_ps_realtime
+        - TriageSCG.tpc__warps_inactive_sm_active_realtime
+        - TriageSCG.tpc__warps_inactive_sm_idle_realtime
+        - rtcore__cycles_executed
+        - sm__pipe_tensor_cycles_active_realtime
+        - smsp__thread_inst_executed_pred_on_per_inst_executed
+  - GfxTriage_VidMem:
+      metrics:
+        - FBSP.TriageSCG.dramc__read_throughput
+        - FBSP.TriageSCG.dramc__throughput
+        - FBSP.TriageSCG.dramc__write_throughput
+        - LTS.TriageSCG.lts__average_t_sector_hit_rate_realtime
+        - LTS.TriageSCG.lts__average_t_sector_hit_rate_srcunit_tex_realtime
+        - LTS.TriageSCG.lts__t_sector_throughput_aperture_device
+        - LTS.TriageSCG.lts__t_sector_throughput_aperture_other
+        - LTS.TriageSCG.lts__t_sector_throughput_srcnode_fbp
+        - LTS.TriageSCG.lts__t_sector_throughput_srcnode_hub
+        - LTS.TriageSCG.lts__t_sector_throughput_srcunit_gcc
+        - LTS.TriageSCG.lts__t_sector_throughput_srcunit_pe
+        - LTS.TriageSCG.lts__t_sector_throughput_srcunit_tex
+        - LTS.TriageSCG.lts__throughput
+        - ROP.TriageSCG.lts__t_sector_throughput_srcunit_crop
+        - ROP.TriageSCG.lts__t_sector_throughput_srcunit_zrop
+        - TriageSCG.lts__t_sector_throughput_srcunit_raster
+        - dramc__cycles_elapsed
+        - lts__cycles_elapsed
+triageGroup:
+  name: Top_Level_Triage
+  groups:
+    - GfxTriage_GPC
+    - GfxTriage_HUB
+    - GfxTriage_SysPipe
+    - GfxTriage_TPC
+    - GfxTriage_VidMem

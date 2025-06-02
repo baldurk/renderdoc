@@ -1,0 +1,19 @@
+*** DOCUMENTATION ***
+
+The contents of this redist directory is for the express purpose of
+allowing licensees of the Nsight Perf SDK to redistribute a portion of
+the SDK as they fit. The contents of this directory may change over
+time for future releases. At this time, it contains the utility
+library and header files to allow compilation.
+
+One example of usage would be that developers (heretofore referred to
+as "you") using the Nsight Perf SDK may release their own tool built
+on top of this SDK. The files here have their own licensing which you
+would redistribute with your tool using whatever mechansim you provide
+to release said tool. See section 1.c. for further details should you
+wish to redistribute the entire SDK (including binaries).
+
+Otherwise, your users would in turn go to
+https://developer.nvidia.com/nsight-perf-sdk/get-started to obtain the
+latest SDK binaries should they want to in turn utilize the binary as
+part of your tool if they are not already a licensee.

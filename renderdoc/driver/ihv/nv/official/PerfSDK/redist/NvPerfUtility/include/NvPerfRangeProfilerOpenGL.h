@@ -1,5 +1,5 @@
 /*
-* Copyright 2014-2022 NVIDIA Corporation.  All rights reserved.
+* Copyright 2014-2025 NVIDIA Corporation.  All rights reserved.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -60,6 +60,7 @@ namespace nv { namespace perf { namespace profiler {
                 nvpaStatus = NVPW_OpenGL_Profiler_CounterDataImage_CalculateSize(&calculateSizeParams);
                 if (nvpaStatus)
                 {
+                    NV_PERF_LOG_ERR(20, "NVPW_OpenGL_Profiler_CounterDataImage_CalculateSize failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                     return false;
                 }
 
@@ -73,6 +74,7 @@ namespace nv { namespace perf { namespace profiler {
                 nvpaStatus = NVPW_OpenGL_Profiler_CounterDataImage_Initialize(&initializeParams);
                 if (nvpaStatus)
                 {
+                    NV_PERF_LOG_ERR(20, "NVPW_OpenGL_Profiler_CounterDataImage_Initialize failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                     return false;
                 }
 
@@ -82,6 +84,7 @@ namespace nv { namespace perf { namespace profiler {
                 nvpaStatus = NVPW_OpenGL_Profiler_CounterDataImage_CalculateScratchBufferSize(&scratchBufferSizeParams);
                 if (nvpaStatus)
                 {
+                    NV_PERF_LOG_ERR(20, "NVPW_OpenGL_Profiler_CounterDataImage_CalculateScratchBufferSize failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                     return false;
                 }
                 counterDataScratch.resize(scratchBufferSizeParams.counterDataScratchBufferSize);
@@ -95,6 +98,7 @@ namespace nv { namespace perf { namespace profiler {
                 nvpaStatus = NVPW_OpenGL_Profiler_CounterDataImage_InitializeScratchBuffer(&initScratchBufferParams);
                 if (nvpaStatus)
                 {
+                    NV_PERF_LOG_ERR(20, "NVPW_OpenGL_Profiler_CounterDataImage_InitializeScratchBuffer failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                     return false;
                 }
 
@@ -113,6 +117,7 @@ namespace nv { namespace perf { namespace profiler {
                 NVPA_Status nvpaStatus = NVPW_OpenGL_Profiler_GraphicsContext_SetConfig(&setConfigParams);
                 if (nvpaStatus)
                 {
+                    NV_PERF_LOG_ERR(20, "NVPW_OpenGL_Profiler_GraphicsContext_SetConfig failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                     return false;
                 }
 
@@ -125,6 +130,7 @@ namespace nv { namespace perf { namespace profiler {
                 NVPA_Status nvpaStatus = NVPW_OpenGL_Profiler_GraphicsContext_BeginPass(&beginPassParams);
                 if (nvpaStatus)
                 {
+                    NV_PERF_LOG_ERR(20, "NVPW_OpenGL_Profiler_GraphicsContext_BeginPass failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                     return false;
                 }
                 return true;
@@ -136,6 +142,7 @@ namespace nv { namespace perf { namespace profiler {
                 NVPA_Status nvpaStatus = NVPW_OpenGL_Profiler_GraphicsContext_EndPass(&endPassParams);
                 if (nvpaStatus)
                 {
+                    NV_PERF_LOG_ERR(20, "NVPW_OpenGL_Profiler_GraphicsContext_EndPass failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                     return false;
                 }
                 return true;
@@ -148,7 +155,7 @@ namespace nv { namespace perf { namespace profiler {
                 NVPA_Status nvpaStatus = NVPW_OpenGL_Profiler_GraphicsContext_PushRange(&pushRangeParams);
                 if (nvpaStatus)
                 {
-                    NV_PERF_LOG_ERR(10, "NVPW_OpenGL_Profiler_GraphicsContext_PushRange failed, nvpaStatus = %d\n", nvpaStatus);
+                    NV_PERF_LOG_ERR(10, "NVPW_OpenGL_Profiler_GraphicsContext_PushRange failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                     return false;
                 }
                 return true;
@@ -160,7 +167,7 @@ namespace nv { namespace perf { namespace profiler {
                 NVPA_Status nvpaStatus = NVPW_OpenGL_Profiler_GraphicsContext_PopRange(&popRangeParams);
                 if (nvpaStatus)
                 {
-                    NV_PERF_LOG_ERR(10, "NVPW_OpenGL_Profiler_GraphicsContext_PopRange failed, nvpaStatus = %d\n", nvpaStatus);
+                    NV_PERF_LOG_ERR(10, "NVPW_OpenGL_Profiler_GraphicsContext_PopRange failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                     return false;
                 }
                 return true;
@@ -176,6 +183,7 @@ namespace nv { namespace perf { namespace profiler {
                 NVPA_Status nvpaStatus = NVPW_OpenGL_Profiler_GraphicsContext_DecodeCounters(&decodeParams);
                 if (nvpaStatus)
                 {
+                    NV_PERF_LOG_ERR(20, "NVPW_OpenGL_Profiler_GraphicsContext_DecodeCounters failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                     return false;
                 }
 
@@ -190,6 +198,7 @@ namespace nv { namespace perf { namespace profiler {
                 NVPA_Status nvpaStatus = NVPW_OpenGL_GetCurrentGraphicsContext(&getCurrentGraphicsContextParams);
                 if (nvpaStatus)
                 {
+                    NV_PERF_LOG_ERR(20, "NVPW_OpenGL_GetCurrentGraphicsContext failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                     return false;
                 }
                 pGraphicsContext = getCurrentGraphicsContextParams.pGraphicsContext;
@@ -203,7 +212,7 @@ namespace nv { namespace perf { namespace profiler {
                 NVPA_Status nvpaStatus = NVPW_OpenGL_Profiler_GraphicsContext_EndSession(&endSessionParams);
                 if (nvpaStatus)
                 {
-                    NV_PERF_LOG_ERR(10, "NVPW_OpenGL_Profiler_GraphicsContext_EndSession failed, nvpaStatus = %d\n", nvpaStatus);
+                    NV_PERF_LOG_ERR(10, "NVPW_OpenGL_Profiler_GraphicsContext_EndSession failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                 }
                 sessionOptions = {};
                 pGraphicsContext = nullptr;
@@ -272,6 +281,7 @@ namespace nv { namespace perf { namespace profiler {
             nvpaStatus = NVPW_OpenGL_Profiler_CalcTraceBufferSize(&calcTraceBufferSizeParam);
             if (nvpaStatus)
             {
+                NV_PERF_LOG_ERR(20, "NVPW_OpenGL_Profiler_CalcTraceBufferSize failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                 return false;
             }
 

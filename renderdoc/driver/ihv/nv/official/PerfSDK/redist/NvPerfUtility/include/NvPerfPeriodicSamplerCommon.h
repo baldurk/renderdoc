@@ -1,5 +1,5 @@
 /*
-* Copyright 2014-2022 NVIDIA Corporation.  All rights reserved.
+* Copyright 2014-2025 NVIDIA Corporation.  All rights reserved.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ namespace nv { namespace perf { namespace sampler {
         NVPA_Status nvpaStatus = NVPW_Device_MetricsEvaluator_CalculateScratchBufferSize(&calculateScratchBufferSizeParams);
         if (nvpaStatus)
         {
-            NV_PERF_LOG_ERR(20, "NVPW_Device_MetricsEvaluator_CalculateScratchBufferSize failed\n");
+            NV_PERF_LOG_ERR(20, "NVPW_Device_MetricsEvaluator_CalculateScratchBufferSize failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
             return 0;
         }
         return calculateScratchBufferSizeParams.scratchBufferSize;
@@ -44,7 +44,7 @@ namespace nv { namespace perf { namespace sampler {
         NVPA_Status nvpaStatus = NVPW_Device_MetricsEvaluator_Initialize(&initializeParams);
         if (nvpaStatus)
         {
-            NV_PERF_LOG_ERR(20, "NVPW_Devicee_MetricsEvaluator_Initialize failed\n");
+            NV_PERF_LOG_ERR(20, "NVPW_Device_MetricsEvaluator_Initialize failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
             return nullptr;
         }
         return initializeParams.pMetricsEvaluator;
@@ -63,20 +63,20 @@ namespace nv { namespace perf { namespace sampler {
         return pMetricsEvaluator;
     }
 
-    inline NVPA_RawMetricsConfig* DeviceCreateRawMetricsConfig(const char* pChipName)
+    inline NVPW_RawCounterConfig* DeviceCreateRawCounterConfig(const char* pChipName)
     {
-        NVPW_Device_RawMetricsConfig_Create_Params configParams = { NVPW_Device_RawMetricsConfig_Create_Params_STRUCT_SIZE };
+        NVPW_Device_RawCounterConfig_Create_Params configParams = { NVPW_Device_RawCounterConfig_Create_Params_STRUCT_SIZE };
         configParams.activityKind = NVPA_ACTIVITY_KIND_REALTIME_SAMPLED;
         configParams.pChipName = pChipName;
 
-        NVPA_Status nvpaStatus = NVPW_Device_RawMetricsConfig_Create(&configParams);
+        NVPA_Status nvpaStatus = NVPW_Device_RawCounterConfig_Create(&configParams);
         if (nvpaStatus)
         {
-            NV_PERF_LOG_ERR(20, "NVPW_Device_RawMetricsConfig_Create failed\n");
+            NV_PERF_LOG_ERR(20, "NVPW_Device_RawCounterConfig_Create failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
             return nullptr;
         }
 
-        return configParams.pRawMetricsConfig;
+        return configParams.pRawCounterConfig;
     }
 
 }}}

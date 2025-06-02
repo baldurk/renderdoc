@@ -1,5 +1,5 @@
 /*
-* Copyright 2014-2022 NVIDIA Corporation.  All rights reserved.
+* Copyright 2014-2025 NVIDIA Corporation.  All rights reserved.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -69,6 +69,7 @@ namespace nv { namespace perf { namespace profiler {
                 nvpaStatus = NVPW_VK_Profiler_CounterDataImage_CalculateSize(&calculateSizeParams);
                 if (nvpaStatus)
                 {
+                    NV_PERF_LOG_ERR(20, "NVPW_VK_Profiler_CounterDataImage_CalculateSize failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                     return false;
                 }
 
@@ -82,6 +83,7 @@ namespace nv { namespace perf { namespace profiler {
                 nvpaStatus = NVPW_VK_Profiler_CounterDataImage_Initialize(&initializeParams);
                 if (nvpaStatus)
                 {
+                    NV_PERF_LOG_ERR(20, "NVPW_VK_Profiler_CounterDataImage_Initialize failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                     return false;
                 }
 
@@ -91,6 +93,7 @@ namespace nv { namespace perf { namespace profiler {
                 nvpaStatus = NVPW_VK_Profiler_CounterDataImage_CalculateScratchBufferSize(&scratchBufferSizeParams);
                 if (nvpaStatus)
                 {
+                    NV_PERF_LOG_ERR(20, "NVPW_VK_Profiler_CounterDataImage_CalculateScratchBufferSize failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                     return false;
                 }
 
@@ -105,6 +108,7 @@ namespace nv { namespace perf { namespace profiler {
                 nvpaStatus = NVPW_VK_Profiler_CounterDataImage_InitializeScratchBuffer(&initScratchBufferParams);
                 if (nvpaStatus)
                 {
+                    NV_PERF_LOG_ERR(20, "NVPW_VK_Profiler_CounterDataImage_InitializeScratchBuffer failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                     return false;
                 }
 
@@ -124,6 +128,7 @@ namespace nv { namespace perf { namespace profiler {
                 NVPA_Status nvpaStatus = NVPW_VK_Profiler_Queue_SetConfig(&setConfigParams);
                 if (nvpaStatus)
                 {
+                    NV_PERF_LOG_ERR(20, "NVPW_VK_Profiler_Queue_SetConfig failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                     return false;
                 }
 
@@ -137,6 +142,7 @@ namespace nv { namespace perf { namespace profiler {
                 NVPA_Status nvpaStatus = NVPW_VK_Profiler_Queue_BeginPass(&beginPassParams);
                 if (nvpaStatus)
                 {
+                    NV_PERF_LOG_ERR(20, "NVPW_VK_Profiler_Queue_BeginPass failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                     return false;
                 }
                 return true;
@@ -149,6 +155,7 @@ namespace nv { namespace perf { namespace profiler {
                 NVPA_Status nvpaStatus = NVPW_VK_Profiler_Queue_EndPass(&endPassParams);
                 if (nvpaStatus)
                 {
+                    NV_PERF_LOG_ERR(20, "NVPW_VK_Profiler_Queue_EndPass failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                     return false;
                 }
                 return true;
@@ -233,7 +240,7 @@ namespace nv { namespace perf { namespace profiler {
                     NVPA_Status nvpaStatus = NVPW_VK_Profiler_CommandBuffer_PushRange(&pushRangeParams);
                     if (nvpaStatus)
                     {
-                        NV_PERF_LOG_ERR(10, "NVPW_VK_Profiler_CommandBuffer_PushRange failed, nvpaStatus = %d\n", nvpaStatus);
+                        NV_PERF_LOG_ERR(10, "NVPW_VK_Profiler_CommandBuffer_PushRange failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                         return false;
                     }
                     return true;
@@ -249,7 +256,7 @@ namespace nv { namespace perf { namespace profiler {
                     NVPA_Status nvpaStatus = NVPW_VK_Profiler_CommandBuffer_PopRange(&popRangeParams);
                     if (nvpaStatus)
                     {
-                        NV_PERF_LOG_ERR(10, "NVPW_VK_Profiler_CommandBuffer_PopRange failed, nvpaStatus = %d\n", nvpaStatus);
+                        NV_PERF_LOG_ERR(10, "NVPW_VK_Profiler_CommandBuffer_PopRange failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                         return false;
                     }
                     return true;
@@ -266,6 +273,7 @@ namespace nv { namespace perf { namespace profiler {
                 NVPA_Status nvpaStatus = NVPW_VK_Profiler_Queue_DecodeCounters(&decodeParams);
                 if (nvpaStatus)
                 {
+                    NV_PERF_LOG_ERR(20, "NVPW_VK_Profiler_Queue_DecodeCounters failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                     return false;
                 }
 
@@ -275,7 +283,7 @@ namespace nv { namespace perf { namespace profiler {
             }
 
             bool Initialize(VkDevice device_, VkQueue queue_, uint32_t queueFamilyIndex, const SessionOptions& sessionOptions_
-#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+#if defined(VK_NO_PROTOTYPES)
                            , PFN_vkGetDeviceProcAddr pfnVkGetDeviceProcAddr_
 #endif
                            )
@@ -284,7 +292,7 @@ namespace nv { namespace perf { namespace profiler {
                 queue = queue_;
                 sessionOptions = sessionOptions_;
 
-#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+#if defined(VK_NO_PROTOTYPES)
                 m_vkFunctions.Initialize(VK_NULL_HANDLE, device, nullptr, pfnVkGetDeviceProcAddr_);
 #else
                 m_vkFunctions.Initialize();
@@ -333,7 +341,7 @@ namespace nv { namespace perf { namespace profiler {
                 NVPA_Status nvpaStatus = NVPW_VK_Profiler_Queue_EndSession(&endSessionParams);
                 if (nvpaStatus)
                 {
-                    NV_PERF_LOG_ERR(10, "NVPW_VK_Profiler_Queue_EndSession failed, nvpaStatus = %d\n", nvpaStatus);
+                    NV_PERF_LOG_ERR(10, "NVPW_VK_Profiler_Queue_EndSession failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                 }
 
                 sessionOptions = {};
@@ -375,7 +383,7 @@ namespace nv { namespace perf { namespace profiler {
             NVPA_Status nvpaStatus = NVPW_VK_Queue_ServicePendingGpuOperations(&serviceGpuOpsParams);
             if (nvpaStatus)
             {
-                // TODO: log an error
+                NV_PERF_LOG_ERR(20, "NVPW_VK_Queue_ServicePendingGpuOperations failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
             }
 
             pRangeProfiler->m_spgoThreadExited = true;
@@ -428,7 +436,7 @@ namespace nv { namespace perf { namespace profiler {
             VkQueue queue,
             uint32_t queueFamilyIndex,
             const SessionOptions& sessionOptions
-#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+#if defined(VK_NO_PROTOTYPES)
             , PFN_vkGetInstanceProcAddr pfnVkGetInstanceProcAddr
             , PFN_vkGetDeviceProcAddr pfnVkGetDeviceProcAddr
 #endif
@@ -440,13 +448,13 @@ namespace nv { namespace perf { namespace profiler {
                 return false;
             }
             const bool isNvidiaDevice = VulkanIsNvidiaDevice(physicalDevice
-#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+#if defined(VK_NO_PROTOTYPES)
                                                             , instance
                                                             , pfnVkGetInstanceProcAddr
 #endif
                                                             );
             const bool isGpuSupported = isNvidiaDevice && VulkanIsGpuSupported(instance, physicalDevice, device
-#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+#if defined(VK_NO_PROTOTYPES)
                                                                               , pfnVkGetInstanceProcAddr
                                                                               , pfnVkGetDeviceProcAddr
 #endif
@@ -465,6 +473,7 @@ namespace nv { namespace perf { namespace profiler {
             nvpaStatus = NVPW_VK_Profiler_CalcTraceBufferSize(&calcTraceBufferSizeParam);
             if (nvpaStatus)
             {
+                NV_PERF_LOG_ERR(20, "NVPW_VK_Profiler_CalcTraceBufferSize failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                 return false;
             }
 
@@ -473,7 +482,7 @@ namespace nv { namespace perf { namespace profiler {
             beginSessionParams.physicalDevice = physicalDevice;
             beginSessionParams.device = device;
             beginSessionParams.queue = queue;
-#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+#if defined(VK_NO_PROTOTYPES)
             beginSessionParams.pfnGetInstanceProcAddr = (void*)pfnVkGetInstanceProcAddr;
             beginSessionParams.pfnGetDeviceProcAddr = (void*)pfnVkGetDeviceProcAddr;
 #else
@@ -513,7 +522,7 @@ namespace nv { namespace perf { namespace profiler {
             m_spgoThreadExited = false;
             m_spgoThread = std::thread(SpgoThreadProc, this, queue);
             if(!m_profilerApi.Initialize(device, queue, queueFamilyIndex, sessionOptions
-#if defined(NV_PERF_UTILITY_HIDE_VULKAN_SYMBOLS)
+#if defined(VK_NO_PROTOTYPES)
                                         , pfnVkGetDeviceProcAddr
 #endif
                                         ))

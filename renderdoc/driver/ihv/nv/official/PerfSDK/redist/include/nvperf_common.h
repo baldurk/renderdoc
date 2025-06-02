@@ -2,7 +2,7 @@
 #define NVPERF_COMMON_H
 
 /*
- * Copyright 2014-2022  NVIDIA Corporation.  All rights reserved.
+ * Copyright 2014-2025 NVIDIA Corporation.  All rights reserved.
  *
  * NOTICE TO USER:
  *
@@ -72,11 +72,15 @@ extern "C" {
         NVPA_STATUS_ERROR = 1,
         /// Internal error.  Please file a bug!
         NVPA_STATUS_INTERNAL_ERROR = 2,
-        /// NVPW_InitializeTarget() has not been called yet.
+        /// NVPW_InitializeTarget() or NVPW_InitializeHost() has not been called yet.
         NVPA_STATUS_NOT_INITIALIZED = 3,
-        /// The NvPerf DLL/DSO could not be loaded during NVPW_Initialize*.
+        /// The NvPerf DLL/DSO could not be loaded during NVPW_Initialize*(). Please ensure they are placed in the
+        /// appropriate location that can be founder by a dynamic linker. And on Linux systems, confirm that the
+        /// LD_LIBRARY_PATH environment variable is set correctly. Alternatively, you may utilize
+        /// NVPW_SetLibraryLoadPaths() to define additional library search paths.
         NVPA_STATUS_NOT_LOADED = 4,
-        /// The function was not found in this version of the NvPerf DLL/DSO.
+        /// The function was not found in this version of the NvPerf DLL/DSO. Or if you are directly calling
+        /// NVPA_GetProcAddress(), please ensure the function name is spelled correctly.
         NVPA_STATUS_FUNCTION_NOT_FOUND = 5,
         /// The request was intentionally not supported.
         NVPA_STATUS_NOT_SUPPORTED = 6,
@@ -94,7 +98,7 @@ extern "C" {
         NVPA_STATUS_INVALID_THREAD_STATE = 12,
         /// UNUSED
         NVPA_STATUS_FAILED_CONTEXT_ALLOC = 13,
-        /// The specified GPU is not supported.
+        /// The specified GPU is not supported. It is recommended to call IsGpuSupported() for more information
         NVPA_STATUS_UNSUPPORTED_GPU = 14,
         /// The installed NVIDIA driver is too old.
         NVPA_STATUS_INSUFFICIENT_DRIVER_VERSION = 15,
@@ -121,6 +125,122 @@ extern "C" {
         NVPA_STATUS_PROFILING_NOT_ALLOWED = 25,
         NVPA_STATUS__COUNT
     } NVPA_Status;
+
+
+    inline void NVPW_NVPAStatusToString(NVPA_Status status, const char** ppStatusStr, const char** ppCommentStr)
+    {
+        switch (status)
+        {
+            case NVPA_STATUS_SUCCESS:
+                *ppStatusStr = "NVPA_STATUS_SUCCESS";
+                *ppCommentStr = "Success";
+                return;
+            case NVPA_STATUS_ERROR:
+                *ppStatusStr = "NVPA_STATUS_ERROR";
+                *ppCommentStr = "Generic error.";
+                return;
+            case NVPA_STATUS_INTERNAL_ERROR:
+                *ppStatusStr = "NVPA_STATUS_INTERNAL_ERROR";
+                *ppCommentStr = "Internal error.  Please file a bug!";
+                return;
+            case NVPA_STATUS_NOT_INITIALIZED:
+                *ppStatusStr = "NVPA_STATUS_NOT_INITIALIZED";
+                *ppCommentStr = "NVPW_InitializeTarget() or NVPW_InitializeHost() has not been called yet.";
+                return;
+            case NVPA_STATUS_NOT_LOADED:
+                *ppStatusStr = "NVPA_STATUS_NOT_LOADED";
+                *ppCommentStr = "The NvPerf DLL/DSO could not be loaded during NVPW_Initialize*(). Please ensure they are placed in the appropriate location that can be founder by a dynamic linker. And on Linux systems, confirm that the LD_LIBRARY_PATH environment variable is set correctly. Alternatively, you may utilize NVPW_SetLibraryLoadPaths() to define additional library search paths.";
+                return;
+            case NVPA_STATUS_FUNCTION_NOT_FOUND:
+                *ppStatusStr = "NVPA_STATUS_FUNCTION_NOT_FOUND";
+                *ppCommentStr = "The function was not found in this version of the NvPerf DLL/DSO. Or if you are directly calling NVPA_GetProcAddress(), please ensure the function name is spelled correctly.";
+                return;
+            case NVPA_STATUS_NOT_SUPPORTED:
+                *ppStatusStr = "NVPA_STATUS_NOT_SUPPORTED";
+                *ppCommentStr = "The request was intentionally not supported.";
+                return;
+            case NVPA_STATUS_NOT_IMPLEMENTED:
+                *ppStatusStr = "NVPA_STATUS_NOT_IMPLEMENTED";
+                *ppCommentStr = "The request was not implemented by this version.";
+                return;
+            case NVPA_STATUS_INVALID_ARGUMENT:
+                *ppStatusStr = "NVPA_STATUS_INVALID_ARGUMENT";
+                *ppCommentStr = "Invalid argument.";
+                return;
+            case NVPA_STATUS_INVALID_METRIC_ID:
+                *ppStatusStr = "NVPA_STATUS_INVALID_METRIC_ID";
+                *ppCommentStr = "UNUSED";
+                return;
+            case NVPA_STATUS_DRIVER_NOT_LOADED:
+                *ppStatusStr = "NVPA_STATUS_DRIVER_NOT_LOADED";
+                *ppCommentStr = "No driver has been loaded via NVPW_*_LoadDriver().";
+                return;
+            case NVPA_STATUS_OUT_OF_MEMORY:
+                *ppStatusStr = "NVPA_STATUS_OUT_OF_MEMORY";
+                *ppCommentStr = "Failed memory allocation.";
+                return;
+            case NVPA_STATUS_INVALID_THREAD_STATE:
+                *ppStatusStr = "NVPA_STATUS_INVALID_THREAD_STATE";
+                *ppCommentStr = "UNUSED";
+                return;
+            case NVPA_STATUS_FAILED_CONTEXT_ALLOC:
+                *ppStatusStr = "NVPA_STATUS_FAILED_CONTEXT_ALLOC";
+                *ppCommentStr = "UNUSED";
+                return;
+            case NVPA_STATUS_UNSUPPORTED_GPU:
+                *ppStatusStr = "NVPA_STATUS_UNSUPPORTED_GPU";
+                *ppCommentStr = "The specified GPU is not supported. It is recommended to call IsGpuSupported() for more information";
+                return;
+            case NVPA_STATUS_INSUFFICIENT_DRIVER_VERSION:
+                *ppStatusStr = "NVPA_STATUS_INSUFFICIENT_DRIVER_VERSION";
+                *ppCommentStr = "The installed NVIDIA driver is too old.";
+                return;
+            case NVPA_STATUS_OBJECT_NOT_REGISTERED:
+                *ppStatusStr = "NVPA_STATUS_OBJECT_NOT_REGISTERED";
+                *ppCommentStr = "UNUSED";
+                return;
+            case NVPA_STATUS_INSUFFICIENT_PRIVILEGE:
+                *ppStatusStr = "NVPA_STATUS_INSUFFICIENT_PRIVILEGE";
+                *ppCommentStr = "Profiling permission not granted; see https://developer.nvidia.com/nvidia-development-tools-solutions-ERR_NVGPUCTRPERM-permission-issue-performance-counters";
+                return;
+            case NVPA_STATUS_INVALID_CONTEXT_STATE:
+                *ppStatusStr = "NVPA_STATUS_INVALID_CONTEXT_STATE";
+                *ppCommentStr = "UNUSED";
+                return;
+            case NVPA_STATUS_INVALID_OBJECT_STATE:
+                *ppStatusStr = "NVPA_STATUS_INVALID_OBJECT_STATE";
+                *ppCommentStr = "UNUSED";
+                return;
+            case NVPA_STATUS_RESOURCE_UNAVAILABLE:
+                *ppStatusStr = "NVPA_STATUS_RESOURCE_UNAVAILABLE";
+                *ppCommentStr = "The request could not be fulfilled because a system resource is already in use.";
+                return;
+            case NVPA_STATUS_DRIVER_LOADED_TOO_LATE:
+                *ppStatusStr = "NVPA_STATUS_DRIVER_LOADED_TOO_LATE";
+                *ppCommentStr = "UNUSED";
+                return;
+            case NVPA_STATUS_INSUFFICIENT_SPACE:
+                *ppStatusStr = "NVPA_STATUS_INSUFFICIENT_SPACE";
+                *ppCommentStr = "The provided buffer is not large enough.";
+                return;
+            case NVPA_STATUS_OBJECT_MISMATCH:
+                *ppStatusStr = "NVPA_STATUS_OBJECT_MISMATCH";
+                *ppCommentStr = "UNUSED";
+                return;
+            case NVPA_STATUS_VIRTUALIZED_DEVICE_NOT_SUPPORTED:
+                *ppStatusStr = "NVPA_STATUS_VIRTUALIZED_DEVICE_NOT_SUPPORTED";
+                *ppCommentStr = "Virtualized GPU (vGPU) is not supported.";
+                return;
+            case NVPA_STATUS_PROFILING_NOT_ALLOWED:
+                *ppStatusStr = "NVPA_STATUS_PROFILING_NOT_ALLOWED";
+                *ppCommentStr = "Profiling permission was not granted or the device was disabled.";
+                return;
+            default:
+                *ppStatusStr = "Unrecognized status";
+                *ppCommentStr = "This status is unrecognized. Is it coming from a newer version of NvPerf library?";
+                return;
+        }
+    }
 
 
 #endif // NVPERF_NVPA_STATUS_DEFINED

@@ -1,5 +1,5 @@
 /*
-* Copyright 2014-2022 NVIDIA Corporation.  All rights reserved.
+* Copyright 2014-2025 NVIDIA Corporation.  All rights reserved.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include "nvperf_host.h"
 #include "nvperf_target.h"
 #include "NvPerfInit.h"
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -56,6 +57,7 @@ namespace nv { namespace perf {
             Reset();
         }
 
+        // The session type of "this" counter data is determined by the session type of the counter data and the prefix that are passed in.
         bool Initialize(
             const uint8_t* pCounterDataPrefix,
             size_t counterDataPrefixSize,
@@ -75,7 +77,7 @@ namespace nv { namespace perf {
                 NVPA_Status nvpaStatus = NVPW_CounterData_CalculateCounterDataImageCopySize(&calculateCounterDataImageCopySizeParams);
                 if (nvpaStatus != NVPA_STATUS_SUCCESS)
                 {
-                    NV_PERF_LOG_ERR(50, "NVPW_CounterData_CalculateCounterDataImageCopySize failed, nvpaStatus = %d\n", nvpaStatus);
+                    NV_PERF_LOG_ERR(50, "NVPW_CounterData_CalculateCounterDataImageCopySize failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                     return false;
                 }
                 m_counterData.resize(calculateCounterDataImageCopySizeParams.copyDataImageCounterSize);
@@ -92,7 +94,7 @@ namespace nv { namespace perf {
                 NVPA_Status nvpaStatus = NVPW_CounterData_InitializeCounterDataImageCopy(&initializeCounterDataImageCopyParams);
                 if (nvpaStatus != NVPA_STATUS_SUCCESS)
                 {
-                    NV_PERF_LOG_ERR(50, "NVPW_CounterData_InitializeCounterDataImageCopy failed, nvpaStatus = %d\n", nvpaStatus);
+                    NV_PERF_LOG_ERR(50, "NVPW_CounterData_InitializeCounterDataImageCopy failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                     return false;
                 }
             }
@@ -102,12 +104,23 @@ namespace nv { namespace perf {
                 NVPA_Status nvpaStatus = NVPW_CounterDataCombiner_Create(&counterDataCombinerCreateParams);
                 if (nvpaStatus != NVPA_STATUS_SUCCESS)
                 {
-                    NV_PERF_LOG_ERR(50, "NVPW_CounterDataCombiner_Create failed, nvpaStatus = %d\n", nvpaStatus);
+                    NV_PERF_LOG_ERR(50, "NVPW_CounterDataCombiner_Create failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                     return false;
                 }
                 m_pCounterDataCombiner = counterDataCombinerCreateParams.pCounterDataCombiner;
             }
             return true;            
+        }
+
+        // This particular version of the Initialize() function is designed for use with periodic sampler sessions, which do not require the `maxNumRangeTreeNodes`
+        // and `maxRangeNameLength` parameters.
+        bool Initialize(
+            const uint8_t* pCounterDataPrefix,
+            size_t counterDataPrefixSize,
+            uint32_t maxNumRanges,
+            const uint8_t* pCounterDataSrc)
+        {
+            return Initialize(pCounterDataPrefix, counterDataPrefixSize, maxNumRanges, 0, 0, pCounterDataSrc);   
         }
 
         void Reset()
@@ -119,7 +132,7 @@ namespace nv { namespace perf {
                 NVPA_Status nvpaStatus = NVPW_CounterDataCombiner_Destroy(&counterDataCombinerDestroyParams);
                 if (nvpaStatus != NVPA_STATUS_SUCCESS)
                 {
-                    NV_PERF_LOG_ERR(50, "NVPW_CounterDataCombiner_Destroy failed, nvpaStatus = %d\n", nvpaStatus);
+                    NV_PERF_LOG_ERR(50, "NVPW_CounterDataCombiner_Destroy failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                 }
                 m_pCounterDataCombiner = nullptr;
             }
@@ -145,11 +158,17 @@ namespace nv { namespace perf {
             NVPA_Status nvpaStatus = NVPW_CounterDataCombiner_CreateRange(&createRangeParams);
             if (nvpaStatus != NVPA_STATUS_SUCCESS)
             {
-                NV_PERF_LOG_ERR(50, "NVPW_CounterDataCombiner_CreateRange failed, nvpaStatus = %d\n", nvpaStatus);
+                NV_PERF_LOG_ERR(50, "NVPW_CounterDataCombiner_CreateRange failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                 return false;
             }
             rangeIndexDst = createRangeParams.rangeIndexDst;
             return true;
+        }
+
+        // If the session type is periodic sampler, the description of the range is not required as ranges are anonymous there.
+        bool CreateRange(size_t& rangeIndexDst)
+        {
+            return CreateRange(nullptr, 0, rangeIndexDst);
         }
 
         bool CopyIntoRange(size_t rangeIndexDst, const uint8_t* pCounterDataSrc, size_t rangeIndexSrc)
@@ -162,12 +181,13 @@ namespace nv { namespace perf {
             NVPA_Status nvpaStatus = NVPW_CounterDataCombiner_CopyIntoRange(&copyIntoRangeParams);
             if (nvpaStatus != NVPA_STATUS_SUCCESS)
             {
-                NV_PERF_LOG_ERR(50, "NVPW_CounterDataCombiner_CopyIntoRange failed, nvpaStatus = %d\n", nvpaStatus);
+                NV_PERF_LOG_ERR(50, "NVPW_CounterDataCombiner_CopyIntoRange failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                 return false;
             }
             return true;
         }
 
+        // This function is for range profiler session type only.
         bool AccumulateIntoRange(
             size_t rangeIndexDst,
             uint32_t dstMultiplier,
@@ -185,7 +205,7 @@ namespace nv { namespace perf {
             NVPA_Status nvpaStatus = NVPW_CounterDataCombiner_AccumulateIntoRange(&accumulateIntoRangeParams);
             if (nvpaStatus != NVPA_STATUS_SUCCESS)
             {
-                NV_PERF_LOG_ERR(50, "NVPW_CounterDataCombiner_AccumulateIntoRange failed, nvpaStatus = %d\n", nvpaStatus);
+                NV_PERF_LOG_ERR(50, "NVPW_CounterDataCombiner_AccumulateIntoRange failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                 return false;
             }
             return true;
@@ -204,7 +224,7 @@ namespace nv { namespace perf {
             NVPA_Status nvpaStatus = NVPW_CounterDataCombiner_SumIntoRange(&sumIntoRangeParams);
             if (nvpaStatus != NVPA_STATUS_SUCCESS)
             {
-                NV_PERF_LOG_ERR(50, "NVPW_CounterDataCombiner_SumIntoRange failed, nvpaStatus = %d\n", nvpaStatus);
+                NV_PERF_LOG_ERR(50, "NVPW_CounterDataCombiner_SumIntoRange failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                 return false;
             }
             return true;
@@ -227,7 +247,77 @@ namespace nv { namespace perf {
             NVPA_Status nvpaStatus = NVPW_CounterDataCombiner_WeightedSumIntoRange(&weightedSumIntoRangeParams);
             if (nvpaStatus != NVPA_STATUS_SUCCESS)
             {
-                NV_PERF_LOG_ERR(50, "NVPW_CounterDataCombiner_WeightedSumIntoRange failed, nvpaStatus = %d\n", nvpaStatus);
+                NV_PERF_LOG_ERR(50, "NVPW_CounterDataCombiner_WeightedSumIntoRange failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
+                return false;
+            }
+            return true;
+        }
+
+        static double GetOverlapFactor(
+            uint64_t sampleBeginTime,
+            uint64_t sampleEndTime,
+            uint64_t targetBeginTime,
+            uint64_t targetEndTime)
+        {
+            assert(sampleBeginTime < sampleEndTime);
+            assert(targetBeginTime < targetEndTime);
+            if (sampleBeginTime >= targetEndTime || sampleEndTime <= targetBeginTime)
+            {
+                return 0.0;
+            }
+            if (sampleBeginTime >= targetBeginTime && sampleEndTime <= targetEndTime)
+            {
+                return 1.0;
+            }
+            const uint64_t overlapDuration = [&]() {
+                if (sampleBeginTime >= targetBeginTime)
+                {
+                    return targetEndTime - sampleBeginTime;
+                }
+                else if (sampleEndTime <= targetEndTime)
+                {
+                    return sampleEndTime - targetBeginTime;
+                }
+                else
+                {
+                    return targetEndTime - targetBeginTime;
+                }
+            }();
+            return (double)overlapDuration / double(sampleEndTime - sampleBeginTime);
+        }
+
+        // This is a hybrid function that smartly determines which code path to invoke based on the timestamps.
+        // If a sample fully resides within the interval defined by the target begin and end timestamps, the function will use the fast path
+        // by directly invoking SumIntoRange(). This avoids the overhead of interpolation and provides optimal performance.
+        // On the other hand, if a sample only partially overlaps with the interval, the function will first use interpolation to estimate
+        // the portion of the sample that falls within the interval and then invoke WeightedSumIntoRange().
+        bool SumIntoRange(
+            size_t rangeIndexDst,
+            const uint8_t* pCounterDataSrc,
+            size_t rangeIndexSrc,
+            uint64_t sampleBeginTime,
+            uint64_t sampleEndTime,
+            uint64_t targetBeginTime,
+            uint64_t targetEndTime)
+        {
+            bool success = true;
+            if (sampleBeginTime >= targetBeginTime && sampleEndTime <= targetEndTime)
+            {
+                success = SumIntoRange(rangeIndexDst, pCounterDataSrc, rangeIndexSrc);
+            }
+            else
+            {
+                const double srcMultiplier = GetOverlapFactor(sampleBeginTime, sampleEndTime, targetBeginTime, targetEndTime);
+                const double dstMultiplier = 1.0;
+                success = WeightedSumIntoRange(
+                    rangeIndexDst,
+                    dstMultiplier,
+                    pCounterDataSrc,
+                    rangeIndexSrc,
+                    srcMultiplier);
+            }
+            if (!success)
+            {
                 return false;
             }
             return true;
@@ -241,9 +331,33 @@ namespace nv { namespace perf {
         NVPA_Status nvpaStatus = NVPW_CounterData_GetNumRanges(&getNumRangeParams);
         if (nvpaStatus)
         {
+            NV_PERF_LOG_ERR(50, "NVPW_CounterData_GetNumRanges failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
             return 0;
         }
         return getNumRangeParams.numRanges;
+    }
+
+    inline bool ExtractCounterDataPrefixFromCounterData(const uint8_t* pCounterDataImage, size_t counterDataImageSize, std::vector<uint8_t>& counterDataPrefixExtracted)
+    {
+        NVPW_CounterData_ExtractCounterDataPrefix_Params extractCounterDataPrefixParams = { NVPW_CounterData_ExtractCounterDataPrefix_Params_STRUCT_SIZE };
+        extractCounterDataPrefixParams.pCounterDataSrc = pCounterDataImage;
+        extractCounterDataPrefixParams.counterDataSrcSize = counterDataImageSize;
+        NVPA_Status nvpaStatus = NVPW_CounterData_ExtractCounterDataPrefix(&extractCounterDataPrefixParams);
+        if (nvpaStatus)
+        {
+            NV_PERF_LOG_ERR(50, "NVPW_CounterData_ExtractCounterDataPrefix failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
+            return false;
+        }
+        counterDataPrefixExtracted.resize(extractCounterDataPrefixParams.counterDataPrefixSize);
+        extractCounterDataPrefixParams.pCounterDataPrefix = counterDataPrefixExtracted.data();
+        extractCounterDataPrefixParams.counterDataPrefixSize = counterDataPrefixExtracted.size();
+        nvpaStatus = NVPW_CounterData_ExtractCounterDataPrefix(&extractCounterDataPrefixParams);
+        if (nvpaStatus)
+        {
+            NV_PERF_LOG_ERR(50, "NVPW_CounterData_ExtractCounterDataPrefix failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
+            return false;
+        }
+        return true;
     }
 
     namespace profiler {
@@ -565,6 +679,117 @@ namespace nv { namespace perf {
             }
         };
 
+        // The `CombinedCounterDataMaxNumRanges` parameter defines the maximum number of ranges that can be stored in the combined counter data.
+        // This parameter is used to determine how frequently a new combined counter data object should be initialized.
+        template <size_t CombinedCounterDataMaxNumRanges = 1024>
+        class SampleCombiner
+        {
+        public:
+            struct SampleInfo
+            {
+                uint64_t beginTimestamp;
+                uint64_t endTimestamp;
+                const uint8_t* pCounterData;
+                uint32_t rangeIndex;
+            };
+
+        protected:
+            CounterDataCombiner m_combiner;
+            uint32_t m_combinedCounterDataRangeIndex;
+            std::vector<uint8_t> m_counterDataTemplate; // used for fast initialization(memcpy)
+
+        public:
+            SampleCombiner()
+                : m_combinedCounterDataRangeIndex((uint32_t)-1)
+            {
+            }
+            SampleCombiner(const SampleCombiner& combiner) = delete;
+            SampleCombiner& operator=(const SampleCombiner& combiner) = delete;
+            SampleCombiner(SampleCombiner&& combiner) = default;
+            SampleCombiner& operator=(SampleCombiner&& combiner) = default;
+            ~SampleCombiner() = default;
+
+            bool Initialize(const std::vector<uint8_t>& counterDataPrefix, const std::vector<uint8_t>& counterDataSource)
+            {
+                bool success = m_combiner.Initialize(
+                    counterDataPrefix.data(),
+                    counterDataPrefix.size(), 
+                    CombinedCounterDataMaxNumRanges,
+                    counterDataSource.data());
+                if (!success)
+                {
+                    return false;
+                }
+                for (size_t rangeIndex = 0; rangeIndex < CombinedCounterDataMaxNumRanges; ++rangeIndex)
+                {
+                    if (!m_combiner.CreateRange(rangeIndex))
+                    {
+                        return false;
+                    }
+                }
+                m_counterDataTemplate = m_combiner.GetCounterData();
+                return true;
+            }
+
+            void Reset()
+            {
+                m_combiner.Reset();
+                m_combinedCounterDataRangeIndex = (uint32_t)-1;
+                m_counterDataTemplate.clear();
+            }
+
+            // This function takes a list of samples, a begin timestamp, and an end timestamp. The objective is to iterate through each sample and sum 
+            // its value if it lies within the interval defined by the begin and end timestamps. If only a portion of the sample falls within this
+            // interval, interpolation will be applied.
+            // Once the sample combination is complete, the function will call the user-provided callback with the combined sample.
+            // The samples passed to this function are expected to be in ascending order, with each subsequent sample having a timestamp greater than
+            // its predecessor. 
+            // TConsumeDataFunc should be in the form of bool(const uint8_t* pCounterDataImage, size_t counterDataImageSize, uint32_t rangeIndex),
+            // return false to indicate something went wrong. Note if there are no overlapping samples, `consumeDataFunc` will not be invoked.
+            template <typename TConsumeDataFunc>
+            bool MergeSamples(const std::vector<SampleInfo>& samples, uint64_t beginTime, uint64_t endTime, TConsumeDataFunc&& consumeDataFunc)
+            {
+                if (samples.empty() || samples.back().endTimestamp <= beginTime || endTime <= samples.front().beginTimestamp)
+                {
+                    return true; // no overlapping samples
+                }
+
+                ++m_combinedCounterDataRangeIndex;
+                if (m_combinedCounterDataRangeIndex == CombinedCounterDataMaxNumRanges)
+                {
+                    m_combiner.GetCounterData() = m_counterDataTemplate;
+                    m_combinedCounterDataRangeIndex = 0;
+                }
+
+                auto overlapSampleBeginItr = std::upper_bound(samples.begin(), samples.end(), beginTime, [&](uint64_t timestamp, const SampleInfo& sample) {
+                    return sample.endTimestamp > timestamp;
+                });
+                auto overlapSampleEndItr = std::upper_bound(samples.begin(), samples.end(), endTime, [&](uint64_t timestamp, const SampleInfo& sample) {
+                    return sample.beginTimestamp > timestamp;
+                });
+                for (auto itr = overlapSampleBeginItr; itr < overlapSampleEndItr; ++itr)
+                {
+                    if (!m_combiner.SumIntoRange(
+                            m_combinedCounterDataRangeIndex,
+                            itr->pCounterData,
+                            itr->rangeIndex,
+                            itr->beginTimestamp,
+                            itr->endTimestamp,
+                            beginTime,
+                            endTime))
+                    {
+                        return false;
+                    }
+                }
+
+                if (!consumeDataFunc(m_combiner.GetCounterData().data(), m_combiner.GetCounterData().size(), m_combinedCounterDataRangeIndex))
+                {
+                    return false;
+                }
+                return true;
+            }
+        };
+
         class FrameLevelSampleCombiner
         {
         private:
@@ -587,7 +812,9 @@ namespace nv { namespace perf {
             };
         private:
             enum {
-                CombinedCounterDataMaxNumRanges = 1024, // max number of ranges in the combined counter data, this decides how often we reinitialize a new combined counter data
+                // The `CombinedCounterDataMaxNumRanges` parameter defines the maximum number of ranges that can be stored in the combined counter data.
+                // This parameter is used to determine how frequently a new combined counter data object should be initialized.
+                CombinedCounterDataMaxNumRanges = 1024,
             };
             CounterDataCombiner m_combiner;
             uint32_t m_combinedCounterDataRangeIndex;
@@ -615,70 +842,6 @@ namespace nv { namespace perf {
             FrameLevelSampleCombiner& operator=(FrameLevelSampleCombiner&& combiner) = default;
             ~FrameLevelSampleCombiner() = default;
         protected:
-            static double GetOverlapFactor(
-                uint64_t sampleBeginTime,
-                uint64_t sampleEndTime,
-                uint64_t frameBeginTime,
-                uint64_t frameEndTime)
-            {
-                assert(sampleBeginTime < sampleEndTime);
-                assert(frameBeginTime < frameEndTime);
-                if (sampleBeginTime >= frameEndTime || sampleEndTime <= frameBeginTime)
-                {
-                    return 0.0;
-                }
-                if (sampleBeginTime >= frameBeginTime && sampleEndTime <= frameEndTime)
-                {
-                    return 1.0;
-                }
-                const uint64_t inFrameDuration = [&]() {
-                    if (sampleBeginTime >= frameBeginTime)
-                    {
-                        return frameEndTime - sampleBeginTime;
-                    }
-                    else if (sampleEndTime <= frameEndTime)
-                    {
-                        return sampleEndTime - frameBeginTime;
-                    }
-                    else
-                    {
-                        return frameEndTime - frameBeginTime;
-                    }
-                }();
-                return (double)inFrameDuration / double(sampleEndTime - sampleBeginTime);
-            }
-
-            bool SumIntoRange(
-                const SampleInfo& sampleInfo,
-                uint64_t frameBeginTime,
-                uint64_t frameEndTime,
-                size_t dstCounterDataRangeIndex)
-            {
-                const uint64_t sampleBeginTime = sampleInfo.beginTimestamp;
-                const uint64_t sampleEndTime = sampleInfo.endTimestamp;
-                bool success = true;
-                if (sampleBeginTime >= frameBeginTime && sampleEndTime <= frameEndTime)
-                {
-                    // if sample fully resides in the frame, use the fast path
-                    success = m_combiner.SumIntoRange(dstCounterDataRangeIndex, sampleInfo.pCounterData, sampleInfo.rangeIndex);
-                }
-                else
-                {
-                    const double srcMultiplier = GetOverlapFactor(sampleBeginTime, sampleEndTime, frameBeginTime, frameEndTime);
-                    const double dstMultiplier = 1.0;
-                    success = m_combiner.WeightedSumIntoRange(
-                        dstCounterDataRangeIndex,
-                        dstMultiplier,
-                        sampleInfo.pCounterData,
-                        sampleInfo.rangeIndex,
-                        srcMultiplier);
-                }
-                if (!success)
-                {
-                    return false;
-                }
-                return true;
-            }
             static size_t CircularIncrement(size_t index, size_t max)
             {
                 return (++index >= max) ? 0 : index;
@@ -690,14 +853,10 @@ namespace nv { namespace perf {
                 const std::vector<uint8_t>& counterDataSource,
                 size_t maxSampleLatency)
             {
-                const uint32_t maxNumRangeTreeNodes = 0;
-                const uint32_t maxRangeNameLength = 0;
                 bool success = m_combiner.Initialize(
                     counterDataPrefix.data(),
                     counterDataPrefix.size(), 
                     CombinedCounterDataMaxNumRanges,
-                    maxNumRangeTreeNodes,
-                    maxRangeNameLength,
                     counterDataSource.data());
                 if (!success)
                 {
@@ -705,8 +864,10 @@ namespace nv { namespace perf {
                 }
                 for (size_t rangeIndex = 0; rangeIndex < CombinedCounterDataMaxNumRanges; ++rangeIndex)
                 {
-                    const char* ppDescriptions[] = { "" };
-                    m_combiner.CreateRange(ppDescriptions, 1, rangeIndex);
+                    if (!m_combiner.CreateRange(rangeIndex))
+                    {
+                        return false;
+                    }
                 }
                 m_counterDataTemplate = m_combiner.GetCounterData();
                 m_sampleInfoRingBuffer.resize(maxSampleLatency);
@@ -825,7 +986,14 @@ namespace nv { namespace perf {
                         //                         +------------+
                         // partly falls into this frame, but partly belongs to a future frame => consume it but do not recycle it
                         ++numSamplesInFrame;
-                        bool success = SumIntoRange(sampleInfo, m_frameBeginTime, frameEndTime, combinedCounterDataRangeIndex);
+                        bool success = m_combiner.SumIntoRange(
+                            combinedCounterDataRangeIndex,
+                            sampleInfo.pCounterData,
+                            sampleInfo.rangeIndex,
+                            sampleInfo.beginTimestamp,
+                            sampleInfo.endTimestamp,
+                            m_frameBeginTime,
+                            frameEndTime);
                         if (!success)
                         {
                             return false;
@@ -847,7 +1015,14 @@ namespace nv { namespace perf {
                         ++numSamplesInFrame;
                         m_getIndex = CircularIncrement(m_getIndex, m_sampleInfoRingBuffer.size());
                         --m_numUnreadSamples;
-                        bool success = SumIntoRange(sampleInfo, m_frameBeginTime, frameEndTime, combinedCounterDataRangeIndex);
+                        bool success = m_combiner.SumIntoRange(
+                            combinedCounterDataRangeIndex,
+                            sampleInfo.pCounterData,
+                            sampleInfo.rangeIndex,
+                            sampleInfo.beginTimestamp,
+                            sampleInfo.endTimestamp,
+                            m_frameBeginTime,
+                            frameEndTime);
                         if (!success)
                         {
                             return false;
@@ -874,7 +1049,7 @@ namespace nv { namespace perf {
             NVPA_Status nvpaStatus = NVPW_PeriodicSampler_CounterData_TrimInPlace(&params);
             if (nvpaStatus != NVPA_STATUS_SUCCESS)
             {
-                NV_PERF_LOG_ERR(50, "NVPW_PeriodicSampler_CounterData_TrimInPlace failed, nvpaStatus = %d\n", nvpaStatus);
+                NV_PERF_LOG_ERR(50, "NVPW_PeriodicSampler_CounterData_TrimInPlace failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                 return false;
             }
             counterDataImageTrimmedSize = params.counterDataImageTrimmedSize;
@@ -889,7 +1064,7 @@ namespace nv { namespace perf {
             NVPA_Status nvpaStatus = NVPW_PeriodicSampler_CounterData_GetSampleTime(&params);
             if (nvpaStatus != NVPA_STATUS_SUCCESS)
             {
-                NV_PERF_LOG_ERR(50, "NVPW_PeriodicSampler_CounterData_GetSampleTime failed, nvpaStatus = %d\n", nvpaStatus);
+                NV_PERF_LOG_ERR(50, "NVPW_PeriodicSampler_CounterData_GetSampleTime failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                 return false;
             }
             timestamp.start = params.timestampStart;
@@ -906,7 +1081,7 @@ namespace nv { namespace perf {
             NVPA_Status nvpaStatus = NVPW_PeriodicSampler_CounterData_GetTriggerCount(&params);
             if (nvpaStatus != NVPA_STATUS_SUCCESS)
             {
-                NV_PERF_LOG_ERR(50, "NVPW_PeriodicSampler_CounterData_GetTriggerCount failed, nvpaStatus = %d\n", nvpaStatus);
+                NV_PERF_LOG_ERR(50, "NVPW_PeriodicSampler_CounterData_GetTriggerCount failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                 return false;
             }
             triggerCount = params.triggerCount;
@@ -921,7 +1096,7 @@ namespace nv { namespace perf {
             NVPA_Status nvpaStatus = NVPW_PeriodicSampler_CounterData_GetInfo(&params);
             if (nvpaStatus != NVPA_STATUS_SUCCESS)
             {
-                NV_PERF_LOG_ERR(50, "NVPW_PeriodicSampler_CounterData_GetInfo failed, nvpaStatus = %d\n", nvpaStatus);
+                NV_PERF_LOG_ERR(50, "NVPW_PeriodicSampler_CounterData_GetInfo failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
                 return false;
             }
             counterDataInfo.numTotalRanges = static_cast<uint32_t>(params.numTotalRanges);

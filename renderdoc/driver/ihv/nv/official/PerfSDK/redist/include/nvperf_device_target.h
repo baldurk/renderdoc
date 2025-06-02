@@ -2,7 +2,7 @@
 #define NVPERF_DEVICE_TARGET_H
 
 /*
- * Copyright 2014-2022  NVIDIA Corporation.  All rights reserved.
+ * Copyright 2014-2025 NVIDIA Corporation.  All rights reserved.
  *
  * NOTICE TO USER:
  *
@@ -66,6 +66,23 @@ extern "C" {
  *  @name   Periodic Sampling - GPU
  *  @{
  */
+
+// By generating periodic triggers, the API enables the sampling of programmed counters on the GPU. Counters are streamed as `records` from the GPU into a `record buffer`.
+// This buffer is designed as a ring buffer, with the GPU serving as the producer, writing records to the buffer, while the API acts as the consumer, reading the records and decoding their counter values.
+// 
+// Users can enable or disable periodic triggers and records streaming by invoking the StartSampling() and StopSampling() APIs, respectively.
+// The record buffer uses read and write offsets to manage the flow of data. They are offsets relative to the starting point of the record buffer.
+// The write offset, managed by the GPU, indicates the next position where a record will be written. The read offset indicates the position that the API has read up to.
+// 
+// The record buffer operates in two modes: keep latest and keep oldest:
+// * Keep oldest mode: In this mode, the API needs to inform the hardware of its read position to prevent data overwriting.
+//   Buffer overflow occurs when the write offset equals to the read offset, indicating that the GPU is too far ahead of the software.
+//   If an overflow occurs, the GPU sets the "overflow" sticky state and refuses to write more records, even when the periodic triggers and record streaming are still enabled.
+//   To clear this sticky state, clients must call StopSampling() and then SetConfig() with the same or a new configuration to clear the overflow state and reprogram the GPU profiling system.
+// * Keep latest mode: In contrast, keep latest mode allows the GPU to continue writing records, even if overwriting any unread data, ensuring the most recent records are available for analysis.
+//   Overflow is not applicable in this mode, but the client is responsible for consuming the data in time to avoid overwriting if the use case expects no data loss.
+//   For clients who prioritize obtaining the latest data and can tolerate losing earlier data, it is acceptable not to consume the data in a timely manner.
+//   The API provides a function, IsRecordBufferKeepLatestModeSupported(), to check if the underlying GPU supports the keep latest mode.
 
 #ifndef NVPW_GPU_PERIODIC_SAMPLER_TRIGGER_SOURCE_DEFINED
 #define NVPW_GPU_PERIODIC_SAMPLER_TRIGGER_SOURCE_DEFINED
@@ -144,7 +161,7 @@ extern "C" {
         /// [in]
         size_t deviceIndex;
         /// [inout] `pTriggerSources` is in, `*pTriggerSources` is out, each element is one of
-        /// `NVPW_GPU_PeriodicSampler_TriggerSource
+        /// `NVPW_GPU_PeriodicSampler_TriggerSource`.
         uint32_t* pTriggerSources;
         /// [inout] if `pTriggerSources` is NULL, number of supported trigger sources will be returned; otherwise it
         /// should be set to the number of elements allocated for `pTriggerSources`, and on return, it will be
@@ -189,8 +206,8 @@ extern "C" {
         void* pPriv;
         /// [in]
         size_t deviceIndex;
-        /// [in] maximum number of undecoded sampling ranges there can be, where a sampling range is formed by one pair
-        /// of `NVPW_GPU_PeriodicSampler_StartSampling` & `NVPW_GPU_PeriodicSampler_StopSampling`. Must be 1.
+        /// [in] This parameter has been deprecated and is no longer utilized by the library.Currently, it needs to be
+        /// kept and must be 1 to support legacy DecodeCounters().
         size_t maxNumUndecodedSamplingRanges;
         /// [in] an array of trigger sources to use during the session, where each element is one of
         /// `NVPW_GPU_PeriodicSampler_TriggerSource`. Some combinations can be invalid.
@@ -204,7 +221,7 @@ extern "C" {
         uint64_t samplingInterval;
         /// [in] output of `NVPW_GPU_PeriodicSampler_CalculateRecordBufferSize`. If multiple configs will be used in a
         /// session, use their max size here. This value may be clamped internally to meet HW & profiling requirements,
-        /// the actual allocated size can be queried via `NVPW_GPU_PeriodicSampler_GetRecordBufferStatus`
+        /// the actual allocated size can be queried via `NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2`
         size_t recordBufferSize;
     } NVPW_GPU_PeriodicSampler_BeginSession_Params;
 #define NVPW_GPU_PeriodicSampler_BeginSession_Params_STRUCT_SIZE NVPA_STRUCT_SIZE(NVPW_GPU_PeriodicSampler_BeginSession_Params, recordBufferSize)
@@ -235,7 +252,7 @@ extern "C" {
         uint64_t samplingInterval;
         /// [in] output of `NVPW_GPU_PeriodicSampler_CalculateRecordBufferSize`. If multiple configs will be used in a
         /// session, use their max size here. This value may be clamped internally to meet HW & profiling requirements,
-        /// the actual allocated size can be queried via `NVPW_GPU_PeriodicSampler_GetRecordBufferStatus`
+        /// the actual allocated size can be queried via `NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2`
         size_t recordBufferSize;
         /// [in] one of `NVPW_GPU_PeriodicSampler_RecordBuffer_AppendMode`
         uint32_t recordBufferAppendMode;
@@ -396,7 +413,8 @@ extern "C" {
 #define NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_Params_STRUCT_SIZE NVPA_STRUCT_SIZE(NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_Params, overflow)
 
     /// This API must be called inside a session. Due to hardware limitation, `overflow` and `usedSize` may be
-    /// temporarily out-of-sync during sampling.
+    /// temporarily out-of-sync during sampling. This API is deprecated, please use
+    /// `NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2` instead.
     NVPA_Status NVPW_GPU_PeriodicSampler_GetRecordBufferStatus(NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_Params* pParams);
 
     typedef struct NVPW_GPU_PeriodicSampler_DecodeCounters_Params
@@ -426,7 +444,16 @@ extern "C" {
     } NVPW_GPU_PeriodicSampler_DecodeCounters_Params;
 #define NVPW_GPU_PeriodicSampler_DecodeCounters_Params_STRUCT_SIZE NVPA_STRUCT_SIZE(NVPW_GPU_PeriodicSampler_DecodeCounters_Params, numSamplesMerged)
 
-    /// This API is deprecated, please use `NVPW_GPU_PeriodicSampler_DecodeCounters_V2` instead.
+    /// CPU-side write offset will be queried through syscall in the beginning of this API routine with large CPU time
+    /// overhead. Both GPU-side and CPU-side read offset of the record buffer will be updated at the end of this API
+    /// routine, GPU-side updating is with large CPU time overhead. The first sample in a sampling range, by definition,
+    /// represents the accumulated counter values between SetConfig (or the last trigger from the previous sampling
+    /// range) and the first trigger in the current sampling range which may result in larger counter values. Since it
+    /// may not have a prior trigger, the startTimestamp can be 0. The recommended approach is to discard the first
+    /// sample during post-processing. Similarly, the last sample might contain only trailing overflow prevention
+    /// records emitted after the last trigger. As it is not associated with a trigger, it has an endTimestamp of 0.
+    /// This sample can also be discarded through post-processing.This API is deprecated, please use
+    /// `NVPW_GPU_PeriodicSampler_DecodeCounters_V3` instead.
     NVPA_Status NVPW_GPU_PeriodicSampler_DecodeCounters(NVPW_GPU_PeriodicSampler_DecodeCounters_Params* pParams);
 
     typedef struct NVPW_GPU_PeriodicSampler_DecodeCounters_V2_Params
@@ -458,6 +485,16 @@ extern "C" {
     } NVPW_GPU_PeriodicSampler_DecodeCounters_V2_Params;
 #define NVPW_GPU_PeriodicSampler_DecodeCounters_V2_Params_STRUCT_SIZE NVPA_STRUCT_SIZE(NVPW_GPU_PeriodicSampler_DecodeCounters_V2_Params, numSamplesMerged)
 
+    /// CPU-side write offset will be queried through syscall in the beginning of this API routine with large CPU time
+    /// overhead. Both GPU-side and CPU-side read offset of the record buffer will be updated at the end of this API
+    /// routine, GPU-side updating is with large CPU time overhead. The first sample in a sampling range, by definition,
+    /// represents the accumulated counter values between SetConfig (or the last trigger from the previous sampling
+    /// range) and the first trigger in the current sampling range which may result in larger counter values. Since it
+    /// may not have a prior trigger, the startTimestamp can be 0. The recommended approach is to discard the first
+    /// sample during post-processing. Similarly, the last sample might contain only trailing overflow prevention
+    /// records emitted after the last trigger. As it is not associated with a trigger, it has an endTimestamp of 0.
+    /// This sample can also be discarded through post-processing. This API is deprecated, please use
+    /// `NVPW_GPU_PeriodicSampler_DecodeCounters_V3` instead.
     NVPA_Status NVPW_GPU_PeriodicSampler_DecodeCounters_V2(NVPW_GPU_PeriodicSampler_DecodeCounters_V2_Params* pParams);
 
     typedef struct NVPW_GPU_PeriodicSampler_IsRecordBufferKeepLatestModeSupported_Params
@@ -475,6 +512,162 @@ extern "C" {
 
     /// LoadDriver must be called prior to this API.
     NVPA_Status NVPW_GPU_PeriodicSampler_IsRecordBufferKeepLatestModeSupported(NVPW_GPU_PeriodicSampler_IsRecordBufferKeepLatestModeSupported_Params* pParams);
+
+    typedef struct NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2_Params
+    {
+        /// [in]
+        size_t structSize;
+        /// [in] assign to NULL
+        void* pPriv;
+        /// [in]
+        size_t deviceIndex;
+        /// [in]
+        NVPA_Bool queryNumUnreadBytes;
+        /// [in]
+        NVPA_Bool queryOverflow;
+        /// [in]
+        NVPA_Bool queryWriteOffset;
+        /// [in]
+        NVPA_Bool queryReadOffset;
+        /// [out]
+        size_t totalSize;
+        /// [out] only valid when `queryNumUnreadBytes` == true, indicating how many bytes has not been read in the
+        /// record buffer.
+        size_t numUnreadBytes;
+        /// [out] only valid when `queryOverflow` == true. It will be true only in the keep-oldest mode.
+        NVPA_Bool overflow;
+        /// [out] only valid when `queryWriteOffset` == true, points to the end of the record stream.
+        size_t writeOffset;
+        /// [out] only valid when `queryReadOffset` == true, points to the first sample which has not been read. After
+        /// decoding, it will be increased with numBytesConsumed.
+        size_t readOffset;
+    } NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2_Params;
+#define NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2_Params_STRUCT_SIZE NVPA_STRUCT_SIZE(NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2_Params, readOffset)
+
+    /// `queryNumUnreadBytes`, `queryOverflow`, `queryWriteOffset` operations involve reading states from GPU, thus they
+    /// can be slow. Only enable them if needed.
+    NVPA_Status NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2(NVPW_GPU_PeriodicSampler_GetRecordBufferStatus_V2_Params* pParams);
+
+    typedef struct NVPW_GPU_PeriodicSampler_GetGpuTimestamp_Params
+    {
+        /// [in]
+        size_t structSize;
+        /// [in] assign to NULL
+        void* pPriv;
+        /// [in]
+        size_t deviceIndex;
+        /// [out]
+        uint64_t timestamp;
+    } NVPW_GPU_PeriodicSampler_GetGpuTimestamp_Params;
+#define NVPW_GPU_PeriodicSampler_GetGpuTimestamp_Params_STRUCT_SIZE NVPA_STRUCT_SIZE(NVPW_GPU_PeriodicSampler_GetGpuTimestamp_Params, timestamp)
+
+    NVPA_Status NVPW_GPU_PeriodicSampler_GetGpuTimestamp(NVPW_GPU_PeriodicSampler_GetGpuTimestamp_Params* pParams);
+
+    typedef struct NVPW_GPU_PeriodicSampler_AcknowledgeRecordBuffer_Params
+    {
+        /// [in]
+        size_t structSize;
+        /// [in] assign to NULL
+        void* pPriv;
+        /// [in]
+        size_t deviceIndex;
+        /// [in]
+        size_t numBytes;
+    } NVPW_GPU_PeriodicSampler_AcknowledgeRecordBuffer_Params;
+#define NVPW_GPU_PeriodicSampler_AcknowledgeRecordBuffer_Params_STRUCT_SIZE NVPA_STRUCT_SIZE(NVPW_GPU_PeriodicSampler_AcknowledgeRecordBuffer_Params, numBytes)
+
+    /// This API is typically used in keep-oldest mode to acknowledge the number of bytes that the software has read. By
+    /// doing so, it frees up space in the record buffer, allowing the GPU to write new records.In keep-latest mode,
+    /// since the GPU is allowed to continue writing records even if it overwrites unread data, this API is not strictly
+    /// required.
+    NVPA_Status NVPW_GPU_PeriodicSampler_AcknowledgeRecordBuffer(NVPW_GPU_PeriodicSampler_AcknowledgeRecordBuffer_Params* pParams);
+
+    typedef struct NVPW_GPU_PeriodicSampler_SetRecordBufferReadOffset_Params
+    {
+        /// [in]
+        size_t structSize;
+        /// [in] assign to NULL
+        void* pPriv;
+        /// [in]
+        size_t deviceIndex;
+        /// [in]
+        size_t readOffset;
+    } NVPW_GPU_PeriodicSampler_SetRecordBufferReadOffset_Params;
+#define NVPW_GPU_PeriodicSampler_SetRecordBufferReadOffset_Params_STRUCT_SIZE NVPA_STRUCT_SIZE(NVPW_GPU_PeriodicSampler_SetRecordBufferReadOffset_Params, readOffset)
+
+    /// Please note that this API only adjusts the CPU-side read offset and does not modify the corresponding state on
+    /// the GPU. To alter the state on the GPU, use the AcknowledgeRecordBuffer(). There are several scenarios where
+    /// adjusting this can be beneficial. One notable example is in keep-latest mode, where clients can use the API to
+    /// reposition the read offset to point to the oldest data.
+    NVPA_Status NVPW_GPU_PeriodicSampler_SetRecordBufferReadOffset(NVPW_GPU_PeriodicSampler_SetRecordBufferReadOffset_Params* pParams);
+
+#ifndef NVPW_GPU_PERIODIC_SAMPLER_DECODE_STOP_REASON_DEFINED
+#define NVPW_GPU_PERIODIC_SAMPLER_DECODE_STOP_REASON_DEFINED
+    typedef enum NVPW_GPU_PeriodicSampler_DecodeStopReason
+    {
+        NVPW_GPU_PERIODIC_SAMPLER_DECODE_STOP_REASON_OTHER = 0,
+        /// `readEndPointTimestamp` is reached.
+        NVPW_GPU_PERIODIC_SAMPLER_DECODE_STOP_REASON_END_TIMESTAMP_REACHED = 1,
+        /// `numBytesToRead` is reached.
+        NVPW_GPU_PERIODIC_SAMPLER_DECODE_STOP_REASON_ALL_GIVEN_BYTES_READ = 2,
+        /// Counter data image is full.
+        NVPW_GPU_PERIODIC_SAMPLER_DECODE_STOP_REASON_COUNTER_DATA_FULL = 3,
+        /// End of records is reached.
+        NVPW_GPU_PERIODIC_SAMPLER_DECODE_STOP_REASON_END_OF_RECORDS = 4,
+        /// Encountered an unexpected record.
+        NVPW_GPU_PERIODIC_SAMPLER_DECODE_STOP_REASON_UNEXPECTED_RECORD = 5,
+        /// Encountered an out-of-order record, may be caused by not setting readoffset correctly.
+        NVPW_GPU_PERIODIC_SAMPLER_DECODE_STOP_REASON_OUT_OF_ORDER_RECORD = 6,
+        /// Encountered records with potential data loss due to excessive backpressure. Try reducing the sampling rate.
+        NVPW_GPU_PERIODIC_SAMPLER_DECODE_STOP_REASON_EXCESSIVE_BACKPRESSURE = 7,
+        NVPW_GPU_PERIODIC_SAMPLER_DECODE_STOP_REASON__COUNT
+    } NVPW_GPU_PeriodicSampler_DecodeStopReason;
+#endif //NVPW_GPU_PERIODIC_SAMPLER_DECODE_STOP_REASON_DEFINED
+
+    typedef struct NVPW_GPU_PeriodicSampler_DecodeCounters_V3_Params
+    {
+        /// [in]
+        size_t structSize;
+        /// [in] assign to NULL
+        void* pPriv;
+        /// [in]
+        size_t deviceIndex;
+        /// [in]
+        uint8_t* pCounterDataImage;
+        /// [in]
+        size_t counterDataImageSize;
+        /// [in] If it's set to 0, `readStartpointTimestamp` & `readEndpointTimestamp` will be used.
+        size_t numBytesToRead;
+        /// [in] Records that have a timestamp earlier than this point will be discarded.
+        uint64_t readStartpointTimestamp;
+        /// [in] If both `readStartpointTimestamp` & `readEndpointTimestamp` are set to 0, `numBytesToRead` will be
+        /// used.
+        uint64_t readEndpointTimestamp;
+        /// [out] one of `NVPW_GPU_PeriodicSampler_DecodeStopReason`
+        uint32_t decodeStopReason;
+        /// [out] number of samples merged due to insufficient sample interval
+        size_t numSamplesMerged;
+        /// [out]
+        size_t numBytesConsumed;
+    } NVPW_GPU_PeriodicSampler_DecodeCounters_V3_Params;
+#define NVPW_GPU_PeriodicSampler_DecodeCounters_V3_Params_STRUCT_SIZE NVPA_STRUCT_SIZE(NVPW_GPU_PeriodicSampler_DecodeCounters_V3_Params, numBytesConsumed)
+
+    /// Use either `numBytesToRead` or [`readStartpointTimestamp`, `readEndpointTimestamp`) to control the decode range.
+    /// Decoding will stop either when the specified `numBytesToRead` or `readEndPointTimestamp` is reached. i.e., the
+    /// given numBytesToRead and timestamps cannot be both zero or both non-zero, readStartpointTimestamp must be
+    /// smaller than readEndpointTimestamp. However, there are other conditions that may cause the decoding process to
+    /// terminate, such as when the counter data image is full or when the end of the record stream is reached.See also
+    /// `NVPW_GPU_PeriodicSampler_DecodeStopReason`. Only the CPU-side readOffset will be updated automatically at the
+    /// end of this function. Please note that due to performance considerations, the API minimally processes decoded
+    /// counter values from the hardware records and stores them directly into the counter data. The first sample in a
+    /// sampling range, by definition, represents the accumulated counter values between SetConfig (or the last trigger
+    /// from the previous sampling range) and the first trigger in the current sampling range which may result in larger
+    /// counter values. Since it may not have a prior trigger, the startTimestamp can be 0. The recommended approach is
+    /// to either discard the first sample during post-processing or provide a startTimestamp to the API. Similarly, the
+    /// last sample might contain only trailing overflow prevention records emitted after the last trigger. As it is not
+    /// associated with a trigger, it has an endTimestamp of 0. This sample can also be discarded through post-
+    /// processing or by providing an endTimestamp to the API.
+    NVPA_Status NVPW_GPU_PeriodicSampler_DecodeCounters_V3(NVPW_GPU_PeriodicSampler_DecodeCounters_V3_Params* pParams);
 
 /**
  *  @}

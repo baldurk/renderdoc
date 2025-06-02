@@ -1,0 +1,1127 @@
+version: 1.0.0
+gpu: gb20x
+userMetrics:
+  - Top_Level_Triage.bytes_per_l1tex_line:
+      conversionFactor:
+        multiplier: '128'
+        dimunits: DimUnit.bytes / DimUnit.l1tex_lines
+  - Top_Level_Triage.max_warps_per_tpc:
+      conversionFactor:
+        multiplier: 96
+        dimunits: DimUnit.warps
+  - Top_Level_Triage.registers_per_rf_quantum:
+      conversionFactor:
+        multiplier: '256'
+        dimunits: DimUnit.registers / DimUnit.rf_quanta
+  - Top_Level_Triage.threads_per_warp:
+      conversionFactor:
+        multiplier: '32'
+        dimunits: DimUnit.threads / DimUnit.warps
+  - Top_Level_Triage.ScreenPipe_throughput:
+      throughput: [crop__throughput, zrop__throughput, prop__throughput, rop__throughput, raster__throughput_realtime, stri__throughput]
+      description: Screen Pipe Throughput
+  - Top_Level_Triage.pda__throughput_realtime:
+      throughput: [pda__input_verts_realtime, pda__input_prims_realtime]
+  - Top_Level_Triage.pe__lts_requests_op_read_throughput:
+      throughput: [lts__t_sectors_srcunit_pe_op_read_realtime]
+  - Top_Level_Triage.pe__lts_requests_op_write_throughput:
+      throughput: [lts__t_sectors_srcunit_pe_op_write_realtime]
+  - Top_Level_Triage.pe__syslts_requests_op_read_throughput:
+      throughput: [syslts__t_sectors_srcunit_pe_op_read_realtime]
+  - Top_Level_Triage.pe__syslts_requests_op_write_throughput:
+      throughput: [syslts__t_sectors_srcunit_pe_op_write_realtime]
+  - Top_Level_Triage.pe__l2_requests_throughput:
+      throughput: [Top_Level_Triage.pe__lts_requests_op_read_throughput, Top_Level_Triage.pe__lts_requests_op_write_throughput, Top_Level_Triage.pe__syslts_requests_op_read_throughput, Top_Level_Triage.pe__syslts_requests_op_write_throughput]
+  - Top_Level_Triage.WorldPipe_throughput:
+      throughput: [Top_Level_Triage.pda__throughput_realtime, vaf__throughput_realtime, vpc__throughput_realtime, pes__throughput_realtime, Top_Level_Triage.pe__l2_requests_throughput]
+      description: World Pipe Throughput
+  - Top_Level_Triage.gcc__cache_bytes:
+      counter:
+        expr: 128 * gcc__cache_requests_type_instruction + 64 * gcc__cache_requests_type_constant + 32 * gcc__cache_requests_type_tsheader
+        sustainedRate: 128.0
+      description: '# of bytes GCC cached'
+  - Top_Level_Triage.gcc__cache_bytes_lookup_miss:
+      counter:
+        expr: 128 * gcc__cache_requests_type_instruction_lookup_hit + 64 * gcc__cache_requests_type_constant_lookup_hit + 32 * gcc__cache_requests_type_tsheader_lookup_hit
+        sustainedRate: 128.0
+      description: '# of bytes GCC cached that missed'
+  - Top_Level_Triage.l1data_bank_conflicts_to_l1tex_wavefronts_conversion_factor:
+      conversionFactor:
+        multiplier: 1.0
+        dimunits: DimUnit.l1tex_wavefronts / DimUnit.l1data_bank_conflicts
+  - Top_Level_Triage.tpc__warps_active_realtime:
+      counter:
+        expr: tpc__warps_active_shader_vtg_realtime + tpc__warps_active_shader_ps_realtime + tpc__warps_active_shader_cs_queue_sync_realtime + tpc__warps_active_shader_cs_queue_async_realtime
+        sustainedRate: 96.0
+  - Top_Level_Triage.l1tex__average_cache_bytes_per_warp:
+      ratio:
+        expr: tpc__l1tex_sram_bytes_mem_tagged_realtime, RollupOp.avg, Top_Level_Triage.tpc__warps_active_realtime, RollupOp.avg
+        maxRate: 128*1024
+  - Top_Level_Triage.l1tex__data_pipe_lsu_requests_mem_shared_op_atom:
+      counter:
+        expr: l1tex__data_pipe_lsu_wavefronts_mem_shared_op_atom - l1tex__data_bank_conflicts_pipe_lsu_mem_shared_op_atom * Top_Level_Triage.l1data_bank_conflicts_to_l1tex_wavefronts_conversion_factor
+        sustainedRate: 1.0
+  - Top_Level_Triage.l1tex__average_data_bank_conflicts_per_request_mem_shared_op_atom:
+      ratio:
+        expr: l1tex__data_bank_conflicts_pipe_lsu_mem_shared_op_atom, RollupOp.avg, Top_Level_Triage.l1tex__data_pipe_lsu_requests_mem_shared_op_atom, RollupOp.avg
+        maxRate: 32.0
+  - Top_Level_Triage.l1tex__data_pipe_lsu_requests_mem_shared_op_ld:
+      counter:
+        expr: l1tex__data_pipe_lsu_wavefronts_mem_shared_op_ld - l1tex__data_bank_conflicts_pipe_lsu_mem_shared_op_ld * Top_Level_Triage.l1data_bank_conflicts_to_l1tex_wavefronts_conversion_factor
+        sustainedRate: 1.0
+  - Top_Level_Triage.l1tex__average_data_bank_conflicts_per_request_mem_shared_op_ld:
+      ratio:
+        expr: l1tex__data_bank_conflicts_pipe_lsu_mem_shared_op_ld, RollupOp.avg, Top_Level_Triage.l1tex__data_pipe_lsu_requests_mem_shared_op_ld, RollupOp.avg
+        maxRate: 32.0
+  - Top_Level_Triage.l1tex__data_pipe_lsu_requests_mem_shared_op_st:
+      counter:
+        expr: l1tex__data_pipe_lsu_wavefronts_mem_shared_op_st - l1tex__data_bank_conflicts_pipe_lsu_mem_shared_op_st * Top_Level_Triage.l1data_bank_conflicts_to_l1tex_wavefronts_conversion_factor
+        sustainedRate: 1.0
+  - Top_Level_Triage.l1tex__average_data_bank_conflicts_per_request_mem_shared_op_st:
+      ratio:
+        expr: l1tex__data_bank_conflicts_pipe_lsu_mem_shared_op_st, RollupOp.avg, Top_Level_Triage.l1tex__data_pipe_lsu_requests_mem_shared_op_st, RollupOp.avg
+        maxRate: 32.0
+  - Top_Level_Triage.l1tex__texin_tsl1_requests_realtime:
+      counter:
+        expr: l1tex__texin_tsl1_requests_lookup_hit_realtime + l1tex__texin_tsl1_requests_lookup_miss_realtime
+        sustainedRate: 1.0
+  - Top_Level_Triage.l1tex__average_texin_tsl1_hit_rate_realtime:
+      ratio:
+        expr: l1tex__texin_tsl1_requests_lookup_hit_realtime, RollupOp.avg, Top_Level_Triage.l1tex__texin_tsl1_requests_realtime, RollupOp.avg
+        maxRate: 1.0
+  - Top_Level_Triage.l1tex_data_bytes_per_wavefronts:
+      conversionFactor:
+        multiplier: 128.0
+        dimunits: DimUnit.bytes / DimUnit.l1tex_wavefronts
+  - Top_Level_Triage.l1tex__data_bytes_mem_shared_cmd_atom_value_overhead:
+      counter:
+        expr: l1tex__data_pipe_lsu_wavefronts_mem_shared_op_atom * Top_Level_Triage.l1tex_data_bytes_per_wavefronts - sm__bytes_mem_shared_cmd_atom_realtime
+        sustainedRate: 128.0
+  - Top_Level_Triage.l1tex__data_bytes_mem_shared_cmd_read_value_overhead:
+      counter:
+        expr: (l1tex__data_pipe_lsu_wavefronts_mem_shared_op_ld + l1tex__data_pipe_lsu_wavefronts_mem_shared_op_ldgsts) * Top_Level_Triage.l1tex_data_bytes_per_wavefronts - sm__bytes_mem_shared_cmd_read_realtime
+        sustainedRate: 128.0
+  - Top_Level_Triage.l1tex__data_pipe_lsu_wavefronts_mem_shared:
+      counter:
+        expr: l1tex__data_pipe_lsu_wavefronts_mem_shared_op_atom + l1tex__data_pipe_lsu_wavefronts_mem_shared_op_ld + l1tex__data_pipe_lsu_wavefronts_mem_shared_op_ldgsts + l1tex__data_pipe_lsu_wavefronts_mem_shared_op_misc + l1tex__data_pipe_lsu_wavefronts_mem_shared_op_st
+        sustainedRate: 1.0
+  - Top_Level_Triage.l1tex__data_pipe_lsu_bytes_mem_shared:
+      counter:
+        expr: Top_Level_Triage.l1tex__data_pipe_lsu_wavefronts_mem_shared * Top_Level_Triage.l1tex_data_bytes_per_wavefronts
+        sustainedRate: 128.0
+  - Top_Level_Triage.l1tex__data_pipe_lsu_wavefronts_mem_surface:
+      counter:
+        expr: l1tex__data_pipe_lsu_wavefronts - l1tex__data_pipe_lsu_wavefronts_mem_lgds - Top_Level_Triage.l1tex__data_pipe_lsu_wavefronts_mem_shared
+        sustainedRate: 1.0
+  - Top_Level_Triage.l1tex__samp_input_quads_mem_texture_format_2d_nomipmap_realtime:
+      counter:
+        expr: l1tex__samp_input_quads_realtime - (l1tex__samp_input_quads_mem_texture_format_1d_buffer_realtime + l1tex__samp_input_quads_mem_texture_format_1d_tex_realtime + l1tex__samp_input_quads_mem_texture_format_2d_mipmap_realtime + l1tex__samp_input_quads_mem_texture_format_3d_realtime + l1tex__samp_input_quads_mem_texture_format_cubemap_realtime)
+        sustainedRate: 4.0
+  - Top_Level_Triage.l1tex__samp_input_quads_miplevel_2ormore_realtime:
+      counter:
+        expr: l1tex__samp_input_quads_realtime - (l1tex__samp_input_quads_miplevel_0_realtime + l1tex__samp_input_quads_miplevel_1_realtime)
+        sustainedRate: 4.0
+  - Top_Level_Triage.l1tex__samp_input_quads_size_64b_or_128b_realtime:
+      counter:
+        expr: l1tex__samp_input_quads_realtime - (l1tex__samp_input_quads_size_32b_realtime + l1tex__samp_input_quads_size_96b_realtime)
+        sustainedRate: 4.0
+  - Top_Level_Triage.l1tex__t_sectors_lookup_hit_realtime:
+      counter:
+        expr: l1tex__t_sectors_pipe_lsu_mem_global_op_ld_lookup_hit_realtime + l1tex__t_sectors_pipe_lsu_mem_global_op_ldgsts_cache_access_lookup_hit_realtime + l1tex__t_sectors_pipe_lsu_mem_global_op_st_lookup_hit_realtime + l1tex__t_sectors_pipe_lsu_mem_local_op_ld_lookup_hit_realtime + l1tex__t_sectors_pipe_lsu_mem_local_op_st_lookup_hit_realtime + l1tex__t_sectors_pipe_tex_mem_surface_op_ld_lookup_hit_realtime + l1tex__t_sectors_pipe_tex_mem_surface_op_st_lookup_hit_realtime + l1tex__t_sectors_pipe_tex_mem_texture_op_ld_lookup_hit_realtime + l1tex__t_sectors_pipe_tex_mem_texture_op_tex_lookup_hit_realtime
+        sustainedRate: 16.0
+  - Top_Level_Triage.l1tex__t_sectors_realtime:
+      counter:
+        expr: l1tex__t_sectors_pipe_lsu_mem_global_op_ld_realtime + l1tex__t_sectors_pipe_lsu_mem_global_op_ldgsts_cache_access_realtime + l1tex__t_sectors_pipe_lsu_mem_global_op_st_realtime + l1tex__t_sectors_pipe_lsu_mem_local_op_ld_realtime + l1tex__t_sectors_pipe_lsu_mem_local_op_st_realtime + l1tex__t_sectors_pipe_tex_mem_surface_op_ld_realtime + l1tex__t_sectors_pipe_tex_mem_surface_op_st_realtime + l1tex__t_sectors_pipe_tex_mem_texture_op_ld_realtime + l1tex__t_sectors_pipe_tex_mem_texture_op_tex_realtime
+        sustainedRate: 16.0
+  - Top_Level_Triage.l1tex__t_sector_hit_rate:
+      ratio:
+        expr: Top_Level_Triage.l1tex__t_sectors_lookup_hit_realtime, RollupOp.avg, Top_Level_Triage.l1tex__t_sectors_realtime, RollupOp.avg
+        maxRate: 1.0
+  - Top_Level_Triage.l1tex__t_sector_pipe_lsu_mem_global_op_ld_hit_rate:
+      ratio:
+        expr: l1tex__t_sectors_pipe_lsu_mem_global_op_ld_lookup_hit_realtime, RollupOp.avg, l1tex__t_sectors_pipe_lsu_mem_global_op_ld_realtime, RollupOp.avg
+        maxRate: 1.0
+  - Top_Level_Triage.l1tex__t_sector_pipe_lsu_mem_global_op_st_hit_rate:
+      ratio:
+        expr: l1tex__t_sectors_pipe_lsu_mem_global_op_st_lookup_hit_realtime, RollupOp.avg, l1tex__t_sectors_pipe_lsu_mem_global_op_st_realtime, RollupOp.avg
+        maxRate: 1.0
+  - Top_Level_Triage.l1tex__t_sector_pipe_lsu_mem_local_op_ld_hit_rate:
+      ratio:
+        expr: l1tex__t_sectors_pipe_lsu_mem_local_op_ld_lookup_hit_realtime, RollupOp.avg, l1tex__t_sectors_pipe_lsu_mem_local_op_ld_realtime, RollupOp.avg
+        maxRate: 1.0
+  - Top_Level_Triage.l1tex__t_sector_pipe_lsu_mem_local_op_st_hit_rate:
+      ratio:
+        expr: l1tex__t_sectors_pipe_lsu_mem_local_op_st_lookup_hit_realtime, RollupOp.avg, l1tex__t_sectors_pipe_lsu_mem_local_op_st_realtime, RollupOp.avg
+        maxRate: 1.0
+  - Top_Level_Triage.l1tex__t_sector_pipe_tex_mem_surface_op_ld_hit_rate:
+      ratio:
+        expr: l1tex__t_sectors_pipe_tex_mem_surface_op_ld_lookup_hit_realtime, RollupOp.avg, l1tex__t_sectors_pipe_tex_mem_surface_op_ld_realtime, RollupOp.avg
+        maxRate: 1.0
+  - Top_Level_Triage.l1tex__t_sector_pipe_tex_mem_surface_op_st_hit_rate:
+      ratio:
+        expr: l1tex__t_sectors_pipe_tex_mem_surface_op_st_lookup_hit_realtime, RollupOp.avg, l1tex__t_sectors_pipe_tex_mem_surface_op_st_realtime, RollupOp.avg
+        maxRate: 1.0
+  - Top_Level_Triage.l1tex__t_sector_pipe_tex_mem_texture_op_ld_hit_rate:
+      ratio:
+        expr: l1tex__t_sectors_pipe_tex_mem_texture_op_ld_lookup_hit_realtime, RollupOp.avg, l1tex__t_sectors_pipe_tex_mem_texture_op_ld_realtime, RollupOp.avg
+        maxRate: 1.0
+  - Top_Level_Triage.l1tex__t_sector_pipe_tex_mem_texture_op_tex_hit_rate:
+      ratio:
+        expr: l1tex__t_sectors_pipe_tex_mem_texture_op_tex_lookup_hit_realtime, RollupOp.avg, l1tex__t_sectors_pipe_tex_mem_texture_op_tex_realtime, RollupOp.avg
+        maxRate: 1.0
+  - Top_Level_Triage.l1tex__t_sectors_op_other_lookup_hit:
+      counter:
+        expr: l1tex__t_sectors_lookup_hit - (l1tex__t_sectors_pipe_lsu_mem_global_op_ld_lookup_hit_realtime + l1tex__t_sectors_pipe_lsu_mem_global_op_st_lookup_hit_realtime + l1tex__t_sectors_pipe_lsu_mem_local_op_ld_lookup_hit_realtime + l1tex__t_sectors_pipe_lsu_mem_local_op_st_lookup_hit_realtime + l1tex__t_sectors_pipe_tex_mem_texture_op_ld_lookup_hit_realtime + l1tex__t_sectors_pipe_tex_mem_texture_op_tex_lookup_hit_realtime + l1tex__t_sectors_pipe_tex_mem_surface_op_ld_lookup_hit_realtime + l1tex__t_sectors_pipe_tex_mem_surface_op_st_lookup_hit_realtime)
+        sustainedRate: 16.0
+  - Top_Level_Triage.l1tex__t_sectors_pipe_lsu_mem_global_op_ld_lookup_miss_realtime:
+      counter:
+        expr: l1tex__t_sectors_pipe_lsu_mem_global_op_ld_realtime - l1tex__t_sectors_pipe_lsu_mem_global_op_ld_lookup_hit_realtime
+        sustainedRate: 16.0
+  - Top_Level_Triage.l1tex__t_sectors_pipe_lsu_mem_global_op_st_lookup_miss_realtime:
+      counter:
+        expr: l1tex__t_sectors_pipe_lsu_mem_global_op_st_realtime - l1tex__t_sectors_pipe_lsu_mem_global_op_st_lookup_hit_realtime
+        sustainedRate: 16.0
+  - Top_Level_Triage.l1tex__t_sectors_pipe_lsu_mem_local_op_ld_lookup_miss_realtime:
+      counter:
+        expr: l1tex__t_sectors_pipe_lsu_mem_local_op_ld_realtime - l1tex__t_sectors_pipe_lsu_mem_local_op_ld_lookup_hit_realtime
+        sustainedRate: 16.0
+  - Top_Level_Triage.l1tex__t_sectors_pipe_lsu_mem_local_op_st_lookup_miss_realtime:
+      counter:
+        expr: l1tex__t_sectors_pipe_lsu_mem_local_op_st_realtime - l1tex__t_sectors_pipe_lsu_mem_local_op_st_lookup_hit_realtime
+        sustainedRate: 16.0
+  - Top_Level_Triage.l1tex__t_sectors_pipe_tex_mem_surface_op_ld_lookup_miss_realtime:
+      counter:
+        expr: l1tex__t_sectors_pipe_tex_mem_surface_op_ld_realtime - l1tex__t_sectors_pipe_tex_mem_surface_op_ld_lookup_hit_realtime
+        sustainedRate: 16.0
+  - Top_Level_Triage.l1tex__t_sectors_pipe_tex_mem_surface_op_st_lookup_miss_realtime:
+      counter:
+        expr: l1tex__t_sectors_pipe_tex_mem_surface_op_st_realtime - l1tex__t_sectors_pipe_tex_mem_surface_op_st_lookup_hit_realtime
+        sustainedRate: 16.0
+  - Top_Level_Triage.l1tex__t_sectors_pipe_tex_mem_texture_op_ld_lookup_miss_realtime:
+      counter:
+        expr: l1tex__t_sectors_pipe_tex_mem_texture_op_ld_realtime - l1tex__t_sectors_pipe_tex_mem_texture_op_ld_lookup_hit_realtime
+        sustainedRate: 16.0
+  - Top_Level_Triage.l1tex__t_sectors_pipe_tex_mem_texture_op_tex_lookup_miss_realtime:
+      counter:
+        expr: l1tex__t_sectors_pipe_tex_mem_texture_op_tex_realtime - l1tex__t_sectors_pipe_tex_mem_texture_op_tex_lookup_hit_realtime
+        sustainedRate: 16.0
+  - Top_Level_Triage.l1tex__t_sectors_op_other_lookup_miss:
+      counter:
+        expr: l1tex__t_sectors_lookup_miss - (Top_Level_Triage.l1tex__t_sectors_pipe_lsu_mem_global_op_ld_lookup_miss_realtime + Top_Level_Triage.l1tex__t_sectors_pipe_lsu_mem_global_op_st_lookup_miss_realtime + Top_Level_Triage.l1tex__t_sectors_pipe_lsu_mem_local_op_ld_lookup_miss_realtime + Top_Level_Triage.l1tex__t_sectors_pipe_lsu_mem_local_op_st_lookup_miss_realtime + Top_Level_Triage.l1tex__t_sectors_pipe_tex_mem_texture_op_ld_lookup_miss_realtime + Top_Level_Triage.l1tex__t_sectors_pipe_tex_mem_texture_op_tex_lookup_miss_realtime + Top_Level_Triage.l1tex__t_sectors_pipe_tex_mem_surface_op_ld_lookup_miss_realtime + Top_Level_Triage.l1tex__t_sectors_pipe_tex_mem_surface_op_st_lookup_miss_realtime)
+        sustainedRate: 16.0
+  - Top_Level_Triage.l1tex__t_sectors_pipe_lsu_mem_global_realtime:
+      counter:
+        expr: l1tex__t_sectors_pipe_lsu_mem_global_op_ld_realtime + l1tex__t_sectors_pipe_lsu_mem_global_op_st_realtime + l1tex__t_sectors_pipe_lsu_mem_global_op_ldgsts_cache_access_realtime
+        sustainedRate: 16.0
+  - Top_Level_Triage.l1tex__t_sectors_pipe_lsu_mem_local_realtime:
+      counter:
+        expr: l1tex__t_sectors_pipe_lsu_mem_local_op_ld_realtime + l1tex__t_sectors_pipe_lsu_mem_local_op_st_realtime
+        sustainedRate: 16.0
+  - Top_Level_Triage.l1tex__t_sectors_pipe_tex_mem_surface_realtime:
+      counter:
+        expr: l1tex__t_sectors_pipe_tex_mem_surface_op_ld_realtime + l1tex__t_sectors_pipe_tex_mem_surface_op_st_realtime
+        sustainedRate: 16.0
+  - Top_Level_Triage.l1tex__t_sectors_pipe_tex_mem_texture_realtime:
+      counter:
+        expr: l1tex__t_sectors_pipe_tex_mem_texture_op_ld_realtime + l1tex__t_sectors_pipe_tex_mem_texture_op_tex_realtime
+        sustainedRate: 16.0
+  - Top_Level_Triage.lts__cbc_requests_type_comptag_realtime:
+      counter:
+        expr: lts__cbc_requests_type_comptag_lookup_hit_realtime + lts__cbc_requests_type_comptag_lookup_miss_or_hit_to_miss_realtime
+        sustainedRate: 1.0
+      description: '# of compressible requests handled by CBC'
+  - Top_Level_Triage.lts__average_cbc_hit_rate_realtime:
+      ratio:
+        expr: lts__cbc_requests_type_comptag_lookup_hit_realtime, RollupOp.sum, Top_Level_Triage.lts__cbc_requests_type_comptag_realtime, RollupOp.sum
+        maxRate: 1.0
+      description: proportion of requests that hit in CBC
+  - Top_Level_Triage.lts__t_sectors_srcnode_gpc_lookup_hit_realtime:
+      counter:
+        expr: lts__t_sectors_srcnode_gpc_realtime - lts__t_sectors_srcnode_gpc_lookup_miss_realtime
+        sustainedRate: 2.0
+      description: '# of LTS sectors from node GPC that hit'
+  - Top_Level_Triage.lts__average_t_sector_hit_rate_srcnode_gpc_realtime:
+      ratio:
+        expr: Top_Level_Triage.lts__t_sectors_srcnode_gpc_lookup_hit_realtime, RollupOp.sum, lts__t_sectors_srcnode_gpc_realtime, RollupOp.sum
+        maxRate: 1.0
+      description: proportion of L2 sector lookups from node GPC that hit
+  - Top_Level_Triage.lts__t_sectors_srcunit_ce_lookup_hit_realtime:
+      counter:
+        expr: lts__t_sectors_srcunit_ce_realtime - lts__t_sectors_srcunit_ce_lookup_miss_realtime
+        sustainedRate: 1.0
+      description: '# of LTS sectors from unit CE that hit'
+  - Top_Level_Triage.lts__average_t_sector_hit_rate_srcunit_ce_realtime:
+      ratio:
+        expr: Top_Level_Triage.lts__t_sectors_srcunit_ce_lookup_hit_realtime, RollupOp.sum, lts__t_sectors_srcunit_ce_realtime, RollupOp.sum
+        maxRate: 1.0
+      description: proportion of L2 sector lookups from unit CE that hit
+  - Top_Level_Triage.lts__t_sectors_srcunit_crop_lookup_hit_realtime:
+      counter:
+        expr: lts__t_sectors_srcunit_crop_realtime - lts__t_sectors_srcunit_crop_lookup_miss_realtime
+        sustainedRate: 1.0
+      description: '# of LTS sectors from unit CROP that hit'
+  - Top_Level_Triage.lts__average_t_sector_hit_rate_srcunit_crop_realtime:
+      ratio:
+        expr: Top_Level_Triage.lts__t_sectors_srcunit_crop_lookup_hit_realtime, RollupOp.sum, lts__t_sectors_srcunit_crop_realtime, RollupOp.sum
+        maxRate: 1.0
+      description: proportion of L2 sector lookups from unit CROP that hit
+  - Top_Level_Triage.lts__t_sectors_srcunit_gcc_op_read_lookup_hit_realtime:
+      counter:
+        expr: lts__t_sectors_srcunit_gcc_realtime - lts__t_sectors_srcunit_gcc_op_read_lookup_miss_realtime
+        sustainedRate: 1.0
+      description: '# of LTS sectors from unit GCC that hit'
+  - Top_Level_Triage.lts__average_t_sector_hit_rate_srcunit_gcc_op_read_realtime:
+      ratio:
+        expr: Top_Level_Triage.lts__t_sectors_srcunit_gcc_op_read_lookup_hit_realtime, RollupOp.sum, lts__t_sectors_srcunit_gcc_realtime, RollupOp.sum
+        maxRate: 1.0
+      description: proportion of L2 sector lookups from unit GCC that hit
+  - Top_Level_Triage.lts__t_sectors_srcunit_pe_op_read_lookup_hit_realtime:
+      counter:
+        expr: lts__t_sectors_srcunit_pe_op_read_realtime - lts__t_sectors_srcunit_pe_op_read_lookup_miss_realtime
+  - Top_Level_Triage.lts__average_t_sector_hit_rate_srcunit_pe_op_read_realtime:
+      ratio:
+        expr: Top_Level_Triage.lts__t_sectors_srcunit_pe_op_read_lookup_hit_realtime, RollupOp.avg, lts__t_sectors_srcunit_pe_op_read_realtime, RollupOp.avg
+        maxRate: 1.0
+      description: proportion of L2 sector lookups from unit PE for read that hit
+  - Top_Level_Triage.lts__t_sectors_srcunit_pe_lookup_hit_realtime:
+      counter:
+        expr: lts__t_sectors_srcunit_pe_realtime - lts__t_sectors_srcunit_pe_lookup_miss_realtime
+        sustainedRate: 1.0
+      description: '# of LTS sectors from unit PE that hit'
+  - Top_Level_Triage.lts__average_t_sector_hit_rate_srcunit_pe_realtime:
+      ratio:
+        expr: Top_Level_Triage.lts__t_sectors_srcunit_pe_lookup_hit_realtime, RollupOp.sum, lts__t_sectors_srcunit_pe_realtime, RollupOp.sum
+        maxRate: 1.0
+      description: proportion of L2 sector lookups from unit PE that hit
+  - Top_Level_Triage.lts__t_sectors_srcunit_raster_lookup_hit_realtime:
+      counter:
+        expr: lts__t_sectors_srcunit_raster_realtime - lts__t_sectors_srcunit_raster_lookup_miss_realtime
+        sustainedRate: 1.0
+      description: '# of LTS sectors from unit RASTER that hi'
+  - Top_Level_Triage.lts__average_t_sector_hit_rate_srcunit_raster_realtime:
+      ratio:
+        expr: Top_Level_Triage.lts__t_sectors_srcunit_raster_lookup_hit_realtime, RollupOp.sum, lts__t_sectors_srcunit_raster_realtime, RollupOp.sum
+        maxRate: 1.0
+      description: proportion of L2 sector lookups from unit RASTER that hit
+  - Top_Level_Triage.lts__t_sectors_srcunit_tex_op_atom_realtime:
+      counter:
+        expr: lts__t_sectors_srcunit_tex_realtime - lts__t_sectors_srcunit_tex_op_read_realtime - lts__t_sectors_srcunit_tex_op_write_realtime
+  - Top_Level_Triage.lts__t_sectors_srcunit_tex_op_atom_lookup_hit_realtime:
+      counter:
+        expr: Top_Level_Triage.lts__t_sectors_srcunit_tex_op_atom_realtime - (lts__t_sectors_srcunit_tex_lookup_miss_realtime - lts__t_sectors_srcunit_tex_op_read_lookup_miss_realtime - lts__t_sectors_srcunit_tex_op_write_lookup_miss_realtime)
+        sustainedRate: 1.0
+      description: '# of LTS sectors from unit TEX for all atomics or reductions that hit'
+  - Top_Level_Triage.lts__average_t_sector_hit_rate_srcunit_tex_op_atom_realtime:
+      ratio:
+        expr: Top_Level_Triage.lts__t_sectors_srcunit_tex_op_atom_lookup_hit_realtime, RollupOp.avg, Top_Level_Triage.lts__t_sectors_srcunit_tex_op_atom_realtime, RollupOp.avg
+        maxRate: 1.0
+      description: proportion of L2 sector lookups from unit TEX for atomics or reductions that hit
+  - Top_Level_Triage.lts__t_sectors_srcunit_tex_op_read_lookup_hit_realtime:
+      counter:
+        expr: lts__t_sectors_srcunit_tex_op_read_realtime - lts__t_sectors_srcunit_tex_op_read_lookup_miss_realtime
+        sustainedRate: 2.0
+      description: '# of LTS sectors from unit TEX for all reads that hit'
+  - Top_Level_Triage.lts__average_t_sector_hit_rate_srcunit_tex_op_read_realtime:
+      ratio:
+        expr: Top_Level_Triage.lts__t_sectors_srcunit_tex_op_read_lookup_hit_realtime, RollupOp.avg, lts__t_sectors_srcunit_tex_op_read_realtime, RollupOp.avg
+        maxRate: 1.0
+      description: proportion of L2 sector lookups from unit TEX for reads that hit
+  - Top_Level_Triage.lts__t_sectors_srcunit_tex_op_write_lookup_hit_realtime:
+      counter:
+        expr: lts__t_sectors_srcunit_tex_op_write_realtime - lts__t_sectors_srcunit_tex_op_write_lookup_miss_realtime
+        sustainedRate: 1.0
+      description: '# of LTS sectors from unit TEX for all writes that hit'
+  - Top_Level_Triage.lts__average_t_sector_hit_rate_srcunit_tex_op_write_realtime:
+      ratio:
+        expr: Top_Level_Triage.lts__t_sectors_srcunit_tex_op_write_lookup_hit_realtime, RollupOp.avg, lts__t_sectors_srcunit_tex_op_write_realtime, RollupOp.avg
+        maxRate: 1.0
+      description: proportion of L2 sector lookups from unit TEX for writes that hit
+  - Top_Level_Triage.lts__t_sectors_srcunit_zrop_lookup_hit_realtime:
+      counter:
+        expr: lts__t_sectors_srcunit_zrop_realtime - lts__t_sectors_srcunit_zrop_lookup_miss_realtime
+        sustainedRate: 1.0
+      description: '# of LTS sectors from unit PROP that hit'
+  - Top_Level_Triage.lts__average_t_sector_hit_rate_srcunit_zrop_realtime:
+      ratio:
+        expr: Top_Level_Triage.lts__t_sectors_srcunit_zrop_lookup_hit_realtime, RollupOp.sum, lts__t_sectors_srcunit_zrop_realtime, RollupOp.sum
+        maxRate: 1.0
+      description: proportion of L2 sector lookups from unit ZROP that hit
+  - Top_Level_Triage.lts__throughput:
+      throughput: [lts__t_sectors_realtime, lts__lts2xbar_cycles_active_realtime, lts__xbar2lts_cycles_active, lts__t_requests, lts__d_atomic_input_cycles_active, Top_Level_Triage.lts__cbc_requests_type_comptag_realtime]
+      description: LTS Throughput
+  - Top_Level_Triage.rtcore__throughput:
+      throughput: [rtcore__throughput_realtime]
+      description: RTCORE Throughput
+  - Top_Level_Triage.sm__average_dcc_hit_rate:
+      ratio:
+        expr: sm__dcc_requests_lookup_hit, RollupOp.avg, sm__dcc_requests, RollupOp.avg
+        maxRate: 1.0
+  - Top_Level_Triage.sm__average_inst_latency_pipe_lsu_mem_lg_cmd_read:
+      ratio:
+        expr: sm__inst_pending_pipe_lsu_mem_lg_cmd_read_realtime, RollupOp.avg, sm__inst_executed_pipe_lsu_mem_lg_cmd_read_realtime, RollupOp.avg
+        maxRate: 1.0
+  - Top_Level_Triage.sm__average_inst_latency_pipe_lsu_mem_shared_cmd_read:
+      ratio:
+        expr: sm__inst_pending_pipe_lsu_mem_shared_cmd_read_realtime, RollupOp.avg, sm__inst_executed_pipe_lsu_mem_shared_cmd_read_realtime, RollupOp.avg
+        maxRate: 1.0
+  - Top_Level_Triage.sm__average_inst_latency_pipe_tex_cmd_read:
+      ratio:
+        expr: sm__inst_pending_pipe_tex_cmd_read_realtime, RollupOp.avg, sm__inst_executed_pipe_tex_cmd_read_realtime, RollupOp.avg
+        maxRate: 1.0
+  - Top_Level_Triage.sm__thread_inst_executed_pipe_fmaheavy_pred_on_realtime:
+      counter:
+        expr: sm__thread_inst_executed_pipe_fmaheavy_type_int_pred_on_realtime + sm__thread_inst_executed_pipe_fma_type_fp16_pred_on_realtime + sm__thread_inst_executed_pipe_fmaheavy_type_fp32_pred_on_realtime
+        sustainedRate: 64.0
+  - Top_Level_Triage.sm__thread_inst_executed_pipe_fma_pred_on_realtime:
+      counter:
+        expr: Top_Level_Triage.sm__thread_inst_executed_pipe_fmaheavy_pred_on_realtime + sm__thread_inst_executed_pipe_fmalite_type_fp32_pred_on_realtime
+        sustainedRate: 256.0
+  - Top_Level_Triage.sm__thread_inst_executed_pred_off_realtime:
+      counter:
+        expr: sm__inst_executed_realtime * 32 - sm__thread_inst_executed_pred_on_realtime
+        sustainedRate: 128.0
+  - Top_Level_Triage.sm__thread_inst_executed_pred_off_per_inst_executed_realtime:
+      ratio:
+        expr: Top_Level_Triage.sm__thread_inst_executed_pred_off_realtime, RollupOp.avg, sm__inst_executed_realtime, RollupOp.avg
+        maxRate: 32.0
+  - Top_Level_Triage.sm__thread_inst_executed_pred_on_per_inst_executed_pipe_alu_size_64b_realtime:
+      ratio:
+        expr: sm__thread_inst_executed_pipe_alu_size_64b_pred_on_realtime, RollupOp.avg, sm__inst_executed_pipe_alu_size_64b_realtime, RollupOp.avg
+        maxRate: 32.0
+  - Top_Level_Triage.sm__thread_inst_executed_pred_on_per_inst_executed_pipe_aluheavy_realtime:
+      ratio:
+        expr: sm__thread_inst_executed_pipe_aluheavy_pred_on_realtime, RollupOp.avg, sm__inst_executed_pipe_aluheavy_realtime, RollupOp.avg
+        maxRate: 32.0
+  - Top_Level_Triage.sm__thread_inst_executed_pred_on_per_inst_executed_pipe_fma_realtime:
+      ratio:
+        expr: Top_Level_Triage.sm__thread_inst_executed_pipe_fma_pred_on_realtime, RollupOp.avg, sm__inst_executed_pipe_fma_realtime, RollupOp.avg
+        maxRate: 32.0
+  - Top_Level_Triage.sm__thread_inst_executed_pred_on_per_inst_executed_pipe_fmaheavy_realtime:
+      ratio:
+        expr: Top_Level_Triage.sm__thread_inst_executed_pipe_fmaheavy_pred_on_realtime, RollupOp.avg, sm__inst_executed_pipe_fmaheavy_realtime, RollupOp.avg
+        maxRate: 32.0
+  - Top_Level_Triage.sm__thread_inst_executed_pred_on_per_inst_executed_pipe_xu_realtime:
+      ratio:
+        expr: sm__thread_inst_executed_pipe_xu_pred_on_realtime, RollupOp.avg, sm__inst_executed_pipe_xu_realtime, RollupOp.avg
+        maxRate: 32.0
+  - Top_Level_Triage.sm__thread_inst_executed_pred_on_per_inst_executed_realtime:
+      ratio:
+        expr: sm__thread_inst_executed_pred_on_realtime, RollupOp.avg, sm__inst_executed_realtime, RollupOp.avg
+        maxRate: 32.0
+  - Top_Level_Triage.sm__throughput:
+      throughput: [sm__inst_executed_realtime, sm__inst_executed_pipe_aluheavy_realtime, sm__pipe_fma_cycles_active_realtime, sm__pipe_fmaheavy_cycles_active_realtime, sm__inst_executed_pipe_xu_realtime, sm__inst_executed_pipe_uniform_realtime]
+  - Top_Level_Triage.syslts__t_sectors_srcnode_gpc_lookup_hit_realtime:
+      counter:
+        expr: syslts__t_sectors_srcnode_gpc_realtime - syslts__t_sectors_srcnode_gpc_lookup_miss_realtime
+        sustainedRate: 1.0
+      description: '# of SYSLTS sectors from node GPC that hit'
+  - Top_Level_Triage.syslts__average_t_sector_hit_rate_srcnode_gpc_realtime:
+      ratio:
+        expr: Top_Level_Triage.syslts__t_sectors_srcnode_gpc_lookup_hit_realtime, RollupOp.sum, syslts__t_sectors_srcnode_gpc_realtime, RollupOp.sum
+        maxRate: 1.0
+      description: proportion of SYSL2 sector lookups from node GPC that hit
+  - Top_Level_Triage.syslts__t_sectors_srcunit_ce_lookup_hit_realtime:
+      counter:
+        expr: syslts__t_sectors_srcunit_ce_realtime - syslts__t_sectors_srcunit_ce_lookup_miss_realtime
+        sustainedRate: 1.0
+      description: '# of SYSLTS sectors from unit CE that hit'
+  - Top_Level_Triage.syslts__average_t_sector_hit_rate_srcunit_ce_realtime:
+      ratio:
+        expr: Top_Level_Triage.syslts__t_sectors_srcunit_ce_lookup_hit_realtime, RollupOp.sum, syslts__t_sectors_srcunit_ce_realtime, RollupOp.sum
+        maxRate: 1.0
+      description: proportion of SYSL2 sector lookups from unit CE that hit
+  - Top_Level_Triage.syslts__t_sectors_srcunit_crop_lookup_hit_realtime:
+      counter:
+        expr: syslts__t_sectors_srcunit_crop_realtime - syslts__t_sectors_srcunit_crop_lookup_miss_realtime
+        sustainedRate: 1.0
+      description: '# of SYSLTS sectors from unit CROP that hit'
+  - Top_Level_Triage.syslts__average_t_sector_hit_rate_srcunit_crop_realtime:
+      ratio:
+        expr: Top_Level_Triage.syslts__t_sectors_srcunit_crop_lookup_hit_realtime, RollupOp.sum, syslts__t_sectors_srcunit_crop_realtime, RollupOp.sum
+        maxRate: 1.0
+      description: proportion of SYSL2 sector lookups from unit CROP that hit
+  - Top_Level_Triage.syslts__t_sectors_srcunit_gcc_op_read_lookup_hit_realtime:
+      counter:
+        expr: syslts__t_sectors_srcunit_gcc_realtime - syslts__t_sectors_srcunit_gcc_op_read_lookup_miss_realtime
+        sustainedRate: 1.0
+      description: '# of SYSLTS sectors from unit GCC that hit'
+  - Top_Level_Triage.syslts__average_t_sector_hit_rate_srcunit_gcc_op_read_realtime:
+      ratio:
+        expr: Top_Level_Triage.syslts__t_sectors_srcunit_gcc_op_read_lookup_hit_realtime, RollupOp.sum, syslts__t_sectors_srcunit_gcc_realtime, RollupOp.sum
+        maxRate: 1.0
+      description: proportion of SYSL2 sector lookups from unit GCC that hit
+  - Top_Level_Triage.syslts__t_sectors_srcunit_pe_op_read_lookup_hit_realtime:
+      counter:
+        expr: syslts__t_sectors_srcunit_pe_op_read_realtime - syslts__t_sectors_srcunit_pe_op_read_lookup_miss_realtime
+  - Top_Level_Triage.syslts__average_t_sector_hit_rate_srcunit_pe_op_read_realtime:
+      ratio:
+        expr: Top_Level_Triage.syslts__t_sectors_srcunit_pe_op_read_lookup_hit_realtime, RollupOp.avg, syslts__t_sectors_srcunit_pe_op_read_realtime, RollupOp.avg
+        maxRate: 1.0
+      description: proportion of SYSL2 sector lookups from unit PE for read that hit
+  - Top_Level_Triage.syslts__t_sectors_srcunit_pe_lookup_hit_realtime:
+      counter:
+        expr: syslts__t_sectors_srcunit_pe_realtime - syslts__t_sectors_srcunit_pe_lookup_miss_realtime
+        sustainedRate: 1.0
+      description: '# of SYSLTS sectors from unit PE that hit'
+  - Top_Level_Triage.syslts__average_t_sector_hit_rate_srcunit_pe_realtime:
+      ratio:
+        expr: Top_Level_Triage.syslts__t_sectors_srcunit_pe_lookup_hit_realtime, RollupOp.sum, syslts__t_sectors_srcunit_pe_realtime, RollupOp.sum
+        maxRate: 1.0
+      description: proportion of SYSL2 sector lookups from unit PE that hit
+  - Top_Level_Triage.syslts__t_sectors_srcunit_raster_lookup_hit_realtime:
+      counter:
+        expr: syslts__t_sectors_srcunit_raster_realtime - syslts__t_sectors_srcunit_raster_lookup_miss_realtime
+        sustainedRate: 1.0
+      description: '# of SYSLTS sectors from unit RASTER that hit'
+  - Top_Level_Triage.syslts__average_t_sector_hit_rate_srcunit_raster_realtime:
+      ratio:
+        expr: Top_Level_Triage.syslts__t_sectors_srcunit_raster_lookup_hit_realtime, RollupOp.sum, syslts__t_sectors_srcunit_raster_realtime, RollupOp.sum
+        maxRate: 1.0
+      description: proportion of SYSL2 sector lookups from unit RASTER that hit
+  - Top_Level_Triage.syslts__t_sectors_srcunit_tex_op_atom_realtime:
+      counter:
+        expr: syslts__t_sectors_srcunit_tex_realtime - syslts__t_sectors_srcunit_tex_op_read_realtime - syslts__t_sectors_srcunit_tex_op_write_realtime
+  - Top_Level_Triage.syslts__t_sectors_srcunit_tex_op_atom_lookup_hit_realtime:
+      counter:
+        expr: (Top_Level_Triage.syslts__t_sectors_srcunit_tex_op_atom_realtime) - (syslts__t_sectors_srcunit_tex_lookup_miss_realtime - syslts__t_sectors_srcunit_tex_op_read_lookup_miss_realtime - syslts__t_sectors_srcunit_tex_op_write_lookup_miss_realtime)
+        sustainedRate: 1.0
+      description: '# of SYSLTS sectors from unit TEX for all atomics or reductions that hit'
+  - Top_Level_Triage.syslts__average_t_sector_hit_rate_srcunit_tex_op_atom_realtime:
+      ratio:
+        expr: Top_Level_Triage.syslts__t_sectors_srcunit_tex_op_atom_lookup_hit_realtime, RollupOp.avg, Top_Level_Triage.syslts__t_sectors_srcunit_tex_op_atom_realtime, RollupOp.avg
+        maxRate: 1.0
+      description: proportion of SYSL2 sector lookups from unit TEX for atomics or reductions that hit
+  - Top_Level_Triage.syslts__t_sectors_srcunit_tex_op_read_lookup_hit_realtime:
+      counter:
+        expr: syslts__t_sectors_srcunit_tex_op_read_realtime - syslts__t_sectors_srcunit_tex_op_read_lookup_miss_realtime
+        sustainedRate: 1.0
+      description: '# of SYSLTS sectors from unit TEX for all reads that hit'
+  - Top_Level_Triage.syslts__average_t_sector_hit_rate_srcunit_tex_op_read_realtime:
+      ratio:
+        expr: Top_Level_Triage.syslts__t_sectors_srcunit_tex_op_read_lookup_hit_realtime, RollupOp.avg, syslts__t_sectors_srcunit_tex_op_read_realtime, RollupOp.avg
+        maxRate: 1.0
+      description: proportion of SYSL2 sector lookups from unit TEX for reads that hit
+  - Top_Level_Triage.syslts__t_sectors_srcunit_tex_op_write_lookup_hit_realtime:
+      counter:
+        expr: syslts__t_sectors_srcunit_tex_op_write_realtime - syslts__t_sectors_srcunit_tex_op_write_lookup_miss_realtime
+        sustainedRate: 1.0
+      description: '# of SYSLTS sectors from unit TEX for all writes that hit'
+  - Top_Level_Triage.syslts__average_t_sector_hit_rate_srcunit_tex_op_write_realtime:
+      ratio:
+        expr: Top_Level_Triage.syslts__t_sectors_srcunit_tex_op_write_lookup_hit_realtime, RollupOp.avg, syslts__t_sectors_srcunit_tex_op_write_realtime, RollupOp.avg
+        maxRate: 1.0
+      description: proportion of SYSL2 sector lookups from unit TEX for writes that hit
+  - Top_Level_Triage.syslts__t_sectors_srcunit_zrop_lookup_hit_realtime:
+      counter:
+        expr: syslts__t_sectors_srcunit_zrop_realtime - syslts__t_sectors_srcunit_zrop_lookup_miss_realtime
+        sustainedRate: 1.0
+      description: '# of SYSLTS sectors from unit PROP that hit'
+  - Top_Level_Triage.syslts__average_t_sector_hit_rate_srcunit_zrop_realtime:
+      ratio:
+        expr: Top_Level_Triage.syslts__t_sectors_srcunit_zrop_lookup_hit_realtime, RollupOp.sum, syslts__t_sectors_srcunit_zrop_realtime, RollupOp.sum
+        maxRate: 1.0
+      description: proportion of SYSL2 sector lookups from unit ZROP that hit
+  - Top_Level_Triage.syslts__t_sectors_srcunit_hubother_realtime:
+      counter:
+        expr: syslts__t_sectors_srcnode_hub_realtime - syslts__t_sectors_srcunit_ce_realtime
+        sustainedRate: 1.0
+      description: '# of SYSLTS sectors from HUB other unit'
+  - Top_Level_Triage.syslts__throughput:
+      throughput: [syslts__t_sectors_realtime, syslts__syslts2xbar_cycles_active, syslts__xbar2syslts_cycles_active, syslts__t_requests, syslts__d_atomic_input_cycles_active]
+      description: SYSLTS Throughput
+  - Top_Level_Triage.tpc__average_threads_launched_per_warp:
+      ratio:
+        expr: tpc__threads_launched_realtime, RollupOp.sum, (tpc__warps_launched_shader_vtg_realtime + tpc__warps_launched_shader_ps + tpc__warps_launched_shader_cs_queue_sync + tpc__warps_launched_shader_cs_queue_async), RollupOp.sum
+        maxRate: 32.0
+      description: '# threads launched per warp'
+  - Top_Level_Triage.tpc__average_threads_launched_per_warp_shader_ps:
+      ratio:
+        expr: tpc__threads_launched_shader_ps_realtime, RollupOp.sum, tpc__warps_launched_shader_ps, RollupOp.sum
+        maxRate: 16.0
+      description: '# PS threads launched per warp'
+  - Top_Level_Triage.tpc__l1tex_sram_bytes_mem_untagged_data_shared_allocated_compute_queue_async_realtime:
+      counter:
+        expr: tpc__l1tex_sram_lines_mem_untagged_data_shared_allocated_compute_queue_async_realtime * Top_Level_Triage.bytes_per_l1tex_line
+        sustainedRate: 204800.0
+      description: 'cumulative # of shared memory bytes allocated by active CTAs launched from any async queue'
+  - Top_Level_Triage.tpc__l1tex_sram_bytes_mem_untagged_data_shared_allocated_compute_queue_sync_realtime:
+      counter:
+        expr: tpc__l1tex_sram_lines_mem_untagged_data_shared_allocated_compute_queue_sync_realtime * Top_Level_Triage.bytes_per_l1tex_line
+        sustainedRate: 204800.0
+      description: 'cumulative # of shared memory bytes allocated by active CTAs launched from the direct queue'
+  - Top_Level_Triage.tpc__l1tex_sram_bytes_mem_untagged_data_shared_allocated_isbe_realtime:
+      counter:
+        expr: tpc__l1tex_sram_lines_mem_untagged_data_shared_allocated_isbe_realtime * Top_Level_Triage.bytes_per_l1tex_line
+        sustainedRate: 172032.0
+      description: 'cumulative # of ISBE bytes allocated by VTG warps'
+  - Top_Level_Triage.tpc__l1tex_sram_bytes_mem_untagged_data_shared_unallocated_realtime:
+      counter:
+        expr: tpc__l1tex_sram_bytes_mem_untagged_data_shared_realtime - (Top_Level_Triage.tpc__l1tex_sram_bytes_mem_untagged_data_shared_allocated_compute_queue_sync_realtime + Top_Level_Triage.tpc__l1tex_sram_bytes_mem_untagged_data_shared_allocated_compute_queue_async_realtime + Top_Level_Triage.tpc__l1tex_sram_bytes_mem_untagged_data_shared_allocated_isbe_realtime)
+        sustainedRate: 204800.0
+      description: 'cumulative # of shared memory bytes unallocated'
+  - Top_Level_Triage.tpc__l1tex_sram_bytes_mem_untagged_data_tram_allocated_realtime:
+      counter:
+        expr: tpc__l1tex_sram_lines_mem_untagged_data_tram_allocated_realtime * Top_Level_Triage.bytes_per_l1tex_line
+        sustainedRate: 32768.0
+      description: 'cumulative # of TRAM bytes allocated by PS warps'
+  - Top_Level_Triage.tpc__sm_rf_registers_allocated_shader_ps_realtime:
+      counter:
+        expr: tpc__sm_rf_quanta_allocated_shader_ps_realtime * Top_Level_Triage.registers_per_rf_quantum
+        sustainedRate: 131072.0
+      description: 'cumulative # of registers allocated by active PS warps'
+  - Top_Level_Triage.tpc__sm_rf_registers_allocated_shader_vtg_realtime:
+      counter:
+        expr: (tpc__sm_rf_quanta_allocated_realtime - tpc__sm_rf_quanta_allocated_shader_ps_realtime - tpc__sm_rf_quanta_allocated_shader_cs_queue_sync_realtime - tpc__sm_rf_quanta_allocated_shader_cs_queue_async_realtime) * Top_Level_Triage.registers_per_rf_quantum
+        sustainedRate: 131072.0
+      description: 'cumulative # of registers allocated by active VTG warps'
+  - Top_Level_Triage.tpc__threads_launched_shader_cs_and_vtg_realtime:
+      counter:
+        expr: tpc__threads_launched_realtime - tpc__threads_launched_shader_ps_realtime
+        sustainedRate: 1.125
+      description: '# of VTG+CS warps launched'
+  - Top_Level_Triage.tpc__threads_launched_shader_ps_killmask_off_realtime:
+      counter:
+        expr: RerollUp(sm__threads_launched_shader_ps_killmask_off_output_killed_reason_discard_realtime + sm__threads_launched_shader_ps_killmask_off_output_killed_reason_coverage_mask_realtime, RollupOp.sum, HwUnit.tpc)
+        sustainedRate: 16.0
+      description: '# of PS threads launched in not-killed state (with sample coverage)'
+  - Top_Level_Triage.tpc__threads_launched_shader_ps_killmask_on_realtime:
+      counter:
+        expr: tpc__threads_launched_shader_ps_realtime - Top_Level_Triage.tpc__threads_launched_shader_ps_killmask_off_realtime
+        sustainedRate: 16.0
+      description: '# of PS threads launched in killed state (lacking sample coverage)'
+  - Top_Level_Triage.tpc__threads_unused:
+      counter:
+        expr: ((tpc__warps_launched_shader_vtg_realtime + tpc__warps_launched_shader_ps + tpc__warps_launched_shader_cs_queue_sync + tpc__warps_launched_shader_cs_queue_async) * Top_Level_Triage.threads_per_warp) - tpc__threads_launched_realtime
+        sustainedRate: 32.0
+      description: '# unused threads'
+  - Top_Level_Triage.tpc__warps_inactive_sm_active_realtime:
+      counter:
+        expr: RerollUp(sm__cycles_active, RollupOp.avg, HwUnit.tpc) * Top_Level_Triage.max_warps_per_tpc - (tpc__warps_active_shader_cs_queue_sync_realtime + tpc__warps_active_shader_cs_queue_async_realtime + tpc__warps_active_shader_ps_realtime + tpc__warps_active_shader_vtg_realtime)
+        sustainedRate: 96.0
+metricGroups:
+  - GfxTriage_GPC:
+      schedulingHints:
+        - gpu_gpc_a:
+            - '0xc04fd5537bcb2cba'
+            - '0xc6b2c4a9b227531c'
+            - '0xb69b6bf9847e3e20'
+            - '0x53b2f9f5b39b6a46'
+            - '0x2d47a5b5a9ea7aac'
+            - '0xde04860df2a9f189'
+            - '0xbfa6580e8b9520c8'
+            - '0x4b46301483076d79'
+            - '0x151e437ca0bdef23'
+        - gpu_gpc_b:
+            - '0xfbba2235a39eeb2d'
+            - '0x8ccef71af5614b2c'
+            - '0xa98225534007ec88'
+        - gpu_rop:
+            - '0xb21cdcc11b44c79c'
+            - '0x1a705533f366f218'
+            - '0x213797930c39b644'
+            - '0x6dde2f86e2b93523'
+            - '0x810b16c2f2f7814f'
+            - '0x98cae70c95782419'
+      metrics:
+        - crop__read_throughput
+        - crop__throughput
+        - crop__write_throughput
+        - gcc__average_cache_request_type_constant_hit_rate
+        - gcc__average_cache_request_type_instruction_hit_rate
+        - gcc__average_cache_request_type_tsheader_hit_rate
+        - gcc__cache_requests_type_constant
+        - gcc__cache_requests_type_constant_lookup_miss
+        - gcc__cache_requests_type_instruction
+        - gcc__cache_requests_type_instruction_lookup_miss
+        - gcc__cache_requests_type_tsheader
+        - gcc__cache_requests_type_tsheader_lookup_miss
+        - gpc__cycles_elapsed
+        - pes__throughput_realtime
+        - prop__input_pixels_type_3d_realtime
+        - prop__prop2crop_pixels_realtime
+        - prop__prop2zrop_pixels_mode_earlyz_op_passed_realtime
+        - prop__prop2zrop_pixels_mode_earlyz_realtime
+        - prop__prop2zrop_pixels_mode_latez_op_passed_realtime
+        - prop__prop2zrop_pixels_mode_latez_realtime
+        - prop__throughput
+        - raster__throughput_realtime
+        - raster__zcull_input_samples_op_accepted_realtime
+        - raster__zcull_input_samples_realtime
+        - rop__throughput
+        - stri__throughput
+        - vaf__throughput_realtime
+        - vpc__cull_input_prims
+        - vpc__cull_input_prims_op_passed
+        - vpc__throughput_realtime
+        - zrop__read_throughput
+        - zrop__throughput
+        - zrop__write_throughput
+        - Top_Level_Triage.ScreenPipe_throughput
+        - Top_Level_Triage.WorldPipe_throughput
+        - Top_Level_Triage.gcc__cache_bytes
+        - Top_Level_Triage.gcc__cache_bytes_lookup_miss
+        - Top_Level_Triage.pe__l2_requests_throughput
+  - GfxTriage_HUB:
+      schedulingHints:
+        - gpu_pci:
+            - '0x6c2070a25be9038e'
+            - '0x7d06f2485ea36623'
+            - '0xdee6ea160f893505'
+            - '0x2d936b7e6d4fd883'
+            - '0xa00f726a1d2edc0e'
+            - '0x9df089fb22f6f80a'
+            - '0x90c7dd6445541518'
+            - '0x723893df855d223c'
+      metrics:
+        - gpu__engine_cycles_active_any_syncce
+        - gpu__scheduler_engine_asyncce0_cycles_active
+        - pcie__read_bytes
+        - pcie__rx_requests_aperture_bar0_op_read
+        - pcie__rx_requests_aperture_bar0_op_write
+        - pcie__rx_requests_aperture_bar1_op_read
+        - pcie__rx_requests_aperture_bar1_op_write
+        - pcie__rx_requests_aperture_bar2_op_read
+        - pcie__rx_requests_aperture_bar2_op_write
+        - pcie__throughput
+        - pcie__write_bytes
+        - sys__cycles_elapsed
+  - GfxTriage_SysMem:
+      schedulingHints:
+        - gpu_syslts:
+            - '0x70ffee9b6746c3aa'
+        - gpu_syslts_b:
+            - '0x98f0e8a8db18d095'
+            - '0x34550f104f200beb'
+            - '0x72b96b546923210c'
+            - '0x5aa55f8e1099821c'
+            - '0x243710c53afa96b0'
+            - '0x72a8b368350825ae'
+            - '0x54ae072db91327e0'
+            - '0xedd38aa251918c02'
+            - '0xd89cf279179f5373'
+            - '0x53849942365c85ac'
+            - '0xb2366adff6c745ca'
+            - '0x75b39ab2e54bf2af'
+            - '0xbdd55beb2f2a5648'
+            - '0x74264fce18b06c5f'
+            - '0x2571a4472a4e3087'
+            - '0x9d9eb2dd2b443f4e'
+      metrics:
+        - syslts__average_t_sector_hit_rate_realtime
+        - syslts__average_t_sector_hit_rate_srcunit_tex_realtime
+        - syslts__d_atomic_input_cycles_active
+        - syslts__syslts2xbar_cycles_active
+        - syslts__t_requests
+        - syslts__t_sectors_aperture_peermem_realtime
+        - syslts__t_sectors_aperture_sysmem_realtime
+        - syslts__t_sectors_lookup_miss_realtime
+        - syslts__t_sectors_realtime
+        - syslts__t_sectors_srcunit_ce_realtime
+        - syslts__t_sectors_srcunit_crop_realtime
+        - syslts__t_sectors_srcunit_gcc_op_read_lookup_miss_realtime
+        - syslts__t_sectors_srcunit_gcc_realtime
+        - syslts__t_sectors_srcunit_pe_op_read_realtime
+        - syslts__t_sectors_srcunit_pe_op_write_realtime
+        - syslts__t_sectors_srcunit_pe_realtime
+        - syslts__t_sectors_srcunit_raster_realtime
+        - syslts__t_sectors_srcunit_tex_lookup_miss_realtime
+        - syslts__t_sectors_srcunit_tex_realtime
+        - syslts__t_sectors_srcunit_zrop_realtime
+        - syslts__xbar2syslts_cycles_active
+        - Top_Level_Triage.pe__syslts_requests_op_read_throughput
+        - Top_Level_Triage.pe__syslts_requests_op_write_throughput
+        - Top_Level_Triage.syslts__average_t_sector_hit_rate_srcnode_gpc_realtime
+        - Top_Level_Triage.syslts__average_t_sector_hit_rate_srcunit_ce_realtime
+        - Top_Level_Triage.syslts__average_t_sector_hit_rate_srcunit_crop_realtime
+        - Top_Level_Triage.syslts__average_t_sector_hit_rate_srcunit_gcc_op_read_realtime
+        - Top_Level_Triage.syslts__average_t_sector_hit_rate_srcunit_pe_op_read_realtime
+        - Top_Level_Triage.syslts__average_t_sector_hit_rate_srcunit_pe_realtime
+        - Top_Level_Triage.syslts__average_t_sector_hit_rate_srcunit_raster_realtime
+        - Top_Level_Triage.syslts__average_t_sector_hit_rate_srcunit_tex_op_atom_realtime
+        - Top_Level_Triage.syslts__average_t_sector_hit_rate_srcunit_tex_op_read_realtime
+        - Top_Level_Triage.syslts__average_t_sector_hit_rate_srcunit_tex_op_write_realtime
+        - Top_Level_Triage.syslts__average_t_sector_hit_rate_srcunit_zrop_realtime
+        - Top_Level_Triage.syslts__t_sectors_srcnode_gpc_lookup_hit_realtime
+        - Top_Level_Triage.syslts__t_sectors_srcunit_ce_lookup_hit_realtime
+        - Top_Level_Triage.syslts__t_sectors_srcunit_crop_lookup_hit_realtime
+        - Top_Level_Triage.syslts__t_sectors_srcunit_gcc_op_read_lookup_hit_realtime
+        - Top_Level_Triage.syslts__t_sectors_srcunit_hubother_realtime
+        - Top_Level_Triage.syslts__t_sectors_srcunit_pe_lookup_hit_realtime
+        - Top_Level_Triage.syslts__t_sectors_srcunit_pe_op_read_lookup_hit_realtime
+        - Top_Level_Triage.syslts__t_sectors_srcunit_raster_lookup_hit_realtime
+        - Top_Level_Triage.syslts__t_sectors_srcunit_tex_op_atom_lookup_hit_realtime
+        - Top_Level_Triage.syslts__t_sectors_srcunit_tex_op_atom_realtime
+        - Top_Level_Triage.syslts__t_sectors_srcunit_tex_op_read_lookup_hit_realtime
+        - Top_Level_Triage.syslts__t_sectors_srcunit_tex_op_write_lookup_hit_realtime
+        - Top_Level_Triage.syslts__t_sectors_srcunit_zrop_lookup_hit_realtime
+        - Top_Level_Triage.syslts__throughput
+  - GfxTriage_SysPipe:
+      schedulingHints:
+        - gpu_fe_a:
+            - '0x5fd8ff397c39dcb1'
+            - '0x2b151f1fd38ecd63'
+        - gpu_fe_b:
+            - '0x4b03e3d579b8100c'
+            - '0x8a2dcffd862b1ff3'
+            - '0x2519ed7f0105e45b'
+            - '0x109ed46880684249'
+            - '0x517122af40fbe6ec'
+            - '0x3254a62261943b23'
+            - '0x24b422749665643f'
+            - '0x1b90066231a78f26'
+        - gpu_fe_d:
+            - '0x6fdaa07a48e9b01c'
+            - '0xf8d9f27400bf2756'
+            - '0x1982cae44c6793b4'
+            - '0xdce02a28b3ea639f'
+            - '0x75817d3fc3de3ecd'
+      metrics:
+        - fe__cycles_active_queue_sync_subchannel_2d
+        - fe__cycles_active_queue_sync_subchannel_3d
+        - fe__cycles_stalled_cmd_wfi_queue_async
+        - fe__cycles_stalled_cmd_wfi_queue_sync
+        - fe__output_ops
+        - fe__output_ops_cmd_subchsw_queue_sync
+        - fe__output_ops_type_bundle_cmd_go_idle_queue_async
+        - fe__output_ops_type_bundle_cmd_go_idle_queue_sync
+        - fe__pixel_shader_barriers
+        - gr__compute_cycles_active_queue_async
+        - gr__compute_cycles_active_queue_sync
+        - gr__ctas_launched_queue_async_realtime
+        - gr__ctas_launched_queue_sync_realtime
+        - pda__input_prims_realtime
+        - pda__input_verts_realtime
+        - Top_Level_Triage.pda__throughput_realtime
+  - GfxTriage_TPC:
+      schedulingHints:
+        - gpu_sm_b:
+            - '0xc83feae1569676cb'
+            - '0x429f51824686c32f'
+        - gpu_tpc:
+            - '0xa4f952ee807a0da9'
+            - '0x43514227add521e5'
+            - '0x3e41b493ff688a3d'
+        - gpu_tpc_b:
+            - '0xeb1d378c39f5c764'
+            - '0xec99b1a0b25fbb6b'
+            - '0x51ada8f4d3c53973'
+            - '0xa2d45eaf7381cede'
+            - '0x84d4ead75ea4a565'
+            - '0xbbc540ff619b4660'
+            - '0xaaf40e282c2bb5d2'
+            - '0xaa4c5fb820c28a99'
+            - '0xcb634916d52b7507'
+            - '0xabafeeec25b774d9'
+            - '0x5174a52902403d58'
+            - '0x5dc48fe50dfd2e9c'
+            - '0x8963b1a6336ace84'
+            - '0x4c1f7d8648c41971'
+            - '0x31a8514c448ff52f'
+            - '0xab19d8a90dbeab35'
+            - '0x413c082c17c968cb'
+            - '0xd7f156746f44a182'
+            - '0x8856e8bc3a6dcf79'
+            - '0x52f472e77e109823'
+            - '0x7b61f674d13cad29'
+            - '0x080f181b349ab9ef'
+            - '0x891fd89836a01f75'
+            - '0x31896f77ed48c882'
+            - '0x5b246d70fc541d59'
+            - '0x0697d773d27d643e'
+            - '0x73d5e1f2da79d01a'
+            - '0xaa7fdacf371ef11e'
+            - '0x758f64d1fceb684f'
+            - '0xa5e5ff134fae9681'
+            - '0xf836d51919682187'
+            - '0xd1ff2fd5cb9b88be'
+            - '0x0d85b9c078699859'
+            - '0x2848003c2f0f07d9'
+            - '0x63fd872815d5c8cc'
+            - '0xebd78bcf4ccb7a19'
+            - '0xf8654a7557eba4b5'
+            - '0xa8bfb5047600932c'
+            - '0xd41e48bc0520d9ed'
+            - '0x6c6e8395b7a9d6b3'
+            - '0xefaf72af31b12952'
+            - '0x334656cff1785c94'
+            - '0x38777f66802168ee'
+            - '0xf3caa8776eb01aa1'
+            - '0x4829346a53ffaf45'
+            - '0x73b8917454652b5e'
+            - '0x4f51e1421374a6cd'
+            - '0xb0025dbffe9343a7'
+            - '0xb1534e56e990d2c6'
+            - '0x674d298a6407bd74'
+            - '0x3106f780d4b508a3'
+            - '0x90543c1c271e6d55'
+            - '0x7887564ffd8490c5'
+            - '0x245d320dbf50e08c'
+            - '0x852587a22b60d189'
+            - '0x5876d5449e6024cb'
+            - '0x6284ea315d8e098c'
+            - '0x4204f2081462b57f'
+            - '0xe8376c258504e911'
+            - '0xb7ace28f631d6768'
+            - '0x659f852ba66d0c87'
+            - '0x74bc17963f69c3c8'
+            - '0x84579e6570f0b230'
+            - '0xa3f6aeb5f0e8fa38'
+            - '0xfd0d17089434a42a'
+            - '0xfaf3916319c05194'
+            - '0xd208620a31d809b2'
+            - '0x700f0f899b2cafb4'
+            - '0xdfb26f7a2ed09658'
+            - '0x9fe0367dba22907b'
+            - '0x4e330a423e3ffa01'
+            - '0xe4166fd6590bfde0'
+            - '0xede5ca16214b1d67'
+            - '0x8d66dce4e8ec3b45'
+            - '0x49895bb333656e52'
+            - '0xecac2cbaef8dc3cf'
+      metrics:
+        - idc__request_hit_rate
+        - idc__requests
+        - idc__requests_lookup_hit
+        - idc__requests_lookup_miss
+        - l1tex__data_bank_conflicts_pipe_lsu_mem_shared_op_atom
+        - l1tex__data_bank_conflicts_pipe_lsu_mem_shared_op_ld
+        - l1tex__data_bank_conflicts_pipe_lsu_mem_shared_op_ldgsts
+        - l1tex__data_bank_conflicts_pipe_lsu_mem_shared_op_st
+        - l1tex__data_pipe_lsu_wavefronts
+        - l1tex__data_pipe_lsu_wavefronts_mem_lgds
+        - l1tex__data_pipe_lsu_wavefronts_mem_shared
+        - l1tex__data_pipe_lsu_wavefronts_mem_shared_op_atom
+        - l1tex__data_pipe_lsu_wavefronts_mem_shared_op_ld
+        - l1tex__data_pipe_lsu_wavefronts_mem_shared_op_ldgsts
+        - l1tex__data_pipe_lsu_wavefronts_mem_shared_op_misc
+        - l1tex__data_pipe_lsu_wavefronts_mem_shared_op_st
+        - l1tex__data_pipe_tex_wavefronts
+        - l1tex__f_wavefronts_realtime
+        - l1tex__lsu_writeback_active
+        - l1tex__m_l1tex2xbar_req_cycles_active
+        - l1tex__m_l1tex2xbar_write_sectors_mem_global_op_atom_or_red_realtime
+        - l1tex__m_l1tex2xbar_write_sectors_mem_surface_op_atom_or_red_realtime
+        - l1tex__m_xbar2l1tex_read_sectors_realtime
+        - l1tex__samp_input_quads_mem_texture_format_1d_buffer_realtime
+        - l1tex__samp_input_quads_mem_texture_format_1d_tex_realtime
+        - l1tex__samp_input_quads_mem_texture_format_2d_mipmap_realtime
+        - l1tex__samp_input_quads_mem_texture_format_3d_realtime
+        - l1tex__samp_input_quads_mem_texture_format_cubemap_realtime
+        - l1tex__samp_input_quads_miplevel_0_realtime
+        - l1tex__samp_input_quads_miplevel_1_realtime
+        - l1tex__samp_input_quads_size_32b_realtime
+        - l1tex__samp_input_quads_size_96b_realtime
+        - l1tex__sram_cycles_array_0_cmd_read
+        - l1tex__sram_cycles_array_0_cmd_write
+        - l1tex__sram_cycles_array_1_cmd_read
+        - l1tex__sram_cycles_array_1_cmd_write
+        - l1tex__t_sectors
+        - l1tex__t_sectors_lookup_hit
+        - l1tex__t_sectors_lookup_miss
+        - l1tex__t_sectors_pipe_lsu_mem_global_op_ld_lookup_hit_realtime
+        - l1tex__t_sectors_pipe_lsu_mem_global_op_st_lookup_hit_realtime
+        - l1tex__t_sectors_pipe_lsu_mem_local_op_ld_lookup_hit_realtime
+        - l1tex__t_sectors_pipe_lsu_mem_local_op_st_lookup_hit_realtime
+        - l1tex__t_sectors_pipe_tex_mem_surface_op_ld_lookup_hit_realtime
+        - l1tex__t_sectors_pipe_tex_mem_surface_op_st_lookup_hit_realtime
+        - l1tex__t_sectors_pipe_tex_mem_texture_op_ld_lookup_hit_realtime
+        - l1tex__t_sectors_pipe_tex_mem_texture_op_tex_lookup_hit_realtime
+        - l1tex__tex_writeback_active
+        - l1tex__texin_cycles_stalled_on_tsl1_miss
+        - l1tex__texin_tsl1_requests_lookup_hit_realtime
+        - l1tex__texin_tsl1_requests_lookup_miss_realtime
+        - rtcore__rays
+        - rtcore__throughput_realtime
+        - sm__bytes_mem_shared_cmd_atom_realtime
+        - sm__bytes_mem_shared_cmd_read_realtime
+        - sm__dcc_requests
+        - sm__dcc_requests_lookup_hit
+        - sm__dcc_requests_lookup_miss
+        - sm__inst_executed_pipe_alu_size_64b_realtime
+        - sm__inst_executed_pipe_aluheavy_realtime
+        - sm__inst_executed_pipe_fma_realtime
+        - sm__inst_executed_pipe_fmaheavy_realtime
+        - sm__inst_executed_pipe_tensor_subpipe_hmma_realtime
+        - sm__inst_executed_pipe_tensor_subpipe_imma_realtime
+        - sm__inst_executed_pipe_uniform_realtime
+        - sm__inst_executed_pipe_xu_realtime
+        - sm__inst_executed_realtime
+        - sm__pipe_fma_cycles_active_realtime
+        - sm__pipe_fmaheavy_cycles_active_realtime
+        - sm__pipe_tensor_cycles_active_realtime
+        - sm__threads_launched_shader_ps_killmask_off_output_killed_reason_discard_realtime
+        - tpc__ctas_active_queue_async_realtime
+        - tpc__ctas_active_queue_sync_realtime
+        - tpc__input_prims_shader_vs_realtime
+        - tpc__l1tex_sram_bytes_mem_tagged_realtime
+        - tpc__l1tex_sram_bytes_mem_untagged_data_tram_unallocated_realtime
+        - tpc__l1tex_sram_lines_mem_untagged_data_shared_allocated_compute_queue_async_realtime
+        - tpc__l1tex_sram_lines_mem_untagged_data_shared_allocated_compute_queue_sync_realtime
+        - tpc__l1tex_sram_lines_mem_untagged_data_shared_allocated_isbe_realtime
+        - tpc__l1tex_sram_lines_mem_untagged_data_tram_allocated_realtime
+        - tpc__sm_rf_registers_allocated_shader_cs_queue_async_realtime
+        - tpc__sm_rf_registers_allocated_shader_cs_queue_sync_realtime
+        - tpc__warps_active_shader_cs_queue_async_realtime
+        - tpc__warps_active_shader_cs_queue_sync_realtime
+        - tpc__warps_active_shader_ps_realtime
+        - tpc__warps_active_shader_vtg_realtime
+        - tpc__warps_launched_shader_cs_queue_async
+        - tpc__warps_launched_shader_cs_queue_sync
+        - tpc__warps_launched_shader_ps
+        - tpc__warps_launched_shader_vtg_realtime
+        - Top_Level_Triage.l1tex__average_cache_bytes_per_warp
+        - Top_Level_Triage.l1tex__average_data_bank_conflicts_per_request_mem_shared_op_atom
+        - Top_Level_Triage.l1tex__average_data_bank_conflicts_per_request_mem_shared_op_ld
+        - Top_Level_Triage.l1tex__average_data_bank_conflicts_per_request_mem_shared_op_st
+        - Top_Level_Triage.l1tex__average_texin_tsl1_hit_rate_realtime
+        - Top_Level_Triage.l1tex__data_bytes_mem_shared_cmd_atom_value_overhead
+        - Top_Level_Triage.l1tex__data_bytes_mem_shared_cmd_read_value_overhead
+        - Top_Level_Triage.l1tex__data_pipe_lsu_bytes_mem_shared
+        - Top_Level_Triage.l1tex__data_pipe_lsu_requests_mem_shared_op_atom
+        - Top_Level_Triage.l1tex__data_pipe_lsu_requests_mem_shared_op_ld
+        - Top_Level_Triage.l1tex__data_pipe_lsu_requests_mem_shared_op_st
+        - Top_Level_Triage.l1tex__data_pipe_lsu_wavefronts_mem_shared
+        - Top_Level_Triage.l1tex__data_pipe_lsu_wavefronts_mem_surface
+        - Top_Level_Triage.l1tex__samp_input_quads_mem_texture_format_2d_nomipmap_realtime
+        - Top_Level_Triage.l1tex__samp_input_quads_miplevel_2ormore_realtime
+        - Top_Level_Triage.l1tex__samp_input_quads_size_64b_or_128b_realtime
+        - Top_Level_Triage.l1tex__t_sector_hit_rate
+        - Top_Level_Triage.l1tex__t_sector_pipe_lsu_mem_global_op_ld_hit_rate
+        - Top_Level_Triage.l1tex__t_sector_pipe_lsu_mem_global_op_st_hit_rate
+        - Top_Level_Triage.l1tex__t_sector_pipe_lsu_mem_local_op_ld_hit_rate
+        - Top_Level_Triage.l1tex__t_sector_pipe_lsu_mem_local_op_st_hit_rate
+        - Top_Level_Triage.l1tex__t_sector_pipe_tex_mem_surface_op_ld_hit_rate
+        - Top_Level_Triage.l1tex__t_sector_pipe_tex_mem_surface_op_st_hit_rate
+        - Top_Level_Triage.l1tex__t_sector_pipe_tex_mem_texture_op_ld_hit_rate
+        - Top_Level_Triage.l1tex__t_sector_pipe_tex_mem_texture_op_tex_hit_rate
+        - Top_Level_Triage.l1tex__t_sectors_lookup_hit_realtime
+        - Top_Level_Triage.l1tex__t_sectors_op_other_lookup_hit
+        - Top_Level_Triage.l1tex__t_sectors_op_other_lookup_miss
+        - Top_Level_Triage.l1tex__t_sectors_pipe_lsu_mem_global_op_ld_lookup_miss_realtime
+        - Top_Level_Triage.l1tex__t_sectors_pipe_lsu_mem_global_op_st_lookup_miss_realtime
+        - Top_Level_Triage.l1tex__t_sectors_pipe_lsu_mem_global_realtime
+        - Top_Level_Triage.l1tex__t_sectors_pipe_lsu_mem_local_op_ld_lookup_miss_realtime
+        - Top_Level_Triage.l1tex__t_sectors_pipe_lsu_mem_local_op_st_lookup_miss_realtime
+        - Top_Level_Triage.l1tex__t_sectors_pipe_lsu_mem_local_realtime
+        - Top_Level_Triage.l1tex__t_sectors_pipe_tex_mem_surface_op_ld_lookup_miss_realtime
+        - Top_Level_Triage.l1tex__t_sectors_pipe_tex_mem_surface_op_st_lookup_miss_realtime
+        - Top_Level_Triage.l1tex__t_sectors_pipe_tex_mem_surface_realtime
+        - Top_Level_Triage.l1tex__t_sectors_pipe_tex_mem_texture_op_ld_lookup_miss_realtime
+        - Top_Level_Triage.l1tex__t_sectors_pipe_tex_mem_texture_op_tex_lookup_miss_realtime
+        - Top_Level_Triage.l1tex__t_sectors_pipe_tex_mem_texture_realtime
+        - Top_Level_Triage.l1tex__t_sectors_realtime
+        - Top_Level_Triage.l1tex__texin_tsl1_requests_realtime
+        - Top_Level_Triage.rtcore__throughput
+        - Top_Level_Triage.sm__average_dcc_hit_rate
+        - Top_Level_Triage.sm__average_inst_latency_pipe_lsu_mem_lg_cmd_read
+        - Top_Level_Triage.sm__average_inst_latency_pipe_lsu_mem_shared_cmd_read
+        - Top_Level_Triage.sm__average_inst_latency_pipe_tex_cmd_read
+        - Top_Level_Triage.sm__thread_inst_executed_pipe_fma_pred_on_realtime
+        - Top_Level_Triage.sm__thread_inst_executed_pipe_fmaheavy_pred_on_realtime
+        - Top_Level_Triage.sm__thread_inst_executed_pred_off_per_inst_executed_realtime
+        - Top_Level_Triage.sm__thread_inst_executed_pred_off_realtime
+        - Top_Level_Triage.sm__thread_inst_executed_pred_on_per_inst_executed_pipe_alu_size_64b_realtime
+        - Top_Level_Triage.sm__thread_inst_executed_pred_on_per_inst_executed_pipe_aluheavy_realtime
+        - Top_Level_Triage.sm__thread_inst_executed_pred_on_per_inst_executed_pipe_fma_realtime
+        - Top_Level_Triage.sm__thread_inst_executed_pred_on_per_inst_executed_pipe_fmaheavy_realtime
+        - Top_Level_Triage.sm__thread_inst_executed_pred_on_per_inst_executed_pipe_xu_realtime
+        - Top_Level_Triage.sm__thread_inst_executed_pred_on_per_inst_executed_realtime
+        - Top_Level_Triage.sm__throughput
+        - Top_Level_Triage.tpc__average_threads_launched_per_warp
+        - Top_Level_Triage.tpc__average_threads_launched_per_warp_shader_ps
+        - Top_Level_Triage.tpc__l1tex_sram_bytes_mem_untagged_data_shared_allocated_compute_queue_async_realtime
+        - Top_Level_Triage.tpc__l1tex_sram_bytes_mem_untagged_data_shared_allocated_compute_queue_sync_realtime
+        - Top_Level_Triage.tpc__l1tex_sram_bytes_mem_untagged_data_shared_allocated_isbe_realtime
+        - Top_Level_Triage.tpc__l1tex_sram_bytes_mem_untagged_data_shared_unallocated_realtime
+        - Top_Level_Triage.tpc__l1tex_sram_bytes_mem_untagged_data_tram_allocated_realtime
+        - Top_Level_Triage.tpc__sm_rf_registers_allocated_shader_ps_realtime
+        - Top_Level_Triage.tpc__sm_rf_registers_allocated_shader_vtg_realtime
+        - Top_Level_Triage.tpc__threads_launched_shader_cs_and_vtg_realtime
+        - Top_Level_Triage.tpc__threads_launched_shader_ps_killmask_off_realtime
+        - Top_Level_Triage.tpc__threads_launched_shader_ps_killmask_on_realtime
+        - Top_Level_Triage.tpc__threads_unused
+        - Top_Level_Triage.tpc__warps_active_realtime
+        - Top_Level_Triage.tpc__warps_inactive_sm_active_realtime
+  - GfxTriage_VidMem:
+      schedulingHints:
+        - gpu_fbp_b:
+            - '0xd576b4756de0b044'
+            - '0x6fa4e70678ce5708'
+            - '0x78ae97c1f2c42fe7'
+            - '0x1174507292038749'
+            - '0xb23888a865c7ddac'
+            - '0x11a1a814c2ae8996'
+            - '0xaa7bac38a17a3fb4'
+            - '0x8622b141e531e477'
+            - '0xd595d147103da314'
+            - '0x24c101d4c6a94a04'
+            - '0x78c2c632dfe0bb73'
+            - '0xd96b94b4c1c9bba6'
+            - '0x7197ecd36300ec03'
+            - '0x290f9f29623c8a27'
+            - '0x2ad5ae63d173a214'
+        - gpu_lts:
+            - '0x69e125db3f084ddf'
+      metrics:
+        - dram__bytes
+        - dram__cycles_elapsed
+        - dram__sectors
+        - dram__sectors_op_read
+        - dram__sectors_op_write
+        - lts__average_t_sector_hit_rate_realtime
+        - lts__average_t_sector_hit_rate_srcunit_tex_realtime
+        - lts__cycles_elapsed
+        - lts__d_atomic_input_cycles_active
+        - lts__lts2xbar_cycles_active_realtime
+        - lts__t_requests
+        - lts__t_sectors_lookup_miss_realtime
+        - lts__t_sectors_realtime
+        - lts__t_sectors_srcunit_ce_realtime
+        - lts__t_sectors_srcunit_crop_realtime
+        - lts__t_sectors_srcunit_gcc_op_read_lookup_miss_realtime
+        - lts__t_sectors_srcunit_gcc_realtime
+        - lts__t_sectors_srcunit_pe_op_read_realtime
+        - lts__t_sectors_srcunit_pe_op_write_realtime
+        - lts__t_sectors_srcunit_pe_realtime
+        - lts__t_sectors_srcunit_raster_realtime
+        - lts__t_sectors_srcunit_tex_lookup_miss_realtime
+        - lts__t_sectors_srcunit_tex_realtime
+        - lts__t_sectors_srcunit_zrop_realtime
+        - lts__xbar2lts_cycles_active
+        - Top_Level_Triage.lts__average_cbc_hit_rate_realtime
+        - Top_Level_Triage.lts__average_t_sector_hit_rate_srcnode_gpc_realtime
+        - Top_Level_Triage.lts__average_t_sector_hit_rate_srcunit_ce_realtime
+        - Top_Level_Triage.lts__average_t_sector_hit_rate_srcunit_crop_realtime
+        - Top_Level_Triage.lts__average_t_sector_hit_rate_srcunit_gcc_op_read_realtime
+        - Top_Level_Triage.lts__average_t_sector_hit_rate_srcunit_pe_op_read_realtime
+        - Top_Level_Triage.lts__average_t_sector_hit_rate_srcunit_pe_realtime
+        - Top_Level_Triage.lts__average_t_sector_hit_rate_srcunit_raster_realtime
+        - Top_Level_Triage.lts__average_t_sector_hit_rate_srcunit_tex_op_atom_realtime
+        - Top_Level_Triage.lts__average_t_sector_hit_rate_srcunit_tex_op_read_realtime
+        - Top_Level_Triage.lts__average_t_sector_hit_rate_srcunit_tex_op_write_realtime
+        - Top_Level_Triage.lts__average_t_sector_hit_rate_srcunit_zrop_realtime
+        - Top_Level_Triage.lts__cbc_requests_type_comptag_realtime
+        - Top_Level_Triage.lts__t_sectors_srcnode_gpc_lookup_hit_realtime
+        - Top_Level_Triage.lts__t_sectors_srcunit_ce_lookup_hit_realtime
+        - Top_Level_Triage.lts__t_sectors_srcunit_crop_lookup_hit_realtime
+        - Top_Level_Triage.lts__t_sectors_srcunit_gcc_op_read_lookup_hit_realtime
+        - Top_Level_Triage.lts__t_sectors_srcunit_pe_lookup_hit_realtime
+        - Top_Level_Triage.lts__t_sectors_srcunit_pe_op_read_lookup_hit_realtime
+        - Top_Level_Triage.lts__t_sectors_srcunit_raster_lookup_hit_realtime
+        - Top_Level_Triage.lts__t_sectors_srcunit_tex_op_atom_lookup_hit_realtime
+        - Top_Level_Triage.lts__t_sectors_srcunit_tex_op_atom_realtime
+        - Top_Level_Triage.lts__t_sectors_srcunit_tex_op_read_lookup_hit_realtime
+        - Top_Level_Triage.lts__t_sectors_srcunit_tex_op_write_lookup_hit_realtime
+        - Top_Level_Triage.lts__t_sectors_srcunit_zrop_lookup_hit_realtime
+        - Top_Level_Triage.lts__throughput
+        - Top_Level_Triage.pe__lts_requests_op_read_throughput
+        - Top_Level_Triage.pe__lts_requests_op_write_throughput
+triageGroup:
+  name: Top_Level_Triage
+  groups:
+    - GfxTriage_GPC
+    - GfxTriage_HUB
+    - GfxTriage_SysMem
+    - GfxTriage_SysPipe
+    - GfxTriage_TPC
+    - GfxTriage_VidMem

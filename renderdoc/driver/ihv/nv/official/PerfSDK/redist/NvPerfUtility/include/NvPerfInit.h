@@ -1,5 +1,5 @@
 /*
-* Copyright 2014-2022 NVIDIA Corporation.  All rights reserved.
+* Copyright 2014-2025 NVIDIA Corporation.  All rights reserved.
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include <stdarg.h>
 #include <string>
 #include <cassert>
+#include <ctime>
 #include "nvperf_host.h"
 #include "nvperf_target.h"
 #if defined(_WIN32)
@@ -109,8 +110,6 @@ namespace nv { namespace perf {
 
     inline void UserLogImplPlatform(const char* /* pMessage */)
     {
-        // FIXME: gcc complains that pMessage is not used
-        //(void*)pMessage;
     }
 
     inline void GetTimeStamp(LogTimeStamp* pTimestamp)
@@ -153,15 +152,15 @@ namespace nv { namespace perf {
 }}
 
 #ifndef NV_PERF_LOG_INF
-#define NV_PERF_LOG_INF(level_, ...) ::nv::perf::UserLog(LogSeverity::Inf, level_, __FUNCTION__, __VA_ARGS__)
+#define NV_PERF_LOG_INF(level_, ...) ::nv::perf::UserLog(nv::perf::LogSeverity::Inf, level_, __FUNCTION__, __VA_ARGS__)
 #endif
 
 #ifndef NV_PERF_LOG_WRN
-#define NV_PERF_LOG_WRN(level_, ...) ::nv::perf::UserLog(LogSeverity::Wrn, level_, __FUNCTION__, __VA_ARGS__)
+#define NV_PERF_LOG_WRN(level_, ...) ::nv::perf::UserLog(nv::perf::LogSeverity::Wrn, level_, __FUNCTION__, __VA_ARGS__)
 #endif
 
 #ifndef NV_PERF_LOG_ERR
-#define NV_PERF_LOG_ERR(level_, ...) ::nv::perf::UserLog(LogSeverity::Err, level_, __FUNCTION__, __VA_ARGS__)
+#define NV_PERF_LOG_ERR(level_, ...) ::nv::perf::UserLog(nv::perf::LogSeverity::Err, level_, __FUNCTION__, __VA_ARGS__)
 #endif
 
 namespace nv { namespace perf {
@@ -482,6 +481,14 @@ namespace nv { namespace perf {
         }
     }
 
+    inline std::string FormatStatus(NVPA_Status nvpaStatus)
+    {
+        const char* pStatusStr = "";
+        const char* pCommentStr = "";
+        NVPW_NVPAStatusToString(nvpaStatus, &pStatusStr, &pCommentStr);
+        return std::string(pStatusStr) + "(" + pCommentStr + ")";
+    }
+
     inline bool InitializeNvPerf()
     {
         NVPA_Status nvpaStatus;
@@ -490,7 +497,7 @@ namespace nv { namespace perf {
         nvpaStatus = NVPW_InitializeHost(&initializeHostParams);
         if (nvpaStatus)
         {
-            NV_PERF_LOG_ERR(10, "NVPW_InitalizeHost failed\n");
+            NV_PERF_LOG_ERR(10, "NVPW_InitalizeHost failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
             return false;
         }
 
@@ -498,7 +505,7 @@ namespace nv { namespace perf {
         nvpaStatus = NVPW_InitializeTarget(&initializeTargetParams);
         if (nvpaStatus)
         {
-            NV_PERF_LOG_ERR(10, "NVPW_InitializeTarget failed\n");
+            NV_PERF_LOG_ERR(10, "NVPW_InitializeTarget failed, nvpaStatus = %s\n", FormatStatus(nvpaStatus).c_str());
             return false;
         }
 

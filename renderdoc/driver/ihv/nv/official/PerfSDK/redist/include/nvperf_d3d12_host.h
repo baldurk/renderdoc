@@ -2,7 +2,7 @@
 #define NVPERF_D3D12_HOST_H
 
 /*
- * Copyright 2014-2022  NVIDIA Corporation.  All rights reserved.
+ * Copyright 2014-2025 NVIDIA Corporation.  All rights reserved.
  *
  * NOTICE TO USER:
  *
@@ -62,6 +62,32 @@ extern "C" {
  *  @file   nvperf_d3d12_host.h
  */
 
+/***************************************************************************//**
+ *  @name   Raw Counter Config
+ *  @{
+ */
+
+    typedef struct NVPW_D3D12_RawCounterConfig_Create_Params
+    {
+        /// [in]
+        size_t structSize;
+        /// [in] assign to NULL
+        void* pPriv;
+        /// [in]
+        const char* pChipName;
+        /// [in] one of 'NVPA_ActivityKind'
+        uint32_t activityKind;
+        /// [out] new NVPW_RawCounterConfig object
+        struct NVPW_RawCounterConfig* pRawCounterConfig;
+    } NVPW_D3D12_RawCounterConfig_Create_Params;
+#define NVPW_D3D12_RawCounterConfig_Create_Params_STRUCT_SIZE NVPA_STRUCT_SIZE(NVPW_D3D12_RawCounterConfig_Create_Params, pRawCounterConfig)
+
+    NVPA_Status NVPW_D3D12_RawCounterConfig_Create(NVPW_D3D12_RawCounterConfig_Create_Params* pParams);
+
+/**
+ *  @}
+ ******************************************************************************/
+ 
     typedef struct NVPW_D3D12_RawMetricsConfig_Create_Params
     {
         /// [in]
@@ -77,6 +103,8 @@ extern "C" {
     } NVPW_D3D12_RawMetricsConfig_Create_Params;
 #define NVPW_D3D12_RawMetricsConfig_Create_Params_STRUCT_SIZE NVPA_STRUCT_SIZE(NVPW_D3D12_RawMetricsConfig_Create_Params, pRawMetricsConfig)
 
+    /// This API is deprecated and will be removed in a future release. Use `NVPW_D3D12_RawCounterConfig_Create`
+    /// instead.
     NVPA_Status NVPW_D3D12_RawMetricsConfig_Create(NVPW_D3D12_RawMetricsConfig_Create_Params* pParams);
 
     typedef struct NVPW_MetricsEvaluator NVPW_MetricsEvaluator;

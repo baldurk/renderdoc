@@ -2,7 +2,7 @@
 #define NVPERF_OPENGL_HOST_H
 
 /*
- * Copyright 2014-2022  NVIDIA Corporation.  All rights reserved.
+ * Copyright 2014-2025 NVIDIA Corporation.  All rights reserved.
  *
  * NOTICE TO USER:
  *
@@ -77,6 +77,8 @@ extern "C" {
     } NVPW_OpenGL_RawMetricsConfig_Create_Params;
 #define NVPW_OpenGL_RawMetricsConfig_Create_Params_STRUCT_SIZE NVPA_STRUCT_SIZE(NVPW_OpenGL_RawMetricsConfig_Create_Params, pRawMetricsConfig)
 
+    /// This API is deprecated and will be removed in a future release. Use `NVPW_OpenGL_RawCounterConfig_Create`
+    /// instead.
     NVPA_Status NVPW_OpenGL_RawMetricsConfig_Create(NVPW_OpenGL_RawMetricsConfig_Create_Params* pParams);
 
     typedef struct NVPW_MetricsEvaluator NVPW_MetricsEvaluator;
@@ -105,7 +107,7 @@ extern "C" {
         /// [in]
         uint8_t* pScratchBuffer;
         /// [in] the size of the 'pScratchBuffer' array, should be at least the size of the 'scratchBufferSize' returned
-        /// by 'NVPW_D3D12_MetricsEvaluator_CalculateScratchBufferSize'
+        /// by 'NVPW_OpenGL_MetricsEvaluator_CalculateScratchBufferSize'
         size_t scratchBufferSize;
         /// [in] use either 'pChipName' or 'pCounterDataImage', 'pChipName' will create the metrics evaluator based on a
         /// virtual device while 'pCounterDataImage' will create the metrics evaluator based on the actual device. If
@@ -122,6 +124,32 @@ extern "C" {
 
     NVPA_Status NVPW_OpenGL_MetricsEvaluator_Initialize(NVPW_OpenGL_MetricsEvaluator_Initialize_Params* pParams);
 
+/***************************************************************************//**
+ *  @name   Raw Counter Config
+ *  @{
+ */
+
+    typedef struct NVPW_OpenGL_RawCounterConfig_Create_Params
+    {
+        /// [in]
+        size_t structSize;
+        /// [in] assign to NULL
+        void* pPriv;
+        /// [in]
+        const char* pChipName;
+        /// [in] one of 'NVPA_ActivityKind'
+        uint32_t activityKind;
+        /// [out] new NVPW_RawCounterConfig object
+        struct NVPW_RawCounterConfig* pRawCounterConfig;
+    } NVPW_OpenGL_RawCounterConfig_Create_Params;
+#define NVPW_OpenGL_RawCounterConfig_Create_Params_STRUCT_SIZE NVPA_STRUCT_SIZE(NVPW_OpenGL_RawCounterConfig_Create_Params, pRawCounterConfig)
+
+    NVPA_Status NVPW_OpenGL_RawCounterConfig_Create(NVPW_OpenGL_RawCounterConfig_Create_Params* pParams);
+
+/**
+ *  @}
+ ******************************************************************************/
+ 
 
 
 #ifdef __cplusplus
