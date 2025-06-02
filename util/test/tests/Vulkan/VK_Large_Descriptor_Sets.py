@@ -10,7 +10,7 @@ class VK_Large_Descriptor_Sets(rdtest.TestCase):
     def run(self):
         self.capture_filename = self.get_capture()
 
-        self.check(os.path.exists(self.capture_filename), "Didn't generate capture in make_capture")
+        self.check(rdtest.util.target_path_exists(self.capture_filename), "Didn't generate capture in make_capture")
 
         rdtest.log.print("Loading capture")
 
