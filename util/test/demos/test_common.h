@@ -337,6 +337,7 @@ std::string trim(const std::string &str);
 
 void SetDebugLogEnabled(bool enabled);
 void DebugPrint(const char *fmt, ...);
+void OutputPrint(const char *fmt, ...);
 
 #define TEST_ASSERT(cond, fmt, ...)                                                                 \
   do                                                                                                \

@@ -7,8 +7,15 @@ import struct
 import platform
 import hashlib
 import zipfile
+import subprocess
 from typing import Tuple, List
 from . import png
+from rdtest.remoteserver import RemoteServer, AndroidRemoteServer 
+
+
+# Android app IDs for the demos
+ADRD_DEMO_APP32 = 'renderdoc.org.demos.arm32'
+ADRD_DEMO_APP64 = 'renderdoc.org.demos.arm64'
 
 
 def _timestr():
@@ -87,6 +94,24 @@ def set_demos_binary(path: str):
         _demos_bin = os.path.abspath(path)
 
 
+def set_remote_server(server: RemoteServer):
+    global _remote_server
+    _remote_server = server
+
+
+def get_remote_server():
+    return _remote_server
+
+
+def create_adb_device(name: str):
+    server = AndroidRemoteServer(name)
+    set_remote_server(server)
+
+
+def get_current_test():
+    return _test_name
+
+
 def set_demos_timeout(timeout: int):
     global _demos_timeout
     _demos_timeout = timeout
@@ -140,6 +165,13 @@ def get_demos_timeout():
 def get_tmp_path(name: str):
     os.makedirs(os.path.join(_temp_dir, _test_name), exist_ok=True)
     return os.path.join(_temp_dir, _test_name, name)
+
+
+def get_android_demo_app_name():
+    if ADRD_DEMO_APP64 in get_demos_binary():
+        return ADRD_DEMO_APP64
+
+    return ADRD_DEMO_APP32
 
 
 def sanitise_filename(name: str):
@@ -328,4 +360,24 @@ def value_compare_diff(ref, data, eps=FLT_EPSILON):
 def value_compare(ref, data, eps=FLT_EPSILON):
     is_eq, diff_amt = value_compare_diff(ref, data, eps)
     return is_eq
+
+
+def run_demo_blocking(args: [str], timeout=100):
+    """
+    Executes the demo application with the given args and returns the stdout.
+
+    :return: stdout, on Android this includes stripping of logcat prefixes
+    """
+    if get_remote_server() is None:
+        raw = subprocess.run([get_demos_binary()] + args, stdout=subprocess.PIPE).stdout
+        return str(raw, 'utf-8')
+
+    return get_remote_server().run_demos(args, timeout)
+
+
+def target_path_exists(path: str, timeout=10):
+    if get_remote_server() is None:
+        return os.path.exists(path)
+    
+    return get_remote_server().path_exists(path)
 

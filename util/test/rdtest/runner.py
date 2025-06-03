@@ -14,6 +14,7 @@ from . import util
 from . import testcase
 from .logging import log
 from pathlib import Path
+from rdtest.remoteserver import RemoteServer
 
 
 def get_tests():
@@ -176,11 +177,11 @@ def _run_test(testclass, runner_timeout, failedcases: list):
                            .format(test_run.returncode))
 
 
-def fetch_tests():
-    output = subprocess.run([util.get_demos_binary(), '--list-raw'], stdout=subprocess.PIPE).stdout
-
-    # Skip the header, grab all the remaining lines
-    tests = str(output, 'utf-8').splitlines()[1:]
+def fetch_tests():  
+    output = util.run_demo_blocking(['--list-raw']).splitlines()
+    
+    # Skip to just past the header, grab all the remaining lines
+    tests = output[output.index("Name\tAvailable\tAvailMessage")+1:]
 
     # Split the TSV values and store
     split_tests = [ test.split('\t') for test in tests ]
@@ -192,6 +193,10 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
     start_time = datetime.datetime.now(datetime.timezone.utc)
 
     rd.InitialiseReplay(rd.GlobalEnvironment(), [])
+
+    server: RemoteServer = util.get_remote_server()
+    if server is not None:
+        server.init(in_process)
 
     # On windows, disable error reporting
     if 'windll' in dir(ctypes):
@@ -222,63 +227,62 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
     log.header("On {}".format(platform.platform()))
 
     log.comment("plat={} git={}".format(platform.platform(), rd.GetCommitHash()))
-
-    driver = ""
-
-    for api in rd.GraphicsAPI:
-        v = rd.GetDriverInformation(api)
-        log.print("{} driver: {} {}".format(str(api), str(v.vendor), v.version))
-
-        # Take the first version number we get, but prefer GL as it's universally available and
-        # Produces a nice version number & device combination
-        if (api == rd.GraphicsAPI.OpenGL or driver == "") and v.vendor != rd.GPUVendor.Unknown:
-            driver = v.version
-
-    log.comment("driver={}".format(driver))
-
     log.print("Demos running from {}".format(util.get_demos_binary()))
 
-    layerInfo = rd.VulkanLayerRegistrationInfo()
-    if rd.NeedVulkanLayerRegistration(layerInfo):
-        log.print("Vulkan layer needs to be registered: {}".format(str(layerInfo.flags)))
-        log.print("My JSONs: {}, Other JSONs: {}".format(layerInfo.myJSONs, layerInfo.otherJSONs))
+    if server is None:
+        driver = ""
+        for api in rd.GraphicsAPI:
+            v = rd.GetDriverInformation(api)
+            log.print("{} driver: {} {}".format(str(api), str(v.vendor), v.version))
 
-        # Update the layer registration without doing anything special first - if running automated we might have
-        # granted user-writable permissions to the system files needed to update. If possible we register at user
-        # level.
-        if layerInfo.flags & rd.VulkanLayerFlags.NeedElevation:
-            rd.UpdateVulkanLayerRegistration(True)
-        else:
-            rd.UpdateVulkanLayerRegistration(False)
+            # Take the first version number we get, but prefer GL as it's universally available and
+            # Produces a nice version number & device combination
+            if (api == rd.GraphicsAPI.OpenGL or driver == "") and v.vendor != rd.GPUVendor.Unknown:
+                driver = v.version
 
-        # Check if it succeeded
-        reg_needed = rd.NeedVulkanLayerRegistration(layerInfo)
+        log.comment("driver={}".format(driver))
 
-        if reg_needed:
-            if plat == 'win32':
-                # On windows, try to elevate. This will mean a UAC prompt
-                args = sys.argv.copy()
-                args.append("--internal_vulkan_register")
+        layerInfo = rd.VulkanLayerRegistrationInfo()
+        if rd.NeedVulkanLayerRegistration(layerInfo):
+            log.print("Vulkan layer needs to be registered: {}".format(str(layerInfo.flags)))
+            log.print("My JSONs: {}, Other JSONs: {}".format(layerInfo.myJSONs, layerInfo.otherJSONs))
 
-                for i in range(len(args)):
-                    if os.path.exists(args[i]):
-                        args[i] = str(Path(args[i]).resolve())
-
-                if 'renderdoccmd' in sys.executable:
-                    args = ['vulkanlayer', '--register', '--system']
-
-                ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, ' '.join(args), None, 1)
-
-                time.sleep(10)
+            # Update the layer registration without doing anything special first - if running automated we might have
+            # granted user-writable permissions to the system files needed to update. If possible we register at user
+            # level.
+            if layerInfo.flags & rd.VulkanLayerFlags.NeedElevation:
+                rd.UpdateVulkanLayerRegistration(True)
             else:
+                rd.UpdateVulkanLayerRegistration(False)
+
+            # Check if it succeeded
+            reg_needed = rd.NeedVulkanLayerRegistration(layerInfo)
+
+            if reg_needed:
+                if plat == 'win32':
+                    # On windows, try to elevate. This will mean a UAC prompt
+                    args = sys.argv.copy()
+                    args.append("--internal_vulkan_register")
+
+                    for i in range(len(args)):
+                        if os.path.exists(args[i]):
+                            args[i] = str(Path(args[i]).resolve())
+
+                    if 'renderdoccmd' in sys.executable:
+                        args = ['vulkanlayer', '--register', '--system']
+
+                    ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, ' '.join(args), None, 1)
+
+                    time.sleep(10)
+                else:
+                    log.print("Couldn't register vulkan layer properly, might need admin rights")
+                    sys.exit(1)
+
+            reg_needed = rd.NeedVulkanLayerRegistration(layerInfo)
+
+            if reg_needed:
                 log.print("Couldn't register vulkan layer properly, might need admin rights")
                 sys.exit(1)
-
-        reg_needed = rd.NeedVulkanLayerRegistration(layerInfo)
-
-        if reg_needed:
-            log.print("Couldn't register vulkan layer properly, might need admin rights")
-            sys.exit(1)
 
     os.environ['RENDERDOC_DEMOS_DATA'] = util.get_data_path('demos')
 
@@ -362,10 +366,21 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
 
     duration = datetime.datetime.now(datetime.timezone.utc) - start_time
 
-    if len(failedcases) > 0:
-        logfile = rd.GetLogFile()
-        if os.path.exists(logfile):
-            log.inline_file('RenderDoc log', logfile)
+    if server is not None:
+        # Connect to the server if running out-of-process
+        if not server.is_connected():
+            server.connect()
+
+        logfile = server.retrieve_latest_server_log(util.get_tmp_dir())
+        if logfile is not None and os.path.exists(logfile):
+            log.inline_file('Replay RenderDoc log', logfile)
+
+        # Do not inline this, as it is usually massive
+        server.retrieve_comms_log()
+
+    logfile = rd.GetLogFile()
+    if os.path.exists(logfile):
+        log.inline_file('{} RenderDoc log'.format("Host" if server is not None else ""), logfile)
 
     log.comment("total={} fail={} skip={} time={}".format(len(testcases), len(failedcases), len(skippedcases), int(duration.total_seconds())))
     log.header("Tests complete summary: {} passed out of {} run from {} total in {}"
@@ -378,6 +393,9 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
     # Print a proper footer if we got here
     log.rawprint('\n\n\n</script>', with_stdout=False)
 
+    if server is not None:
+        server.shutdown()
+        
     rd.ShutdownReplay()
 
     if len(failedcases) > 0:
@@ -419,6 +437,11 @@ def become_remote_server():
 
 
 def internal_run_test(test_name):
+    # In case of out-of-process testing, connect to the server
+    server = util.get_remote_server()
+    if server is not None:
+        server.connect()
+
     testcases = get_tests()
 
     log.add_output(util.get_artifact_path("output.log.html"))
@@ -440,12 +463,23 @@ def internal_run_test(test_name):
             except Exception as ex:
                 log.failure(ex)
                 suceeded = False
-                
+
             logfile = rd.GetLogFile()
-            if os.path.exists(logfile):
-                log.inline_file('RenderDoc log', logfile)
+            if server is not None:
+                logfile = server.retrieve_latest_test_log(os.path.join(util.get_tmp_dir(), test_name),
+                                                          None)
+
+            if logfile is not None and os.path.exists(logfile):
+                log.inline_file('{} RenderDoc log'.format("Test" if server is not None else ""), logfile)
 
             log.end_test(test_name, print_footer=False)
+
+            if server is not None and server.is_connected():
+                server.disconnect()
+
+                # Give some time for the remote to close down, otherwise subsequent tests could fail
+                # to connect as it's still busy disconnecting
+                time.sleep(5)
 
             rd.ShutdownReplay()
 

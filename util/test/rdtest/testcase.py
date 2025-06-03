@@ -236,11 +236,18 @@ class TestCase:
         """
 
         if self.demos_test_name != '':
-            logfile = os.path.join(util.get_tmp_dir(), 'demos.log')
+            logfile = os.path.join(util.get_tmp_dir(), util.get_current_test(), 'demos.log')
+            remote_logfile = logfile
+            exe = util.get_demos_binary()
+            if util.get_remote_server() is not None:
+                remote_logfile = util.get_remote_server().get_temp_path('demos.log')
+                exe = util.get_remote_server().get_demos_exe()
+
             timeout = self.demos_timeout
             if timeout is None:
                 timeout = util.get_demos_timeout()
-            return capture.run_and_capture(util.get_demos_binary(), self.demos_test_name + " --log " + logfile,
+            return capture.run_and_capture(exe,
+                                           self.demos_test_name + " --log " + remote_logfile,
                                            self.demos_frame_cap, frame_count=self.demos_frame_count,
                                            captures_expected=self.demos_captures_expected, logfile=logfile,
                                            opts=self.get_capture_options(), timeout=timeout)
@@ -533,7 +540,7 @@ class TestCase:
     def run(self):
         self.capture_filename = self.get_capture()
 
-        self.check(os.path.exists(self.capture_filename), "Didn't generate capture in make_capture")
+        self.check(util.target_path_exists(self.capture_filename), "Didn't generate capture in make_capture")
 
         log.print("Loading capture")
 
@@ -545,13 +552,16 @@ class TestCase:
         self.check_capture()
 
         if self.controller is not None:
-            self.controller.Shutdown()
+            if not util.get_remote_server() is None:
+                util.get_remote_server().remote.CloseCapture(self.controller)
+            else:
+                self.controller.Shutdown()
 
     def invoketest(self, debugMode):
         start_time = self.get_time()
         self.run()
         duration = self.get_time() - start_time
-        log.print("Test ran in {}".format(duration))
+        log.print("Test {} ran in {}".format(self.demos_test_name, duration))
         self.debugMode = debugMode
 
     def get_first_action(self):
@@ -798,7 +808,18 @@ class TestCase:
 
         return processed
 
+    def retrieve_capture(self):
+        if util.get_remote_server() is None:
+            return self.capture_filename
+
+        dest = util.get_tmp_path(self.capture_filename.split('/')[-1])
+        log.print("Copying remote capture from '{}' to '{}'".format(self.capture_filename, dest))
+        util.get_remote_server().remote.CopyCaptureFromRemote(self.capture_filename, dest, None)
+        return dest
+
     def check_export(self, capture_filename):
+        capture_filename = self.retrieve_capture()
+
         recomp_path = util.get_tmp_path('recompressed.rdc')
         conv_zipxml_path = util.get_tmp_path('conv.zip.xml')
         conv_path = util.get_tmp_path('conv.rdc')

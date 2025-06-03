@@ -5,6 +5,7 @@ import time
 import renderdoc as rd
 from . import util
 from .logging import log
+from time import sleep
 
 
 class TargetControl():
@@ -134,10 +135,14 @@ def run_executable(exe: str, cmdline: str,
 
     wait_for_exit = False
 
-    log.print("Running exe:'{}' cmd:'{}' in dir:'{}' with env:'{}'".format(exe, cmdline, workdir, envmods))
-
     # Execute the test program
-    res = rd.ExecuteAndInject(exe, workdir, cmdline, envmods, cappath, opts, wait_for_exit)
+    server = util.get_remote_server()
+    res = None
+    if server is None:
+        log.print("Running exe:'{}' cmd:'{}' in dir:'{}' with env:'{}'".format(exe, cmdline, workdir, envmods))
+        res = rd.ExecuteAndInject(exe, workdir, cmdline, envmods, cappath, opts, wait_for_exit)
+    else:
+        res = server.inject_and_run_exe(cmdline, envmods, opts)
 
     if res.result != rd.ResultCode.Succeeded:
         raise RuntimeError("Couldn't launch program: {}".format(str(res.result)))
@@ -171,7 +176,20 @@ def run_and_capture(exe: str, cmdline: str, frame: int, *, frame_count=1, captur
     if captures_expected is None:
         captures_expected = frame_count
 
-    control = TargetControl(run_executable(exe, cmdline, cappath=util.get_tmp_path(capture_name), opts=opts), timeout=timeout)
+    host = "localhost"
+    username = "testrunner"
+    cappath = ""
+
+    server = util.get_remote_server()
+    if server is not None:
+        cappath = server.get_temp_path(capture_name)
+        host = server.get_hostname()
+        username = server.get_username()
+    else:
+        cappath = util.get_tmp_path(capture_name)
+
+    control = TargetControl(run_executable(exe, cmdline, cappath=cappath, opts=opts),
+                            host=host, username=username, timeout=timeout)
 
     log.print("Queuing capture of frame {}..{} with timeout of {}".format(frame, frame+frame_count, "default" if timeout is None else timeout))
 
@@ -183,6 +201,15 @@ def run_and_capture(exe: str, cmdline: str, frame: int, *, frame_count=1, captur
     control.run(keep_running=lambda x: len(x.captures()) < captures_expected)
 
     captures = control.captures()
+    log.print(f'Retrieved {len(captures)} captures')
+
+    # Retrieve the demo logfile from the remote device
+    if server is not None:
+        remote_logfile = server.get_temp_path('demos.log')
+        if server.path_exists(remote_logfile):
+            log.print("Copying remote demo log from '{}' to '{}'".format(server.get_temp_path('demos.log'), logfile))
+            os.makedirs(os.path.dirname(logfile), exist_ok=True)
+            server.remote.CopyCaptureFromRemote(server.get_temp_path('demos.log'), logfile, None)
 
     if logfile is not None and os.path.exists(logfile):
         log.inline_file('Process output', logfile, with_stdout=True)

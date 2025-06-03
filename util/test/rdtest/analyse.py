@@ -1,6 +1,7 @@
 import struct
 from typing import List
 import renderdoc
+from . import util
 
 # Alias for convenience - we need to import as-is so types don't get confused
 rd = renderdoc
@@ -24,27 +25,39 @@ def open_capture(filename="", cap: rd.CaptureFile=None, opts: rd.ReplayOptions=N
     own_cap = False
     api = "Unknown"
 
-    if cap is None:
-        own_cap = True
+    result = None
+    controller = None
+    if util.get_remote_server() is None:
+        if cap is None:
+            own_cap = True
 
-        cap = rd.OpenCaptureFile()
+            cap = rd.OpenCaptureFile()
 
-        # Open a particular file
-        result = cap.OpenFile(filename, '', None)
+            # Open a particular file
+            result = cap.OpenFile(filename, '', None)
 
-        # Make sure the file opened successfully
-        if result != rd.ResultCode.Succeeded:
-            cap.Shutdown()
-            raise RuntimeError("Couldn't open '{}': {}".format(filename, str(result)))
+            # Make sure the file opened successfully
+            if result != rd.ResultCode.Succeeded:
+                cap.Shutdown()
+                raise RuntimeError("Couldn't open '{}': {}".format(filename, str(result)))
 
-        api = cap.DriverName()
+            api = cap.DriverName()
 
-        # Make sure we can replay
-        if not cap.LocalReplaySupport():
-            cap.Shutdown()
-            raise RuntimeError("{} capture cannot be replayed".format(api))
+            # Make sure we can replay
+            if not cap.LocalReplaySupport():
+                cap.Shutdown()
+                raise RuntimeError("{} capture cannot be replayed".format(api))
 
-    result, controller = cap.OpenCapture(opts, None)
+        result, controller = cap.OpenCapture(opts, None)
+    else:
+        if not cap is None:
+            raise ValueError("Cannot call analyse.open_capture() with capture handle for remote {}"
+                        .format(util.get_remote_server().remote))
+
+        result, controller = util.get_remote_server().remote.OpenCapture(rd.RemoteServer.NoPreference,
+                                                                   filename, opts, None)
+        if result == rd.ResultCode.Succeeded:
+            api = util.get_remote_server().remote.DriverName()
 
     if own_cap:
         cap.Shutdown()

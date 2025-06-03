@@ -36,6 +36,8 @@ parser.add_argument('--temp', default=os.path.join(script_dir, "tmp"),
                     help="The folder to put temporary run data in. Will be completely cleared.", type=str)
 parser.add_argument('--debugger',
                     help="Enable debugger mode, exceptions are not caught by the framework.", action="store_true")
+parser.add_argument('--adb-device', required=False,
+                    help="Use the specified ADB device to run the tests.", type=str)
 # Internal command, when we fork out to run a test in a separate process
 parser.add_argument('--internal_run_test', help=argparse.SUPPRESS, type=str, required=False)
 # Internal command, when we re-run as admin to register vulkan layer
@@ -128,6 +130,10 @@ rdtest.set_temp_dir(temp_path)
 rdtest.set_demos_binary(demos_binary)
 rdtest.set_demos_timeout(demos_timeout)
 
+if args.adb_device:
+    rdtest.create_adb_device(args.adb_device)
+else:
+    rdtest.set_remote_server(None)
 # debugger option implies in-process test running
 if args.debugger:
     args.in_process = True

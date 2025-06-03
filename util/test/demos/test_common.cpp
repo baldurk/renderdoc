@@ -191,6 +191,33 @@ void DebugPrint(const char *fmt, ...)
 #endif
 
 #if defined(ANDROID)
+  __android_log_print(ANDROID_LOG_DEBUG, "rd_demos", "%s", printBuf);
+#endif
+}
+
+void OutputPrint(const char *fmt, ...)
+{
+  va_list args;
+  va_start(args, fmt);
+
+  vsnprintf(printBuf, 4095, fmt, args);
+
+  va_end(args);
+
+  fputs(printBuf, stdout);
+  fflush(stdout);
+
+  if(logFile)
+  {
+    fputs(printBuf, logFile);
+    fflush(logFile);
+  }
+
+#if defined(WIN32)
+  OutputDebugStringA(printBuf);
+#endif
+
+#if defined(ANDROID)
   __android_log_print(ANDROID_LOG_INFO, "rd_demos", "%s", printBuf);
 #endif
 }
