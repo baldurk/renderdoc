@@ -554,6 +554,9 @@ HOOK_EXPORT EGLBoolean EGLAPIENTRY eglSwapBuffers_renderdoc_hooked(EGLDisplay dp
     data.egl_wnd = surface;
     data.egl_ctx = EGL.GetCurrentContext();
 
+    // we could query this out technically but it's easier to keep a map
+    data.egl_cfg = eglhook.configs[data.egl_ctx];
+
     eglhook.RefreshWindowParameters(data);
 
     SurfaceConfig cfg = eglhook.windows[surface];
