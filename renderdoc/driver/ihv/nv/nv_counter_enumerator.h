@@ -30,12 +30,13 @@
 #include "api/replay/replay_enums.h"
 #include "common/common.h"
 
-struct NVPA_RawMetricsConfig;
+struct NVPW_RawCounterConfig;
 namespace nv
 {
 namespace perf
 {
 class MetricsEvaluator;
+class RawCounterConfigBuilder;
 }
 }
 
@@ -45,14 +46,16 @@ public:
   NVCounterEnumerator();
   ~NVCounterEnumerator();
 
-  // This function takes ownership of metricsEvaluator.
-  bool Init(nv::perf::MetricsEvaluator &&metricsEvaluator);
+  // This function takes ownership of metricsEvaluator and rawCounterConfigBuilder.
+  bool Init(nv::perf::MetricsEvaluator &&metricsEvaluator,
+            nv::perf::RawCounterConfigBuilder &&rawCounterConfigBuilder,
+            bytebuf &&counterAvailabilityImage);
 
   rdcarray<GPUCounter> GetPublicCounterIds();
   CounterDescription GetCounterDescription(GPUCounter counterID);
   bool HasCounter(GPUCounter counterID);
 
-  bool CreateConfig(const char *pChipName, NVPA_RawMetricsConfig *pRawMetricsConfig,
+  bool CreateConfig(const char *pChipName, NVPW_RawCounterConfig *pRawCounterConfig,
                     const rdcarray<GPUCounter> &counters);
   void GetConfig(const uint8_t *&pConfigImage, size_t &configImageSize,
                  const uint8_t *&pCounterDataPrefix, size_t &counterDataPrefixSize);
@@ -64,6 +67,7 @@ public:
 
   static bool InitializeNvPerf();
   static CounterDescription LibraryNotFoundMessage();
+  static CounterDescription LibraryNotSupportedMessage();
 
 private:
   struct Impl;
