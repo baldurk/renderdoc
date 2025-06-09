@@ -38,6 +38,7 @@ struct NVVulkanCounters::Impl
 {
   NVCounterEnumerator *CounterEnumerator;
   bool LibraryNotFound = false;
+  bool LibraryNotSupported = false;
 
   Impl() : CounterEnumerator(NULL) {}
   ~Impl()
@@ -63,12 +64,53 @@ struct NVVulkanCounters::Impl
                             MessageSource::RuntimeWarning, message);
   }
 
+  static bytebuf GetCounterAvailabilityImage(WrappedVulkan *driver)
+  {
+    bytebuf counterAvailabilityImage;
+    NVPA_Status result;
+    NVPW_VK_Profiler_Queue_GetCounterAvailability_Params params = {};
+    params.structSize = NVPW_VK_Profiler_Queue_GetCounterAvailability_Params_STRUCT_SIZE;
+    params.instance = Unwrap(driver->GetInstance());
+    params.physicalDevice = Unwrap(driver->GetPhysDev());
+    params.device = Unwrap(driver->GetDev());
+    params.queue = Unwrap(driver->GetQ());
+    params.pfnGetInstanceProcAddr = (void *)ObjDisp(driver->GetInstance())->GetInstanceProcAddr;
+    params.pfnGetDeviceProcAddr = (void *)ObjDisp(driver->GetDev())->GetDeviceProcAddr;
+    result = NVPW_VK_Profiler_Queue_GetCounterAvailability(&params);
+    if(result != NVPA_STATUS_SUCCESS)
+    {
+      Impl::LogDebugMessage("NVVulkanCounters::GetCounterAvailabilityImage",
+                            "NvPerf could not determine counter availability for this GPU", driver);
+      return {};
+    }
+    counterAvailabilityImage.resize(params.counterAvailabilityImageSize);
+    params.pCounterAvailabilityImage = counterAvailabilityImage.data();
+    result = NVPW_VK_Profiler_Queue_GetCounterAvailability(&params);
+    if(result != NVPA_STATUS_SUCCESS)
+    {
+      Impl::LogDebugMessage("NVVulkanCounters::GetCounterAvailabilityImage",
+                            "NvPerf could not determine counter availability for this GPU", driver);
+      return {};
+    }
+    return counterAvailabilityImage;
+  }
+
   bool TryInitializePerfSDK(WrappedVulkan *driver)
   {
     if(!NVCounterEnumerator::InitializeNvPerf())
     {
       RDCWARN("NvPerf library failed to initialize");
       LibraryNotFound = true;
+
+      // NOTE: Return success here so that we can later show a message
+      //       directing the user to download the Nsight Perf SDK library.
+      return true;
+    }
+
+    if(!NVPA_GetProcAddress("NVPW_VK_RawCounterConfig_Create"))
+    {
+      RDCWARN("NvPerf library version is out-of-date");
+      LibraryNotSupported = true;
 
       // NOTE: Return success here so that we can later show a message
       //       directing the user to download the Nsight Perf SDK library.
@@ -129,12 +171,40 @@ struct NVVulkanCounters::Impl
 
     nv::perf::MetricsEvaluator metricsEvaluator(pMetricsEvaluator, std::move(scratchBuffer));
 
+    bytebuf counterAvailabilityImage = Impl::GetCounterAvailabilityImage(driver);
+    if(counterAvailabilityImage.empty())
+    {
+      Impl::LogDebugMessage("NVVulkanCounters::Impl::TryInitializePerfSDK",
+                            "NvPerf could not initialize counter availability image", driver);
+      // NOTE: Not a fatal error; we can attempt to list counters regardless of availability
+    }
+
+    NVPW_RawCounterConfig *pRawCounterConfig =
+        nv::perf::profiler::VulkanCreateRawCounterConfig(deviceIdentifiers.pChipName);
+    if(!pRawCounterConfig)
+    {
+      Impl::LogDebugMessage("NVVulkanCounters::Impl::TryInitializePerfSDK",
+                            "NvPerf could not initialize raw counter config", driver);
+      return false;
+    }
+
+    nv::perf::RawCounterConfigBuilder rawCounterConfigBuilder;
+    if(!rawCounterConfigBuilder.Initialize(pRawCounterConfig))
+    {
+      Impl::LogDebugMessage("NVVulkanCounters::Impl::TryInitializePerfSDK",
+                            "NvPerf failed to initialize raw counter config builder", driver);
+      return false;
+    }
+
     CounterEnumerator = new NVCounterEnumerator;
-    if(!CounterEnumerator->Init(std::move(metricsEvaluator)))
+    if(!CounterEnumerator->Init(std::move(metricsEvaluator), std::move(rawCounterConfigBuilder),
+                                std::move(counterAvailabilityImage)))
     {
       Impl::LogDebugMessage("NVVulkanCounters::Impl::TryInitializePerfSDK",
                             "NvPerf could not initialize metrics evaluator", driver);
       delete CounterEnumerator;
+      CounterEnumerator = NULL;
+      // NOTE: Not reachable; CounterEnumerator::Init() never returns false
       return false;
     }
     return true;
@@ -199,7 +269,7 @@ bool NVVulkanCounters::Init(WrappedVulkan *driver)
 
 rdcarray<GPUCounter> NVVulkanCounters::EnumerateCounters() const
 {
-  if(m_Impl->LibraryNotFound)
+  if(m_Impl->LibraryNotFound || m_Impl->LibraryNotSupported)
   {
     return {GPUCounter::FirstNvidia};
   }
@@ -208,7 +278,7 @@ rdcarray<GPUCounter> NVVulkanCounters::EnumerateCounters() const
 
 bool NVVulkanCounters::HasCounter(GPUCounter counterID) const
 {
-  if(m_Impl->LibraryNotFound)
+  if(m_Impl->LibraryNotFound || m_Impl->LibraryNotSupported)
   {
     return counterID == GPUCounter::FirstNvidia;
   }
@@ -222,6 +292,12 @@ CounterDescription NVVulkanCounters::DescribeCounter(GPUCounter counterID) const
     RDCASSERT(counterID == GPUCounter::FirstNvidia);
     // Dummy counter shows message directing user to download the Nsight Perf SDK library
     return NVCounterEnumerator::LibraryNotFoundMessage();
+  }
+  if(m_Impl->LibraryNotSupported)
+  {
+    RDCASSERT(counterID == GPUCounter::FirstNvidia);
+    // Dummy counter shows message directing user to update the Nsight Perf SDK library
+    return NVCounterEnumerator::LibraryNotSupportedMessage();
   }
   return m_Impl->CounterEnumerator->GetCounterDescription(counterID);
 }
@@ -288,7 +364,7 @@ struct VulkanNvidiaActionCallback final : public VulkanActionCallback
 rdcarray<CounterResult> NVVulkanCounters::FetchCounters(const rdcarray<GPUCounter> &counters,
                                                         WrappedVulkan *driver)
 {
-  if(m_Impl->LibraryNotFound)
+  if(m_Impl->LibraryNotFound || m_Impl->LibraryNotSupported)
   {
     return {};
   }
@@ -336,9 +412,9 @@ rdcarray<CounterResult> NVVulkanCounters::FetchCounters(const rdcarray<GPUCounte
           Unwrap(driver->GetInstance()), Unwrap(driver->GetPhysDev()), Unwrap(driver->GetDev()),
           ObjDisp(driver->GetInstance())->GetInstanceProcAddr,
           ObjDisp(driver->GetDev())->GetDeviceProcAddr);
-      NVPA_RawMetricsConfig *pRawMetricsConfig =
-          nv::perf::profiler::VulkanCreateRawMetricsConfig(deviceIdentifiers.pChipName);
-      if(!m_Impl->CounterEnumerator->CreateConfig(deviceIdentifiers.pChipName, pRawMetricsConfig,
+      NVPW_RawCounterConfig *pRawCounterConfig =
+          nv::perf::profiler::VulkanCreateRawCounterConfig(deviceIdentifiers.pChipName);
+      if(!m_Impl->CounterEnumerator->CreateConfig(deviceIdentifiers.pChipName, pRawCounterConfig,
                                                   counters))
         return {};    // Failure
     }
