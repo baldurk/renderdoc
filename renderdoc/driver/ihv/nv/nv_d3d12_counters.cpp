@@ -41,6 +41,7 @@ struct NVD3D12Counters::Impl
 {
   NVCounterEnumerator *CounterEnumerator;
   bool LibraryNotFound = false;
+  bool LibraryNotSupported = false;
 
   Impl() : CounterEnumerator(NULL) {}
   ~Impl()
@@ -67,12 +68,142 @@ struct NVD3D12Counters::Impl
                            MessageSource::RuntimeWarning, message);
   }
 
+  static bytebuf GetCounterAvailabilityImage(WrappedID3D12Device &device)
+  {
+    bytebuf counterAvailabilityImage;
+    const rdcarray<WrappedID3D12CommandQueue *> &commandQueues = device.GetQueues();
+    for(WrappedID3D12CommandQueue *pWrappedQueue : commandQueues)
+    {
+      ID3D12CommandQueue *d3dQueue = pWrappedQueue->GetReal();
+
+      switch(d3dQueue->GetDesc().Type)
+      {
+        case D3D12_COMMAND_LIST_TYPE_DIRECT:
+        case D3D12_COMMAND_LIST_TYPE_COMPUTE:
+          // Profiling is supported for 3D and compute queues.
+          break;
+        default: continue;
+      }
+
+      NVPA_Status result;
+      NVPW_D3D12_Profiler_Queue_GetCounterAvailability_Params params = {};
+      params.structSize = NVPW_D3D12_Profiler_Queue_GetCounterAvailability_Params_STRUCT_SIZE;
+      params.pCommandQueue = d3dQueue;
+      result = NVPW_D3D12_Profiler_Queue_GetCounterAvailability(&params);
+      if(result != NVPA_STATUS_SUCCESS)
+      {
+        Impl::LogDebugMessage("NVD3D12Counters::EnumerateCounters",
+                              "NvPerf could not determine counter availability for this GPU", device);
+        return {};
+      }
+      counterAvailabilityImage.resize(params.counterAvailabilityImageSize);
+      params.pCounterAvailabilityImage = counterAvailabilityImage.data();
+      result = NVPW_D3D12_Profiler_Queue_GetCounterAvailability(&params);
+      if(result != NVPA_STATUS_SUCCESS)
+      {
+        Impl::LogDebugMessage("NVD3D12Counters::EnumerateCounters",
+                              "NvPerf could not determine counter availability for this GPU", device);
+        return {};
+      }
+
+      break;
+    }
+    return counterAvailabilityImage;
+  }
+
+  bool InitCounterEnumerator(WrappedID3D12Device &device)
+  {
+    if(CounterEnumerator)
+      return true;
+
+    nv::perf::DeviceIdentifiers deviceIdentifiers =
+        nv::perf::D3D12GetDeviceIdentifiers(device.GetReal());
+    if(!deviceIdentifiers.pChipName)
+    {
+      Impl::LogDebugMessage("NVD3D12Counters::Impl::InitCounterEnumerator",
+                            "NvPerf could not determine chip name", device);
+      return false;
+    }
+
+    size_t scratchBufferSize =
+        nv::perf::D3D12CalculateMetricsEvaluatorScratchBufferSize(deviceIdentifiers.pChipName);
+    if(!scratchBufferSize)
+    {
+      Impl::LogDebugMessage(
+          "NVD3D12Counters::Impl::InitCounterEnumerator",
+          "NvPerf could not determine the scratch buffer size for metrics evaluation", device);
+      return false;
+    }
+
+    std::vector<uint8_t> scratchBuffer;
+    scratchBuffer.resize(scratchBufferSize);
+    NVPW_MetricsEvaluator *pMetricsEvaluator = nv::perf::D3D12CreateMetricsEvaluator(
+        scratchBuffer.data(), scratchBuffer.size(), deviceIdentifiers.pChipName);
+    if(!pMetricsEvaluator)
+    {
+      Impl::LogDebugMessage("NVD3D12Counters::Impl::InitCounterEnumerator",
+                            "NvPerf could not initialize metrics evaluator", device);
+      return false;
+    }
+
+    nv::perf::MetricsEvaluator metricsEvaluator(pMetricsEvaluator, std::move(scratchBuffer));
+
+    bytebuf counterAvailabilityImage = Impl::GetCounterAvailabilityImage(device);
+    if(counterAvailabilityImage.empty())
+    {
+      Impl::LogDebugMessage("NVD3D12Counters::Impl::InitCounterEnumerator",
+                            "NvPerf could not initialize counter availability image", device);
+      // NOTE: Not a fatal error; we can attempt to list counters regardless of availability
+    }
+
+    NVPW_RawCounterConfig *pRawCounterConfig =
+        nv::perf::profiler::D3D12CreateRawCounterConfig(deviceIdentifiers.pChipName);
+    if(!pRawCounterConfig)
+    {
+      Impl::LogDebugMessage("NVD3D12Counters::Impl::InitCounterEnumerator",
+                            "NvPerf could not initialize raw counter config", device);
+      return false;
+    }
+
+    nv::perf::RawCounterConfigBuilder rawCounterConfigBuilder;
+    if(!rawCounterConfigBuilder.Initialize(pRawCounterConfig))
+    {
+      Impl::LogDebugMessage("NVD3D12Counters::Impl::InitCounterEnumerator",
+                            "NvPerf failed to initialize raw counter config builder", device);
+      return false;
+    }
+
+    CounterEnumerator = new NVCounterEnumerator;
+    if(!CounterEnumerator->Init(std::move(metricsEvaluator), std::move(rawCounterConfigBuilder),
+                                std::move(counterAvailabilityImage)))
+    {
+      Impl::LogDebugMessage("NVD3D12Counters::Impl::InitCounterEnumerator",
+                            "NvPerf could not initialize metrics evaluator", device);
+      delete CounterEnumerator;
+      CounterEnumerator = NULL;
+      // NOTE: Not reachable; CounterEnumerator::Init() never returns false
+      return false;
+    }
+
+    return true;
+  }
+
   bool TryInitializePerfSDK(WrappedID3D12Device &device)
   {
     if(!NVCounterEnumerator::InitializeNvPerf())
     {
       RDCWARN("NvPerf library failed to initialize");
       LibraryNotFound = true;
+
+      // NOTE: Return success here so that we can later show a message
+      //       directing the user to download the Nsight Perf SDK library.
+      return true;
+    }
+
+    if(!NVPA_GetProcAddress("NVPW_D3D12_RawCounterConfig_Create"))
+    {
+      RDCWARN("NvPerf library version is out-of-date");
+      LibraryNotSupported = true;
 
       // NOTE: Return success here so that we can later show a message
       //       directing the user to download the Nsight Perf SDK library.
@@ -96,46 +227,6 @@ struct NVD3D12Counters::Impl
       return false;
     }
 
-    nv::perf::DeviceIdentifiers deviceIdentifiers =
-        nv::perf::D3D12GetDeviceIdentifiers(device.GetReal());
-    if(!deviceIdentifiers.pChipName)
-    {
-      Impl::LogDebugMessage("NVD3D12Counters::Impl::TryInitializePerfSDK",
-                            "NvPerf could not determine chip name", device);
-      return false;
-    }
-
-    size_t scratchBufferSize =
-        nv::perf::D3D12CalculateMetricsEvaluatorScratchBufferSize(deviceIdentifiers.pChipName);
-    if(!scratchBufferSize)
-    {
-      Impl::LogDebugMessage(
-          "NVD3D12Counters::Impl::TryInitializePerfSDK",
-          "NvPerf could not determine the scratch buffer size for metrics evaluation", device);
-      return false;
-    }
-
-    std::vector<uint8_t> scratchBuffer;
-    scratchBuffer.resize(scratchBufferSize);
-    NVPW_MetricsEvaluator *pMetricsEvaluator = nv::perf::D3D12CreateMetricsEvaluator(
-        scratchBuffer.data(), scratchBuffer.size(), deviceIdentifiers.pChipName);
-    if(!pMetricsEvaluator)
-    {
-      Impl::LogDebugMessage("NVD3D12Counters::Impl::TryInitializePerfSDK",
-                            "NvPerf could not initialize metrics evaluator", device);
-      return false;
-    }
-
-    nv::perf::MetricsEvaluator metricsEvaluator(pMetricsEvaluator, std::move(scratchBuffer));
-
-    CounterEnumerator = new NVCounterEnumerator;
-    if(!CounterEnumerator->Init(std::move(metricsEvaluator)))
-    {
-      Impl::LogDebugMessage("NVD3D12Counters::Impl::TryInitializePerfSDK",
-                            "NvPerf could not initialize metrics evaluator", device);
-      delete CounterEnumerator;
-      return false;
-    }
     return true;
   };
 
@@ -196,9 +287,13 @@ bool NVD3D12Counters::Init(WrappedID3D12Device &device)
   return true;
 }
 
-rdcarray<GPUCounter> NVD3D12Counters::EnumerateCounters() const
+rdcarray<GPUCounter> NVD3D12Counters::EnumerateCounters(WrappedID3D12Device &device) const
 {
-  if(m_Impl->LibraryNotFound)
+  if(m_Impl->LibraryNotFound || m_Impl->LibraryNotSupported)
+  {
+    return {GPUCounter::FirstNvidia};
+  }
+  if(!m_Impl->InitCounterEnumerator(device))
   {
     return {GPUCounter::FirstNvidia};
   }
@@ -207,7 +302,7 @@ rdcarray<GPUCounter> NVD3D12Counters::EnumerateCounters() const
 
 bool NVD3D12Counters::HasCounter(GPUCounter counterID) const
 {
-  if(m_Impl->LibraryNotFound)
+  if(m_Impl->LibraryNotFound || m_Impl->LibraryNotSupported)
   {
     return counterID == GPUCounter::FirstNvidia;
   }
@@ -221,6 +316,12 @@ CounterDescription NVD3D12Counters::DescribeCounter(GPUCounter counterID) const
     RDCASSERT(counterID == GPUCounter::FirstNvidia);
     // Dummy counter shows message directing user to download the Nsight Perf SDK library
     return NVCounterEnumerator::LibraryNotFoundMessage();
+  }
+  if(m_Impl->LibraryNotSupported)
+  {
+    RDCASSERT(counterID == GPUCounter::FirstNvidia);
+    // Dummy counter shows message directing user to update the Nsight Perf SDK library
+    return NVCounterEnumerator::LibraryNotSupportedMessage();
   }
   return m_Impl->CounterEnumerator->GetCounterDescription(counterID);
 }
@@ -289,7 +390,7 @@ struct D3D12NvidiaActionCallback final : public D3D12ActionCallback
 rdcarray<CounterResult> NVD3D12Counters::FetchCounters(const rdcarray<GPUCounter> &counters,
                                                        WrappedID3D12Device &device)
 {
-  if(m_Impl->LibraryNotFound)
+  if(m_Impl->LibraryNotFound || m_Impl->LibraryNotSupported)
   {
     return {};
   }
@@ -358,9 +459,9 @@ rdcarray<CounterResult> NVD3D12Counters::FetchCounters(const rdcarray<GPUCounter
     // Create counter configuration, and set it.
     {
       nv::perf::DeviceIdentifiers deviceIdentifiers = nv::perf::D3D12GetDeviceIdentifiers(d3dDevice);
-      NVPA_RawMetricsConfig *pRawMetricsConfig =
-          nv::perf::profiler::D3D12CreateRawMetricsConfig(deviceIdentifiers.pChipName);
-      m_Impl->CounterEnumerator->CreateConfig(deviceIdentifiers.pChipName, pRawMetricsConfig,
+      NVPW_RawCounterConfig *pRawCounterConfig =
+          nv::perf::profiler::D3D12CreateRawCounterConfig(deviceIdentifiers.pChipName);
+      m_Impl->CounterEnumerator->CreateConfig(deviceIdentifiers.pChipName, pRawCounterConfig,
                                               counters);
     }
 

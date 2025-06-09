@@ -38,7 +38,7 @@ public:
 
   bool Init(WrappedID3D12Device &device);
 
-  rdcarray<GPUCounter> EnumerateCounters() const;
+  rdcarray<GPUCounter> EnumerateCounters(WrappedID3D12Device &device) const;
   bool HasCounter(GPUCounter counterID) const;
   CounterDescription DescribeCounter(GPUCounter counterID) const;
   rdcarray<CounterResult> FetchCounters(const rdcarray<GPUCounter> &counters,

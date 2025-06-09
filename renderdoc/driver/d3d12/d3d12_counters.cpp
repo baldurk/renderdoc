@@ -65,7 +65,7 @@ rdcarray<GPUCounter> D3D12Replay::EnumerateCounters()
 
   if(m_pNVCounters)
   {
-    ret.append(m_pNVCounters->EnumerateCounters());
+    ret.append(m_pNVCounters->EnumerateCounters(*m_pDevice));
   }
 
   return ret;
