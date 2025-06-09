@@ -36,6 +36,7 @@ struct NVGLCounters::Impl
 {
   NVCounterEnumerator *CounterEnumerator;
   bool LibraryNotFound = false;
+  bool LibraryNotSupported = false;
 
   static void LogNvPerfAsDebugMessage(const char *pPrefix, const char *pDate, const char *pTime,
                                       const char *pFunctionName, const char *pMessage, void *pData)
@@ -61,12 +62,48 @@ struct NVGLCounters::Impl
     CounterEnumerator = NULL;
   }
 
+  static bytebuf GetCounterAvailabilityImage(WrappedOpenGL *driver)
+  {
+    bytebuf counterAvailabilityImage;
+    NVPA_Status result;
+    NVPW_OpenGL_Profiler_GraphicsContext_GetCounterAvailability_Params params = {};
+    params.structSize =
+        NVPW_OpenGL_Profiler_GraphicsContext_GetCounterAvailability_Params_STRUCT_SIZE;
+    result = NVPW_OpenGL_Profiler_GraphicsContext_GetCounterAvailability(&params);
+    if(result != NVPA_STATUS_SUCCESS)
+    {
+      Impl::LogDebugMessage("NVGLCounters::GetCounterAvailabilityImage",
+                            "NvPerf could not determine counter availability for this GPU", driver);
+      return {};
+    }
+    counterAvailabilityImage.resize(params.counterAvailabilityImageSize);
+    params.pCounterAvailabilityImage = counterAvailabilityImage.data();
+    result = NVPW_OpenGL_Profiler_GraphicsContext_GetCounterAvailability(&params);
+    if(result != NVPA_STATUS_SUCCESS)
+    {
+      Impl::LogDebugMessage("NVGLCounters::GetCounterAvailabilityImage",
+                            "NvPerf could not determine counter availability for this GPU", driver);
+      return {};
+    }
+    return counterAvailabilityImage;
+  }
+
   bool TryInitializePerfSDK(WrappedOpenGL *driver)
   {
     if(!NVCounterEnumerator::InitializeNvPerf())
     {
       RDCWARN("NvPerf library failed to initialize");
       LibraryNotFound = true;
+
+      // NOTE: Return success here so that we can later show a message
+      //       directing the user to download the Nsight Perf SDK library.
+      return true;
+    }
+
+    if(!NVPA_GetProcAddress("NVPW_OpenGL_RawCounterConfig_Create"))
+    {
+      RDCWARN("NvPerf library version is out-of-date");
+      LibraryNotSupported = true;
 
       // NOTE: Return success here so that we can later show a message
       //       directing the user to download the Nsight Perf SDK library.
@@ -121,12 +158,40 @@ struct NVGLCounters::Impl
 
     nv::perf::MetricsEvaluator metricsEvaluator(pMetricsEvaluator, std::move(scratchBuffer));
 
+    bytebuf counterAvailabilityImage = Impl::GetCounterAvailabilityImage(driver);
+    if(counterAvailabilityImage.empty())
+    {
+      Impl::LogDebugMessage("NVGLCounters::Impl::TryInitializePerfSDK",
+                            "NvPerf could not initialize counter availability image", driver);
+      // NOTE: Not a fatal error; we can attempt to list counters regardless of availability
+    }
+
+    NVPW_RawCounterConfig *pRawCounterConfig =
+        nv::perf::profiler::OpenGLCreateRawCounterConfig(deviceIdentifiers.pChipName);
+    if(!pRawCounterConfig)
+    {
+      Impl::LogDebugMessage("NVGLCounters::Impl::TryInitializePerfSDK",
+                            "NvPerf could not initialize raw counter config", driver);
+      return false;
+    }
+
+    nv::perf::RawCounterConfigBuilder rawCounterConfigBuilder;
+    if(!rawCounterConfigBuilder.Initialize(pRawCounterConfig))
+    {
+      Impl::LogDebugMessage("NVGLCounters::Impl::TryInitializePerfSDK",
+                            "NvPerf failed to initialize raw counter config builder", driver);
+      return false;
+    }
+
     CounterEnumerator = new NVCounterEnumerator;
-    if(!CounterEnumerator->Init(std::move(metricsEvaluator)))
+    if(!CounterEnumerator->Init(std::move(metricsEvaluator), std::move(rawCounterConfigBuilder),
+                                std::move(counterAvailabilityImage)))
     {
       Impl::LogDebugMessage("NVGLCounters::Impl::TryInitializePerfSDK",
                             "NvPerf could not initialize metrics evaluator", driver);
       delete CounterEnumerator;
+      CounterEnumerator = NULL;
+      // NOTE: Not reachable; CounterEnumerator::Init() never returns false
       return false;
     }
     return true;
@@ -214,7 +279,7 @@ bool NVGLCounters::Init(WrappedOpenGL *driver)
 
 rdcarray<GPUCounter> NVGLCounters::EnumerateCounters() const
 {
-  if(m_Impl->LibraryNotFound)
+  if(m_Impl->LibraryNotFound || m_Impl->LibraryNotSupported)
   {
     return {GPUCounter::FirstNvidia};
   }
@@ -223,7 +288,7 @@ rdcarray<GPUCounter> NVGLCounters::EnumerateCounters() const
 
 bool NVGLCounters::HasCounter(GPUCounter counterID) const
 {
-  if(m_Impl->LibraryNotFound)
+  if(m_Impl->LibraryNotFound || m_Impl->LibraryNotSupported)
   {
     return counterID == GPUCounter::FirstNvidia;
   }
@@ -238,13 +303,19 @@ CounterDescription NVGLCounters::DescribeCounter(GPUCounter counterID) const
     // Dummy counter shows message directing user to download the Nsight Perf SDK library
     return NVCounterEnumerator::LibraryNotFoundMessage();
   }
+  if(m_Impl->LibraryNotSupported)
+  {
+    RDCASSERT(counterID == GPUCounter::FirstNvidia);
+    // Dummy counter shows message directing user to update the Nsight Perf SDK library
+    return NVCounterEnumerator::LibraryNotSupportedMessage();
+  }
   return m_Impl->CounterEnumerator->GetCounterDescription(counterID);
 }
 
 rdcarray<CounterResult> NVGLCounters::FetchCounters(const rdcarray<GPUCounter> &counters,
                                                     WrappedOpenGL *driver)
 {
-  if(m_Impl->LibraryNotFound)
+  if(m_Impl->LibraryNotFound || m_Impl->LibraryNotSupported)
   {
     return {};
   }
@@ -280,9 +351,9 @@ rdcarray<CounterResult> NVGLCounters::FetchCounters(const rdcarray<GPUCounter> &
   // Create counter configuration, and set it.
   {
     nv::perf::DeviceIdentifiers deviceIdentifiers = nv::perf::OpenGLGetDeviceIdentifiers();
-    NVPA_RawMetricsConfig *pRawMetricsConfig =
-        nv::perf::profiler::OpenGLCreateRawMetricsConfig(deviceIdentifiers.pChipName);
-    m_Impl->CounterEnumerator->CreateConfig(deviceIdentifiers.pChipName, pRawMetricsConfig, counters);
+    NVPW_RawCounterConfig *pRawCounterConfig =
+        nv::perf::profiler::OpenGLCreateRawCounterConfig(deviceIdentifiers.pChipName);
+    m_Impl->CounterEnumerator->CreateConfig(deviceIdentifiers.pChipName, pRawCounterConfig, counters);
   }
 
   nv::perf::profiler::SetConfigParams setConfigParams;
