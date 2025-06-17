@@ -558,7 +558,7 @@ namespace nv { namespace perf { namespace sampler {
             if (nvpaStatus)
             {
                 NV_PERF_LOG_ERR(20, "NVPW_GPU_PeriodicSampler_AcknowledgeRecordBuffer failed, nvpaStatus = %s, deviceIndex = %llu\n", FormatStatus(nvpaStatus).c_str(), m_deviceIndex);
-                return nvpaStatus;
+                return false;
             }
             return true;
         }

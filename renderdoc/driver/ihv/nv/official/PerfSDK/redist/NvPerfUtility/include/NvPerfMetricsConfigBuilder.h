@@ -301,7 +301,7 @@ namespace nv { namespace perf {
             {
                 return false;
             }
-            isCDG = isCooperativeDomainGroupParams.isCdg;
+            isCDG = !!isCooperativeDomainGroupParams.isCdg;
             return true;
         }
 
