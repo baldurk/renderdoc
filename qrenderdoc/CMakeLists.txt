@@ -11,7 +11,7 @@ endif()
 
 set(QMAKE_QT5_COMMAND ${QT_QMAKE_EXECUTABLE} CACHE STRING "Command to run to invoke Qt5's qmake. Normally this is qmake, possibly with qtchooser, but might be qmake-qt5")
 set(RENDERDOC_SWIG_PACKAGE https://github.com/baldurk/swig/archive/renderdoc-modified-7.zip CACHE STRING "The location where RenderDoc's swig fork source can be found. By default points to the URL on github but can be pointed to a local file.")
-
+set(RENDERDOC_PCRE_PACKAGE "https://sourceforge.net/projects/pcre/files/pcre/8.40/pcre-8.40.tar.gz" CACHE STRING "The location where to download pcre-1.0 source for building RenderDOc's swig fork.")
 # Only check qt version if we're building qrenderdoc
 if(ENABLE_QRENDERDOC)
 
@@ -114,6 +114,8 @@ include(ExternalProject)
 
 # Need bison for swig
 find_package(BISON)
+# Need curl for swig
+find_program(CURL_COMMAND curl REQUIRED)
 
 set(SWIG_CONFIGURE_CC ${CMAKE_C_COMPILER})
 set(SWIG_CONFIGURE_CXX ${CMAKE_CXX_COMPILER})
@@ -158,6 +160,8 @@ ExternalProject_Add(custom_swig
     URL ${RENDERDOC_SWIG_PACKAGE}
     BUILD_IN_SOURCE 1
     CONFIGURE_COMMAND ${SET_SYSTEM_PATH_COMMAND} ./autogen.sh > /dev/null 2>&1
+    COMMAND ${CURL_COMMAND} -L ${RENDERDOC_PCRE_PACKAGE} > ./pcre-8.40.tar.gz
+    COMMAND  ${SET_SYSTEM_PATH_COMMAND} ./Tools/pcre-build.sh
     COMMAND CC=${SWIG_CONFIGURE_CC} CXX=${SWIG_CONFIGURE_CXX} CFLAGS=-fPIC CXXFLAGS=-fPIC ${SET_SYSTEM_PATH_COMMAND} ./configure --with-pcre=yes --prefix=${CMAKE_BINARY_DIR} > /dev/null
     BUILD_COMMAND ${GENERATOR_MAKE} ${GENERATOR_MAKE_PARAMS} > /dev/null 2>&1
     INSTALL_COMMAND ${GENERATOR_MAKE} install > /dev/null 2>&1)
