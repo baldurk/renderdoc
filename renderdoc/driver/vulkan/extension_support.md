@@ -48,6 +48,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_discard_rectangles`
 * `VK_EXT_display_control`
 * `VK_EXT_display_surface_counter`
+* `VK_EXT_dynamic_rendering_unused_attachments`
 * `VK_EXT_extended_dynamic_state`
 * `VK_EXT_extended_dynamic_state2`
 * `VK_EXT_extended_dynamic_state3`
@@ -283,7 +284,6 @@ The portability subset is only relevant on mac, which is not a supported platfor
 * `VK_EXT_device_fault`
 * `VK_EXT_device_generated_commands`
 * `VK_EXT_device_memory_report`
-* `VK_EXT_dynamic_rendering_unused_attachments`
 * `VK_EXT_external_memory_acquire_unmodified`
 * `VK_EXT_external_memory_host`
 * `VK_EXT_external_memory_metal`

@@ -660,6 +660,10 @@ SERIALISE_VK_HANDLES();
   /* VK_EXT_display_surface_counter */                                                                 \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_EXT, VkSurfaceCapabilities2EXT)                \
                                                                                                        \
+  /* VK_EXT_dynamic_rendering_unused_attachments */                                                    \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_FEATURES_EXT,    \
+               VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT)                           \
+                                                                                                       \
   /* VK_EXT_extended_dynamic_state */                                                                  \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT,                  \
                VkPhysicalDeviceExtendedDynamicStateFeaturesEXT)                                        \
@@ -1645,10 +1649,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_INDIRECT_EXECUTION_SET_SHADER_LAYOUT_INFO_EXT)                   \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_GENERATED_COMMANDS_PIPELINE_INFO_EXT)                            \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_GENERATED_COMMANDS_SHADER_INFO_EXT)                              \
-                                                                                                       \
-  /* VK_EXT_dynamic_rendering_unused_attachments */                                                    \
-  PNEXT_UNSUPPORTED(                                                                                   \
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_FEATURES_EXT)             \
                                                                                                        \
   /* VK_EXT_external_memory_host */                                                                    \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_IMPORT_MEMORY_HOST_POINTER_INFO_EXT)                             \
@@ -13048,6 +13048,24 @@ void Deserialise(const VkPhysicalDeviceImageCompressionControlSwapchainFeaturesE
   DeserialiseNext(el.pNext);
 }
 
+template <>
+void Deserialise(const VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType ==
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_FEATURES_EXT);
+
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(dynamicRenderingUnusedAttachments);
+}
+
 // pNext structs - always have deserialise for the next chain
 INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureBuildGeometryInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkAccelerationStructureBuildSizesInfoKHR);
@@ -13249,6 +13267,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDiscardRectanglePropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDriverProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDynamicRenderingFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDynamicRenderingLocalReadFeatures);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExtendedDynamicState2FeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExtendedDynamicState3FeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceExtendedDynamicState3PropertiesEXT);

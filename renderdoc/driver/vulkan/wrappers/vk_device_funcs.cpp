@@ -3153,6 +3153,14 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
       }
       END_PHYS_EXT_CHECK();
 
+      BEGIN_PHYS_EXT_CHECK(
+          VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT,
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_UNUSED_ATTACHMENTS_FEATURES_EXT);
+      {
+        CHECK_PHYS_EXT_FEATURE(dynamicRenderingUnusedAttachments);
+      }
+      END_PHYS_EXT_CHECK();
+
       BEGIN_PHYS_EXT_CHECK(VkPhysicalDevice4444FormatsFeaturesEXT,
                            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_4444_FORMATS_FEATURES_EXT);
       {
