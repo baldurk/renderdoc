@@ -781,8 +781,8 @@ void DoVendorChecks(GLPlatform &platform, GLWindowingData context)
   // Qualcomm's implementation of glCopyImageSubData is buggy on some drivers and can cause GPU
   // crashes or corrupted data. We force the initial state copies to happen via our emulation which
   // uses framebuffer blits.
-  if(strstr(vendor, "Qualcomm") || strstr(vendor, "Adreno") || strstr(renderer, "Qualcomm") ||
-     strstr(renderer, "Adreno"))
+  if(!strstr(renderer, "zink") && (strstr(vendor, "Qualcomm") || strstr(vendor, "Adreno") ||
+                                   strstr(renderer, "Qualcomm") || strstr(renderer, "Adreno")))
   {
     bool broken = true;
 
