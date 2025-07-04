@@ -405,6 +405,12 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 7.0)
             list(APPEND warning_flags -Wimplicit-fallthrough=2)
         endif()
+
+        # False positives due to function inlining decisions
+        # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=103993
+        if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 11.0.9)
+            list(APPEND warning_flags -Wno-mismatched-new-delete)
+        endif()
         
         if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 11.9)
             list(APPEND warning_flags -Wno-unused-value)
