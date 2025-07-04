@@ -129,7 +129,7 @@ jobs:
             configuration: Development
           - name: VS2022 x64 Release
             os: windows-2025
-            compiler: VS2015
+            compiler: VS2022
             toolset: v143
             platform: x64
             configuration: Release
