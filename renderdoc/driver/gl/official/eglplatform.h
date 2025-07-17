@@ -95,6 +95,8 @@ typedef void*                           EGLNativeDisplayType;
 
 #elif defined(__unix__)
 
+#if ENABLED(RDOC_XLIB)
+
 /* X11 (tentative)  */
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -102,6 +104,14 @@ typedef void*                           EGLNativeDisplayType;
 typedef Display *EGLNativeDisplayType;
 typedef Pixmap   EGLNativePixmapType;
 typedef Window   EGLNativeWindowType;
+
+#elif ENABLED(RDOC_WAYLAND)
+
+typedef struct wl_display     *EGLNativeDisplayType;
+typedef struct wl_egl_pixmap  *EGLNativePixmapType;
+typedef struct wl_egl_window  *EGLNativeWindowType;
+
+#endif
 
 #else
 #error "Platform not recognized"
