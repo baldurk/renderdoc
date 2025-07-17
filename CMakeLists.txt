@@ -444,6 +444,11 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         list(APPEND warning_flags -Wno-deprecated-literal-operator)
     endif()
 
+    if(CMAKE_CXX_COMPILER_ID STREQUAL AppleClang AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 17)
+        # See related https://github.com/swig/swig/issues/1259
+        list(APPEND warning_flags -Wno-cast-function-type-mismatch)
+    endif()
+
     if(NOT RELEASE_MODE)
         list(APPEND warning_flags -Werror)
     endif()

@@ -115,14 +115,15 @@ include(ExternalProject)
 # Need bison for swig
 find_package(BISON)
 
-set(SWIG_CONFIGURE_CC ${CMAKE_C_COMPILER})
-set(SWIG_CONFIGURE_CXX ${CMAKE_CXX_COMPILER})
-
+set(SWIG_CONFIGURE_CC_DEFAULT ${CMAKE_C_COMPILER})
+set(SWIG_CONFIGURE_CXX_DEFAULT ${CMAKE_CXX_COMPILER})
 # macOS 10.14+ ships broken compilers, need to disable CC/CXX inheritance
 if(APPLE)
-    set(SWIG_CONFIGURE_CC "")
-    set(SWIG_CONFIGURE_CXX "")
+    set(SWIG_CONFIGURE_CC_DEFAULT "")
+    set(SWIG_CONFIGURE_CXX_DEFAULT "")
 endif()
+set(SWIG_CONFIGURE_CC ${SWIG_CONFIGURE_CC_DEFAULT} CACHE STRING "C Compiler for external SWIG project. Default is the main project C compiler")
+set(SWIG_CONFIGURE_CXX ${SWIG_CONFIGURE_CXX_DEFAULT} CACHE STRING "C++ Compiler for external SWIG project. Default is the main project C++ compiler")
 
 set( GENERATOR_MAKE "$(MAKE)" )
 set( GENERATOR_MAKE_PARAMS "" )
@@ -157,10 +158,15 @@ ExternalProject_Add(custom_swig
     # using an URL to a zip directly so we don't clone the history etc
     URL ${RENDERDOC_SWIG_PACKAGE}
     BUILD_IN_SOURCE 1
-    CONFIGURE_COMMAND ${SET_SYSTEM_PATH_COMMAND} ./autogen.sh > /dev/null 2>&1
-    COMMAND CC=${SWIG_CONFIGURE_CC} CXX=${SWIG_CONFIGURE_CXX} CFLAGS=-fPIC CXXFLAGS=-fPIC ${SET_SYSTEM_PATH_COMMAND} ./configure --with-pcre=yes --prefix=${CMAKE_BINARY_DIR} > /dev/null
-    BUILD_COMMAND ${GENERATOR_MAKE} ${GENERATOR_MAKE_PARAMS} > /dev/null 2>&1
-    INSTALL_COMMAND ${GENERATOR_MAKE} install > /dev/null 2>&1)
+    CONFIGURE_COMMAND ${SET_SYSTEM_PATH_COMMAND} ./autogen.sh
+    COMMAND ${CMAKE_COMMAND} -E env CC=${SWIG_CONFIGURE_CC} CXX=${SWIG_CONFIGURE_CXX} CFLAGS=-fPIC CXXFLAGS=-fPIC ${SET_SYSTEM_PATH_COMMAND} ./configure --with-pcre=yes --prefix=${CMAKE_BINARY_DIR}
+    BUILD_COMMAND ${GENERATOR_MAKE} ${GENERATOR_MAKE_PARAMS}
+    INSTALL_COMMAND ${GENERATOR_MAKE} install
+    LOG_CONFIGURE ON
+    LOG_BUILD ON
+    LOG_INSTALL ON
+    LOG_OUTPUT_ON_FAILURE ON
+)
 
 find_package(Shiboken2 QUIET)
 find_package(PySide2 QUIET)
