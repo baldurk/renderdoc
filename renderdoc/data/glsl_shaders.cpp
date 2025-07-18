@@ -25,6 +25,7 @@
 #include "glsl_shaders.h"
 #include "common/common.h"
 #include "common/formatting.h"
+#include "common/threading.h"
 #include "driver/shaders/spirv/glslang_compile.h"
 #include "glslang/glslang/Public/ResourceLimits.h"
 #include "glslang/glslang/Public/ShaderLang.h"
@@ -136,6 +137,9 @@ rdcstr GenerateGLSLShader(const rdcstr &shader, ShaderType type, int version, co
   bool success;
 
   {
+    static Threading::CriticalSection *lock = new Threading::CriticalSection();
+    SCOPED_LOCK(*lock);
+
     std::string outstr;
     success =
         sh.preprocess(GetDefaultResources(), 100, ENoProfile, false, false, flags, &outstr, incl);
