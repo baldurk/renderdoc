@@ -145,6 +145,9 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{d8130624-7075-486d-91fc-b5ab8cd2b811}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rdparty\astc_dec">
+      <UniqueIdentifier>{8db6f0b0-e9e2-4dd3-aa5e-b97521b4498f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -582,6 +585,9 @@
     <ClInclude Include="core\rdcbytetrie.h">
       <Filter>Core</Filter>
     </ClInclude>
+    <ClInclude Include="3rdparty\astc_dec\astc_decomp.h">
+      <Filter>3rdparty\astc_dec</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -988,6 +994,9 @@
     </ClCompile>
     <ClCompile Include="shaders\controlflow.cpp">
       <Filter>Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\astc_dec\astc_decomp.cpp">
+      <Filter>3rdparty\astc_dec</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

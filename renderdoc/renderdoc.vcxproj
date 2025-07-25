@@ -105,6 +105,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="3rdparty\astc_dec\astc_decomp.h" />
     <ClInclude Include="3rdparty\catch\catch.hpp" />
     <ClInclude Include="3rdparty\catch\official\catch.hpp" />
     <ClInclude Include="3rdparty\compressonator\BC1_Encode_kernel.h" />
@@ -256,6 +257,7 @@
     <ClInclude Include="strings\string_utils.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="3rdparty\astc_dec\astc_decomp.cpp" />
     <ClCompile Include="3rdparty\catch\catch.cpp" />
     <ClCompile Include="3rdparty\compressonator\BC1_Encode_kernel.cpp" />
     <ClCompile Include="3rdparty\compressonator\BC2_Encode_kernel.cpp" />

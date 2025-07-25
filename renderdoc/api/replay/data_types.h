@@ -288,6 +288,13 @@ For other formats, 1 is returned.
     return 1;
   }
 
+  DOCUMENT(R"(Check if format is ASTC decoded. Originally ASTC decoded to RGBA for viewing
+
+:return: ``True`` if the format is ASTC decoded.
+:rtype: bool
+)");
+  bool ASTCDecoded() const { return (flags & ResourceFormat_ASTC_Decode) != 0; }
+
   DOCUMENT(R"(Set BGRA order flag. See :meth:`BGRAOrder`.
 
 :param bool flag: The new flag value.
@@ -330,6 +337,16 @@ Invalid values will result in 1 being set.
       flags |= ResourceFormat_2Planes;
     else if(planes == 3)
       flags |= ResourceFormat_3Planes;
+  }
+
+  DOCUMENT(R"(Set ASTC decode flag for ASTC decoded texture viewer.
+)");
+  void SetASTCDecode(bool flag)
+  {
+    if(flag)
+      flags |= ResourceFormat_ASTC_Decode;
+    else
+      flags &= ~ResourceFormat_ASTC_Decode;
   }
 
   DOCUMENT(R"(:return: ``True`` if the ``ResourceFormat`` is a block-compressed type.
@@ -446,6 +463,8 @@ private:
     ResourceFormat_2Planes = 0x020,
     ResourceFormat_3Planes = 0x040,
     ResourceFormat_Planes_Mask = 0x060,
+
+    ResourceFormat_ASTC_Decode = 0x080,
   };
   uint16_t flags;
 

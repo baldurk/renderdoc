@@ -24,6 +24,7 @@
 
 #include "dds_readwrite.h"
 #include <stdint.h>
+#include "3rdparty/astc_dec/astc_decomp.h"
 #include "common/common.h"
 #include "common/formatting.h"
 #include "common/result.h"
@@ -192,6 +193,51 @@ enum DXGI_FORMAT
   DXGI_FORMAT_P8 = 113,
   DXGI_FORMAT_A8P8 = 114,
   DXGI_FORMAT_B4G4R4A4_UNORM = 115,
+
+  // ASTC Format
+  DXGI_FORMAT_ASTC_4X4_TYPELESS = 133,
+  DXGI_FORMAT_ASTC_4X4_UNORM = 134,
+  DXGI_FORMAT_ASTC_4X4_UNORM_SRGB = 135,
+  DXGI_FORMAT_ASTC_5X4_TYPELESS = 137,
+  DXGI_FORMAT_ASTC_5X4_UNORM = 138,
+  DXGI_FORMAT_ASTC_5X4_UNORM_SRGB = 139,
+  DXGI_FORMAT_ASTC_5X5_TYPELESS = 141,
+  DXGI_FORMAT_ASTC_5X5_UNORM = 142,
+  DXGI_FORMAT_ASTC_5X5_UNORM_SRGB = 143,
+  DXGI_FORMAT_ASTC_6X5_TYPELESS = 145,
+  DXGI_FORMAT_ASTC_6X5_UNORM = 146,
+  DXGI_FORMAT_ASTC_6X5_UNORM_SRGB = 147,
+  DXGI_FORMAT_ASTC_6X6_TYPELESS = 149,
+  DXGI_FORMAT_ASTC_6X6_UNORM = 150,
+  DXGI_FORMAT_ASTC_6X6_UNORM_SRGB = 151,
+  DXGI_FORMAT_ASTC_8X5_TYPELESS = 153,
+  DXGI_FORMAT_ASTC_8X5_UNORM = 154,
+  DXGI_FORMAT_ASTC_8X5_UNORM_SRGB = 155,
+  DXGI_FORMAT_ASTC_8X6_TYPELESS = 157,
+  DXGI_FORMAT_ASTC_8X6_UNORM = 158,
+  DXGI_FORMAT_ASTC_8X6_UNORM_SRGB = 159,
+  DXGI_FORMAT_ASTC_8X8_TYPELESS = 161,
+  DXGI_FORMAT_ASTC_8X8_UNORM = 162,
+  DXGI_FORMAT_ASTC_8X8_UNORM_SRGB = 163,
+  DXGI_FORMAT_ASTC_10X5_TYPELESS = 165,
+  DXGI_FORMAT_ASTC_10X5_UNORM = 166,
+  DXGI_FORMAT_ASTC_10X5_UNORM_SRGB = 167,
+  DXGI_FORMAT_ASTC_10X6_TYPELESS = 169,
+  DXGI_FORMAT_ASTC_10X6_UNORM = 170,
+  DXGI_FORMAT_ASTC_10X6_UNORM_SRGB = 171,
+  DXGI_FORMAT_ASTC_10X8_TYPELESS = 173,
+  DXGI_FORMAT_ASTC_10X8_UNORM = 174,
+  DXGI_FORMAT_ASTC_10X8_UNORM_SRGB = 175,
+  DXGI_FORMAT_ASTC_10X10_TYPELESS = 177,
+  DXGI_FORMAT_ASTC_10X10_UNORM = 178,
+  DXGI_FORMAT_ASTC_10X10_UNORM_SRGB = 179,
+  DXGI_FORMAT_ASTC_12X10_TYPELESS = 181,
+  DXGI_FORMAT_ASTC_12X10_UNORM = 182,
+  DXGI_FORMAT_ASTC_12X10_UNORM_SRGB = 183,
+  DXGI_FORMAT_ASTC_12X12_TYPELESS = 185,
+  DXGI_FORMAT_ASTC_12X12_UNORM = 186,
+  DXGI_FORMAT_ASTC_12X12_UNORM_SRGB = 187,
+
   DXGI_FORMAT_FORCE_UINT = 0xffffffff
 };
 
@@ -297,6 +343,27 @@ ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
       special.type = ResourceFormatType::BC7;
       special.compType =
           (format == DXGI_FORMAT_BC7_UNORM_SRGB) ? CompType::UNormSRGB : CompType::UNorm;
+      return special;
+    case DXGI_FORMAT_ASTC_4X4_TYPELESS:
+    case DXGI_FORMAT_ASTC_4X4_UNORM:
+    case DXGI_FORMAT_ASTC_4X4_UNORM_SRGB:
+    case DXGI_FORMAT_ASTC_5X5_TYPELESS:
+    case DXGI_FORMAT_ASTC_5X5_UNORM:
+    case DXGI_FORMAT_ASTC_5X5_UNORM_SRGB:
+    case DXGI_FORMAT_ASTC_6X6_TYPELESS:
+    case DXGI_FORMAT_ASTC_6X6_UNORM:
+    case DXGI_FORMAT_ASTC_6X6_UNORM_SRGB:
+    case DXGI_FORMAT_ASTC_8X8_TYPELESS:
+    case DXGI_FORMAT_ASTC_8X8_UNORM:
+    case DXGI_FORMAT_ASTC_8X8_UNORM_SRGB:
+    case DXGI_FORMAT_ASTC_10X10_TYPELESS:
+    case DXGI_FORMAT_ASTC_10X10_UNORM:
+    case DXGI_FORMAT_ASTC_10X10_UNORM_SRGB:
+    case DXGI_FORMAT_ASTC_12X12_TYPELESS:
+    case DXGI_FORMAT_ASTC_12X12_UNORM:
+    case DXGI_FORMAT_ASTC_12X12_UNORM_SRGB:
+      special.type = ResourceFormatType::ASTC;
+      special.compType = (format % 2) ? CompType::UNormSRGB : CompType::UNorm;
       return special;
     case DXGI_FORMAT_R10G10B10A2_UNORM:
     case DXGI_FORMAT_R10G10B10A2_UINT:
@@ -1191,7 +1258,8 @@ RDResult load_dds_from_file(StreamReader *reader, read_tex_data &ret)
     default: bytesPerPixel = ret.format.compCount * ret.format.compByteWidth;
   }
 
-  bool blockFormat = false;
+  bool decodeFormat = false;
+  uint8_t blockDim = 4;
 
   if(ret.format.Special())
   {
@@ -1203,10 +1271,44 @@ RDResult load_dds_from_file(StreamReader *reader, read_tex_data &ret)
       case ResourceFormatType::BC4:
       case ResourceFormatType::BC5:
       case ResourceFormatType::BC6:
-      case ResourceFormatType::BC7: blockFormat = true; break;
+      case ResourceFormatType::BC7: break;
+      case ResourceFormatType::ASTC:
+      {
+        decodeFormat = true;
+        switch(headerDXT10.dxgiFormat)
+        {
+          case DXGI_FORMAT_ASTC_4X4_TYPELESS:
+          case DXGI_FORMAT_ASTC_4X4_UNORM:
+          case DXGI_FORMAT_ASTC_4X4_UNORM_SRGB: blockDim = 4; break;
+          case DXGI_FORMAT_ASTC_5X5_TYPELESS:
+          case DXGI_FORMAT_ASTC_5X5_UNORM:
+          case DXGI_FORMAT_ASTC_5X5_UNORM_SRGB: blockDim = 5; break;
+          case DXGI_FORMAT_ASTC_6X6_TYPELESS:
+          case DXGI_FORMAT_ASTC_6X6_UNORM:
+          case DXGI_FORMAT_ASTC_6X6_UNORM_SRGB: blockDim = 6; break;
+          case DXGI_FORMAT_ASTC_8X8_TYPELESS:
+          case DXGI_FORMAT_ASTC_8X8_UNORM:
+          case DXGI_FORMAT_ASTC_8X8_UNORM_SRGB: blockDim = 8; break;
+          case DXGI_FORMAT_ASTC_10X10_TYPELESS:
+          case DXGI_FORMAT_ASTC_10X10_UNORM:
+          case DXGI_FORMAT_ASTC_10X10_UNORM_SRGB: blockDim = 10; break;
+          case DXGI_FORMAT_ASTC_12X12_TYPELESS:
+          case DXGI_FORMAT_ASTC_12X12_UNORM:
+          case DXGI_FORMAT_ASTC_12X12_UNORM_SRGB: blockDim = 12; break;
+          default:
+          {
+            RETURN_ERROR_RESULT(ResultCode::ImageUnsupported,
+                                "Unsupported file format %s to load from DDS",
+                                ToStr(ret.format.type).c_str());
+          }
+          break;
+        }
+
+        ret.format.SetASTCDecode(true);
+        break;
+      }
       case ResourceFormatType::ETC2:
       case ResourceFormatType::EAC:
-      case ResourceFormatType::ASTC:
       {
         RETURN_ERROR_RESULT(ResultCode::ImageUnsupported,
                             "Unsupported file format %s to load from DDS",
@@ -1215,6 +1317,9 @@ RDResult load_dds_from_file(StreamReader *reader, read_tex_data &ret)
       default: break;
     }
   }
+
+  const bool blockFormat = ret.format.BlockFormat();
+  const uint8_t blockDimMinusOne = blockDim - 1;
 
   // catch any invalid dimensions here, including the total dimension with a very conservative 1/16
   // byte per pixel
@@ -1232,6 +1337,9 @@ RDResult load_dds_from_file(StreamReader *reader, read_tex_data &ret)
         ret.width, ret.height, ret.depth, ret.slices, ret.mips, fileSize);
   }
 
+  bytebuf decodedBuffer;
+  const uint32_t blockSize = ret.format.ElementSize();
+
   // we reserve space for a full mip-chain (twice the size of the top mip) just to be conservative
   {
     uint32_t rowlen = AlignUp(ret.width, subsamplePacking);
@@ -1241,17 +1349,15 @@ RDResult load_dds_from_file(StreamReader *reader, read_tex_data &ret)
     // pitch/rows are in blocks, not pixels, for block formats.
     if(blockFormat)
     {
-      numRows = RDCMAX(1U, (numRows + 3) / 4);
-
-      uint32_t blockSize =
-          (ret.format.type == ResourceFormatType::BC1 || ret.format.type == ResourceFormatType::BC4)
-              ? 8
-              : 16;
-
-      pitch = RDCMAX(blockSize, (((rowlen + 3) / 4)) * blockSize);
+      numRows = RDCMAX(1U, (numRows + blockDimMinusOne) / blockDim);
+      pitch = RDCMAX(blockSize, (((rowlen + blockDimMinusOne) / blockDim)) * blockSize);
     }
 
     ret.buffer.reserve(ret.slices * 2 * ret.depth * numRows * pitch);
+    if(decodeFormat)
+    {
+      decodedBuffer.reserve(ret.slices * 2 * ret.width * ret.height * ret.depth * sizeof(uint32_t));
+    }
   }
   ret.subresources.reserve(ret.slices * ret.mips);
 
@@ -1260,33 +1366,45 @@ RDResult load_dds_from_file(StreamReader *reader, read_tex_data &ret)
   {
     for(uint32_t mip = 0; mip < ret.mips; mip++)
     {
-      uint32_t rowlen = RDCMAX(1U, ret.width >> mip);
+      const uint32_t mipWidth = RDCMAX(1U, ret.width >> mip);
+      const uint32_t mipHeight = RDCMAX(1U, ret.height >> mip);
+      const uint32_t mipDepth = RDCMAX(1U, ret.depth >> mip);
+      uint32_t rowlen = mipWidth;
       rowlen = AlignUp(rowlen, subsamplePacking);
-      uint32_t numRows = RDCMAX(1U, ret.height >> mip);
-      uint32_t numdepths = RDCMAX(1U, ret.depth >> mip);
+      uint32_t numRows = mipHeight;
+      uint32_t numdepths = mipDepth;
       uint32_t pitch = RDCMAX(1U, rowlen * bytesPerPixel);
+
+      size_t decodedSubOffs = decodedBuffer.size();
+      size_t decodedSubSize = mipWidth * mipHeight * mipDepth * sizeof(uint32_t);
+      if(decodeFormat)
+      {
+        decodedBuffer.resize(decodedBuffer.size() + decodedSubSize);
+      }
 
       // pitch/rows are in blocks, not pixels, for block formats.
       if(blockFormat)
       {
-        numRows = RDCMAX(1U, (numRows + 3) / 4);
-
-        uint32_t blockSize = (ret.format.type == ResourceFormatType::BC1 ||
-                              ret.format.type == ResourceFormatType::BC4)
-                                 ? 8
-                                 : 16;
-
-        pitch = RDCMAX(blockSize, (((rowlen + 3) / 4)) * blockSize);
+        numRows = RDCMAX(1U, (numRows + blockDimMinusOne) / blockDim);
+        pitch = RDCMAX(blockSize, (((rowlen + blockDimMinusOne) / blockDim)) * blockSize);
       }
 
       size_t subOffs = ret.buffer.size();
       size_t subSize = numdepths * numRows * pitch;
 
-      ret.subresources.push_back({subOffs, subSize});
+      if(decodeFormat)
+      {
+        ret.subresources.push_back({decodedSubOffs, decodedSubSize});
+      }
+      else
+      {
+        ret.subresources.push_back({subOffs, subSize});
+      }
 
       ret.buffer.resize(ret.buffer.size() + subSize);
 
       byte *bytedata = ret.buffer.data() + subOffs;
+      byte *decodedBytedata = decodedBuffer.data() + decodedSubOffs;
 
       for(uint32_t d = 0; d < numdepths; d++)
       {
@@ -1318,10 +1436,86 @@ RDResult load_dds_from_file(StreamReader *reader, read_tex_data &ret)
 
           bytedata += pitch;
         }
+
+        // If format cannot be viewed by the graphics driver, decode to RGBA
+        if(decodeFormat)
+        {
+          for(uint32_t y = 0; y < mipHeight; y += blockDim)
+          {
+            for(uint32_t x = 0; x < mipWidth; x += blockDim)
+            {
+              const uint32_t maxBlockWidth = 12;
+              const uint32_t maxBlockHeight = 12;
+
+              uint32_t blockIndexX = x / blockDim;
+              uint32_t blockIndexY = y / blockDim;
+              const byte *compressedBlock =
+                  &(ret.buffer.data() +
+                    subOffs)[(blockIndexY * (pitch / blockSize) + blockIndexX) * blockSize];
+
+              // Contains decoded RGBA data for this block - Considering max block size of 12x12 =
+              // 144 pixels - 144 * 4 bytes
+              uint8_t decodedBlock[maxBlockWidth * maxBlockHeight * sizeof(uint32_t)] = {};
+
+              if(!basisu::astc::decompress(decodedBlock, compressedBlock,
+                                           ret.format.SRGBCorrected(), blockDim, blockDim))
+              {
+                // Handle decompression error (fill with a default invalid astc color - purple)
+                for(uint8_t row = 0; row < blockDim; ++row)
+                {
+                  for(uint8_t col = 0; col < blockDim; ++col)
+                  {
+                    uint8_t *pixel = &decodedBlock[(row * blockDim + col) * sizeof(uint32_t)];
+                    // RGBA
+                    pixel[0] = 255;
+                    pixel[1] = 0;
+                    pixel[2] = 255;
+                    pixel[3] = 255;
+                  }
+                }
+              }
+
+              // Fill the RGBA pixels for this block
+              // If we have a ASTC 8x8 block, this means we will fill 64 pixels - 8 rows, 8 columns
+              for(uint8_t row = 0; row < blockDim; ++row)
+              {
+                for(uint8_t col = 0; col < blockDim; ++col)
+                {
+                  // Mip size not aligned to block size - Dont fill out of bounds pixels
+                  if(y + row >= mipHeight || x + col >= mipWidth)
+                  {
+                    break;
+                  }
+                  uint8_t *src = &decodedBlock[(row * blockDim + col) * sizeof(uint32_t)];
+                  uint8_t *dst =
+                      &decodedBytedata[((y + row) * RDCMAX(1U, ret.width >> mip) + (x + col)) *
+                                       sizeof(uint32_t)];
+                  // RGBA
+                  dst[0] = src[0];
+                  dst[1] = src[1];
+                  dst[2] = src[2];
+                  dst[3] = src[3];
+                }
+              }
+            }
+          }
+        }
       }
 
       i++;
     }
+  }
+
+  if(decodeFormat)
+  {
+    const DXGI_FORMAT decodedDxgiFormat =
+        ret.format.SRGBCorrected() ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
+    ResourceFormat decodedFormat = DXGIFormat2ResourceFormat(decodedDxgiFormat);
+    ret.format.type = decodedFormat.type;
+    ret.format.compType = decodedFormat.compType;
+    ret.format.compCount = decodedFormat.compCount;
+    ret.format.compByteWidth = decodedFormat.compByteWidth;
+    ret.buffer = decodedBuffer;
   }
 
   return RDResult();

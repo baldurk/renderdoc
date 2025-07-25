@@ -1257,6 +1257,14 @@ void TextureViewer::UI_UpdateTextureDetails()
 
   status = current.format.Name();
 
+  if(current.format.ASTCDecoded())
+  {
+    ResourceFormat astcFormat = {};
+    astcFormat.type = ResourceFormatType::ASTC;
+    astcFormat.compType = current.format.compType;
+    status += tr(" Decoded | Original format %1").arg(astcFormat.Name());
+  }
+
   const bool yuv = (current.format.type == ResourceFormatType::YUV8 ||
                     current.format.type == ResourceFormatType::YUV10 ||
                     current.format.type == ResourceFormatType::YUV12 ||
