@@ -617,6 +617,12 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,                                \
                VkDebugUtilsMessengerCreateInfoEXT)                                                     \
                                                                                                        \
+  /* VK_EXT_depth_clamp_control */                                                                     \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLAMP_CONTROL_FEATURES_EXT,                     \
+               VkPhysicalDeviceDepthClampControlFeaturesEXT)                                           \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_DEPTH_CLAMP_CONTROL_CREATE_INFO_EXT,                \
+               VkPipelineViewportDepthClampControlCreateInfoEXT)                                       \
+                                                                                                       \
   /* VK_KHR_depth_clamp_zero_one promoted from VK_EXT_depth_clamp_zero_one */                          \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLAMP_ZERO_ONE_FEATURES_KHR,                    \
                VkPhysicalDeviceDepthClampZeroOneFeaturesKHR)                                           \
@@ -1600,10 +1606,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_BIAS_CONTROL_FEATURES_EXT)                 \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DEPTH_BIAS_INFO_EXT)                                             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DEPTH_BIAS_REPRESENTATION_INFO_EXT)                              \
-                                                                                                       \
-  /* VK_EXT_depth_clamp_control */                                                                     \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLAMP_CONTROL_FEATURES_EXT)                \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_DEPTH_CLAMP_CONTROL_CREATE_INFO_EXT)           \
                                                                                                        \
   /* VK_EXT_descriptor_buffer */                                                                       \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_PROPERTIES_EXT)                \
@@ -9880,6 +9882,47 @@ void Deserialise(const VkPhysicalDeviceDepthClampZeroOneFeaturesKHR &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkDepthClampRangeEXT &el)
+{
+  SERIALISE_MEMBER(minDepthClamp);
+  SERIALISE_MEMBER(maxDepthClamp);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceDepthClampControlFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLAMP_CONTROL_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(depthClampControl);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceDepthClampControlFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPipelineViewportDepthClampControlCreateInfoEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_DEPTH_CLAMP_CONTROL_CREATE_INFO_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(depthClampMode);
+  SERIALISE_MEMBER_OPT(pDepthClampRange);
+}
+
+template <>
+void Deserialise(const VkPipelineViewportDepthClampControlCreateInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+  delete el.pDepthClampRange;
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkPipelineViewportDepthClipControlCreateInfoEXT &el)
 {
   RDCASSERT(ser.IsReading() ||
@@ -13261,6 +13304,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceConditionalRenderingFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceConservativeRasterizationPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceCustomBorderColorFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceCustomBorderColorPropertiesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDepthClampControlFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDepthClampZeroOneFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDepthClipControlFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceDepthClipEnableFeaturesEXT);
@@ -13446,6 +13490,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPipelineTessellationDomainOriginStateCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineTessellationStateCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineVertexInputDivisorStateCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineVertexInputStateCreateInfo);
+INSTANTIATE_SERIALISE_TYPE(VkPipelineViewportDepthClampControlCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineViewportDepthClipControlCreateInfoEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineViewportStateCreateInfo);
 INSTANTIATE_SERIALISE_TYPE(VkPresentIdKHR);
@@ -13552,6 +13597,7 @@ INSTANTIATE_SERIALISE_TYPE(VkClearValue);
 INSTANTIATE_SERIALISE_TYPE(VkColorBlendEquationEXT);
 INSTANTIATE_SERIALISE_TYPE(VkComponentMapping);
 INSTANTIATE_SERIALISE_TYPE(VkConformanceVersion);
+INSTANTIATE_SERIALISE_TYPE(VkDepthClampRangeEXT);
 INSTANTIATE_SERIALISE_TYPE(VkDescriptorBufferInfo);
 INSTANTIATE_SERIALISE_TYPE(VkDescriptorImageInfo);
 INSTANTIATE_SERIALISE_TYPE(VkDescriptorPoolSize);

@@ -4370,3 +4370,14 @@ rdcstr DoStringise(const VkImageCompressionFlagBitsEXT &el)
   }
   END_BITFIELD_STRINGISE();
 }
+
+template <>
+rdcstr DoStringise(const VkDepthClampModeEXT &el)
+{
+  BEGIN_ENUM_STRINGISE(VkDepthClampModeEXT);
+  {
+    STRINGISE_ENUM(VK_DEPTH_CLAMP_MODE_VIEWPORT_RANGE_EXT)
+    STRINGISE_ENUM(VK_DEPTH_CLAMP_MODE_USER_DEFINED_RANGE_EXT)
+  }
+  END_ENUM_STRINGISE();
+}

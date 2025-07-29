@@ -39,6 +39,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_debug_marker`
 * `VK_EXT_debug_report`
 * `VK_EXT_debug_utils`
+* `VK_EXT_depth_clamp_control`
 * `VK_EXT_depth_clamp_zero_one`
 * `VK_EXT_depth_clip_control`
 * `VK_EXT_depth_clip_enable`
@@ -278,7 +279,6 @@ The portability subset is only relevant on mac, which is not a supported platfor
 
 * `VK_EXT_blend_operation_advanced`
 * `VK_EXT_depth_bias_control`
-* `VK_EXT_depth_clamp_control`
 * `VK_EXT_descriptor_buffer`
 * `VK_EXT_device_address_binding_report`
 * `VK_EXT_device_fault`

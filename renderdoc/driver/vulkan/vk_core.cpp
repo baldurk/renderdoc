@@ -1051,6 +1051,10 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_DEBUG_UTILS_SPEC_VERSION,
     },
     {
+        VK_EXT_DEPTH_CLAMP_CONTROL_EXTENSION_NAME,
+        VK_EXT_DEPTH_CLAMP_CONTROL_SPEC_VERSION,
+    },
+    {
         VK_EXT_DEPTH_CLAMP_ZERO_ONE_EXTENSION_NAME,
         VK_EXT_DEPTH_CLAMP_ZERO_ONE_SPEC_VERSION,
     },
