@@ -8088,7 +8088,10 @@ void WrappedID3D11DeviceContext::Unmap(ID3D11Resource *pResource, UINT Subresour
             "unsuccessful");
         m_SuccessfulCapture = false;
         m_FailureReason = CaptureFailed_UncappedUnmap;
-        m_OpenMaps.erase(it);
+        if(it != m_OpenMaps.end())
+        {
+          m_OpenMaps.erase(it);
+        }
       }
     }
 
