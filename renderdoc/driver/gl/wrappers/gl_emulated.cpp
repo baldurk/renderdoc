@@ -2832,9 +2832,9 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
     readDirectly = false;
   }
 
-  if((format == eGL_DEPTH_COMPONENT && !HasExt[NV_read_depth]) ||
-     (format == eGL_STENCIL && !HasExt[NV_read_stencil]) ||
-     (format == eGL_DEPTH_STENCIL && !HasExt[NV_read_depth_stencil]))
+  if((format == eGL_DEPTH_COMPONENT && (!HasExt[NV_read_depth] || IsGLES)) ||
+     (format == eGL_STENCIL && (!HasExt[NV_read_stencil] || IsGLES)) ||
+     (format == eGL_DEPTH_STENCIL && (!HasExt[NV_read_depth_stencil] || IsGLES)))
   {
     readDirectly = false;
   }
