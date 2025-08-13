@@ -83,7 +83,10 @@ endif()
 # prefix is, since the loader only looks in a set location (and /usr/share is reserved for distribution
 # packages). For people who want to 'make install' to another folder, perhaps for preparing a package,
 # they can set this variable to make sure it stays local
-set(VULKAN_LAYER_FOLDER ${VULKAN_LAYER_FOLDER_DEFAULT} CACHE PATH "Path to install the vulkan layer file")
+#
+# Note that this must be a STRING var not a PATH, otherwise CMake will prepend the current working dir.
+# See https://cmake.org/cmake/help/latest/command/set.html#set-cache-entry
+set(VULKAN_LAYER_FOLDER ${VULKAN_LAYER_FOLDER_DEFAULT} CACHE STRING "Path to install the vulkan layer file")
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set_property(SOURCE vk_shaderdebug.cpp
