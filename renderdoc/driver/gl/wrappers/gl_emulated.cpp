@@ -3496,7 +3496,7 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
       size_t readCompSize = GetByteSize(1, 1, 1, eGL_RED, readType);
 
       if(depthFormat)
-        readCompSize = 4;
+        readCompSize = GetByteSize(1, 1, 1, readFormat, readType);
 
       // if the type didn't change from what the caller expects, we only changed the number of
       // components. This is easy to remap
