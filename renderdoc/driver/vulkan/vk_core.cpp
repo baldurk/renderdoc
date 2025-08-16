@@ -2079,7 +2079,11 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
 
     // extensions with conditional support
     filtered.removeIf([instDevInfo, physDev](const VkExtensionProperties &ext) {
-      if(!strcmp(ext.extensionName, VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME))
+      // Anything that depends on VK_EXT_fragment_density_map will need disabling if the
+      // fragmentDensityMapNonSubsampledImages feature is not supported
+      if(!strcmp(ext.extensionName, VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME) ||
+         !strcmp(ext.extensionName, VK_EXT_FRAGMENT_DENSITY_MAP_2_EXTENSION_NAME) ||
+         !strcmp(ext.extensionName, VK_QCOM_FRAGMENT_DENSITY_MAP_OFFSET_EXTENSION_NAME))
       {
         // require GPDP2
         if(instDevInfo->ext_KHR_get_physical_device_properties2)
@@ -2099,8 +2103,8 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
           {
             RDCWARN(
                 "VkPhysicalDeviceFragmentDensityMapFeaturesEXT."
-                "fragmentDensityMapNonSubsampledImages is "
-                "false, can't support capture of VK_EXT_fragment_density_map");
+                "fragmentDensityMapNonSubsampledImages is false, can't support capture of %s",
+                ext.extensionName);
           }
         }
 
