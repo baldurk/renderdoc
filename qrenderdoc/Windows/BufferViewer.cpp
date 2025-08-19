@@ -6413,10 +6413,10 @@ void BufferViewer::exportData(const BufferExport &params)
             ResourceId buff = m_BufferID;
 
             static const uint64_t maxChunkSize = 4 * 1024 * 1024;
-            for(uint64_t byteOffset = m_ByteOffset; byteOffset < m_ByteSize;
+            for(uint64_t byteOffset = m_ByteOffset; byteOffset < m_ByteSize + m_ByteOffset;
                 byteOffset += maxChunkSize)
             {
-              uint64_t chunkSize = qMin(m_ByteSize - byteOffset, maxChunkSize);
+              uint64_t chunkSize = qMin(m_ByteOffset + m_ByteSize - byteOffset, maxChunkSize);
 
               // it's fine to block invoke, because this is on the export thread
               m_Ctx.Replay().BlockInvoke([buff, f, byteOffset, chunkSize](IReplayController *r) {
