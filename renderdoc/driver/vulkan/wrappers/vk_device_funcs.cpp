@@ -362,6 +362,16 @@ RDResult WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVersion
                           params.Extensions[i].c_str());
     }
   }
+#if RENDERDOC_PLATFORM_APPLE
+  // macOS / moltenVK is not fully conformant Vulkan implementation, so we need to enable this
+  if (supportedExtensions.find(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) !=
+      supportedExtensions.end())
+  {
+    if(!m_Replay->IsRemoteProxy())
+      RDCLOG("Enabling VK_KHR_portability_enumeration");
+    params.Extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+  }
+#endif
 
   // we always want debug extensions if it available, and not already enabled
   if(supportedExtensions.find(VK_EXT_DEBUG_UTILS_EXTENSION_NAME) != supportedExtensions.end() &&
@@ -441,6 +451,15 @@ RDResult WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVersion
       (uint32_t)params.Extensions.size(),
       extscstr,
   };
+
+#if RENDERDOC_PLATFORM_APPLE
+  // macOS / moltenVK is not fully conformant Vulkan implementation
+  if (supportedExtensions.find(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) !=
+      supportedExtensions.end())
+  {
+    instinfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+  }
+#endif
 
   if(params.APIVersion >= VK_API_VERSION_1_0)
     renderdocAppInfo.apiVersion = params.APIVersion;
