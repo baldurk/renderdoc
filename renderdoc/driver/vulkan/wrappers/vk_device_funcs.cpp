@@ -364,8 +364,8 @@ RDResult WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVersion
   }
 #if RENDERDOC_PLATFORM_APPLE
   // macOS / moltenVK is not fully conformant Vulkan implementation, so we need to enable this
-  if (supportedExtensions.find(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) !=
-      supportedExtensions.end())
+  if(supportedExtensions.find(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) !=
+     supportedExtensions.end())
   {
     if(!m_Replay->IsRemoteProxy())
       RDCLOG("Enabling VK_KHR_portability_enumeration");
@@ -454,8 +454,8 @@ RDResult WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVersion
 
 #if RENDERDOC_PLATFORM_APPLE
   // macOS / moltenVK is not fully conformant Vulkan implementation
-  if (supportedExtensions.find(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) !=
-      supportedExtensions.end())
+  if(supportedExtensions.find(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) !=
+     supportedExtensions.end())
   {
     instinfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
   }
