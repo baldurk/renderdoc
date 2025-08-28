@@ -84,9 +84,9 @@ void ClampPhysDevAPIVersion(VkPhysicalDeviceProperties *pProperties, VkPhysicalD
     }
   }
 
-  // clamp to highest supported API version, currently vulkan 1.3, because loader no longer does this for us
-  if(pProperties->apiVersion > VK_API_VERSION_1_3)
-    pProperties->apiVersion = VK_API_VERSION_1_3;
+  // clamp to highest supported API version, currently vulkan 1.4, because loader no longer does this for us
+  if(pProperties->apiVersion > VK_API_VERSION_1_4)
+    pProperties->apiVersion = VK_API_VERSION_1_4;
 }
 
 void WrappedVulkan::PatchImageCreateInfo(VkImageCreateInfo *info, VkFormat *newViewFormatsTempMem)
