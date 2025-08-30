@@ -3452,9 +3452,9 @@ void WrappedVulkan::vkGetDescriptorEXT(VkDevice device, const VkDescriptorGetInf
           dstRecord = GetRecord(pDescriptorInfo->data.pSampledImage->imageView);
 
           DescriptorUniquenessKey descKey(
-              m_IgnoreLayoutForDescriptors
-                  ? VK_IMAGE_LAYOUT_UNDEFINED
-                  : pDescriptorInfo->data.pCombinedImageSampler->imageLayout);
+              m_IgnoreLayoutForDescriptors ? VK_IMAGE_LAYOUT_UNDEFINED
+                                           : pDescriptorInfo->data.pCombinedImageSampler->imageLayout,
+              pDescriptorInfo->type);
 
           // this is internally locked
           if(!dstRecord->resInfo->AddDescriptor(descKey))
@@ -3523,7 +3523,8 @@ void WrappedVulkan::vkGetDescriptorEXT(VkDevice device, const VkDescriptorGetInf
 
           dstRecord = GetResourceManager()->GetResourceRecord(id);
 
-          DescriptorUniquenessKey descKey(offs, pDescriptorInfo->data.pUniformBuffer->range, fmt);
+          DescriptorUniquenessKey descKey(offs, pDescriptorInfo->data.pUniformBuffer->range, fmt,
+                                          pDescriptorInfo->type);
 
           // this is internally locked
           if(!dstRecord->resInfo->AddDescriptor(descKey))
