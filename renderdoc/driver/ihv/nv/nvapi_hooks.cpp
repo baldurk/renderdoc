@@ -170,20 +170,76 @@ private:
 #define HOOK_NVAPI(fname, ID) HookedFunction<decltype(&::fname)> fname;
 #define WHITELIST_NVAPI(fname, ID)
 
-#define NVAPI_FUNCS()                                                      \
-  HOOK_NVAPI(NvAPI_Initialize, 0x0150e828);                                \
-  HOOK_NVAPI(NvAPI_D3D11_CreateDevice, 0x6a16d3a0);                        \
-  HOOK_NVAPI(NvAPI_D3D11_CreateDeviceAndSwapChain, 0xbb939ee5);            \
-  HOOK_NVAPI(NvAPI_D3D11_IsNvShaderExtnOpCodeSupported, 0x5f68da40);       \
-  HOOK_NVAPI(NvAPI_D3D11_SetNvShaderExtnSlot, 0x8e90bb9f);                 \
-  HOOK_NVAPI(NvAPI_D3D11_SetNvShaderExtnSlotLocalThread, 0x0e6482a0);      \
-  HOOK_NVAPI(NvAPI_D3D12_IsNvShaderExtnOpCodeSupported, 0x3dfacec8);       \
-  HOOK_NVAPI(NvAPI_D3D12_SetNvShaderExtnSlotSpace, 0xac2dfeb5);            \
-  HOOK_NVAPI(NvAPI_D3D12_SetNvShaderExtnSlotSpaceLocalThread, 0x43d867c0); \
-  HOOK_NVAPI(NvAPI_D3D12_CreateGraphicsPipelineState, 0x2fc28856);         \
-  HOOK_NVAPI(NvAPI_D3D12_CreateComputePipelineState, 0x2762deac);          \
-  WHITELIST_NVAPI(NvAPI_Unload, 0xd22bdd7e);                               \
-  WHITELIST_NVAPI(NvAPI_GetErrorMessage, 0x6c2d048c);                      \
+#define NVAPI_FUNCS()                                                          \
+  HOOK_NVAPI(NvAPI_Initialize, 0x0150e828);                                    \
+  HOOK_NVAPI(NvAPI_D3D11_CreateDevice, 0x6a16d3a0);                            \
+  HOOK_NVAPI(NvAPI_D3D11_CreateDeviceAndSwapChain, 0xbb939ee5);                \
+  HOOK_NVAPI(NvAPI_D3D11_IsNvShaderExtnOpCodeSupported, 0x5f68da40);           \
+  HOOK_NVAPI(NvAPI_D3D11_SetNvShaderExtnSlot, 0x8e90bb9f);                     \
+  HOOK_NVAPI(NvAPI_D3D11_SetNvShaderExtnSlotLocalThread, 0x0e6482a0);          \
+  WHITELIST_NVAPI(NvAPI_D3D11_LaunchCubinShader, 0x427e236d);                  \
+  WHITELIST_NVAPI(NvAPI_D3D11_DestroyCubinComputeShader, 0x01682c86);          \
+  WHITELIST_NVAPI(NvAPI_D3D11_CreateCubinComputeShader, 0x0ed98181);           \
+  WHITELIST_NVAPI(NvAPI_D3D11_CreateCubinComputeShaderEx, 0x32c2a0f6);         \
+  WHITELIST_NVAPI(NvAPI_D3D11_CreateCubinComputeShaderWithName, 0xb672be19);   \
+  WHITELIST_NVAPI(NvAPI_D3D11_CreateSamplerState, 0x89eca416);                 \
+  WHITELIST_NVAPI(NvAPI_D3D11_GetCudaTextureObject, 0x9006fa68);               \
+  WHITELIST_NVAPI(NvAPI_D3D11_CreateShaderResourceView, 0x65cb431e);           \
+  WHITELIST_NVAPI(NvAPI_D3D11_CreateUnorderedAccessView, 0x74a497a1);          \
+  WHITELIST_NVAPI(NvAPI_D3D11_GetResourceHandle, 0x09d52986);                  \
+  WHITELIST_NVAPI(NvAPI_D3D11_GetResourceGPUVirtualAddressEx, 0xaf6d14da);     \
+  WHITELIST_NVAPI(NvAPI_D3D11_GetResourceGPUVirtualAddress, 0x1819b423);       \
+  HOOK_NVAPI(NvAPI_D3D12_IsNvShaderExtnOpCodeSupported, 0x3dfacec8);           \
+  HOOK_NVAPI(NvAPI_D3D12_SetNvShaderExtnSlotSpace, 0xac2dfeb5);                \
+  HOOK_NVAPI(NvAPI_D3D12_SetNvShaderExtnSlotSpaceLocalThread, 0x43d867c0);     \
+  HOOK_NVAPI(NvAPI_D3D12_CreateGraphicsPipelineState, 0x2fc28856);             \
+  HOOK_NVAPI(NvAPI_D3D12_CreateComputePipelineState, 0x2762deac);              \
+  WHITELIST_NVAPI(NvAPI_D3D12_GetCudaSurfaceObject, 0x48f5b2ee);               \
+  WHITELIST_NVAPI(NvAPI_D3D12_GetCudaTextureObject, 0x80403fc9);               \
+  WHITELIST_NVAPI(NvAPI_D3D12_GetCudaMergedTextureSamplerObject, 0x329fe6e0);  \
+  WHITELIST_NVAPI(NvAPI_D3D12_GetCudaIndependentDescriptorObject, 0x0ddac234); \
+  WHITELIST_NVAPI(NvAPI_D3D12_CaptureUAVInfo, 0x6e5ea9db);                     \
+  WHITELIST_NVAPI(NvAPI_D3D12_GetGraphicsCapabilities, 0x01e87354);            \
+  WHITELIST_NVAPI(NvAPI_D3D12_NotifyOutOfBandCommandQueue, 0x03d6e8cb);        \
+  WHITELIST_NVAPI(NvAPI_D3D12_CreateCubinComputeShaderWithName, 0x1dc7261f);   \
+  WHITELIST_NVAPI(NvAPI_D3D12_CreateCubinComputeShaderEx, 0x3151211b);         \
+  WHITELIST_NVAPI(NvAPI_D3D12_CreateCubinComputeShader, 0x2a2c79e8);           \
+  WHITELIST_NVAPI(NvAPI_D3D12_CreateCubinComputeShaderExV2, 0x299f5fdc);       \
+  WHITELIST_NVAPI(NvAPI_D3D12_LaunchCubinShader, 0x5c52bb86);                  \
+  WHITELIST_NVAPI(NvAPI_D3D12_DestroyCubinComputeShader, 0x7fb785ba);          \
+  WHITELIST_NVAPI(NvAPI_D3D1x_GetGraphicsCapabilities, 0x52b1499a);            \
+  WHITELIST_NVAPI(NvAPI_D3D_SetReflexSync, 0xb9f6faff);                        \
+  WHITELIST_NVAPI(NvAPI_SYS_GetDriverAndBranchVersion, 0x2926aaad);            \
+  WHITELIST_NVAPI(NvAPI_Unload, 0xd22bdd7e);                                   \
+  WHITELIST_NVAPI(NvAPI_GetErrorMessage, 0x6c2d048c);                          \
+  WHITELIST_NVAPI(NvAPI_GetLogicalGPUFromPhysicalGPU, 0xadd604d1);             \
+  WHITELIST_NVAPI(NvAPI_GPU_GetArchInfo, 0xd8265d24);                          \
+  WHITELIST_NVAPI(NvAPI_DRS_FindApplicationByName, 0xeee566b2);                \
+  WHITELIST_NVAPI(NvAPI_DRS_CreateSession, 0x0694d52e);                        \
+  WHITELIST_NVAPI(NvAPI_DRS_GetProfileInfo, 0x61cd6fd6);                       \
+  WHITELIST_NVAPI(NvAPI_DRS_LoadSettings, 0x375dbd6b);                         \
+  WHITELIST_NVAPI(NvAPI_DRS_GetBaseProfile, 0xda8466a0);                       \
+  WHITELIST_NVAPI(NvAPI_DRS_GetSetting, 0x73bf8338);                           \
+  WHITELIST_NVAPI(NvAPI_GPU_GetPCIIdentifiers, 0x2ddfb66e);                    \
+  WHITELIST_NVAPI(NvAPI_DRS_DestroySession, 0xdad9cff8);                       \
+  WHITELIST_NVAPI(NvAPI_D3D11_SetDepthBoundsTest, 0x7aaf7a04);                 \
+  WHITELIST_NVAPI(NvAPI_GPU_GetAdapterIdFromPhysicalGpu, 0x0ff07fde);          \
+  WHITELIST_NVAPI(NvAPI_D3D_GetCurrentSLIState, 0x4b708b54);                   \
+  WHITELIST_NVAPI(NvAPI_GPU_GetLogicalGpuInfo, 0x842b066e);                    \
+  WHITELIST_NVAPI(NvAPI_D3D11_IsFatbinPTXSupported, 0x6086bd93);               \
+  WHITELIST_NVAPI(NvAPI_D3D12_IsFatbinPTXSupported, 0x70c07832);               \
+  WHITELIST_NVAPI(NvAPI_D3D12_CreateCuModule, 0xad1a677d);                     \
+  WHITELIST_NVAPI(NvAPI_D3D12_EnumFunctionsInModule, 0x7ab88d88);              \
+  WHITELIST_NVAPI(NvAPI_D3D12_CreateCuFunction, 0xe2436e22);                   \
+  WHITELIST_NVAPI(NvAPI_D3D12_LaunchCuKernelChain, 0x24973538);                \
+  WHITELIST_NVAPI(NvAPI_D3D12_LaunchCuKernelChainEx, 0x846a9bf0);              \
+  WHITELIST_NVAPI(NvAPI_D3D_SetLatencyMarker, 0xd9984c05);                     \
+  WHITELIST_NVAPI(NvAPI_D3D12_SetAsyncFrameMarker, 0x13c98f73);                \
+  WHITELIST_NVAPI(NvAPI_D3D_SetSleepMode, 0xac1ca9e0);                         \
+  WHITELIST_NVAPI(NvAPI_D3D_GetSleepStatus, 0xaef96ca1);                       \
+  WHITELIST_NVAPI(NvAPI_D3D_Sleep, 0x852cd1d2);                                \
+  WHITELIST_NVAPI(NvAPI_D3D_GetLatency, 0x1a587f9c);                           \
+  WHITELIST_NVAPI(NvAPI_EnumPhysicalGPUs, 0xe5ac921f);                         \
   WHITELIST_NVAPI(NvAPI_GetInterfaceVersionString, 0x01053fa5);
 
   NVAPI_FUNCS();
