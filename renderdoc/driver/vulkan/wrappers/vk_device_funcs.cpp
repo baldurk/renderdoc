@@ -194,7 +194,8 @@ static void StripUnwantedExtensions(rdcarray<rdcstr> &Extensions)
        ext == "VK_KHR_present_id2" || ext == "VK_KHR_present_wait" ||
        ext == "VK_KHR_present_wait2" || ext == "VK_KHR_present_mode_fifo_latest_ready" ||
        ext == "VK_EXT_present_mode_fifo_latest_ready" || ext == "VK_EXT_surface_maintenance1" ||
-       ext == "VK_EXT_swapchain_maintenance1" || ext == "VK_EXT_hdr_metadata" ||
+       ext == "VK_EXT_swapchain_maintenance1" || ext == "VK_KHR_surface_maintenance1" ||
+       ext == "VK_KHR_swapchain_maintenance1" || ext == "VK_EXT_hdr_metadata" ||
        ext == "VK_KHR_get_display_properties2")
       return true;
 
