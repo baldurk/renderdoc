@@ -1321,28 +1321,54 @@ bool WrappedVulkan::Serialise_InitialState(SerialiserType &ser, ResourceId id, V
         }
         else if(layoutBind.layoutDescType == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
         {
-          for(uint32_t i = 0; i < layoutBind.descriptorCount; ++i)
+          VulkanResourceManager *rm = GetResourceManager();
+
+          uint32_t i = 0;
+          while(i < descriptorCount)
           {
-            accelerationStructures[i] =
-                GetResourceManager()->GetLiveHandle<VkAccelerationStructureKHR>(slots[i].resource);
+            // seek to first non-null element if null descriptors are not allowed
+            if(!NULLDescriptorsAllowed())
+            {
+              while(i < descriptorCount &&
+                    !((slots[i].resource != ResourceId()) && rm->HasLiveResource(slots[i].resource)))
+                i++;
+
+              if(i >= descriptorCount)
+                break;
+            }
+
+            const uint32_t start = i;
+            uint32_t len = 0;
+
+            // collect a contiguous batch of valid ASs
+            while(i < descriptorCount &&
+                  (NULLDescriptorsAllowed() ||
+                   ((slots[i].resource != ResourceId()) && rm->HasLiveResource(slots[i].resource))))
+            {
+              accelerationStructures[len] =
+                  rm->GetLiveHandle<VkAccelerationStructureKHR>(slots[i].resource);
+              len++;
+              i++;
+            }
+
+            dstAS->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+            dstAS->pNext = NULL;
+            dstAS->accelerationStructureCount = len;
+            dstAS->pAccelerationStructures = accelerationStructures;
+
+            VkWriteDescriptorSet write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+            write.pNext = dstAS;
+            write.dstSet = set;
+            write.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+            write.dstBinding = bind;
+            write.dstArrayElement = start;
+            write.descriptorCount = len;
+
+            writes.push_back(write);
+
+            dstAS++;
+            accelerationStructures += len;
           }
-
-          dstAS->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
-          dstAS->pNext = NULL;
-          dstAS->accelerationStructureCount = layoutBind.descriptorCount;
-          dstAS->pAccelerationStructures = accelerationStructures;
-
-          VkWriteDescriptorSet write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-          write.pNext = dstAS;
-          write.dstSet = set;
-          write.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
-          write.dstBinding = bind;
-          write.descriptorCount = layoutBind.descriptorCount;
-
-          writes.push_back(write);
-
-          dstAS++;
-          accelerationStructures += layoutBind.descriptorCount;
         }
         // quick check for slots that were completely uninitialised and so don't have valid data
         else if(!NULLDescriptorsAllowed() && descriptorCount == 1 &&
@@ -1841,9 +1867,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VkInitialContents &in
         const VkWriteDescriptorSetAccelerationStructureKHR *asWrite =
             (const VkWriteDescriptorSetAccelerationStructureKHR *)FindNextStruct(
                 &writes[i], VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR);
-        RDCASSERTEQUAL(initial.numAccelerationStructures, writes[i].descriptorCount);
-        memcpy(asData + bind->offset + writes[i].dstArrayElement, asWrite->pAccelerationStructures,
+        RDCASSERTEQUAL(asWrite->accelerationStructureCount, writes[i].descriptorCount);
+        memcpy(asData, asWrite->pAccelerationStructures,
                sizeof(VkAccelerationStructureKHR) * asWrite->accelerationStructureCount);
+        asData += asWrite->accelerationStructureCount;
       }
 
       for(uint32_t d = 0; d < writes[i].descriptorCount; d++)
