@@ -1618,6 +1618,10 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_FEATURES,                    \
                VkPhysicalDeviceVertexAttributeDivisorFeatures)                                         \
                                                                                                        \
+  /* VK_EXT_vertex_attribute_robustness */                                                             \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_ROBUSTNESS_FEATURES_EXT,             \
+               VkPhysicalDeviceVertexAttributeRobustnessFeaturesEXT)                                   \
+                                                                                                       \
   /* VK_KHR_vulkan_memory_model */                                                                     \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_MEMORY_MODEL_FEATURES,                         \
                VkPhysicalDeviceVulkanMemoryModelFeatures)                                              \
@@ -1936,9 +1940,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RENDER_PASS_CREATION_CONTROL_EXT)                                \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RENDER_PASS_CREATION_FEEDBACK_CREATE_INFO_EXT)                   \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RENDER_PASS_SUBPASS_FEEDBACK_CREATE_INFO_EXT)                    \
-                                                                                                       \
-  /* VK_EXT_vertex_attribute_robustness */                                                             \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_ROBUSTNESS_FEATURES_EXT)        \
                                                                                                        \
   /* VK_EXT_zero_initialize_device_memory */                                                           \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ZERO_INITIALIZE_DEVICE_MEMORY_FEATURES_EXT)      \
@@ -6592,6 +6593,22 @@ void DoSerialise(SerialiserType &ser, VkPhysicalDeviceVertexAttributeDivisorFeat
 
 template <>
 void Deserialise(const VkPhysicalDeviceVertexAttributeDivisorFeatures &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceVertexAttributeRobustnessFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_ROBUSTNESS_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(vertexAttributeRobustness);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceVertexAttributeRobustnessFeaturesEXT &el)
 {
   DeserialiseNext(el.pNext);
 }
@@ -14916,6 +14933,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVariablePointersFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVertexAttributeDivisorFeatures);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVertexAttributeDivisorProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVertexAttributeDivisorPropertiesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVertexAttributeRobustnessFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVertexInputDynamicStateFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVulkan11Features);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceVulkan11Properties);

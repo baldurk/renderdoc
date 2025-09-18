@@ -125,6 +125,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_validation_features`
 * `VK_EXT_validation_flags`
 * `VK_EXT_vertex_attribute_divisor`
+* `VK_EXT_vertex_attribute_robustness`
 * `VK_EXT_vertex_input_dynamic_state`
 * `VK_EXT_ycbcr_2plane_444_formats`
 * `VK_EXT_ycbcr_image_arrays`
@@ -316,7 +317,6 @@ The portability subset is only relevant on mac, which is not a supported platfor
 * `VK_EXT_shader_replicated_composites`
 * `VK_EXT_shader_tile_image`
 * `VK_EXT_subpass_merge_feedback`
-* `VK_EXT_vertex_attribute_robustness`
 * `VK_EXT_zero_initialize_device_memory`
 
 ## Platform/IHV Extensions
