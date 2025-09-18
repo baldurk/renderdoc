@@ -3611,6 +3611,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
                            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_9_FEATURES_KHR);
       {
         CHECK_PHYS_EXT_FEATURE(maintenance9);
+        m_Maintenance9 |= ext->maintenance9 != VK_FALSE;
       }
       END_PHYS_EXT_CHECK();
 

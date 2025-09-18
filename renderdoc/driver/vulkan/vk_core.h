@@ -588,6 +588,7 @@ private:
   bool m_ShaderObject = false;
   bool m_Maintenance5 = false;
   bool m_Maintenance6 = false;
+  bool m_Maintenance9 = false;
   bool m_DescriptorBuffers = false;
 
   uint32_t m_RTCaptureReplayHandleSize = 0;
@@ -1523,6 +1524,7 @@ public:
   bool ShaderObject() const { return m_ShaderObject; }
   bool Maintenance5() const { return m_Maintenance5; }
   bool Maintenance6() const { return m_Maintenance6; }
+  bool Maintenance9() const { return m_Maintenance9; }
   bool DescriptorBuffers() const { return m_DescriptorBuffers; }
   VulkanRenderState &GetRenderState() { return m_RenderState; }
   void SetActionCB(VulkanActionCallback *cb) { m_ActionCallback = cb; }
