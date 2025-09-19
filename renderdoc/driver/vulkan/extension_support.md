@@ -57,6 +57,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_filter_cubic`
 * `VK_EXT_fragment_density_map`
 * `VK_EXT_fragment_density_map2`
+* `VK_EXT_fragment_density_offset`
 * `VK_EXT_fragment_shader_interlock`
 * `VK_EXT_full_screen_exclusive`
 * `VK_EXT_global_priority_query`
@@ -298,7 +299,6 @@ The portability subset is only relevant on mac, which is not a supported platfor
 * `VK_EXT_external_memory_acquire_unmodified`
 * `VK_EXT_external_memory_host`
 * `VK_EXT_external_memory_metal`
-* `VK_EXT_fragment_density_map_offset`
 * `VK_EXT_image_drm_format_modifier`
 * `VK_EXT_image_sliced_view_of_3d`
 * `VK_EXT_layer_settings`

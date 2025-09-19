@@ -557,7 +557,8 @@
   DeclExt(EXT_image_compression_control_swapchain);    \
   DeclExt(EXT_descriptor_buffer);                      \
   DeclExt(KHR_map_memory2);                            \
-  DeclExt(KHR_present_wait2);
+  DeclExt(KHR_present_wait2);                          \
+  DeclExt(EXT_fragment_density_map_offset);
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
@@ -701,7 +702,8 @@
   CheckExt(EXT_image_compression_control_swapchain, VKXX);    \
   CheckExt(EXT_descriptor_buffer, VKXX);                      \
   CheckExt(KHR_map_memory2, VK14);                            \
-  CheckExt(KHR_present_wait2, VKXX);
+  CheckExt(KHR_present_wait2, VKXX);                          \
+  CheckExt(EXT_fragment_density_map_offset, VKXX);
 
 #define HookInitVulkanInstanceExts_PhysDev()                                                         \
   HookInitExtension(KHR_surface, GetPhysicalDeviceSurfaceSupportKHR);                                \
@@ -978,6 +980,7 @@
   HookInitExtension(EXT_vertex_input_dynamic_state || EXT_shader_object, CmdSetVertexInputEXT);      \
   HookInitPromotedExtension(KHR_dynamic_rendering, CmdBeginRendering, KHR);                          \
   HookInitPromotedExtension(KHR_dynamic_rendering, CmdEndRendering, KHR);                            \
+  HookInitExtension(EXT_fragment_density_map_offset, CmdEndRendering2EXT);                           \
   HookInitPromotedExtension(KHR_dynamic_rendering_local_read, CmdSetRenderingAttachmentLocations,    \
                             KHR);                                                                    \
   HookInitPromotedExtension(KHR_dynamic_rendering_local_read,                                        \
@@ -1823,6 +1826,8 @@
   HookDefine2(void, vkCmdBeginRendering, VkCommandBuffer, commandBuffer, const VkRenderingInfo *,    \
               pRenderingInfo);                                                                       \
   HookDefine1(void, vkCmdEndRendering, VkCommandBuffer, commandBuffer);                              \
+  HookDefine2(void, vkCmdEndRendering2EXT, VkCommandBuffer, commandBuffer,                           \
+              const VkRenderingEndInfoEXT *, pRenderingEndInfo);                                     \
   HookDefine2(void, vkCmdSetRenderingAttachmentLocations, VkCommandBuffer, commandBuffer,            \
               const VkRenderingAttachmentLocationInfo *, pLocationInfo);                             \
   HookDefine2(void, vkCmdSetRenderingInputAttachmentIndices, VkCommandBuffer, commandBuffer,         \

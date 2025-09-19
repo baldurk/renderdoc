@@ -1401,6 +1401,7 @@ enum class VulkanChunk : uint32_t
   vkCmdSetDescriptorBufferOffsets2EXT,
   vkCmdPushDescriptorSet2,
   vkCmdPushDescriptorSetWithTemplate2,
+  vkCmdEndRendering2EXT,
   Max,
 };
 
@@ -1909,6 +1910,7 @@ DECLARE_REFLECTION_STRUCT(VkRenderingAttachmentLocationInfo);
 DECLARE_REFLECTION_STRUCT(VkRenderingFragmentDensityMapAttachmentInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkRenderingFragmentShadingRateAttachmentInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkRenderingInfo);
+DECLARE_REFLECTION_STRUCT(VkRenderingEndInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkRenderingInputAttachmentIndexInfo);
 DECLARE_REFLECTION_STRUCT(VkRenderPassAttachmentBeginInfo);
 DECLARE_REFLECTION_STRUCT(VkRenderPassBeginInfo);
@@ -2431,6 +2433,7 @@ DECLARE_DESERIALISE_TYPE(VkRenderingAttachmentLocationInfo);
 DECLARE_DESERIALISE_TYPE(VkRenderingFragmentDensityMapAttachmentInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkRenderingFragmentShadingRateAttachmentInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkRenderingInfo);
+DECLARE_DESERIALISE_TYPE(VkRenderingEndInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkRenderingInputAttachmentIndexInfo);
 DECLARE_DESERIALISE_TYPE(VkRenderPassAttachmentBeginInfo);
 DECLARE_DESERIALISE_TYPE(VkRenderPassBeginInfo);

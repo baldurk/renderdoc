@@ -1178,6 +1178,10 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_EXT_FRAGMENT_DENSITY_MAP_2_SPEC_VERSION,
     },
     {
+        VK_EXT_FRAGMENT_DENSITY_MAP_OFFSET_EXTENSION_NAME,
+        VK_EXT_FRAGMENT_DENSITY_MAP_OFFSET_SPEC_VERSION,
+    },
+    {
         VK_EXT_FRAGMENT_SHADER_INTERLOCK_EXTENSION_NAME,
         VK_EXT_FRAGMENT_SHADER_INTERLOCK_SPEC_VERSION,
     },
@@ -4649,6 +4653,8 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     case VulkanChunk::vkCmdBeginRendering:
       return Serialise_vkCmdBeginRendering(ser, VK_NULL_HANDLE, NULL);
     case VulkanChunk::vkCmdEndRendering: return Serialise_vkCmdEndRendering(ser, VK_NULL_HANDLE);
+    case VulkanChunk::vkCmdEndRendering2EXT:
+      return Serialise_vkCmdEndRendering2EXT(ser, VK_NULL_HANDLE, NULL);
     case VulkanChunk::vkCmdSetRenderingAttachmentLocations:
       return Serialise_vkCmdSetRenderingAttachmentLocations(ser, VK_NULL_HANDLE, NULL);
     case VulkanChunk::vkCmdSetRenderingInputAttachmentIndices:
