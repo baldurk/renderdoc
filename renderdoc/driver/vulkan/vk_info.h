@@ -461,6 +461,9 @@ struct VulkanCreationInfo
 
     // VkPipelineRobustnessCreateInfo
     VkPipelineRobustnessBufferBehavior vertexInputRobustness;
+
+    // VkPipelineFragmentDensityMapLayeredCreateInfoVALVE
+    uint32_t maxFragmentDensityMapLayers;
   };
   std::unordered_map<ResourceId, Pipeline> m_Pipeline;
 

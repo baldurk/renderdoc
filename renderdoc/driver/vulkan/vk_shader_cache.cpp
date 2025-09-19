@@ -1110,6 +1110,22 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
     ret.pNext = &VkPipelineRobustnessCreateInfo;
   }
 
+  static VkPipelineFragmentDensityMapLayeredCreateInfoVALVE
+      VkPipelineFragmentDensityMapLayeredCreateInfoVALVE = {
+          VK_STRUCTURE_TYPE_PIPELINE_FRAGMENT_DENSITY_MAP_LAYERED_CREATE_INFO_VALVE,
+      };
+
+  // we only need to specify vertex input robustness, all per-shader robustness is handled via
+  // pNexts on the stages above
+  if(pipeInfo.maxFragmentDensityMapLayers)
+  {
+    VkPipelineFragmentDensityMapLayeredCreateInfoVALVE.maxFragmentDensityMapLayers =
+        pipeInfo.maxFragmentDensityMapLayers;
+
+    VkPipelineFragmentDensityMapLayeredCreateInfoVALVE.pNext = ret.pNext;
+    ret.pNext = &VkPipelineFragmentDensityMapLayeredCreateInfoVALVE;
+  }
+
   pipeCreateInfo = ret;
 }
 

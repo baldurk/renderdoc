@@ -269,6 +269,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_QCOM_fragment_density_map_offset`
 * `VK_QCOM_render_pass_shader_resolve`
 * `VK_QCOM_render_pass_store_ops`
+* `VK_VALVE_fragment_density_map_layered`
 * `VK_VALVE_mutable_descriptor_type`
 
 # Unsupported
@@ -448,7 +449,6 @@ The portability subset is only relevant on mac, which is not a supported platfor
 ### Valve
 
 * `VK_VALVE_descriptor_set_host_mapping`
-* `VK_VALVE_fragment_density_map_layered`
 
 ## WSI for other platforms
 

@@ -1658,6 +1658,14 @@ SERIALISE_VK_HANDLES();
                VkRenderPassFragmentDensityMapOffsetEndInfoEXT)                                         \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_RENDERING_END_INFO_EXT, VkRenderingEndInfoEXT)                        \
                                                                                                        \
+  /* VK_VALVE_fragment_density_map_layered */                                                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_LAYERED_FEATURES_VALVE,          \
+               VkPhysicalDeviceFragmentDensityMapLayeredFeaturesVALVE)                                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_LAYERED_PROPERTIES_VALVE,        \
+               VkPhysicalDeviceFragmentDensityMapLayeredPropertiesVALVE)                               \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PIPELINE_FRAGMENT_DENSITY_MAP_LAYERED_CREATE_INFO_VALVE,              \
+               VkPipelineFragmentDensityMapLayeredCreateInfoVALVE)                                     \
+                                                                                                       \
   /* Surface creation structs. These would pull in dependencies on OS-specific includes. */            \
   /* So treat them as unsupported. */                                                                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR)                                 \
@@ -2447,12 +2455,7 @@ SERIALISE_VK_HANDLES();
   /* VK_VALVE_descriptor_set_host_mapping */                                                           \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_SET_HOST_MAPPING_FEATURES_VALVE)      \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_BINDING_REFERENCE_VALVE)                          \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_HOST_MAPPING_INFO_VALVE)                   \
-                                                                                                       \
-  /* VK_VALVE_fragment_density_map_layered */                                                          \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_LAYERED_FEATURES_VALVE)     \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_LAYERED_PROPERTIES_VALVE)   \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PIPELINE_FRAGMENT_DENSITY_MAP_LAYERED_CREATE_INFO_VALVE)
+  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_HOST_MAPPING_INFO_VALVE)
 
 static const rdcliteral pNextName = "pNext"_lit;
 static const rdcliteral pNextTypeName = "pNextType"_lit;
@@ -7309,6 +7312,55 @@ void DoSerialise(SerialiserType &ser, VkRenderingEndInfoEXT &el)
 
 template <>
 void Deserialise(const VkRenderingEndInfoEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceFragmentDensityMapLayeredFeaturesVALVE &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_LAYERED_FEATURES_VALVE);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(fragmentDensityMapLayered);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceFragmentDensityMapLayeredFeaturesVALVE &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceFragmentDensityMapLayeredPropertiesVALVE &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType ==
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_LAYERED_PROPERTIES_VALVE);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(maxFragmentDensityMapLayers);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceFragmentDensityMapLayeredPropertiesVALVE &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPipelineFragmentDensityMapLayeredCreateInfoVALVE &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PIPELINE_FRAGMENT_DENSITY_MAP_LAYERED_CREATE_INFO_VALVE);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(maxFragmentDensityMapLayers);
+}
+
+template <>
+void Deserialise(const VkPipelineFragmentDensityMapLayeredCreateInfoVALVE &el)
 {
   DeserialiseNext(el.pNext);
 }
@@ -14724,9 +14776,11 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFloatControlsProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMap2FeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMap2PropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapOffsetFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapOffsetPropertiesEXT);
-INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapPropertiesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapLayeredFeaturesVALVE);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentDensityMapLayeredPropertiesVALVE);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentShaderBarycentricPropertiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT);
@@ -14888,6 +14942,7 @@ INSTANTIATE_SERIALISE_TYPE(VkPipelineExecutableInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineExecutableInternalRepresentationKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineExecutablePropertiesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineExecutableStatisticKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPipelineFragmentDensityMapLayeredCreateInfoVALVE);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineFragmentShadingRateStateCreateInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineInfoKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPipelineInputAssemblyStateCreateInfo);
