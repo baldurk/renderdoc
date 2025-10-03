@@ -902,6 +902,7 @@ struct ImageInfo
   uint16_t levelCount = 0;
   uint16_t sampleCount = 0;
   bool storage = false;
+  bool isExternal = false;
   bool isAHB = false;
   VkExtent3D extent = {0, 0, 0};
   VkImageType imageType = VK_IMAGE_TYPE_2D;

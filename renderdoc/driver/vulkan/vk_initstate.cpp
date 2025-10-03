@@ -228,7 +228,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
         allUndef = false;
     }
 
-    if(allUndef)
+    if(allUndef && !imageInfo.isExternal)
     {
       RDCDEBUG("Ignoring init states for %s as it never left undefined", ToStr(im->id).c_str());
       return true;

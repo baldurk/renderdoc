@@ -4675,9 +4675,13 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
         const VkImageMemoryBarrier &b = pImageMemoryBarriers[i];
         if(b.image != VK_NULL_HANDLE && b.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED)
         {
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
-              GetResID(b.image), EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID,
-                                            ResourceUsage::Discard)));
+          VulkanCreationInfo::Image &imgInfo = m_CreationInfo.m_Image[GetResID(b.image)];
+          if(!imgInfo.external)
+          {
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
+                GetResID(b.image), EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID,
+                                              ResourceUsage::Discard)));
+          }
         }
       }
     }
@@ -4706,7 +4710,9 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
         for(uint32_t i = 0; i < imageMemoryBarrierCount; i++)
         {
           const VkImageMemoryBarrier &b = pImageMemoryBarriers[i];
-          if(b.image != VK_NULL_HANDLE && b.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+          VulkanCreationInfo::Image &imgInfo = m_CreationInfo.m_Image[GetResID(b.image)];
+          if(b.image != VK_NULL_HANDLE && b.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+             !imgInfo.external)
           {
             VkImageLayout newLayout = b.newLayout;
             SanitiseNewImageLayout(newLayout);
@@ -4928,9 +4934,13 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier2(SerialiserType &ser,
         if(b.image != VK_NULL_HANDLE && b.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
            b.newLayout != VK_IMAGE_LAYOUT_UNDEFINED)
         {
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
-              GetResID(b.image), EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID,
-                                            ResourceUsage::Discard)));
+          VulkanCreationInfo::Image &imgInfo = m_CreationInfo.m_Image[GetResID(b.image)];
+          if(!imgInfo.external)
+          {
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].resourceUsage.push_back(make_rdcpair(
+                GetResID(b.image), EventUsage(m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID,
+                                              ResourceUsage::Discard)));
+          }
         }
       }
     }
@@ -4980,8 +4990,9 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier2(SerialiserType &ser,
         for(uint32_t i = 0; i < DependencyInfo.imageMemoryBarrierCount; i++)
         {
           const VkImageMemoryBarrier2 &b = DependencyInfo.pImageMemoryBarriers[i];
+          VulkanCreationInfo::Image &imgInfo = m_CreationInfo.m_Image[GetResID(b.image)];
           if(b.image != VK_NULL_HANDLE && b.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
-             b.newLayout != VK_IMAGE_LAYOUT_UNDEFINED)
+             b.newLayout != VK_IMAGE_LAYOUT_UNDEFINED && !imgInfo.external)
           {
             GetDebugManager()->FillWithDiscardPattern(
                 commandBuffer, DiscardType::UndefinedTransition, b.image, b.newLayout,

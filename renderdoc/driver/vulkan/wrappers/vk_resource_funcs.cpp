@@ -2915,6 +2915,7 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
            next->sType == VK_STRUCTURE_TYPE_EXTERNAL_FORMAT_ANDROID)
         {
           isExternal = true;
+          resInfo.imageInfo.isExternal = true;
 
           // we can't call vkGetImageMemoryRequirements on AHB-backed images until they are bound
           if(next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO)
