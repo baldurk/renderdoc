@@ -3322,6 +3322,9 @@ void APIENTRY _glGetTexImage(GLenum target, GLint level, const GLenum format, co
     level = 0;
     readFormat = remapformat;
     readType = remaptype;
+    // always reset depthFormat. If the target format is depth, it was remapped
+    // and read-back will happen on remapped texture.
+    depthFormat = false;
 
     attachment = eGL_COLOR_ATTACHMENT0;
 
