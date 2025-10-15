@@ -333,6 +333,25 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
           else
             RemoveNextStruct(&patched, VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO);
         }
+
+        // If this memory was bound to an external image, check if the memory type on replay is
+        // allowed for regular image. If not, attempt to use a different memory type to replay the
+        // original capture.
+        VulkanCreationInfo::Image &imgInfo = m_CreationInfo.m_Image[GetResID(dedicated->image)];
+        if(imgInfo.external && (((1 << patched.memoryTypeIndex) & mrq.memoryTypeBits) == 0))
+        {
+          for(uint32_t i = 0; i < m_PhysicalDeviceData.memProps.memoryTypeCount; i++)
+          {
+            if(mrq.memoryTypeBits & (1U << i))
+            {
+              RDCDEBUG("Patching memory type for memory used by an external image, from %u to %u",
+                       patched.memoryTypeIndex, i);
+              patched.memoryTypeIndex = i;
+              AllocateInfo.memoryTypeIndex = i;
+              break;
+            }
+          }
+        }
       }
     }
 
