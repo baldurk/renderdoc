@@ -251,6 +251,9 @@ HOOK_EXPORT EGLContext EGLAPIENTRY eglCreateContext_renderdoc_hooked(EGLDisplay 
                                                                      EGLContext shareContext,
                                                                      EGLint const *attribList)
 {
+  if(!config)
+    return 0;
+
   if(RenderDoc::Inst().IsReplayApp())
   {
     if(!EGL.CreateContext)
