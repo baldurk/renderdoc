@@ -137,6 +137,7 @@ struct D3D11CopyPixelParams
   bool floatTex;
   bool uintTex;
   bool intTex;
+  bool tex3d;
 
   UINT subres;
 
@@ -196,7 +197,7 @@ void D3D11DebugManager::PixelHistoryCopyPixel(D3D11CopyPixelParams &p, size_t ev
   UINT curCSNumInst = D3D11_SHADER_MAX_INTERFACES;
   ID3D11Buffer *curCSCBuf[2] = {0};
   ID3D11ShaderResourceView *curCSSRVs[10] = {0};
-  ID3D11UnorderedAccessView *curCSUAV[4] = {0};
+  ID3D11UnorderedAccessView *curCSUAV[D3D11_1_UAV_SLOT_COUNT] = {0};
   UINT initCounts[D3D11_1_UAV_SLOT_COUNT];
   memset(&initCounts[0], 0xff, sizeof(initCounts));
 
@@ -234,6 +235,7 @@ void D3D11DebugManager::PixelHistoryCopyPixel(D3D11CopyPixelParams &p, size_t ev
       offs = 3;
   }
 
+  m_pImmediateContext->CSSetUnorderedAccessViews(0, D3D11_1_UAV_SLOT_COUNT, NULL, NULL);
   m_pImmediateContext->CSSetUnorderedAccessViews(offs, 1, &p.uav, initCounts);
 
   if(p.depthcopy)
@@ -245,18 +247,22 @@ void D3D11DebugManager::PixelHistoryCopyPixel(D3D11CopyPixelParams &p, size_t ev
     if(p.floatTex)
       offs = 4;
     else if(p.uintTex)
-      offs = 6;
-    else if(p.intTex)
       offs = 8;
+    else if(p.intTex)
+      offs = 12;
 
     if(p.multisampled)
       offs++;
+    else if(p.tex3d)
+      offs += 2;
   }
 
   m_pImmediateContext->CSSetShaderResources(offs, 2, p.srv);
 
-  m_pImmediateContext->CSSetShader(
-      !p.depthcopy || p.depthbound ? PixelHistoryCopyCS : PixelHistoryUnusedCS, NULL, 0);
+  m_pImmediateContext->CSSetShader((!p.depthcopy || p.depthbound) && (p.srv[0] || p.srv[1])
+                                       ? PixelHistoryCopyCS
+                                       : PixelHistoryUnusedCS,
+                                   NULL, 0);
   m_pImmediateContext->Dispatch(1, 1, 1);
 
   m_pImmediateContext->CSSetShader(curCS, curCSInst, curCSNumInst);
@@ -312,6 +318,8 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
   // Use the given type hint for typeless textures
   details.texFmt = GetTypedFormat(details.texFmt, typeCast);
   details.texFmt = GetNonSRGBFormat(details.texFmt);
+
+  const bool targetImageIsDepth = IsDepthFormat(details.texFmt);
 
   SCOPED_TIMER("D3D11DebugManager::PixelHistory");
 
@@ -448,13 +456,14 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
   ID3D11UnorderedAccessView *pixstoreUAV = NULL, *shadoutStoreUAV = NULL, *pixstoreDepthUAV = NULL;
   m_pDevice->CreateUnorderedAccessView(pixstore, &uavDesc, &pixstoreUAV);
   m_pDevice->CreateUnorderedAccessView(shadoutStore, &uavDesc, &shadoutStoreUAV);
+  uavDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
   m_pDevice->CreateUnorderedAccessView(pixstoreDepth, &uavDesc, &pixstoreDepthUAV);
 
   // very wasteful, but we must leave the viewport as is to get correct rasterisation which means
   // same dimensions of render target.
   D3D11_TEXTURE2D_DESC shadoutDesc = {
-      details.texWidth,
-      details.texHeight,
+      RDCMAX(1U, details.texWidth >> mip),
+      RDCMAX(1U, details.texHeight >> mip),
       1U,
       1U,
       DXGI_FORMAT_R32G32B32A32_FLOAT,
@@ -464,6 +473,10 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
       0,
       0,
   };
+  if(IsUIntFormat(details.texFmt))
+    shadoutDesc.Format = DXGI_FORMAT_R32G32B32A32_UINT;
+  else if(IsIntFormat(details.texFmt))
+    shadoutDesc.Format = DXGI_FORMAT_R32G32B32A32_SINT;
   ID3D11Texture2D *shadOutput = NULL;
   m_pDevice->CreateTexture2D(&shadoutDesc, NULL, &shadOutput);
 
@@ -554,7 +567,7 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
   ID3D11Texture2D *depthCopyD16 = NULL;
   ID3D11ShaderResourceView *depthCopyD16_DepthSRV = NULL;
 
-  uint32_t srcxyData[8] = {
+  uint32_t srcxyData[12] = {
       x,
       y,
       multisampled ? sampleIdx : mip,
@@ -564,14 +577,18 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
       uint32_t(floatTex),
       uint32_t(uintTex),
       uint32_t(intTex),
+
+      uint32_t(details.texType == eTexType_3D),
   };
 
-  uint32_t shadoutsrcxyData[8];
+  uint32_t shadoutsrcxyData[12];
   memcpy(shadoutsrcxyData, srcxyData, sizeof(srcxyData));
 
   // shadout texture doesn't have slices/mips, just one of the right dimension
   shadoutsrcxyData[2] = multisampled ? sampleIdx : 0;
   shadoutsrcxyData[3] = 0;
+  // and is not 3D
+  shadoutsrcxyData[8] = 0;
 
   ID3D11Buffer *srcxyCBuf = GetDebugManager()->MakeCBuffer(sizeof(srcxyData));
   ID3D11Buffer *shadoutsrcxyCBuf = GetDebugManager()->MakeCBuffer(sizeof(shadoutsrcxyData));
@@ -621,10 +638,16 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
   colourCopyParams.intTex = intTex;
   colourCopyParams.srcxyCBuf = srcxyCBuf;
   colourCopyParams.storeCBuf = storeCBuf;
+  colourCopyParams.tex3d = false;
   if(details.texType == eTexType_3D)
+  {
     colourCopyParams.subres = mip;
+    colourCopyParams.tex3d = true;
+  }
   else
-    colourCopyParams.subres = details.texArraySize * slice + mip;
+  {
+    colourCopyParams.subres = details.texMips * slice + mip;
+  }
 
   D3D11CopyPixelParams depthCopyParams = colourCopyParams;
 
@@ -635,8 +658,12 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
   colourCopyParams.srv[1] = NULL;
   colourCopyParams.uav = pixstoreUAV;
 
+  if(targetImageIsDepth)
+    colourCopyParams.srv[0] = NULL;
+
   depthCopyParams.depthcopy = true;
   depthCopyParams.uav = pixstoreDepthUAV;
+  depthCopyParams.tex3d = false;
 
   // while issuing the above queries we can check to see which tests are enabled so we don't
   // bother checking if depth testing failed if the depth test was disabled
@@ -1056,7 +1083,20 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
 
     {
       ID3D11DepthStencilView *dsv = NULL;
-      m_pImmediateContext->OMGetRenderTargets(0, NULL, &dsv);
+
+      if(events[ev].usage == ResourceUsage::Clear)
+      {
+        if(targetImageIsDepth)
+        {
+          dsv = (ID3D11DepthStencilView *)m_pDevice->GetResourceManager()->GetCurrentResource(
+              events[ev].view);
+          dsv->AddRef();
+        }
+      }
+      else
+      {
+        m_pImmediateContext->OMGetRenderTargets(0, NULL, &dsv);
+      }
 
       if(dsv)
       {
@@ -1102,11 +1142,32 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
                        (desc2d.BindFlags & D3D11_BIND_SHADER_RESOURCE) > 0;
 
         D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-        srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
         if(dsvDesc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2DMS)
+        {
           srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
-        srvDesc.Texture2D.MipLevels = 1;
-        srvDesc.Texture2D.MostDetailedMip = dsvDesc.Texture2D.MipSlice;
+        }
+        else if(dsvDesc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2DARRAY)
+        {
+          srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+
+          srvDesc.Texture2DArray.MipLevels = ~0U;
+          srvDesc.Texture2DArray.ArraySize = ~0U;
+        }
+        else if(dsvDesc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY)
+        {
+          srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY;
+
+          srvDesc.Texture2DMSArray.ArraySize = ~0U;
+        }
+        else
+        {
+          srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+
+          srvDesc.Texture2D.MipLevels = ~0U;
+        }
+
+        copyDepthSRVDesc = srvDesc;
+        copyStencilSRVDesc = srvDesc;
 
         D3D11_TEXTURE2D_DESC *copyDesc = NULL;
         if(desc2d.Format == DXGI_FORMAT_R16_FLOAT || desc2d.Format == DXGI_FORMAT_R16_SINT ||
@@ -1278,8 +1339,10 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
       D3D11CopyPixelParams params = depthCopyParams;
       params.depthbound = true;
       params.srvTex = params.sourceTex = shaddepthOutput;
+      params.subres = 0;
       params.srv[0] = shaddepthOutputDepthSRV;
       params.srv[1] = shaddepthOutputStencilSRV;
+      params.srcxyCBuf = shadoutsrcxyCBuf;
 
       D3D11MarkerRegion::Set("Clearing depth/stencil for frag counting");
       m_pImmediateContext->ClearDepthStencilView(shaddepthOutputDSV, D3D11_CLEAR_STENCIL, 1.0f, 0);
@@ -1988,12 +2051,16 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
   D3D11CopyPixelParams shadoutCopyParams = colourCopyParams;
   shadoutCopyParams.sourceTex = shadoutCopyParams.srvTex = shadOutput;
   shadoutCopyParams.srv[0] = shadOutputSRV;
+  shadoutCopyParams.subres = 0;
   shadoutCopyParams.uav = shadoutStoreUAV;
   shadoutCopyParams.srcxyCBuf = shadoutsrcxyCBuf;
+  shadoutCopyParams.tex3d = false;
 
   depthCopyParams.sourceTex = depthCopyParams.srvTex = shaddepthOutput;
   depthCopyParams.srv[0] = shaddepthOutputDepthSRV;
   depthCopyParams.srv[1] = shaddepthOutputStencilSRV;
+  depthCopyParams.srcxyCBuf = shadoutsrcxyCBuf;
+  depthCopyParams.tex3d = false;
 
   for(size_t h = 0; h < history.size(); h++)
   {
@@ -2144,12 +2211,25 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
     {
       D3D11MarkerRegion middraw("fetching mid-action");
 
-      m_pImmediateContext->OMSetRenderTargets(rtIndex + 1, RTVs, shaddepthOutputDSV);
+      // 3D depth is not supported but we need depth for fragment counting - so as a bit of a compromise
+      // we fetch postmod via an extra shader output slot. This will not properly emulate precision or blending
+      if(details.texType == eTexType_3D)
+      {
+        ID3D11RenderTargetView *sparseRTVs[8] = {0};
+        sparseRTVs[rtIndex] = shadOutputRTV;
+        m_pImmediateContext->OMSetRenderTargets(rtIndex + 1, sparseRTVs, shaddepthOutputDSV);
+      }
+      else
+      {
+        m_pImmediateContext->OMSetRenderTargets(rtIndex + 1, RTVs, shaddepthOutputDSV);
+      }
 
       m_pDevice->ReplayLog(0, history[h].eventId, eReplay_OnlyDraw);
 
-      GetDebugManager()->PixelHistoryCopyPixel(colourCopyParams, postColSlot, 0);
-      postColSlot++;
+      if(details.texType != eTexType_3D)
+        GetDebugManager()->PixelHistoryCopyPixel(colourCopyParams, postColSlot++, 0);
+      else
+        GetDebugManager()->PixelHistoryCopyPixel(shadoutCopyParams, shadColSlot++, 0);
 
       GetDebugManager()->PixelHistoryCopyPixel(depthCopyParams, depthSlot, 1);
     }
@@ -2196,7 +2276,24 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
         m_pImmediateContext->PSSetShader(m_PixelHistory.PrimitiveIDPS, NULL, 0);
 
         if(curPS == NULL)
+        {
           history[h].unboundPS = true;
+        }
+        else if(!targetImageIsDepth)
+        {
+          WrappedID3D11Shader<ID3D11PixelShader> *wrappedShader =
+              (WrappedID3D11Shader<ID3D11PixelShader> *)curPS;
+
+          bool found = false;
+          for(const SigParameter &o : wrappedShader->GetDetails().outputSignature)
+          {
+            if(o.regIndex == rtIndex)
+              found = true;
+          }
+
+          if(!found)
+            history[h].unboundPS = true;
+        }
 
         m_pDevice->ReplayLog(0, history[h].eventId, eReplay_OnlyDraw);
 
@@ -2260,7 +2357,26 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
     const ActionDescription *action = m_pDevice->GetAction(history[h].eventId);
 
     if(action->flags & ActionFlags::Clear)
+    {
+      if(action->flags & ActionFlags::ClearDepthStencil)
+      {
+        // no colour information with depth clears
+        RDCEraseEl(history[h].preMod.col);
+        RDCEraseEl(history[h].postMod.col);
+        RDCEraseEl(history[h].shaderOut.col);
+      }
+      else if(action->flags & ActionFlags::ClearColor)
+      {
+        // no depth information with colour clears
+        history[h].preMod.depth = -1;
+        history[h].preMod.stencil = -1;
+        history[h].postMod.depth = -1;
+        history[h].postMod.stencil = -1;
+        history[h].shaderOut.depth = -1;
+        history[h].shaderOut.stencil = -1;
+      }
       continue;
+    }
 
     // reset discarded offset every event
     if(h > 0 && history[h].eventId != history[h - 1].eventId)
@@ -2275,10 +2391,59 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
     {
       lastMod = false;
       // colour
+      if(details.texType != eTexType_3D)
       {
         uint32_t offsettedSlot = (postColSlot - discardedOffset);
         byte *data = pixstoreData + sizeof(Vec4f) * pixstoreStride * offsettedSlot;
         memcpy(&history[h].postMod.col.uintValue[0], data, sizeof(Vec4f));
+      }
+      else
+      {
+        // for 3D textures we copied to an extra shader output slot, because we needed a depth
+        // texture to count fragments and we can't bind depth with 3D
+        uint32_t offsettedSlot = (shadColSlot - discardedOffset);
+        RDCASSERT(discardedOffset <= shadColSlot);
+
+        byte *data = shadoutStoreData + sizeof(Vec4f) * pixstoreStride * offsettedSlot;
+
+        memcpy(&history[h].postMod.col.uintValue[0], data, sizeof(Vec4f));
+        shadColSlot++;
+
+        // this is a hack - we don't try to emulate precision but at least clamp representable ranges
+        ResourceFormat fmt = MakeResourceFormat(details.texFmt);
+        if(fmt.compType == CompType::UNorm)
+        {
+          for(uint32_t i = 0; i < 4; i++)
+            history[h].postMod.col.floatValue[i] =
+                RDCCLAMP(history[h].postMod.col.floatValue[i], 0.0f, 1.0f);
+        }
+        else if(fmt.compType == CompType::Float && fmt.compByteWidth == 2)
+        {
+          for(uint32_t i = 0; i < 4; i++)
+            history[h].postMod.col.floatValue[i] =
+                RDCCLAMP(history[h].postMod.col.floatValue[i], -65504.0f, 65504.0f);
+        }
+        else if(fmt.compType == CompType::UInt && fmt.compByteWidth < 4)
+        {
+          uint32_t maxVal = (1U << fmt.compByteWidth) - 1;
+          for(uint32_t i = 0; i < 4; i++)
+            history[h].postMod.col.uintValue[i] = RDCMIN(history[h].postMod.col.uintValue[i], maxVal);
+        }
+        else if(fmt.compType == CompType::SInt && fmt.compByteWidth == 2)
+        {
+          for(uint32_t i = 0; i < 4; i++)
+            history[h].postMod.col.intValue[i] =
+                RDCCLAMP(history[h].postMod.col.intValue[i], (int32_t)INT16_MIN, (int32_t)INT16_MAX);
+        }
+        else if(fmt.compType == CompType::SInt && fmt.compByteWidth == 1)
+        {
+          for(uint32_t i = 0; i < 4; i++)
+            history[h].postMod.col.intValue[i] =
+                RDCCLAMP(history[h].postMod.col.intValue[i], (int32_t)INT8_MIN, (int32_t)INT8_MAX);
+        }
+
+        for(uint32_t i = fmt.compCount; i < 4; i++)
+          history[h].postMod.col.uintValue[i] = 0;
       }
 
       {
@@ -2449,7 +2614,10 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
           history[h].shaderOut.depth = -1.0f;
           history[h].shaderOut.stencil = -1;
           if(!lastMod)
-            history[h].postMod = lastKnownGood;
+          {
+            history[h].postMod.col = lastKnownGood.col;
+            history[h].postMod.depth = lastKnownGood.depth;
+          }
         }
         else
         {
@@ -2461,40 +2629,32 @@ rdcarray<PixelModification> D3D11Replay::PixelHistory(rdcarray<EventUsage> event
       depthSlot++;
     }
 
+    if(targetImageIsDepth)
+    {
+      RDCEraseEl(history[h].preMod.col);
+      RDCEraseEl(history[h].shaderOut.col);
+      RDCEraseEl(history[h].postMod.col);
+    }
+
     // check the depth value between premod/shaderout against the known test if we have valid depth
     // values, as we don't have per-fragment depth test information.
     if(history[h].preMod.depth >= 0.0f && history[h].shaderOut.depth >= 0.0f)
     {
       DXGI_FORMAT dfmt = depthFormats[history[h].eventId];
-      float shadDepth = history[h].shaderOut.depth;
 
-      // quantise depth to match before comparing
+      uint32_t depthBits = 32;
       if(dfmt == DXGI_FORMAT_D24_UNORM_S8_UINT || dfmt == DXGI_FORMAT_X24_TYPELESS_G8_UINT ||
          dfmt == DXGI_FORMAT_R24_UNORM_X8_TYPELESS || dfmt == DXGI_FORMAT_R24G8_TYPELESS)
       {
-        shadDepth = float(uint32_t(float(shadDepth * 0xffffff))) / float(0xffffff);
+        depthBits = 24;
       }
       else if(dfmt == DXGI_FORMAT_D16_UNORM || dfmt == DXGI_FORMAT_R16_TYPELESS ||
               dfmt == DXGI_FORMAT_R16_UNORM)
       {
-        shadDepth = float(uint32_t(float(shadDepth * 0xffff))) / float(0xffff);
+        depthBits = 16;
       }
 
-      bool passed = true;
-      if(depthOps[history[h].eventId] == D3D11_COMPARISON_EQUAL)
-        passed = (shadDepth == history[h].preMod.depth);
-      else if(depthOps[history[h].eventId] == D3D11_COMPARISON_NOT_EQUAL)
-        passed = (shadDepth != history[h].preMod.depth);
-      else if(depthOps[history[h].eventId] == D3D11_COMPARISON_LESS)
-        passed = (shadDepth < history[h].preMod.depth);
-      else if(depthOps[history[h].eventId] == D3D11_COMPARISON_LESS_EQUAL)
-        passed = (shadDepth <= history[h].preMod.depth);
-      else if(depthOps[history[h].eventId] == D3D11_COMPARISON_GREATER)
-        passed = (shadDepth > history[h].preMod.depth);
-      else if(depthOps[history[h].eventId] == D3D11_COMPARISON_GREATER_EQUAL)
-        passed = (shadDepth >= history[h].preMod.depth);
-
-      history[h].depthTestFailed = !passed;
+      history[h].CheckDepthTestQuantised(depthBits, MakeCompareFunc(depthOps[history[h].eventId]));
     }
   }
 

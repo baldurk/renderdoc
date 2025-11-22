@@ -1749,7 +1749,7 @@ void D3D12ResourceManager::Create_InitialState(ResourceId id, ID3D12DeviceChild 
       // if destination is on the upload heap, it's impossible to copy via the device,
       // so we have to CPU copy. To save time and make a more optimal copy, we just keep the data
       // CPU-side
-      D3D12InitialContents initContents(D3D12InitialContents::Copy, Resource_Resource);
+      D3D12InitialContents initContents(D3D12InitialContents::Copy, type);
       uint64_t size = RDCMAX(resDesc.Width, 64ULL);
       initContents.srcData = AllocAlignedBuffer(size);
       memset(initContents.srcData, 0, (size_t)size);

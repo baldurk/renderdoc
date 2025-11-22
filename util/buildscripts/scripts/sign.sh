@@ -16,19 +16,43 @@ if ! which signtool.exe >/dev/null 2>&1; then
    exit 0
 fi
 
-if [ ! -f "${BUILD_ROOT}"/support/key.pass ] || [ ! -f "${BUILD_ROOT}"/support/key.pfx ] ; then
-   echo Key key.pfx / key.pass does not exist
-   exit 1
+PRIVATE_SIGN=0
+CLOUD_SIGN=0
+if [ -f "${BUILD_ROOT}"/support/key.pass ] && [ -f "${BUILD_ROOT}"/support/key.pfx ] ; then
+	PRIVATE_SIGN=1
+	echo Using private key signing with key.pfx and key.pass
+
+	PASS=$(cat "${BUILD_ROOT}"/support/key.pass)
+
+	KEYFILE="${BUILD_ROOT}"/support/key.pfx
+	KEYFILE=$(native_path "${KEYFILE}")
+elif [ -f "${BUILD_ROOT}"/support/key.name ] && [ -f "${BUILD_ROOT}"/support/public.crt ] ; then
+	CLOUD_SIGN=1
+	echo Using cloud signing with key.name and public.crt
+
+	KEYNAME=$(cat "${BUILD_ROOT}"/support/key.name)
+	PUBFILE="${BUILD_ROOT}"/support/public.crt
+	PUBFILE=$(native_path "${PUBFILE}")
+else
+	echo No signing mechanism found, expected key.pfx+key.pass or key.name+public.crt
+	exit 1
 fi
 
-PASS=$(cat "${BUILD_ROOT}"/support/key.pass)
-KEYFILE="${BUILD_ROOT}"/support/key.pfx
+sign_file() {
+	if [ "$PRIVATE_SIGN" == "1" ]; then
+		signtool.exe sign /d RenderDoc /f "${KEYFILE}" /fd sha256 /p $PASS /tr $TSS /td sha256 "${INPUTFILE}"
+	elif  [ "$CLOUD_SIGN" == "1" ]; then
+		timeout 5 signtool.exe sign /d RenderDoc /f "${PUBFILE}" /fd sha256          /tr $TSS /td sha256 /csp "Google Cloud KMS Provider" /kc "${KEYNAME}" "${INPUTFILE}"
+	fi
+	signtool.exe verify /pa "$INPUTFILE" >/dev/null 2>&1
+	return $?
+}
+
 INPUTFILE="$1"
 
 # Don't convert any arguments automatically, convert paths if needed
 MSYS2_ARG_CONV_EXCL="*"
 
-KEYFILE=$(native_path "${KEYFILE}")
 INPUTFILE=$(native_path "${INPUTFILE}")
 
 # First check to see if it is already signed.
@@ -48,7 +72,7 @@ if [ $? -eq 1 ] ; then
     TSS=${TSSLIST[0]}
     echo Signing $INPUTFILE using timestamp server $TSS ...
     sleep 1
-    signtool.exe sign /d RenderDoc /f "${KEYFILE}" /fd sha256 /p $PASS /tr $TSS /td sha256 "${INPUTFILE}"
+		sign_file
     if [ $? -eq 0 ] ; then
        # Successfully signed, return success
        exit 0
@@ -70,7 +94,7 @@ if [ $? -eq 1 ] ; then
         echo Signing failed, retry $RETRY. Using timestamp server $TSS ...
         sleep 4
         echo Retrying signing of $1
-        signtool.exe sign /d RenderDoc /f "${KEYFILE}" /p $PASS /tr $TSS  "${INPUTFILE}"
+				sign_file
         if [ $? -eq 0 ] ; then
            # Successfully signed, return success
            exit 0

@@ -64,7 +64,7 @@ struct D3D12InitParams
   UINT SDKVersion = 0;
 
   // check if a frame capture section version is supported
-  static const uint64_t CurrentVersion = 0x14;
+  static const uint64_t CurrentVersion = 0x15;
 
   static bool IsSupportedVersion(uint64_t ver);
 };
@@ -74,7 +74,7 @@ DECLARE_REFLECTION_STRUCT(D3D12InitParams);
 struct QueueReadbackData
 {
   Threading::CriticalSection lock;
-  ID3D12Resource *readbackBuf = NULL;
+  ID3D12Resource *unwrappedReadbackBuf = NULL;
   byte *readbackMapped = NULL;
   uint64_t readbackSize = 0;
 
@@ -714,6 +714,8 @@ private:
   rdcflatmap<uint64_t, ID3D12Resource *> m_UploadBuffers;
   rdcflatmap<uint64_t, D3D12_RANGE> m_UploadRanges;
 
+  rdcflatmap<rdcfixedarray<uint32_t, 4>, ID3D12RootSignature *> m_ImplicitRootSigs;
+
   Threading::CriticalSection m_MapsLock;
   rdcarray<MapState> m_Maps;
 
@@ -1080,6 +1082,8 @@ public:
   bool IsReadOnlyResource(ResourceId id) { return m_ModResources.find(id) == m_ModResources.end(); }
   void CloseInitialStateList();
   ID3D12Resource *GetUploadBuffer(uint64_t chunkOffset, uint64_t byteSize);
+
+  ID3D12RootSignature *CreateImplicitRootSig(D3D12_SERIALIZED_ROOT_SIGNATURE_DESC &RootSigBlob);
 
   HRESULT CreateInitialStateBuffer(const D3D12_RESOURCE_DESC &desc, ID3D12Resource **buf);
   rdcarray<ID3D12Heap *> m_InitialStateHeaps;

@@ -61,6 +61,7 @@ struct v2f
   float4 pos : SV_POSITION;
   uint tri : TRIANGLE;
   uint intval : INTVAL;
+  row_major float3x4 mat : MAT;
 };
 
 )EOSHADER";
@@ -75,6 +76,19 @@ v2f main(consts IN, uint tri : SV_InstanceID)
 
   OUT.tri = tri;
   OUT.intval = tri + 11;
+
+  OUT.mat._m00 = 1.0;
+  OUT.mat._m01 = 2.0;
+  OUT.mat._m02 = 3.0;
+  OUT.mat._m03 = 4.0;
+  OUT.mat._m10 = 5.0;
+  OUT.mat._m11 = 6.0;
+  OUT.mat._m12 = 7.0;
+  OUT.mat._m13 = 8.0;
+  OUT.mat._m20 = 9.0;
+  OUT.mat._m21 = 10.0;
+  OUT.mat._m22 = 11.0;
+  OUT.mat._m23 = 12.0;
 
   return OUT;
 }
@@ -91,6 +105,8 @@ TEST_DEBUG_TYPE(TYPE ## 1) \
 TEST_DEBUG_TYPE(TYPE ## 2) \
 TEST_DEBUG_TYPE(TYPE ## 3) \
 TEST_DEBUG_TYPE(TYPE ## 4) 
+#define TEST_DEBUG_MATRIX23_TYPE(TYPE) \
+row_major TYPE ## 2x3 __test_ ## TYPE ## 23  = 0;
 
 #define USE_DEBUG_VECTOR_TYPE(TYPE) \
   testResult.x += __test_ ## TYPE .x; \
@@ -99,11 +115,26 @@ TEST_DEBUG_TYPE(TYPE ## 4)
   testResult.xyz += __test_ ## TYPE ## 3 .xyz; \
   testResult.xyzw += __test_ ## TYPE ## 4 .xyzw; 
 
+#define USE_DEBUG_MATRIX23_TYPE(TYPE) \
+  testResult.xyz += __test_ ## TYPE ## 23[0] .xyz; \
+  testResult.xyz += __test_ ## TYPE ## 23[1] .xyz; \
+
 #define TEST_DEBUG_VAR_SET(TYPE, VAR, VALUE) \
   VAR = VALUE * __ONE; \
   __test_ ## TYPE += VAR;
 
 #define TEST_DEBUG_VAR_DECLARE(TYPE, VAR, VALUE) TYPE VAR; TEST_DEBUG_VAR_SET(TYPE, VAR, VALUE)
+
+#define TEST_DEBUG_VAR_DECLARE_MATRIX23(TYPE, VAR, VALUE) \
+  row_major TYPE ## 2x3 VAR; \
+  VAR = VALUE * __ONE; \
+  __test_ ## TYPE ## 23 = VAR; \
+  __test_ ## TYPE ## 23 ._m00 += VALUE * __ONE; \
+  __test_ ## TYPE ## 23 ._m01 += VALUE * __TWO; \
+  __test_ ## TYPE ## 23 ._m02 += VALUE * __THREE; \
+  __test_ ## TYPE ## 23 ._m10 += VALUE * __FOUR; \
+  __test_ ## TYPE ## 23 ._m11 += VALUE * __FIVE; \
+  __test_ ## TYPE ## 23 ._m12 += VALUE * __SIX; \
 
 struct TestStruct
 {
@@ -139,6 +170,7 @@ struct TestChild : TestParent
 
   TEST_DEBUG_VECTOR_TYPE(int);
   TEST_DEBUG_VECTOR_TYPE(float);
+  TEST_DEBUG_MATRIX23_TYPE(float);
 
   // TEST_DEBUG_VAR_START
   TEST_DEBUG_VAR_DECLARE(int, testIndex, TEST_INDEX)
@@ -152,31 +184,32 @@ struct TestChild : TestParent
   TEST_DEBUG_VAR_SET(int2, testChild.i2, 2)
   TEST_DEBUG_VAR_SET(int3, testChild.i3, 3)
   TEST_DEBUG_VAR_SET(int4, testChild.i4, 4)
+  TEST_DEBUG_VAR_DECLARE_MATRIX23(float, fish, 7.0)
   // TEST_DEBUG_VAR_END
 
   if(testIndex == 0)
-  {
-    testResult = intVal;
-  }
-  else if(testIndex == 1)
-  {
-    testResult = intVal * 2;
-  }
-  else if(testIndex == 2)
-  {
-    testResult = intVal / 2;
-  }
-  else if(testIndex == 3)
-  {
-    testResult.x = testStruct.anon.a.x;
-    testResult.y = testStruct.anon.b.x;
-  }
-  else if(testIndex == 4)
   {
     testResult.x = intVal * 7;
     testResult.y = intVal * 5;
     SET_DATA(testIndex, testResult);
     EARLY_RETURN;
+  }
+  else if(testIndex == 1)
+  {
+    testResult = intVal;
+  }
+  else if(testIndex == 2)
+  {
+    testResult = intVal * 2;
+  }
+  else if(testIndex == 3)
+  {
+    testResult = intVal / 2;
+  }
+  else if(testIndex == 4)
+  {
+    testResult.x = testStruct.anon.a.x;
+    testResult.y = testStruct.anon.b.x;
   }
   else if(testIndex == 5)
   {
@@ -185,6 +218,13 @@ struct TestChild : TestParent
     testResult.z = testChild.i3.y;
     testResult.w = testChild.i4.z;
   }
+  else if(testIndex == 6)
+  {
+    testResult.x = fish[0].x + fish[1].x;
+    testResult.y = fish[0].y + fish[1].y;
+    testResult.z = fish[0].z + fish[1].z;
+    testResult.w = 0.0;
+  }
   else
   {
     testResult = 0.4f;
@@ -192,6 +232,7 @@ struct TestChild : TestParent
 
   USE_DEBUG_VECTOR_TYPE(int);
   USE_DEBUG_VECTOR_TYPE(float);
+  USE_DEBUG_MATRIX23_TYPE(float);
 )EOSHADER";
 
   std::string pixel = R"EOSHADER(
@@ -205,6 +246,23 @@ struct TestChild : TestParent
 float4 main(v2f IN) : SV_Target0
 {
   int __ONE = floor((IN.intval - 11)/(IN.tri+1.0e-6f)) + 1;
+  __ONE += floor(abs(IN.pos.x / 1.0e6f));
+  __ONE += floor(abs(IN.pos.y / 1.0e6f));
+  __ONE += floor(abs(IN.pos.z / 1.0e6f));
+  __ONE += floor(abs(IN.pos.w / 1.0e6f));
+  for (int i = 0; i < 3; i++)
+  {
+    __ONE += floor(abs(IN.mat[i].x / 1.0e6f));
+    __ONE += floor(abs(IN.mat[i].y / 1.0e6f));
+    __ONE += floor(abs(IN.mat[i].z / 1.0e6f));
+    __ONE += floor(abs(IN.mat[i].w / 1.0e6f));
+  }
+  int __TWO = __ONE + 1;
+  int __THREE = __TWO + 1;
+  int __FOUR = __THREE + 1;
+  int __FIVE = __FOUR + 1;
+  int __SIX = __FIVE + 1;
+
 )EOSHADER" + testsBody +
                       R"EOSHADER(
 
@@ -232,6 +290,11 @@ void SetOutput(uint index, float4 data)
 void main(int inTestIndex: SV_GroupID)
 {
   int __ONE = floor(inTestIndex/(inTestIndex+1.0e-6f)) + 1;
+  int __TWO = __ONE + 1;
+  int __THREE = __TWO + 1;
+  int __FOUR = __THREE + 1;
+  int __FIVE = __FOUR + 1;
+  int __SIX = __FIVE + 1;
 )EOSHADER" + testsBody +
                         R"EOSHADER(
 

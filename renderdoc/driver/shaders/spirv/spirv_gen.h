@@ -25,29 +25,13 @@
 /******************************************************************************
  * Generated from Khronos SPIR-V machine-readable JSON grammar.
  *
- * Copyright (c) 2014-2024 The Khronos Group Inc.
+ * Copyright: 2014-2024 The Khronos Group Inc.
+ * License: MIT
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and/or associated documentation files (the "Materials"),
- * to deal in the Materials without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Materials, and to permit persons to whom the
- * Materials are furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Materials.
- *
- * MODIFICATIONS TO THIS FILE MAY MEAN IT NO LONGER ACCURATELY REFLECTS KHRONOS
- * STANDARDS. THE UNMODIFIED, NORMATIVE VERSIONS OF KHRONOS SPECIFICATIONS AND
- * HEADER INFORMATION ARE LOCATED AT https://www.khronos.org/registry/
- *
- * THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM,OUT OF OR IN CONNECTION WITH THE MATERIALS OR THE USE OR OTHER DEALINGS
- * IN THE MATERIALS.
+ * MODIFICATIONS TO THIS FILE MAY MEAN IT NO LONGER ACCURATELY REFLECTS
+ * KHRONOS STANDARDS. THE UNMODIFIED, NORMATIVE VERSIONS OF KHRONOS
+ * SPECIFICATIONS AND HEADER INFORMATION ARE LOCATED AT
+ * https://www.khronos.org/registry/
  ******************************************************************************/
 
 #pragma once
@@ -134,6 +118,7 @@ enum class Generator : uint32_t
   LLVMSPIRVBackend = 43,
   Kongruent = 44,
   NuvkSPIRVEmitterandDLSLcompiler = 45,
+  Arc3DShaderCompiler = 49,
 };
 
 enum class ImageOperands : uint32_t
@@ -201,16 +186,16 @@ enum class LoopControl : uint32_t
   IterationMultiple = 0x0040,
   PeelCount = 0x0080,
   PartialCount = 0x0100,
-  InitiationIntervalINTEL = 0x10000,
-  MaxConcurrencyINTEL = 0x20000,
-  DependencyArrayINTEL = 0x40000,
-  PipelineEnableINTEL = 0x80000,
-  LoopCoalesceINTEL = 0x100000,
-  MaxInterleavingINTEL = 0x200000,
-  SpeculatedIterationsINTEL = 0x400000,
-  NoFusionINTEL = 0x800000,
-  LoopCountINTEL = 0x1000000,
-  MaxReinvocationDelayINTEL = 0x2000000,
+  InitiationIntervalALTERA = 0x10000,
+  MaxConcurrencyALTERA = 0x20000,
+  DependencyArrayALTERA = 0x40000,
+  PipelineEnableALTERA = 0x80000,
+  LoopCoalesceALTERA = 0x100000,
+  MaxInterleavingALTERA = 0x200000,
+  SpeculatedIterationsALTERA = 0x400000,
+  NoFusionALTERA = 0x800000,
+  LoopCountALTERA = 0x1000000,
+  MaxReinvocationDelayALTERA = 0x2000000,
   Max,
   Invalid = ~0U,
 };
@@ -467,6 +452,7 @@ enum class ExecutionMode : uint32_t
   SampleInterlockUnorderedEXT = 5369,
   ShadingRateInterlockOrderedEXT = 5370,
   ShadingRateInterlockUnorderedEXT = 5371,
+  Shader64BitIndexingEXT = 5427,
   SharedLocalMemorySizeINTEL = 5618,
   RoundingModeRTPINTEL = 5620,
   RoundingModeRTNINTEL = 5621,
@@ -517,8 +503,8 @@ enum class StorageClass : uint32_t
   HitObjectAttributeNV = 5385,
   TaskPayloadWorkgroupEXT = 5402,
   CodeSectionINTEL = 5605,
-  DeviceOnlyINTEL = 5936,
-  HostOnlyINTEL = 5937,
+  DeviceOnlyALTERA = 5936,
+  HostOnlyALTERA = 5937,
   Max,
   Invalid = ~0U,
 };
@@ -750,7 +736,7 @@ enum class FunctionParameterAttribute : uint32_t
   NoCapture = 5,
   NoWrite = 6,
   NoReadWrite = 7,
-  RuntimeAlignedINTEL = 5940,
+  RuntimeAlignedALTERA = 5940,
   Max,
   Invalid = ~0U,
 };
@@ -804,6 +790,7 @@ enum class Decoration : uint32_t
   MaxByteOffset = 45,
   AlignmentId = 46,
   MaxByteOffsetId = 47,
+  SaturatedToLargestFloat8NormalConversionEXT = 4216,
   NoSignedWrap = 4469,
   NoUnsignedWrap = 4470,
   WeightTextureQCOM = 4487,
@@ -848,55 +835,56 @@ enum class Decoration : uint32_t
   UserTypeGOOGLE = 5636,
   FunctionRoundingModeINTEL = 5822,
   FunctionDenormModeINTEL = 5823,
-  RegisterINTEL = 5825,
-  MemoryINTEL = 5826,
-  NumbanksINTEL = 5827,
-  BankwidthINTEL = 5828,
-  MaxPrivateCopiesINTEL = 5829,
-  SinglepumpINTEL = 5830,
-  DoublepumpINTEL = 5831,
-  MaxReplicatesINTEL = 5832,
-  SimpleDualPortINTEL = 5833,
-  MergeINTEL = 5834,
-  BankBitsINTEL = 5835,
-  ForcePow2DepthINTEL = 5836,
-  StridesizeINTEL = 5883,
-  WordsizeINTEL = 5884,
-  TrueDualPortINTEL = 5885,
-  BurstCoalesceINTEL = 5899,
-  CacheSizeINTEL = 5900,
-  DontStaticallyCoalesceINTEL = 5901,
-  PrefetchINTEL = 5902,
-  StallEnableINTEL = 5905,
-  FuseLoopsInFunctionINTEL = 5907,
-  MathOpDSPModeINTEL = 5909,
+  RegisterALTERA = 5825,
+  MemoryALTERA = 5826,
+  NumbanksALTERA = 5827,
+  BankwidthALTERA = 5828,
+  MaxPrivateCopiesALTERA = 5829,
+  SinglepumpALTERA = 5830,
+  DoublepumpALTERA = 5831,
+  MaxReplicatesALTERA = 5832,
+  SimpleDualPortALTERA = 5833,
+  MergeALTERA = 5834,
+  BankBitsALTERA = 5835,
+  ForcePow2DepthALTERA = 5836,
+  StridesizeALTERA = 5883,
+  WordsizeALTERA = 5884,
+  TrueDualPortALTERA = 5885,
+  BurstCoalesceALTERA = 5899,
+  CacheSizeALTERA = 5900,
+  DontStaticallyCoalesceALTERA = 5901,
+  PrefetchALTERA = 5902,
+  StallEnableALTERA = 5905,
+  FuseLoopsInFunctionALTERA = 5907,
+  MathOpDSPModeALTERA = 5909,
   AliasScopeINTEL = 5914,
   NoAliasINTEL = 5915,
-  InitiationIntervalINTEL = 5917,
-  MaxConcurrencyINTEL = 5918,
-  PipelineEnableINTEL = 5919,
-  BufferLocationINTEL = 5921,
-  IOPipeStorageINTEL = 5944,
+  InitiationIntervalALTERA = 5917,
+  MaxConcurrencyALTERA = 5918,
+  PipelineEnableALTERA = 5919,
+  BufferLocationALTERA = 5921,
+  IOPipeStorageALTERA = 5944,
   FunctionFloatingPointModeINTEL = 6080,
   SingleElementVectorINTEL = 6085,
   VectorComputeCallableFunctionINTEL = 6087,
   MediaBlockIOINTEL = 6140,
-  StallFreeINTEL = 6151,
+  StallFreeALTERA = 6151,
   FPMaxErrorDecorationINTEL = 6170,
-  LatencyControlLabelINTEL = 6172,
-  LatencyControlConstraintINTEL = 6173,
-  ConduitKernelArgumentINTEL = 6175,
-  RegisterMapKernelArgumentINTEL = 6176,
-  MMHostInterfaceAddressWidthINTEL = 6177,
-  MMHostInterfaceDataWidthINTEL = 6178,
-  MMHostInterfaceLatencyINTEL = 6179,
-  MMHostInterfaceReadWriteModeINTEL = 6180,
-  MMHostInterfaceMaxBurstINTEL = 6181,
-  MMHostInterfaceWaitRequestINTEL = 6182,
-  StableKernelArgumentINTEL = 6183,
+  LatencyControlLabelALTERA = 6172,
+  LatencyControlConstraintALTERA = 6173,
+  ConduitKernelArgumentALTERA = 6175,
+  RegisterMapKernelArgumentALTERA = 6176,
+  MMHostInterfaceAddressWidthALTERA = 6177,
+  MMHostInterfaceDataWidthALTERA = 6178,
+  MMHostInterfaceLatencyALTERA = 6179,
+  MMHostInterfaceReadWriteModeALTERA = 6180,
+  MMHostInterfaceMaxBurstALTERA = 6181,
+  MMHostInterfaceWaitRequestALTERA = 6182,
+  StableKernelArgumentALTERA = 6183,
   HostAccessINTEL = 6188,
-  InitModeINTEL = 6190,
-  ImplementInRegisterMapINTEL = 6191,
+  InitModeALTERA = 6190,
+  ImplementInRegisterMapALTERA = 6191,
+  ConditionalINTEL = 6247,
   CacheControlLoadINTEL = 6442,
   CacheControlStoreINTEL = 6443,
   Max,
@@ -1149,7 +1137,10 @@ enum class Capability : uint32_t
   TensorsARM = 4174,
   StorageTensorArrayDynamicIndexingARM = 4175,
   StorageTensorArrayNonUniformIndexingARM = 4176,
+  GraphARM = 4191,
   CooperativeMatrixLayoutsARM = 4201,
+  Float8EXT = 4212,
+  Float8CooperativeMatrixEXT = 4213,
   FragmentShadingRateKHR = 4422,
   SubgroupBallotKHR = 4423,
   DrawParameters = 4427,
@@ -1184,6 +1175,7 @@ enum class Capability : uint32_t
   TextureBoxFilterQCOM = 4485,
   TextureBlockMatchQCOM = 4486,
   TileShadingQCOM = 4495,
+  CooperativeMatrixConversionQCOM = 4496,
   TextureBlockMatch2QCOM = 4498,
   Float16ImageAMD = 5008,
   ImageGatherBiasLodAMD = 5009,
@@ -1250,6 +1242,7 @@ enum class Capability : uint32_t
   RawAccessChainsNV = 5414,
   RayTracingSpheresGeometryNV = 5418,
   RayTracingLinearSweptSpheresGeometryNV = 5419,
+  Shader64BitIndexingEXT = 5426,
   CooperativeMatrixReductionsNV = 5430,
   CooperativeMatrixConversionsNV = 5431,
   CooperativeMatrixPerElementOperationsNV = 5432,
@@ -1279,27 +1272,27 @@ enum class Capability : uint32_t
   SubgroupAvcMotionEstimationChromaINTEL = 5698,
   VariableLengthArrayINTEL = 5817,
   FunctionFloatControlINTEL = 5821,
-  FPGAMemoryAttributesINTEL = 5824,
+  FPGAMemoryAttributesALTERA = 5824,
   FPFastMathModeINTEL = 5837,
-  ArbitraryPrecisionIntegersINTEL = 5844,
-  ArbitraryPrecisionFloatingPointINTEL = 5845,
+  ArbitraryPrecisionIntegersALTERA = 5844,
+  ArbitraryPrecisionFloatingPointALTERA = 5845,
   UnstructuredLoopControlsINTEL = 5886,
-  FPGALoopControlsINTEL = 5888,
+  FPGALoopControlsALTERA = 5888,
   KernelAttributesINTEL = 5892,
   FPGAKernelAttributesINTEL = 5897,
-  FPGAMemoryAccessesINTEL = 5898,
-  FPGAClusterAttributesINTEL = 5904,
-  LoopFuseINTEL = 5906,
-  FPGADSPControlINTEL = 5908,
+  FPGAMemoryAccessesALTERA = 5898,
+  FPGAClusterAttributesALTERA = 5904,
+  LoopFuseALTERA = 5906,
+  FPGADSPControlALTERA = 5908,
   MemoryAccessAliasingINTEL = 5910,
-  FPGAInvocationPipeliningAttributesINTEL = 5916,
-  FPGABufferLocationINTEL = 5920,
-  ArbitraryPrecisionFixedPointINTEL = 5922,
-  USMStorageClassesINTEL = 5935,
-  RuntimeAlignedAttributeINTEL = 5939,
-  IOPipesINTEL = 5943,
-  BlockingPipesINTEL = 5945,
-  FPGARegINTEL = 5948,
+  FPGAInvocationPipeliningAttributesALTERA = 5916,
+  FPGABufferLocationALTERA = 5920,
+  ArbitraryPrecisionFixedPointALTERA = 5922,
+  USMStorageClassesALTERA = 5935,
+  RuntimeAlignedAttributeALTERA = 5939,
+  IOPipesALTERA = 5943,
+  BlockingPipesALTERA = 5945,
+  FPGARegALTERA = 5948,
   DotProductInputAll = 6016,
   DotProductInput4x8Bit = 6017,
   DotProductInput4x8BitPacked = 6018,
@@ -1310,6 +1303,7 @@ enum class Capability : uint32_t
   BitInstructions = 6025,
   GroupNonUniformRotateKHR = 6026,
   FloatControls2 = 6029,
+  FMAKHR = 6030,
   AtomicFloat32AddEXT = 6033,
   AtomicFloat64AddEXT = 6034,
   LongCompositesINTEL = 6089,
@@ -1319,25 +1313,29 @@ enum class Capability : uint32_t
   BFloat16ConversionINTEL = 6115,
   SplitBarrierINTEL = 6141,
   ArithmeticFenceEXT = 6144,
-  FPGAClusterAttributesV2INTEL = 6150,
+  FPGAClusterAttributesV2ALTERA = 6150,
   FPGAKernelAttributesv2INTEL = 6161,
-  TaskSequenceINTEL = 6162,
+  TaskSequenceALTERA = 6162,
   FPMaxErrorINTEL = 6169,
-  FPGALatencyControlINTEL = 6171,
-  FPGAArgumentInterfacesINTEL = 6174,
+  FPGALatencyControlALTERA = 6171,
+  FPGAArgumentInterfacesALTERA = 6174,
   GlobalVariableHostAccessINTEL = 6187,
-  GlobalVariableFPGADecorationsINTEL = 6189,
+  GlobalVariableFPGADecorationsALTERA = 6189,
   SubgroupBufferPrefetchINTEL = 6220,
   Subgroup2DBlockIOINTEL = 6228,
   Subgroup2DBlockTransformINTEL = 6229,
   Subgroup2DBlockTransposeINTEL = 6230,
   SubgroupMatrixMultiplyAccumulateINTEL = 6236,
   TernaryBitwiseFunctionINTEL = 6241,
+  UntypedVariableLengthArrayINTEL = 6243,
+  SpecConditionalINTEL = 6245,
+  FunctionVariantsINTEL = 6246,
   GroupUniformArithmeticKHR = 6400,
   TensorFloat32RoundingINTEL = 6425,
   MaskedGatherScatterINTEL = 6427,
   CacheControlsINTEL = 6441,
   RegisterLimitsINTEL = 6460,
+  BindlessImagesINTEL = 6528,
   Max,
   Invalid = ~0U,
 };
@@ -1442,8 +1440,8 @@ BITMASK_OPERATORS(TensorAddressingOperands);
 
 enum class InitializationModeQualifier : uint32_t
 {
-  InitOnDeviceReprogramINTEL = 0,
-  InitOnDeviceResetINTEL = 1,
+  InitOnDeviceReprogramALTERA = 0,
+  InitOnDeviceResetALTERA = 1,
   Max,
   Invalid = ~0U,
 };
@@ -1502,6 +1500,8 @@ BITMASK_OPERATORS(MatrixMultiplyAccumulateOperands);
 enum class FPEncoding : uint32_t
 {
   BFloat16KHR = 0,
+  Float8E4M3EXT = 4214,
+  Float8E5M2EXT = 4215,
   Max,
   Invalid = ~0U,
 };
@@ -1629,15 +1629,15 @@ struct LoopControlAndParamDatas
   uint32_t iterationMultiple = {};
   uint32_t peelCount = {};
   uint32_t partialCount = {};
-  uint32_t initiationIntervalINTEL = {};
-  uint32_t maxConcurrencyINTEL = {};
-  uint32_t dependencyArrayINTEL = {};
-  uint32_t pipelineEnableINTEL = {};
-  uint32_t loopCoalesceINTEL = {};
-  uint32_t maxInterleavingINTEL = {};
-  uint32_t speculatedIterationsINTEL = {};
-  uint32_t loopCountINTEL = {};
-  uint32_t maxReinvocationDelayINTEL = {};
+  uint32_t initiationIntervalALTERA = {};
+  uint32_t maxConcurrencyALTERA = {};
+  uint32_t dependencyArrayALTERA = {};
+  uint32_t pipelineEnableALTERA = {};
+  uint32_t loopCoalesceALTERA = {};
+  uint32_t maxInterleavingALTERA = {};
+  uint32_t speculatedIterationsALTERA = {};
+  uint32_t loopCountALTERA = {};
+  uint32_t maxReinvocationDelayALTERA = {};
   
   operator LoopControl() const { return flags; }
   bool operator &(const LoopControl v) const { return bool(flags & v); }
@@ -1661,26 +1661,26 @@ struct LoopControlAndParamDatas
   void unsetPeelCount() { flags &= ~LoopControl::PeelCount; }
   void setPartialCount(uint32_t partialCountParam) { flags |= LoopControl::PartialCount; partialCount = partialCountParam; }
   void unsetPartialCount() { flags &= ~LoopControl::PartialCount; }
-  void setInitiationIntervalINTEL(uint32_t initiationIntervalINTELParam) { flags |= LoopControl::InitiationIntervalINTEL; initiationIntervalINTEL = initiationIntervalINTELParam; }
-  void unsetInitiationIntervalINTEL() { flags &= ~LoopControl::InitiationIntervalINTEL; }
-  void setMaxConcurrencyINTEL(uint32_t maxConcurrencyINTELParam) { flags |= LoopControl::MaxConcurrencyINTEL; maxConcurrencyINTEL = maxConcurrencyINTELParam; }
-  void unsetMaxConcurrencyINTEL() { flags &= ~LoopControl::MaxConcurrencyINTEL; }
-  void setDependencyArrayINTEL(uint32_t dependencyArrayINTELParam) { flags |= LoopControl::DependencyArrayINTEL; dependencyArrayINTEL = dependencyArrayINTELParam; }
-  void unsetDependencyArrayINTEL() { flags &= ~LoopControl::DependencyArrayINTEL; }
-  void setPipelineEnableINTEL(uint32_t pipelineEnableINTELParam) { flags |= LoopControl::PipelineEnableINTEL; pipelineEnableINTEL = pipelineEnableINTELParam; }
-  void unsetPipelineEnableINTEL() { flags &= ~LoopControl::PipelineEnableINTEL; }
-  void setLoopCoalesceINTEL(uint32_t loopCoalesceINTELParam) { flags |= LoopControl::LoopCoalesceINTEL; loopCoalesceINTEL = loopCoalesceINTELParam; }
-  void unsetLoopCoalesceINTEL() { flags &= ~LoopControl::LoopCoalesceINTEL; }
-  void setMaxInterleavingINTEL(uint32_t maxInterleavingINTELParam) { flags |= LoopControl::MaxInterleavingINTEL; maxInterleavingINTEL = maxInterleavingINTELParam; }
-  void unsetMaxInterleavingINTEL() { flags &= ~LoopControl::MaxInterleavingINTEL; }
-  void setSpeculatedIterationsINTEL(uint32_t speculatedIterationsINTELParam) { flags |= LoopControl::SpeculatedIterationsINTEL; speculatedIterationsINTEL = speculatedIterationsINTELParam; }
-  void unsetSpeculatedIterationsINTEL() { flags &= ~LoopControl::SpeculatedIterationsINTEL; }
-  void setNoFusionINTEL() { flags |= LoopControl::NoFusionINTEL; }
-  void unsetNoFusionINTEL() { flags &= ~LoopControl::NoFusionINTEL; }
-  void setLoopCountINTEL(uint32_t loopCountINTELParam) { flags |= LoopControl::LoopCountINTEL; loopCountINTEL = loopCountINTELParam; }
-  void unsetLoopCountINTEL() { flags &= ~LoopControl::LoopCountINTEL; }
-  void setMaxReinvocationDelayINTEL(uint32_t maxReinvocationDelayINTELParam) { flags |= LoopControl::MaxReinvocationDelayINTEL; maxReinvocationDelayINTEL = maxReinvocationDelayINTELParam; }
-  void unsetMaxReinvocationDelayINTEL() { flags &= ~LoopControl::MaxReinvocationDelayINTEL; }
+  void setInitiationIntervalALTERA(uint32_t initiationIntervalALTERAParam) { flags |= LoopControl::InitiationIntervalALTERA; initiationIntervalALTERA = initiationIntervalALTERAParam; }
+  void unsetInitiationIntervalALTERA() { flags &= ~LoopControl::InitiationIntervalALTERA; }
+  void setMaxConcurrencyALTERA(uint32_t maxConcurrencyALTERAParam) { flags |= LoopControl::MaxConcurrencyALTERA; maxConcurrencyALTERA = maxConcurrencyALTERAParam; }
+  void unsetMaxConcurrencyALTERA() { flags &= ~LoopControl::MaxConcurrencyALTERA; }
+  void setDependencyArrayALTERA(uint32_t dependencyArrayALTERAParam) { flags |= LoopControl::DependencyArrayALTERA; dependencyArrayALTERA = dependencyArrayALTERAParam; }
+  void unsetDependencyArrayALTERA() { flags &= ~LoopControl::DependencyArrayALTERA; }
+  void setPipelineEnableALTERA(uint32_t pipelineEnableALTERAParam) { flags |= LoopControl::PipelineEnableALTERA; pipelineEnableALTERA = pipelineEnableALTERAParam; }
+  void unsetPipelineEnableALTERA() { flags &= ~LoopControl::PipelineEnableALTERA; }
+  void setLoopCoalesceALTERA(uint32_t loopCoalesceALTERAParam) { flags |= LoopControl::LoopCoalesceALTERA; loopCoalesceALTERA = loopCoalesceALTERAParam; }
+  void unsetLoopCoalesceALTERA() { flags &= ~LoopControl::LoopCoalesceALTERA; }
+  void setMaxInterleavingALTERA(uint32_t maxInterleavingALTERAParam) { flags |= LoopControl::MaxInterleavingALTERA; maxInterleavingALTERA = maxInterleavingALTERAParam; }
+  void unsetMaxInterleavingALTERA() { flags &= ~LoopControl::MaxInterleavingALTERA; }
+  void setSpeculatedIterationsALTERA(uint32_t speculatedIterationsALTERAParam) { flags |= LoopControl::SpeculatedIterationsALTERA; speculatedIterationsALTERA = speculatedIterationsALTERAParam; }
+  void unsetSpeculatedIterationsALTERA() { flags &= ~LoopControl::SpeculatedIterationsALTERA; }
+  void setNoFusionALTERA() { flags |= LoopControl::NoFusionALTERA; }
+  void unsetNoFusionALTERA() { flags &= ~LoopControl::NoFusionALTERA; }
+  void setLoopCountALTERA(uint32_t loopCountALTERAParam) { flags |= LoopControl::LoopCountALTERA; loopCountALTERA = loopCountALTERAParam; }
+  void unsetLoopCountALTERA() { flags &= ~LoopControl::LoopCountALTERA; }
+  void setMaxReinvocationDelayALTERA(uint32_t maxReinvocationDelayALTERAParam) { flags |= LoopControl::MaxReinvocationDelayALTERA; maxReinvocationDelayALTERA = maxReinvocationDelayALTERAParam; }
+  void unsetMaxReinvocationDelayALTERA() { flags &= ~LoopControl::MaxReinvocationDelayALTERA; }
 };
 
 struct MemoryAccessAndParamDatas
@@ -1847,7 +1847,7 @@ struct FunctionDenormModeINTELParams
   FPDenormMode fPDenormMode;
 };
 
-struct MathOpDSPModeINTELParams
+struct MathOpDSPModeALTERAParams
 {
   uint32_t mode;
   uint32_t propagate;
@@ -1859,7 +1859,7 @@ struct FunctionFloatingPointModeINTELParams
   FPOperationMode fPOperationMode;
 };
 
-struct LatencyControlConstraintINTELParams
+struct LatencyControlConstraintALTERAParams
 {
   uint32_t relativeTo;
   uint32_t controlType;
@@ -1919,36 +1919,37 @@ struct DecorationAndParamData
     Id counterBuffer;
     FunctionRoundingModeINTELParams functionRoundingModeINTEL;
     FunctionDenormModeINTELParams functionDenormModeINTEL;
-    uint32_t numbanksINTEL;
-    uint32_t bankwidthINTEL;
-    uint32_t maxPrivateCopiesINTEL;
-    uint32_t maxReplicatesINTEL;
-    uint32_t bankBitsINTEL;
-    uint32_t forcePow2DepthINTEL;
-    uint32_t stridesizeINTEL;
-    uint32_t wordsizeINTEL;
-    uint32_t cacheSizeINTEL;
-    uint32_t prefetchINTEL;
-    MathOpDSPModeINTELParams mathOpDSPModeINTEL;
+    uint32_t numbanksALTERA;
+    uint32_t bankwidthALTERA;
+    uint32_t maxPrivateCopiesALTERA;
+    uint32_t maxReplicatesALTERA;
+    uint32_t bankBitsALTERA;
+    uint32_t forcePow2DepthALTERA;
+    uint32_t stridesizeALTERA;
+    uint32_t wordsizeALTERA;
+    uint32_t cacheSizeALTERA;
+    uint32_t prefetchALTERA;
+    MathOpDSPModeALTERAParams mathOpDSPModeALTERA;
     Id aliasScopeINTEL;
     Id noAliasINTEL;
-    uint32_t initiationIntervalINTEL;
-    uint32_t maxConcurrencyINTEL;
-    uint32_t pipelineEnableINTEL;
-    uint32_t bufferLocationINTEL;
-    uint32_t iOPipeStorageINTEL;
+    uint32_t initiationIntervalALTERA;
+    uint32_t maxConcurrencyALTERA;
+    uint32_t pipelineEnableALTERA;
+    uint32_t bufferLocationALTERA;
+    uint32_t iOPipeStorageALTERA;
     FunctionFloatingPointModeINTELParams functionFloatingPointModeINTEL;
     float fPMaxErrorDecorationINTEL;
-    uint32_t latencyControlLabelINTEL;
-    LatencyControlConstraintINTELParams latencyControlConstraintINTEL;
-    uint32_t mMHostInterfaceAddressWidthINTEL;
-    uint32_t mMHostInterfaceDataWidthINTEL;
-    uint32_t mMHostInterfaceLatencyINTEL;
-    AccessQualifier mMHostInterfaceReadWriteModeINTEL;
-    uint32_t mMHostInterfaceMaxBurstINTEL;
-    uint32_t mMHostInterfaceWaitRequestINTEL;
-    InitializationModeQualifier initModeINTEL;
-    uint32_t implementInRegisterMapINTEL;
+    uint32_t latencyControlLabelALTERA;
+    LatencyControlConstraintALTERAParams latencyControlConstraintALTERA;
+    uint32_t mMHostInterfaceAddressWidthALTERA;
+    uint32_t mMHostInterfaceDataWidthALTERA;
+    uint32_t mMHostInterfaceLatencyALTERA;
+    AccessQualifier mMHostInterfaceReadWriteModeALTERA;
+    uint32_t mMHostInterfaceMaxBurstALTERA;
+    uint32_t mMHostInterfaceWaitRequestALTERA;
+    InitializationModeQualifier initModeALTERA;
+    uint32_t implementInRegisterMapALTERA;
+    Id conditionalINTEL;
     CacheControlLoadINTELParams cacheControlLoadINTEL;
     CacheControlStoreINTELParams cacheControlStoreINTEL;
   };
@@ -2351,6 +2352,13 @@ enum class Op : uint16_t
   TensorReadARM = 4164,
   TensorWriteARM = 4165,
   TensorQuerySizeARM = 4166,
+  GraphConstantARM = 4181,
+  GraphEntryPointARM = 4182,
+  GraphARM = 4183,
+  GraphInputARM = 4184,
+  GraphSetOutputARM = 4185,
+  GraphEndARM = 4186,
+  TypeGraphARM = 4190,
   TerminateInvocation = 4416,
   TypeUntypedPointerKHR = 4417,
   UntypedVariableKHR = 4418,
@@ -2362,12 +2370,14 @@ enum class Op : uint16_t
   UntypedInBoundsPtrAccessChainKHR = 4424,
   UntypedArrayLengthKHR = 4425,
   UntypedPrefetchKHR = 4426,
+  FmaKHR = 4427,
   SubgroupAllKHR = 4428,
   SubgroupAnyKHR = 4429,
   SubgroupAllEqualKHR = 4430,
   GroupNonUniformRotateKHR = 4431,
   SubgroupReadInvocationKHR = 4432,
   ExtInstWithForwardRefsKHR = 4433,
+  UntypedGroupAsyncCopyKHR = 4434,
   TraceRayKHR = 4445,
   ExecuteCallableKHR = 4446,
   ConvertUToAccelerationStructureKHR = 4447,
@@ -2398,10 +2408,14 @@ enum class Op : uint16_t
   ImageBoxFilterQCOM = 4481,
   ImageBlockMatchSSDQCOM = 4482,
   ImageBlockMatchSADQCOM = 4483,
+  BitCastArrayQCOM = 4497,
   ImageBlockMatchWindowSSDQCOM = 4500,
   ImageBlockMatchWindowSADQCOM = 4501,
   ImageBlockMatchGatherSSDQCOM = 4502,
   ImageBlockMatchGatherSADQCOM = 4503,
+  CompositeConstructCoopMatQCOM = 4540,
+  CompositeExtractCoopMatQCOM = 4541,
+  ExtractSubArrayQCOM = 4542,
   GroupIAddNonUniformAMD = 5000,
   GroupFAddNonUniformAMD = 5001,
   GroupFMinNonUniformAMD = 5002,
@@ -2480,7 +2494,7 @@ enum class Op : uint16_t
   RayQueryGetIntersectionTriangleVertexPositionsKHR = 5340,
   TypeAccelerationStructureKHR = 5341,
   ExecuteCallableNV = 5344,
-  RayQueryGetClusterIdNV = 5345,
+  RayQueryGetIntersectionClusterIdNV = 5345,
   HitObjectGetClusterIdNV = 5346,
   TypeCooperativeMatrixNV = 5358,
   CooperativeMatrixLoadNV = 5359,
@@ -2559,10 +2573,10 @@ enum class Op : uint16_t
   ExpectKHR = 5631,
   DecorateString = 5632,
   MemberDecorateString = 5633,
+  VariableLengthArrayINTEL = 5818,
+  SaveMemoryINTEL = 5819,
+  RestoreMemoryINTEL = 5820,
   LoopControlINTEL = 5887,
-  ReadPipeBlockingINTEL = 5946,
-  WritePipeBlockingINTEL = 5947,
-  FPGARegINTEL = 5949,
   RayQueryGetRayTMinKHR = 6016,
   RayQueryGetRayFlagsKHR = 6017,
   RayQueryGetIntersectionTKHR = 6018,
@@ -2591,11 +2605,6 @@ enum class Op : uint16_t
   ControlBarrierArriveINTEL = 6142,
   ControlBarrierWaitINTEL = 6143,
   ArithmeticFenceEXT = 6145,
-  TaskSequenceCreateINTEL = 6163,
-  TaskSequenceAsyncINTEL = 6164,
-  TaskSequenceGetINTEL = 6165,
-  TaskSequenceReleaseINTEL = 6166,
-  TypeTaskSequenceINTEL = 6199,
   SubgroupBlockPrefetchINTEL = 6221,
   Subgroup2DBlockLoadINTEL = 6231,
   Subgroup2DBlockLoadTransformINTEL = 6232,
@@ -2604,6 +2613,14 @@ enum class Op : uint16_t
   Subgroup2DBlockStoreINTEL = 6235,
   SubgroupMatrixMultiplyAccumulateINTEL = 6237,
   BitwiseFunctionINTEL = 6242,
+  UntypedVariableLengthArrayINTEL = 6244,
+  ConditionalExtensionINTEL = 6248,
+  ConditionalEntryPointINTEL = 6249,
+  ConditionalCapabilityINTEL = 6250,
+  SpecConstantTargetINTEL = 6251,
+  SpecConstantArchitectureINTEL = 6252,
+  SpecConstantCapabilitiesINTEL = 6253,
+  ConditionalCopyObjectINTEL = 6254,
   GroupIMulKHR = 6401,
   GroupFMulKHR = 6402,
   GroupBitwiseAndKHR = 6403,
@@ -2615,6 +2632,9 @@ enum class Op : uint16_t
   RoundFToTF32INTEL = 6426,
   MaskedGatherINTEL = 6428,
   MaskedScatterINTEL = 6429,
+  ConvertHandleToImageINTEL = 6529,
+  ConvertHandleToSamplerINTEL = 6530,
+  ConvertHandleToSampledImageINTEL = 6531,
 
   Max,
 };

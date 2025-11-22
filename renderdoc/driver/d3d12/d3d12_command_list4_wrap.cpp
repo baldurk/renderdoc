@@ -1378,20 +1378,20 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EmitRaytracingAccelerationStruc
       {
         Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
             ->EmitRaytracingAccelerationStructurePostbuildInfo(
-                pDesc, NumSourceAccelerationStructures, pSourceAccelerationStructureData);
+                &Desc, NumSourceAccelerationStructures, pSourceAccelerationStructureData);
       }
     }
     else
     {
       Unwrap4(pCommandList)
-          ->EmitRaytracingAccelerationStructurePostbuildInfo(pDesc, NumSourceAccelerationStructures,
+          ->EmitRaytracingAccelerationStructurePostbuildInfo(&Desc, NumSourceAccelerationStructures,
                                                              pSourceAccelerationStructureData);
 
       m_Cmd->AddEvent();
 
       ActionDescription action;
       action.copyDestination = GetResourceManager()->GetOriginalID(
-          WrappedID3D12Resource::GetResIDFromAddr(pDesc->DestBuffer));
+          WrappedID3D12Resource::GetResIDFromAddr(Desc.DestBuffer));
       action.copyDestinationSubresource = Subresource();
 
       action.flags |= ActionFlags::Copy;
@@ -1401,7 +1401,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EmitRaytracingAccelerationStruc
       D3D12ActionTreeNode &actionNode = m_Cmd->GetActionStack().back()->children.back();
 
       actionNode.resourceUsage.push_back(
-          make_rdcpair(WrappedID3D12Resource::GetResIDFromAddr(pDesc->DestBuffer),
+          make_rdcpair(WrappedID3D12Resource::GetResIDFromAddr(Desc.DestBuffer),
                        EventUsage(actionNode.action.eventId, ResourceUsage::CopyDst)));
       for(UINT i = 0; i < NumSourceAccelerationStructures; i++)
         actionNode.resourceUsage.push_back(make_rdcpair(

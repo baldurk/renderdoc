@@ -122,12 +122,12 @@ struct ShaderUniformParameters
   float minlod;
 };
 
-#if defined(RELEASE)
+#if ENABLED(RDOC_RELEASE)
 #define CHECK_DEVICE_THREAD()
 #else
 #define CHECK_DEVICE_THREAD() \
   RDCASSERTMSG("API Wrapper function called from non-device thread!", IsDeviceThread());
-#endif    // #if defined(RELEASE)
+#endif    // #if ENABLED(RDOC_RELEASE)
 
 class VulkanAPIWrapper : public rdcspv::DebugAPIWrapper
 {

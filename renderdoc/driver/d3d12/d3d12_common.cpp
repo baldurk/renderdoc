@@ -541,6 +541,10 @@ bool D3D12InitParams::IsSupportedVersion(uint64_t ver)
   if(ver == 0x13)
     return true;
 
+  // 0x14 -> 0x15 - Add serialisation of new root signature blob in PSO desc
+  if(ver == 0x14)
+    return true;
+
   return false;
 }
 
@@ -1596,6 +1600,7 @@ struct D3D12_PTR_PSO_SUBOBJECT
     D3D12_INPUT_LAYOUT_DESC InputLayout;
     D3D12_CACHED_PIPELINE_STATE CachedPSO;
     D3D12_VIEW_INSTANCING_DESC ViewInstancing;
+    D3D12_SERIALIZED_ROOT_SIGNATURE_DESC RootSig;
   } data;
 };
 
@@ -1710,6 +1715,12 @@ D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_
       {
         pRootSignature = ptr->data.pRootSignature;
         ITER_ADV(ID3D12RootSignature *);
+        break;
+      }
+      case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_SERIALIZED_ROOT_SIGNATURE:
+      {
+        RootSigBlob = ptr->data.RootSig;
+        ITER_ADV(D3D12_SERIALIZED_ROOT_SIGNATURE_DESC);
         break;
       }
       case D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS:
@@ -1921,26 +1932,66 @@ D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::D3D12_EXPANDED_PIPELINE_STATE_STREAM_
   }
 }
 
+ID3D12RootSignature *D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC::GetOrCreateRootSig(
+    WrappedID3D12Device *dev)
+{
+  if(pRootSignature == NULL && RootSigBlob.SerializedBlobSizeInBytes > 0)
+  {
+    pRootSignature = dev->CreateImplicitRootSig(RootSigBlob);
+    RootSigBlob = {};
+  }
+
+  return pRootSignature;
+}
+
 void D3D12_PACKED_PIPELINE_STATE_STREAM_DESC::Unwrap()
 {
-  m_GraphicsStreamData.pRootSignature = ::Unwrap(m_GraphicsStreamData.pRootSignature);
-  m_ComputeStreamData.pRootSignature = ::Unwrap(m_ComputeStreamData.pRootSignature);
+  *m_RootSigToUnwrap = ::Unwrap(*m_RootSigToUnwrap);
 }
 
 D3D12_PACKED_PIPELINE_STATE_STREAM_DESC &D3D12_PACKED_PIPELINE_STATE_STREAM_DESC::operator=(
     const D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &expanded)
 {
+#define WRITE_VERSIONED_SUBOJBECT(subobjType, subobj) \
+  type = subobjType;                                  \
+  memcpy(ptr, &type, sizeof(type));                   \
+  ptr += sizeof(type);                                \
+  ptr = AlignUpPtr(ptr, alignof(decltype(subobj)));   \
+  memcpy(ptr, &subobj, sizeof(subobj));               \
+  ptr += sizeof(subobj);                              \
+  ptr = AlignUpPtr(ptr, sizeof(void *));
+
   if(expanded.CS.BytecodeLength > 0)
   {
-    m_ComputeStreamData.pRootSignature = expanded.pRootSignature;
     m_ComputeStreamData.CS = expanded.CS;
     m_ComputeStreamData.NodeMask = expanded.NodeMask;
     m_ComputeStreamData.CachedPSO = expanded.CachedPSO;
     m_ComputeStreamData.Flags = expanded.Flags;
+
+    byte *ptr = m_ComputeStreamData.VariableVersionedData;
+    const byte *start = ptr;
+    D3D12_PIPELINE_STATE_SUBOBJECT_TYPE type;
+
+    D3D12_SERIALIZED_ROOT_SIGNATURE_DESC RootSigBlob = expanded.GetRootSigBlob();
+    if(RootSigBlob.SerializedBlobSizeInBytes > 0)
+    {
+      WRITE_VERSIONED_SUBOJBECT(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_SERIALIZED_ROOT_SIGNATURE,
+                                RootSigBlob);
+
+      m_RootSigToUnwrap = NULL;
+    }
+    else
+    {
+      ID3D12RootSignature *sig = expanded.GetRootSigIfPresent();
+      WRITE_VERSIONED_SUBOJBECT(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE, sig);
+
+      m_RootSigToUnwrap = ((ID3D12RootSignature **)ptr) - 1;
+    }
+
+    m_VariableVersionedDataLength = ptr - start;
   }
   else
   {
-    m_GraphicsStreamData.pRootSignature = expanded.pRootSignature;
     m_GraphicsStreamData.VS = expanded.VS;
     m_GraphicsStreamData.PS = expanded.PS;
     m_GraphicsStreamData.DS = expanded.DS;
@@ -1966,14 +2017,21 @@ D3D12_PACKED_PIPELINE_STATE_STREAM_DESC &D3D12_PACKED_PIPELINE_STATE_STREAM_DESC
     const byte *start = ptr;
     D3D12_PIPELINE_STATE_SUBOBJECT_TYPE type;
 
-#define WRITE_VERSIONED_SUBOJBECT(subobjType, subobj) \
-  type = subobjType;                                  \
-  memcpy(ptr, &type, sizeof(type));                   \
-  ptr += sizeof(type);                                \
-  ptr = AlignUpPtr(ptr, alignof(decltype(subobj)));   \
-  memcpy(ptr, &subobj, sizeof(subobj));               \
-  ptr += sizeof(subobj);                              \
-  ptr = AlignUpPtr(ptr, sizeof(void *));
+    D3D12_SERIALIZED_ROOT_SIGNATURE_DESC RootSigBlob = expanded.GetRootSigBlob();
+    if(RootSigBlob.SerializedBlobSizeInBytes > 0)
+    {
+      WRITE_VERSIONED_SUBOJBECT(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_SERIALIZED_ROOT_SIGNATURE,
+                                RootSigBlob);
+
+      m_RootSigToUnwrap = NULL;
+    }
+    else
+    {
+      ID3D12RootSignature *sig = expanded.GetRootSigIfPresent();
+      WRITE_VERSIONED_SUBOJBECT(D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE, sig);
+
+      m_RootSigToUnwrap = ((ID3D12RootSignature **)ptr) - 1;
+    }
 
     // is the line rasterization mode narrow quadrilateral? if so we need version 2.
     if(expanded.RasterizerState.LineRasterizationMode ==

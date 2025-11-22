@@ -4093,12 +4093,6 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
             <property name="frameShape">
              <enum>QFrame::Box</enum>
             </property>
@@ -4108,12 +4102,6 @@
            <widget class="RDLabel" name="csShaderDebug">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>

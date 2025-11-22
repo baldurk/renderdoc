@@ -44,6 +44,8 @@ DummyDriver::DummyDriver(IReplayDriver *original, const rdcarray<const ShaderRef
   m_WindowSystems = original->GetSupportedWindowSystems();
   m_CustomEncodings = original->GetCustomShaderEncodings();
   m_CustomPrefixes = original->GetCustomShaderSourcePrefixes();
+
+  sdfile->Detach();
 }
 
 DummyDriver::~DummyDriver()

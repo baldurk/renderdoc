@@ -24,6 +24,7 @@
 
 #include "dxil_bytecode.h"
 #include "dxil_common.h"
+#include "dxil_debug.h"
 #include "dxil_debuginfo.h"
 
 template <>
@@ -889,3 +890,41 @@ rdcstr DoStringise(const DXIL::WaveMultiPrefixOpCode &el)
   }
   END_ENUM_STRINGISE();
 }
+
+template <>
+rdcstr DoStringise(const DXILDebug::StepThreadMode &el)
+{
+  BEGIN_ENUM_STRINGISE(DXILDebug::StepThreadMode)
+  {
+    STRINGISE_ENUM_CLASS(RUN_SINGLE_STEP)
+    STRINGISE_ENUM_CLASS(RUN_MULTIPLE_STEPS)
+    STRINGISE_ENUM_CLASS(QUEUE_SINGLE_STEP)
+    STRINGISE_ENUM_CLASS(QUEUE_MULTIPLE_STEPS)
+  }
+  END_ENUM_STRINGISE();
+};
+
+template <>
+rdcstr DoStringise(const DXILDebug::DeviceOpResult &el)
+{
+  BEGIN_ENUM_STRINGISE(DXILDebug::DeviceOpResult)
+  {
+    STRINGISE_ENUM_CLASS(Unknown)
+    STRINGISE_ENUM_CLASS(Succeeded)
+    STRINGISE_ENUM_CLASS(Failed)
+    STRINGISE_ENUM_CLASS(NeedsDevice)
+  }
+  END_ENUM_STRINGISE();
+};
+
+template <>
+rdcstr DoStringise(const DXILDebug::ThreadState::PendingResultStatus &el)
+{
+  BEGIN_ENUM_STRINGISE(DXILDebug::ThreadState::PendingResultStatus)
+  {
+    STRINGISE_ENUM_CLASS(Unknown)
+    STRINGISE_ENUM_CLASS(Pending)
+    STRINGISE_ENUM_CLASS(Ready)
+  }
+  END_ENUM_STRINGISE();
+};

@@ -87,7 +87,7 @@ struct CSLaneData
   uint32_t pad2[2];
 
   uint32_t threadid[3];
-  uint32_t pad;
+  uint32_t activeSubgroup;
 };
 
 struct DebugHit
@@ -178,10 +178,13 @@ struct InputFetcherConfig
   uint32_t vert = 0, inst = 0;
 
   rdcfixedarray<uint32_t, 3> threadid = {0, 0, 0};
+  rdcfixedarray<uint32_t, 3> groupid = {0, 0, 0};
 
   uint32_t uavslot = 0;
   uint32_t uavspace = 0;
   uint32_t maxWaveSize = 64;
+  uint32_t groupSize = 0;
+  uint32_t fetchWorkgroup = 0;
   bool waveOps = false;
   uint32_t outputSampleCount = 1;
 };

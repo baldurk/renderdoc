@@ -6,7 +6,7 @@ if [ "$PLATFORM" == "Linux" ]; then
 fi
 
 # Skip silently if no key is present
-if [ ! -f "${BUILD_ROOT}"/support/key.pass ] || [ ! -f "${BUILD_ROOT}"/support/key.pfx ] ; then
+if [ ! -f "${BUILD_ROOT}"/support/key.pfx ] && [ ! -f "${BUILD_ROOT}"/support/key.name ]; then
 	exit;
 fi
 

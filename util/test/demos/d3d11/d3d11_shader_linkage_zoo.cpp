@@ -341,6 +341,21 @@ float4 main(v2f IN) : SV_Target0
     tests.push_back(BuildTestCase({{true, VarType::Float, 1, 0, "TEXCOORD0", true},
                                    {false, VarType::UInt, 1, 0, "TEXCOORD1", true}}));
 
+    // Packing float with a float3
+    tests.push_back(BuildTestCase({{false, VarType::Float, 1, 0, "TEXCOORD0", true},
+                                   {true, VarType::UInt, 1, 0, "TEXCOORD1", true},
+                                   {false, VarType::Float, 3, 0, "COLOR", true}}));
+
+    // Packing float with a float3[1]
+    tests.push_back(BuildTestCase({{false, VarType::Float, 1, 0, "TEXCOORD0", true},
+                                   {true, VarType::UInt, 1, 0, "TEXCOORD1", true},
+                                   {false, VarType::Float, 3, 1, "COLOR", true}}));
+
+    // Not packing float with a float3[2]
+    tests.push_back(BuildTestCase({{false, VarType::Float, 1, 0, "TEXCOORD0", true},
+                                   {true, VarType::UInt, 1, 0, "TEXCOORD1", true},
+                                   {false, VarType::Float, 3, 2, "COLOR", true}}));
+
     // Bespoke tests for broken scenarios discovered through bug reports:
 
     // These semantics live in v1.xy, v2.x, and v3.xyz due to each being an array. If any of them

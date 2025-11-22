@@ -58,6 +58,7 @@ static void *GetEGLHandle()
 class EGLPlatform : public GLPlatform
 {
   RDCDriver m_API = RDCDriver::OpenGLES;
+  bool m_Debug = false;
 
   bool MakeContextCurrent(GLWindowingData data)
   {
@@ -76,7 +77,7 @@ class EGLPlatform : public GLPlatform
     if(EGL.CreateContext)
     {
       EGLint baseAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_CONTEXT_FLAGS_KHR,
-                              EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR, EGL_NONE};
+                              m_Debug ? EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR : 0, EGL_NONE};
 
       ret.egl_ctx = EGL.CreateContext(share.egl_dpy, share.egl_cfg, share.egl_ctx, baseAttribs);
 
@@ -208,10 +209,6 @@ class EGLPlatform : public GLPlatform
   GLWindowingData CreateWindowingData(EGLDisplay eglDisplay, EGLContext share_ctx,
                                       EGLNativeWindowType window, bool debug)
   {
-#if ENABLED(RDOC_DEVEL)
-    debug = true;
-#endif
-
     GLWindowingData ret;
     ret.egl_dpy = eglDisplay;
     ret.egl_ctx = NULL;
@@ -383,6 +380,7 @@ class EGLPlatform : public GLPlatform
     RDCASSERT(api == RDCDriver::OpenGLES || api == RDCDriver::OpenGL);
 
     m_API = api;
+    m_Debug = debug;
 
     if(api == RDCDriver::OpenGLES)
       EGL.BindAPI(EGL_OPENGL_ES_API);

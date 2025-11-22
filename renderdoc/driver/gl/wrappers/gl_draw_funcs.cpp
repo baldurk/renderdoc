@@ -4052,7 +4052,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfi(SerialiserType &ser, GLu
         if(type == eGL_TEXTURE)
         {
           GLint mip = 0, slice = 0;
-          GetFramebufferMipAndLayer(framebuffer.name, eGL_COLOR_ATTACHMENT0, &mip, &slice);
+          GetFramebufferMipAndLayer(framebuffer.name, eGL_DEPTH_ATTACHMENT, &mip, &slice);
           action.copyDestinationSubresource.mip = mip;
           action.copyDestinationSubresource.slice = slice;
         }

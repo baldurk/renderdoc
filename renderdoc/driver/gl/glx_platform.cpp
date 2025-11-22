@@ -51,6 +51,7 @@ void *GetGLHandle()
 class GLXPlatform : public GLPlatform
 {
   RDCDriver m_API = RDCDriver::OpenGL;
+  bool m_Debug = false;
 
   bool MakeContextCurrent(GLWindowingData data)
   {
@@ -263,11 +264,7 @@ class GLXPlatform : public GLPlatform
     attribs[i++] = GLX_CONTEXT_MINOR_VERSION_ARB;
     attribs[i++] = GLCoreVersion % 10;
     attribs[i++] = GLX_CONTEXT_FLAGS_ARB;
-#if ENABLED(RDOC_DEVEL)
-    attribs[i++] = GLX_CONTEXT_DEBUG_BIT_ARB;
-#else
-    attribs[i++] = 0;
-#endif
+    attribs[i++] = m_Debug ? GLX_CONTEXT_DEBUG_BIT_ARB : 0;
     attribs[i++] = GLX_CONTEXT_PROFILE_MASK_ARB;
     attribs[i++] = m_API == RDCDriver::OpenGLES ? GLX_CONTEXT_ES2_PROFILE_BIT_EXT
                                                 : GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
@@ -365,14 +362,10 @@ class GLXPlatform : public GLPlatform
   void SetDriverType(RDCDriver api) { m_API = api; }
   RDResult InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
   {
-// force debug in development builds
-#if ENABLED(RDOC_DEVEL)
-    debug = true;
-#endif
-
     RDCASSERT(api == RDCDriver::OpenGL || api == RDCDriver::OpenGLES);
 
     m_API = api;
+    m_Debug = debug;
 
     int attribs[64] = {0};
     int i = 0;
@@ -384,7 +377,7 @@ class GLXPlatform : public GLPlatform
     int &minor = attribs[i];
     attribs[i++] = 0;
     attribs[i++] = GLX_CONTEXT_FLAGS_ARB;
-    attribs[i++] = debug ? GLX_CONTEXT_DEBUG_BIT_ARB : 0;
+    attribs[i++] = m_Debug ? GLX_CONTEXT_DEBUG_BIT_ARB : 0;
     attribs[i++] = GLX_CONTEXT_PROFILE_MASK_ARB;
     attribs[i++] = api == RDCDriver::OpenGLES ? GLX_CONTEXT_ES2_PROFILE_BIT_EXT
                                               : GLX_CONTEXT_CORE_PROFILE_BIT_ARB;

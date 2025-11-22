@@ -736,8 +736,16 @@ struct D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC
 
   bool errored = false;
 
+  ID3D12RootSignature *GetRootSigIfPresent() const { return pRootSignature; }
+  ID3D12RootSignature *GetOrCreateRootSig(WrappedID3D12Device *dev);
+  const D3D12_SERIALIZED_ROOT_SIGNATURE_DESC &GetRootSigBlob() const { return RootSigBlob; }
+  void SetRootSig(ID3D12RootSignature *sig)
+  {
+    RootSigBlob = {};
+    pRootSignature = sig;
+  }
+
   // graphics properties
-  ID3D12RootSignature *pRootSignature = NULL;
   D3D12_SHADER_BYTECODE VS = {};
   D3D12_SHADER_BYTECODE PS = {};
   D3D12_SHADER_BYTECODE DS = {};
@@ -763,6 +771,14 @@ struct D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC
 
   // unique compute properties (many are duplicated above)
   D3D12_SHADER_BYTECODE CS = {};
+
+  // governed by accessors so we can hide the ugly blob method
+private:
+  ID3D12RootSignature *pRootSignature = NULL;
+  D3D12_SERIALIZED_ROOT_SIGNATURE_DESC RootSigBlob = {};
+
+  template <typename SerialiserType>
+  friend void DoSerialise(SerialiserType &ser, D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &el);
 };
 
 DECLARE_REFLECTION_STRUCT(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC);
@@ -796,7 +812,8 @@ public:
     if(m_ComputeStreamData.CS.BytecodeLength > 0)
     {
       m_StreamDesc.pPipelineStateSubobjectStream = &m_ComputeStreamData;
-      m_StreamDesc.SizeInBytes = sizeof(m_ComputeStreamData);
+      m_StreamDesc.SizeInBytes =
+          offsetof(ComputeStreamData, VariableVersionedData) + m_VariableVersionedDataLength;
       return &m_StreamDesc;
     }
     else
@@ -828,8 +845,6 @@ private:
   struct GraphicsStreamData
   {
     // graphics properties
-    SUBOBJECT_HEADER(ROOT_SIGNATURE);
-    ID3D12RootSignature *pRootSignature = NULL;
     SUBOBJECT_HEADER(INPUT_LAYOUT);
     D3D12_INPUT_LAYOUT_DESC InputLayout = {};
     SUBOBJECT_HEADER(VS);
@@ -882,7 +897,9 @@ private:
         // AS ...
         sizeof(D3D12_SHADER_BYTECODE) + sizeof(void *) +
         // ... and MS are optional
-        sizeof(D3D12_SHADER_BYTECODE) + sizeof(void *)];
+        sizeof(D3D12_SHADER_BYTECODE) + sizeof(void *) +
+        // root signature could come in pointer or blob form
+        sizeof(D3D12_SERIALIZED_ROOT_SIGNATURE_DESC) + sizeof(void *)];
   } m_GraphicsStreamData;
 
   D3D12_SHADER_BYTECODE AS = {};
@@ -890,11 +907,9 @@ private:
 
   size_t m_VariableVersionedDataLength;
 
-  struct
+  struct ComputeStreamData
   {
     // compute properties
-    SUBOBJECT_HEADER(ROOT_SIGNATURE);
-    ID3D12RootSignature *pRootSignature = NULL;
     SUBOBJECT_HEADER(CS);
     D3D12_SHADER_BYTECODE CS = {};
     SUBOBJECT_HEADER(NODE_MASK);
@@ -903,9 +918,15 @@ private:
     D3D12_CACHED_PIPELINE_STATE CachedPSO = {};
     SUBOBJECT_HEADER(FLAGS);
     D3D12_PIPELINE_STATE_FLAGS Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+    alignas(void *) byte VariableVersionedData[
+        // root signature could come in pointer or blob form
+        sizeof(D3D12_SERIALIZED_ROOT_SIGNATURE_DESC) + sizeof(void *)];
   } m_ComputeStreamData;
 
   D3D12_PIPELINE_STATE_STREAM_DESC m_StreamDesc;
+
+private:
+  ID3D12RootSignature **m_RootSigToUnwrap;
 };
 
 #undef SUBOBJECT_HEADER
@@ -1126,6 +1147,8 @@ DECLARE_REFLECTION_STRUCT(D3D12_STATE_SUBOBJECT);
 DECLARE_REFLECTION_STRUCT(D3D12_STATE_OBJECT_CONFIG);
 DECLARE_REFLECTION_STRUCT(D3D12_GLOBAL_ROOT_SIGNATURE);
 DECLARE_REFLECTION_STRUCT(D3D12_LOCAL_ROOT_SIGNATURE);
+DECLARE_REFLECTION_STRUCT(D3D12_GLOBAL_SERIALIZED_ROOT_SIGNATURE);
+DECLARE_REFLECTION_STRUCT(D3D12_LOCAL_SERIALIZED_ROOT_SIGNATURE);
 DECLARE_REFLECTION_STRUCT(D3D12_NODE_MASK);
 DECLARE_REFLECTION_STRUCT(D3D12_DXIL_LIBRARY_DESC);
 DECLARE_REFLECTION_STRUCT(D3D12_EXISTING_COLLECTION_DESC);
@@ -1139,6 +1162,7 @@ DECLARE_REFLECTION_STRUCT(D3D12_EXPORT_DESC);
 DECLARE_REFLECTION_STRUCT(D3D12_GPU_VIRTUAL_ADDRESS_RANGE);
 DECLARE_REFLECTION_STRUCT(D3D12_GPU_VIRTUAL_ADDRESS_RANGE_AND_STRIDE);
 DECLARE_REFLECTION_STRUCT(D3D12_DISPATCH_RAYS_DESC);
+DECLARE_REFLECTION_STRUCT(D3D12_SERIALIZED_ROOT_SIGNATURE_DESC);
 
 DECLARE_DESERIALISE_TYPE(D3D12_DISCARD_REGION);
 DECLARE_DESERIALISE_TYPE(D3D12_GRAPHICS_PIPELINE_STATE_DESC);

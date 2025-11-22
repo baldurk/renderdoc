@@ -297,6 +297,12 @@ bool SpvCompilationSupported()
     if(!pipe)
       continue;
 
+    char dummy[512];
+    while(!feof(pipe))
+    {
+      fread(dummy, 1, 512, pipe);
+    }
+
     int code = pclose(pipe);
 
     if(WEXITSTATUS(code) == 0)
@@ -516,6 +522,12 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
     return ret;
   }
 
+  char dummy[512];
+  while(!feof(pipe))
+  {
+    fread(dummy, 1, 512, pipe);
+  }
+
   pclose(pipe);
 
   f = fopen(outfile.c_str(), "rb");
@@ -668,3 +680,247 @@ bool GraphicsTest::FrameLimit()
 
   return true;
 }
+
+namespace PixelHistory
+{
+draw makeDraw(const std::vector<DefaultA2V> &verts)
+{
+  uint32_t first = (uint32_t)vb.size();
+
+  vb.insert(vb.end(), verts.begin(), verts.end());
+
+  return {first, (uint32_t)verts.size()};
+}
+
+std::vector<DefaultA2V> vb;
+
+draw DepthWrite;
+draw UnboundPS;
+draw StencilWrite;
+draw Background;
+draw CullFront;
+draw DepthBoundsPrep;
+draw DepthBoundsClip;
+draw Draws300;
+draw Instances300;
+draw MainTest;
+draw ScissorFail;
+draw ScissorPass;
+draw StencilRef;
+draw StencilMask;
+draw DepthTest;
+draw SampleColour;
+draw DepthEqualSetup;
+draw DepthEqualFail;
+draw DepthEqualPass16;
+draw DepthEqualPass24;
+draw DepthEqualPass32;
+draw ColourMask;
+draw OverflowingDraw;
+draw PerFragDiscard;
+
+void init()
+{
+  // this triangle occludes in depth
+  CullFront = DepthWrite = makeDraw({
+      {Vec3f(-0.5f, -0.5f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(-0.5f, 0.0f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(0.0f, 0.0f, 0.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+  });
+
+  // this triangle occludes in stencil
+  UnboundPS = StencilWrite = makeDraw({
+      {Vec3f(-0.5f, 0.0f, 0.9f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(-0.5f, 0.5f, 0.9f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(0.0f, 0.0f, 0.9f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+  });
+
+  // this triangle is just in the background to contribute to overdraw
+  Background = makeDraw({
+      {Vec3f(-0.9f, -0.9f, 0.95f), Vec4f(1.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(0.0f, 0.9f, 0.95f), Vec4f(1.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(0.9f, -0.9f, 0.95f), Vec4f(1.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+  });
+
+  MainTest = makeDraw({
+      // large gradient, failing depth and stencil on left side behind DepthWrite and StencilWrite
+      {Vec3f(-0.3f, -0.5f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(-0.3f, 0.5f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(0.5f, 0.0f, 0.5f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+      // smaller black triangle in front of background but behind gradient above
+      {Vec3f(-0.2f, -0.2f, 0.6f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(0.2f, 0.0f, 0.6f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(0.2f, -0.4f, 0.6f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+      // backface culled
+      {Vec3f(0.1f, 0.0f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(0.5f, -0.2f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(0.5f, 0.2f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+      // depth clipped (i.e. not clamped)
+      {Vec3f(0.6f, 0.0f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(0.7f, 0.2f, 0.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(0.8f, 0.0f, 1.5f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+  });
+
+  // scissor clips part of this triangle
+  ScissorFail = makeDraw({
+      {Vec3f(-0.7f, -0.8f, 0.5f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(-0.5f, -0.5f, 0.5f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(-0.3f, -0.8f, 0.5f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+  });
+
+  // scissor does clip some but passes where above fails
+  ScissorPass = makeDraw({
+      {Vec3f(-0.7f, -0.8f, 0.5f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(-0.5f, -0.5f, 0.5f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(-0.3f, -0.8f, 0.5f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+  });
+
+  // fails due to stencil ref
+  StencilRef = makeDraw({
+      {Vec3f(-0.6f, -0.75f, 0.5f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(-0.5f, -0.65f, 0.5f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(-0.4f, -0.75f, 0.5f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+  });
+
+  // fails due to stencil mask
+  StencilMask = makeDraw({
+      {Vec3f(-0.6f, -0.75f, 0.5f), Vec4f(0.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(-0.5f, -0.65f, 0.5f), Vec4f(0.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(-0.4f, -0.75f, 0.5f), Vec4f(0.0f, 1.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+  });
+
+  // Six triangles, five fragments reported.
+  DepthTest = makeDraw({
+      // 0: Fails depth test
+      {Vec3f(0.0f, -0.8f, 0.97f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(0.4f, -0.2f, 0.97f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(0.8f, -0.8f, 0.97f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+      // 1: Passes
+      {Vec3f(0.2f, -0.8f, 0.20f), Vec4f(1.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(0.4f, -0.4f, 0.20f), Vec4f(1.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(0.6f, -0.8f, 0.20f), Vec4f(1.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+      // 2: Fails depth test compared to 1st fragment
+      {Vec3f(0.2f, -0.8f, 0.30f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(0.4f, -0.6f, 0.30f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(0.6f, -0.8f, 0.30f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+      // 3: Passes
+      {Vec3f(0.2f, -0.8f, 0.10f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(0.4f, -0.7f, 0.10f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(0.6f, -0.8f, 0.10f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+      // 4: Fails depth bounds test
+      {Vec3f(0.2f, -0.8f, 0.05f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(0.4f, -0.7f, 0.05f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(0.6f, -0.8f, 0.05f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+
+      // 5: Fails backface culling, not reported.
+      {Vec3f(0.6f, -0.8f, 0.25f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+      {Vec3f(0.4f, -0.7f, 0.25f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(0.2f, -0.8f, 0.25f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+  });
+
+  // depth bounds prep
+  DepthBoundsPrep = makeDraw({
+      {Vec3f(0.6f, 0.3f, 0.3f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(0.7f, 0.5f, 0.5f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(0.8f, 0.3f, 0.7f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+  });
+  // depth bounds clip
+  DepthBoundsClip = makeDraw({
+      {Vec3f(0.6f, 0.3f, 0.3f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(0.7f, 0.5f, 0.5f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(0.8f, 0.3f, 0.7f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+  });
+
+  // 300 draws of 1 triangle
+  Draws300 = makeDraw({
+      {Vec3f(-0.7f, 0.0f, 0.33f), Vec4f(0.5f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(-0.8f, 0.2f, 0.33f), Vec4f(0.5f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+      {Vec3f(-0.6f, 0.2f, 0.33f), Vec4f(0.5f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+  });
+  // 300 instances of 1 triangle
+  Instances300 = makeDraw({
+      {Vec3f(-0.7f, 0.6f, 0.33f), Vec4f(1.0f, 0.5f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(-0.8f, 0.8f, 0.33f), Vec4f(1.0f, 0.5f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+      {Vec3f(-0.6f, 0.8f, 0.33f), Vec4f(1.0f, 0.5f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+  });
+  // sample colouring triangle
+  SampleColour = makeDraw({
+      {Vec3f(0.6f, -0.4f, 0.3f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(0.7f, -0.2f, 0.5f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(0.8f, -0.4f, 0.7f), Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+  });
+
+  // depth equal that fails
+  DepthEqualSetup = makeDraw({
+      {Vec3f(-0.1f, -0.8f, 0.1f), Vec4f(0.1f, 0.1f, 0.1f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(0.0f, -0.6f, 0.1f), Vec4f(0.1f, 0.1f, 0.1f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(0.1f, -0.8f, 0.1f), Vec4f(0.1f, 0.1f, 0.1f, 1.0f), Vec2f(1.0f, 0.0f)},
+  });
+
+  // depth equal that fails
+  DepthEqualFail = makeDraw({
+      {Vec3f(-0.1f, -0.8f, 0.1f + 5.0e-4f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(0.0f, -0.6f, 0.1f + 5.0e-4f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(0.1f, -0.8f, 0.1f + 5.0e-4f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+  });
+
+  // D16 depth equal (enough) triangle
+  DepthEqualPass16 = makeDraw({
+      {Vec3f(-0.1f, -0.8f, 0.1f + 1.0e-8f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(0.0f, -0.6f, 0.1f + 1.0e-8f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(0.1f, -0.8f, 0.1f + 1.0e-8f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+  });
+  // D24 depth equal (enough) triangle
+  DepthEqualPass24 = makeDraw({
+      {Vec3f(-0.1f, -0.8f, 0.1f + 1.0e-8f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(0.0f, -0.6f, 0.1f + 1.0e-8f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(0.1f, -0.8f, 0.1f + 1.0e-8f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+  });
+  // D32 depth equal triangle
+  DepthEqualPass32 = makeDraw({
+      {Vec3f(-0.1f, -0.8f, 0.1f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+      {Vec3f(0.0f, -0.6f, 0.1f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(0.1f, -0.8f, 0.1f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+  });
+
+  ColourMask = makeDraw({
+      {Vec3f(-0.7f, 0.4f, 0.33f), Vec4f(3.0f, 3.0f, 3.0f, 3.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(-0.8f, 0.6f, 0.33f), Vec4f(3.0f, 3.0f, 3.0f, 3.0f), Vec2f(1.0f, 0.0f)},
+      {Vec3f(-0.6f, 0.6f, 0.33f), Vec4f(3.0f, 3.0f, 3.0f, 3.0f), Vec2f(0.0f, 0.0f)},
+  });
+
+  // three triangles that overlap and clamp each component individually
+  OverflowingDraw = makeDraw({
+      {Vec3f(-0.5f, 0.6f, 0.33f), Vec4f(-1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(-0.6f, 0.8f, 0.33f), Vec4f(-1.0f, 0.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+      {Vec3f(-0.4f, 0.8f, 0.33f), Vec4f(-1.0f, 0.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+
+      {Vec3f(-0.5f, 0.6f, 0.33f), Vec4f(0.0f, -1.0f, 0.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(-0.6f, 0.8f, 0.33f), Vec4f(0.0f, -1.0f, 0.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+      {Vec3f(-0.4f, 0.8f, 0.33f), Vec4f(0.0f, -1.0f, 0.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+
+      {Vec3f(-0.5f, 0.6f, 0.33f), Vec4f(0.0f, 0.0f, -1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(-0.6f, 0.8f, 0.33f), Vec4f(0.0f, 0.0f, -1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+      {Vec3f(-0.4f, 0.8f, 0.33f), Vec4f(0.0f, 0.0f, -1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+  });
+
+  // scissor does clip some but passes where above fails
+  PerFragDiscard = makeDraw({
+      {Vec3f(-0.7f, -0.2f, 0.33f), Vec4f(-1.0f, -1.0f, -1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(-0.8f, 0.0f, 0.33f), Vec4f(-1.0f, -1.0f, -1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+      {Vec3f(-0.6f, 0.0f, 0.33f), Vec4f(-1.0f, -1.0f, -1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+
+      {Vec3f(-0.7f, -0.2f, 0.33f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(-0.8f, 0.0f, 0.33f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+      {Vec3f(-0.6f, 0.0f, 0.33f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+  });
+};
+
+};

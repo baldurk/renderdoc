@@ -74,6 +74,8 @@ RD_TEST(D3D12_Simple_Triangle, D3D12GraphicsTest)
       ClearRenderTargetView(cmd, MakeRTV(rtvtex).CreateCPU(1), {0.2f, 0.2f, 0.2f, 1.0f});
       ClearRenderTargetView(cmd, MakeRTV(rtvMStex).CreateCPU(2), {0.2f, 0.2f, 0.2f, 1.0f});
 
+      ResourceBarrier(cmd, dsvMStex, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+
       ClearDepthStencilView(cmd, dsvMStex, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 0.2f,
                             0x55);
 
@@ -89,7 +91,7 @@ RD_TEST(D3D12_Simple_Triangle, D3D12GraphicsTest)
       Reset(cmd);
 
       MakeRTV(rtvtex).CreateCPU(1);
-      MakeRTV(rtvMStex).CreateCPU(2);
+      D3D12_CPU_DESCRIPTOR_HANDLE rtvMS = MakeRTV(rtvMStex).CreateCPU(2);
       MakeDSV(dsvMStex).CreateCPU(0);
 
       ID3D12ResourcePtr bb = StartUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -108,7 +110,7 @@ RD_TEST(D3D12_Simple_Triangle, D3D12GraphicsTest)
       RSSetViewport(cmd, {0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
       RSSetScissorRect(cmd, {0, 0, screenWidth, screenHeight});
 
-      OMSetRenderTargets(cmd, {rtv}, MakeDSV(dsvMStex).CreateCPU(0));
+      OMSetRenderTargets(cmd, {rtvMS}, MakeDSV(dsvMStex).CreateCPU(0));
       OMSetRenderTargets(cmd, {rtv}, {});
 
       cmd->DrawInstanced(3, 1, 0, 0);

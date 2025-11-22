@@ -1685,6 +1685,9 @@ void GLReplay::SavePipelineState(uint32_t eventId)
 
       pipe.framebuffer.drawFBO.colorAttachments[i].resource = rm->GetOriginalID(id);
 
+      if(id != ResourceId())
+        pipe.framebuffer.drawFBO.colorAttachments[i].format = GetTexture(id).format;
+
       GLenum attachment = GLenum(eGL_COLOR_ATTACHMENT0 + i);
 
       if(pipe.framebuffer.drawFBO.colorAttachments[i].resource != ResourceId() && !rbCol[i])

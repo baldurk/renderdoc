@@ -30,6 +30,7 @@
 class WGLPlatform : public GLPlatform
 {
   RDCDriver m_API = RDCDriver::OpenGL;
+  bool m_Debug = false;
 
   bool MakeContextCurrent(GLWindowingData data)
   {
@@ -288,11 +289,7 @@ class WGLPlatform : public GLPlatform
     attribs[i++] = WGL_CONTEXT_MINOR_VERSION_ARB;
     attribs[i++] = GLCoreVersion % 10;
     attribs[i++] = WGL_CONTEXT_FLAGS_ARB;
-#if ENABLED(RDOC_DEVEL)
-    attribs[i++] = WGL_CONTEXT_DEBUG_BIT_ARB;
-#else
-    attribs[i++] = 0;
-#endif
+    attribs[i++] = m_Debug ? WGL_CONTEXT_DEBUG_BIT_ARB : 0;
     attribs[i++] = WGL_CONTEXT_PROFILE_MASK_ARB;
     attribs[i++] = m_API == RDCDriver::OpenGLES ? WGL_CONTEXT_ES2_PROFILE_BIT_EXT
                                                 : WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
@@ -374,14 +371,10 @@ class WGLPlatform : public GLPlatform
   void SetDriverType(RDCDriver api) { m_API = api; }
   RDResult InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
   {
-// force debug in development builds
-#if ENABLED(RDOC_DEVEL)
-    debug = true;
-#endif
-
     RDCASSERT(api == RDCDriver::OpenGL || api == RDCDriver::OpenGLES);
 
     m_API = api;
+    m_Debug = debug;
 
     bool success = RegisterClass();
 
@@ -457,7 +450,7 @@ class WGLPlatform : public GLPlatform
     int &minor = attribs[i];
     attribs[i++] = 0;
     attribs[i++] = WGL_CONTEXT_FLAGS_ARB;
-    attribs[i++] = debug ? WGL_CONTEXT_DEBUG_BIT_ARB : 0;
+    attribs[i++] = m_Debug ? WGL_CONTEXT_DEBUG_BIT_ARB : 0;
     attribs[i++] = WGL_CONTEXT_PROFILE_MASK_ARB;
     attribs[i++] = api == RDCDriver::OpenGLES ? WGL_CONTEXT_ES2_PROFILE_BIT_EXT
                                               : WGL_CONTEXT_CORE_PROFILE_BIT_ARB;

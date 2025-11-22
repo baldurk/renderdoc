@@ -33,9 +33,6 @@
 #include "dxbc_bytecode.h"
 #include "dxbc_container.h"
 
-RDOC_DEBUG_CONFIG(bool, D3D_Hack_EnableGroups, false,
-                  "Work in progress allow shaders to be debugged with workgroup requirements.");
-
 using namespace DXBCBytecode;
 using namespace DXDebug;
 
@@ -3066,9 +3063,6 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
                DDY(op.operation == OPCODE_DERIV_RTY_FINE, prevWorkgroup, op.operands[1], op));
       break;
 
-    /////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Buffer/Texture load and store
-
     // handle atomic operations all together
     case OPCODE_ATOMIC_IADD:
     case OPCODE_ATOMIC_IMAX:
@@ -3257,6 +3251,9 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
 
       break;
     }
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Buffer/Texture load and store
 
     // store and load paths are mostly identical
     case OPCODE_STORE_UAV_TYPED:
@@ -4884,8 +4881,7 @@ ShaderDebugTrace *InterpretDebugger::BeginDebug(const DXBC::DXBCContainer *dxbcC
   if(dxbc->m_Type == DXBC::ShaderType::Compute &&
      dxbcContainer->GetThreadScope() == DXBC::ThreadScope::Workgroup)
   {
-    if(D3D_Hack_EnableGroups())
-      workgroupSize = numthreads[0] * numthreads[1] * numthreads[2];
+    workgroupSize = numthreads[0] * numthreads[1] * numthreads[2];
   }
 
   for(int i = 0; i < workgroupSize; i++)

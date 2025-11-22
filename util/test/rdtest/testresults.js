@@ -79,6 +79,7 @@ document.body.onload = function() {
   var commit = "v1.x";
   var basepath = "util/test/";
   var last_test = '';
+  var unwind_failure_indent = 0;
 
   for(var i=0; i < lines.length; i++) {
     var line = lines[i].replace(/\t/g, '  ');
@@ -113,11 +114,7 @@ document.body.onload = function() {
         html += '<div class="failure"><span class="message">' + htmlEntityEncode(m[2]) + '</span>';
       } else if(m[1] == '!-') {
         html += '</div>';
-        while(indent > 4)
-        {
-          indent -= 4;
-          html += '</div></div>';
-        }
+        unwind_failure_indent = indent;
       } else if(m[1] == '!!') {
         html += '<div class="failure message">' + htmlEntityEncode(m[2]) + '</div>';
       } else if(m[1] == '**') {
@@ -191,6 +188,17 @@ document.body.onload = function() {
           html += start ? '<div class="expandable"><span class="expandtoggle"></span><div class="title">' + words.slice(1).join(' ') + '</div><div class="contents"><pre>' : '</pre></div></div>';
           instack = start;
         } else if(words[0] == 'Test') {
+          while(!start && unwind_failure_indent > 4)
+          {
+            unwind_failure_indent -= 4;
+            html += '</div></div>';
+
+            if(!start && unwind_failure_indent <= 4) {
+              html += '<div class="failed"></div>';
+              unwind_failure_indent = 0;
+            }
+          }
+
           test_name = words[1];
           test_list.push(test_name)
           html += start ? '<div class="expandable test" id="' + test_name + '"><span class="expandtoggle"></span><div class="title">Test: ' + test_name + '</div><div class="contents">' : '</div></div>';
@@ -229,13 +237,105 @@ document.body.onload = function() {
   var failed = document.getElementsByClassName('failed');
 
   for(var i=0; i < failed.length; i++) {
-    var test = failed[i].parentElement.parentElement;
-    test.classList.add('failed');
+    var search = failed[i];
+		while(search !== null && !search.classList.contains('test')) {
+			if(search.classList.contains('expandable'))
+				search.classList.add('failed');
+			search = search.parentElement;
+		}
+
+    if(search !== null)
+      search.classList.add('failed');
   }
 
   if(last_test != '') {
     var test = document.getElementById(last_test);
     test.classList.add('expanded');
+  }
+
+  var h1s = document.getElementsByTagName('h1');
+  var summary = h1s[h1s.length-1];
+
+  // move failed tests to the end
+  [].slice.call(document.getElementsByClassName('failed test')).forEach((x) => {document.body.removeChild(x); document.body.insertBefore(x, summary);})
+
+  // do a pure javascript query and add a summary table of test timings
+  {
+    var div = document.createElement('div');
+    div.classList.add("expandable");
+
+    var toggle = document.createElement('span');
+    toggle.classList.add("expandtoggle");
+    div.appendChild(toggle);
+
+    var title = document.createElement('div');
+    title.classList.add("title");
+    title.innerHTML = "Test timing summary";
+    div.appendChild(title);
+
+    var contents = document.createElement('div');
+    contents.classList.add("contents");
+    div.appendChild(contents);
+
+    msgs = [].slice.call(document.getElementsByClassName('message'))
+    ran = msgs.filter((msg) => msg.innerText.includes("ran in 0:"))
+    timings = ran.map((msg) => [msg.parentElement.parentElement.id, msg.innerText.replace(/.*ran in /, '').replace(/\..*/, '').split(':').reduce((acc,time) => (60 * acc) + +time)])
+    timings.sort((a,b) => b[1] - a[1])
+
+    var table = document.createElement('table');
+
+    var header = document.createElement('tr');
+    {
+      var a = document.createElement('th');
+      a.innerHTML = 'Test Name';
+      header.appendChild(a);
+
+      var a = document.createElement('th');
+      a.innerHTML = 'Duration';
+      header.appendChild(a);
+    }
+    table.appendChild(header);
+
+    var total = 0;
+    timings.forEach((t) => {
+      var row = document.createElement('tr');
+
+      var a = document.createElement('td');
+      a.innerHTML = t[0];
+      row.appendChild(a);
+
+      var duration = t[1];
+      total += duration;
+      var minutes = Math.floor(duration/60);
+      var seconds = duration - (60*minutes);
+
+      var a = document.createElement('td');
+      a.innerHTML = String(minutes).padStart(2, 0) + ":" + String(seconds).padStart(2, 0);
+      row.appendChild(a);
+
+      table.appendChild(row);
+    });
+
+    {
+      var row = document.createElement('tr');
+
+      var a = document.createElement('td');
+      a.innerHTML = "Total";
+      row.appendChild(a);
+
+      var minutes = Math.floor(total/60);
+      var seconds = total - (60*minutes);
+
+      var a = document.createElement('td');
+      a.innerHTML = String(minutes).padStart(2, 0) + ":" + String(seconds).padStart(2, 0);
+      row.appendChild(a);
+
+      table.appendChild(row);
+    }
+
+    contents.appendChild(table);
+
+    document.body.appendChild(div);
   }
 
   var toggles = document.getElementsByClassName('expandtoggle');

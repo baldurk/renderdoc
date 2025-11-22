@@ -795,7 +795,8 @@ public:
   }
 };
 
-class WrappedID3D12PipelineState : public WrappedDeviceChild12<ID3D12PipelineState>
+class WrappedID3D12PipelineState
+    : public WrappedDeviceChild12<ID3D12PipelineState, ID3D12PipelineState1>
 {
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12PipelineState);
@@ -1087,6 +1088,25 @@ public:
   {
     return m_pReal->GetCachedBlob(ppBlob);
   }
+
+  //////////////////////////////
+  // implement ID3D12PipelineState1
+
+  virtual HRESULT STDMETHODCALLTYPE GetRootSignature(REFIID riid, _COM_Outptr_ void **ppvRootSignature)
+  {
+    ID3D12PipelineState1 *real1 = NULL;
+    m_pReal->QueryInterface(__uuidof(ID3D12PipelineState1), (void **)&real1);
+
+    if(ppvRootSignature)
+      *ppvRootSignature = NULL;
+    if(!real1)
+      return E_NOINTERFACE;
+
+    SAFE_RELEASE(real1);
+
+    // unclear if this is supposed to be supported?
+    return E_INVALIDARG;
+  }
 };
 
 // the priorities of subobject associations. Default associations are not(?) inherited from
@@ -1240,10 +1260,11 @@ private:
 };
 
 class WrappedID3D12StateObject : public WrappedDeviceChild12<ID3D12StateObject>,
-                                 public ID3D12StateObjectProperties1
+                                 public ID3D12StateObjectProperties2
 {
   ID3D12StateObjectProperties *properties;
   ID3D12StateObjectProperties1 *properties1;
+  ID3D12StateObjectProperties2 *properties2;
 
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12StateObject);
@@ -1269,12 +1290,14 @@ public:
     m_pReal = real;
     real->QueryInterface(__uuidof(ID3D12StateObjectProperties), (void **)&properties);
     real->QueryInterface(__uuidof(ID3D12StateObjectProperties1), (void **)&properties1);
+    real->QueryInterface(__uuidof(ID3D12StateObjectProperties2), (void **)&properties2);
   }
 
   virtual ~WrappedID3D12StateObject()
   {
     SAFE_RELEASE(properties);
     SAFE_RELEASE(properties1);
+    SAFE_RELEASE(properties2);
     SAFE_RELEASE(exports);
     Shutdown();
   }
@@ -1294,6 +1317,19 @@ public:
       if(properties1)
       {
         *ppvObject = (ID3D12StateObjectProperties1 *)this;
+        AddRef();
+        return S_OK;
+      }
+      else
+      {
+        return E_NOINTERFACE;
+      }
+    }
+    else if(riid == __uuidof(ID3D12StateObjectProperties2))
+    {
+      if(properties2)
+      {
+        *ppvObject = (ID3D12StateObjectProperties2 *)this;
         AddRef();
         return S_OK;
       }
@@ -1349,6 +1385,31 @@ public:
     if(properties1)
       return properties1->GetProgramIdentifier(pProgramName);
     return {};
+  }
+
+  //////////////////////////////
+  // implement ID3D12StateObjectProperties2
+
+  virtual HRESULT STDMETHODCALLTYPE GetGlobalRootSignatureForProgram(
+      LPCWSTR pProgramName, REFIID riid, _COM_Outptr_ void **ppvRootSignature)
+  {
+    if(ppvRootSignature)
+      *ppvRootSignature = NULL;
+    if(!properties2)
+      return E_NOINTERFACE;
+    // unclear if this is supposed to be supported?
+    return E_INVALIDARG;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE GetGlobalRootSignatureForShader(
+      LPCWSTR pExportName, REFIID riid, _COM_Outptr_ void **ppvRootSignature)
+  {
+    if(ppvRootSignature)
+      *ppvRootSignature = NULL;
+    if(!properties2)
+      return E_NOINTERFACE;
+    // unclear if this is supposed to be supported?
+    return E_INVALIDARG;
   }
 };
 
@@ -1536,7 +1597,15 @@ public:
   //////////////////////////////
   // implement ID3D12Resource
 
-  virtual D3D12_RESOURCE_DESC STDMETHODCALLTYPE GetDesc() { return m_pReal->GetDesc(); }
+  virtual D3D12_RESOURCE_DESC STDMETHODCALLTYPE GetDesc()
+  {
+    D3D12_RESOURCE_DESC ret = m_pReal->GetDesc();
+    // normalise alignment - sometimes D3D12 returns an alignment that is invalid to use
+    if(ret.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER &&
+       ret.Alignment != D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT)
+      ret.Alignment = 0;
+    return ret;
+  }
   virtual D3D12_GPU_VIRTUAL_ADDRESS STDMETHODCALLTYPE GetGPUVirtualAddress()
   {
     return m_pReal->GetGPUVirtualAddress();

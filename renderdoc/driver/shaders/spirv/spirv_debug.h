@@ -30,7 +30,7 @@
 #include "spirv_common.h"
 #include "spirv_processor.h"
 
-#if defined(RELEASE)
+#if ENABLED(RDOC_RELEASE)
 #define SPIRV_DEBUG_RDCASSERT(...) \
   do                               \
   {                                \

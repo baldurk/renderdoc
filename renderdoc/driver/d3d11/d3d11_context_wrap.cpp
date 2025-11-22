@@ -35,8 +35,8 @@
 #define DXGI_ERROR_INVALID_CALL MAKE_DXGI_HRESULT(1)
 #endif
 
-uint32_t NullCBOffsets[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
-uint32_t NullCBCounts[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
+uint32_t NullCBOffsets[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {};
+uint32_t NullCBCounts[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {};
 
 #pragma region D3DPERF
 
@@ -465,7 +465,7 @@ bool WrappedID3D11DeviceContext::Serialise_IASetVertexBuffers(SerialiserType &se
     m_CurrentPipelineState->Change(m_CurrentPipelineState->IA.Offsets, pOffsets, StartSlot,
                                    NumBuffers);
 
-    ID3D11Buffer *bufs[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+    ID3D11Buffer *bufs[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
     for(UINT i = 0; i < NumBuffers; i++)
       bufs[i] = UNWRAP(WrappedID3D11Buffer, ppVertexBuffers[i]);
 
@@ -486,8 +486,8 @@ void WrappedID3D11DeviceContext::IASetVertexBuffers(UINT StartSlot, UINT NumBuff
 
   m_EmptyCommandList = false;
 
-  ID3D11Buffer *bufs[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
-  for(UINT i = 0; i < NumBuffers; i++)
+  ID3D11Buffer *bufs[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {};
+  for(UINT i = 0; ppVertexBuffers && i < NumBuffers; i++)
   {
     if(ppVertexBuffers[i] && IsActiveCapturing(m_State))
       MarkResourceReferenced(GetIDForDeviceChild(ppVertexBuffers[i]), eFrameRef_Read);
@@ -587,7 +587,7 @@ void WrappedID3D11DeviceContext::VSGetConstantBuffers(UINT StartSlot, UINT NumBu
     ID3D11Buffer *real[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
     m_pRealContext->VSGetConstantBuffers(StartSlot, NumBuffers, real);
 
-    for(UINT i = 0; i < NumBuffers; i++)
+    for(UINT i = 0; ppConstantBuffers && i < NumBuffers; i++)
     {
       SAFE_RELEASE_NOCLEAR(real[i]);
       ppConstantBuffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetWrapper(real[i]);
@@ -608,7 +608,7 @@ void WrappedID3D11DeviceContext::VSGetShaderResources(UINT StartSlot, UINT NumVi
     ID3D11ShaderResourceView *real[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {0};
     m_pRealContext->VSGetShaderResources(StartSlot, NumViews, real);
 
-    for(UINT i = 0; i < NumViews; i++)
+    for(UINT i = 0; ppShaderResourceViews && i < NumViews; i++)
     {
       SAFE_RELEASE_NOCLEAR(real[i]);
       ppShaderResourceViews[i] =
@@ -630,7 +630,7 @@ void WrappedID3D11DeviceContext::VSGetSamplers(UINT StartSlot, UINT NumSamplers,
     ID3D11SamplerState *real[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {0};
     m_pRealContext->VSGetSamplers(StartSlot, NumSamplers, real);
 
-    for(UINT i = 0; i < NumSamplers; i++)
+    for(UINT i = 0; ppSamplers && i < NumSamplers; i++)
     {
       SAFE_RELEASE_NOCLEAR(real[i]);
       ppSamplers[i] = (ID3D11SamplerState *)m_pDevice->GetResourceManager()->GetWrapper(real[i]);
@@ -709,7 +709,7 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetConstantBuffers(SerialiserType &
                                    NumBuffers);
 
     ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
-    for(UINT i = 0; i < NumBuffers; i++)
+    for(UINT i = 0; ppConstantBuffers && i < NumBuffers; i++)
       bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
 
     m_pRealContext->VSSetConstantBuffers(StartSlot, NumBuffers, bufs);
@@ -729,7 +729,7 @@ void WrappedID3D11DeviceContext::VSSetConstantBuffers(UINT StartSlot, UINT NumBu
   m_EmptyCommandList = false;
 
   ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
-  for(UINT i = 0; i < NumBuffers; i++)
+  for(UINT i = 0; ppConstantBuffers && i < NumBuffers; i++)
   {
     if(ppConstantBuffers[i] && IsActiveCapturing(m_State))
       MarkResourceReferenced(GetIDForDeviceChild(ppConstantBuffers[i]), eFrameRef_Read);
@@ -778,8 +778,8 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetShaderResources(
     m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->VS.SRVs, ppShaderResourceViews,
                                           StartSlot, NumViews);
 
-    ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
-    for(UINT i = 0; i < NumViews; i++)
+    ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {};
+    for(UINT i = 0; ppShaderResourceViews && i < NumViews; i++)
       SRVs[i] = UNWRAP(WrappedID3D11ShaderResourceView1, ppShaderResourceViews[i]);
 
     m_pRealContext->VSSetShaderResources(StartSlot, NumViews, SRVs);
@@ -798,8 +798,8 @@ void WrappedID3D11DeviceContext::VSSetShaderResources(
 
   m_EmptyCommandList = false;
 
-  ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
-  for(UINT i = 0; i < NumViews; i++)
+  ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {};
+  for(UINT i = 0; ppShaderResourceViews && i < NumViews; i++)
   {
     if(ppShaderResourceViews[i] && IsActiveCapturing(m_State))
     {
@@ -847,8 +847,8 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetSamplers(SerialiserType &ser, UI
     m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->VS.Samplers, ppSamplers,
                                           StartSlot, NumSamplers);
 
-    ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
-    for(UINT i = 0; i < NumSamplers; i++)
+    ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {};
+    for(UINT i = 0; ppSamplers && i < NumSamplers; i++)
       samps[i] = UNWRAP(WrappedID3D11SamplerState, ppSamplers[i]);
 
     m_pRealContext->VSSetSamplers(StartSlot, NumSamplers, samps);
@@ -867,8 +867,8 @@ void WrappedID3D11DeviceContext::VSSetSamplers(UINT StartSlot, UINT NumSamplers,
 
   m_EmptyCommandList = false;
 
-  ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
-  for(UINT i = 0; i < NumSamplers; i++)
+  ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {};
+  for(UINT i = 0; ppSamplers && i < NumSamplers; i++)
   {
     if(ppSamplers[i] && IsActiveCapturing(m_State))
       MarkResourceReferenced(GetIDForDeviceChild(ppSamplers[i]), eFrameRef_Read);
@@ -982,7 +982,7 @@ void WrappedID3D11DeviceContext::HSGetConstantBuffers(UINT StartSlot, UINT NumBu
     ID3D11Buffer *real[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
     m_pRealContext->HSGetConstantBuffers(StartSlot, NumBuffers, real);
 
-    for(UINT i = 0; i < NumBuffers; i++)
+    for(UINT i = 0; ppConstantBuffers && i < NumBuffers; i++)
     {
       SAFE_RELEASE_NOCLEAR(real[i]);
       ppConstantBuffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetWrapper(real[i]);
@@ -1003,7 +1003,7 @@ void WrappedID3D11DeviceContext::HSGetShaderResources(UINT StartSlot, UINT NumVi
     ID3D11ShaderResourceView *real[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {0};
     m_pRealContext->HSGetShaderResources(StartSlot, NumViews, real);
 
-    for(UINT i = 0; i < NumViews; i++)
+    for(UINT i = 0; ppShaderResourceViews && i < NumViews; i++)
     {
       SAFE_RELEASE_NOCLEAR(real[i]);
       ppShaderResourceViews[i] =
@@ -1025,7 +1025,7 @@ void WrappedID3D11DeviceContext::HSGetSamplers(UINT StartSlot, UINT NumSamplers,
     ID3D11SamplerState *real[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {0};
     m_pRealContext->HSGetSamplers(StartSlot, NumSamplers, real);
 
-    for(UINT i = 0; i < NumSamplers; i++)
+    for(UINT i = 0; ppSamplers && i < NumSamplers; i++)
     {
       SAFE_RELEASE_NOCLEAR(real[i]);
       ppSamplers[i] = (ID3D11SamplerState *)m_pDevice->GetResourceManager()->GetWrapper(real[i]);
@@ -1104,7 +1104,7 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetConstantBuffers(SerialiserType &
                                    NumBuffers);
 
     ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
-    for(UINT i = 0; i < NumBuffers; i++)
+    for(UINT i = 0; ppConstantBuffers && i < NumBuffers; i++)
       bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
 
     m_pRealContext->HSSetConstantBuffers(StartSlot, NumBuffers, bufs);
@@ -1123,8 +1123,8 @@ void WrappedID3D11DeviceContext::HSSetConstantBuffers(UINT StartSlot, UINT NumBu
 
   m_EmptyCommandList = false;
 
-  ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
-  for(UINT i = 0; i < NumBuffers; i++)
+  ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {};
+  for(UINT i = 0; ppConstantBuffers && i < NumBuffers; i++)
   {
     if(ppConstantBuffers[i] && IsActiveCapturing(m_State))
       MarkResourceReferenced(GetIDForDeviceChild(ppConstantBuffers[i]), eFrameRef_Read);
@@ -1173,8 +1173,8 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetShaderResources(
     m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->HS.SRVs, ppShaderResourceViews,
                                           StartSlot, NumViews);
 
-    ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
-    for(UINT i = 0; i < NumViews; i++)
+    ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {};
+    for(UINT i = 0; ppShaderResourceViews && i < NumViews; i++)
       SRVs[i] = UNWRAP(WrappedID3D11ShaderResourceView1, ppShaderResourceViews[i]);
 
     m_pRealContext->HSSetShaderResources(StartSlot, NumViews, SRVs);
@@ -1193,8 +1193,8 @@ void WrappedID3D11DeviceContext::HSSetShaderResources(
 
   m_EmptyCommandList = false;
 
-  ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
-  for(UINT i = 0; i < NumViews; i++)
+  ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {};
+  for(UINT i = 0; ppShaderResourceViews && i < NumViews; i++)
   {
     if(ppShaderResourceViews[i] && IsActiveCapturing(m_State))
     {
@@ -1242,8 +1242,8 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetSamplers(SerialiserType &ser, UI
     m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->HS.Samplers, ppSamplers,
                                           StartSlot, NumSamplers);
 
-    ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
-    for(UINT i = 0; i < NumSamplers; i++)
+    ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {};
+    for(UINT i = 0; ppSamplers && i < NumSamplers; i++)
       samps[i] = UNWRAP(WrappedID3D11SamplerState, ppSamplers[i]);
 
     m_pRealContext->HSSetSamplers(StartSlot, NumSamplers, samps);
@@ -1262,8 +1262,8 @@ void WrappedID3D11DeviceContext::HSSetSamplers(UINT StartSlot, UINT NumSamplers,
 
   m_EmptyCommandList = false;
 
-  ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
-  for(UINT i = 0; i < NumSamplers; i++)
+  ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {};
+  for(UINT i = 0; ppSamplers && i < NumSamplers; i++)
   {
     if(ppSamplers[i] && IsActiveCapturing(m_State))
       MarkResourceReferenced(GetIDForDeviceChild(ppSamplers[i]), eFrameRef_Read);
@@ -1376,7 +1376,7 @@ void WrappedID3D11DeviceContext::DSGetConstantBuffers(UINT StartSlot, UINT NumBu
     ID3D11Buffer *real[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
     m_pRealContext->DSGetConstantBuffers(StartSlot, NumBuffers, real);
 
-    for(UINT i = 0; i < NumBuffers; i++)
+    for(UINT i = 0; ppConstantBuffers && i < NumBuffers; i++)
     {
       SAFE_RELEASE_NOCLEAR(real[i]);
       ppConstantBuffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetWrapper(real[i]);
@@ -1397,7 +1397,7 @@ void WrappedID3D11DeviceContext::DSGetShaderResources(UINT StartSlot, UINT NumVi
     ID3D11ShaderResourceView *real[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {0};
     m_pRealContext->DSGetShaderResources(StartSlot, NumViews, real);
 
-    for(UINT i = 0; i < NumViews; i++)
+    for(UINT i = 0; ppShaderResourceViews && i < NumViews; i++)
     {
       SAFE_RELEASE_NOCLEAR(real[i]);
       ppShaderResourceViews[i] =
@@ -1419,7 +1419,7 @@ void WrappedID3D11DeviceContext::DSGetSamplers(UINT StartSlot, UINT NumSamplers,
     ID3D11SamplerState *real[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {0};
     m_pRealContext->DSGetSamplers(StartSlot, NumSamplers, real);
 
-    for(UINT i = 0; i < NumSamplers; i++)
+    for(UINT i = 0; ppSamplers && i < NumSamplers; i++)
     {
       SAFE_RELEASE_NOCLEAR(real[i]);
       ppSamplers[i] = (ID3D11SamplerState *)m_pDevice->GetResourceManager()->GetWrapper(real[i]);
@@ -1498,7 +1498,7 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetConstantBuffers(SerialiserType &
                                    NumBuffers);
 
     ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
-    for(UINT i = 0; i < NumBuffers; i++)
+    for(UINT i = 0; ppConstantBuffers && i < NumBuffers; i++)
       bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
 
     m_pRealContext->DSSetConstantBuffers(StartSlot, NumBuffers, bufs);
@@ -1517,8 +1517,8 @@ void WrappedID3D11DeviceContext::DSSetConstantBuffers(UINT StartSlot, UINT NumBu
 
   m_EmptyCommandList = false;
 
-  ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
-  for(UINT i = 0; i < NumBuffers; i++)
+  ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {};
+  for(UINT i = 0; ppConstantBuffers && i < NumBuffers; i++)
   {
     if(ppConstantBuffers[i] && IsActiveCapturing(m_State))
       MarkResourceReferenced(GetIDForDeviceChild(ppConstantBuffers[i]), eFrameRef_Read);
@@ -1567,8 +1567,8 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetShaderResources(
     m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->DS.SRVs, ppShaderResourceViews,
                                           StartSlot, NumViews);
 
-    ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
-    for(UINT i = 0; i < NumViews; i++)
+    ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {};
+    for(UINT i = 0; ppShaderResourceViews && i < NumViews; i++)
       SRVs[i] = UNWRAP(WrappedID3D11ShaderResourceView1, ppShaderResourceViews[i]);
 
     m_pRealContext->DSSetShaderResources(StartSlot, NumViews, SRVs);
@@ -1587,8 +1587,8 @@ void WrappedID3D11DeviceContext::DSSetShaderResources(
 
   m_EmptyCommandList = false;
 
-  ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
-  for(UINT i = 0; i < NumViews; i++)
+  ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {};
+  for(UINT i = 0; ppShaderResourceViews && i < NumViews; i++)
   {
     if(ppShaderResourceViews[i] && IsActiveCapturing(m_State))
     {
@@ -1636,8 +1636,8 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetSamplers(SerialiserType &ser, UI
     m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->DS.Samplers, ppSamplers,
                                           StartSlot, NumSamplers);
 
-    ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
-    for(UINT i = 0; i < NumSamplers; i++)
+    ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {};
+    for(UINT i = 0; ppSamplers && i < NumSamplers; i++)
       samps[i] = UNWRAP(WrappedID3D11SamplerState, ppSamplers[i]);
 
     m_pRealContext->DSSetSamplers(StartSlot, NumSamplers, samps);
@@ -1656,8 +1656,8 @@ void WrappedID3D11DeviceContext::DSSetSamplers(UINT StartSlot, UINT NumSamplers,
 
   m_EmptyCommandList = false;
 
-  ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
-  for(UINT i = 0; i < NumSamplers; i++)
+  ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {};
+  for(UINT i = 0; ppSamplers && i < NumSamplers; i++)
   {
     if(ppSamplers[i] && IsActiveCapturing(m_State))
       MarkResourceReferenced(GetIDForDeviceChild(ppSamplers[i]), eFrameRef_Read);
@@ -1771,7 +1771,7 @@ void WrappedID3D11DeviceContext::GSGetConstantBuffers(UINT StartSlot, UINT NumBu
     ID3D11Buffer *real[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
     m_pRealContext->GSGetConstantBuffers(StartSlot, NumBuffers, real);
 
-    for(UINT i = 0; i < NumBuffers; i++)
+    for(UINT i = 0; ppConstantBuffers && i < NumBuffers; i++)
     {
       SAFE_RELEASE_NOCLEAR(real[i]);
       ppConstantBuffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetWrapper(real[i]);
@@ -1792,7 +1792,7 @@ void WrappedID3D11DeviceContext::GSGetShaderResources(UINT StartSlot, UINT NumVi
     ID3D11ShaderResourceView *real[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {0};
     m_pRealContext->GSGetShaderResources(StartSlot, NumViews, real);
 
-    for(UINT i = 0; i < NumViews; i++)
+    for(UINT i = 0; ppShaderResourceViews && i < NumViews; i++)
     {
       SAFE_RELEASE_NOCLEAR(real[i]);
       ppShaderResourceViews[i] =
@@ -1814,7 +1814,7 @@ void WrappedID3D11DeviceContext::GSGetSamplers(UINT StartSlot, UINT NumSamplers,
     ID3D11SamplerState *real[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {0};
     m_pRealContext->GSGetSamplers(StartSlot, NumSamplers, real);
 
-    for(UINT i = 0; i < NumSamplers; i++)
+    for(UINT i = 0; ppSamplers && i < NumSamplers; i++)
     {
       SAFE_RELEASE_NOCLEAR(real[i]);
       ppSamplers[i] = (ID3D11SamplerState *)m_pDevice->GetResourceManager()->GetWrapper(real[i]);
@@ -1894,7 +1894,7 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetConstantBuffers(SerialiserType &
                                    NumBuffers);
 
     ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
-    for(UINT i = 0; i < NumBuffers; i++)
+    for(UINT i = 0; ppConstantBuffers && i < NumBuffers; i++)
       bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
 
     m_pRealContext->GSSetConstantBuffers(StartSlot, NumBuffers, bufs);
@@ -1913,8 +1913,8 @@ void WrappedID3D11DeviceContext::GSSetConstantBuffers(UINT StartSlot, UINT NumBu
 
   m_EmptyCommandList = false;
 
-  ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
-  for(UINT i = 0; i < NumBuffers; i++)
+  ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {};
+  for(UINT i = 0; ppConstantBuffers && i < NumBuffers; i++)
   {
     if(ppConstantBuffers[i] && IsActiveCapturing(m_State))
       MarkResourceReferenced(GetIDForDeviceChild(ppConstantBuffers[i]), eFrameRef_Read);
@@ -1963,8 +1963,8 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetShaderResources(
     m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->GS.SRVs, ppShaderResourceViews,
                                           StartSlot, NumViews);
 
-    ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
-    for(UINT i = 0; i < NumViews; i++)
+    ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {};
+    for(UINT i = 0; ppShaderResourceViews && i < NumViews; i++)
       SRVs[i] = UNWRAP(WrappedID3D11ShaderResourceView1, ppShaderResourceViews[i]);
 
     m_pRealContext->GSSetShaderResources(StartSlot, NumViews, SRVs);
@@ -1983,8 +1983,8 @@ void WrappedID3D11DeviceContext::GSSetShaderResources(
 
   m_EmptyCommandList = false;
 
-  ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
-  for(UINT i = 0; i < NumViews; i++)
+  ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {};
+  for(UINT i = 0; ppShaderResourceViews && i < NumViews; i++)
   {
     if(ppShaderResourceViews[i] && IsActiveCapturing(m_State))
     {
@@ -2032,8 +2032,8 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetSamplers(SerialiserType &ser, UI
     m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->GS.Samplers, ppSamplers,
                                           StartSlot, NumSamplers);
 
-    ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
-    for(UINT i = 0; i < NumSamplers; i++)
+    ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {};
+    for(UINT i = 0; ppSamplers && i < NumSamplers; i++)
       samps[i] = UNWRAP(WrappedID3D11SamplerState, ppSamplers[i]);
 
     m_pRealContext->GSSetSamplers(StartSlot, NumSamplers, samps);
@@ -2052,8 +2052,8 @@ void WrappedID3D11DeviceContext::GSSetSamplers(UINT StartSlot, UINT NumSamplers,
 
   m_EmptyCommandList = false;
 
-  ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
-  for(UINT i = 0; i < NumSamplers; i++)
+  ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {};
+  for(UINT i = 0; ppSamplers && i < NumSamplers; i++)
   {
     if(ppSamplers[i] && IsActiveCapturing(m_State))
       MarkResourceReferenced(GetIDForDeviceChild(ppSamplers[i]), eFrameRef_Read);
@@ -2593,7 +2593,7 @@ void WrappedID3D11DeviceContext::PSGetConstantBuffers(UINT StartSlot, UINT NumBu
     ID3D11Buffer *real[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
     m_pRealContext->PSGetConstantBuffers(StartSlot, NumBuffers, real);
 
-    for(UINT i = 0; i < NumBuffers; i++)
+    for(UINT i = 0; ppConstantBuffers && i < NumBuffers; i++)
     {
       SAFE_RELEASE_NOCLEAR(real[i]);
       ppConstantBuffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetWrapper(real[i]);
@@ -2614,7 +2614,7 @@ void WrappedID3D11DeviceContext::PSGetShaderResources(UINT StartSlot, UINT NumVi
     ID3D11ShaderResourceView *real[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {0};
     m_pRealContext->PSGetShaderResources(StartSlot, NumViews, real);
 
-    for(UINT i = 0; i < NumViews; i++)
+    for(UINT i = 0; ppShaderResourceViews && i < NumViews; i++)
     {
       SAFE_RELEASE_NOCLEAR(real[i]);
       ppShaderResourceViews[i] =
@@ -2636,7 +2636,7 @@ void WrappedID3D11DeviceContext::PSGetSamplers(UINT StartSlot, UINT NumSamplers,
     ID3D11SamplerState *real[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {0};
     m_pRealContext->PSGetSamplers(StartSlot, NumSamplers, real);
 
-    for(UINT i = 0; i < NumSamplers; i++)
+    for(UINT i = 0; ppSamplers && i < NumSamplers; i++)
     {
       SAFE_RELEASE_NOCLEAR(real[i]);
       ppSamplers[i] = (ID3D11SamplerState *)m_pDevice->GetResourceManager()->GetWrapper(real[i]);
@@ -2715,7 +2715,7 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetConstantBuffers(SerialiserType &
                                    NumBuffers);
 
     ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
-    for(UINT i = 0; i < NumBuffers; i++)
+    for(UINT i = 0; ppConstantBuffers && i < NumBuffers; i++)
       bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
 
     m_pRealContext->PSSetConstantBuffers(StartSlot, NumBuffers, bufs);
@@ -2734,8 +2734,8 @@ void WrappedID3D11DeviceContext::PSSetConstantBuffers(UINT StartSlot, UINT NumBu
 
   m_EmptyCommandList = false;
 
-  ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
-  for(UINT i = 0; i < NumBuffers; i++)
+  ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {};
+  for(UINT i = 0; ppConstantBuffers && i < NumBuffers; i++)
   {
     if(ppConstantBuffers[i] && IsActiveCapturing(m_State))
       MarkResourceReferenced(GetIDForDeviceChild(ppConstantBuffers[i]), eFrameRef_Read);
@@ -2784,8 +2784,8 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetShaderResources(
     m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->PS.SRVs, ppShaderResourceViews,
                                           StartSlot, NumViews);
 
-    ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
-    for(UINT i = 0; i < NumViews; i++)
+    ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {};
+    for(UINT i = 0; ppShaderResourceViews && i < NumViews; i++)
       SRVs[i] = UNWRAP(WrappedID3D11ShaderResourceView1, ppShaderResourceViews[i]);
 
     m_pRealContext->PSSetShaderResources(StartSlot, NumViews, SRVs);
@@ -2804,8 +2804,8 @@ void WrappedID3D11DeviceContext::PSSetShaderResources(
 
   m_EmptyCommandList = false;
 
-  ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
-  for(UINT i = 0; i < NumViews; i++)
+  ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {};
+  for(UINT i = 0; ppShaderResourceViews && i < NumViews; i++)
   {
     if(ppShaderResourceViews[i] && IsActiveCapturing(m_State))
     {
@@ -2853,8 +2853,8 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetSamplers(SerialiserType &ser, UI
     m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->PS.Samplers, ppSamplers,
                                           StartSlot, NumSamplers);
 
-    ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
-    for(UINT i = 0; i < NumSamplers; i++)
+    ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {};
+    for(UINT i = 0; ppSamplers && i < NumSamplers; i++)
       samps[i] = UNWRAP(WrappedID3D11SamplerState, ppSamplers[i]);
 
     m_pRealContext->PSSetSamplers(StartSlot, NumSamplers, samps);
@@ -2873,8 +2873,8 @@ void WrappedID3D11DeviceContext::PSSetSamplers(UINT StartSlot, UINT NumSamplers,
 
   m_EmptyCommandList = false;
 
-  ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
-  for(UINT i = 0; i < NumSamplers; i++)
+  ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {};
+  for(UINT i = 0; ppSamplers && i < NumSamplers; i++)
   {
     if(ppSamplers[i] && IsActiveCapturing(m_State))
       MarkResourceReferenced(GetIDForDeviceChild(ppSamplers[i]), eFrameRef_Read);
@@ -4543,7 +4543,7 @@ void WrappedID3D11DeviceContext::CSGetConstantBuffers(UINT StartSlot, UINT NumBu
     ID3D11Buffer *real[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
     m_pRealContext->CSGetConstantBuffers(StartSlot, NumBuffers, real);
 
-    for(UINT i = 0; i < NumBuffers; i++)
+    for(UINT i = 0; ppConstantBuffers && i < NumBuffers; i++)
     {
       SAFE_RELEASE_NOCLEAR(real[i]);
       ppConstantBuffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetWrapper(real[i]);
@@ -4564,7 +4564,7 @@ void WrappedID3D11DeviceContext::CSGetShaderResources(UINT StartSlot, UINT NumVi
     ID3D11ShaderResourceView *real[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {0};
     m_pRealContext->CSGetShaderResources(StartSlot, NumViews, real);
 
-    for(UINT i = 0; i < NumViews; i++)
+    for(UINT i = 0; ppShaderResourceViews && i < NumViews; i++)
     {
       SAFE_RELEASE_NOCLEAR(real[i]);
       ppShaderResourceViews[i] =
@@ -4608,7 +4608,7 @@ void WrappedID3D11DeviceContext::CSGetSamplers(UINT StartSlot, UINT NumSamplers,
     ID3D11SamplerState *real[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {0};
     m_pRealContext->CSGetSamplers(StartSlot, NumSamplers, real);
 
-    for(UINT i = 0; i < NumSamplers; i++)
+    for(UINT i = 0; ppSamplers && i < NumSamplers; i++)
     {
       SAFE_RELEASE_NOCLEAR(real[i]);
       ppSamplers[i] = (ID3D11SamplerState *)m_pDevice->GetResourceManager()->GetWrapper(real[i]);
@@ -4687,7 +4687,7 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetConstantBuffers(SerialiserType &
                                    NumBuffers);
 
     ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
-    for(UINT i = 0; i < NumBuffers; i++)
+    for(UINT i = 0; ppConstantBuffers && i < NumBuffers; i++)
       bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
 
     m_pRealContext->CSSetConstantBuffers(StartSlot, NumBuffers, bufs);
@@ -4706,8 +4706,8 @@ void WrappedID3D11DeviceContext::CSSetConstantBuffers(UINT StartSlot, UINT NumBu
 
   m_EmptyCommandList = false;
 
-  ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
-  for(UINT i = 0; i < NumBuffers; i++)
+  ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {};
+  for(UINT i = 0; ppConstantBuffers && i < NumBuffers; i++)
   {
     if(ppConstantBuffers[i] && IsActiveCapturing(m_State))
       MarkResourceReferenced(GetIDForDeviceChild(ppConstantBuffers[i]), eFrameRef_Read);
@@ -4756,8 +4756,8 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetShaderResources(
     m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->CS.SRVs, ppShaderResourceViews,
                                           StartSlot, NumViews);
 
-    ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
-    for(UINT i = 0; i < NumViews; i++)
+    ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {};
+    for(UINT i = 0; ppShaderResourceViews && i < NumViews; i++)
       SRVs[i] = UNWRAP(WrappedID3D11ShaderResourceView1, ppShaderResourceViews[i]);
 
     m_pRealContext->CSSetShaderResources(StartSlot, NumViews, SRVs);
@@ -4776,8 +4776,8 @@ void WrappedID3D11DeviceContext::CSSetShaderResources(
 
   m_EmptyCommandList = false;
 
-  ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
-  for(UINT i = 0; i < NumViews; i++)
+  ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] = {};
+  for(UINT i = 0; ppShaderResourceViews && i < NumViews; i++)
   {
     if(ppShaderResourceViews[i] && IsActiveCapturing(m_State))
     {
@@ -4823,8 +4823,8 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetUnorderedAccessViews(
     m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->CSUAVs, ppUnorderedAccessViews,
                                            StartSlot, NumUAVs);
 
-    ID3D11UnorderedAccessView *UAVs[D3D11_1_UAV_SLOT_COUNT];
-    for(UINT i = 0; i < NumUAVs; i++)
+    ID3D11UnorderedAccessView *UAVs[D3D11_1_UAV_SLOT_COUNT] = {};
+    for(UINT i = 0; ppUnorderedAccessViews && i < NumUAVs; i++)
       UAVs[i] = UNWRAP(WrappedID3D11UnorderedAccessView1, ppUnorderedAccessViews[i]);
 
     // #mivance this isn't strictly correct...
@@ -4848,8 +4848,8 @@ void WrappedID3D11DeviceContext::CSSetUnorderedAccessViews(
 
   m_EmptyCommandList = false;
 
-  ID3D11UnorderedAccessView *UAVs[D3D11_1_UAV_SLOT_COUNT];
-  for(UINT i = 0; i < NumUAVs; i++)
+  ID3D11UnorderedAccessView *UAVs[D3D11_1_UAV_SLOT_COUNT] = {};
+  for(UINT i = 0; ppUnorderedAccessViews && i < NumUAVs; i++)
   {
     if(ppUnorderedAccessViews[i] && IsCaptureMode(m_State))
     {
@@ -4904,8 +4904,8 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetSamplers(SerialiserType &ser, UI
     m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->CS.Samplers, ppSamplers,
                                           StartSlot, NumSamplers);
 
-    ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
-    for(UINT i = 0; i < NumSamplers; i++)
+    ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {};
+    for(UINT i = 0; ppSamplers && i < NumSamplers; i++)
       samps[i] = UNWRAP(WrappedID3D11SamplerState, ppSamplers[i]);
 
     m_pRealContext->CSSetSamplers(StartSlot, NumSamplers, samps);
@@ -4924,8 +4924,8 @@ void WrappedID3D11DeviceContext::CSSetSamplers(UINT StartSlot, UINT NumSamplers,
 
   m_EmptyCommandList = false;
 
-  ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
-  for(UINT i = 0; i < NumSamplers; i++)
+  ID3D11SamplerState *samps[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] = {};
+  for(UINT i = 0; ppSamplers && i < NumSamplers; i++)
   {
     if(ppSamplers[i] && IsActiveCapturing(m_State))
       MarkResourceReferenced(GetIDForDeviceChild(ppSamplers[i]), eFrameRef_Read);

@@ -4306,16 +4306,10 @@ RDResult D3D11_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IRepl
   // we control the debug flag ourselves
   flags &= ~D3D11_CREATE_DEVICE_DEBUG;
 
-#if ENABLED(RDOC_DEVEL)
-  // in development builds, always enable debug layer during replay
-  flags |= D3D11_CREATE_DEVICE_DEBUG;
-#else
-  // in release builds, only enable it if forced by replay options
   if(opts.apiValidation)
     flags |= D3D11_CREATE_DEVICE_DEBUG;
   else
     flags &= ~D3D11_CREATE_DEVICE_DEBUG;
-#endif
 
   // we should now be set up to try creating feature level 11 devices either with a selected
   // adapter, a NULL (any) adapter, or WARP.

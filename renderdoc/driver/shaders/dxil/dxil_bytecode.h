@@ -1617,9 +1617,9 @@ struct ResourceReference
 {
   ResourceReference(const rdcstr &handleStr, const EntryPointInterface::ResourceBase &resBase,
                     uint32_t idx)
-      : handleID(handleStr), resourceBase(resBase), resourceIndex(idx){};
+      : handleString(handleStr), resourceBase(resBase), resourceIndex(idx){};
 
-  rdcstr handleID;
+  rdcstr handleString;
   EntryPointInterface::ResourceBase resourceBase;
   uint32_t resourceIndex;
 };
@@ -1727,12 +1727,12 @@ protected:
   void AssignMetaSlot(rdcarray<Metadata *> &metaSlots, uint32_t &nextMetaSlot, DebugLocation &l);
 
   const ResourceReference *GetResourceReference(const DXILDebug::Id handleId) const;
-  rdcstr GetHandleAlias(const rdcstr &handleStr) const;
   static DXILDebug::Id GetResultSSAId(const DXIL::Instruction &inst);
-  static void MakeResultId(const Instruction &inst, rdcstr &resultId);
-  rdcstr GetArgId(const Instruction &inst, uint32_t arg) const;
-  rdcstr GetArgId(const Value *v) const;
-  rdcstr GetArgumentName(const Value *v) const;
+  rdcstr GetInstResultName(const DXIL::Instruction *inst) const;
+  void GetSSAName(DXILDebug::Id id, rdcstr &name) const;
+  void SetSSAName(DXILDebug::Id id, const rdcstr &name, bool overwrite = false);
+  rdcstr GetArgString(const Instruction &inst, uint32_t arg) const;
+  rdcstr GetValueString(const Value *v) const;
 
   const Metadata *FindMetadata(uint32_t slot) const;
   rdcstr ArgToString(const Value *v, bool withTypes, const rdcstr &attrString = "") const;
@@ -1805,9 +1805,9 @@ protected:
 
   rdcarray<EntryPointInterface> m_EntryPointInterfaces;
   std::map<DXILDebug::Id, size_t> m_ResourceByIdHandles;
-  std::map<rdcstr, rdcstr> m_SsaAliases;
-  std::map<rdcstr, uint32_t> m_ResourceAnnotateCounts;
   rdcarray<LocalSourceVariable> m_Locals;
+  std::map<DXILDebug::Id, rdcstr> m_SsaNames;
+  std::map<DXILDebug::Id, rdcstr> m_SsaHandles;
 
   rdcarray<ResourceReference> m_ResourceReferences;
   rdcstr m_Disassembly;
@@ -1848,9 +1848,6 @@ bool IsLLVMIntrinsicCall(const Instruction &inst);
 bool ShouldIgnoreSourceMapping(const Instruction &inst);
 
 bool isUndef(const Value *v);
-
-void SanitiseName(rdcstr &name);
-
 };    // namespace DXIL
 
 DECLARE_REFLECTION_ENUM(DXIL::Attribute);

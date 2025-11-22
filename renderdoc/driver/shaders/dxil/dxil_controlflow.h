@@ -39,6 +39,7 @@ public:
   ControlFlow() = default;
   ControlFlow(const rdcarray<rdcpair<uint32_t, uint32_t>> &links) { Construct(links); }
   void Construct(const rdcarray<BlockLink> &links);
+  const std::unordered_set<uint32_t> &GetBlocks() const { return m_Blocks; }
   rdcarray<uint32_t> GetUniformBlocks() const { return m_UniformBlocks; }
   rdcarray<uint32_t> GetLoopBlocks() const { return m_LoopBlocks; }
   rdcarray<uint32_t> GetDivergentBlocks() const { return m_DivergentBlocks; }
@@ -73,14 +74,12 @@ private:
     return m_Nodes.data() + m_BlockIDsToIDx[blockId];
   }
 
-  void TraceBlockFlow(const Node *from, BlockPath &path);
   bool BlockInAllPaths(uint32_t from, uint32_t to) const;
   bool BlockInMultiplePaths(uint32_t from, uint32_t to) const;
+  int32_t BlockInAnyPath(uint32_t from, uint32_t to) const;
 
   bool AnyPath(uint32_t from, uint32_t to) const;
   bool AllPathsContainBlock(uint32_t from, uint32_t to, uint32_t mustInclude) const;
-
-  int32_t BlockInAnyPathSlow(uint32_t block, uint32_t pathIdx, int32_t startIdx, int32_t steps) const;
 
   uint32_t PATH_END = ~0U;
 
@@ -89,11 +88,6 @@ private:
   mutable rdcarray<uint8_t> m_TracedNodes;
 
   std::unordered_set<uint32_t> m_Blocks;
-
-  mutable rdcarray<bool> m_TracedBlocks;
-  mutable rdcarray<bool> m_CheckedPaths;
-  rdcarray<rdcarray<uint32_t>> m_BlockPathLinks;
-  rdcarray<BlockPath> m_Paths;
 
   rdcarray<uint32_t> m_UniformBlocks;
   rdcarray<uint32_t> m_LoopBlocks;

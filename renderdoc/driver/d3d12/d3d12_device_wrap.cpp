@@ -2421,20 +2421,6 @@ HRESULT WrappedID3D12Device::CheckFeatureSupport(D3D12_FEATURE Feature, void *pF
 
     return S_OK;
   }
-  else if(Feature == D3D12_FEATURE_D3D12_OPTIONS16)
-  {
-    D3D12_FEATURE_DATA_D3D12_OPTIONS16 *opts =
-        (D3D12_FEATURE_DATA_D3D12_OPTIONS16 *)pFeatureSupportData;
-    if(FeatureSupportDataSize != sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS16))
-      return E_INVALIDARG;
-
-    opts->GPUUploadHeapSupported = FALSE;
-
-    if(dolog)
-      RDCLOG("Forcing no GPU upload heap support");
-
-    return S_OK;
-  }
   else if(Feature == D3D12_FEATURE_D3D12_OPTIONS18)
   {
     D3D12_FEATURE_DATA_D3D12_OPTIONS18 *opts =

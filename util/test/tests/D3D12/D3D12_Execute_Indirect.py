@@ -32,6 +32,18 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
         rdtest.log.success("rootConsts is as expected")
 
     def check_capture(self):
+        action = self.find_action("EI without Root Signature");
+        self.controller.SetFrameEvent(action.eventId, False)
+        action = self.find_action("IndirectDraw", action.eventId)
+        for drawNum in range(3):
+            self.controller.SetFrameEvent(action.eventId + drawNum, False)
+            pipe = self.controller.GetPipelineState()
+            if len(pipe.GetOutputTargets()) != 1:
+                raise rdtest.TestFailureException(
+                    f"With event {action.eventId + drawNum} selected we should have one output target but there is {len(pipe.GetOutputTargets())}")
+            self.check_pixel_history_succeeds()
+        rdtest.log.success("Draw without Root Signature replayed correctly");
+        
         from_eid = self.find_action("Multiple draws").eventId
         ei_eid = self.find_action("ExecuteIndirect", from_eid).eventId
         self.controller.SetFrameEvent(ei_eid - 1, False)

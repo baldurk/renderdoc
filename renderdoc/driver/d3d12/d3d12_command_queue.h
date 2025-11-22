@@ -148,7 +148,7 @@ struct WrappedDownlevelQueue : public ID3D12CommandQueueDownlevel
 
 class WrappedID3D12GraphicsCommandList;
 
-class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
+class WrappedID3D12CommandQueue : public ID3D12CommandQueue1,
                                   public RefCounter12<ID3D12CommandQueue>,
                                   public ID3DDevice,
                                   public IDXGISwapper
@@ -156,6 +156,7 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
   friend class WrappedID3D12GraphicsCommandList;
 
   ID3D12CommandQueueDownlevel *m_pDownlevel;
+  ID3D12CommandQueue1 *m_pReal1;
 
   WrappedDownlevelQueue m_WrappedDownlevel;
 
@@ -408,6 +409,35 @@ public:
   virtual HRESULT STDMETHODCALLTYPE Present(ID3D12GraphicsCommandList *pOpenCommandList,
                                             ID3D12Resource *pSourceTex2D, HWND hWindow,
                                             D3D12_DOWNLEVEL_PRESENT_FLAGS Flags);
+
+  // implement ID3D12CommandQueue1
+  virtual HRESULT STDMETHODCALLTYPE SetProcessPriority(D3D12_COMMAND_QUEUE_PROCESS_PRIORITY Priority)
+  {
+    if(!m_pReal1)
+      return E_NOINTERFACE;
+    return m_pReal1->SetProcessPriority(Priority);
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE GetProcessPriority(D3D12_COMMAND_QUEUE_PROCESS_PRIORITY *pOutValue)
+  {
+    if(!m_pReal1)
+      return E_NOINTERFACE;
+    return m_pReal1->GetProcessPriority(pOutValue);
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE SetGlobalPriority(D3D12_COMMAND_QUEUE_GLOBAL_PRIORITY Priority)
+  {
+    if(!m_pReal1)
+      return E_NOINTERFACE;
+    return m_pReal1->SetGlobalPriority(Priority);
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE GetGlobalPriority(D3D12_COMMAND_QUEUE_GLOBAL_PRIORITY *pOutValue)
+  {
+    if(!m_pReal1)
+      return E_NOINTERFACE;
+    return m_pReal1->GetGlobalPriority(pOutValue);
+  }
 };
 
 template <>

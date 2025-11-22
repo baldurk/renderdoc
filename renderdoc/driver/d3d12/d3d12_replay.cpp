@@ -50,6 +50,9 @@
 RDOC_CONFIG(bool, D3D12_HardwareCounters, true,
             "Enable support for IHV-specific hardware counters on D3D12.");
 
+RDOC_CONFIG(bool, D3D12_AttemptExperimentalGPUUploadEnable, true,
+            "Try to enable 'experimental' support for GPU upload heaps on D3D12.");
+
 // this is global so we can free it even after D3D12Replay is destroyed
 static HMODULE D3D12Lib = NULL;
 
@@ -755,6 +758,7 @@ void D3D12Replay::FillDescriptor(Descriptor &dst, const D3D12Descriptor *src)
     return;
   }
 
+  dst = {};
   dst.resource = rm->GetOriginalID(src->GetResResourceId());
 
   if(dst.resource == ResourceId())
@@ -4522,6 +4526,14 @@ RDResult D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IRepl
   PFN_D3D12_CREATE_DEVICE createDevicePtr =
       (PFN_D3D12_CREATE_DEVICE)GetProcAddress(D3D12Lib, "D3D12CreateDevice");
 
+  typedef HRESULT(WINAPI * PFN_D3D12_ENABLE_EXPERIMENTAL_FEATURES)(
+      UINT NumFeatures, const IID *pIIDs, void *pConfigurationStructs,
+      UINT *pConfigurationStructSizes);
+
+  PFN_D3D12_ENABLE_EXPERIMENTAL_FEATURES enableExperimentalPtr =
+      (PFN_D3D12_ENABLE_EXPERIMENTAL_FEATURES)GetProcAddress(D3D12Lib,
+                                                             "D3D12EnableExperimentalFeatures");
+
   RealD3D12CreateFunction createDevice = createDevicePtr;
 
   HMODULE dxgilib = LoadLibraryA("dxgi.dll");
@@ -4731,6 +4743,19 @@ RDResult D3D12_CreateReplayDevice(RDCFile *rdc, const ReplayOptions &opts, IRepl
   if(EnableDRED(config, NULL))
   {
     RDCLOG("DRED enabled");
+  }
+
+  if(D3D12_AttemptExperimentalGPUUploadEnable())
+  {
+    if(config)
+    {
+      config->devfactory->EnableExperimentalFeatures(1, &D3D12GPUUploadHeapsOnUnsupportedOS, NULL,
+                                                     NULL);
+    }
+    else
+    {
+      enableExperimentalPtr(1, &D3D12GPUUploadHeapsOnUnsupportedOS, NULL, NULL);
+    }
   }
 
   ID3D12Device *dev = NULL;

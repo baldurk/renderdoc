@@ -14,6 +14,7 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
         TEST_DEBUG_VAR_DECLARE(int2, jake, 5)
         TEST_DEBUG_VAR_DECLARE(float1, bob, 3.0)
         TEST_DEBUG_VAR_USE(int4, testStruct.anon.a, 1)
+        TEST_DEBUG_VAR_DECLARE_MATRIX23(float, fish, 7.2)
         // TEST_DEBUG_VAR_END
         '''
         varsToCheck = []
@@ -37,6 +38,12 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
             name = toks[1].strip()
             valString = toks[2].split(')')[0].strip()
             scalarType, countElems = self.parse_shader_var_type(type)
+            isMatrix23 = line.startswith('TEST_DEBUG_VAR_DECLARE_MATRIX23')
+            if isMatrix23:
+                rows = 2
+                columns = 3
+                countElems = columns # each row is its own variable
+
             if valString == 'TEST_INDEX':
                 value = test
             elif valString == 'TEST_RESULT':
@@ -50,8 +57,13 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
                     raise rdtest.TestFailureException(f"Unhandled scalarType {scalarType} {type}")
                 value = [scalarVal] * countElems
 
-            var = (name, type, value)
-            varsToCheck.append(var)
+            if not isMatrix23:
+                var = (name, type, value)
+                varsToCheck.append(var)
+            else:
+                for row in range(rows):
+                    var = (f"{name}.row{row}", f"{type}3", value)
+                    varsToCheck.append(var)
         
         if not foundStart or not foundEnd:
             raise rdtest.TestFailureException("Couldn't find TEST_DEBUG_VAR_START and TEST_DEBUG_VAR_END")
@@ -89,15 +101,44 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
                 cycles, variables = self.process_trace(trace)
                 output = self.find_output_source_var(trace, rd.ShaderBuiltin.Undefined, 1)
                 debugged = self.evaluate_source_var(output, variables)
-                self.controller.FreeTrace(trace)
                 actual = debugged.value.u32v[0]
                 expected = instId
                 if not rdtest.value_compare(actual, expected):
                     failed = True
                     rdtest.log.error(
                         f"Vertex shader TRIANGLE output did not match expectation {actual} != {expected}")
+
                 if not failed:
                     rdtest.log.success("Basic VS debugging was successful")
+
+                # Look for MAT0 variable in the trace initial source variables
+                matched = True
+                varsToCheck = []
+                varsToCheck.append((f"MAT0[0]", "float4", [1.0, 2.0, 3.0, 4.0]))
+                varsToCheck.append((f"MAT0[1]", "float4", [5.0, 6.0, 7.0, 8.0]))
+                varsToCheck.append((f"MAT0[2]", "float4", [9.0, 10.0, 11.0, 12.0]))
+                for name, varType, expectedValue in varsToCheck:
+                    debuggedValue = None
+                    try:
+                        debuggedValue = self.get_source_shader_var_value(trace.sourceVars, name, varType, variables)
+                    except KeyError as ex:
+                        matched = False
+                        failed = True
+                    except rdtest.TestFailureException as ex:
+                        matched = False
+                        failed = True
+
+                    if debuggedValue is None:
+                        raise rdtest.TestFailureException(f"Couldn't find source variable {name} type:{varType}")
+                    if not rdtest.value_compare(expectedValue, debuggedValue):
+                        matched = False
+                        failed = True
+                        rdtest.log.error(f"'{name}' {varType} debugger {debuggedValue} doesn't match expected {expectedValue}")
+
+                self.controller.FreeTrace(trace)
+                if matched:
+                    rdtest.log.success("VS MAT0 output source variable matched as expected")
+
             else:
                 rdtest.log.print(f"Ignoring undebuggable Vertex shader at {action.eventId} for {shaderModels[sm]}.")
 
@@ -137,10 +178,47 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
                                 continue
                             break
                         if debuggedValue is None:
-                            raise rdtest.TestFailureException(f"Couldn't find source variable {name} {varType}")
+                            raise rdtest.TestFailureException(f"Couldn't find source variable {name} type:{varType}")
                         if not rdtest.value_compare(expectedValue, debuggedValue):
                             raise rdtest.TestFailureException(f"'{name}' {varType} debugger {debuggedValue} doesn't match expected {expectedValue}")
+
                     rdtest.log.success(f"{len(varsToCheck)} source variables matched as expected")
+
+                    # Look for _IN.MAT0 variable in the trace input variables
+                    name = "_IN"
+                    inVar = [v for v in trace.inputs if v.name == name]
+                    if len(inVar) != 1:
+                        raise rdtest.TestFailureException(f"Couldn't find source variable {name} type:{varType}")
+                    name = "MAT0"
+                    inVar = [v for v in inVar[0].members if v.name == name]
+                    if len(inVar) != 1:
+                        raise rdtest.TestFailureException(f"Couldn't find source variable {name} type:{varType}")
+
+                    matched = True
+                    varsToCheck = []
+                    varsToCheck.append((f"[0]", "float4", [1.0, 2.0, 3.0, 4.0]))
+                    varsToCheck.append((f"[1]", "float4", [5.0, 6.0, 7.0, 8.0]))
+                    varsToCheck.append((f"[2]", "float4", [9.0, 10.0, 11.0, 12.0]))
+                    for name, varType, expectedValue in varsToCheck:
+                        debuggedValue = None
+                        for v in inVar[0].members:
+                            if v.name == name:
+                                try:
+                                    debuggedValue = v.value.f32v[0:len(expectedValue)]
+                                except rdtest.TestFailureException as ex:
+                                    matched = False
+                                    failed = True
+                                break
+                        
+                        if debuggedValue is None:
+                            raise rdtest.TestFailureException(f"Couldn't find source variable {name} type:{varType}")
+                        if not rdtest.value_compare(expectedValue, debuggedValue):
+                            matched = False
+                            failed = True
+                            rdtest.log.error(f"'{name}' {varType} debugger {debuggedValue} doesn't match expected {expectedValue}")
+
+                    if matched:
+                        rdtest.log.success("PS MAT0 input source variable matched as expected")
 
                 except rdtest.TestFailureException as ex:
                     rdtest.log.error(f"Test {test} failed {ex}")
@@ -208,7 +286,7 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
                                 continue
                             break
                         if debuggedValue is None:
-                            raise rdtest.TestFailureException(f"Couldn't find source variable {name} {varType}")
+                            raise rdtest.TestFailureException(f"Couldn't find source variable {name} type:{varType}")
                         if not rdtest.value_compare(expectedValue, debuggedValue):
                             raise rdtest.TestFailureException(f"'{name}' {varType} debugger {debuggedValue} doesn't match expected {expectedValue}")
                     rdtest.log.success(f"{len(varsToCheck)} source variables matched as expected")

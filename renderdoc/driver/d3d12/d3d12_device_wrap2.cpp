@@ -121,8 +121,8 @@ bool WrappedID3D12Device::Serialise_CreatePipelineState(SerialiserType &ser,
     };
 
     AddResource(pPipelineState, ResourceType::PipelineState, "Pipeline State");
-    if(OrigDescriptor.pRootSignature)
-      DerivedResource(OrigDescriptor.pRootSignature, pPipelineState);
+    if(OrigDescriptor.GetRootSigIfPresent())
+      DerivedResource(OrigDescriptor.GetRootSigIfPresent(), pPipelineState);
 
     for(size_t i = 0; i < ARRAY_COUNT(shaders); i++)
     {
@@ -329,8 +329,8 @@ HRESULT WrappedID3D12Device::CreatePipelineState(const D3D12_PIPELINE_STATE_STRE
       record->Length = 0;
       wrapped->SetResourceRecord(record);
 
-      if(expandedDesc.pRootSignature)
-        record->AddParent(GetRecord(expandedDesc.pRootSignature));
+      if(expandedDesc.GetRootSigIfPresent())
+        record->AddParent(GetRecord(expandedDesc.GetRootSigIfPresent()));
 
       if(vendorChunk)
         record->AddChunk(vendorChunk);

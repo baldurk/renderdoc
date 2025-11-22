@@ -36,7 +36,7 @@
 
 using namespace rdcshaders;
 
-#if defined(RELEASE)
+#if ENABLED(RDOC_RELEASE)
 #define CHECK_DEBUGGER_THREAD() \
   do                            \
   {                             \
@@ -44,7 +44,7 @@ using namespace rdcshaders;
 #else
 #define CHECK_DEBUGGER_THREAD() \
   RDCASSERTMSG("Function called from non-debugger thread!", debugger.IsDeviceThread());
-#endif    // #if defined(RELEASE)
+#endif    // #if ENABLED(RDOC_RELEASE)
 
 static bool ContainsNaNInf(const ShaderVariable &var)
 {
@@ -3022,7 +3022,7 @@ void ThreadState::StepNext(bool useDebugState, const uint32_t steps,
         OpGroupNonUniformBroadcast group(it);
         RDCASSERT(uintComp(GetSrc(group.execution), 0) == (uint32_t)Scope::Subgroup);
         value = group.value;
-        lane = firstLaneInSub + uintComp(GetSrc(group.id), 0);
+        lane = firstLaneInSub + uintComp(GetSrc(group.invocationId), 0);
       }
       else if(opdata.op == Op::GroupNonUniformQuadBroadcast)
       {
@@ -3086,7 +3086,7 @@ void ThreadState::StepNext(bool useDebugState, const uint32_t steps,
         OpGroupNonUniformShuffle group(it);
         RDCASSERT(uintComp(GetSrc(group.execution), 0) == (uint32_t)Scope::Subgroup);
         value = group.value;
-        lane = firstLaneInSub + uintComp(GetSrc(group.id), 0);
+        lane = firstLaneInSub + uintComp(GetSrc(group.invocationId), 0);
       }
       else if(opdata.op == Op::GroupNonUniformShuffleXor ||
               opdata.op == Op::GroupNonUniformShuffleUp ||
@@ -4995,7 +4995,6 @@ void ThreadState::StepNext(bool useDebugState, const uint32_t steps,
     case Op::HitObjectIsMissNV:
     case Op::ReorderThreadWithHitObjectNV:
     case Op::ReorderThreadWithHintNV:
-    case Op::TypeHitObjectNV:
     case Op::ColorAttachmentReadEXT:
     case Op::DepthAttachmentReadEXT:
     case Op::StencilAttachmentReadEXT:
@@ -5006,7 +5005,6 @@ void ThreadState::StepNext(bool useDebugState, const uint32_t steps,
     case Op::RayQueryGetIntersectionTriangleVertexPositionsKHR:
     case Op::ConvertBF16ToFINTEL:
     case Op::ConvertFToBF16INTEL:
-    case Op::TypeCooperativeMatrixKHR:
     case Op::CooperativeMatrixLoadKHR:
     case Op::CooperativeMatrixStoreKHR:
     case Op::CooperativeMatrixMulAddKHR:
@@ -5027,6 +5025,65 @@ void ThreadState::StepNext(bool useDebugState, const uint32_t steps,
     case Op::ConstantCompositeReplicateEXT:
     case Op::SpecConstantCompositeReplicateEXT:
     case Op::RawAccessChainNV:
+    case Op::CreateTensorLayoutNV:
+    case Op::CreateTensorViewNV:
+    case Op::TensorViewSetClipNV:
+    case Op::TensorViewSetDimensionNV:
+    case Op::TensorViewSetStrideNV:
+    case Op::TensorLayoutSetDimensionNV:
+    case Op::TensorLayoutSetBlockSizeNV:
+    case Op::TensorLayoutSetClampValueNV:
+    case Op::TensorLayoutSetStrideNV:
+    case Op::TensorLayoutSliceNV:
+    case Op::RayQueryGetIntersectionClusterIdNV:
+    case Op::RayQueryIsSphereHitNV:
+    case Op::RayQueryIsLSSHitNV:
+    case Op::RayQueryGetIntersectionLSSHitValueNV:
+    case Op::RayQueryGetIntersectionLSSPositionsNV:
+    case Op::RayQueryGetIntersectionLSSRadiiNV:
+    case Op::RayQueryGetIntersectionSpherePositionNV:
+    case Op::RayQueryGetIntersectionSphereRadiusNV:
+    case Op::HitObjectIsLSSHitNV:
+    case Op::HitObjectIsSphereHitNV:
+    case Op::HitObjectGetLSSPositionsNV:
+    case Op::HitObjectGetLSSRadiiNV:
+    case Op::HitObjectGetSpherePositionNV:
+    case Op::HitObjectGetSphereRadiusNV:
+    case Op::HitObjectGetClusterIdNV:
+    case Op::CooperativeMatrixConvertNV:
+    case Op::CooperativeMatrixReduceNV:
+    case Op::CooperativeMatrixLoadTensorNV:
+    case Op::CooperativeMatrixStoreTensorNV:
+    case Op::CooperativeMatrixPerElementOpNV:
+    case Op::CooperativeMatrixTransposeNV:
+    case Op::CooperativeVectorLoadNV:
+    case Op::CooperativeVectorStoreNV:
+    case Op::CooperativeVectorMatrixMulAddNV:
+    case Op::CooperativeVectorMatrixMulNV:
+    case Op::CooperativeVectorOuterProductAccumulateNV:
+    case Op::CooperativeVectorReduceSumAccumulateNV:
+    case Op::GraphARM:
+    case Op::GraphConstantARM:
+    case Op::GraphEntryPointARM:
+    case Op::GraphInputARM:
+    case Op::GraphSetOutputARM:
+    case Op::GraphEndARM:
+    case Op::ArithmeticFenceEXT:
+    case Op::EnqueueNodePayloadsAMDX:
+    case Op::IsNodePayloadValidAMDX:
+    case Op::UntypedGroupAsyncCopyKHR:
+    case Op::UntypedVariableKHR:
+    case Op::UntypedAccessChainKHR:
+    case Op::UntypedInBoundsAccessChainKHR:
+    case Op::UntypedInBoundsPtrAccessChainKHR:
+    case Op::UntypedPtrAccessChainKHR:
+    case Op::UntypedArrayLengthKHR:
+    case Op::UntypedPrefetchKHR:
+    case Op::BitCastArrayQCOM:
+    case Op::CompositeConstructCoopMatQCOM:
+    case Op::CompositeExtractCoopMatQCOM:
+    case Op::ExtractSubArrayQCOM:
+    case Op::FmaKHR:
     {
       RDCERR("Unsupported extension opcode used %s", ToStr(opdata.op).c_str());
 
@@ -5093,19 +5150,15 @@ void ThreadState::StepNext(bool useDebugState, const uint32_t steps,
     case Op::ModuleProcessed:
     case Op::ExecutionModeId:
     case Op::TypeUntypedPointerKHR:
-    case Op::UntypedVariableKHR:
-    case Op::UntypedAccessChainKHR:
-    case Op::UntypedInBoundsAccessChainKHR:
-    case Op::UntypedInBoundsPtrAccessChainKHR:
-    case Op::UntypedPtrAccessChainKHR:
-    case Op::UntypedArrayLengthKHR:
-    case Op::UntypedPrefetchKHR:
     case Op::TypeNodePayloadArrayAMDX:
     case Op::ConstantStringAMDX:
     case Op::SpecConstantStringAMDX:
     case Op::TypeCooperativeVectorNV:
     case Op::TypeTensorLayoutNV:
     case Op::TypeTensorViewNV:
+    case Op::TypeGraphARM:
+    case Op::TypeHitObjectNV:
+    case Op::TypeCooperativeMatrixKHR:
     {
       RDCERR("Encountered unexpected global SPIR-V operation %s", ToStr(opdata.op).c_str());
       break;
@@ -5171,69 +5224,35 @@ void ThreadState::StepNext(bool useDebugState, const uint32_t steps,
     case Op::TypePipeStorage:
     case Op::ConstantPipeStorage:
     case Op::CreatePipeFromPipeStorage:
-    case Op::FPGARegINTEL:
-    case Op::ReadPipeBlockingINTEL:
-    case Op::WritePipeBlockingINTEL:
     case Op::ControlBarrierArriveINTEL:
     case Op::ControlBarrierWaitINTEL:
-    case Op::ArithmeticFenceEXT:
     case Op::SubgroupMatrixMultiplyAccumulateINTEL:
-    case Op::EnqueueNodePayloadsAMDX:
-    case Op::IsNodePayloadValidAMDX:
     case Op::SubgroupBlockPrefetchINTEL:
     case Op::Subgroup2DBlockLoadINTEL:
     case Op::Subgroup2DBlockLoadTransformINTEL:
     case Op::Subgroup2DBlockLoadTransposeINTEL:
     case Op::Subgroup2DBlockPrefetchINTEL:
     case Op::Subgroup2DBlockStoreINTEL:
-    case Op::CreateTensorLayoutNV:
-    case Op::CreateTensorViewNV:
-    case Op::TensorViewSetClipNV:
-    case Op::TensorViewSetDimensionNV:
-    case Op::TensorViewSetStrideNV:
-    case Op::TensorLayoutSetDimensionNV:
-    case Op::TensorLayoutSetBlockSizeNV:
-    case Op::TensorLayoutSetClampValueNV:
-    case Op::TensorLayoutSetStrideNV:
-    case Op::TensorLayoutSliceNV:
-    case Op::RayQueryGetClusterIdNV:
-    case Op::RayQueryIsSphereHitNV:
-    case Op::RayQueryIsLSSHitNV:
-    case Op::RayQueryGetIntersectionLSSHitValueNV:
-    case Op::RayQueryGetIntersectionLSSPositionsNV:
-    case Op::RayQueryGetIntersectionLSSRadiiNV:
-    case Op::RayQueryGetIntersectionSpherePositionNV:
-    case Op::RayQueryGetIntersectionSphereRadiusNV:
-    case Op::HitObjectIsLSSHitNV:
-    case Op::HitObjectIsSphereHitNV:
-    case Op::HitObjectGetLSSPositionsNV:
-    case Op::HitObjectGetLSSRadiiNV:
-    case Op::HitObjectGetSpherePositionNV:
-    case Op::HitObjectGetSphereRadiusNV:
-    case Op::HitObjectGetClusterIdNV:
-    case Op::CooperativeMatrixConvertNV:
-    case Op::CooperativeMatrixReduceNV:
-    case Op::CooperativeMatrixLoadTensorNV:
-    case Op::CooperativeMatrixStoreTensorNV:
-    case Op::CooperativeMatrixPerElementOpNV:
-    case Op::CooperativeMatrixTransposeNV:
-    case Op::CooperativeVectorLoadNV:
-    case Op::CooperativeVectorStoreNV:
-    case Op::CooperativeVectorMatrixMulAddNV:
-    case Op::CooperativeVectorMatrixMulNV:
-    case Op::CooperativeVectorOuterProductAccumulateNV:
-    case Op::CooperativeVectorReduceSumAccumulateNV:
     case Op::TypeTensorARM:
     case Op::TensorReadARM:
     case Op::TensorWriteARM:
     case Op::TensorQuerySizeARM:
-    case Op::TaskSequenceAsyncINTEL:
-    case Op::TaskSequenceCreateINTEL:
-    case Op::TaskSequenceGetINTEL:
-    case Op::TaskSequenceReleaseINTEL:
-    case Op::TypeTaskSequenceINTEL:
     case Op::BitwiseFunctionINTEL:
     case Op::RoundFToTF32INTEL:
+    case Op::SaveMemoryINTEL:
+    case Op::RestoreMemoryINTEL:
+    case Op::VariableLengthArrayINTEL:
+    case Op::UntypedVariableLengthArrayINTEL:
+    case Op::ConditionalEntryPointINTEL:
+    case Op::ConditionalCapabilityINTEL:
+    case Op::ConditionalExtensionINTEL:
+    case Op::SpecConstantArchitectureINTEL:
+    case Op::SpecConstantTargetINTEL:
+    case Op::ConvertHandleToImageINTEL:
+    case Op::ConvertHandleToSampledImageINTEL:
+    case Op::ConvertHandleToSamplerINTEL:
+    case Op::SpecConstantCapabilitiesINTEL:
+    case Op::ConditionalCopyObjectINTEL:
     {
       // these are kernel only
       RDCERR("Encountered unexpected kernel SPIR-V operation %s", ToStr(opdata.op).c_str());

@@ -380,6 +380,27 @@ float4 main(v2f IN) : SV_Target0
                                {false, VarType::UInt, 1, 0, "TEXCOORD1", true}},
                               sm6));
 
+      // Packing float with a float3
+      psos.push_back(BuildPSO(sig,
+                              {{false, VarType::Float, 1, 0, "TEXCOORD0", true},
+                               {true, VarType::UInt, 1, 0, "TEXCOORD1", true},
+                               {false, VarType::Float, 3, 0, "COLOR0", true}},
+                              sm6));
+
+      // Packing float with a float3[1]
+      psos.push_back(BuildPSO(sig,
+                              {{false, VarType::Float, 1, 0, "TEXCOORD0", true},
+                               {true, VarType::UInt, 1, 0, "TEXCOORD1", true},
+                               {false, VarType::Float, 3, 1, "COLOR0", true}},
+                              sm6));
+
+      // Not packing float with a float3[2]
+      psos.push_back(BuildPSO(sig,
+                              {{false, VarType::Float, 1, 0, "TEXCOORD0", true},
+                               {true, VarType::UInt, 1, 0, "TEXCOORD1", true},
+                               {false, VarType::Float, 3, 2, "COLOR0", true}},
+                              sm6));
+
       // Bespoke tests for broken scenarios discovered through bug reports:
 
       // These semantics live in v1.xy, v2.x, and v3.xyz due to each being an array. If any of them

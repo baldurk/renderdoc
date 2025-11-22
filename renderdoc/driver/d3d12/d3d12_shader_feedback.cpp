@@ -1240,9 +1240,7 @@ struct D3D12StatCallback : public D3D12ActionCallback
       for(D3D12_INDIRECT_ARGUMENT_DESC &arg : comSig->sig.arguments)
       {
         D3D12_INDIRECT_ARGUMENT_TYPE argType = arg.Type;
-        if(argType == D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW ||
-           argType == D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW ||
-           argType == D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT ||
+        if(argType == D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT ||
            argType == D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW ||
            argType == D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW ||
            argType == D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW ||
@@ -1572,7 +1570,7 @@ bool D3D12Replay::FetchShaderFeedback(uint32_t eventId)
   ID3D12PipelineState *annotatedPipe = NULL;
 
   {
-    pipeDesc.pRootSignature = annotatedSig;
+    pipeDesc.SetRootSig(annotatedSig);
 
     HRESULT hr = m_pDevice->CreatePipeState(pipeDesc, &annotatedPipe);
     if(annotatedPipe == NULL || FAILED(hr))

@@ -137,6 +137,7 @@ public:
   D3D12BufferCreator &UAV();
   D3D12BufferCreator &ASB();
 
+  D3D12BufferCreator &GPUUpload();
   D3D12BufferCreator &Upload();
   D3D12BufferCreator &Readback();
 
@@ -319,3 +320,9 @@ D3D12_INDIRECT_ARGUMENT_DESC dispatchArg();
       exit(1);                                                                            \
     }                                                                                     \
   }
+
+template <typename T>
+void setName(T obj, const std::string &name)
+{
+  obj->SetName(UTF82Wide(name).c_str());
+}

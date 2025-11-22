@@ -333,6 +333,9 @@ void WrappedVulkan::VersionDescriptorBuffers(VkCommandBuffer cmd)
   uint32_t &version = m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufVersionIdx;
   rdcarray<uint64_t> &offsets = m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufOffsets;
 
+  if(renderstate.descBufs.empty())
+    return;
+
   uint64_t neededBytes = 0;
 
   offsets.clear();
@@ -367,20 +370,37 @@ void WrappedVulkan::VersionDescriptorBuffers(VkCommandBuffer cmd)
                                              GPUBuffer::eGPUBufferReadback);
   }
 
+  rdcarray<rdcpair<VkDeviceAddress, uint64_t>> copyOffsets;
+
   for(uint32_t i = 0; i < renderstate.descBufs.size(); i++)
+    copyOffsets.push_back({renderstate.descBufs[i].address, offsets[i]});
+
+  if(!renderstate.ActiveRenderPass())
+    CopyVersionedDescriptorBuffer(cmd, m_DescriptorBufferVersions[version].UnwrappedBuffer(),
+                                  copyOffsets);
+  else
+    m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufDeferredCopies.push_back(
+        {m_DescriptorBufferVersions[version].UnwrappedBuffer(), copyOffsets});
+}
+
+void WrappedVulkan::CopyVersionedDescriptorBuffer(
+    VkCommandBuffer cmdBuf, VkBuffer unwrappedDstBuf,
+    const rdcarray<rdcpair<VkDeviceAddress, uint64_t>> &copyOffsets)
+{
+  for(uint32_t i = 0; i < copyOffsets.size(); i++)
   {
     ResourceId id;
     uint64_t offs;
-    GetResIDFromAddr(renderstate.descBufs[i].address, id, offs);
+    GetResIDFromAddr(copyOffsets[i].first, id, offs);
 
     const VkBufferCopy region = {
         offs,
-        offsets[i],
+        copyOffsets[i].second,
         m_CreationInfo.m_Buffer[id].size - offs,
     };
-    ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd),
-                                Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(id)),
-                                m_DescriptorBufferVersions[version].UnwrappedBuffer(), 1, &region);
+    ObjDisp(cmdBuf)->CmdCopyBuffer(Unwrap(cmdBuf),
+                                   Unwrap(GetResourceManager()->GetCurrentHandle<VkBuffer>(id)),
+                                   unwrappedDstBuf, 1, &region);
   }
 }
 
@@ -2722,6 +2742,12 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
           m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies)
         ExecuteIndirectReadback(commandBuffer, indirectcopy);
 
+      // and deferred descriptor buffer versions here
+      for(const BakedCmdBufferInfo::DeferredDescBufCopy &descVersion :
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufDeferredCopies)
+        CopyVersionedDescriptorBuffer(commandBuffer, descVersion.unwrappedDstBuffer,
+                                      descVersion.copyOffsets);
+
       m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies.clear();
 
       rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
@@ -3387,6 +3413,12 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2(SerialiserType &ser, VkCommand
       for(const VkIndirectRecordData &indirectcopy :
           m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies)
         ExecuteIndirectReadback(commandBuffer, indirectcopy);
+
+      // and deferred descriptor buffer versions here
+      for(const BakedCmdBufferInfo::DeferredDescBufCopy &descVersion :
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufDeferredCopies)
+        CopyVersionedDescriptorBuffer(commandBuffer, descVersion.unwrappedDstBuffer,
+                                      descVersion.copyOffsets);
 
       rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
 
@@ -4449,7 +4481,8 @@ void WrappedVulkan::vkCmdBindIndexBuffer(VkCommandBuffer commandBuffer, VkBuffer
     Serialise_vkCmdBindIndexBuffer(ser, commandBuffer, buffer, offset, indexType);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
-    record->MarkBufferFrameReferenced(GetRecord(buffer), 0, VK_WHOLE_SIZE, eFrameRef_Read);
+    if(buffer != VK_NULL_HANDLE)
+      record->MarkBufferFrameReferenced(GetRecord(buffer), 0, VK_WHOLE_SIZE, eFrameRef_Read);
   }
 }
 
@@ -8230,6 +8263,12 @@ bool WrappedVulkan::Serialise_vkCmdEndRendering(SerialiserType &ser, VkCommandBu
           m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies)
         ExecuteIndirectReadback(commandBuffer, indirectcopy);
 
+      // and deferred descriptor buffer versions here
+      for(const BakedCmdBufferInfo::DeferredDescBufCopy &descVersion :
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufDeferredCopies)
+        CopyVersionedDescriptorBuffer(commandBuffer, descVersion.unwrappedDstBuffer,
+                                      descVersion.copyOffsets);
+
       m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies.clear();
 
       VulkanRenderState &state = m_BakedCmdBufferInfo[m_LastCmdBufferID].state;
@@ -8508,6 +8547,12 @@ bool WrappedVulkan::Serialise_vkCmdEndRendering2EXT(SerialiserType &ser,
       for(const VkIndirectRecordData &indirectcopy :
           m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies)
         ExecuteIndirectReadback(commandBuffer, indirectcopy);
+
+      // and deferred descriptor buffer versions here
+      for(const BakedCmdBufferInfo::DeferredDescBufCopy &descVersion :
+          m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufDeferredCopies)
+        CopyVersionedDescriptorBuffer(commandBuffer, descVersion.unwrappedDstBuffer,
+                                      descVersion.copyOffsets);
 
       m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies.clear();
 
@@ -9352,7 +9397,8 @@ void WrappedVulkan::vkCmdBindIndexBuffer2(VkCommandBuffer commandBuffer, VkBuffe
     Serialise_vkCmdBindIndexBuffer2(ser, commandBuffer, buffer, offset, size, indexType);
 
     record->AddChunk(scope.Get(&record->cmdInfo->alloc));
-    record->MarkBufferFrameReferenced(GetRecord(buffer), offset, size, eFrameRef_Read);
+    if(buffer != VK_NULL_HANDLE)
+      record->MarkBufferFrameReferenced(GetRecord(buffer), offset, size, eFrameRef_Read);
   }
 }
 

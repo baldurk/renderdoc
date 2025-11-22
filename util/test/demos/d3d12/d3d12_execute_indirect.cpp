@@ -340,6 +340,37 @@ void main(uint3 gid : SV_GroupID)
     ID3D12PipelineStatePtr patchpso =
         MakePSO().RootSig(patchsig).InputLayout(layout).VS(vsblob).PS(psblob);
 
+    ID3D12CommandSignaturePtr patchArgSig2 = MakeCommandSig({}, {vbArg(0), drawArg()});
+
+    struct PatchArgs2
+    {
+      D3D12_VERTEX_BUFFER_VIEW vb;
+      D3D12_DRAW_ARGUMENTS draw;
+    } patchargs2;
+
+    patchargs2.vb.BufferLocation = vb->GetGPUVirtualAddress();
+    patchargs2.vb.SizeInBytes = sizeof(tri);
+    patchargs2.vb.StrideInBytes = sizeof(A2V);
+    patchargs2.draw.VertexCountPerInstance = 3;
+    patchargs2.draw.InstanceCount = 1;
+    patchargs2.draw.StartInstanceLocation = 0;
+    patchargs2.draw.StartVertexLocation = 0;
+
+    std::vector<char> patchArgsData2;
+    patchArgsData2.resize(sizeof(PatchArgs2));
+
+    char *ptr2 = patchArgsData2.data();
+    memcpy(ptr2, &patchargs2.vb, sizeof(D3D12_VERTEX_BUFFER_VIEW));
+    ptr2 += sizeof(D3D12_VERTEX_BUFFER_VIEW);
+    memcpy(ptr2, &patchargs2.draw, sizeof(D3D12_DRAW_ARGUMENTS));
+    ptr2 += sizeof(D3D12_DRAW_ARGUMENTS);
+
+    ID3D12ResourcePtr patchArgBuf2 =
+        MakeBuffer().Upload().Size((UINT)patchArgsData2.size()).Data(patchArgsData2.data());
+
+    ID3D12PipelineStatePtr patchpso2 =
+        MakePSO().RootSig(patchsig).InputLayout(layout).VS(vsblob).PS(psblob);
+
     ID3D12CommandSignaturePtr compArgSig = MakeCommandSig(NULL, {dispatchArg()});
 
     D3D12_DISPATCH_ARGUMENTS compargs;
@@ -446,6 +477,35 @@ void main(uint3 gid : SV_GroupID)
       popMarker(cmd);
 
       setMarker(cmd, "Post draw");
+
+      cmd->Close();
+      cmd = GetCommandBuffer();
+      Reset(cmd);
+      cmds.push_back(cmd);
+
+      pushMarker(cmd, "EI without Root Signature");
+      {
+        cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        cmd->SetPipelineState(patchpso2);
+        cmd->SetGraphicsRootSignature(patchsig);
+        cmd->SetDescriptorHeaps(1, &m_CBVUAVSRV.GetInterfacePtr());
+        cmd->SetGraphicsRootDescriptorTable(4, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+        cmd->SetGraphicsRootConstantBufferView(0, cbv->GetGPUVirtualAddress() + 256);
+        cmd->SetGraphicsRootShaderResourceView(1, srv->GetGPUVirtualAddress() + 256);
+        cmd->SetGraphicsRootUnorderedAccessView(2, uav->GetGPUVirtualAddress() + 256);
+
+        RSSetViewport(cmd, {0.0f, 0.0f, (float)screenWidth, (float)screenHeight, 0.0f, 1.0f});
+        RSSetScissorRect(cmd, {0, 0, screenWidth, screenHeight});
+
+        OMSetRenderTargets(cmd, {rtv}, {});
+
+        cmd->SetGraphicsRoot32BitConstants(3, 4, baseConstData, 0);
+
+        cmd->ExecuteIndirect(patchArgSig2, 1, patchArgBuf2, 0, NULL, 0);
+      }
+
+      popMarker(cmd);
 
       cmd->Close();
       cmd = GetCommandBuffer();

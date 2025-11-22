@@ -422,7 +422,8 @@ void main()
     macros["GROUP_SIZE_X"] = "70";
     macros["GROUP_SIZE_Y"] = "1";
     macros["GROUP_SIZE_Z"] = "1";
-    comppipe_name[countPipes] = "70x1x1";
+    comppipe_name[countPipes] = fmt::format("{}x{}x{}", macros["GROUP_SIZE_X"],
+                                            macros["GROUP_SIZE_Y"], macros["GROUP_SIZE_Z"]);
 
     compPipes[countPipes] = createComputePipeline(vkh::ComputePipelineCreateInfo(
         layout, CompileShaderModule(testShader, ShaderLang::glsl, ShaderStage::comp, "main", macros,

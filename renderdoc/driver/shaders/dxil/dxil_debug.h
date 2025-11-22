@@ -34,6 +34,22 @@
 #include "dxil_controlflow.h"
 #include "dxil_debuginfo.h"
 
+#if ENABLED(RDOC_RELEASE)
+#define DXIL_DEBUG_RDCASSERT(...) \
+  do                              \
+  {                               \
+    (void)(__VA_ARGS__);          \
+  } while((void)0, 0)
+#define DXIL_DEBUG_RDCASSERTEQUAL(...) \
+  do                                   \
+  {                                    \
+    (void)(__VA_ARGS__);               \
+  } while((void)0, 0)
+#else
+#define DXIL_DEBUG_RDCASSERT(...) RDCASSERTMSG("", __VA_ARGS__)
+#define DXIL_DEBUG_RDCASSERTEQUAL(a, b) RDCASSERTEQUAL(a, b)
+#endif
+
 namespace DXILDebug
 {
 using namespace DXDebug;
@@ -50,6 +66,33 @@ struct GlobalState;
 
 // D3D12 descriptors are equal sized and treated as effectively one byte in size
 const uint32_t D3D12_DESCRIPTOR_BYTESIZE = 1;
+
+enum class DeviceOpResult : uint32_t
+{
+  Unknown,
+  Succeeded,
+  Failed,
+  NeedsDevice,
+};
+
+inline void AtomicStore(int32_t *var, int32_t newVal)
+{
+  int32_t oldVal = *var;
+  while(Atomic::CmpExch32(var, oldVal, newVal) != oldVal)
+  {
+    oldVal = *var;
+  };
+}
+
+inline int32_t AtomicLoad(int32_t *var)
+{
+  return Atomic::CmpExch32(var, 0, 0);
+}
+
+inline int32_t AtomicLoad(const int32_t *var)
+{
+  return Atomic::CmpExch32((int32_t *)var, 0, 0);
+}
 
 struct ExecPointReference
 {
@@ -134,7 +177,12 @@ struct GlobalConstant
 
 struct ResourceReferenceInfo
 {
-  ResourceReferenceInfo() : resClass(DXIL::ResourceClass::Invalid) {}
+  ResourceReferenceInfo()
+      : resClass(DXIL::ResourceClass::Invalid),
+        varType(VarType::Unknown),
+        descType(DescriptorType::Unknown)
+  {
+  }
   void Create(const DXIL::ResourceReference *resRef, uint32_t arrayIndex);
   bool Valid() const { return resClass != DXIL::ResourceClass::Invalid; }
 
@@ -173,34 +221,134 @@ struct ConstantBlockReference
   }
 };
 
+struct ViewFmt
+{
+  int byteWidth = 0;
+  int numComps = 0;
+  CompType compType = CompType::Typeless;
+  int stride = 0;
+};
+
+struct ResourceInfo
+{
+  ResourceInfo() : firstElement(0), numElements(0), isByteBuffer(false), isRootDescriptor(false) {}
+
+  size_t dataSize = 0;
+  uint32_t firstElement;
+  uint32_t numElements;
+
+  bool hasData = false;
+  bool isByteBuffer;
+  bool isRootDescriptor;
+  // Buffer stride is stored in format.stride
+  ViewFmt format;
+};
+
+struct UAVInfo
+{
+  UAVInfo() = default;
+
+  ResourceInfo resInfo;
+
+  uint32_t rowPitch = 0;
+  uint32_t depthPitch = 0;
+  uint32_t hiddenCounter = 0;
+  bool tex = false;
+};
+
+struct SRVInfo
+{
+  SRVInfo() = default;
+
+  ResourceInfo resInfo;
+};
+
+enum class ThreadProperty : uint32_t
+{
+  Helper,
+  QuadId,
+  QuadLane,
+  Active,
+  SubgroupIdx,
+  Count,
+};
+
+struct ThreadProperties
+{
+  rdcfixedarray<uint32_t, arraydim<ThreadProperty>()> props;
+
+  uint32_t &operator[](ThreadProperty p)
+  {
+    if(p >= ThreadProperty::Count)
+      return props[0];
+    return props[(uint32_t)p];
+  }
+
+  uint32_t operator[](ThreadProperty p) const
+  {
+    if(p >= ThreadProperty::Count)
+      return 0;
+    return props[(uint32_t)p];
+  }
+};
+
+typedef rdcflatmap<ShaderBuiltin, ShaderVariable> BuiltinInputs;
+
 class DebugAPIWrapper
 {
 public:
-  // During shader debugging, when a new resource is encountered
-  // These will be called to fetch the data on demand.
-  virtual void FetchSRV(const BindingSlot &slot) = 0;
-  virtual void FetchUAV(const BindingSlot &slot) = 0;
+  virtual ~DebugAPIWrapper() {}
 
-  virtual bool CalculateMathIntrinsic(DXIL::DXOp dxOp, const ShaderVariable &input,
-                                      ShaderVariable &output) = 0;
-  virtual bool CalculateSampleGather(DXIL::DXOp dxOp, SampleGatherResourceData resourceData,
-                                     SampleGatherSamplerData samplerData, const ShaderVariable &uv,
-                                     const ShaderVariable &ddxCalc, const ShaderVariable &ddyCalc,
-                                     const int8_t texelOffsets[3], int multisampleIndex,
-                                     float lodValue, float compareValue, const uint8_t swizzle[4],
-                                     GatherChannel gatherChannel, DXBC::ShaderType shaderType,
-                                     uint32_t instructionIdx, const char *opString,
-                                     ShaderVariable &output) = 0;
+  virtual ShaderValue TypedUAVLoad(const BindingSlot &slot, const DXILDebug::ViewFmt &fmt,
+                                   uint64_t dataOffset) const = 0;
+  virtual ShaderValue TypedSRVLoad(const BindingSlot &slot, const DXILDebug::ViewFmt &fmt,
+                                   uint64_t dataOffset) const = 0;
+  virtual bool TypedUAVStore(const BindingSlot &slot, const DXILDebug::ViewFmt &fmt,
+                             uint64_t dataOffset, const ShaderValue &value) = 0;
+  virtual bool TypedSRVStore(const BindingSlot &slot, const DXILDebug::ViewFmt &fmt,
+                             uint64_t dataOffset, const ShaderValue &value) = 0;
+
+  // These will fetch the data on demand.
+  virtual UAVInfo GetUAV(const BindingSlot &slot) = 0;
+  virtual SRVInfo GetSRV(const BindingSlot &slot) = 0;
+
+  virtual bool QueueMathIntrinsic(DXIL::DXOp dxOp, const ShaderVariable &input) = 0;
+  virtual bool QueueSampleGather(DXIL::DXOp dxOp, SampleGatherResourceData resourceData,
+                                 SampleGatherSamplerData samplerData, const ShaderVariable &uv,
+                                 const ShaderVariable &ddxCalc, const ShaderVariable &ddyCalc,
+                                 const int8_t texelOffsets[3], int multisampleIndex, float lodValue,
+                                 float compareValue, GatherChannel gatherChannel,
+                                 uint32_t instructionIdx, int &sampleRetType) = 0;
+  virtual bool GetQueuedResults(rdcarray<ShaderVariable *> &mathOpResults,
+                                rdcarray<ShaderVariable *> &sampleGatherResults,
+                                const rdcarray<int> &sampleRetTypes) = 0;
+  virtual bool QueuedOpsHasSpace() const = 0;
   virtual ShaderVariable GetResourceInfo(DXIL::ResourceClass resClass,
-                                         const DXDebug::BindingSlot &slot, uint32_t mipLevel,
-                                         const DXBC::ShaderType shaderType, int &dim) = 0;
-  virtual ShaderVariable GetSampleInfo(DXIL::ResourceClass resClass, const DXDebug::BindingSlot &slot,
-                                       const DXBC::ShaderType shaderType, const char *opString) = 0;
-  virtual ShaderVariable GetRenderTargetSampleInfo(const DXBC::ShaderType shaderType,
-                                                   const char *opString) = 0;
+                                         const DXDebug::BindingSlot &slot, uint32_t mipLevel) = 0;
+  virtual ShaderVariable GetSampleInfo(DXIL::ResourceClass resClass,
+                                       const DXDebug::BindingSlot &slot, const char *opString) = 0;
+  virtual ShaderVariable GetRenderTargetSampleInfo(const char *opString) = 0;
   virtual ResourceReferenceInfo GetResourceReferenceInfo(const DXDebug::BindingSlot &slot) = 0;
   virtual ShaderDirectAccess GetShaderDirectAccess(DescriptorType type,
                                                    const DXDebug::BindingSlot &slot) = 0;
+
+  virtual bool IsSRVCached(const DXDebug::BindingSlot &slot) const = 0;
+  virtual bool IsUAVCached(const DXDebug::BindingSlot &slot) const = 0;
+  virtual bool IsResourceInfoCached(const DXDebug::BindingSlot &slot, uint32_t mipLevel) = 0;
+  virtual bool IsSampleInfoCached(const DXDebug::BindingSlot &slot) = 0;
+  virtual bool IsRenderTargetSampleInfoCached() = 0;
+  virtual bool IsResourceReferenceInfoCached(const DXDebug::BindingSlot &slot) = 0;
+  virtual bool IsShaderDirectAccessCached(const DXDebug::BindingSlot &slot) = 0;
+
+  virtual const ShaderVariable &GetInputPlaceholder() const = 0;
+  virtual const rdcarray<DXILDebug::ThreadProperties> &GetWorkgroupProperties() const = 0;
+  virtual const rdcarray<ShaderVariable> &GetConstantBlocks() const = 0;
+  virtual const std::map<ConstantBlockReference, bytebuf> &GetConstantBlocksDatas() const = 0;
+  virtual const BuiltinInputs &GetBuiltins() const = 0;
+  virtual uint32_t GetSubgroupSize() const = 0;
+  virtual const rdcarray<rdcflatmap<ShaderBuiltin, ShaderVariable>> &GetThreadsBuiltins() const = 0;
+  virtual const rdcarray<ShaderVariable> &GetThreadsInputs() const = 0;
+  virtual const rdcarray<SourceVariableMapping> &GetSourceVars() const = 0;
 };
 
 struct MemoryTracking
@@ -237,62 +385,260 @@ struct MemoryTracking
   std::map<Id, Pointer> m_Pointers;
 };
 
-typedef rdcflatmap<ShaderBuiltin, ShaderVariable> BuiltinInputs;
+struct GpuMathOperation
+{
+  void Clear()
+  {
+    workgroupIndex = 0;
+    dxOp = DXIL::DXOp::NumOpCodes;
+    input = ShaderVariable();
+    result = NULL;
+  }
+  uint32_t workgroupIndex;
+  DXIL::DXOp dxOp;
+  ShaderVariable input;
+  ShaderVariable *result;
+};
+
+struct GpuSampleGatherOperation
+{
+  void Clear()
+  {
+    workgroupIndex = 0;
+    dxOp = DXIL::DXOp::NumOpCodes;
+    resourceData = SampleGatherResourceData();
+    samplerData = SampleGatherSamplerData();
+    uv = ddxCalc = ddyCalc = ShaderVariable();
+    texelOffsets[0] = 0;
+    texelOffsets[1] = 0;
+    texelOffsets[2] = 0;
+    multisampleIndex = ~0U;
+    lodValue = 0.0f;
+    compareValue = 0.0f;
+    gatherChannel = GatherChannel::Red;
+    instructionIdx = ~0U;
+    result = NULL;
+  }
+  uint32_t workgroupIndex;
+  DXIL::DXOp dxOp;
+  SampleGatherResourceData resourceData;
+  SampleGatherSamplerData samplerData;
+  ShaderVariable uv;
+  ShaderVariable ddxCalc;
+  ShaderVariable ddyCalc;
+  int8_t texelOffsets[3];
+  int multisampleIndex;
+  float lodValue;
+  float compareValue;
+  GatherChannel gatherChannel;
+  uint32_t instructionIdx;
+  ShaderVariable *result = NULL;
+};
 
 struct ThreadState
 {
-  ThreadState(Debugger &debugger, const GlobalState &globalState, uint32_t maxSSAId);
+  ThreadState(Debugger &debugger, const GlobalState &globalState, uint32_t maxSSAId,
+              uint32_t laneIndex, uint32_t numThreads);
   ~ThreadState();
 
-  void EnterFunction(const DXIL::Function *function, const rdcarray<DXIL::Value *> &args);
-  void EnterEntryPoint(const DXIL::Function *function, ShaderDebugState *state);
-  void StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
-                const rdcarray<ThreadState> &workgroup, const rdcarray<bool> &activeMask);
+  void EnterEntryPoint(const DXIL::Function *function, bool hasDebugState);
+  void StepNext(bool hasDebugState, const rdcarray<ThreadState> &workgroup);
   void StepOverNopInstructions();
+  void FillCallstack(ShaderDebugState &state);
+  void RetireLiveIDs();
 
   bool Finished() const;
+  bool IsSimulationStepActive() const { return (AtomicLoad(&atomic_isSimulationStepActive) == 1); }
+  bool CanRunAnotherStep() const;
+  const ShaderVariable &GetInput() const { return m_Input; }
+  const GlobalVariable &GetOutput() const { return m_Output; }
+  const BuiltinInputs &GetBuiltins() const { return m_Builtins; }
+  bool IsDead() const { return m_Dead; }
+  uint32_t GetQuadId() const { return m_QuadId; }
+  uint32_t GetQuadLaneIndex() const { return m_QuadLaneIndex; }
+  uint32_t GetActiveGlobalInstructionIdx() const { return m_ActiveGlobalInstructionIdx; }
+  DXIL::BlockArray GetEnteredPoints() const { return m_EnteredPoints; }
+  uint32_t GetConvergencePoint() const { return m_ConvergencePoint; }
+  bool GetDiverged() const { return m_Diverged; }
+  const DXIL::BlockArray *GetPartialConvergencePoints() const
+  {
+    return &m_PartialConvergencePoints;
+  }
+  const ShaderDebugState &GetPendingDebugState() const { return m_PendingDebugState; }
+  const GpuMathOperation &GetQueuedGpuMathOp() const
+  {
+    DXIL_DEBUG_RDCASSERT(AtomicLoad(&atomic_stepNeedsGpuMathOp));
+    DXIL_DEBUG_RDCASSERT(IsPendingResultPending());
+    return m_QueuedGpuMathOp;
+  }
+  const GpuSampleGatherOperation &GetQueuedGpuSampleGatherOp() const
+  {
+    DXIL_DEBUG_RDCASSERT(AtomicLoad(&atomic_stepNeedsGpuSampleGatherOp));
+    DXIL_DEBUG_RDCASSERT(IsPendingResultPending());
+    return m_QueuedGpuSampleGatherOp;
+  }
+  bool StepNeedsDeviceThread() const { return (AtomicLoad(&atomic_stepNeedsDeviceThread) == 1); }
+  bool StepNeedsGpuSampleGatherOp() const
+  {
+    return (AtomicLoad(&atomic_stepNeedsGpuSampleGatherOp) == 1);
+  }
+  bool StepNeedsGpuMathOp() const { return (AtomicLoad(&atomic_stepNeedsGpuMathOp) == 1); }
+
+  void SetBuiltins(const BuiltinInputs &builtins) { m_Builtins = builtins; }
+  void SetInput(const ShaderVariable &input) { m_Input = input; }
+  void SetOutput(const Id id, const ShaderVariable &var)
+  {
+    m_Output.id = id;
+    m_Output.var = var;
+  }
+  void SetDead(bool dead) { m_Dead = dead; }
+  void SetHelper(bool helper) { m_Helper = helper; }
+  void SetQuadLaneIndex(uint32_t quadLaneIndex) { m_QuadLaneIndex = quadLaneIndex; }
+  void SetQuadId(uint32_t quadId) { m_QuadId = quadId; }
+  void SetSubgroupIdx(uint32_t subgroupIdx) { m_SubgroupIdx = subgroupIdx; }
+  void SetQuadNeighbours(uint32_t lane, uint32_t index) { m_QuadNeighbours[lane] = index; }
+  void SetActiveMask(const rdcarray<bool> &activeMask)
+  {
+    RDCASSERTEQUAL(m_ActiveMask.size(), activeMask.size());
+    memcpy(m_ActiveMask.data(), activeMask.data(), activeMask.size() * sizeof(bool));
+  }
+  void UpdateCurrentInstruction()
+  {
+    m_CurrentGlobalInstructionIdx = m_ActiveGlobalInstructionIdx;
+    m_CurrentBlock = m_Block;
+  }
+  void SetSimulationStepCompleted() { AtomicStore(&atomic_isSimulationStepActive, 0); }
+  void SetStepQueued()
+  {
+    AtomicStore(&atomic_isSimulationStepActive, 1);
+    AtomicStore(&atomic_stepNeedsGpuSampleGatherOp, 0);
+    AtomicStore(&atomic_stepNeedsGpuMathOp, 0);
+    AtomicStore(&atomic_stepNeedsDeviceThread, 0);
+  }
+  void SetPendingResultUnknown() { SetPendingResultStatus(PendingResultStatus::Unknown); }
+  void SetPendingResultReady()
+  {
+    DXIL_DEBUG_RDCASSERTEQUAL(GetPendingResultStatus(), PendingResultStatus::Pending);
+    SetPendingResultStatus(PendingResultStatus::Ready);
+  }
+
+  void InitialiseFromActive(const ThreadState &active)
+  {
+    m_Variables = active.m_Variables;
+    m_Assigned = active.m_Assigned;
+    m_Live = active.m_Live;
+    m_IsGlobal = active.m_IsGlobal;
+  }
+
+  void UpdateBackingMemoryFromVariable(void *ptr, uint64_t &allocSize, const ShaderVariable &var);
+
+  void ClearPendingDebugState()
+  {
+    m_PendingDebugState.changes.clear();
+    m_PendingDebugState.flags = ShaderEvents::NoEvent;
+    m_PendingDebugState.nextInstruction = 0;
+  }
+
+  enum class PendingResultStatus : int32_t
+  {
+    Unknown,
+    Pending,
+    Ready,
+    Stepped,
+  };
+
+private:
+  PendingResultStatus GetPendingResultStatus() const
+  {
+    return (PendingResultStatus)AtomicLoad(&atomic_pendingResultStatus);
+  }
+
+  void SetPendingResultStatus(PendingResultStatus status)
+  {
+    AtomicStore(&atomic_pendingResultStatus, (int32_t)status);
+  }
+
+  bool IsPendingResultPending() const
+  {
+    return GetPendingResultStatus() == PendingResultStatus::Pending;
+  }
+  bool IsPendingResultReady() const
+  {
+    return GetPendingResultStatus() == PendingResultStatus::Ready;
+  }
+  const ShaderVariable &GetPendingResult() const
+  {
+    DXIL_DEBUG_RDCASSERTEQUAL(GetPendingResultStatus(), PendingResultStatus::Ready);
+    return m_PendingResultData;
+  }
+  void SetStepNeedsGpuSampleGatherOp()
+  {
+    AtomicStore(&atomic_stepNeedsGpuSampleGatherOp, 1);
+    SetPendingResultStatus(PendingResultStatus::Pending);
+  }
+  void SetStepNeedsGpuMathOp()
+  {
+    AtomicStore(&atomic_stepNeedsGpuMathOp, 1);
+    SetPendingResultStatus(PendingResultStatus::Pending);
+  }
+  void SetStepNeedsDeviceThread()
+  {
+    AtomicStore(&atomic_stepNeedsDeviceThread, 1);
+    SetPendingResultStatus(PendingResultStatus::Pending);
+  }
+
+  void EnterFunction(const DXIL::Function *function, const rdcarray<DXIL::Value *> &args);
+
   bool InUniformBlock() const;
 
   bool JumpToBlock(const DXIL::Block *target, bool divergencePoint);
-  bool ExecuteInstruction(DebugAPIWrapper *apiWrapper, const rdcarray<ThreadState> &workgroup,
-                          const rdcarray<bool> &activeMask);
+  bool ExecuteInstruction(const rdcarray<ThreadState> &workgroup);
 
   void MarkResourceAccess(const ShaderVariable &var);
   void SetResult(const Id &id, ShaderVariable &result, DXIL::Operation op, DXIL::DXOp dxOpCode,
                  ShaderEvents flags);
   rdcstr GetArgumentName(uint32_t i) const;
   Id GetArgumentId(uint32_t i) const;
-  ResourceReferenceInfo GetResource(Id handleId, bool &annotatedHandle);
-  void FillCallstack(ShaderDebugState &state);
-  void RetireLiveIDs();
+  ResourceReferenceInfo GetResource(Id handleId, bool &annotatedHandle,
+                                    ShaderVariable &handleVar) const;
 
+  // This must be a thread safe operation using only thread safe containers
+  bool GetShaderVariableFromLane(const ThreadState &lane, const DXIL::Value *dxilValue,
+                                 DXIL::Operation op, DXIL::DXOp dxOpCode, ShaderVariable &var) const
+  {
+    return lane.GetShaderVariableHelper(dxilValue, op, dxOpCode, var, true, true, true);
+  }
   bool GetShaderVariable(const DXIL::Value *dxilValue, DXIL::Operation op, DXIL::DXOp dxOpCode,
                          ShaderVariable &var, bool flushDenormInput = true) const
   {
-    return GetShaderVariableHelper(dxilValue, op, dxOpCode, var, flushDenormInput, true);
+    return GetShaderVariableHelper(dxilValue, op, dxOpCode, var, flushDenormInput, true, false);
   }
 
   bool GetPhiShaderVariable(const DXIL::Value *dxilValue, DXIL::Operation op, DXIL::DXOp dxOpCode,
                             ShaderVariable &var, bool flushDenormInput = true) const
   {
-    return GetShaderVariableHelper(dxilValue, op, dxOpCode, var, flushDenormInput, false);
+    return GetShaderVariableHelper(dxilValue, op, dxOpCode, var, flushDenormInput, false, false);
   }
 
+  // This must be a thread safe operation using only thread safe containers
   bool GetLiveVariable(const Id &id, DXIL::Operation opCode, DXIL::DXOp dxOpCode,
-                       ShaderVariable &var) const;
+                       bool ignoreLiveCheck, ShaderVariable &var) const;
   bool GetPhiVariable(const Id &id, DXIL::Operation opCode, DXIL::DXOp dxOpCode,
                       ShaderVariable &var) const;
   bool GetVariableHelper(DXIL::Operation op, DXIL::DXOp dxOpCode, ShaderVariable &var) const;
-  void UpdateBackingMemoryFromVariable(void *ptr, uint64_t &allocSize, const ShaderVariable &var);
   void UpdateMemoryVariableFromBackingMemory(Id memoryId, const void *ptr);
   void UpdateGlobalBackingMemory(Id ptrId, const MemoryTracking::Pointer &ptr,
                                  const MemoryTracking::Allocation &allocation,
                                  const ShaderVariable &val);
+  bool LoadGSMFromGlobalBackingMemory(const MemoryTracking::Pointer &ptr,
+                                      const MemoryTracking::Allocation &allocation,
+                                      ShaderVariable &var);
 
-  void PerformGPUResourceOp(const rdcarray<ThreadState> &workgroup, DXIL::Operation opCode,
+  bool PerformGPUResourceOp(const rdcarray<ThreadState> &workgroup, DXIL::Operation opCode,
                             DXIL::DXOp dxOpCode, const ResourceReferenceInfo &resRef,
-                            DebugAPIWrapper *apiWrapper, const DXIL::Instruction &inst,
-                            ShaderVariable &result);
+                            const DXIL::Instruction &inst, ShaderVariable &result);
+  void ConvertSampleGatherReturn(DXIL::DXOp dxOpCode, const DXIL::Instruction &inst,
+                                 const ShaderVariable &data, ShaderVariable &result) const;
   void Sub(const ShaderVariable &a, const ShaderVariable &b, ShaderValue &ret) const;
 
   ShaderValue DDX(bool fine, DXIL::Operation opCode, DXIL::DXOp dxOpCode,
@@ -306,15 +652,31 @@ struct ThreadState
   static bool WorkgroupIsDiverged(const rdcarray<ThreadState> &workgroup);
   static bool QuadIsDiverged(const rdcarray<ThreadState> &workgroup,
                              const rdcfixedarray<uint32_t, 4> &quadNeighbours);
+  static bool SubgroupIsDiverged(const rdcarray<ThreadState> &workgroup,
+                                 const rdcarray<uint32_t> &activeLanes);
 
-  bool GetShaderVariableHelper(const DXIL::Value *dxilValue, DXIL::Operation op, DXIL::DXOp dxOpCode,
-                               ShaderVariable &var, bool flushDenormInput, bool isLive) const;
+  // When getting live variables : this must be a thread safe operation using only thread safe containers
+  bool GetShaderVariableHelper(const DXIL::Value *dxilValue, DXIL::Operation op,
+                               DXIL::DXOp dxOpCode, ShaderVariable &var, bool flushDenormInput,
+                               bool isLive, bool ignoreLiveCheck) const;
   bool IsVariableAssigned(const Id id) const;
 
-  ShaderVariable GetBuiltin(ShaderBuiltin builtin);
-  uint32_t GetSubgroupActiveLanes(const rdcarray<bool> &activeMask,
-                                  const rdcarray<ThreadState> &workgroup,
+  ShaderVariable GetBuiltin(ShaderBuiltin builtin) const;
+  uint32_t GetSubgroupActiveLanes(const rdcarray<ThreadState> &workgroup,
                                   rdcarray<uint32_t> &activeLanes) const;
+
+  void QueueMathOp(DXIL::DXOp dxOp, const ShaderVariable &input, ShaderVariable &result);
+  void QueueSampleGather(DXIL::DXOp dxOp, const SampleGatherResourceData &resourceData,
+                         const SampleGatherSamplerData &samplerData, const ShaderVariable &uv,
+                         const ShaderVariable &ddxCalc, const ShaderVariable &ddyCalc,
+                         const int8_t texelOffsets[3], int multisampleIndex, float lodValue,
+                         float compareValue, GatherChannel gatherChannel, uint32_t instructionIdx,
+                         ShaderVariable &result);
+  void OperationLoad(bool isAtomic, const DXIL::Instruction &inst, DXIL::Operation opCode,
+                     DXIL::DXOp dxOpCode, Id &resultId, ShaderVariable &result);
+  void OperationStore(const DXIL::Instruction &inst, DXIL::Operation opCode, DXIL::DXOp dxOpCode);
+  void OperationAtomic(const DXIL::Instruction &inst, DXIL::Operation opCode, DXIL::DXOp dxOpCode,
+                       Id &resultId, ShaderVariable &result);
 
   struct AnnotationProperties
   {
@@ -330,12 +692,12 @@ struct ThreadState
   const GlobalState &m_GlobalState;
 
   rdcarray<StackFrame *> m_Callstack;
-  ShaderDebugState *m_State = NULL;
+  bool m_HasDebugState = false;
 
   ShaderVariable m_Input;
   GlobalVariable m_Output;
 
-  // Known SSA ShaderVariables
+  // Known SSA ShaderVariables : this must be a thread safe container
   rdcarray<ShaderVariable> m_Variables;
   // SSA Variables captured when a branch happens for use in phi nodes
   std::map<Id, ShaderVariable> m_PhiVariables;
@@ -343,7 +705,7 @@ struct ThreadState
   rdcarray<bool> m_Live;
   // Globals variables at the current scope
   rdcarray<bool> m_IsGlobal;
-  // If the variable has been assigned a value
+  // If the variable has been assigned a value : this must be a thread safe container
   rdcarray<bool> m_Assigned;
   // Annotated handle properties
   std::map<Id, AnnotationProperties> m_AnnotatedProperties;
@@ -355,6 +717,13 @@ struct ThreadState
   const FunctionInfo *m_FunctionInfo = NULL;
   DXBC::ShaderType m_ShaderType;
 
+  rdcarray<bool> m_ActiveMask;
+
+  ShaderDebugState m_PendingDebugState;
+  ShaderVariable m_PendingResultData;
+  GpuMathOperation m_QueuedGpuMathOp;
+  GpuSampleGatherOperation m_QueuedGpuSampleGatherOp;
+
   // Track memory allocations
   // For stack allocations do not bother freeing when leaving functions
   MemoryTracking m_Memory;
@@ -365,8 +734,11 @@ struct ThreadState
   // The current and previous function basic block index
   uint32_t m_Block = ~0U;
   uint32_t m_PreviousBlock = ~0U;
-  // The global PC of the active instruction that was or will be executed on the current simulation step
+  // The global PC of the active instruction that will be executed on the next simulation step
   uint32_t m_ActiveGlobalInstructionIdx = 0;
+  // The global PC and block of the instruction that was last executed
+  uint32_t m_CurrentGlobalInstructionIdx = 0;
+  uint32_t m_CurrentBlock = ~0U;
 
   // true if executed an operation which could trigger divergence
   bool m_Diverged;
@@ -391,6 +763,13 @@ struct ThreadState
   bool m_Dead = false;
   bool m_Ended = false;
   bool m_Helper = false;
+
+  // These need to be accessed using atomics
+  int32_t atomic_pendingResultStatus = (int32_t)PendingResultStatus::Unknown;
+  int32_t atomic_stepNeedsGpuSampleGatherOp = 0;
+  int32_t atomic_stepNeedsGpuMathOp = 0;
+  int32_t atomic_stepNeedsDeviceThread = 0;
+  int32_t atomic_isSimulationStepActive = 0;
 };
 
 struct GlobalState
@@ -400,56 +779,6 @@ struct GlobalState
   BuiltinInputs builtins;
   uint32_t subgroupSize = 1;
   bool waveOpsIncludeHelpers = false;
-
-  struct ViewFmt
-  {
-    int byteWidth = 0;
-    int numComps = 0;
-    CompType compType = CompType::Typeless;
-    int stride = 0;
-  };
-
-  struct ResourceInfo
-  {
-    ResourceInfo() : firstElement(0), numElements(0), isByteBuffer(false), isRootDescriptor(false)
-    {
-    }
-
-    uint32_t firstElement;
-    uint32_t numElements;
-
-    bool isByteBuffer;
-    bool isRootDescriptor;
-    // Buffer stride is stored in format.stride
-    ViewFmt format;
-  };
-
-  struct UAVData
-  {
-    UAVData() : tex(false), rowPitch(0), depthPitch(0), hiddenCounter(0) {}
-
-    ResourceInfo resInfo;
-
-    bytebuf data;
-    bool tex;
-    uint32_t rowPitch, depthPitch;
-
-    uint32_t hiddenCounter;
-  };
-
-  std::map<BindingSlot, UAVData> uavs;
-  typedef std::map<BindingSlot, UAVData>::const_iterator UAVIterator;
-
-  struct SRVData
-  {
-    SRVData() {}
-
-    ResourceInfo resInfo;
-    bytebuf data;
-  };
-
-  std::map<BindingSlot, SRVData> srvs;
-  typedef std::map<BindingSlot, SRVData>::const_iterator SRVIterator;
 
   // allocated storage for opaque uniform blocks, does not change over the course of debugging
   rdcarray<ShaderVariable> constantBlocks;
@@ -556,62 +885,61 @@ struct TypeData
   bool colMajorMat = false;
 };
 
-enum class ThreadProperty : uint32_t
+enum class StepThreadMode
 {
-  Helper,
-  QuadId,
-  QuadLane,
-  Active,
-  SubgroupIdx,
-  Count,
-};
-
-struct ThreadProperties
-{
-  rdcfixedarray<uint32_t, arraydim<ThreadProperty>()> props;
-
-  uint32_t &operator[](ThreadProperty p)
-  {
-    if(p >= ThreadProperty::Count)
-      return props[0];
-    return props[(uint32_t)p];
-  }
-
-  uint32_t operator[](ThreadProperty p) const
-  {
-    if(p >= ThreadProperty::Count)
-      return 0;
-    return props[(uint32_t)p];
-  }
+  RUN_SINGLE_STEP,
+  RUN_MULTIPLE_STEPS,
+  QUEUE_SINGLE_STEP,
+  QUEUE_MULTIPLE_STEPS
 };
 
 class Debugger : public DXBCContainerDebugger
 {
 public:
-  Debugger() : DXBCContainerDebugger(true){};
-  ShaderDebugTrace *BeginDebug(uint32_t eventId, const DXBC::DXBCContainer *dxbcContainer,
+  Debugger();
+  ~Debugger();
+
+  ShaderDebugTrace *BeginDebug(DebugAPIWrapper *apiWrapper, uint32_t eventId,
+                               const DXBC::DXBCContainer *dxbcContainer,
                                const ShaderReflection &reflection, uint32_t activeLaneIndex,
                                uint32_t threadsInWorkgroup);
-  void InitialiseWorkgroup(const rdcarray<ThreadProperties> &workgroupProperties);
-  rdcarray<ShaderDebugState> ContinueDebug(DebugAPIWrapper *apiWrapper);
-  GlobalState &GetGlobalState() { return m_GlobalState; }
-  ThreadState &GetActiveLane() { return m_Workgroup[m_ActiveLaneIndex]; }
-  ThreadState &GetLane(const uint32_t i) { return m_Workgroup[i]; }
-  rdcarray<ThreadState> &GetWorkgroup() { return m_Workgroup; }
-  const rdcarray<bool> &GetLiveGlobals() { return m_LiveGlobals; }
-  static rdcstr GetResourceReferenceName(const DXIL::Program *program, DXIL::ResourceClass resClass,
-                                         const BindingSlot &slot);
+  rdcarray<ShaderDebugState> ContinueDebug();
+
+  const rdcarray<bool> &GetLiveGlobals() const { return m_LiveGlobals; }
+  const DXIL::Program &GetProgram() const { return *m_Program; }
+  const FunctionInfo *GetFunctionInfo(const DXIL::Function *function) const;
+
+  DebugAPIWrapper *GetAPIWrapper() const { return m_ApiWrapper; }
+
   static rdcstr GetResourceBaseName(const DXIL::Program *program,
                                     const DXIL::ResourceReference *resRef);
-  const DXIL::Program &GetProgram() const { return *m_Program; }
-  uint32_t GetEventId() { return m_EventId; }
-  const FunctionInfo *GetFunctionInfo(const DXIL::Function *function) const;
-  const rdcarray<DXIL::EntryPointInterface::Signature> &GetDXILEntryPointInputs(void) const
-  {
-    return m_EntryPointInterface->inputs;
-  }
 
+  static rdcstr GetResourceReferenceName(const DXIL::Program *program, DXIL::ResourceClass resClass,
+                                         const BindingSlot &slot);
+
+  ShaderValue TypedResourceLoad(DXIL::ResourceClass resClass, const BindingSlot &slot,
+                                const DXILDebug::ViewFmt &fmt, uint64_t dataOffset);
+  bool TypedResourceStore(DXIL::ResourceClass resClass, const BindingSlot &slot,
+                          const DXILDebug::ViewFmt &fmt, uint64_t dataOffset, ShaderValue &value);
+
+  DeviceOpResult GetUAV(const BindingSlot &slot, UAVInfo &uavInfo) const;
+  DeviceOpResult GetSRV(const BindingSlot &slot, SRVInfo &srvInfo) const;
+
+  DeviceOpResult GetResourceInfo(DXIL::ResourceClass resClass, const DXDebug::BindingSlot &slot,
+                                 uint32_t mipLevel, ShaderVariable &result) const;
+  DeviceOpResult GetSampleInfo(DXIL::ResourceClass resClass, const DXDebug::BindingSlot &slot,
+                               const char *opString, ShaderVariable &result) const;
+  DeviceOpResult GetRenderTargetSampleInfo(const char *opString, ShaderVariable &result) const;
+  DeviceOpResult GetResourceReferenceInfo(const DXDebug::BindingSlot &slot,
+                                          ResourceReferenceInfo &result) const;
+  DeviceOpResult GetShaderDirectAccess(DescriptorType type, const DXDebug::BindingSlot &slot,
+                                       ShaderDirectAccess &result) const;
+
+  bool IsDeviceThread() const { return Threading::GetCurrentID() == m_DeviceThreadID; }
+  Threading::CriticalSection &GetAtomicMemoryLock() const { return m_AtomicMemoryLock; }
 private:
+  void InitialiseWorkgroup();
+  ThreadState &GetActiveLane() { return m_Workgroup[m_ActiveLaneIndex]; }
   void ParseDbgOpDeclare(const DXIL::Instruction &inst, uint32_t instructionIndex);
   void ParseDbgOpValue(const DXIL::Instruction &inst, uint32_t instructionIndex);
   const DXIL::Metadata *GetMDScope(const DXIL::Metadata *scopeMD) const;
@@ -622,9 +950,40 @@ private:
   void AddLocalVariable(const DXIL::SourceMappingInfo &srcMapping, uint32_t instructionIndex);
   void ParseDebugData();
 
+  void QueueJob(uint32_t lane);
+  void StepThread(uint32_t lane, StepThreadMode stepMode);
+  void InternalStepThread(uint32_t lane);
+  void SimulationJobHelper();
+  void QueueDeviceThreadStep(uint32_t lane);
+
+  void ProcessQueuedDeviceThreadSteps();
+  void ProcessQueuedOps();
+  void ProcessQueuedGpuMathOps();
+  void ProcessQueuedGpuSampleGatherOps();
+  void SyncPendingGpuOps();
+  void SyncPendingLanes();
+
+  void QueueGpuMathOp(uint32_t lane);
+  void QueueGpuSampleGatherOp(uint32_t lane);
+
+  DebugAPIWrapper *m_ApiWrapper = NULL;
+
   rdcarray<ThreadState> m_Workgroup;
   std::map<const DXIL::Function *, FunctionInfo> m_FunctionInfos;
   rdcshaders::ControlFlow m_ControlFlow;
+
+  rdcarray<ShaderDebugState> *m_ShaderChangesReturn = NULL;
+  ShaderDebugState m_ActiveDebugState;
+
+  mutable Threading::CriticalSection m_AtomicMemoryLock;
+  rdcarray<int32_t> m_QueuedJobs;
+  rdcarray<bool> m_QueuedDeviceThreadSteps;
+  rdcarray<bool> m_QueuedGpuMathOps;
+  rdcarray<bool> m_QueuedGpuSampleGatherOps;
+  rdcarray<bool> m_PendingLanes;
+  rdcarray<ShaderVariable *> m_PendingGpuMathsOpsResults;
+  rdcarray<ShaderVariable *> m_PendingGpuSampleGatherOpsResults;
+  rdcarray<int> m_PendingGpuSampleGatherOpsSampleRetTypes;
 
   // the live mutable global variables, to initialise a stack frame's live list
   rdcarray<bool> m_LiveGlobals;
@@ -644,9 +1003,18 @@ private:
   const DXIL::EntryPointInterface *m_EntryPointInterface = NULL;
   ShaderStage m_Stage;
 
-  uint32_t m_EventId = 0;
+  const uint64_t m_DeviceThreadID;
   uint32_t m_ActiveLaneIndex = 0;
   int m_Steps = 0;
+  bool m_RetireIDs = true;
+  bool m_MTSimulation;
+
+  // These need to be accessed using atomics
+  int32_t atomic_simulationFinished;
 };
 
 };    // namespace DXILDebug
+
+DECLARE_REFLECTION_ENUM(DXILDebug::StepThreadMode);
+DECLARE_REFLECTION_ENUM(DXILDebug::DeviceOpResult);
+DECLARE_REFLECTION_ENUM(DXILDebug::ThreadState::PendingResultStatus);

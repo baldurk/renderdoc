@@ -2330,7 +2330,7 @@ void GLPipelineStateViewer::setState()
         {
           if(r)
             setViewDetails(node, tex, r->firstMip, 1, r->firstSlice, r->numSlices);
-          node->setTag(QVariant::fromValue(p));
+          node->setTag(QVariant::fromValue(GLReadOnlyTag(0, p)));
         }
 
         if(p == ResourceId())
@@ -2422,7 +2422,7 @@ void GLPipelineStateViewer::setState()
         if(tex)
         {
           setViewDetails(node, tex, mip, 1, slice, numSlices);
-          node->setTag(QVariant::fromValue(ds));
+          node->setTag(QVariant::fromValue(GLReadOnlyTag(0, ds)));
         }
 
         if(ds == ResourceId())

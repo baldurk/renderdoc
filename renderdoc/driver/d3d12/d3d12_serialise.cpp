@@ -592,9 +592,39 @@ void DoSerialise(SerialiserType &ser, D3D12Descriptor &el)
 }
 
 template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_SERIALIZED_ROOT_SIGNATURE_DESC &el)
+{
+  SERIALISE_MEMBER_ARRAY(pSerializedBlob, SerializedBlobSizeInBytes).Important();
+
+  // don't serialise size_t, otherwise capture/replay between different bit-ness won't work
+  {
+    uint64_t SerializedBlobSizeInBytes = el.SerializedBlobSizeInBytes;
+    ser.Serialise("SerializedBlobSizeInBytes"_lit, SerializedBlobSizeInBytes);
+    if(ser.IsReading())
+      el.SerializedBlobSizeInBytes = (size_t)SerializedBlobSizeInBytes;
+  }
+}
+
+template <>
+void Deserialise(const D3D12_SERIALIZED_ROOT_SIGNATURE_DESC &el)
+{
+  FreeAlignedBuffer((byte *)(el.pSerializedBlob));
+}
+
+template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &el)
 {
   SERIALISE_MEMBER(pRootSignature);
+
+  if(ser.VersionAtLeast(0x15))
+  {
+    SERIALISE_MEMBER(RootSigBlob);
+  }
+  else if(ser.IsReading())
+  {
+    el.RootSigBlob = {};
+  }
+
   SERIALISE_MEMBER(VS).Important();
   SERIALISE_MEMBER(PS).Important();
   SERIALISE_MEMBER(DS);
@@ -605,6 +635,11 @@ void DoSerialise(SerialiserType &ser, D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC 
   {
     SERIALISE_MEMBER(AS);
     SERIALISE_MEMBER(MS);
+  }
+  else if(ser.IsReading())
+  {
+    el.AS = {};
+    el.MS = {};
   }
 
   SERIALISE_MEMBER(StreamOutput);
@@ -2124,6 +2159,20 @@ void Deserialise(const D3D12_STATE_OBJECT_DESC &el)
           delete temp;
           break;
         }
+        case D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_SERIALIZED_ROOT_SIGNATURE:
+        {
+          D3D12_GLOBAL_SERIALIZED_ROOT_SIGNATURE *temp =
+              (D3D12_GLOBAL_SERIALIZED_ROOT_SIGNATURE *)el.pSubobjects[i].pDesc;
+          delete temp;
+          break;
+        }
+        case D3D12_STATE_SUBOBJECT_TYPE_LOCAL_SERIALIZED_ROOT_SIGNATURE:
+        {
+          D3D12_LOCAL_SERIALIZED_ROOT_SIGNATURE *temp =
+              (D3D12_LOCAL_SERIALIZED_ROOT_SIGNATURE *)el.pSubobjects[i].pDesc;
+          delete temp;
+          break;
+        }
         case D3D12_STATE_SUBOBJECT_TYPE_NODE_MASK:
         {
           D3D12_NODE_MASK *temp = (D3D12_NODE_MASK *)el.pSubobjects[i].pDesc;
@@ -2213,6 +2262,12 @@ void DoSerialise(SerialiserType &ser, D3D12_STATE_SUBOBJECT &el)
     case D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE:
       ser.SerialiseNullable("pDesc"_lit, (D3D12_LOCAL_ROOT_SIGNATURE *&)el.pDesc);
       break;
+    case D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_SERIALIZED_ROOT_SIGNATURE:
+      ser.SerialiseNullable("pDesc"_lit, (D3D12_GLOBAL_SERIALIZED_ROOT_SIGNATURE *&)el.pDesc);
+      break;
+    case D3D12_STATE_SUBOBJECT_TYPE_LOCAL_SERIALIZED_ROOT_SIGNATURE:
+      ser.SerialiseNullable("pDesc"_lit, (D3D12_LOCAL_SERIALIZED_ROOT_SIGNATURE *&)el.pDesc);
+      break;
     case D3D12_STATE_SUBOBJECT_TYPE_NODE_MASK:
       ser.SerialiseNullable("pDesc"_lit, (D3D12_NODE_MASK *&)el.pDesc);
       break;
@@ -2260,6 +2315,18 @@ template <class SerialiserType>
 void DoSerialise(SerialiserType &ser, D3D12_LOCAL_ROOT_SIGNATURE &el)
 {
   SERIALISE_MEMBER(pLocalRootSignature);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_GLOBAL_SERIALIZED_ROOT_SIGNATURE &el)
+{
+  SERIALISE_MEMBER(Desc);
+}
+
+template <class SerialiserType>
+void DoSerialise(SerialiserType &ser, D3D12_LOCAL_SERIALIZED_ROOT_SIGNATURE &el)
+{
+  SERIALISE_MEMBER(Desc);
 }
 
 template <class SerialiserType>
@@ -2592,6 +2659,8 @@ INSTANTIATE_SERIALISE_TYPE(D3D12_STATE_SUBOBJECT);
 INSTANTIATE_SERIALISE_TYPE(D3D12_STATE_OBJECT_CONFIG);
 INSTANTIATE_SERIALISE_TYPE(D3D12_GLOBAL_ROOT_SIGNATURE);
 INSTANTIATE_SERIALISE_TYPE(D3D12_LOCAL_ROOT_SIGNATURE);
+INSTANTIATE_SERIALISE_TYPE(D3D12_GLOBAL_SERIALIZED_ROOT_SIGNATURE);
+INSTANTIATE_SERIALISE_TYPE(D3D12_LOCAL_SERIALIZED_ROOT_SIGNATURE);
 INSTANTIATE_SERIALISE_TYPE(D3D12_NODE_MASK);
 INSTANTIATE_SERIALISE_TYPE(D3D12_DXIL_LIBRARY_DESC);
 INSTANTIATE_SERIALISE_TYPE(D3D12_EXISTING_COLLECTION_DESC);
@@ -2605,3 +2674,4 @@ INSTANTIATE_SERIALISE_TYPE(D3D12_EXPORT_DESC);
 INSTANTIATE_SERIALISE_TYPE(D3D12_GPU_VIRTUAL_ADDRESS_RANGE);
 INSTANTIATE_SERIALISE_TYPE(D3D12_GPU_VIRTUAL_ADDRESS_RANGE_AND_STRIDE);
 INSTANTIATE_SERIALISE_TYPE(D3D12_DISPATCH_RAYS_DESC);
+INSTANTIATE_SERIALISE_TYPE(D3D12_SERIALIZED_ROOT_SIGNATURE_DESC);

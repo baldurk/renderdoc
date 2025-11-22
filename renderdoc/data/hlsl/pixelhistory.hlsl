@@ -30,6 +30,8 @@ cbuffer cb0 : register(b0)
   bool is_float;
   bool is_uint;
   bool is_int;
+
+  bool is_3d;
 };
 
 cbuffer cb1 : register(b1)
@@ -47,12 +49,15 @@ Texture2DMSArray<uint2> copyin_stencil_ms : register(t3);
 
 Texture2DArray<float4> copyin_float : register(t4);
 Texture2DMSArray<float4> copyin_float_ms : register(t5);
+Texture3D<float4> copyin_float_3d : register(t6);
 
-Texture2DArray<uint4> copyin_uint : register(t6);
-Texture2DMSArray<uint4> copyin_uint_ms : register(t7);
+Texture2DArray<uint4> copyin_uint : register(t8);
+Texture2DMSArray<uint4> copyin_uint_ms : register(t9);
+Texture3D<uint4> copyin_uint_3d : register(t10);
 
-Texture2DArray<int4> copyin_int : register(t8);
-Texture2DMSArray<int4> copyin_int_ms : register(t9);
+Texture2DArray<int4> copyin_int : register(t12);
+Texture2DMSArray<int4> copyin_int_ms : register(t13);
+Texture3D<int4> copyin_int_3d : register(t14);
 
 RWBuffer<float4> copyout_depth : register(u0);
 RWBuffer<float4> copyout_float : register(u1);
@@ -91,6 +96,21 @@ RWBuffer<int4> copyout_int : register(u3);
       {
         copyout_int[dst_slot] = copyin_int_ms.Load(uint3(src_coord.xy, src_coord.w), src_coord.z);
       }
+    }
+  }
+  else if(is_3d)
+  {
+    if(is_float)
+    {
+      copyout_float[dst_slot] = copyin_float_3d.Load(src_coord.xywz);
+    }
+    else if(is_uint)
+    {
+      copyout_uint[dst_slot] = copyin_uint_3d.Load(src_coord.xywz);
+    }
+    else if(is_int)
+    {
+      copyout_int[dst_slot] = copyin_int_3d.Load(src_coord.xywz);
     }
   }
   else

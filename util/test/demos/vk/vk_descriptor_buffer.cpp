@@ -956,11 +956,11 @@ void main()
     VkImageView t_comb_30_tex = MakeTestImage("t_comb_30_tex", Vec4f(0.5f, 0.0f, 0.5f, 1.0f));
 
     AllocatedBuffer blasBuffer;
-    VkAccelerationStructureKHR blas;
+    VkAccelerationStructureKHR blas = VK_NULL_HANDLE;
     AllocatedBuffer tlasBuffer;
-    VkAccelerationStructureKHR j;
-    VkAccelerationStructureKHR t_as_60;
-    VkAccelerationStructureKHR u_20;
+    VkAccelerationStructureKHR j = VK_NULL_HANDLE;
+    VkAccelerationStructureKHR t_as_60 = VK_NULL_HANDLE;
+    VkAccelerationStructureKHR u_20 = VK_NULL_HANDLE;
     if(rays)
     {
       Vec3f vertices[] = {

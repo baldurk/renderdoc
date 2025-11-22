@@ -505,11 +505,13 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
 
   m_WrappedDebug.m_pQueue = this;
   m_pDownlevel = NULL;
+  m_pReal1 = NULL;
   if(m_pReal)
   {
     m_pReal->QueryInterface(__uuidof(ID3D12DebugCommandQueue), (void **)&m_WrappedDebug.m_pReal);
     m_pReal->QueryInterface(__uuidof(ID3D12DebugCommandQueue1), (void **)&m_WrappedDebug.m_pReal1);
     m_pReal->QueryInterface(__uuidof(ID3D12CommandQueueDownlevel), (void **)&m_pDownlevel);
+    m_pReal->QueryInterface(__uuidof(ID3D12CommandQueue1), (void **)&m_pReal1);
     m_pReal->QueryInterface(__uuidof(ID3D12CompatibilityQueue), (void **)&m_WrappedCompat.m_pReal);
   }
 
@@ -566,6 +568,7 @@ WrappedID3D12CommandQueue::~WrappedID3D12CommandQueue()
   m_pDevice->RemoveQueue(this);
 
   SAFE_RELEASE(m_pDownlevel);
+  SAFE_RELEASE(m_pReal1);
 
   SAFE_RELEASE(m_WrappedCompat.m_pReal);
   SAFE_RELEASE(m_WrappedDebug.m_pReal);

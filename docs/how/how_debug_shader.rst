@@ -57,13 +57,7 @@ There are a couple of things to note while pixel debugging:
 Debugging a Compute thread
 --------------------------
 
-To debug a compute thread simply go to the compute shader section of the pipeline state viewer and enter the group and thread ID of the thread you would like to debug. This thread will be debugged in isolation with no other threads in the group running.
-
-This means there can be no synchronisation with any other compute thread running and the debugging will run from start to finish as if no other thread had run.
-
-.. warning::
-
-	This feature is **highly** experimental and is provided with no guarantees yet! It may work on simple shaders which is why it is available.
+To debug a compute thread simply go to the compute shader section of the pipeline state viewer and enter the group and thread ID of the thread you would like to debug.
 
 Debugging Controls
 ------------------

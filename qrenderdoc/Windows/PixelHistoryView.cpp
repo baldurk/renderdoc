@@ -304,9 +304,9 @@ public:
             if(mod.unboundPS)
             {
               if(!m_IsDepth)
-                return tr("No Pixel\nShader\nBound\n\n");
+                return tr("No Pixel\nShader\nOutput\n\n");
               else
-                return tr("No Pixel Shader Bound\n\n") + modString(mod.shaderOut);
+                return tr("No Pixel Shader Output\n\n") + modString(mod.shaderOut);
             }
             if(mod.directShaderWrite)
               return tr("Tex Before\n\n") + modString(mod.preMod);

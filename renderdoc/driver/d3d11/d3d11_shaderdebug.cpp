@@ -41,8 +41,6 @@
 
 #include "data/hlsl/hlsl_cbuffers.h"
 
-RDOC_EXTERN_CONFIG(bool, D3D_Hack_EnableGroups);
-
 class D3D11DebugAPIWrapper : public DXBCDebug::DebugAPIWrapper
 {
 public:
@@ -2318,9 +2316,8 @@ ShaderDebugTrace *D3D11Replay::DebugThread(uint32_t eventId,
   uint32_t activeIndex = 0;
   if(dxbc->GetThreadScope() == DXBC::ThreadScope::Workgroup)
   {
-    if(D3D_Hack_EnableGroups())
-      activeIndex = threadid[0] + threadid[1] * refl.dispatchThreadsDimension[0] +
-                    threadid[2] * refl.dispatchThreadsDimension[0] * refl.dispatchThreadsDimension[1];
+    activeIndex = threadid[0] + threadid[1] * refl.dispatchThreadsDimension[0] +
+                  threadid[2] * refl.dispatchThreadsDimension[0] * refl.dispatchThreadsDimension[1];
   }
 
   DXBCDebug::InterpretDebugger *interpreter = new DXBCDebug::InterpretDebugger;

@@ -42,6 +42,13 @@ class DXBCContainer;
 
 #define D3D12_MSAA_SAMPLECOUNT 4
 
+enum ShaderDebugConstants
+{
+  MAX_SHADER_DEBUG_QUEUED_OPS = 128,
+  COUNT_SRVS_PER_DEBUG = 25,
+  COUNT_SAMPLERS_PER_DEBUG = 2,
+};
+
 // baked indices in descriptor heaps
 enum CBVUAVSRVSlot
 {
@@ -81,7 +88,8 @@ enum CBVUAVSRVSlot
   STENCIL_MSAA_SRV32x,
 
   FIRST_SHADDEBUG_SRV,
-  LAST_SHADDEBUG_SRV = FIRST_SHADDEBUG_SRV + 25,
+  LAST_SHADDEBUG_SRV = FIRST_SHADDEBUG_SRV + ShaderDebugConstants::COUNT_SRVS_PER_DEBUG *
+                                                 ShaderDebugConstants::MAX_SHADER_DEBUG_QUEUED_OPS,
 
   FIRST_PIXELHISTORY_SRV,
   LAST_PIXELHISTORY_SRV = FIRST_PIXELHISTORY_SRV + 10,
@@ -90,6 +98,7 @@ enum CBVUAVSRVSlot
 
   FIRST_PIXELHISTORY_UAV,
   LAST_PIXELHISTORY_UAV = FIRST_PIXELHISTORY_UAV + 5,
+  PIXEL_HISTORY_CLEAR_UAV,
 
   DEPTH_COPY_SRV,
   MAX_SRV_SLOT,
@@ -103,11 +112,14 @@ enum RTVSlot
   GET_TEX_RTV,
   MSAA_RTV,
   SHADER_DEBUG_RTV,
-  PIXEL_HISTORY_RTV,
+  PIXEL_HISTORY_TYPED_RTV,
+  PIXEL_HISTORY_FLOAT_RTV,
   FIRST_TMP_RTV,
   LAST_TMP_RTV = FIRST_TMP_RTV + 16,
   FIRST_WIN_RTV,
   LAST_WIN_RTV = FIRST_WIN_RTV + 768,
+
+  MAX_RTV_SLOT,
 };
 
 enum SamplerSlot
@@ -116,7 +128,9 @@ enum SamplerSlot
   FIRST_SAMP = POINT_SAMP,
   LINEAR_SAMP,
   SHADDEBUG_SAMPLER0,
-  SHADDEBUG_SAMPLER1,
+  LAST_SHADDEBUG_SAMPLER = SHADDEBUG_SAMPLER0 + ShaderDebugConstants::COUNT_SAMPLERS_PER_DEBUG *
+                                                    ShaderDebugConstants::MAX_SHADER_DEBUG_QUEUED_OPS,
+  MAX_SAMPLER_SLOT,
 };
 
 enum DSVSlot
@@ -127,6 +141,8 @@ enum DSVSlot
   TMP_DSV,
   FIRST_WIN_DSV,
   LAST_WIN_DSV = FIRST_WIN_DSV + 64,
+
+  MAX_DSV_SLOT
 };
 
 struct MeshDisplayPipelines
@@ -213,7 +229,7 @@ public:
   void PixelHistoryCopyPixel(ID3D12GraphicsCommandListX *cmd, ID3D12Resource *dstBuffer,
                              D3D12CopyPixelParams &params, size_t offset);
 
-  bool PixelHistorySetupResources(D3D12PixelHistoryResources &resources,
+  bool PixelHistorySetupResources(D3D12PixelHistoryResources &resources, Subresource sub,
                                   WrappedID3D12Resource *targetImage,
                                   const D3D12_RESOURCE_DESC &desc, uint32_t numEvents);
   bool PixelHistoryDestroyResources(D3D12PixelHistoryResources &resources);

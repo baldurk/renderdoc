@@ -715,11 +715,38 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
       }
       else
       {
-        // can't create a memory-spanning buffer for this allocation. Assume this is a case where
-        // this memory type is only available to images and is not mappable - in which case the
-        // whole memory buffer won't be needed so we can skip this.
         ObjDisp(device)->DestroyBuffer(Unwrap(device), wholeMemBuf, NULL);
         wholeMemBuf = VK_NULL_HANDLE;
+
+        // can't create a memory-spanning buffer for this allocation. Try again with descriptor
+        // buffers if that is enabled as those memory types are sometimes unique.
+        if(DescriptorBuffers())
+        {
+          bufInfo.usage |= VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
+
+          ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &bufInfo, NULL, &wholeMemBuf);
+          RDCASSERTEQUAL(ret, VK_SUCCESS);
+
+          ObjDisp(device)->GetBufferMemoryRequirements(Unwrap(device), wholeMemBuf, &mrq);
+
+          RDCASSERTEQUAL(mrq.size, info.allocationSize);
+
+          if((mrq.memoryTypeBits & (1U << info.memoryTypeIndex)) != 0)
+          {
+            bufid = GetResourceManager()->WrapResource(Unwrap(device), wholeMemBuf);
+
+            ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(wholeMemBuf), Unwrap(*pMemory),
+                                              0);
+          }
+          else
+          {
+            ObjDisp(device)->DestroyBuffer(Unwrap(device), wholeMemBuf, NULL);
+            wholeMemBuf = VK_NULL_HANDLE;
+          }
+        }
+
+        // Otherwise this could be a case where this memory type is only available to images and is
+        // not mappable - in which case the whole memory buffer shouldn't be needed so we can skip this.
       }
     }
 
@@ -2606,6 +2633,88 @@ bool WrappedVulkan::Serialise_vkCreateImage(SerialiserType &ser, VkDevice device
         {
           newFmts[i] = msaaCopyFormat;
           formatListInfo->viewFormatCount++;
+        }
+      }
+    }
+
+    VkExternalMemoryImageCreateInfo *extCreateInfo =
+        (VkExternalMemoryImageCreateInfo *)FindNextStruct(
+            &CreateInfo, VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO);
+
+    // if we've allowed an external memory image create info to stay, validate that the handle types
+    // are still supported
+    if(extCreateInfo)
+    {
+      VkExternalImageFormatProperties externalResult = {
+          VK_STRUCTURE_TYPE_EXTERNAL_IMAGE_FORMAT_PROPERTIES,
+      };
+      VkImageFormatProperties2 resultBase = {
+          VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2,
+          &externalResult,
+      };
+
+      VkPhysicalDeviceExternalImageFormatInfo externalQuery = {
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_IMAGE_FORMAT_INFO,
+      };
+      VkPhysicalDeviceImageFormatInfo2 queryBase = {
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2,
+          &externalQuery,
+      };
+
+      // pass creation info
+      queryBase.flags = CreateInfo.flags;
+      queryBase.format = CreateInfo.format;
+      queryBase.tiling = CreateInfo.tiling;
+      queryBase.type = CreateInfo.imageType;
+      queryBase.usage = CreateInfo.usage;
+
+      // pass image format list, if the application did
+      VkImageFormatListCreateInfo *appFormatInfo = (VkImageFormatListCreateInfo *)FindNextStruct(
+          &CreateInfo, VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO);
+      VkImageFormatListCreateInfo formatInfo;
+      if(appFormatInfo)
+      {
+        formatInfo = *appFormatInfo;
+        formatInfo.pNext = queryBase.pNext;
+        queryBase.pNext = &formatInfo;
+      }
+
+      for(uint32_t i = 0; i < 32; i++)
+      {
+        VkExternalMemoryHandleTypeFlagBits checkBit = VkExternalMemoryHandleTypeFlagBits(1U << i);
+
+        // only check compatibility for set bits
+        if(extCreateInfo->handleTypes & checkBit)
+        {
+          externalQuery.handleType = checkBit;
+
+          VkResult queryResult = ObjDisp(m_PhysicalDevice)
+                                     ->GetPhysicalDeviceImageFormatProperties2(
+                                         Unwrap(m_PhysicalDevice), &queryBase, &resultBase);
+          if(queryResult != VK_SUCCESS)
+          {
+            RDCERR("vkGetPhysicalDeviceImageFormatProperties2 returned %s",
+                   ToStr(queryResult).c_str());
+            externalResult.externalMemoryProperties.externalMemoryFeatures = 0;
+          }
+
+          // we don't know what the application wanted to use this handle type for, but if at least
+          // one of import/export is supported we can replay this OK
+          if(externalResult.externalMemoryProperties.externalMemoryFeatures &
+             (VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT | VK_EXTERNAL_MEMORY_FEATURE_EXPORTABLE_BIT))
+            continue;
+
+          // otherwise we must fail because this handle type isn't supported at all
+          SET_ERROR_RESULT(
+              m_FailedReplayResult, ResultCode::APIHardwareUnsupported,
+              "Tried to create image with external handle types %s, but on replay handle type %s "
+              "can't "
+              "be imported or exported.\n"
+              "\n%s",
+              ToStr((VkExternalMemoryHandleTypeFlagBits)extCreateInfo->handleTypes).c_str(),
+              ToStr(checkBit).c_str(), GetPhysDeviceCompatString(false, false).c_str());
+
+          return false;
         }
       }
     }

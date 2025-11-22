@@ -4172,14 +4172,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     createInfo.enabledLayerCount = 0;
     createInfo.ppEnabledLayerNames = NULL;
 
-    rdcarray<const char *> extArray;
-    extArray.resize(Extensions.size());
-    for(size_t i = 0; i < Extensions.size(); i++)
-      extArray[i] = Extensions[i].c_str();
-
-    createInfo.enabledExtensionCount = (uint32_t)extArray.size();
-    createInfo.ppEnabledExtensionNames = extArray.data();
-
     byte *tempMem = GetTempMemory(GetNextPatchSize(createInfo.pNext));
 
     UnwrapNextChain(m_State, "VkDeviceCreateInfo", tempMem, (VkBaseInStructure *)&createInfo);
@@ -4197,6 +4189,14 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     NVAftermath_Init();
     NVAftermath_EnableVK(supportedExtensions, Extensions, &createInfo.pNext);
+
+    rdcarray<const char *> extArray;
+    extArray.resize(Extensions.size());
+    for(size_t i = 0; i < Extensions.size(); i++)
+      extArray[i] = Extensions[i].c_str();
+
+    createInfo.enabledExtensionCount = (uint32_t)extArray.size();
+    createInfo.ppEnabledExtensionNames = extArray.data();
 
     vkr = GetDeviceDispatchTable(NULL)->CreateDevice(Unwrap(physicalDevice), &createInfo, NULL,
                                                      &device);
@@ -4543,8 +4543,9 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         tagInfo.objectType = VK_OBJECT_TYPE_INSTANCE;
         tagInfo.objectHandle = uint64_t(Unwrap(m_Instance));
         tagInfo.tagName = RENDERDOC_DescriptorsReservation_UUID;
-        tagInfo.tagSize = 0;
-        tagInfo.pTag = NULL;
+        tagInfo.tagSize = sizeof(bool);
+        bool yes = true;
+        tagInfo.pTag = &yes;
 
         vkr = ObjDisp(m_Device)->SetDebugUtilsObjectTagEXT(Unwrap(m_Device), &tagInfo);
       }

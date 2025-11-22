@@ -83,10 +83,15 @@ public:
                                     VkImageLayout curLayout, VkImageSubresourceRange discardRange,
                                     VkRect2D discardRect);
 
-  void InitReadbackBuffer(VkDeviceSize sz);
-  byte *GetReadbackPtr() { return m_ReadbackPtr; }
-  VkBuffer GetUnwrappedReadbackBuffer() { return m_ReadbackWindow.UnwrappedBuffer(); }
-  VkDeviceMemory GetUnwrappedReadbackMemory() { return m_ReadbackWindow.UnwrappedMemory(); }
+  struct ReadbackWindow
+  {
+    VkBuffer unwrappedBuffer;
+    VkDeviceMemory unwrappedMemory;
+    byte *ptr;
+  };
+
+  ReadbackWindow LockReadbackBuffer(VkDeviceSize sz);
+  void UnlockReadbackBuffer();
   VkPipelineCache GetPipelineCache() { return m_PipelineCache; }
   VkPipeline GetCustomPipeline() { return m_Custom.TexPipeline; }
   VkPipeline GetDummyPipeline() { return m_DummyPipeline; }
@@ -134,6 +139,7 @@ private:
   // GetBufferData
   GPUBuffer m_ReadbackWindow;
   byte *m_ReadbackPtr = NULL;
+  Threading::CriticalSection m_ReadbackLock;
 
   // CacheMeshDisplayPipelines
   std::map<uint64_t, VKMeshDisplayPipelines> m_CachedMeshPipelines;

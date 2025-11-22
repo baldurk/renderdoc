@@ -5838,7 +5838,7 @@ void DoSerialise(SerialiserType &ser, DescriptorSetSlot &el)
 
     // serialise the type as VkDescriptorType
     VkDescriptorType type;
-    if(ser.IsWriting())
+    if(ser.IsWriting() || ser.IsStructurising())
       type = convert(el.type);
     SERIALISE_ELEMENT(type);
     if(ser.IsReading())
@@ -5871,7 +5871,7 @@ void DoSerialise(SerialiserType &ser, DescriptorSetSlot &el)
        el.type == DescriptorSlotType::InputAttachment)
     {
       VkImageLayout imageLayout;
-      if(ser.IsWriting())
+      if(ser.IsWriting() || ser.IsStructurising())
         imageLayout = convert(el.imageLayoutOrFormat);
       SERIALISE_ELEMENT(imageLayout);
       if(ser.IsReading())
@@ -5891,7 +5891,7 @@ void DoSerialise(SerialiserType &ser, DescriptorSetSlot &el)
     {
       VkDeviceSize offset;
       VkDeviceSize range;
-      if(ser.IsWriting())
+      if(ser.IsWriting() || ser.IsStructurising())
       {
         offset = el.offset;
         range = el.GetRange();
@@ -5915,6 +5915,20 @@ void DoSerialise(SerialiserType &ser, DescriptorSetSlot &el)
     DescriptorSetSlotBufferInfo bufferInfo;
     DescriptorSetSlotImageInfo imageInfo;
     ResourceId texelBufferView;
+
+    if(ser.IsStructurising())
+    {
+      bufferInfo.buffer = el.resource;
+      bufferInfo.offset = el.offset;
+      bufferInfo.range = el.GetRange();
+
+      imageInfo.imageView = el.resource;
+      imageInfo.sampler = el.sampler;
+      imageInfo.imageLayout = convert(el.imageLayoutOrFormat);
+
+      texelBufferView = el.resource;
+    }
+
     SERIALISE_ELEMENT(bufferInfo).TypedAs("VkDescriptorBufferInfo"_lit);
     SERIALISE_ELEMENT(imageInfo).TypedAs("VkDescriptorImageInfo"_lit);
     SERIALISE_ELEMENT(texelBufferView).TypedAs("VkBufferView"_lit);

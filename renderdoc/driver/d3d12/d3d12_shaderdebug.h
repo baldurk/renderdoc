@@ -39,18 +39,21 @@ typedef DXDebug::GatherChannel GatherChannel;
 typedef DXBCBytecode::SamplerMode SamplerMode;
 
 // Helpers used by DXBC and DXIL debuggers to interact with GPU and resources
-bool CalculateMathIntrinsic(bool dxil, WrappedID3D12Device *device, int mathOp,
-                            const ShaderVariable &input, ShaderVariable &output1,
-                            ShaderVariable &output2);
+bool QueueMathIntrinsic(bool dxil, WrappedID3D12Device *device, ID3D12GraphicsCommandListX *cmdList,
+                        int mathOp, const ShaderVariable &input, const uint32_t queueIndex);
 
-bool CalculateSampleGather(bool dxil, WrappedID3D12Device *device, int sampleOp,
-                           SampleGatherResourceData resourceData,
-                           SampleGatherSamplerData samplerData, const ShaderVariable &uv,
-                           const ShaderVariable &ddxCalc, const ShaderVariable &ddyCalc,
-                           const int8_t texelOffsets[3], int multisampleIndex, float lodValue,
-                           float compareValue, const uint8_t swizzle[4],
-                           GatherChannel gatherChannel, const DXBC::ShaderType shaderType,
-                           uint32_t instruction, const char *opString, ShaderVariable &output);
+bool QueueSampleGather(bool dxil, WrappedID3D12Device *device, ID3D12GraphicsCommandListX *cmdList,
+                       int sampleOp, SampleGatherResourceData resourceData,
+                       SampleGatherSamplerData samplerData, const ShaderVariable &uv,
+                       const ShaderVariable &ddxCalc, const ShaderVariable &ddyCalc,
+                       const int8_t texelOffsets[3], int multisampleIndex, float lodValue,
+                       float compareValue, const uint8_t swizzle[4], GatherChannel gatherChannel,
+                       const DXBC::ShaderType shaderType, uint32_t instruction,
+                       const char *opString, const uint32_t queueIndex, int &sampleRetType);
+bool GetQueuedResults(WrappedID3D12Device *device, ID3D12GraphicsCommandListX *cmdList,
+                      rdcarray<ShaderVariable *> &mathOpResults, uint32_t countMathResultsPerGpuOp,
+                      rdcarray<ShaderVariable *> &sampleGatherResults,
+                      const rdcarray<int> &sampleRetTypes, const rdcarray<const uint8_t *> &swizzles);
 
 D3D12Descriptor FindDescriptor(WrappedID3D12Device *device,
                                const DXDebug::HeapDescriptorType heapType, uint32_t descriptorIndex);

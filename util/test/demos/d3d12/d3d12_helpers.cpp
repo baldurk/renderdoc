@@ -267,6 +267,13 @@ D3D12BufferCreator &D3D12BufferCreator::ASB()
   return *this;
 }
 
+D3D12BufferCreator &D3D12BufferCreator::GPUUpload()
+{
+  m_HeapDesc.Type = D3D12_HEAP_TYPE_GPU_UPLOAD;
+  m_InitialState = D3D12_RESOURCE_STATE_COMMON;
+  return *this;
+}
+
 D3D12BufferCreator &D3D12BufferCreator::Upload()
 {
   m_HeapDesc.Type = D3D12_HEAP_TYPE_UPLOAD;

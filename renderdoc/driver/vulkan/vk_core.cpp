@@ -2865,18 +2865,6 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
     }
   }
 
-  for(VkDeviceMemory m : DeadMemories)
-    vkFreeMemory(m_Device, m, NULL);
-
-  for(VkBuffer b : DeadBuffers)
-    vkDestroyBuffer(m_Device, b, NULL);
-
-  for(VkImage i : DeadImages)
-    vkDestroyImage(m_Device, i, NULL);
-
-  for(VkImageView v : DeadImageViews)
-    vkDestroyImageView(m_Device, v, NULL);
-
   // gather backbuffer screenshot
   const uint32_t maxSize = 2048;
   RenderDoc::FramePixels fp;
@@ -3224,6 +3212,18 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
   GetResourceManager()->ClearReferencedResources();
 
   GetResourceManager()->FreeInitialContents();
+
+  for(VkDeviceMemory m : DeadMemories)
+    vkFreeMemory(m_Device, m, NULL);
+
+  for(VkBuffer b : DeadBuffers)
+    vkDestroyBuffer(m_Device, b, NULL);
+
+  for(VkImage i : DeadImages)
+    vkDestroyImage(m_Device, i, NULL);
+
+  for(VkImageView v : DeadImageViews)
+    vkDestroyImageView(m_Device, v, NULL);
 
   FreeAllMemory(MemoryScope::InitialContents);
   for(rdcstr &fn : m_InitTempFiles)

@@ -380,6 +380,44 @@ void OutputPrint(const char *fmt, ...);
     exit(0);                                                                         \
   } while(0)
 
+namespace PixelHistory
+{
+void init();
+
+struct draw
+{
+  uint32_t first;
+  uint32_t count;
+};
+
+extern std::vector<DefaultA2V> vb;
+
+extern draw DepthWrite;
+extern draw UnboundPS;
+extern draw StencilWrite;
+extern draw Background;
+extern draw CullFront;
+extern draw DepthBoundsPrep;
+extern draw DepthBoundsClip;
+extern draw Draws300;
+extern draw Instances300;
+extern draw MainTest;
+extern draw ScissorFail;
+extern draw ScissorPass;
+extern draw StencilRef;
+extern draw StencilMask;
+extern draw DepthTest;
+extern draw SampleColour;
+extern draw DepthEqualSetup;
+extern draw DepthEqualFail;
+extern draw DepthEqualPass16;
+extern draw DepthEqualPass24;
+extern draw DepthEqualPass32;
+extern draw ColourMask;
+extern draw OverflowingDraw;
+extern draw PerFragDiscard;
+};
+
 namespace TextureZoo
 {
 enum class DataType

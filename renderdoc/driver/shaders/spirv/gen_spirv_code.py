@@ -57,6 +57,8 @@ def operand_name(name, lowercase_first = True):
         return 'arguments'
     if re.search(r'variable, parent.*\.\.\.', name, re.RegexFlag.I):
         return 'parents'
+    if re.search(r'condition 0, operand.*\.\.\.', name, re.RegexFlag.I):
+        return 'conditional_arguments'
 
     name = re.sub(r'<<(.*),(.*)>>', r'\2', name)
     name = re.sub(r'[ \'~<>./-]', '', name)
@@ -208,6 +210,16 @@ inline uint32_t DecodeParam(const ConstIter &it, uint32_t &word)
   if(word >= it.size()) return 0;
   
   uint32_t ret = it.word(word);
+  word += 1;
+  return ret;
+}}
+
+template<>
+inline Capability DecodeParam(const ConstIter &it, uint32_t &word)
+{{
+  if(word >= it.size()) return Capability::Invalid;
+  
+  Capability ret = Capability(word);
   word += 1;
   return ret;
 }}

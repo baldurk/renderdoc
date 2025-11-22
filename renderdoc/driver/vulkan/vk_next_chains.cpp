@@ -179,6 +179,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_EVENT_CREATE_INFO, VkEventCreateInfo);                                \
   COPY_STRUCT(VK_STRUCTURE_TYPE_EXTERNAL_BUFFER_PROPERTIES, VkExternalBufferProperties);              \
   COPY_STRUCT(VK_STRUCTURE_TYPE_EXTERNAL_IMAGE_FORMAT_PROPERTIES, VkExternalImageFormatProperties);   \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO, VkExternalMemoryImageCreateInfo);  \
   COPY_STRUCT(VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, VkFenceCreateInfo);                                \
   COPY_STRUCT(VK_STRUCTURE_TYPE_FILTER_CUBIC_IMAGE_VIEW_IMAGE_FORMAT_PROPERTIES_EXT,                  \
               VkFilterCubicImageViewImageFormatPropertiesEXT);                                        \
@@ -803,8 +804,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_EXTERNAL_FENCE_PROPERTIES, VkExternalFenceProperties);   \
   COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO,                      \
                            VkExternalMemoryBufferCreateInfo);                                         \
-  COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO,                       \
-                           VkExternalMemoryImageCreateInfo);                                          \
   COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_NV,                    \
                            VkExternalMemoryImageCreateInfoNV);                                        \
   COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_EXTERNAL_SEMAPHORE_PROPERTIES,                           \

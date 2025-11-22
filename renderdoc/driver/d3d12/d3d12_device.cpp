@@ -636,14 +636,19 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 
     HRESULT hr = S_OK;
 
+    m_RootSigVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
+    for(D3D_ROOT_SIGNATURE_VERSION verToCheck :
+        {D3D_ROOT_SIGNATURE_VERSION_1_2, D3D_ROOT_SIGNATURE_VERSION_1_1,
+         D3D_ROOT_SIGNATURE_VERSION_1_0})
     {
-      D3D12_FEATURE_DATA_ROOT_SIGNATURE rootSigVer;
+      D3D12_FEATURE_DATA_ROOT_SIGNATURE rootSigVer = {verToCheck};
       hr = m_pDevice->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &rootSigVer,
                                           sizeof(rootSigVer));
-      if(hr != S_OK)
-        rootSigVer.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
-
-      m_RootSigVersion = rootSigVer.HighestVersion;
+      if(hr == S_OK)
+      {
+        m_RootSigVersion = rootSigVer.HighestVersion;
+        break;
+      }
     }
 
     hr = m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &m_D3D12Opts,
@@ -1681,6 +1686,33 @@ ID3D12Resource *WrappedID3D12Device::GetUploadBuffer(uint64_t chunkOffset, uint6
 
   RDCASSERT(hr == S_OK, hr, S_OK, byteSize);
   return buf;
+}
+
+ID3D12RootSignature *WrappedID3D12Device::CreateImplicitRootSig(
+    D3D12_SERIALIZED_ROOT_SIGNATURE_DESC &RootSigBlob)
+{
+  rdcfixedarray<uint32_t, 4> hash;
+  DXBC::DXBCContainer::GetHash(hash, false, RootSigBlob.pSerializedBlob,
+                               RootSigBlob.SerializedBlobSizeInBytes);
+
+  ID3D12RootSignature *cacheEntry = m_ImplicitRootSigs[hash];
+
+  // if we've already cached this root sig, return it! check for collisions by not trusting th
+  if(cacheEntry)
+    return cacheEntry;
+
+  // otherwise create it
+  HRESULT hr =
+      CreateRootSignature(0, RootSigBlob.pSerializedBlob, RootSigBlob.SerializedBlobSizeInBytes,
+                          __uuidof(ID3D12RootSignature), (void **)&cacheEntry);
+  if(cacheEntry)
+    InternalRef();
+  if(FAILED(hr))
+    RDCERR("Failed to create implicit root signature from blob: %s", ToStr(hr).c_str());
+
+  m_ImplicitRootSigs[hash] = cacheEntry;
+
+  return NULL;
 }
 
 void WrappedID3D12Device::ApplyInitialContents()
@@ -3499,7 +3531,7 @@ HRESULT WrappedID3D12Device::CreatePipeState(D3D12_EXPANDED_PIPELINE_STATE_STREA
   if(desc.CS.BytecodeLength > 0)
   {
     D3D12_COMPUTE_PIPELINE_STATE_DESC compDesc;
-    compDesc.pRootSignature = desc.pRootSignature;
+    compDesc.pRootSignature = desc.GetOrCreateRootSig(this);
     compDesc.CS = desc.CS;
     compDesc.NodeMask = desc.NodeMask;
     compDesc.CachedPSO = desc.CachedPSO;
@@ -3509,7 +3541,7 @@ HRESULT WrappedID3D12Device::CreatePipeState(D3D12_EXPANDED_PIPELINE_STATE_STREA
   else
   {
     D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsDesc;
-    graphicsDesc.pRootSignature = desc.pRootSignature;
+    graphicsDesc.pRootSignature = desc.GetOrCreateRootSig(this);
     graphicsDesc.VS = desc.VS;
     graphicsDesc.PS = desc.PS;
     graphicsDesc.DS = desc.DS;
@@ -4441,10 +4473,10 @@ void QueueReadbackData::Resize(uint64_t size)
   if(readbackSize >= size && size != 0)
     return;
 
-  if(readbackBuf)
+  if(unwrappedReadbackBuf)
   {
-    Unwrap(readbackBuf)->Unmap(0, NULL);
-    SAFE_RELEASE(readbackBuf);
+    unwrappedReadbackBuf->Unmap(0, NULL);
+    SAFE_RELEASE(unwrappedReadbackBuf);
     readbackMapped = NULL;
   }
 
@@ -4475,11 +4507,12 @@ void QueueReadbackData::Resize(uint64_t size)
   heapProps.CreationNodeMask = 1;
   heapProps.VisibleNodeMask = 1;
 
-  device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &readbackDesc,
-                                  D3D12_RESOURCE_STATE_COPY_DEST, NULL, __uuidof(ID3D12Resource),
-                                  (void **)&readbackBuf);
-  // don't intercept the map
-  Unwrap(readbackBuf)->Map(0, NULL, (void **)&readbackMapped);
+  // create this unwrapped to avoid intercepting the map during capture or having locking issues
+  // when creating this resource
+  device->GetReal()->CreateCommittedResource(
+      &heapProps, D3D12_HEAP_FLAG_NONE, &readbackDesc, D3D12_RESOURCE_STATE_COPY_DEST, NULL,
+      __uuidof(ID3D12Resource), (void **)&unwrappedReadbackBuf);
+  unwrappedReadbackBuf->Map(0, NULL, (void **)&readbackMapped);
 }
 
 void WrappedID3D12Device::CreateInternalResources()

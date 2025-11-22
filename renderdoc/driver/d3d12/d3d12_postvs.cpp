@@ -2245,7 +2245,7 @@ void D3D12Replay::InitPostMSBuffers(uint32_t eventId)
     }
   }
 
-  pipeDesc.pRootSignature = annotatedSig;
+  pipeDesc.SetRootSig(annotatedSig);
 
   HRESULT hr = S_OK;
 
@@ -3041,7 +3041,7 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventId)
     psoDesc.DepthStencilState.StencilEnable = FALSE;
 
     if(soSig)
-      psoDesc.pRootSignature = soSig;
+      psoDesc.SetRootSig(soSig);
 
     // render as points
     psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;

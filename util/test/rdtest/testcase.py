@@ -407,7 +407,7 @@ class TestCase:
     def get_source_shader_var_value(self, sourceVars: List[rd.SourceVariableMapping], name, varType, debuggerVars):
         sourceVar = [v for v in sourceVars if v.name == name]
         if len(sourceVar) != 1:
-            raise TestFailureException(f"Couldn't find source variable {name} {varType}")
+            raise TestFailureException(f"Couldn't find source variable {name} type:{varType}")
 
         scalarType, countElems = self.parse_shader_var_type(varType)
 
@@ -417,7 +417,7 @@ class TestCase:
         elif scalarType == 'int':
             return list(debugged.value.s32v[0:countElems])
         else:
-            raise TestFailureException(f"Unhandled scalarType {scalarType} {varType}")
+            raise TestFailureException(f"Unhandled scalarType {scalarType} type:{varType}")
         return None
 
     def check_task_data(self, task_ref, task_data):
@@ -739,13 +739,15 @@ class TestCase:
 
     def generate_full_trace(self, trace: rd.ShaderDebugTrace) -> List[rd.ShaderDebugState]:
         allStates = []
+        allChanges = []
         while True:
             states = self.controller.ContinueDebug(trace.debugger)
             if len(states) == 0:
                 break
             for state in states:
                 allStates.append(state)
-        self.validate_trace(allStates)
+                allChanges.append(state.changes)
+        self.validate_trace(allChanges)
         return allStates
 
     def process_trace(self, trace: rd.ShaderDebugTrace, validate: bool = True):

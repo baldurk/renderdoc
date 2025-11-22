@@ -146,7 +146,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   desc.NumDescriptors = rtvCount;
   desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 
-  RDCCOMPILE_ASSERT(LAST_WIN_RTV < rtvCount, "Increase size of RTV heap");
+  RDCCOMPILE_ASSERT(MAX_RTV_SLOT < rtvCount, "Increase size of RTV heap");
 
   hr = m_pDevice->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&rtvHeap);
   m_pDevice->InternalRef();
@@ -163,7 +163,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   desc.NumDescriptors = dsvCount;
   desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 
-  RDCCOMPILE_ASSERT(LAST_WIN_DSV < dsvCount, "Increase size of DSV heap");
+  RDCCOMPILE_ASSERT(MAX_DSV_SLOT < dsvCount, "Increase size of DSV heap");
 
   hr = m_pDevice->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&dsvHeap);
   m_pDevice->InternalRef();
@@ -175,10 +175,12 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   rm->SetInternalResource(dsvHeap);
 
-  desc.NumDescriptors = 4096;
+  const uint32_t srvCount = 4096;
+
+  desc.NumDescriptors = srvCount;
   desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
-  RDCCOMPILE_ASSERT(MAX_SRV_SLOT < 4096, "Increase size of CBV/SRV/UAV heap");
+  RDCCOMPILE_ASSERT(MAX_SRV_SLOT < srvCount, "Increase size of CBV/SRV/UAV heap");
 
   hr = m_pDevice->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&uavClearHeap);
   m_pDevice->InternalRef();
@@ -203,8 +205,12 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   rm->SetInternalResource(cbvsrvuavHeap);
 
-  desc.NumDescriptors = 16;
+  const uint32_t samplerCount = 300;
+
+  desc.NumDescriptors = samplerCount;
   desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+
+  RDCCOMPILE_ASSERT(MAX_SAMPLER_SLOT < samplerCount, "Increase size of sampler heap");
 
   hr = m_pDevice->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap), (void **)&samplerHeap);
   m_pDevice->InternalRef();
@@ -603,6 +609,12 @@ D3D12DebugManager::~D3D12DebugManager()
 
 bool D3D12DebugManager::CreateShaderDebugResources()
 {
+  // MathOp is 2, SampleGatherOp is 6
+  const uint64_t resultMaxElementSize = sizeof(Vec4f) * (2 + 6);
+  const uint32_t maxQueuedResults = ShaderDebugConstants::MAX_SHADER_DEBUG_QUEUED_OPS;
+  const uint64_t shaderDebugReadbackSize = resultMaxElementSize * maxQueuedResults;
+  RDCCOMPILE_ASSERT(shaderDebugReadbackSize < m_ReadbackSize, "Readback buffer is not big enough");
+
   rdcstr hlsl = GetEmbeddedResource(shaderdebug_hlsl);
 
   D3D12RootSignature rootSig;

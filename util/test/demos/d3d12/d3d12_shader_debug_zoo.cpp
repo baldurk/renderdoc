@@ -87,6 +87,46 @@ float4 main(float4 pos : SV_Position) : SV_Target0
 
 )EOSHADER";
 
+  std::string shaderTypes = R"EOSHADER(
+#if SM_6_6
+
+#define INT32 int32_t
+#define UINT32 uint32_t
+
+#if HAS_16BIT_SHADER_OPS 
+#define INT16 int16_t
+#define UINT16 uint16_t
+#define HALF half
+#else // #if HAS_16BIT_SHADER_OPS 
+#define INT16 int
+#define UINT16 uint
+#define HALF float
+#endif // #if HAS_16BIT_SHADER_OPS 
+
+#if HAS_DOUBLE_SHADER_OPS
+#define INT64 int64_t
+#define UINT64 uint64_t
+#define DOUBLE double
+#else // #if HAS_DOUBLE_SHADER_OPS
+#define INT64 int
+#define UINT64 uint
+#define DOUBLE float
+#endif // #if HAS_DOUBLE_SHADER_OPS
+
+#else // #if SM_6_6
+
+#define INT32 int
+#define UINT32 uint
+#define INT16 int
+#define UINT16 uint
+#define INT64 int
+#define UINT64 uint
+
+#define HALF float
+#define DOUBLE float
+#endif // #if SM_6_6
+)EOSHADER";
+
   std::string common = R"EOSHADER(
 
 struct consts
@@ -108,6 +148,7 @@ struct v2f
   float negoneVal : NEGONE;
   uint tri : TRIANGLE;
   uint intval : INTVAL;
+  row_major float2x3 mat : MAT;
 };
 
 )EOSHADER";
@@ -139,12 +180,19 @@ v2f main(consts IN, uint tri : SV_InstanceID)
   OUT.tinyVal = IN.oneVal * 1.0e-30f;
   OUT.intval = tri + 7;
 
+  OUT.mat[0].x = 1.0;
+  OUT.mat[0].y = 2.0;
+  OUT.mat[0].z = 3.0;
+  OUT.mat[1].x = 4.0;
+  OUT.mat[1].y = 5.0;
+  OUT.mat[1].z = 6.0;
+
   return OUT;
 }
 
 )EOSHADER";
 
-  std::string pixel = R"EOSHADER(
+  std::string pixel = shaderTypes + R"EOSHADER(
 
 // error X3556: integer divides may be much slower, try using uints if possible.
 // we want to do this on purpose
@@ -517,7 +565,7 @@ float4 main(v2f IN) : SV_Target0
     return float4(read.a, read.e, read.d.b[z+0], read.d.c);
   }
 )EOSHADER"
-                      R"EOSHADER(
+                                    R"EOSHADER(
 
   // storing in bounds
   if(IN.tri == 52)
@@ -892,15 +940,13 @@ float4 main(v2f IN) : SV_Target0
     uint res = dot4add_u8packed(a, b, c);
     return float4(res & 0xFF, (res >> 8) & 0xFF, (res >> 16) & 0xFF, (res >> 24) & 0xFF);
   }
-#if HAS_16BIT_SHADER_OPS
   if(IN.tri == 96)
   {
-    half2 a = half2(IN.tri - 96 + 0.25f, IN.tri - 96 + 0.5f);
-    half2 b = half2(IN.tri - 96 + 0.5f, IN.tri - 96 + 0.25f);
+    vector<HALF, 2> a = {IN.tri - 96 + 0.25f, IN.tri - 96 + 0.5f};
+    vector<HALF, 2> b = {IN.tri - 96 + 0.5f, IN.tri - 96 + 0.25f};
     float c = IN.tri - 96 + 0.3f;
     return dot2add(a, b, c);
   }
-#endif
   if(IN.tri == 97)
   {
     int val = IN.tri - 97;
@@ -1037,13 +1083,11 @@ float4 main(v2f IN) : SV_Target0
     }
     return Color;
   }
-
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
-
 )EOSHADER";
 
-  std::string noResourcesPixel = R"EOSHADER(
+  std::string noResourcesPixel = shaderTypes + R"EOSHADER(
 
 float4 main(v2f IN) : SV_Target0
 {
@@ -1081,6 +1125,452 @@ float4 main(v2f IN) : SV_Target0
     s *= posone * float2(0.55f, 0.48f);
     return float4(ddx(s.x), ddy(s.y), s.x, s.y);
   }
+  if(IN.tri == 3)
+  {
+    float4 col = float4(0.0, 0.0, 0.0, 0.0);
+    col.x += IN.mat[0].x;
+    col.y += IN.mat[0].y;
+    col.z += IN.mat[0].z;
+    col.x += IN.mat[1].x;
+    col.y += IN.mat[1].y;
+    col.z += IN.mat[1].z;
+    return col;
+  }
+  if(IN.tri == 4)
+  {
+    float4 Color = float4(0,0,0,0);
+    float floatA = IN.tri/100.0 + 1.5f;
+    float floatB = IN.tri/100.0 + 1.7f;
+    float floatC = IN.tri/100.0 + 2.5f;
+    DOUBLE doubleA = (DOUBLE)floatA; 
+    DOUBLE doubleB = (DOUBLE)floatB;
+    DOUBLE doubleC = (DOUBLE)floatC;
+    HALF halfA = (HALF)floatA;
+    HALF halfB = (HALF)1.0;
+    HALF halfC = (HALF)floatC;
+
+    HALF halfFma = mad(halfA, halfB, halfC);
+    float floatFma = mad(floatA, floatB, floatC);
+    DOUBLE doubleFma = mad(doubleA, doubleB, doubleC);
+    Color.x = floatFma * 1000.0;
+    Color.y = (float)halfFma * 1000.0;
+    Color.z = (float)doubleFma * 1000.0;
+    return Color;
+  }
+  if(IN.tri == 5)
+  {
+    float4 Color = float4(0,0,0,0);
+    float floatA = IN.tri/100.0 + 1.5f;
+    float floatB = IN.tri/100.0 + 1.7f;
+    DOUBLE doubleA = (DOUBLE)floatA; 
+    DOUBLE doubleB = (DOUBLE)floatB;
+    HALF halfA = (HALF)floatA;
+    HALF halfB = (HALF)floatB;
+
+    HALF half_val = min(halfA, halfB);
+    float float_val = min(floatA, floatB);
+    DOUBLE double_val = min(doubleA, doubleB);
+    Color.x = float_val * 1000.0;
+    Color.y = (float)half_val * 1000.0;
+    Color.z = (float)double_val * 1000.0;
+    return Color;
+  }
+  if(IN.tri == 6)
+  {
+    float4 Color = float4(0,0,0,0);
+    float floatA = IN.tri/100.0 + 1.5f;
+    float floatB = IN.tri/100.0 + 1.7f;
+    DOUBLE doubleA = (DOUBLE)floatA; 
+    DOUBLE doubleB = (DOUBLE)floatB;
+    HALF halfA = (HALF)floatA;
+    HALF halfB = (HALF)floatB;
+
+    HALF half_val = max(halfA, halfB);
+    float float_val = max(floatA, floatB);
+    DOUBLE double_val = max(doubleA, doubleB);
+    Color.x = float_val * 1000.0;
+    Color.y = (float)half_val * 1000.0;
+    Color.z = (float)double_val * 1000.0;
+    return Color;
+  }
+  if(IN.tri == 7)
+  {
+    float4 Color = float4(0,0,0,0);
+    float floatA = IN.tri/100.0 + 1.5f;
+    DOUBLE doubleA = (DOUBLE)floatA; 
+    HALF halfA = (HALF)floatA;
+
+    HALF half_val = abs(halfA);
+    float float_val = abs(floatA);
+    DOUBLE double_val = abs(doubleA);
+    Color.x = float_val * 1000.0;
+    Color.y = (float)half_val * 1000.0;
+    Color.z = (float)double_val * 1000.0;
+    return Color;
+  }
+  if(IN.tri == 8)
+  {
+    float4 Color = float4(0,0,0,0);
+    float floatA = IN.tri/100.0 + 0.5f;
+    HALF halfA = (HALF)floatA;
+
+    HALF half_val = frac(halfA);
+    float float_val = frac(floatA);
+    Color.x = float_val * 1000.0;
+    Color.y = (float)half_val * 1000.0;
+    return Color;
+  }
+  if(IN.tri == 9)
+  {
+    float4 Color = float4(0,0,0,0);
+    float floatA = IN.tri/100.0 + 1.5f;
+    DOUBLE doubleA = (DOUBLE)floatA; 
+    HALF halfA = (HALF)floatA;
+
+    HALF half_val = saturate(halfA);
+    float float_val = saturate(floatA);
+    DOUBLE double_val = saturate(doubleA);
+    Color.x = float_val * 1000.0;
+    Color.y = (float)half_val * 1000.0;
+    Color.z = (float)double_val * 1000.0;
+    return Color;
+  }
+  if(IN.tri == 10)
+  {
+    float4 Color = float4(0,0,0,0);
+    float2 floatA = float2(IN.tri/100.0 + 1.5f, IN.tri/100.0 + 1.7f);
+    float2 floatB = float2(IN.tri/100.0 - 1.5f, IN.tri/100.0 - 1.7f);
+    vector<HALF, 2> halfA = {IN.tri + 1.5f, IN.tri + 1.7f};
+    vector<HALF, 2> halfB = {IN.tri - 1.5f, IN.tri - 1.7f};
+
+    HALF half_val = dot(halfA, halfB);
+    float float_val = dot(floatA, floatB);
+    Color.x = float_val * 1000.0;
+    Color.y = (float)half_val * 1000.0;
+    return Color;
+  }
+  if(IN.tri == 11)
+  {
+    float4 Color = float4(0,0,0,0);
+    float3 floatA = float3(IN.tri/100.0 + 1.5f, IN.tri/100.0 + 1.7f, IN.tri/100.0 + 2.7f);
+    float3 floatB = float3(IN.tri/100.0 - 1.5f, IN.tri/100.0 + 1.7f, IN.tri/100.0 - 2.7f);
+    vector<HALF, 3> halfA = {IN.tri/100.0 + 1.5f, IN.tri/100.0 + 1.7f, IN.tri/100.0 + 2.7f};
+    vector<HALF, 3> halfB = {IN.tri/100.0 - 1.5f, IN.tri/100.0 - 1.7f, IN.tri/100.0 - 2.7f};
+
+    HALF half_val = dot(halfA, halfB);
+    float float_val = dot(floatA, floatB);
+    Color.x = float_val * 1000.0;
+    Color.y = (float)half_val * 1000.0;
+    return Color;
+  }
+  if(IN.tri == 12)
+  {
+    float4 Color = float4(0,0,0,0);
+    float4 floatA = float4(IN.tri/100.0 + 1.5f, IN.tri/100.0 + 1.7f, IN.tri/100.0 + 2.7f, IN.tri/100.0 + 3.7f);
+    float4 floatB = float4(IN.tri/100.0 - 1.5f, IN.tri/100.0 - 1.7f, IN.tri/100.0 - 2.7f, IN.tri/100.0 - 3.7f);
+    vector<HALF, 4> halfA = {IN.tri + 1.5f, IN.tri + 1.7f, IN.tri + 2.7f, IN.tri + 3.7f};
+    vector<HALF, 4> halfB = {IN.tri - 1.5f, IN.tri - 1.7f, IN.tri - 2.7f, IN.tri - 3.7f};
+
+    HALF half_val = dot(halfA, halfB);
+    float float_val = dot(floatA, floatB);
+    Color.x = float_val * 1000.0;
+    Color.y = (float)half_val * 1000.0;
+    return Color;
+  }
+  if(IN.tri == 13)
+  {
+    float4 Color = float4(0,0,0,0);
+    INT32 int_A = IN.tri/100.0 + 1.5f;
+    INT32 int_B = IN.tri/100.0 + 1.7f;
+    INT64 slong_A = (INT64)int_A; 
+    INT64 slong_B = (INT64)int_B;
+    INT16 short_A = (INT16)int_A;
+    INT16 short_B = (INT16)int_B;
+
+    INT16 short_val = min(short_A, short_B);
+    int int_val = min(int_A, int_B);
+    INT64 slong_val = min(slong_A, slong_B);
+    Color.x = (float)int_val;
+    Color.y = (float)short_val;
+    Color.z = (float)slong_val;
+    return Color;
+  }
+  if(IN.tri == 14)
+  {
+    float4 Color = float4(0,0,0,0);
+    INT32 int_A = IN.tri/100.0 + 1.5f;
+    INT32 int_B = IN.tri/100.0 + 1.7f;
+    INT64 slong_A = (INT64)int_A; 
+    INT64 slong_B = (INT64)int_B;
+    INT16 short_A = (INT16)int_A;
+    INT16 short_B = (INT16)int_B;
+
+    INT16 short_val = max(short_A, short_B);
+    int int_val = max(int_A, int_B);
+    INT64 slong_val = max(slong_A, slong_B);
+    Color.x = (float)int_val;
+    Color.y = (float)short_val;
+    Color.z = (float)slong_val;
+    return Color;
+  }
+  if(IN.tri == 15)
+  {
+    float4 Color = float4(0,0,0,0);
+    INT32 int_A = IN.tri/100.0 + 1.5f;
+    INT32 int_B = IN.tri/100.0 + 1.7f;
+    INT64 slong_A = (INT64)int_A; 
+    INT64 slong_B = (INT64)int_B;
+    INT16 short_A = (INT16)int_A;
+    INT16 short_B = (INT16)int_B;
+
+    INT16 short_val = short_A * short_B;
+    int int_val = int_A * int_B;
+    INT64 slong_val = slong_A * slong_B;
+    Color.x = (float)int_val;
+    Color.y = (float)short_val;
+    Color.z = (float)slong_val;
+    return Color;
+  }
+  if(IN.tri == 16)
+  {
+    float4 Color = float4(0,0,0,0);
+    INT32 int_A = IN.tri/100.0 + 1.5f;
+    INT32 int_B = IN.tri/100.0 + 1.7f;
+    INT64 slong_A = (INT64)int_A; 
+    INT64 slong_B = (INT64)int_B;
+    INT16 short_A = (INT16)int_A;
+    INT16 short_B = (INT16)int_B;
+
+    INT16 short_val = short_A / short_B;
+    int int_val = int_A / int_B;
+    INT64 slong_val = slong_A / slong_B;
+    Color.x = (float)int_val;
+    Color.y = (float)short_val;
+    Color.z = (float)slong_val;
+    return Color;
+  }
+  if(IN.tri == 17)
+  {
+    float4 Color = float4(0,0,0,0);
+    INT32 int_A = IN.tri/100.0 + 1.5f;
+    INT32 int_B = IN.tri/100.0 + 1.7f;
+    INT32 int_C = IN.tri/100.0 + 2.7f;
+    INT64 slong_A = (INT64)int_A; 
+    INT64 slong_B = (INT64)int_B;
+    INT64 slong_C = (INT64)int_C;
+    INT16 short_A = (INT16)int_A;
+    INT16 short_B = (INT16)int_B;
+    INT16 short_C = (INT16)int_C;
+
+    INT16 short_val = mad(short_A, short_B, short_C);
+    int int_val = mad(int_A, int_B, int_C);
+    INT64 slong_val = mad(slong_A, slong_B, slong_C);
+    Color.x = (float)int_val;
+    Color.y = (float)short_val;
+    Color.z = (float)slong_val;
+    return Color;
+  }
+  if(IN.tri == 18)
+  {
+    float4 Color = float4(0,0,0,0);
+    vector<INT32,2> int_A = {IN.tri/100.0 + 1.5f, IN.tri - 1.5f};
+    vector<INT32,2> int_B = {IN.tri/100.0 + 1.7f, IN.tri - 1.7f};
+    vector<INT64,2> slong_A = {(INT64)int_A.x, (INT64)int_A.y}; 
+    vector<INT64,2> slong_B = {(INT64)int_B.x, (INT64)int_B.y};
+    vector<INT16,2> short_A = {(INT16)int_A.x, (INT16)int_A.y};
+    vector<INT16,2> short_B = {(INT16)int_B.x, (INT16)int_B.y};
+
+    INT16 short_val = dot(short_A, short_B);
+    int int_val = dot(int_A, int_B);
+    INT64 slong_val = dot(slong_A, slong_B);
+    Color.x = (float)int_val;
+    Color.y = (float)short_val;
+    Color.z = (float)slong_val;
+    return Color;
+  }
+  if(IN.tri == 19)
+  {
+    float4 Color = float4(0,0,0,0);
+    vector<INT32,3> int_A = {IN.tri/100.0 + 1.5f, IN.tri - 1.5f, IN.tri - 2.5f};
+    vector<INT32,3> int_B = {IN.tri/100.0 + 1.7f, IN.tri - 1.7f, IN.tri + 2.5f};
+    vector<INT64,3> slong_A = {(INT64)int_A.x, (INT64)int_A.y, (INT64)int_A.z};
+    vector<INT64,3> slong_B = {(INT64)int_B.x, (INT64)int_B.y, (INT64)int_B.z};
+    vector<INT16,3> short_A = {(INT16)int_A.x, (INT16)int_A.y, (INT16)int_A.z};
+    vector<INT16,3> short_B = {(INT16)int_B.x, (INT16)int_B.y, (INT16)int_B.z};
+
+    INT16 short_val = dot(short_A, short_B);
+    int int_val = dot(int_A, int_B);
+    INT64 slong_val = dot(slong_A, slong_B);
+    Color.x = (float)int_val;
+    Color.y = (float)short_val;
+    Color.z = (float)slong_val;
+    return Color;
+  }
+  if(IN.tri == 20)
+  {
+    float4 Color = float4(0,0,0,0);
+    vector<INT32,4> int_A = {IN.tri/100.0 + 1.5f, IN.tri - 1.5f, IN.tri - 2.5f, IN.tri + 3.7f};
+    vector<INT32,4> int_B = {IN.tri/100.0 + 1.7f, IN.tri - 1.7f, IN.tri + 2.5f, IN.tri -3.3f};
+    vector<INT64,4> slong_A = {(INT64)int_A.x, (INT64)int_A.y, (INT64)int_A.z, (INT64)int_A.w};
+    vector<INT64,4> slong_B = {(INT64)int_B.x, (INT64)int_B.y, (INT64)int_B.z, (INT64)int_B.w};
+    vector<INT16,4> short_A = {(INT16)int_A.x, (INT16)int_A.y, (INT16)int_A.z, (INT16)int_A.w};
+    vector<INT16,4> short_B = {(INT16)int_B.x, (INT16)int_B.y, (INT16)int_B.z, (INT16)int_B.w};
+
+    INT16 short_val = dot(short_A, short_B);
+    int int_val = dot(int_A, int_B);
+    INT64 slong_val = dot(slong_A, slong_B);
+    Color.x = (float)int_val;
+    Color.y = (float)short_val;
+    Color.z = (float)slong_val;
+    return Color;
+  }
+  if(IN.tri == 21)
+  {
+    float4 Color = float4(0,0,0,0);
+    UINT32 int_A = IN.tri/100.0 + 1.5f;
+    UINT32 int_B = IN.tri/100.0 + 1.7f;
+    UINT64 slong_A = (UINT64)int_A; 
+    UINT64 slong_B = (UINT64)int_B;
+    UINT16 short_A = (UINT16)int_A;
+    UINT16 short_B = (UINT16)int_B;
+
+    UINT16 short_val = min(short_A, short_B);
+    uint int_val = min(int_A, int_B);
+    UINT64 slong_val = min(slong_A, slong_B);
+    Color.x = (float)int_val;
+    Color.y = (float)short_val;
+    Color.z = (float)slong_val;
+    return Color;
+  }
+  if(IN.tri == 22)
+  {
+    float4 Color = float4(0,0,0,0);
+    UINT32 int_A = IN.tri/100.0 + 1.5f;
+    UINT32 int_B = IN.tri/100.0 + 1.7f;
+    UINT64 slong_A = (UINT64)int_A; 
+    UINT64 slong_B = (UINT64)int_B;
+    UINT16 short_A = (UINT16)int_A;
+    UINT16 short_B = (UINT16)int_B;
+
+    UINT16 short_val = max(short_A, short_B);
+    uint int_val = max(int_A, int_B);
+    UINT64 slong_val = max(slong_A, slong_B);
+    Color.x = (float)int_val;
+    Color.y = (float)short_val;
+    Color.z = (float)slong_val;
+    return Color;
+  }
+  if(IN.tri == 23)
+  {
+    float4 Color = float4(0,0,0,0);
+    UINT32 int_A = IN.tri/100.0 + 1.5f;
+    UINT32 int_B = IN.tri/100.0 + 1.7f;
+    UINT64 slong_A = (UINT64)int_A; 
+    UINT64 slong_B = (UINT64)int_B;
+    UINT16 short_A = (UINT16)int_A;
+    UINT16 short_B = (UINT16)int_B;
+
+    UINT16 short_val = short_A * short_B;
+    uint int_val = int_A * int_B;
+    UINT64 slong_val = slong_A * slong_B;
+    Color.x = (float)int_val;
+    Color.y = (float)short_val;
+    Color.z = (float)slong_val;
+    return Color;
+  }
+  if(IN.tri == 24)
+  {
+    float4 Color = float4(0,0,0,0);
+    UINT32 int_A = IN.tri/100.0 + 1.5f;
+    UINT32 int_B = IN.tri/100.0 + 1.7f;
+    UINT64 slong_A = (UINT64)int_A; 
+    UINT64 slong_B = (UINT64)int_B;
+    UINT16 short_A = (UINT16)int_A;
+    UINT16 short_B = (UINT16)int_B;
+
+    UINT16 short_val = short_A / short_B;
+    uint int_val = int_A / int_B;
+    UINT64 slong_val = slong_A / slong_B;
+    Color.x = (float)int_val;
+    Color.y = (float)short_val;
+    Color.z = (float)slong_val;
+    return Color;
+  }
+  if(IN.tri == 25)
+  {
+    float4 Color = float4(0,0,0,0);
+    UINT32 int_A = IN.tri/100.0 + 1.5f;
+    UINT32 int_B = IN.tri/100.0 + 1.7f;
+    UINT32 int_C = IN.tri/100.0 + 2.7f;
+    UINT64 slong_A = (UINT64)int_A; 
+    UINT64 slong_B = (UINT64)int_B;
+    UINT64 slong_C = (UINT64)int_C;
+    UINT16 short_A = (UINT16)int_A;
+    UINT16 short_B = (UINT16)int_B;
+    UINT16 short_C = (UINT16)int_C;
+
+    UINT16 short_val = mad(short_A, short_B, short_C);
+    uint int_val = mad(int_A, int_B, int_C);
+    UINT64 slong_val = mad(slong_A, slong_B, slong_C);
+    Color.x = (float)int_val;
+    Color.y = (float)short_val;
+    Color.z = (float)slong_val;
+    return Color;
+  }
+  if(IN.tri == 26)
+  {
+    float4 Color = float4(0,0,0,0);
+    vector<UINT32,2> int_A = {IN.tri/100.0 + 1.5f, IN.tri - 1.5f};
+    vector<UINT32,2> int_B = {IN.tri/100.0 + 1.7f, IN.tri - 1.7f};
+    vector<UINT64,2> slong_A = {(UINT64)int_A.x, (UINT64)int_A.y}; 
+    vector<UINT64,2> slong_B = {(UINT64)int_B.x, (UINT64)int_B.y};
+    vector<UINT16,2> short_A = {(UINT16)int_A.x, (UINT16)int_A.y};
+    vector<UINT16,2> short_B = {(UINT16)int_B.x, (UINT16)int_B.y};
+
+    UINT16 short_val = dot(short_A, short_B);
+    uint int_val = dot(int_A, int_B);
+    UINT64 slong_val = dot(slong_A, slong_B);
+    Color.x = (float)int_val;
+    Color.y = (float)short_val;
+    Color.z = (float)slong_val;
+    return Color;
+  }
+  if(IN.tri == 27)
+  {
+    float4 Color = float4(0,0,0,0);
+    vector<UINT32,3> int_A = {IN.tri/100.0 + 1.5f, IN.tri - 1.5f, IN.tri - 2.5f};
+    vector<UINT32,3> int_B = {IN.tri/100.0 + 1.7f, IN.tri - 1.7f, IN.tri + 2.5f};
+    vector<UINT64,3> slong_A = {(UINT64)int_A.x, (UINT64)int_A.y, (UINT64)int_A.z};
+    vector<UINT64,3> slong_B = {(UINT64)int_B.x, (UINT64)int_B.y, (UINT64)int_B.z};
+    vector<UINT16,3> short_A = {(UINT16)int_A.x, (UINT16)int_A.y, (UINT16)int_A.z};
+    vector<UINT16,3> short_B = {(UINT16)int_B.x, (UINT16)int_B.y, (UINT16)int_B.z};
+
+    UINT16 short_val = dot(short_A, short_B);
+    uint int_val = dot(int_A, int_B);
+    UINT64 slong_val = dot(slong_A, slong_B);
+    Color.x = (float)int_val;
+    Color.y = (float)short_val;
+    Color.z = (float)slong_val;
+    return Color;
+  }
+  if(IN.tri == 28)
+  {
+    float4 Color = float4(0,0,0,0);
+    vector<UINT32,4> int_A = {IN.tri/100.0 + 1.5f, IN.tri - 1.5f, IN.tri - 2.5f, IN.tri + 3.7f};
+    vector<UINT32,4> int_B = {IN.tri/100.0 + 1.7f, IN.tri - 1.7f, IN.tri + 2.5f, IN.tri -3.3f};
+    vector<UINT64,4> slong_A = {(UINT64)int_A.x, (UINT64)int_A.y, (UINT64)int_A.z, (UINT64)int_A.w};
+    vector<UINT64,4> slong_B = {(UINT64)int_B.x, (UINT64)int_B.y, (UINT64)int_B.z, (UINT64)int_B.w};
+    vector<UINT16,4> short_A = {(UINT16)int_A.x, (UINT16)int_A.y, (UINT16)int_A.z, (UINT16)int_A.w};
+    vector<UINT16,4> short_B = {(UINT16)int_B.x, (UINT16)int_B.y, (UINT16)int_B.z, (UINT16)int_B.w};
+
+    UINT16 short_val = dot(short_A, short_B);
+    uint int_val = dot(int_A, int_B);
+    UINT64 slong_val = dot(slong_A, slong_B);
+    Color.x = (float)int_val;
+    Color.y = (float)short_val;
+    Color.z = (float)slong_val;
+    return Color;
+  }
 
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 };
@@ -1116,7 +1606,38 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
 
 )EOSHADER";
 
-  std::string compute = R"EOSHADER(
+  std::string msaaPixel61 = R"EOSHADER(
+
+struct v2f
+{
+  float4 pos : SV_POSITION;
+  float4 col : COLOR0;
+  float2 uv : TEXCOORD0;
+};
+
+float4 main(v2f IN, uint samp : SV_SampleIndex, float3 bary : SV_Barycentrics) : SV_Target0 
+{
+  float2 uvCentroid = EvaluateAttributeCentroid(IN.uv);
+  float2 uvSamp0 = EvaluateAttributeAtSample(IN.uv, 0) - IN.uv;
+  float2 uvSampThis = EvaluateAttributeAtSample(IN.uv, samp) - IN.uv;
+  float2 uvOffset = EvaluateAttributeSnapped(IN.uv, int2(1, 1));
+
+  float x = (uvCentroid.x + uvCentroid.y) * 0.5f;
+  float y = (uvSamp0.x + uvSamp0.y) * 0.5f;
+  float z = (uvSampThis.x + uvSampThis.y) * 0.5f;
+  float w = (uvOffset.x + uvOffset.y) * 0.5f;
+  w += x * bary.x + y * bary.y + z * bary.z;
+
+  // Test sampleinfo with a MSAA rasterizer
+  uint numSamples = GetRenderTargetSampleCount();
+  float2 pos = GetRenderTargetSamplePosition(samp);
+
+  return float4(x + pos.x, y + pos.y, z + (float)numSamples, w);
+}
+
+)EOSHADER";
+
+  std::string computeMain = shaderTypes + R"EOSHADER(
 
 // error X3556: integer divides may be much slower, try using uints if possible.
 // we want to do this on purpose
@@ -1127,7 +1648,7 @@ cbuffer consts : register(b0)
   bool boolX;
   uint intY;
   float floatZ;
-  double doubleX;
+  DOUBLE doubleX;
 };
 
 cbuffer packed_consts : register(b1)
@@ -1146,7 +1667,7 @@ struct TestStruct
 };
 
 groupshared int gsmInt;
-groupshared TestStruct gsmStruct[8];
+groupshared TestStruct gsmStruct[64];
 groupshared int gsmIntArray[128];
 groupshared int gsmInt2DArray[2][1024];
 
@@ -1207,13 +1728,21 @@ void main(int3 inTestIndex : SV_GroupID)
       return 3;
 
     bool supportSM60 = (m_HighestShaderModel >= D3D_SHADER_MODEL_6_0) && m_DXILSupport;
+    bool supportSM61 = (m_HighestShaderModel >= D3D_SHADER_MODEL_6_1) && m_DXILSupport;
     bool supportSM62 = (m_HighestShaderModel >= D3D_SHADER_MODEL_6_2) && m_DXILSupport;
     bool supportSM66 = (m_HighestShaderModel >= D3D_SHADER_MODEL_6_6) && m_DXILSupport;
     TEST_ASSERT(!supportSM62 || supportSM60, "SM 6.2 requires SM 6.0 support");
     TEST_ASSERT(!supportSM66 || supportSM62, "SM 6.6 requires SM 6.2 support");
 
-    std::string shaderDefines =
-        opts4.Native16BitShaderOpsSupported ? "#define HAS_16BIT_SHADER_OPS 1\n" : "";
+    std::string shaderDefines = "";
+    if(opts4.Native16BitShaderOpsSupported)
+      shaderDefines += "#define HAS_16BIT_SHADER_OPS 1\n";
+    else
+      shaderDefines += "#define HAS_16BIT_SHADER_OPS 0\n";
+    if(opts.DoublePrecisionFloatShaderOps)
+      shaderDefines += "#define HAS_DOUBLE_SHADER_OPS 1\n";
+    else
+      shaderDefines += "#define HAS_DOUBLE_SHADER_OPS 0\n";
 
     size_t lastTest = pixel.rfind("IN.tri == ");
     lastTest += sizeof("IN.tri == ") - 1;
@@ -1238,6 +1767,10 @@ void main(int3 inTestIndex : SV_GroupID)
     lastTest = noResourcesPixel.rfind("IN.tri == ");
     lastTest += sizeof("IN.tri == ") - 1;
     const uint32_t numNoResTests = atoi(noResourcesPixel.c_str() + lastTest) + 1;
+
+    lastTest = computeMain.rfind("testIndex == ");
+    lastTest += sizeof("testIndex == ") - 1;
+    const uint32_t numComputeTests = atoi(computeMain.c_str() + lastTest) + 1;
 
     std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayout;
     inputLayout.reserve(4);
@@ -1358,15 +1891,17 @@ void main(int3 inTestIndex : SV_GroupID)
                   .RootSig(sig)
                   .InputLayout(inputLayout)
                   .VS(vs5blob)
-                  .PS(Compile(common + pixel, "main", "ps_5_0", CompileOptionFlags::SkipOptimise))
+                  .PS(Compile(common + shaderDefines + pixel, "main", "ps_5_0",
+                              CompileOptionFlags::SkipOptimise))
                   .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
     psos[0]->SetName(L"ps_5_0");
-    psos[1] = MakePSO()
-                  .RootSig(sig)
-                  .InputLayout(inputLayout)
-                  .VS(vs5blob)
-                  .PS(Compile(common + pixel, "main", "ps_5_0", CompileOptionFlags::None))
-                  .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
+    psos[1] =
+        MakePSO()
+            .RootSig(sig)
+            .InputLayout(inputLayout)
+            .VS(vs5blob)
+            .PS(Compile(common + shaderDefines + pixel, "main", "ps_5_0", CompileOptionFlags::None))
+            .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
     psos[1]->SetName(L"ps_5_0_opt");
 
     // Recompile the same PS with SM 5.1 to test shader debugging with the different bytecode
@@ -1374,16 +1909,16 @@ void main(int3 inTestIndex : SV_GroupID)
                   .RootSig(sig)
                   .InputLayout(inputLayout)
                   .VS(vs5blob)
-                  .PS(Compile(common + "\n#define SM_5_1 1\n" + pixel, "main", "ps_5_1",
-                              CompileOptionFlags::SkipOptimise))
+                  .PS(Compile(common + "\n#define SM_5_1 1\n" + shaderDefines + pixel, "main",
+                              "ps_5_1", CompileOptionFlags::SkipOptimise))
                   .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
     psos[2]->SetName(L"ps_5_1");
     psos[3] = MakePSO()
                   .RootSig(sig)
                   .InputLayout(inputLayout)
                   .VS(vs5blob)
-                  .PS(Compile(common + "\n#define SM_5_1 1\n" + pixel, "main", "ps_5_1",
-                              CompileOptionFlags::None))
+                  .PS(Compile(common + "\n#define SM_5_1 1\n" + shaderDefines + pixel, "main",
+                              "ps_5_1", CompileOptionFlags::None))
                   .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
     psos[3]->SetName(L"ps_5_1_opt");
 
@@ -1818,6 +2353,30 @@ void main(int3 inTestIndex : SV_GroupID)
                                          .PS(psmsaablob)
                                          .SampleCount(4)
                                          .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
+
+    ID3D12PipelineStatePtr msaaPSOs[3] = {psomsaa, NULL};
+    if(supportSM60)
+    {
+      msaaPSOs[1] = MakePSO()
+                        .RootSig(sigmsaa)
+                        .InputLayout()
+                        .VS(Compile(D3DDefaultVertex, "main", "vs_6_0"))
+                        .PS(Compile(msaaPixel, "main", "ps_6_0"))
+                        .SampleCount(4)
+                        .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
+
+      if(supportSM61)
+      {
+        msaaPSOs[2] = MakePSO()
+                          .RootSig(sigmsaa)
+                          .InputLayout()
+                          .VS(Compile(D3DDefaultVertex, "main", "vs_6_1"))
+                          .PS(Compile(msaaPixel61, "main", "ps_6_1"))
+                          .SampleCount(4)
+                          .RTVs({DXGI_FORMAT_R32G32B32A32_FLOAT});
+      }
+    }
+
     ID3D12ResourcePtr vbmsaa = MakeBuffer().Data(DefaultTri);
 
     ID3D12ResourcePtr msaaTex = MakeTexture(DXGI_FORMAT_R32G32B32A32_FLOAT, 8, 8)
@@ -1935,18 +2494,19 @@ void main(int3 inTestIndex : SV_GroupID)
     const uint32_t countComputeSMs = 3;
     ID3D12PipelineStatePtr computePSOs[countComputeSMs] = {NULL, NULL, NULL};
     std::string computeSMs[countComputeSMs] = {"cs_5_0", "cs_6_0", "cs_6_6"};
+    std::string compute = shaderDefines + computeMain;
     ID3DBlobPtr csblob = Compile(compute, "main", "cs_5_0");
     computePSOs[0] = MakePSO().RootSig(sigCompute).CS(csblob);
 
     if(supportSM60)
     {
-      csblob = Compile(compute, "main", "cs_6_0");
+      csblob = Compile("#define SM_6_0 1\n" + compute, "main", "cs_6_0");
       computePSOs[1] = MakePSO().RootSig(sigCompute).CS(csblob);
     }
 
     if(supportSM66)
     {
-      csblob = Compile(compute, "main", "cs_6_6");
+      csblob = Compile("#define SM_6_6 1\n" + compute, "main", "cs_6_6", compileOptions);
       computePSOs[2] = MakePSO().RootSig(sigCompute).CS(csblob);
     }
 
@@ -2093,14 +2653,25 @@ void main(int3 inTestIndex : SV_GroupID)
       IASetVertexBuffer(cmd, vbmsaa, sizeof(DefaultA2V), 0);
       cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-      cmd->SetGraphicsRootSignature(sigmsaa);
-      cmd->SetPipelineState(psomsaa);
       RSSetViewport(cmd, {0.0f, 0.0f, 8.0f, 8.0f, 0.0f, 1.0f});
       RSSetScissorRect(cmd, {0, 0, 8, 8});
 
-      // Add a marker so we can easily locate this draw
-      setMarker(cmd, "MSAA");
-      cmd->DrawInstanced(3, 1, 0, 0);
+      size_t countMSAAPasses = supportSM60 ? (supportSM61 ? 3 : 2) : 1;
+      TEST_ASSERT(countMSAAPasses <= ARRAY_COUNT(msaaPSOs), "More MSAA passes than psos");
+      const char *msaa_markers[3] = {
+          "MSAA sm_5_0",
+          "MSAA sm_6_0",
+          "MSAA sm_6_1",
+      };
+      for(int i = 0; i < countMSAAPasses; ++i)
+      {
+        cmd->SetGraphicsRootSignature(sigmsaa);
+        cmd->SetPipelineState(msaaPSOs[i]);
+
+        // Add a marker so we can easily locate this draw
+        setMarker(cmd, msaa_markers[i]);
+        cmd->DrawInstanced(3, 1, 0, 0);
+      }
 
       OMSetRenderTargets(cmd, {fltRTV}, {});
       ClearRenderTargetView(cmd, fltRTV, {0.3f, 0.5f, 0.8f, 1.0f});
@@ -2168,7 +2739,7 @@ void main(int3 inTestIndex : SV_GroupID)
 
         cmd->SetPipelineState(computePSOs[i]);
         setMarker(cmd, computeSMs[i]);
-        cmd->Dispatch(3, 2, 1);
+        cmd->Dispatch(numComputeTests, 2, 1);
       }
       popMarker(cmd);
 

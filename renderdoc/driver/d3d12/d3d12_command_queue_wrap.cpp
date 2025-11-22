@@ -1083,6 +1083,7 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
           res->GetHeapProperties(&heapProps, NULL);
 
           if(heapProps.Type == D3D12_HEAP_TYPE_UPLOAD ||
+             heapProps.Type == D3D12_HEAP_TYPE_GPU_UPLOAD ||
              heapProps.CPUPageProperty == D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE)
           {
             RDCLOG("Doing GPU readback of mapped memory");
@@ -1092,7 +1093,8 @@ void WrappedID3D12CommandQueue::ExecuteCommandListsInternal(UINT NumCommandLists
             queueReadback.Resize(size);
 
             queueReadback.list->Reset(queueReadback.alloc, NULL);
-            queueReadback.list->CopyBufferRegion(queueReadback.readbackBuf, 0, res, 0, size);
+            Unwrap(queueReadback.list)
+                ->CopyBufferRegion(queueReadback.unwrappedReadbackBuf, 0, res->GetReal(), 0, size);
             queueReadback.list->Close();
             ID3D12CommandList *listptr = Unwrap(queueReadback.list);
             queueReadback.unwrappedQueue->ExecuteCommandLists(1, &listptr);

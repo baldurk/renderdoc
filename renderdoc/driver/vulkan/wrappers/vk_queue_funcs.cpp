@@ -1228,7 +1228,8 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
         {
           RDCDEBUG("Reading back %s with GPU for comparison", ToStr(record->GetResourceID()).c_str());
 
-          GetDebugManager()->InitReadbackBuffer(state.mapOffset + state.mapSize);
+          VulkanDebugManager::ReadbackWindow readback =
+              GetDebugManager()->LockReadbackBuffer(state.mapOffset + state.mapSize);
 
           // immediately issue a command buffer to copy back the data. We do that on this queue to
           // avoid complexity with synchronising with another queue, but the transfer queue if
@@ -1250,8 +1251,7 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
           VkBufferCopy region = {state.mapOffset, state.mapOffset, state.mapSize};
 
           ObjDisp(copycmd)->CmdCopyBuffer(Unwrap(copycmd), Unwrap(state.wholeMemBuf),
-                                          GetDebugManager()->GetUnwrappedReadbackBuffer(), 1,
-                                          &region);
+                                          readback.unwrappedBuffer, 1, &region);
 
           // wait for transfer to finish before reading on CPU
           VkBufferMemoryBarrier bufBarrier = {
@@ -1261,7 +1261,7 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
               VK_ACCESS_HOST_READ_BIT,
               VK_QUEUE_FAMILY_IGNORED,
               VK_QUEUE_FAMILY_IGNORED,
-              GetDebugManager()->GetUnwrappedReadbackBuffer(),
+              readback.unwrappedBuffer,
               0,
               VK_WHOLE_SIZE,
           };
@@ -1291,7 +1291,7 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
           VkMappedMemoryRange range = {
               VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
               NULL,
-              GetDebugManager()->GetUnwrappedReadbackMemory(),
+              readback.unwrappedMemory,
               0,
               VK_WHOLE_SIZE,
           };
@@ -1300,7 +1300,7 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
               ObjDisp(queue)->InvalidateMappedMemoryRanges(Unwrap(m_Device), 1, &range);
           RDCASSERTEQUAL(copyret, VK_SUCCESS);
 
-          state.cpuReadPtr = GetDebugManager()->GetReadbackPtr();
+          state.cpuReadPtr = readback.ptr;
         }
         else
         {
@@ -1349,6 +1349,9 @@ void WrappedVulkan::CaptureQueueSubmit(VkQueue queue,
 
         // restore this just in case
         state.cpuReadPtr = state.mappedPtr;
+
+        if(state.readbackOnGPU)
+          GetDebugManager()->UnlockReadbackBuffer();
       }
     }
   }

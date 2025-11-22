@@ -28,8 +28,6 @@
 #include "dxil_bytecode.h"
 #include "dxil_common.h"
 
-RDOC_EXTERN_CONFIG(bool, D3D_Hack_EnableGroups);
-
 namespace DXIL
 {
 enum class ResourcesTag
@@ -1870,50 +1868,98 @@ rdcstr Program::GetDebugStatus()
                       "Only supported when debugging pixel shaders dx.op call `%s` %s",
                       callFunc->name.c_str(), ToStr(dxOpCode).c_str());
                 continue;
-              case DXOp::WaveIsFirstLane:
-              case DXOp::WaveGetLaneIndex:
-              case DXOp::WaveGetLaneCount:
-              case DXOp::WaveAnyTrue:
-              case DXOp::WaveAllTrue:
-              case DXOp::WaveActiveAllEqual:
-              case DXOp::WaveActiveBallot:
-              case DXOp::WaveReadLaneAt:
-              case DXOp::WaveReadLaneFirst:
-              case DXOp::WaveActiveOp:
-              case DXOp::WaveActiveBit:
-              case DXOp::WavePrefixOp:
-              case DXOp::WavePrefixBitCount:
-              case DXOp::WaveAllBitCount:
-              case DXOp::WaveMatch:
-              case DXOp::WaveMultiPrefixOp:
-              case DXOp::WaveMultiPrefixBitCount:
-                if(!D3D_Hack_EnableGroups())
-                  return StringFormat::Fmt("Unsupported dx.op call `%s` %s", callFunc->name.c_str(),
-                                           ToStr(dxOpCode).c_str());
-                continue;
+
+              // Implement when required
+              case DXOp::CBufferLoad:
+                // loads single value from byte offset in constant buffer, 8-byte alignment on the offset
+
+              // SM6.1
+              case DXOp::AttributeAtVertex:
+                // Pixel shader: load input signature attributes for a specific vertexID (0-2)
+                // HLSL : GetAttributeAtVertex
+
+              // SM6.7
+              case DXOp::TextureStoreSample:
+                // stores texel data at specified sample index
+              case DXOp::TextureGatherRaw:
+                // Gather raw elements from 4 texels with no type conversions (SRV type is constrained)
+
+              // SM 6.8 : when SM6.8 is supporting by RenderDoc
+              case DXOp::StartVertexLocation:
+                // SV_BaseVertexLocation
+                // BaseVertexLocation from DrawIndexedInstanced or StartVertexLocation from DrawInstanced
+              case DXOp::StartInstanceLocation:
+                // SV_StartInstanceLocation
+                // StartInstanceLocation from Draw*Instanced
+              case DXOp::BarrierByMemoryType:
+              case DXOp::BarrierByMemoryHandle:
+
+              // No plans to implement
+
+              // MSAA
+              case DXOp::EvalSnapped:
+                // HLSL : EvaluateAttributeSnapped
+              case DXOp::EvalSampleIndex:
+                // HLSL : EvaluateAttributeAtSample
+              case DXOp::EvalCentroid:
+                // HLSL : EvaluateAttributeCentroid
+
+              case DXOp::CycleCounterLegacy:
+                // DXBC Shader-Internal Cycle Counter (Debug Only)
+
+              case DXOp::CheckAccessFullyMapped:
+                // determines whether all values from a Sample, Gather, or Load operation
+                // accessed mapped tiles in a tiled resource
+              case DXOp::WriteSamplerFeedback:
+              case DXOp::WriteSamplerFeedbackBias:
+              case DXOp::WriteSamplerFeedbackLevel:
+              case DXOp::WriteSamplerFeedbackGrad:
+
+              // DXIL Internal operations used during DXBC conversion
               case DXOp::TempRegLoad:
               case DXOp::TempRegStore:
               case DXOp::MinPrecXRegLoad:
               case DXOp::MinPrecXRegStore:
-              case DXOp::CBufferLoad:
-              case DXOp::BufferUpdateCounter:
-              case DXOp::CheckAccessFullyMapped:
-              case DXOp::EvalSnapped:
-              case DXOp::EvalSampleIndex:
-              case DXOp::EvalCentroid:
-              case DXOp::EmitStream:
-              case DXOp::CutStream:
-              case DXOp::EmitThenCutStream:
+
+              // Mesh Shaders
+              case DXOp::SetMeshOutputCounts:
+              case DXOp::EmitIndices:
+              case DXOp::StoreVertexOutput:
+              case DXOp::StorePrimitiveOutput:
+              case DXOp::GetMeshPayload:
+              case DXOp::DispatchMesh:
+
+              // Geometry Shaders: Hull/Domain
               case DXOp::GSInstanceID:
               case DXOp::LoadOutputControlPoint:
               case DXOp::LoadPatchConstant:
               case DXOp::DomainLocation:
               case DXOp::StorePatchConstant:
               case DXOp::OutputControlPointID:
-              case DXOp::CycleCounterLegacy:
-              case DXOp::AttributeAtVertex:
+              case DXOp::EmitStream:
+              case DXOp::CutStream:
+              case DXOp::EmitThenCutStream:
+
+              // Wave Matrix Operations
+              case DXOp::WaveMatrix_Annotate:
+              case DXOp::WaveMatrix_Depth:
+              case DXOp::WaveMatrix_Fill:
+              case DXOp::WaveMatrix_LoadRawBuf:
+              case DXOp::WaveMatrix_LoadGroupShared:
+              case DXOp::WaveMatrix_StoreRawBuf:
+              case DXOp::WaveMatrix_StoreGroupShared:
+              case DXOp::WaveMatrix_Multiply:
+              case DXOp::WaveMatrix_MultiplyAccumulate:
+              case DXOp::WaveMatrix_ScalarOp:
+              case DXOp::WaveMatrix_SumAccumulate:
+              case DXOp::WaveMatrix_Add:
+
+              // Ray Tracing
+              case DXOp::CreateHandleForLib:
+              case DXOp::CallShader:
               case DXOp::InstanceID:
               case DXOp::InstanceIndex:
+              case DXOp::PrimitiveIndex:
               case DXOp::HitKind:
               case DXOp::RayFlags:
               case DXOp::DispatchRaysIndex:
@@ -1930,19 +1976,6 @@ rdcstr Program::GetDebugStatus()
               case DXOp::AcceptHitAndEndSearch:
               case DXOp::TraceRay:
               case DXOp::ReportHit:
-              case DXOp::CallShader:
-              case DXOp::CreateHandleForLib:
-              case DXOp::PrimitiveIndex:
-              case DXOp::SetMeshOutputCounts:
-              case DXOp::EmitIndices:
-              case DXOp::GetMeshPayload:
-              case DXOp::StoreVertexOutput:
-              case DXOp::StorePrimitiveOutput:
-              case DXOp::DispatchMesh:
-              case DXOp::WriteSamplerFeedback:
-              case DXOp::WriteSamplerFeedbackBias:
-              case DXOp::WriteSamplerFeedbackLevel:
-              case DXOp::WriteSamplerFeedbackGrad:
               case DXOp::AllocateRayQuery:
               case DXOp::RayQuery_TraceRayInline:
               case DXOp::RayQuery_Proceed:
@@ -1978,32 +2011,16 @@ rdcstr Program::GetDebugStatus()
               case DXOp::RayQuery_CommittedPrimitiveIndex:
               case DXOp::RayQuery_CommittedObjectRayOrigin:
               case DXOp::RayQuery_CommittedObjectRayDirection:
-              case DXOp::GeometryIndex:
               case DXOp::RayQuery_CandidateInstanceContributionToHitGroupIndex:
               case DXOp::RayQuery_CommittedInstanceContributionToHitGroupIndex:
-              case DXOp::TextureGatherRaw:
-              case DXOp::TextureStoreSample:
-              case DXOp::WaveMatrix_Annotate:
-              case DXOp::WaveMatrix_Depth:
-              case DXOp::WaveMatrix_Fill:
-              case DXOp::WaveMatrix_LoadRawBuf:
-              case DXOp::WaveMatrix_LoadGroupShared:
-              case DXOp::WaveMatrix_StoreRawBuf:
-              case DXOp::WaveMatrix_StoreGroupShared:
-              case DXOp::WaveMatrix_Multiply:
-              case DXOp::WaveMatrix_MultiplyAccumulate:
-              case DXOp::WaveMatrix_ScalarOp:
-              case DXOp::WaveMatrix_SumAccumulate:
-              case DXOp::WaveMatrix_Add:
+              case DXOp::GeometryIndex:
+
+              // Workgraphs
               case DXOp::AllocateNodeOutputRecords:
               case DXOp::GetNodeRecordPtr:
               case DXOp::IncrementOutputCount:
-              case DXOp::OutputComplete:
               case DXOp::GetInputRecordCount:
-              case DXOp::FinishedCrossGroupSharing:
-              case DXOp::BarrierByMemoryType:
-              case DXOp::BarrierByMemoryHandle:
-              case DXOp::BarrierByNodeRecordHandle:
+              case DXOp::OutputComplete:
               case DXOp::CreateNodeOutputHandle:
               case DXOp::IndexNodeHandle:
               case DXOp::AnnotateNodeHandle:
@@ -2011,8 +2028,9 @@ rdcstr Program::GetDebugStatus()
               case DXOp::AnnotateNodeRecordHandle:
               case DXOp::NodeOutputIsValid:
               case DXOp::GetRemainingRecursionLevels:
-              case DXOp::StartVertexLocation:
-              case DXOp::StartInstanceLocation:
+              case DXOp::FinishedCrossGroupSharing:
+              case DXOp::BarrierByNodeRecordHandle:
+
               case DXOp::NumOpCodes:
                 return StringFormat::Fmt("Unsupported dx.op call `%s` %s", callFunc->name.c_str(),
                                          ToStr(dxOpCode).c_str());

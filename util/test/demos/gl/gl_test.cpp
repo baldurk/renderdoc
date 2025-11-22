@@ -325,6 +325,12 @@ GLuint OpenGLGraphicsTest::MakeProgram()
   return program;
 }
 
+GLuint OpenGLGraphicsTest::MakePipelineProgram(GLenum type, std::string src)
+{
+  const char *c_str = src.c_str();
+  return glCreateShaderProgramv(type, 1, &c_str);
+}
+
 GLuint OpenGLGraphicsTest::MakeBuffer()
 {
   std::vector<uint32_t> &bufs = managedResources.bufs;
