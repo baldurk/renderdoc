@@ -405,6 +405,8 @@ rdcarray<CounterResult> NVD3D11Counters::FetchCounters(const rdcarray<GPUCounter
       break;    // Failure
     }
 
+    d3dImmediateContext->Flush();
+
     nv::perf::profiler::DecodeResult decodeResult;
     if(!rangeProfiler.DecodeCounters(decodeResult))
     {
@@ -421,9 +423,8 @@ rdcarray<CounterResult> NVD3D11Counters::FetchCounters(const rdcarray<GPUCounter
 
     if(replayPass >= maxNumReplayPasses - 1)
     {
-      // FIXME: maxNumReplayPasses does not appear to be calculated correctly for d3d11!
-      // RDCERR("NvPerf exceeded the maximum expected number of replay passes");
-      // break;    // Failure
+      RDCERR("NvPerf exceeded the maximum expected number of replay passes");
+      break;    // Failure
     }
   }
 
