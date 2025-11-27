@@ -632,7 +632,11 @@ target_link_libraries(renderdoc ${RDOC_LIBRARIES})
 add_dependencies(renderdoc renderdoc_libentry)
 
 if(UNIX AND NOT ANDROID AND NOT APPLE)
-    set(RDOC_LINK_FLAGS "-Wl,--undefined,force_include_libentry -Wl,--version-script,${CMAKE_CURRENT_SOURCE_DIR}/${RDOC_BASE_NAME}.version")
+    if(FREEBSD)
+        set(RDOC_LINK_FLAGS "-Wl,--undefined,force_include_libentry")
+    else()
+        set(RDOC_LINK_FLAGS "-Wl,--undefined,force_include_libentry -Wl,--version-script,${CMAKE_CURRENT_SOURCE_DIR}/${RDOC_BASE_NAME}.version")
+    endif()
 
     if(NOT ENABLE_ASAN AND NOT ENABLE_TSAN)
         set(RDOC_LINK_FLAGS "${RDOC_LINK_FLAGS} -Wl,--no-undefined")

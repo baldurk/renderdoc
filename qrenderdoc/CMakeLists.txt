@@ -159,6 +159,10 @@ if(NOT ${CMAKE_VERSION} VERSION_LESS "3.24")
     cmake_policy(SET CMP0135 NEW)
 endif()
 
+if(FREEBSD)
+    set(CMAKE_REQUIRED_INCLUDES "${CMAKE_REQUIRED_INCLUDES};/usr/local/include")
+endif()
+
 CHECK_INCLUDE_FILE(pcre.h PCRE_HEADER)
 
 set(PCRE_PREFIX_PATH "")
