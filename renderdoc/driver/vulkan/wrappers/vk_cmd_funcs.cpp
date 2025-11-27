@@ -1586,6 +1586,8 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(SerialiserType &ser, VkComman
               m_CreationInfo.m_RenderPass[GetResID(unwrappedInheritInfo.renderPass)];
           unwrappedInheritInfo.renderPass = Unwrap(rpinfo.loadRPs[unwrappedInheritInfo.subpass]);
         }
+
+        unwrappedInheritInfo.subpass = 0;
       }
       else
       {
