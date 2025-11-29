@@ -69,6 +69,9 @@ float4 main(v2f IN) : SV_Target0
     D3D12_STATIC_SAMPLER_DESC staticSamp = {};
     staticSamp.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
     staticSamp.AddressU = staticSamp.AddressV = staticSamp.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    // LOD is clamped to 0 since input SRV has multiple mips for subresource-modification
+    // validation, but only the first one is considered as output result.
+    staticSamp.MinLOD = staticSamp.MaxLOD = 0;
     staticSamp.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
     ID3D12RootSignaturePtr sig = MakeSig(
@@ -86,11 +89,15 @@ float4 main(v2f IN) : SV_Target0
     heap.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
     heap.Type = D3D12_HEAP_TYPE_CUSTOM;
 
-    uint32_t *texData = new uint32_t[2048 * 2084];
+    const size_t width = 2048, height = 2048;
+    const UINT subresourceIdx = 8;
 
-    ID3D12ResourcePtr tex = MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM, 2048, 2048)
+    uint32_t *baseData = new uint32_t[width * height];
+    uint32_t *subresourceData = new uint32_t[(width * height) >> (2 * subresourceIdx)];
+
+    ID3D12ResourcePtr tex = MakeTexture(DXGI_FORMAT_R8G8B8A8_UNORM, width, height)
                                 .CustomHeap(heap)
-                                .Mips(1)
+                                .Mips(12)
                                 .InitialState(D3D12_RESOURCE_STATE_COMMON);
 
     D3D12_GPU_DESCRIPTOR_HANDLE view =
@@ -102,15 +109,36 @@ float4 main(v2f IN) : SV_Target0
 
       GPUSync();
 
-      tex->Map(0, NULL, NULL);
+      {
+        const size_t rowPitch = width * sizeof(uint32_t), depthPitch = rowPitch * height;
 
-      memset(texData, 0, 2048 * 2048 * sizeof(uint32_t));
-      tex->WriteToSubresource(0, NULL, texData, 1024 * 4, 1024 * 1024);
-      D3D12_BOX box = {400, 400, 0, 1600, 1600, 1};
-      memset(texData, 0xff, 2048 * 2048 * sizeof(uint32_t));
-      tex->WriteToSubresource(0, &box, texData, 1024 * 4, 1024 * 1024);
+        tex->Map(0, NULL, NULL);
 
-      tex->Unmap(0, NULL);
+        memset(baseData, 0x00, depthPitch);
+        tex->WriteToSubresource(0, NULL, baseData, rowPitch, depthPitch);
+
+        D3D12_BOX box = {400, 400, 0, 1600, 1600, 1};
+        memset(baseData, 0xff, depthPitch);
+        tex->WriteToSubresource(0, &box, baseData, rowPitch, depthPitch);
+
+        tex->Unmap(0, NULL);
+      }
+
+      {
+        const size_t rowPitch = (width >> subresourceIdx) * sizeof(uint32_t),
+                     depthPitch = rowPitch * (height >> subresourceIdx);
+
+        tex->Map(subresourceIdx, NULL, NULL);
+
+        memset(subresourceData, 0x00, depthPitch);
+        tex->WriteToSubresource(subresourceIdx, NULL, subresourceData, rowPitch, depthPitch);
+
+        D3D12_BOX box = {1, 1, 0, 7, 7, 1};
+        memset(subresourceData, 0xff, depthPitch);
+        tex->WriteToSubresource(subresourceIdx, &box, subresourceData, rowPitch, depthPitch);
+
+        tex->Unmap(subresourceIdx, NULL);
+      }
 
       GPUSync();
 

@@ -2338,10 +2338,12 @@ bool WrappedID3D12Device::Serialise_WriteToSubresource(SerialiserType &ser, ID3D
     }
     else
     {
-      UINT width = UINT(desc.Width);
-      UINT height = desc.Height;
+      UINT width = RDCMAX(1U, UINT(desc.Width) >> Subresource);
+      UINT height = RDCMAX(1U, desc.Height >> Subresource);
       // only 3D textures have a depth, array slices are separate subresources.
-      UINT depth = (desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D ? desc.DepthOrArraySize : 1);
+      UINT depth = (desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D
+                        ? RDCMAX(1U, UINT(desc.DepthOrArraySize) >> Subresource)
+                        : 1);
 
       // if we have a box, use its dimensions
       if(pDstBox)
