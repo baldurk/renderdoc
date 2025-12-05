@@ -84,7 +84,11 @@
 #elif defined(RENDERDOC_PLATFORM_LINUX) || defined(RENDERDOC_PLATFORM_APPLE) || \
     defined(RENDERDOC_PLATFORM_ANDROID) || defined(RENDERDOC_PLATFORM_SWITCH)
 
+#if defined(__GNUC__) && !defined(__clang__)
+#define RENDERDOC_EXPORT_API __attribute__((visibility("default"), externally_visible))
+#else
 #define RENDERDOC_EXPORT_API __attribute__((visibility("default"), used))
+#endif
 #define RENDERDOC_IMPORT_API
 
 #define RENDERDOC_CC

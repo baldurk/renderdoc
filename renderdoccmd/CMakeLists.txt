@@ -67,7 +67,7 @@ elseif(UNIX)
 
     # Make sure that for the target executable we don't throw away
     # any shared libraries.
-    set(LINKER_FLAGS "-Wl,--no-as-needed -rdynamic")
+    set(LINKER_FLAGS "-Wl,--no-as-needed -Wl,--dynamic-list=${CMAKE_SOURCE_DIR}/renderdoc_exports.list")
 endif()
 
 if(ANDROID)
