@@ -85,7 +85,15 @@ else()
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LINKER_FLAGS}")
 
     add_executable(renderdoccmd ${sources})
-    
+
+    if(UNIX AND NOT APPLE)
+        if(NOT CMAKE_VERSION VERSION_LESS "3.13")
+            target_link_options(renderdoccmd PRIVATE -rdynamic)
+        else()
+            set_target_properties(renderdoccmd PROPERTIES LINK_FLAGS "-rdynamic")
+        endif()
+    endif()
+
     if(INTERNAL_SELF_CAPTURE)
         set_target_properties(renderdoccmd PROPERTIES OUTPUT_NAME "rdocselfcmd")
     endif()
