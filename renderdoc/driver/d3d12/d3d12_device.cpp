@@ -301,25 +301,29 @@ void STDMETHODCALLTYPE WrappedID3D12SharingContract::Present(_In_ ID3D12Resource
 
   m_pDevice.Present(NULL, this, 0, 0);
 
-  m_pReal->Present(Unwrap(pResource), Subresource, window);
+  if(m_pReal != NULL)
+    m_pReal->Present(Unwrap(pResource), Subresource, window);
 }
 
 void STDMETHODCALLTYPE WrappedID3D12SharingContract::SharedFenceSignal(_In_ ID3D12Fence *pFence,
                                                                        UINT64 FenceValue)
 {
-  m_pReal->SharedFenceSignal(Unwrap(pFence), FenceValue);
+  if(m_pReal != NULL)
+    m_pReal->SharedFenceSignal(Unwrap(pFence), FenceValue);
 }
 
 void STDMETHODCALLTYPE WrappedID3D12SharingContract::BeginCapturableWork(_In_ REFGUID guid)
 {
   // undocumented what this does
-  m_pReal->BeginCapturableWork(guid);
+  if(m_pReal != NULL)
+    m_pReal->BeginCapturableWork(guid);
 }
 
 void STDMETHODCALLTYPE WrappedID3D12SharingContract::EndCapturableWork(_In_ REFGUID guid)
 {
   // undocumented what this does
-  m_pReal->EndCapturableWork(guid);
+  if(m_pReal != NULL)
+    m_pReal->EndCapturableWork(guid);
 }
 
 HRESULT STDMETHODCALLTYPE WrappedDRED::QueryInterface(REFIID riid, void **ppvObject)
@@ -1990,9 +1994,13 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(IDXGISwapper *swapper, DXGI_F
     FreeRTV(m_SwapChains[swapper].rtvs[buffer]);
     m_SwapChains[swapper].rtvs[buffer] = rtv;
 
-    ID3DDevice *swapQ = swapper->GetD3DDevice();
-    RDCASSERT(WrappedID3D12CommandQueue::IsAlloc(swapQ));
-    m_SwapChains[swapper].queue = (WrappedID3D12CommandQueue *)swapQ;
+    ID3DDevice *swapDev = swapper->GetD3DDevice();
+    if(WrappedID3D12CommandQueue::IsAlloc(swapDev))
+      m_SwapChains[swapper].queue = (WrappedID3D12CommandQueue *)swapDev;
+    else if(swapDev == this)
+      m_SwapChains[swapper].queue = m_Queue;
+    else
+      RDCERR("Unexpected swapper D3D device");
   }
 
   return pRes;

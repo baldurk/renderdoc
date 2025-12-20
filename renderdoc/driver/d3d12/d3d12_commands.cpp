@@ -499,7 +499,8 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
       m_pDevice(device),
       m_State(state),
       m_WrappedDownlevel(*this),
-      m_WrappedCompat(*this)
+      m_WrappedCompat(*this),
+      m_SharingContract(*m_pDevice)
 {
   RenderDoc::Inst().RegisterMemoryRegion(this, sizeof(WrappedID3D12CommandQueue));
 
@@ -513,6 +514,7 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
     m_pReal->QueryInterface(__uuidof(ID3D12CommandQueueDownlevel), (void **)&m_pDownlevel);
     m_pReal->QueryInterface(__uuidof(ID3D12CommandQueue1), (void **)&m_pReal1);
     m_pReal->QueryInterface(__uuidof(ID3D12CompatibilityQueue), (void **)&m_WrappedCompat.m_pReal);
+    m_pReal->QueryInterface(__uuidof(ID3D12SharingContract), (void **)&m_SharingContract.m_pReal);
   }
 
   if(RenderDoc::Inst().IsReplayApp())
@@ -573,6 +575,7 @@ WrappedID3D12CommandQueue::~WrappedID3D12CommandQueue()
   SAFE_RELEASE(m_WrappedCompat.m_pReal);
   SAFE_RELEASE(m_WrappedDebug.m_pReal);
   SAFE_RELEASE(m_WrappedDebug.m_pReal1);
+  SAFE_RELEASE(m_SharingContract.m_pReal);
   SAFE_RELEASE(m_pReal);
 }
 
@@ -628,6 +631,12 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::QueryInterface(REFIID riid,
     {
       return E_NOINTERFACE;
     }
+  }
+  else if(riid == __uuidof(ID3D12SharingContract))
+  {
+    *ppvObject = (ID3D12SharingContract *)&m_SharingContract;
+    AddRef();
+    return S_OK;
   }
   else if(riid == __uuidof(ID3D12Pageable))
   {

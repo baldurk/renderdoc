@@ -183,6 +183,7 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue1,
 
   WrappedID3D12DebugCommandQueue m_WrappedDebug;
   WrappedID3D12CompatibilityQueue m_WrappedCompat;
+  WrappedID3D12SharingContract m_SharingContract;
 
   rdcarray<D3D12ResourceRecord *> m_CmdListRecords;
   rdcarray<D3D12ResourceRecord *> m_CmdListAllocators;
