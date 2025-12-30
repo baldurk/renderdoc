@@ -4560,6 +4560,7 @@ bool ShaderViewer::updateWatchVariable(RDTreeWidgetItem *watchItem, const RDTree
         });
         VariableTag tag = VariableTag(DebugVariableType::Variable, path);
         tag.state = WatchVarState::Valid;
+        tag.offset = i;
         item->setTag(QVariant::fromValue(tag));
         watchItem->addChild(item);
         valid.push_back(false);
@@ -4802,7 +4803,9 @@ bool ShaderViewer::updateWatchVariable(RDTreeWidgetItem *watchItem, const RDTree
   watchItem->setItalic(false);
 
   VariableTag tag = VariableTag(DebugVariableType::Variable, path);
+  uint32_t offset = watchItem->tag().value<VariableTag>().offset; // Grab the offset that is already set
   tag.state = WatchVarState::Valid;
+  tag.offset = offset;
   watchItem->setTag(QVariant::fromValue(tag));
 
   return true;
