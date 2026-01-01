@@ -1801,6 +1801,33 @@ void CaptureContext::RemoveBookmark(uint32_t EID)
   RefreshUIStatus({}, true, true);
 }
 
+void CaptureContext::ShiftBookmark(uint32_t EID, int32_t direction)
+{
+  int index = -1;
+
+  for(int i = 0; i < m_Bookmarks.count(); i++)
+  {
+    if(m_Bookmarks[i].eventId == EID)
+    {
+      index = i;
+      break;
+    }
+  }
+
+  if(index == -1)
+    return;
+
+  int newIndex = index + direction;
+
+  if(newIndex < 0 || newIndex >= m_Bookmarks.count())
+    return;
+
+  std::swap(m_Bookmarks[index], m_Bookmarks[newIndex]);
+
+  SetModification(CaptureModifications::Bookmarks);
+  RefreshUIStatus({}, true, true);
+}
+
 void CaptureContext::DelayedCallback(uint32_t milliseconds, std::function<void()> callback)
 {
   QTimer::singleShot(milliseconds, callback);

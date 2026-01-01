@@ -2420,6 +2420,15 @@ If no bookmark exists, this function will do nothing.
 )");
   virtual void RemoveBookmark(uint32_t eventId) = 0;
 
+  DOCUMENT(R"(Reorders a bookmark by shifting its position in the bookmark list.This allows manual reordering of bookmarks. 
+
+The bookmark associated with the givenevent ID is swapped with the adjacent bookmark in the specified direction.
+
+:param int EID: The event ID of the bookmark to move.
+:param int direction: The direction to move.
+)");
+  virtual void ShiftBookmark(uint32_t EID, int32_t direction) = 0;
+
   DOCUMENT(R"(Stores the dependent file data into the capture i.e. shader debug files.
 
 This reads the contents of the dependent files and stores their file contents into the capture.
