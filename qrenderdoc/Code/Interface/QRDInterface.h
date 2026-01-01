@@ -2435,6 +2435,16 @@ Use :meth:`RemoveDependentFiles` to remove the embedded file data.
   Externally referenced files which can't be found on disk are skipped.
   For remote replay the modifications are performed on the remote machine and copied back to the local host.
 )");
+
+  virtual void ShiftBookmark(uint32_t EID, int dir) = 0;
+
+  DOCUMENT(R"(Reorders a bookmark by shifting its position in the bookmark list.This allows manual reordering of bookmarks. 
+
+  The bookmark associated with the givenevent ID is swapped with the adjacent bookmark in the specified direction.
+  :param int EID: The event ID of the bookmark to move.
+  :param int dir: The direction to move.
+)");
+
   virtual void EmbedDependentFiles() = 0;
 
   DOCUMENT(R"(Removes the dependent files storage from the capture i.e. shader debug files.

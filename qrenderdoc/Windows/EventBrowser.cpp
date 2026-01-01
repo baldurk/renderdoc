@@ -5344,9 +5344,10 @@ void EventBrowser::repopulateBookmarks()
 
       highlightBookmarks();
 
-      m_BookmarkStripLayout->removeItem(m_BookmarkSpacer);
-      m_BookmarkStripLayout->addWidget(but);
-      m_BookmarkStripLayout->addItem(m_BookmarkSpacer);
+      //m_BookmarkStripLayout->removeItem(m_BookmarkSpacer);
+      //m_BookmarkStripLayout->addWidget(but);
+      //m_BookmarkStripLayout->addItem(m_BookmarkSpacer);
+	  m_BookmarkButtons[EID] = but;
     }
   }
 
@@ -5359,6 +5360,15 @@ void EventBrowser::repopulateBookmarks()
       m_BookmarkButtons.remove(EID);
     }
   }
+  m_BookmarkStripLayout->removeItem(m_BookmarkSpacer);
+  for (const EventBookmark &mark : bookmarks) {
+	  if (m_BookmarkButtons.contains(mark.eventId)) {
+		  QRClickToolButton *but = m_BookmarkButtons[mark.eventId];
+		  m_BookmarkStripLayout->removeWidget(but);      
+		  m_BookmarkStripLayout->addWidget(but);    
+	  }  
+  }
+  m_BookmarkStripLayout->addItem(m_BookmarkSpacer);
 
   ui->bookmarkStrip->setVisible(!bookmarks.isEmpty());
 
@@ -5393,12 +5403,17 @@ void EventBrowser::bookmarkContextMenu(QRClickToolButton *button, uint32_t EID)
 
   QAction renameBookmark(tr("&Rename"), this);
   QAction deleteBookmark(tr("&Delete"), this);
+  QAction moveLeft(tr("Move &Left"), this);  
+  QAction moveRight(tr("Move &Right"), this);
 
   renameBookmark.setIcon(Icons::page_white_edit());
   deleteBookmark.setIcon(Icons::del());
 
   contextMenu.addAction(&renameBookmark);
   contextMenu.addAction(&deleteBookmark);
+  contextMenu.addSeparator();  
+  contextMenu.addAction(&moveLeft);  
+  contextMenu.addAction(&moveRight);
 
   QObject::connect(&deleteBookmark, &QAction::triggered, [this, EID]() {
     m_Ctx.RemoveBookmark(EID);
@@ -5428,6 +5443,16 @@ void EventBrowser::bookmarkContextMenu(QRClickToolButton *button, uint32_t EID)
         m_Ctx.SetBookmark(editedBookmark);
       }
     }
+  });
+  
+  QObject::connect(&moveLeft, &QAction::triggered, [this, EID]() {    
+	  m_Ctx.ShiftBookmark(EID, -1);    
+	  repopulateBookmarks();  
+  });  
+  
+  QObject::connect(&moveRight, &QAction::triggered, [this, EID]() {    
+	  m_Ctx.ShiftBookmark(EID, 1);    
+	  repopulateBookmarks();  
   });
 
   RDDialog::show(&contextMenu, QCursor::pos());

@@ -204,6 +204,7 @@ public:
   rdcarray<EventBookmark> GetBookmarks() override { return m_Bookmarks; }
   void SetBookmark(const EventBookmark &mark) override;
   void RemoveBookmark(uint32_t EID) override;
+  void ShiftBookmark(uint32_t EID, int dir) override;
   void EmbedDependentFiles() override;
   void RemoveDependentFiles() override;
 

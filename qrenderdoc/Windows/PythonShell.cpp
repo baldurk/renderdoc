@@ -647,6 +647,10 @@ struct CaptureContextInvoker : ObjectForwarder<ICaptureContext>
   {
     InvokeVoidFunction(&ICaptureContext::RemoveBookmark, EID);
   }
+  virtual void ShiftBookmark(uint32_t EID, int dir) override
+  { 
+	  InvokeVoidFunction(&ICaptureContext::ShiftBookmark, EID, dir);
+  }
   virtual void EmbedDependentFiles() override
   {
     InvokeVoidFunction(&ICaptureContext::EmbedDependentFiles);
