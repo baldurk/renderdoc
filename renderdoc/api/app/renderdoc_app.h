@@ -37,6 +37,8 @@
 #define RENDERDOC_CC __cdecl
 #elif defined(__linux__) || defined(__FreeBSD__) || defined(__sun__) || defined(__OpenBSD__)
 #define RENDERDOC_CC
+#elif defined(__HAIKU__)
+#define RENDERDOC_CC
 #elif defined(__APPLE__)
 #define RENDERDOC_CC
 #else
