@@ -296,6 +296,10 @@ bool NVD3D11Counters::HasCounter(GPUCounter counterID) const
   {
     return counterID == GPUCounter::FirstNvidia;
   }
+  if(!m_Impl->CounterEnumerator)
+  {
+    return false;
+  }
   return m_Impl->CounterEnumerator->HasCounter(counterID);
 }
 
