@@ -154,7 +154,7 @@ HRESULT WrappedID3D12Device::CreateCommandQueue(const D3D12_COMMAND_QUEUE_DESC *
   if(ppCommandQueue == NULL)
     return m_pDevice->CreateCommandQueue(pDesc, riid, NULL);
 
-  if(riid != __uuidof(ID3D12CommandQueue))
+  if(riid != __uuidof(ID3D12CommandQueue) && riid != __uuidof(ID3D12CommandQueue1))
     return E_NOINTERFACE;
 
   ID3D12CommandQueue *real = NULL;
