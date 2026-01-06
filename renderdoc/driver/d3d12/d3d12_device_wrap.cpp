@@ -103,8 +103,14 @@ bool WrappedID3D12Device::Serialise_CreateCommandQueue(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
+    void *realptr = NULL;
+    HRESULT hr = m_pDevice->CreateCommandQueue(&Descriptor, guid, &realptr);
+
     ID3D12CommandQueue *ret = NULL;
-    HRESULT hr = m_pDevice->CreateCommandQueue(&Descriptor, guid, (void **)&ret);
+    if(guid == __uuidof(ID3D12CommandQueue))
+      ret = (ID3D12CommandQueue *)realptr;
+    else if(guid == __uuidof(ID3D12CommandQueue1))
+      ret = (ID3D12CommandQueue1 *)realptr;
 
     if(FAILED(hr))
     {
@@ -157,9 +163,14 @@ HRESULT WrappedID3D12Device::CreateCommandQueue(const D3D12_COMMAND_QUEUE_DESC *
   if(riid != __uuidof(ID3D12CommandQueue) && riid != __uuidof(ID3D12CommandQueue1))
     return E_NOINTERFACE;
 
+  void *realptr = NULL;
+  HRESULT ret = m_pDevice->CreateCommandQueue(pDesc, riid, &realptr);
+
   ID3D12CommandQueue *real = NULL;
-  HRESULT ret;
-  SERIALISE_TIME_CALL(ret = m_pDevice->CreateCommandQueue(pDesc, riid, (void **)&real));
+  if(riid == __uuidof(ID3D12CommandQueue))
+    real = (ID3D12CommandQueue *)realptr;
+  else if(riid == __uuidof(ID3D12CommandQueue1))
+    real = (ID3D12CommandQueue1 *)realptr;
 
   if(SUCCEEDED(ret))
   {
