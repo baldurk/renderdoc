@@ -204,7 +204,10 @@ HRESULT WrappedID3D12Device::CreateCommandQueue1(const D3D12_COMMAND_QUEUE_DESC 
           wrapped->GetCreationRecord()->GetResourceID(), eFrameRef_Read);
     }
 
-    *ppCommandQueue = (ID3D12CommandQueue *)wrapped;
+    if(riid == __uuidof(ID3D12CommandQueue))
+      *ppCommandQueue = (ID3D12CommandQueue *)wrapped;
+    else if(riid == __uuidof(ID3D12CommandQueue1))
+      *ppCommandQueue = (ID3D12CommandQueue1 *)wrapped;
   }
   else
   {
