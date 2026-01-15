@@ -8214,6 +8214,23 @@ const TypeData &Debugger::AddDebugType(const DXIL::Metadata *typeMD)
           typeData.baseType = compositeType->base;
           break;
         }
+        case DW_TAG_enumeration_type:
+        {
+          typeData.type = VarType::Enum;
+          typeData.sizeInBytes = (uint32_t)(compositeType->sizeInBits / 8);
+          typeData.alignInBytes = (uint32_t)(compositeType->alignInBits / 8);
+          if(compositeType->name)
+            typeData.name = *compositeType->name;
+          else
+            typeData.name = StringFormat::Fmt("__anon_enum%u", compositeType->line);
+
+          if(compositeType->base)
+          {
+            AddDebugType(compositeType->base);
+            typeData.baseType = compositeType->base;
+          }
+          break;
+        }
         default:
           RDCERR("Unhandled DICompositeType tag %s", ToStr(compositeType->tag).c_str());
           break;
