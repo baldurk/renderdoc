@@ -32,6 +32,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPen>
+#include <QRegularExpression>
 #include <QSet>
 #include <QShortcut>
 #include <QToolTip>
@@ -6289,8 +6290,16 @@ void ShaderViewer::PopulateCompileToolParameters()
 }
 
 bool ShaderViewer::ProcessIncludeDirectives(QString &source, const rdcstrpairs &files,
+                                            rdcarray<rdcstr> &allIncluded,
                                             const rdcarray<rdcstr> &exclude)
 {
+  static const QRegularExpression pragmaOnceRegex(lit("^[ \\t]*#[ \\t]*pragma[ \\t]+once"),
+                                                  QRegularExpression::MultilineOption);
+
+  // always strip #pragma once from the source we're about to process, to avoid warnings if it's
+  // expanded into a larger file.
+  source.replace(pragmaOnceRegex, lit("// #pragma once"));
+
   // try and match up #includes against the files that we have. This isn't always
   // possible as fxc only seems to include the source for files if something in
   // that file was included in the compiled output. So you might end up with
@@ -6358,16 +6367,21 @@ bool ShaderViewer::ProcessIncludeDirectives(QString &source, const rdcstrpairs &
         {
           fileText = QFormatStr("// not recursively including %1\n").arg(fname);
         }
+        else if(allIncluded.contains(kv.first) && QString(kv.second).contains(pragmaOnceRegex))
+        {
+          fileText = QFormatStr("// not re-including %1 (pragma once)\n").arg(fname);
+        }
         else
         {
           fileText = kv.second;
+          allIncluded.push_back(kv.first);
 
           // recurse and do not allow this to be re-included. This assumes #pragma once / header
           // guard behaviour to prevent recursion but allows the same file to be included multiple
           // times in the same parent (if that's done intentionally)
           rdcarray<rdcstr> childExclude = exclude;
           childExclude.push_back(kv.first);
-          ProcessIncludeDirectives(fileText, files, childExclude);
+          ProcessIncludeDirectives(fileText, files, allIncluded, childExclude);
         }
         break;
       }
@@ -6386,16 +6400,21 @@ bool ShaderViewer::ProcessIncludeDirectives(QString &source, const rdcstrpairs &
           {
             fileText = QFormatStr("// not recursively including %1\n").arg(fname);
           }
+          else if(allIncluded.contains(kv.first) && QString(kv.second).contains(pragmaOnceRegex))
+          {
+            fileText = QFormatStr("// not re-including %1 (pragma once)\n").arg(fname);
+          }
           else
           {
             fileText = kv.second;
+            allIncluded.push_back(kv.first);
 
             // recurse and do not allow this to be re-included. This assumes #pragma once / header
             // guard behaviour to prevent recursion but allows the same file to be included multiple
             // times in the same parent (if that's done intentionally)
             rdcarray<rdcstr> childExclude = exclude;
             childExclude.push_back(kv.first);
-            ProcessIncludeDirectives(fileText, files, childExclude);
+            ProcessIncludeDirectives(fileText, files, allIncluded, childExclude);
           }
           break;
         }
@@ -6493,7 +6512,8 @@ void ShaderViewer::on_refresh_clicked()
     if(encoding == ShaderEncoding::HLSL || encoding == ShaderEncoding::Slang ||
        encoding == ShaderEncoding::GLSL)
     {
-      bool success = ProcessIncludeDirectives(source, files);
+      rdcarray<rdcstr> allIncluded = {files[0].first};
+      bool success = ProcessIncludeDirectives(source, files, allIncluded, {files[0].first});
       if(!success)
         return;
     }
