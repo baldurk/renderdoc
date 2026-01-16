@@ -41,6 +41,7 @@ class ResourcePreview;
 class ThumbnailStrip;
 class TextureGoto;
 class QFileSystemWatcher;
+class ComputeDebugSelector;
 class TextureViewer;
 
 struct Following
@@ -195,6 +196,9 @@ private slots:
   void on_debugPixelContext_clicked();
   void on_pixelHistory_clicked();
 
+  void computeDebugSelector_beginDebug(const rdcfixedarray<uint32_t, 3> &group,
+                                       const rdcfixedarray<uint32_t, 3> &thread);
+
   void on_customCreate_clicked();
   void on_customEdit_clicked();
   void on_customDelete_clicked();
@@ -344,6 +348,7 @@ private:
   int m_ResourceCacheID = -1;
 
   TextureGoto *m_Goto;
+  ComputeDebugSelector *m_ComputeDebugSelector;
 
   Ui::TextureViewer *ui;
   ICaptureContext &m_Ctx;
