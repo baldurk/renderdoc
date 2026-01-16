@@ -493,7 +493,33 @@ void ShaderViewer::editShader(ResourceId id, ShaderStage stage, const QString &e
                           lit(" (%1)").arg(QKeySequence(QKeySequence::Refresh).toString()));
 
   if(sel != NULL)
+  {
     ToolWindowManager::raiseToolWindow(sel);
+
+    ScintillaEdit *scintilla = qobject_cast<ScintillaEdit *>(sel);
+    if(scintilla && !entryPoint.isEmpty())
+    {
+      // Automatically jump to the entry function when editing a shader
+      GUIInvoke::defer(scintilla, [scintilla, entryPoint]() {
+        QPair<int, int> found = scintilla->findText(SCFIND_WHOLEWORD, entryPoint.toUtf8().data(), 0,
+                                                    scintilla->length());
+        if(found.first >= 0)
+        {
+          int line = scintilla->lineFromPosition(found.first);
+          scintilla->gotoLine(line);
+
+          // Use explicit cast to QWidget to call the original setFocus and avoid Scintilla's bool version
+          ((QWidget *)scintilla)->setFocus(Qt::OtherFocusReason);
+
+          // Center the entry function in the view
+          int linesVisible = scintilla->linesOnScreen();
+          if(linesVisible <= 0)
+            linesVisible = 30;
+          scintilla->setFirstVisibleLine(qMax(0, line - linesVisible / 2));
+        }
+      });
+    }
+  }
 
   if(m_CustomShader)
     title.prepend(tr("Editing %1 Shader").arg(ToQStr(stage, m_Ctx.APIProps().pipelineType)));
@@ -658,6 +684,9 @@ void ShaderViewer::debugShader(const ShaderReflection *shader, ResourceId pipeli
 
     QWidget *sel = NULL;
     int32_t entryFile = m_ShaderDetails->debugInfo.entryLocation.fileIndex;
+    if(entryFile < 0)
+      entryFile = qMax(0, m_ShaderDetails->debugInfo.editBaseFile);
+
     int32_t i = -1;
     for(const ShaderSourceFile &f : m_ShaderDetails->debugInfo.files)
     {
@@ -680,11 +709,39 @@ void ShaderViewer::debugShader(const ShaderReflection *shader, ResourceId pipeli
       {
         sel = scintilla;
 
-        if(m_ShaderDetails->debugInfo.entryLocation.lineStart > 0)
+        // Automatically jump to the entry function only when viewing a shader (not debugging)
+        bool isViewShader = (m_Trace == NULL);
+        if(isViewShader)
         {
-          GUIInvoke::defer(scintilla, [scintilla, this]() {
-            ensureLineScrolled(scintilla, m_ShaderDetails->debugInfo.entryLocation.lineStart);
-          });
+          int line = m_ShaderDetails->debugInfo.entryLocation.lineStart;
+          QString entry = m_ShaderDetails->debugInfo.entrySourceName;
+          if(entry.isEmpty())
+            entry = m_ShaderDetails->entryPoint;
+
+          // If no line number is provided in debug info, search for the entry function name
+          if(line <= 0 && !entry.isEmpty())
+          {
+            QPair<int, int> found =
+                scintilla->findText(SCFIND_WHOLEWORD, entry.toUtf8().data(), 0, scintilla->length());
+            if(found.first >= 0)
+              line = scintilla->lineFromPosition(found.first) + 1;
+          }
+
+          if(line > 0)
+          {
+            GUIInvoke::defer(scintilla, [scintilla, line]() {
+              scintilla->gotoLine(line - 1);
+
+              // Use explicit cast to QWidget to call the original setFocus and avoid Scintilla's bool version
+              ((QWidget *)scintilla)->setFocus(Qt::OtherFocusReason);
+
+              // Center the entry function in the view
+              int linesVisible = scintilla->linesOnScreen();
+              if(linesVisible <= 0)
+                linesVisible = 30;
+              scintilla->setFirstVisibleLine(qMax(0, (line - 1) - linesVisible / 2));
+            });
+          }
         }
       }
 
