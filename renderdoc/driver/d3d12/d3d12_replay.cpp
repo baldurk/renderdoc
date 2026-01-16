@@ -3637,10 +3637,10 @@ void D3D12Replay::RefreshDerivedReplacements()
   for(WrappedID3D12PipelineState *pipe : m_pDevice->GetPipelineList())
   {
     ResourceId pipesrcid = pipe->GetResourceID();
-    ResourceId origsrcid = pipesrcid;
+    ResourceId origsrcid = rm->GetUnreplacedID(pipesrcid);
 
     // only look at pipelines from the capture, no replay-time programs.
-    if(origsrcid == pipesrcid)
+    if(origsrcid != pipesrcid)
       continue;
 
     // if this pipeline has a replacement, remove it and delete the program generated for it
