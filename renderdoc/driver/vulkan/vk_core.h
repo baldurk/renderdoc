@@ -1038,7 +1038,6 @@ private:
   {
     rdcarray<VkDeviceMemory> DeadMemories;
     rdcarray<VkBuffer> DeadBuffers;
-    rdcarray<ResourceId> IDs;
 
     // with descriptor buffers, we also need to hold onto images and image views
     rdcarray<VkImage> DeadImages;

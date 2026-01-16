@@ -842,10 +842,7 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
 
         memFlags->flags |= VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT;
 
-        {
-          SCOPED_LOCK(m_DeviceAddressResourcesLock);
-          m_DeviceAddressResources.IDs.push_back(record->GetResourceID());
-        }
+        record->hasBDA = true;
       }
 
       {
@@ -950,13 +947,12 @@ void WrappedVulkan::vkFreeMemory(VkDevice device, VkDeviceMemory memory, const V
     // opaque capture address isn't re-used before the capture completes
     {
       SCOPED_READLOCK(m_CapTransitionLock);
-      SCOPED_LOCK(m_DeviceAddressResourcesLock);
-      if(IsActiveCapturing(m_State) && m_DeviceAddressResources.IDs.contains(GetResID(memory)))
+      if(IsActiveCapturing(m_State) && wrapped->record->hasBDA)
       {
+        SCOPED_LOCK(m_DeviceAddressResourcesLock);
         m_DeviceAddressResources.DeadMemories.push_back(memory);
         return;
       }
-      m_DeviceAddressResources.IDs.removeOne(GetResID(memory));
     }
 
     MemMapState *memMapState = wrapped->record->memMapState;
@@ -2066,11 +2062,6 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(SerialiserType &ser, VkDevice devic
       }
     }
 
-    if(patchedusage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
-    {
-      m_DeviceAddressResources.IDs.push_back(GetResID(buf));
-    }
-
     if(patchedusage & VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT)
       m_ResourceDescBuffers.push_back(GetResID(buf));
 
@@ -2231,10 +2222,7 @@ VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo
         // address
         AddForcedReference(record);
 
-        {
-          SCOPED_LOCK(m_DeviceAddressResourcesLock);
-          m_DeviceAddressResources.IDs.push_back(record->GetResourceID());
-        }
+        record->hasBDA = true;
 
         if(DescriptorBuffers())
         {

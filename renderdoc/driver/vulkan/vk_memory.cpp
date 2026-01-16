@@ -30,16 +30,10 @@ RDOC_CONFIG(bool, Vulkan_Debug_MemoryAllocationLogging, false,
 
 GPUAddressRange WrappedVulkan::CreateAddressRange(VkDevice device, VkBuffer buffer)
 {
-  bool isBDA = false;
-  {
-    SCOPED_LOCK(m_DeviceAddressResourcesLock);
-    isBDA = m_DeviceAddressResources.IDs.contains(GetResID(buffer));
-  }
-
-  if(!isBDA)
+  VkResourceRecord *record = GetRecord(buffer);
+  if(!record->hasBDA)
     return {};
 
-  VkResourceRecord *record = GetRecord(buffer);
   VkResourceRecord *memrecord = GetResourceManager()->GetResourceRecord(record->baseResourceMem);
 
   const bool isSparse = record->resInfo && record->resInfo->IsSparse();

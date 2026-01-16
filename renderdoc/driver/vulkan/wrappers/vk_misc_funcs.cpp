@@ -307,13 +307,12 @@ void WrappedVulkan::vkDestroyBuffer(VkDevice device, VkBuffer buffer, const VkAl
   // opaque capture address isn't re-used before the capture completes
   {
     SCOPED_READLOCK(m_CapTransitionLock);
-    SCOPED_LOCK(m_DeviceAddressResourcesLock);
-    if(IsActiveCapturing(m_State) && m_DeviceAddressResources.IDs.contains(GetResID(buffer)))
+    if(IsActiveCapturing(m_State) && GetRecord(buffer)->hasBDA)
     {
+      SCOPED_LOCK(m_DeviceAddressResourcesLock);
       m_DeviceAddressResources.DeadBuffers.push_back(buffer);
       return;
     }
-    m_DeviceAddressResources.IDs.removeOne(GetResID(buffer));
   }
 
   if(IsCaptureMode(m_State))
