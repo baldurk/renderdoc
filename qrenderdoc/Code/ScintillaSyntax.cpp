@@ -335,6 +335,8 @@ row_major column_major unsigned signed rgb
 
 void ConfigureSyntax(ScintillaEdit *scintilla, int language)
 {
+  scintilla->setCodePage(SC_CP_UTF8);
+
   bool hlsl = false;
   bool glsl = false;
   int lexLang = language;
