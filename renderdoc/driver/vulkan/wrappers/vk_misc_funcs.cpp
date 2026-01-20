@@ -358,31 +358,61 @@ void WrappedVulkan::vkDestroySwapchainKHR(VkDevice device, VkSwapchainKHR obj,
     GetResourceManager()->ReleaseWrappedResource(info.rp, true);
     ObjDisp(device)->DestroyRenderPass(Unwrap(device), unwrappedRP, NULL);
 
+    bool fakeBackbuffers = info.imageMemory != VK_NULL_HANDLE;
+
+    // If capturing, we defer freeing swapchain fake backbuffer resources until
+    // the end of the capture to prevent potential device address reuse
+    bool deferFakeBackbuffers = false;
+    if(fakeBackbuffers)
+    {
+      SCOPED_READLOCK(m_CapTransitionLock);
+      deferFakeBackbuffers = IsActiveCapturing(m_State);
+      if(deferFakeBackbuffers)
+      {
+        SCOPED_LOCK(m_DeviceAddressResourcesLock);
+        for(size_t i = 0; i < info.images.size(); i++)
+        {
+          SwapchainInfo::SwapImage &img = info.images[i];
+          m_InternalDeviceAddressResources.DeadImages.push_back(img.userSwapImage);
+          m_InternalDeviceAddressResources.DeadImageViews.push_back(img.view);
+        }
+        m_InternalDeviceAddressResources.DeadMemories.push_back(info.imageMemory);
+      }
+    }
+
     for(size_t i = 0; i < info.images.size(); i++)
     {
-      VkFramebuffer unwrappedFB = Unwrap(info.images[i].fb);
-      VkImage unwrappedImage = Unwrap(info.images[i].userSwapImage);
-      VkImageView unwrappedView = Unwrap(info.images[i].view);
-      VkSemaphore unwrappedSem = Unwrap(info.images[i].overlaydone);
-      VkFence unwrappedFence = Unwrap(info.images[i].fence);
-      GetResourceManager()->ReleaseWrappedResource(info.images[i].fb, true);
-      GetResourceManager()->ReleaseWrappedResource(info.images[i].userSwapImage, true);
-      GetResourceManager()->ReleaseWrappedResource(info.images[i].view, true);
-      GetResourceManager()->ReleaseWrappedResource(info.images[i].overlaydone);
-      GetResourceManager()->ReleaseWrappedResource(info.images[i].fence);
-      // if we had a separate real image, then the unwrappedImage is a fake one we  created and must be destroyed
-      if(info.images[i].unwrappedRealSwapImage != VK_NULL_HANDLE)
-        ObjDisp(device)->DestroyImage(Unwrap(device), unwrappedImage, NULL);
+      SwapchainInfo::SwapImage &img = info.images[i];
+      VkFramebuffer unwrappedFB = Unwrap(img.fb);
+      VkSemaphore unwrappedSem = Unwrap(img.overlaydone);
+      VkFence unwrappedFence = Unwrap(img.fence);
+
+      if(!deferFakeBackbuffers)
+      {
+        VkImage unwrappedImage = Unwrap(img.userSwapImage);
+        VkImageView unwrappedView = Unwrap(img.view);
+        GetResourceManager()->ReleaseWrappedResource(img.userSwapImage, true);
+        GetResourceManager()->ReleaseWrappedResource(img.view, true);
+        // if we had a separate real image, then the unwrappedImage is a fake one we created
+        // and must be destroyed
+        if(img.unwrappedRealSwapImage != VK_NULL_HANDLE)
+          ObjDisp(device)->DestroyImage(Unwrap(device), unwrappedImage, NULL);
+        ObjDisp(device)->DestroyImageView(Unwrap(device), unwrappedView, NULL);
+      }
+
+      GetResourceManager()->ReleaseWrappedResource(img.fb, true);
+      GetResourceManager()->ReleaseWrappedResource(img.overlaydone);
+      GetResourceManager()->ReleaseWrappedResource(img.fence);
+
       ObjDisp(device)->DestroyFramebuffer(Unwrap(device), unwrappedFB, NULL);
-      ObjDisp(device)->DestroyImageView(Unwrap(device), unwrappedView, NULL);
       ObjDisp(device)->DestroySemaphore(Unwrap(device), unwrappedSem, NULL);
       ObjDisp(device)->DestroyFence(Unwrap(device), unwrappedFence, NULL);
 
       // return the command buffers to the pool
-      AddFreeCommandBuffer(info.images[i].cmd);
+      AddFreeCommandBuffer(img.cmd);
     }
 
-    if(info.imageMemory != VK_NULL_HANDLE)
+    if(fakeBackbuffers && !deferFakeBackbuffers)
     {
       ObjDisp(device)->FreeMemory(Unwrap(device), Unwrap(info.imageMemory), NULL);
       GetResourceManager()->ReleaseWrappedResource(info.imageMemory, true);

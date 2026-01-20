@@ -1043,6 +1043,13 @@ private:
     rdcarray<VkImage> DeadImages;
     rdcarray<VkImageView> DeadImageViews;
   } m_DeviceAddressResources;
+
+  struct
+  {
+    rdcarray<VkDeviceMemory> DeadMemories;
+    rdcarray<VkImage> DeadImages;
+    rdcarray<VkImageView> DeadImageViews;
+  } m_InternalDeviceAddressResources;
   Threading::CriticalSection m_DeviceAddressResourcesLock;
 
   // holds the current list of coherent mapped memory. Locked against concurrent use

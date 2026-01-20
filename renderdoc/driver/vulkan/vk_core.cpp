@@ -2842,6 +2842,9 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
   rdcarray<VkBuffer> DeadBuffers;
   rdcarray<VkImage> DeadImages;
   rdcarray<VkImageView> DeadImageViews;
+  rdcarray<VkDeviceMemory> DeadInternalMemories;
+  rdcarray<VkImage> DeadInternalImages;
+  rdcarray<VkImageView> DeadInternalImageViews;
 
   // transition back to IDLE atomically
   {
@@ -2870,6 +2873,9 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
       DeadBuffers.swap(m_DeviceAddressResources.DeadBuffers);
       DeadImages.swap(m_DeviceAddressResources.DeadImages);
       DeadImageViews.swap(m_DeviceAddressResources.DeadImageViews);
+      DeadInternalMemories.swap(m_InternalDeviceAddressResources.DeadMemories);
+      DeadInternalImages.swap(m_InternalDeviceAddressResources.DeadImages);
+      DeadInternalImageViews.swap(m_InternalDeviceAddressResources.DeadImageViews);
     }
   }
 
@@ -3233,6 +3239,24 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
   for(VkImageView v : DeadImageViews)
     vkDestroyImageView(m_Device, v, NULL);
 
+  for(VkDeviceMemory m : DeadInternalMemories)
+  {
+    ObjDisp(m_Device)->FreeMemory(Unwrap(m_Device), Unwrap(m), NULL);
+    GetResourceManager()->ReleaseWrappedResource(m, true);
+  }
+
+  for(VkImage i : DeadInternalImages)
+  {
+    ObjDisp(m_Device)->DestroyImage(Unwrap(m_Device), Unwrap(i), NULL);
+    GetResourceManager()->ReleaseWrappedResource(i, true);
+  }
+
+  for(VkImageView v : DeadInternalImageViews)
+  {
+    ObjDisp(m_Device)->DestroyImageView(Unwrap(m_Device), Unwrap(v), NULL);
+    GetResourceManager()->ReleaseWrappedResource(v, true);
+  }
+
   FreeAllMemory(MemoryScope::InitialContents);
   for(rdcstr &fn : m_InitTempFiles)
     FileIO::Delete(fn);
@@ -3258,6 +3282,9 @@ bool WrappedVulkan::DiscardFrameCapture(DeviceOwnedWindow devWnd)
   rdcarray<VkBuffer> DeadBuffers;
   rdcarray<VkImage> DeadImages;
   rdcarray<VkImageView> DeadImageViews;
+  rdcarray<VkDeviceMemory> DeadInternalMemories;
+  rdcarray<VkImage> DeadInternalImages;
+  rdcarray<VkImageView> DeadInternalImageViews;
 
   // transition back to IDLE atomically
   {
@@ -3285,6 +3312,9 @@ bool WrappedVulkan::DiscardFrameCapture(DeviceOwnedWindow devWnd)
       DeadBuffers.swap(m_DeviceAddressResources.DeadBuffers);
       DeadImages.swap(m_DeviceAddressResources.DeadImages);
       DeadImageViews.swap(m_DeviceAddressResources.DeadImageViews);
+      DeadInternalMemories.swap(m_InternalDeviceAddressResources.DeadMemories);
+      DeadInternalImages.swap(m_InternalDeviceAddressResources.DeadImages);
+      DeadInternalImageViews.swap(m_InternalDeviceAddressResources.DeadImageViews);
     }
   }
 
@@ -3299,6 +3329,24 @@ bool WrappedVulkan::DiscardFrameCapture(DeviceOwnedWindow devWnd)
 
   for(VkImageView v : DeadImageViews)
     vkDestroyImageView(m_Device, v, NULL);
+
+  for(VkDeviceMemory m : DeadInternalMemories)
+  {
+    ObjDisp(m_Device)->FreeMemory(Unwrap(m_Device), Unwrap(m), NULL);
+    GetResourceManager()->ReleaseWrappedResource(m, true);
+  }
+
+  for(VkImage i : DeadInternalImages)
+  {
+    ObjDisp(m_Device)->DestroyImage(Unwrap(m_Device), Unwrap(i), NULL);
+    GetResourceManager()->ReleaseWrappedResource(i, true);
+  }
+
+  for(VkImageView v : DeadInternalImageViews)
+  {
+    ObjDisp(m_Device)->DestroyImageView(Unwrap(m_Device), Unwrap(v), NULL);
+    GetResourceManager()->ReleaseWrappedResource(v, true);
+  }
 
   Atomic::Inc32(&m_ReuseEnabled);
 
