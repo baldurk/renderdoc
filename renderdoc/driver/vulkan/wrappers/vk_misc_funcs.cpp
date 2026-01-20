@@ -2164,7 +2164,7 @@ VkResult WrappedVulkan::vkCopyMemoryToImage(VkDevice device,
   {
     SCOPED_READLOCK(m_CapTransitionLock);
 
-    if(IsActiveCapturing(m_State))
+    if(IsCaptureMode(m_State))
     {
       CACHE_THREAD_SERIALISER();
 

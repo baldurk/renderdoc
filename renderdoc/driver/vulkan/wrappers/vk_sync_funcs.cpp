@@ -1564,7 +1564,7 @@ VkResult WrappedVulkan::vkTransitionImageLayout(VkDevice device, uint32_t transi
         ret = ObjDisp(device)->TransitionImageLayout(Unwrap(device), transitionCount, im));
   }
 
-  if(IsActiveCapturing(m_State))
+  if(IsCaptureMode(m_State))
   {
     CACHE_THREAD_SERIALISER();
 
