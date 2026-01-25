@@ -415,31 +415,89 @@ void TextureViewer::UI_UpdateCachedTexture()
   {
     if(m_Ctx.APIProps().shaderDebugging)
     {
-      const ShaderReflection *shaderDetails =
+      const ShaderReflection *shaderDetailsPixel =
           m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel);
+      const ShaderReflection *shaderDetailsCompute =
+          m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Compute);
 
-      if(!m_Ctx.CurAction() ||
-         !(m_Ctx.CurAction()->flags & (ActionFlags::MeshDispatch | ActionFlags::Drawcall)))
+      const ActionDescription *action = m_Ctx.CurAction();
+      const ActionFlags pixelShaderActionFlags = ActionFlags::MeshDispatch | ActionFlags::Drawcall;
+      const ActionFlags computeShaderActionFlags = ActionFlags::Dispatch;
+      if(!action || !(action->flags & (pixelShaderActionFlags | computeShaderActionFlags)))
       {
         ui->debugPixelContext->setEnabled(false);
-        ui->debugPixelContext->setToolTip(tr("No draw call selected"));
-      }
-      else if(!shaderDetails)
-      {
-        ui->debugPixelContext->setEnabled(false);
-        ui->debugPixelContext->setToolTip(tr("No pixel shader bound"));
-      }
-      else if(!shaderDetails->debugInfo.debuggable)
-      {
-        ui->debugPixelContext->setEnabled(false);
-        ui->debugPixelContext->setToolTip(
-            tr("The current pixel shader does not support debugging: %1")
-                .arg(shaderDetails->debugInfo.debugStatus));
+        ui->debugPixelContext->setToolTip(tr("No draw call or dispatch selected"));
       }
       else
       {
-        ui->debugPixelContext->setEnabled(true);
-        ui->debugPixelContext->setToolTip(QString());
+        if(action->flags & pixelShaderActionFlags)
+        {
+          if(!shaderDetailsPixel)
+          {
+            ui->debugPixelContext->setEnabled(false);
+            ui->debugPixelContext->setToolTip(tr("No pixel shader bound"));
+          }
+          else if(!shaderDetailsPixel->debugInfo.debuggable)
+          {
+            ui->debugPixelContext->setEnabled(false);
+            ui->debugPixelContext->setToolTip(
+                tr("The current pixel shader does not support debugging: %1")
+                    .arg(shaderDetailsPixel->debugInfo.debugStatus));
+          }
+          else
+          {
+            ui->debugPixelContext->setEnabled(true);
+            ui->debugPixelContext->setToolTip(QString());
+          }
+        }
+        else if(action->flags & computeShaderActionFlags)
+        {
+          const rdcfixedarray<uint32_t, 3> &threadDims =
+              (action->dispatchThreadsDimension[0] == 0)
+                  ? shaderDetailsCompute->dispatchThreadsDimension
+                  : action->dispatchThreadsDimension;
+          if(!shaderDetailsCompute)
+          {
+            ui->debugPixelContext->setEnabled(false);
+            ui->debugPixelContext->setToolTip(tr("No compute shader bound"));
+          }
+          else if(!shaderDetailsCompute->debugInfo.debuggable)
+          {
+            ui->debugPixelContext->setEnabled(false);
+            ui->debugPixelContext->setToolTip(
+                tr("The current compute shader does not support debugging: %1")
+                    .arg(shaderDetailsCompute->debugInfo.debugStatus));
+          }
+          else if(m_CachedTexture->type != TextureType::Texture2D)
+          {
+            ui->debugPixelContext->setEnabled(false);
+            ui->debugPixelContext->setToolTip(
+                tr("Thread debugging from here is supported only for 2D Textures."
+                   "Use the Pipeline State for debugging other types of dispatches"));
+          }
+          else if(action->dispatchDimension[0] == 0 || action->dispatchDimension[1] == 0 ||
+                  action->dispatchDimension[2] == 0)
+          {
+            ui->debugPixelContext->setEnabled(false);
+            ui->debugPixelContext->setToolTip(tr("Invalid dispatch dimensions: (%1, %2, %3)")
+                                                  .arg(action->dispatchDimension[0])
+                                                  .arg(action->dispatchDimension[1])
+                                                  .arg(action->dispatchDimension[2]));
+          }
+          else if(threadDims[0] == 0 || threadDims[1] == 0 || threadDims[2] == 0)
+          {
+            ui->debugPixelContext->setEnabled(false);
+            ui->debugPixelContext->setToolTip(tr("Invalid thread dimensions: (%1, %2, %3)")
+                                                  .arg(threadDims[0])
+                                                  .arg(threadDims[1])
+                                                  .arg(threadDims[2]));
+          }
+          else
+          {
+            ui->debugPixelContext->setEnabled(true);
+            ui->debugPixelContext->setToolTip(QString());
+          }
+        }
       }
     }
     else
@@ -4104,6 +4162,11 @@ void TextureViewer::on_debugPixelContext_clicked()
     return;
 
   TextureDescription *texptr = GetCurrentTexture();
+  const bool isGraphicsPipeline =
+      m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel) != nullptr;
+  const ShaderReflection *shaderDetails =
+      isGraphicsPipeline ? m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel)
+                         : m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Compute);
 
   int x = MipCoordFromBase(m_PickedPoint.x(), texptr->width);
   int y = MipCoordFromBase(m_PickedPoint.y(), texptr->height);
@@ -4116,21 +4179,48 @@ void TextureViewer::on_debugPixelContext_clicked()
   bool done = false;
   ShaderDebugTrace *trace = NULL;
 
-  uint32_t view = m_TexDisplay.subresource.slice - m_Following.GetFirstArraySlice(m_Ctx);
-  m_Ctx.Replay().AsyncInvoke([this, &trace, &done, x, y, view](IReplayController *r) {
-    DebugPixelInputs inputs;
-    inputs.sample = m_TexDisplay.subresource.sample;
-    inputs.view = view;
-    trace = r->DebugPixel((uint32_t)x, (uint32_t)y, inputs);
+  if(isGraphicsPipeline)
+  {
+    uint32_t view = m_TexDisplay.subresource.slice - m_Following.GetFirstArraySlice(m_Ctx);
+    m_Ctx.Replay().AsyncInvoke([this, &trace, &done, x, y, view](IReplayController *r) {
+      DebugPixelInputs inputs;
+      inputs.sample = m_TexDisplay.subresource.sample;
+      inputs.view = view;
+      trace = r->DebugPixel((uint32_t)x, (uint32_t)y, inputs);
 
-    if(trace->debugger == NULL)
-    {
-      r->FreeTrace(trace);
-      trace = NULL;
-    }
+      if(trace->debugger == NULL)
+      {
+        r->FreeTrace(trace);
+        trace = NULL;
+      }
 
-    done = true;
-  });
+      done = true;
+    });
+  }
+  else
+  {
+    const ActionDescription *action = m_Ctx.CurAction();
+    const rdcfixedarray<uint32_t, 3> groupDim = action->dispatchDimension;
+    const rdcfixedarray<uint32_t, 3> threadDim = (action->dispatchThreadsDimension[0] == 0)
+                                                     ? shaderDetails->dispatchThreadsDimension
+                                                     : action->dispatchThreadsDimension;
+
+    rdcfixedarray<uint32_t, 3> groupId = {x / threadDim[0], y / threadDim[1], 0};
+
+    rdcfixedarray<uint32_t, 3> threadId = {x % threadDim[0], y % threadDim[1], 0};
+
+    m_Ctx.Replay().AsyncInvoke([this, &trace, &done, groupId, threadId](IReplayController *r) {
+      trace = r->DebugThread(groupId, threadId);
+
+      if(trace->debugger == NULL)
+      {
+        r->FreeTrace(trace);
+        trace = NULL;
+      }
+
+      done = true;
+    });
+  }
 
   QString debugContext = tr("Pixel %1,%2").arg(x).arg(y);
 
@@ -4151,9 +4241,8 @@ void TextureViewer::on_debugPixelContext_clicked()
     return;
   }
 
-  const ShaderReflection *shaderDetails =
-      m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel);
-  ResourceId pipeline = m_Ctx.CurPipelineState().GetGraphicsPipelineObject();
+  ResourceId pipeline = isGraphicsPipeline ? m_Ctx.CurPipelineState().GetGraphicsPipelineObject()
+                                           : m_Ctx.CurPipelineState().GetComputePipelineObject();
 
   // viewer takes ownership of the trace
   IShaderViewer *s = m_Ctx.DebugShader(shaderDetails, pipeline, trace, debugContext);
