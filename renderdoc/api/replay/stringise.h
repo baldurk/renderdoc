@@ -30,6 +30,12 @@
 template <typename T>
 rdcstr DoStringise(const T &el);
 
+template <>
+inline rdcstr DoStringise<rdcstr>(const rdcstr &el)
+{
+  return el;
+}
+
 template <typename T, bool is_pointer = std::is_pointer<T>::value>
 struct StringConverter
 {

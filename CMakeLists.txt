@@ -211,7 +211,7 @@ option(ENABLE_PYRENDERDOC "Enable renderdoc python modules" ON)
 
 option(ENABLE_XLIB "Enable xlib windowing support" ON)
 option(ENABLE_XCB "Enable xcb windowing support" ON)
-option(ENABLE_UNSUPPORTED_EXPERIMENTAL_POSSIBLY_BROKEN_WAYLAND "Enable EXPERIMENTAL, POSSIBLY BROKEN, UNSUPPORTED wayland windowing support" OFF)
+option(ENABLE_UNSUPPORTED_EXPERIMENTAL_POSSIBLY_BROKEN_WAYLAND "Enable EXPERIMENTAL, POSSIBLY BROKEN, UNSUPPORTED wayland windowing support" ON)
 
 option(ENABLE_ASAN "Enable address sanitizer" OFF)
 option(ENABLE_TSAN "Enable thread sanitizer" OFF)
@@ -398,7 +398,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         -Wno-unknown-pragmas
         -Wno-reorder)
     if(CMAKE_COMPILER_IS_GNUCXX)
-        list(APPEND warning_flags -Wno-unused-but-set-variable -Wno-maybe-uninitialized -Wno-class-memaccess)
+        list(APPEND warning_flags -Wno-unused-but-set-variable -Wno-maybe-uninitialized)
 
         # We keep the implicit fallthrough warning for now, but allow more
         # comments to silence it.
@@ -418,6 +418,16 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         
         if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 13.9)
             list(APPEND warning_flags -Wno-cast-user-defined)
+        endif()
+
+        # False positives for memcpy/memset on non-trivial types
+        if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 13.9)
+            list(APPEND warning_flags -Wno-class-memaccess)
+        endif()
+
+        # SWIG generates function type casts for Python bindings
+        if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 7.0)
+            list(APPEND warning_flags -Wno-cast-function-type)
         endif()
     endif()
 
@@ -455,7 +465,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         list(APPEND warning_flags -Wno-cast-function-type-mismatch)
     endif()
 
-    if(NOT RELEASE_MODE)
+    if(NOT RELEASE_MODE AND NOT CMAKE_CXX_COMPILER MATCHES "clazy")
         list(APPEND warning_flags -Werror)
     endif()
 

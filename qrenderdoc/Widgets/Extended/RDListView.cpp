@@ -24,10 +24,12 @@
 
 #include "RDListView.h"
 #include <QMouseEvent>
+#include "Code/QRDUtils.h"
 
 RDListView::RDListView(QWidget *parent) : QListView(parent)
 {
   setMouseTracking(true);
+  ApplyWaylandWorkarounds(this);
 }
 
 void RDListView::mouseMoveEvent(QMouseEvent *e)

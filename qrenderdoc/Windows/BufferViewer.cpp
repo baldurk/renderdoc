@@ -24,6 +24,7 @@
 
 #include "BufferViewer.h"
 #include <float.h>
+#include <QAtomicInteger>
 #include <QDoubleSpinBox>
 #include <QFontDatabase>
 #include <QItemSelection>
@@ -36,6 +37,7 @@
 #include <QTimer>
 #include <QToolTip>
 #include <QtMath>
+#include <atomic>
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "Widgets/CollapseGroupBox.h"
@@ -296,7 +298,7 @@ public:
   {
     CameraWrapper::MouseWheel(e);
 
-    float mod = (1.0f - e->delta() / 2500.0f);
+    float mod = (1.0f - e->angleDelta().y() / 2500.0f);
 
     SetDistance(qMax(1e-6f, m_Distance * mod));
   }
@@ -497,7 +499,12 @@ struct BufferData
 {
   BufferData()
   {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    refcount.storeRelaxed(1);
+#else
+    // Qt5: QBasicAtomicInteger::store() takes a single value (no memory_order parameter).
     refcount.store(1);
+#endif
     stride = 0;
   }
 
@@ -959,7 +966,7 @@ public:
   Qt::ItemFlags flags(const QModelIndex &index) const override
   {
     if(!index.isValid())
-      return 0;
+      return {};
 
     return QAbstractItemModel::flags(index);
   }

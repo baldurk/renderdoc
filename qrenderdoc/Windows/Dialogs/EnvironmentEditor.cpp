@@ -91,6 +91,8 @@ EnvironmentEditor::EnvironmentEditor(QWidget *parent)
   ui->variables->sortByColumn(0, Qt::DescendingOrder);
 
   ui->variables->setFont(Formatter::FixedFont());
+
+  QObject::connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &EnvironmentEditor::reject);
 }
 
 EnvironmentEditor::~EnvironmentEditor()

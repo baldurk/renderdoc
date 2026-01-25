@@ -34,6 +34,9 @@ AnalyticsPromptDialog::AnalyticsPromptDialog(PersistantConfig &cfg, QWidget *par
   ui->setupUi(this);
 
   setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
+
+  QObject::connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &AnalyticsPromptDialog::accept);
+  QObject::connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &AnalyticsPromptDialog::reject);
 }
 
 AnalyticsPromptDialog::~AnalyticsPromptDialog()

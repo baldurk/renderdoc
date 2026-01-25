@@ -160,7 +160,7 @@ public:
   ~ShaderViewer();
 
   // IShaderViewer
-  virtual QWidget *Widget() override { return this; }
+  virtual QWidget *Widget() override { return (QWidget *)this; }
   virtual uint32_t CurrentStep() override;
   virtual void SetCurrentStep(uint32_t step) override;
 

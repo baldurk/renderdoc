@@ -191,9 +191,17 @@ bool ToolWindowManagerArea::eventFilter(QObject *object, QEvent *event)
         }
         m_tabDragCanStart = false;
         // stop internal tab drag in QTabBar
+        QMouseEvent *mouseEvent = static_cast<QMouseEvent *>(event);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         QMouseEvent *releaseEvent =
-            new QMouseEvent(QEvent::MouseButtonRelease, static_cast<QMouseEvent *>(event)->pos(),
-                            Qt::LeftButton, Qt::LeftButton, 0);
+            new QMouseEvent(QEvent::MouseButtonRelease, mouseEvent->position(),
+                            mouseEvent->globalPosition(), Qt::LeftButton, Qt::LeftButton,
+                            Qt::NoModifier);
+#else
+        QMouseEvent *releaseEvent =
+            new QMouseEvent(QEvent::MouseButtonRelease, mouseEvent->pos(), Qt::LeftButton,
+                            Qt::LeftButton, Qt::NoModifier);
+#endif
         qApp->sendEvent(tabBar(), releaseEvent);
         m_manager->startDrag(QList<QWidget *>() << toolWindow, NULL);
       }

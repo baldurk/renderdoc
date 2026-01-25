@@ -76,6 +76,7 @@ void BufferFormatList::setFormat(QString name, QString format)
 BufferFormatSpecifier::BufferFormatSpecifier(QWidget *parent)
     : QWidget(parent), ui(new Ui::BufferFormatSpecifier)
 {
+  ApplyWaylandWorkarounds(this);
   ui->setupUi(this);
 
   formatText = new ScintillaEdit(this);

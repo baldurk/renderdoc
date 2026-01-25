@@ -34,6 +34,8 @@
 CustomPaintWidgetInternal::CustomPaintWidgetInternal(CustomPaintWidget &parentCustom, bool rendering)
     : m_Custom(parentCustom), m_Rendering(rendering)
 {
+  // Don't apply Wayland workaround here - this widget is used for rendering
+  // and needs a native surface
   setAttribute(Qt::WA_OpaquePaintEvent);
   setMouseTracking(true);
   if(m_Rendering)
@@ -46,6 +48,8 @@ CustomPaintWidgetInternal::~CustomPaintWidgetInternal()
 
 CustomPaintWidget::CustomPaintWidget(QWidget *parent) : QWidget(parent)
 {
+  // Don't apply Wayland workaround here - this widget's child is used for rendering
+  // and needs a native surface
   m_Tag = QFormatStr("custompaint%1").arg((uintptr_t)this);
 
   setAttribute(Qt::WA_OpaquePaintEvent);

@@ -223,7 +223,21 @@ HOOK_EXPORT EGLDisplay EGLAPIENTRY eglGetPlatformDisplay_renderdoc_hooked(EGLenu
     RDCWARN("Unknown platform %x in eglGetPlatformDisplay", platform);
 #endif
 
-  return EGL.GetPlatformDisplay(platform, native_display, attrib_list);
+  EGLDisplay ret = EGL.GetPlatformDisplay(platform, native_display, attrib_list);
+
+#if ENABLED(RDOC_LINUX)
+  if(ret)
+  {
+    SCOPED_LOCK(glLock);
+    // Initialize displays map when display is created
+    if(platform == EGL_PLATFORM_X11_KHR)
+      eglhook.displays[ret] = {WindowingSystem::Xlib};
+    else if(platform == EGL_PLATFORM_WAYLAND_KHR)
+      eglhook.displays[ret] = {WindowingSystem::Wayland};
+  }
+#endif
+
+  return ret;
 }
 
 HOOK_EXPORT EGLBoolean EGLAPIENTRY eglBindAPI_renderdoc_hooked(EGLenum api)

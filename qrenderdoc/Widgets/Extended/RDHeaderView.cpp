@@ -856,7 +856,7 @@ void RDHeaderView::paintEvent(QPaintEvent *e)
   if(accumRect.right() < e->rect().right())
   {
     QStyleOption opt;
-    opt.init(this);
+    opt.initFrom(this);
     opt.state |= QStyle::State_Horizontal;
     opt.rect =
         QRect(accumRect.right() + 1, 0, e->rect().right() - accumRect.right(), viewport()->height());

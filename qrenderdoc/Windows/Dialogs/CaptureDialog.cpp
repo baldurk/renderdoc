@@ -70,7 +70,7 @@ void CaptureDialog::initWarning(RDLabel *warning)
 
     QColor base = pal.color(QPalette::ToolTipBase);
 
-    pal.setColor(QPalette::Foreground, pal.color(QPalette::ToolTipText));
+    pal.setColor(QPalette::WindowText, pal.color(QPalette::ToolTipText));
     pal.setColor(QPalette::Window, base);
     pal.setColor(QPalette::Base, base.darker(120));
 
@@ -80,7 +80,7 @@ void CaptureDialog::initWarning(RDLabel *warning)
   calcPaletteFromStyle(NULL);
 
   warning->setBackgroundRole(QPalette::Window);
-  warning->setForegroundRole(QPalette::Foreground);
+  warning->setForegroundRole(QPalette::WindowText);
 
   QObject::connect(warning, &RDLabel::mouseMoved,
                    [warning](QMouseEvent *) { warning->setBackgroundRole(QPalette::Base); });
@@ -364,7 +364,7 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
       msg += tr("Conflicting manifest:\n\n");
 
     for(const rdcstr &j : info.otherJSONs)
-      msg += j + lit("\n");
+      msg += ToQStr(j) + lit("\n");
 
     RDDialog::critical(this, tr("Unfixable vulkan layer configuration"), msg);
     return;

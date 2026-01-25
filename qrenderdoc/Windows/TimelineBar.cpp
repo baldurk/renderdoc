@@ -114,6 +114,7 @@ TimelineBar::TimelineBar(ICaptureContext &ctx, QWidget *parent)
   m_Ctx.AddCaptureViewer(this);
 
   setMouseTracking(true);
+  ApplyWaylandWorkarounds(this);
 
   setFrameShape(NoFrame);
 
@@ -428,7 +429,7 @@ void TimelineBar::mouseMoveEvent(QMouseEvent *e)
 
 void TimelineBar::wheelEvent(QWheelEvent *e)
 {
-  float mod = (1.0 + e->delta() / 2500.0f);
+  float mod = (1.0 + e->angleDelta().y() / 2500.0f);
 
   qreal prevZoom = m_zoom;
 
@@ -439,9 +440,15 @@ void TimelineBar::wheelEvent(QWheelEvent *e)
   // adjust the pan so that it's still in bounds, and so the zoom acts centred on the mouse
   qreal newPan = m_pan;
 
-  newPan -= (e->x() - m_eidAxisRect.left());
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+  qreal mouseX = e->position().x();
+#else
+  qreal mouseX = e->x();
+#endif
+
+  newPan -= (mouseX - m_eidAxisRect.left());
   newPan = newPan * zoomDelta;
-  newPan += (e->x() - m_eidAxisRect.left());
+  newPan += (mouseX - m_eidAxisRect.left());
 
   m_pan = qBound(-m_dataArea.width() * (m_zoom - 1.0), newPan, 0.0);
 

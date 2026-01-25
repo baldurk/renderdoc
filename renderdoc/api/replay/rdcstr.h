@@ -945,6 +945,11 @@ inline rdcstr operator+(const QChar &left, const rdcstr &right)
 {
   return rdcstr(left) += right;
 }
+
+inline size_t qHash(const rdcstr &key, size_t seed = 0)
+{
+  return qHash(QString(key), (unsigned int)seed);
+}
 #endif
 
 // this class generally should not be used directly. You almost always want rdcstr (or rarely

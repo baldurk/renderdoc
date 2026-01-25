@@ -63,7 +63,7 @@ public:
   Qt::ItemFlags flags(const QModelIndex &index) const override
   {
     if(!index.isValid())
-      return 0;
+      return {};
 
     return QAbstractItemModel::flags(index);
   }
@@ -198,7 +198,12 @@ protected:
 
   bool lessThan(const QModelIndex &left, const QModelIndex &right) const override
   {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    return QVariant::compare(sourceModel()->data(left, SortDataRole),
+                             sourceModel()->data(right, SortDataRole)) < 0;
+#else
     return sourceModel()->data(left, SortDataRole) < sourceModel()->data(right, SortDataRole);
+#endif
   }
 
 private:

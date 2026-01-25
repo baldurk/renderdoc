@@ -13,6 +13,9 @@
 #include "FontQuality.h"
 
 #include <QApplication>
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include <QGuiApplication>
+#endif
 #include <QFont>
 #include <QColor>
 #include <QRect>
@@ -25,11 +28,17 @@
 #include <QAction>
 #include <QTime>
 #include <QMessageBox>
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QTextCodec>
+#endif
 #include <QListWidget>
 #include <QVarLengthArray>
 #include <QScrollBar>
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include <QScreen>
+#else
 #include <QDesktopWidget>
+#endif
 #include <QTextLayout>
 #include <QTextLine>
 #include <QLibrary>
@@ -159,8 +168,13 @@ void Font::Release()
 
 
 SurfaceImpl::SurfaceImpl()
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+: device(0), painter(0), deviceOwned(false), painterOwned(false), x(0), y(0),
+	  unicodeMode(false), codePage(0), codecName(0)
+#else
 : device(0), painter(0), deviceOwned(false), painterOwned(false), x(0), y(0),
 	  unicodeMode(false), codePage(0), codecName(0), codec(0)
+#endif
 {}
 
 SurfaceImpl::~SurfaceImpl()
@@ -236,7 +250,9 @@ void SurfaceImpl::SetCodec(Font &font)
 			csid = CharacterSetID(FontCharacterSet(font));
 		if (csid != codecName) {
 			codecName = csid;
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 			codec = QTextCodec::codecForName(csid);
+#endif
 		}
 	}
 }
@@ -330,7 +346,11 @@ void SurfaceImpl::RoundedRectangle(PRectangle rc,
 {
 	PenColour(fore);
 	BrushColour(back);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+	GetPainter()->drawRoundedRect(QRectFFromPRect(rc), 4.0, 4.0);
+#else
 	GetPainter()->drawRoundRect(QRectFFromPRect(rc));
+#endif
 }
 
 void SurfaceImpl::AlphaRectangle(PRectangle rc,
@@ -403,7 +423,11 @@ void SurfaceImpl::DrawTextNoClip(PRectangle rc,
 
 	GetPainter()->setBackground(QColorFromCA(back));
 	GetPainter()->setBackgroundMode(Qt::OpaqueMode);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+	QString su = QString::fromUtf8(s, len);
+#else
 	QString su = codec->toUnicode(s, len);
+#endif
 	GetPainter()->drawText(QPointF(rc.left, ybase), su);
 }
 
@@ -431,7 +455,11 @@ void SurfaceImpl::DrawTextTransparent(PRectangle rc,
 	PenColour(fore);
 
 	GetPainter()->setBackgroundMode(Qt::TransparentMode);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+	QString su = QString::fromUtf8(s, len);
+#else
 	QString su = codec->toUnicode(s, len);
+#endif
 	GetPainter()->drawText(QPointF(rc.left, ybase), su);
 }
 
@@ -461,7 +489,11 @@ void SurfaceImpl::MeasureWidths(Font &font,
 	if (!font.GetID())
 		return;
 	SetCodec(font);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+	QString su = QString::fromUtf8(s, len);
+#else
 	QString su = codec->toUnicode(s, len);
+#endif
 	QTextLayout tlay(su, *FontPointer(font), GetPaintDevice());
 	tlay.beginLayout();
 	QTextLine tl = tlay.createLine();
@@ -509,14 +541,26 @@ XYPOSITION SurfaceImpl::WidthText(Font &font, const char *s, int len)
 {
 	QFontMetricsF metrics(*FontPointer(font), device);
 	SetCodec(font);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+	QString string = QString::fromUtf8(s, len);
+#else
 	QString string = codec->toUnicode(s, len);
+#endif
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+	return metrics.horizontalAdvance(string);
+#else
 	return metrics.width(string);
+#endif
 }
 
 XYPOSITION SurfaceImpl::WidthChar(Font &font, char ch)
 {
 	QFontMetricsF metrics(*FontPointer(font), device);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+	return metrics.horizontalAdvance(QChar::fromLatin1(ch));
+#else
 	return metrics.width(QChar::fromLatin1(ch));
+#endif
 }
 
 XYPOSITION SurfaceImpl::Ascent(Font &font)
@@ -651,8 +695,15 @@ void Window::SetPositionRelative(PRectangle rc, Window relativeTo)
 	ox += rc.left;
 	oy += rc.top;
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+	QScreen *screen = QGuiApplication::screenAt(QPoint(ox, oy));
+	if (!screen)
+		screen = QGuiApplication::primaryScreen();
+	QRect rectDesk = screen->availableGeometry();
+#else
 	QDesktopWidget *desktop = QApplication::desktop();
 	QRect rectDesk = desktop->availableGeometry(QPoint(ox, oy));
+#endif
 	/* do some corrections to fit into screen */
 	int sizex = rc.right - rc.left;
 	int sizey = rc.bottom - rc.top;
@@ -738,8 +789,15 @@ PRectangle Window::GetMonitorRect(Point pt)
 {
 	QPoint originGlobal = window(wid)->mapToGlobal(QPoint(0, 0));
 	QPoint posGlobal = window(wid)->mapToGlobal(QPoint(pt.x, pt.y));
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+	QScreen *screen = QGuiApplication::screenAt(posGlobal);
+	if (!screen)
+		screen = QGuiApplication::primaryScreen();
+	QRect rectScreen = screen->availableGeometry();
+#else
 	QDesktopWidget *desktop = QApplication::desktop();
 	QRect rectScreen = desktop->availableGeometry(posGlobal);
+#endif
 	rectScreen.translate(-originGlobal.x(), -originGlobal.y());
 	return PRectangle(rectScreen.left(), rectScreen.top(),
 	        rectScreen.right(), rectScreen.bottom());
@@ -1080,8 +1138,15 @@ void ListWidget::mouseDoubleClickEvent(QMouseEvent * /* event */)
 
 QStyleOptionViewItem ListWidget::viewOptions() const
 {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+	QStyleOptionViewItem result;
+	result.initFrom(this);
+	result.state |= QStyle::State_Active;
+	result.displayAlignment = Qt::AlignLeft | Qt::AlignVCenter;
+#else
 	QStyleOptionViewItem result = QListWidget::viewOptions();
 	result.state |= QStyle::State_Active;
+#endif
 	return result;
 }
 

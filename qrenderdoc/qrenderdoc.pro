@@ -8,9 +8,9 @@ QT       += core gui widgets svg network
 
 CONFIG   += silent
 
-lessThan(QT_MAJOR_VERSION, 5): error("requires Qt 5.6; found $$[QT_VERSION]")
+lessThan(QT_MAJOR_VERSION, 5): error("requires Qt 5.6 or Qt 6; found $$[QT_VERSION]")
 
-equals(QT_MAJOR_VERSION, 5): lessThan(QT_MINOR_VERSION, 6): error("requires Qt 5.6; found $$[QT_VERSION]")
+equals(QT_MAJOR_VERSION, 5): lessThan(QT_MINOR_VERSION, 6): error("requires Qt 5.6 or Qt 6; found $$[QT_VERSION]")
 
 TARGET = qrenderdoc
 TEMPLATE = app
@@ -81,18 +81,18 @@ win32 {
 		LIBS += $$_PRO_FILE_PWD_/3rdparty/python/x64/python36.lib
 	}
 
-	# Include and link against PySide2
-	exists( $$_PRO_FILE_PWD_/3rdparty/pyside/include/PySide2/pyside.h ) {
-		DEFINES += PYSIDE2_ENABLED=1
-		INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/pyside/include/shiboken2
-		INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/pyside/include/PySide2
-		INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/pyside/include/PySide2/QtCore
-		INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/pyside/include/PySide2/QtGui
-		INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/pyside/include/PySide2/QtWidgets
+	# Include and link against PySide
+	exists( $$_PRO_FILE_PWD_/3rdparty/pyside/include/PySide/pyside.h ) {
+		DEFINES += PYSIDE_ENABLED=1
+		INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/pyside/include/shiboken
+		INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/pyside/include/PySide
+		INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/pyside/include/PySide/QtCore
+		INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/pyside/include/PySide/QtGui
+		INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/pyside/include/PySide/QtWidgets
 		!contains(QMAKE_TARGET.arch, x86_64) {
-			LIBS += $$_PRO_FILE_PWD_/3rdparty/pyside/Win32/shiboken2.lib
+			LIBS += $$_PRO_FILE_PWD_/3rdparty/pyside/Win32/shiboken.lib
 		} else {
-			LIBS += $$_PRO_FILE_PWD_/3rdparty/pyside/x64/shiboken2.lib
+			LIBS += $$_PRO_FILE_PWD_/3rdparty/pyside/x64/shiboken.lib
 		}
 	}
 
@@ -134,7 +134,8 @@ win32 {
 	SOURCES += $$CMAKE_DIR/qrenderdoc/qrenderdoc_python.cxx
 
 	CONFIG += warn_off
-	CONFIG += c++14
+	equals(QT_MAJOR_VERSION, 6): CONFIG += c++17
+	else: CONFIG += c++14
 	QMAKE_CFLAGS_WARN_OFF -= -w
 	QMAKE_CXXFLAGS_WARN_OFF -= -w
 
@@ -158,7 +159,7 @@ win32 {
 		QMAKE_POST_LINK += ln -sf $$[QT_INSTALL_PLUGINS] $${QTPLUGINS_PATH} ;
 		QMAKE_POST_LINK += sh $$_PRO_FILE_PWD_/../util/set_plist_version.sh $${RENDERDOC_VERSION}.0 $${INFO_PLIST_PATH}
 	} else {
-		QT += x11extras
+		lessThan(QT_MAJOR_VERSION, 6): QT += x11extras
 		DEFINES += RENDERDOC_PLATFORM_POSIX RENDERDOC_PLATFORM_LINUX RENDERDOC_WINDOWING_XLIB RENDERDOC_WINDOWING_XCB
 		QMAKE_LFLAGS += '-Wl,--no-as-needed -rdynamic'
 	}

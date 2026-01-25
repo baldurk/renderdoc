@@ -162,7 +162,7 @@ void RDPreviewTooltip::paintEvent(QPaintEvent *ev)
 {
   QStylePainter p(this);
   QStyleOptionFrame opt;
-  opt.init(this);
+  opt.initFrom(this);
   p.drawPrimitive(QStyle::PE_PanelTipLabel, opt);
   p.end();
 
@@ -173,7 +173,7 @@ void RDPreviewTooltip::resizeEvent(QResizeEvent *e)
 {
   QStyleHintReturnMask frameMask;
   QStyleOption option;
-  option.init(this);
+  option.initFrom(this);
   if(style()->styleHint(QStyle::SH_ToolTip_Mask, &option, this, &frameMask))
     setMask(frameMask.region);
 
@@ -586,7 +586,7 @@ void PipelineStateViewer::exportHTMLTable(QXmlStreamWriter &xml, const QStringLi
         {
           xml.writeStartElement(lit("td"));
 
-          if(el.type() == QVariant::Bool)
+          if(GetVariantMetatype(el) == QMetaType::Bool)
             xml.writeCharacters(el.toBool() ? tr("True") : tr("False"));
           else
             xml.writeCharacters(el.toString());
@@ -1107,7 +1107,7 @@ void PipelineStateViewer::SetupShaderEditButton(QToolButton *button, ResourceId 
               tr("####          PSEUDOCODE SPIR-V DISASSEMBLY            ###\n") +
               tr("#### Use a SPIR-V decompiler to get compileable source ###\n\n");
 
-          editeddisasm += disasm;
+          editeddisasm += ToQStr(disasm);
 
           GUIInvoke::call(this, [this, shaderId, shaderDetails, editeddisasm]() {
             rdcstrpairs files;

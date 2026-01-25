@@ -912,12 +912,6 @@ void DoSerialise(SerialiserType &ser, SDObject *el)
 // Basic types
 
 template <>
-rdcstr DoStringise(const rdcstr &el)
-{
-  return el;
-}
-
-template <>
 rdcstr DoStringise(const rdcinflexiblestr &el)
 {
   return el;

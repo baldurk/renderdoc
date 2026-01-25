@@ -170,7 +170,7 @@
            </sizepolicy>
           </property>
           <property name="sizeAdjustPolicy">
-           <enum>QComboBox::AdjustToMinimumContentsLengthWithIcon</enum>
+           <enum>QComboBox::AdjustToContents</enum>
           </property>
           <property name="minimumContentsLength">
            <number>8</number>
@@ -189,7 +189,7 @@
            <number>5</number>
           </property>
           <property name="sizeAdjustPolicy">
-           <enum>QComboBox::AdjustToMinimumContentsLengthWithIcon</enum>
+           <enum>QComboBox::AdjustToContents</enum>
           </property>
           <property name="minimumContentsLength">
            <number>7</number>

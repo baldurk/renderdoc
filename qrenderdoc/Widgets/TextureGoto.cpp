@@ -39,7 +39,7 @@ TextureGoto::TextureGoto(QWidget *parent, std::function<void(QPoint)> callback) 
 
   QHBoxLayout *hbox = new QHBoxLayout(this);
   hbox->setSpacing(5);
-  hbox->setMargin(0);
+  hbox->setContentsMargins(0, 0, 0, 0);
 
   QFrame *frame = new QFrame(this);
   frame->setGeometry(geometry());

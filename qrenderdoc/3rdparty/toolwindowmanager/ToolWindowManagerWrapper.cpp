@@ -61,7 +61,6 @@ ToolWindowManagerWrapper::ToolWindowManagerWrapper(ToolWindowManager *manager, b
 
   QVBoxLayout *mainLayout = new QVBoxLayout(this);
   mainLayout->setContentsMargins(0, 0, 0, 0);
-  mainLayout->setMargin(0);
   mainLayout->setSpacing(0);
   m_manager->m_wrappers << this;
 
@@ -361,7 +360,7 @@ void ToolWindowManagerWrapper::paintEvent(QPaintEvent *)
     QStylePainter p(this);
 
     QStyleOptionFrame frameOptions;
-    frameOptions.init(this);
+    frameOptions.initFrom(this);
     p.drawPrimitive(QStyle::PE_FrameDockWidget, frameOptions);
 
     // Title must be painted after the frame, since the areas overlap, and
@@ -382,8 +381,8 @@ void ToolWindowManagerWrapper::paintEvent(QPaintEvent *)
 
     buttonOpt.initFrom(this);
     buttonOpt.iconSize = QSize(m_closeButtonSize, m_closeButtonSize);
-    buttonOpt.subControls = 0;
-    buttonOpt.activeSubControls = 0;
+    buttonOpt.subControls = QStyle::SC_None;
+    buttonOpt.activeSubControls = QStyle::SC_None;
     buttonOpt.features = QStyleOptionToolButton::None;
     buttonOpt.arrowType = Qt::NoArrow;
     buttonOpt.state = QStyle::State_Active | QStyle::State_Enabled | QStyle::State_AutoRaise;

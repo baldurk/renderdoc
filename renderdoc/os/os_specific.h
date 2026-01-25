@@ -56,6 +56,8 @@ void ApplyEnvironmentModification();
 
 rdcstr GetEnvVariable(const rdcstr &name);
 
+bool IsWaylandSession();
+
 uint64_t GetMemoryUsage();
 
 bool CanGlobalHook();

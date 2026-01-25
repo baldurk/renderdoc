@@ -42,7 +42,8 @@ public:
   inline static Matrix4f Zero()
   {
     Matrix4f m;
-    memset(&m, 0, sizeof(Matrix4f));
+    for(int i = 0; i < 16; ++i)
+      m.f[i] = 0.0f;
     return m;
   }
 

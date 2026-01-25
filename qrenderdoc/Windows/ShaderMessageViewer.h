@@ -44,7 +44,7 @@ public:
   ~ShaderMessageViewer();
 
   // IShaderMessageViewer
-  QWidget *Widget() override { return this; }
+  QWidget *Widget() override { return (QWidget *)this; }
   uint32_t GetEvent() override { return m_EID; };
   rdcarray<ShaderMessage> GetShaderMessages() override { return m_Messages; };
   bool IsOutOfDate() override;

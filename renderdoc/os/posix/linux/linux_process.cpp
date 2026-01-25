@@ -807,6 +807,18 @@ rdcstr Process::GetEnvVariable(const rdcstr &name)
   return val ? val : rdcstr();
 }
 
+bool Process::IsWaylandSession()
+{
+  // Primary method: check session type
+  const char *sessionType = GetEnvVariable("XDG_SESSION_TYPE").c_str();
+  if(sessionType && strcmp(sessionType, "wayland") == 0)
+    return true;
+
+  // Fallback: check for WAYLAND_DISPLAY
+  const char *waylandDisplay = GetEnvVariable("WAYLAND_DISPLAY").c_str();
+  return waylandDisplay != nullptr;
+}
+
 uint64_t Process::GetMemoryUsage()
 {
   FILE *f = FileIO::fopen("/proc/self/statm", FileIO::ReadText);

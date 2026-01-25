@@ -33,6 +33,8 @@
 
 RDTextEdit::RDTextEdit(QWidget *parent) : QTextEdit(parent)
 {
+  ApplyWaylandWorkarounds(this);
+
   m_WordCharacters = lit("_");
 }
 

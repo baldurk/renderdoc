@@ -464,7 +464,11 @@ void FetchDefaultPrimaryKeys()
 #elif defined(Q_OS_LINUX)
 
 #include <dlfcn.h>
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include <QGuiApplication>
+#else
 #include <QX11Info>
+#endif
 
 // predeclare enough of xkbcommon, so we don't have a new build time dependency on it. Qt will load it for us
 extern "C" {
@@ -547,42 +551,8 @@ void FetchDefaultPrimaryKeys()
       (PFN_xkb_context_unref)findXKBSym("xkb_context_unref");
   PFN_xkb_keymap_unref dyn_xkb_keymap_unref = (PFN_xkb_keymap_unref)findXKBSym("xkb_keymap_unref");
 
-  // if both general and xcb symbols loaded, we're good to go
-  if(dyn_xkb_context_new && dyn_xkb_x11_keymap_new_from_device)
-  {
-    xcb_connection_t *connection = QX11Info::connection();
-    xkb_context *context = dyn_xkb_context_new(XKB_CONTEXT_NO_DEFAULT_INCLUDES);
-    int core_device_id = dyn_xkb_x11_get_core_keyboard_device_id(connection);
-    xkb_keymap *keymap = dyn_xkb_x11_keymap_new_from_device(context, connection, core_device_id,
-                                                            XKB_KEYMAP_COMPILE_NO_FLAGS);
-    xkb_state *state = dyn_xkb_x11_state_new_from_device(keymap, connection, core_device_id);
-
-    static int scans[(size_t)KeyPressDirection::Count] = {
-        NativeScanCode::Key_W, NativeScanCode::Key_S, NativeScanCode::Key_A,
-        NativeScanCode::Key_D, NativeScanCode::Key_R, NativeScanCode::Key_F,
-    };
-
-    for(size_t i = 0; i < (size_t)KeyPressDirection::Count; i++)
-    {
-      xkb_keysym_t sym = dyn_xkb_state_key_get_one_sym(state, scans[i]);
-
-      char buf[32] = {};
-      int len = dyn_xkb_keysym_to_utf8(sym, buf, 31);
-
-      if(len == 0)
-      {
-        qCritical() << "couldn't get key for" << i;
-      }
-      else
-      {
-        defaultPrimaryKeys[i] = Qt::Key(QString::fromUtf8(buf).unicode()->toUpper().unicode());
-      }
-    }
-
-    dyn_xkb_state_unref(state);
-    dyn_xkb_keymap_unref(keymap);
-    dyn_xkb_context_unref(context);
-  }
+  // Skip X11-specific keyboard mapping in Qt 6
+  return;
 }
 
 #else

@@ -106,7 +106,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
-      <AdditionalIncludeDirectories>$(ProjectDir);3rdparty;$(IntDir)generated\;$(SolutionDir)\renderdoc\api\replay;$(PythonIncludeDir);3rdparty\pyside\include\PySide2;3rdparty\pyside\include\shiboken2;$(QtIncludeDir);$(QtIncludeDir)\QtWidgets;$(QtIncludeDir)\QtGui;$(QtIncludeDir)\QtCore;$(QtIncludeDir)\QtSvg;$(QtIncludeDir)\QtNetwork;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);3rdparty;$(IntDir)generated\;$(SolutionDir)\renderdoc\api\replay;$(PythonIncludeDir);3rdparty\pyside\include\PySide;3rdparty\pyside\include\shiboken;$(QtIncludeDir);$(QtIncludeDir)\QtWidgets;$(QtIncludeDir)\QtGui;$(QtIncludeDir)\QtCore;$(QtIncludeDir)\QtSvg;$(QtIncludeDir)\QtNetwork;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:strictStrings /Zc:throwingNew %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>_WINDOWS;UNICODE;WIN32;WIN64;RENDERDOC_PLATFORM_WIN32;SCINTILLA_QT=1;MAKING_LIBRARY=1;SCI_LEXER=1;QT_NO_CAST_FROM_ASCII;QT_NO_CAST_TO_ASCII;QT_WIDGETS_LIB;QT_GUI_LIB;QT_CORE_LIB;QT_SVG_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level4</WarningLevel>
@@ -149,17 +149,17 @@
       <AdditionalDependencies>user32.lib;$(PythonImportLib);qtmaind.lib;Qt5Widgetsd.lib;Qt5Guid.lib;Qt5Cored.lib;Qt5Svgd.lib;Qt5Networkd.lib;shell32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="Exists('$(SolutionDir)\qrenderdoc\3rdparty\pyside\include\PySide2\pyside.h') AND '$(CustomPythonUsed)'=='0'">
+  <ItemDefinitionGroup Condition="Exists('$(SolutionDir)\qrenderdoc\3rdparty\pyside\include\PySide\pyside.h') AND '$(CustomPythonUsed)'=='0'">
     <ClCompile>
-      <PreprocessorDefinitions>PYSIDE2_ENABLED=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>PYSIDE_ENABLED=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>shiboken2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>shiboken.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="!Exists('$(SolutionDir)\qrenderdoc\3rdparty\pyside\include\PySide2\pyside.h') OR '$(CustomPythonUsed)'!='0'">
+  <ItemDefinitionGroup Condition="!Exists('$(SolutionDir)\qrenderdoc\3rdparty\pyside\include\PySide\pyside.h') OR '$(CustomPythonUsed)'!='0'">
     <ClCompile>
-      <PreprocessorDefinitions>PYSIDE2_ENABLED=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>PYSIDE_ENABLED=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Development'">
@@ -1836,43 +1836,43 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>
-    <Content Include="3rdparty\pyside\$(Platform)\shiboken2.dll" Condition="Exists('$(ProjectDir)3rdparty\pyside\$(Platform)\shiboken2.dll')">
-      <Link>shiboken2.dll</Link>
+    <Content Include="3rdparty\pyside\$(Platform)\shiboken.dll" Condition="Exists('$(ProjectDir)3rdparty\pyside\$(Platform)\shiboken.dll')">
+      <Link>shiboken.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>
-    <Content Include="3rdparty\pyside\$(Platform)\PySide2\pyside2.dll" Condition="Exists('$(ProjectDir)3rdparty\pyside\$(Platform)\PySide2\pyside2.dll')">
-      <Link>PySide2\pyside2.dll</Link>
+    <Content Include="3rdparty\pyside\$(Platform)\PySide\pyside2.dll" Condition="Exists('$(ProjectDir)3rdparty\pyside\$(Platform)\PySide\pyside2.dll')">
+      <Link>PySide\pyside2.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>
-    <Content Include="3rdparty\pyside\$(Platform)\PySide2\Qt5Qml.dll" Condition="Exists('$(ProjectDir)3rdparty\pyside\$(Platform)\PySide2\Qt5Qml.dll')">
-      <Link>PySide2\Qt5Qml.dll</Link>
+    <Content Include="3rdparty\pyside\$(Platform)\PySide\Qt5Qml.dll" Condition="Exists('$(ProjectDir)3rdparty\pyside\$(Platform)\PySide\Qt5Qml.dll')">
+      <Link>PySide\Qt5Qml.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>
-    <Content Include="3rdparty\pyside\$(Platform)\PySide2\__init__.py" Condition="Exists('$(ProjectDir)3rdparty\pyside\$(Platform)\PySide2\__init__.py')">
-      <Link>PySide2\__init__.py</Link>
+    <Content Include="3rdparty\pyside\$(Platform)\PySide\__init__.py" Condition="Exists('$(ProjectDir)3rdparty\pyside\$(Platform)\PySide\__init__.py')">
+      <Link>PySide\__init__.py</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>
-    <Content Include="3rdparty\pyside\$(Platform)\PySide2\_utils.py" Condition="Exists('$(ProjectDir)3rdparty\pyside\$(Platform)\PySide2\_utils.py')">
-      <Link>PySide2\_utils.py</Link>
+    <Content Include="3rdparty\pyside\$(Platform)\PySide\_utils.py" Condition="Exists('$(ProjectDir)3rdparty\pyside\$(Platform)\PySide\_utils.py')">
+      <Link>PySide\_utils.py</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>
-    <Content Include="3rdparty\pyside\$(Platform)\PySide2\QtCore.pyd" Condition="Exists('$(ProjectDir)3rdparty\pyside\$(Platform)\PySide2\QtCore.pyd')">
-      <Link>PySide2\QtCore.pyd</Link>
+    <Content Include="3rdparty\pyside\$(Platform)\PySide\QtCore.pyd" Condition="Exists('$(ProjectDir)3rdparty\pyside\$(Platform)\PySide\QtCore.pyd')">
+      <Link>PySide\QtCore.pyd</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>
-    <Content Include="3rdparty\pyside\$(Platform)\PySide2\QtGui.pyd" Condition="Exists('$(ProjectDir)3rdparty\pyside\$(Platform)\PySide2\QtGui.pyd')">
-      <Link>PySide2\QtGui.pyd</Link>
+    <Content Include="3rdparty\pyside\$(Platform)\PySide\QtGui.pyd" Condition="Exists('$(ProjectDir)3rdparty\pyside\$(Platform)\PySide\QtGui.pyd')">
+      <Link>PySide\QtGui.pyd</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>
-    <Content Include="3rdparty\pyside\$(Platform)\PySide2\QtWidgets.pyd" Condition="Exists('$(ProjectDir)3rdparty\pyside\$(Platform)\PySide2\QtWidgets.pyd')">
-      <Link>PySide2\QtWidgets.pyd</Link>
+    <Content Include="3rdparty\pyside\$(Platform)\PySide\QtWidgets.pyd" Condition="Exists('$(ProjectDir)3rdparty\pyside\$(Platform)\PySide\QtWidgets.pyd')">
+      <Link>PySide\QtWidgets.pyd</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>

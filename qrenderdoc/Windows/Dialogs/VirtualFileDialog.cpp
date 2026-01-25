@@ -27,7 +27,7 @@
 #include <QKeyEvent>
 #include <QPainter>
 #include <QPushButton>
-#include <QRegExp>
+#include <QRegularExpression>
 #include <QSortFilterProxyModel>
 #include "Code/ReplayManager.h"
 #include "Code/Resources.h"
@@ -622,6 +622,7 @@ VirtualFileDialog::VirtualFileDialog(ICaptureContext &ctx, QString initialDirect
                    &VirtualFileDialog::fileList_selectionChanged);
   QObject::connect(ui->dirList->selectionModel(), &QItemSelectionModel::selectionChanged, this,
                    &VirtualFileDialog::dirList_selectionChanged);
+  QObject::connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &VirtualFileDialog::reject);
 }
 
 VirtualFileDialog::~VirtualFileDialog()
@@ -794,8 +795,11 @@ void VirtualFileDialog::on_filename_keyPress(QKeyEvent *e)
 
   QString text = ui->filename->text();
 
-  QRegExp re(text);
-  re.setPatternSyntax(QRegExp::Wildcard);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+  QRegularExpression re(QRegularExpression::wildcardToRegularExpression(text));
+#else
+  QRegExp re(text, Qt::CaseInsensitive, QRegExp::Wildcard);
+#endif
 
   int fileCount = m_FileProxy->rowCount(curDir);
   int matches = 0, dirmatches = 0;
@@ -809,7 +813,12 @@ void VirtualFileDialog::on_filename_keyPress(QKeyEvent *e)
 
     QString filename = m_FileProxy->data(file, RemoteFileModel::FileNameRole).toString();
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    QRegularExpressionMatch reMatch = re.match(filename);
+    if(reMatch.hasMatch() && reMatch.capturedLength() == filename.length())
+#else
     if(re.exactMatch(filename))
+#endif
     {
       idx = file;
       dirmatches += isDir ? 1 : 0;
@@ -846,7 +855,11 @@ void VirtualFileDialog::on_filename_keyPress(QKeyEvent *e)
     fileNotFound(text);
   }
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+  m_FileProxy->setFilterRegularExpression(re);
+#else
   m_FileProxy->setFilterRegExp(re);
+#endif
   m_FileProxy->refresh();
 }
 
@@ -866,9 +879,13 @@ void VirtualFileDialog::on_buttonBox_accepted()
     return;
   }
 
-  // simulate enter being pressed
-  QKeyEvent fakeEvent(QEvent::KeyPress, Qt::Key_Return, 0);
-  on_filename_keyPress(&fakeEvent);
+  // construct a fake return keypress
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+  QKeyEvent fakeEvent(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier, 0, 0, 0, QString(), false, 1);
+#else
+  QKeyEvent fakeEvent(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+#endif
+  keyPressEvent(&fakeEvent);
 }
 
 void VirtualFileDialog::on_back_clicked()

@@ -730,7 +730,7 @@ void GLPipelineStateViewer::addImageSamplerRow(const Descriptor &descriptor,
       if(texCompleteness && !texCompleteness->typeConflict.empty())
         slotname += tr(": <conflict>");
       else if(shaderTex && !shaderTex->name.empty())
-        slotname += lit(": ") + shaderTex->name;
+        slotname += lit(": ") + ToQStr(shaderTex->name);
 
       uint32_t w = 1, h = 1, d = 1;
       uint32_t a = 1;
@@ -814,7 +814,7 @@ void GLPipelineStateViewer::addImageSamplerRow(const Descriptor &descriptor,
       QString slotname = QString::number(reg);
 
       if(shaderTex && !shaderTex->name.empty())
-        slotname += lit(": ") + shaderTex->name;
+        slotname += lit(": ") + ToQStr(shaderTex->name);
 
       QString borderColor = QFormatStr("%1, %2, %3, %4")
                                 .arg(samplerDescriptor.borderColorValue.floatValue[0])
@@ -924,7 +924,7 @@ void GLPipelineStateViewer::addUBORow(const Descriptor &descriptor, uint32_t reg
     QString slotname = QString::number(reg);
 
     if(shaderBind && !shaderBind->name.empty())
-      slotname += lit(": ") + shaderBind->name;
+      slotname += lit(": ") + ToQStr(shaderBind->name);
 
     offset = descriptor.byteOffset;
     length = descriptor.byteSize;
@@ -1038,7 +1038,7 @@ void GLPipelineStateViewer::addReadWriteRow(const Descriptor &descriptor, uint32
     QString slotname = QString::number(reg);
 
     if(shaderBind && !shaderBind->name.empty())
-      slotname += lit(": ") + shaderBind->name;
+      slotname += lit(": ") + ToQStr(shaderBind->name);
 
     QString dimensions;
     QString format = descriptor.format.Name();
@@ -3935,11 +3935,11 @@ void GLPipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const GLPipe::Fram
     xml.writeStartElement(tr("p"));
     xml.writeEndElement();
 
-    m_Common.exportHTMLTable(xml,
-                             {
-                                 tr("Read Buffer"),
-                             },
-                             {fb.readFBO.readBuffer});
+    {
+      QList<QVariantList> readBufferRow;
+      readBufferRow.push_back(QVariantList() << fb.readFBO.readBuffer);
+      m_Common.exportHTMLTable(xml, {tr("Read Buffer")}, readBufferRow);
+    }
   }
 }
 

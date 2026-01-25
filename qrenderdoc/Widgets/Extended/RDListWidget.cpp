@@ -27,9 +27,11 @@
 #include <QClipboard>
 #include <QMouseEvent>
 #include "Code/Interface/QRDInterface.h"
+#include "Code/QRDUtils.h"
 
 RDListWidget::RDListWidget(QWidget *parent) : QListWidget(parent)
 {
+  ApplyWaylandWorkarounds(this);
 }
 
 RDListWidget::~RDListWidget()

@@ -23,6 +23,9 @@
  ******************************************************************************/
 
 #include <stdio.h>
+#if defined(RENDERDOC_PLATFORM_LINUX)
+#include <execinfo.h>
+#endif
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QDir>
@@ -38,6 +41,15 @@
 #include "Windows/Dialogs/CrashDialog.h"
 #include "Windows/MainWindow.h"
 #include "version.h"
+
+#if defined(RENDERDOC_PLATFORM_LINUX)
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include <QtGui/qguiapplication_platform.h>
+#include <QtGui/QGuiApplication>
+#else
+#include <QX11Info>
+#endif
+#endif
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
 
@@ -104,7 +116,8 @@ public:
     {
       rdcstr msg = str.substr(0, idx + 1);
       RENDERDOC_LogMessage(LogType::Comment, "EXTN", __FILE__, __LINE__, msg);
-      fputs(msg.c_str(), file);
+      if(file)
+        fputs(msg.c_str(), file);
       str = str.substr(idx + 1);
       this->str("");
       this->sputn(str.c_str(), str.size());
@@ -163,6 +176,76 @@ void sharedLogOutput(QtMsgType type, const QMessageLogContext &context, const QS
     case QtFatalMsg: logtype = LogType::Fatal; break;
   }
 
+  static bool inHandler = false;
+  static bool shownShmErrorWorkaround = false;
+#if defined(RENDERDOC_PLATFORM_LINUX)
+  if(!inHandler && type != QtDebugMsg && type != QtInfoMsg)
+  {
+    bool isWaylandMessage =
+        msg.contains(QLatin1String("wl_")) || msg.contains(QLatin1String("Wayland"));
+
+    bool isActualError = msg.contains(QLatin1String("error"), Qt::CaseInsensitive) ||
+                         msg.contains(QLatin1String("failed"), Qt::CaseInsensitive) ||
+                         msg.contains(QLatin1String("invalid"), Qt::CaseInsensitive);
+
+    bool isNonError = msg.contains(QLatin1String("discarded"), Qt::CaseInsensitive) ||
+                      msg.contains(QLatin1String("wl_buffer#"), Qt::CaseInsensitive) ||
+                      msg.contains(QLatin1String(".release()"), Qt::CaseInsensitive) ||
+                      msg.contains(QLatin1String("wl_callback"), Qt::CaseInsensitive) ||
+                      msg.contains(QLatin1String(".done("), Qt::CaseInsensitive);
+
+    if(isWaylandMessage && isActualError && !isNonError)
+    {
+      inHandler = true;
+      fprintf(stderr, "\n================ WAYLAND ERROR DETECTED ================\n");
+      fprintf(stderr, "Qt Message Type: %d\n", type);
+      fprintf(stderr, "Qt Message: %s\n", msg.toUtf8().constData());
+      if(context.file)
+        fprintf(stderr, "  at %s:%d\n", context.file, context.line);
+
+      bool isKnownShmError = msg.contains(QLatin1String("QWaylandShmBackingStore")) ||
+                             msg.contains(QLatin1String("fatal error during blocking read"));
+
+      if(isKnownShmError && !shownShmErrorWorkaround)
+      {
+        fprintf(stderr, "\n");
+        fprintf(stderr, "!!! DETECTED KNOWN WAYLAND/SHM PROTOCOL ERROR !!!\n");
+        fprintf(stderr, "\n");
+        fprintf(stderr, "This error occurs when Qt's Wayland SHM backing store\n");
+        fprintf(stderr, "is incompatible with your compositor's configuration.\n");
+        fprintf(stderr, "\n");
+        fprintf(stderr, "RECOMMENDED WORKAROUND:\n");
+        fprintf(stderr, "  Run with XWayland backend:\n");
+        fprintf(stderr, "    QT_QPA_PLATFORM=xcb %s\n",
+                qApp->arguments().first().toUtf8().constData());
+        fprintf(stderr, "\n");
+        fprintf(stderr, "Or add to your shell profile (~/.bashrc or ~/.zshrc):\n");
+        fprintf(stderr, "  export QT_QPA_PLATFORM=xcb\n");
+        fprintf(stderr, "\n");
+        shownShmErrorWorkaround = true;
+      }
+
+      fprintf(stderr, "\nStack trace:\n");
+
+      void *buffer[64];
+      int nptrs = backtrace(buffer, 64);
+      char **strings = backtrace_symbols(buffer, nptrs);
+      if(strings)
+      {
+        for(int j = 0; j < nptrs; j++)
+          fprintf(stderr, "  #%d %s\n", j, strings[j]);
+        free(strings);
+      }
+      fprintf(stderr, "============================================================\n\n");
+      fflush(stderr);
+      inHandler = false;
+    }
+  }
+#else
+  (void)inHandler;                  // suppress unused warning
+  (void)shownShmErrorWorkaround;    // suppress unused warning
+#endif
+
   RENDERDOC_LogMessage(logtype, "QTRD", context.file ? context.file : rdcstr(), context.line, msg);
 }
 
@@ -182,9 +265,11 @@ void hideOption(QCommandLineOption &opt)
 
 int main(int argc, char *argv[])
 {
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
   // call this as the very first thing - no-op on other platforms, but on linux it means
   // XInitThreads will be called allowing driver access to xlib on multiple threads.
   QCoreApplication::setAttribute(Qt::AA_X11InitThreads);
+#endif
 
   qInstallMessageHandler(sharedLogOutput);
 
@@ -209,6 +294,30 @@ int main(int argc, char *argv[])
       envChanged = true;
     }
   }
+#elif defined(RENDERDOC_PLATFORM_LINUX) && defined(RENDERDOC_WINDOWING_WAYLAND)
+  bool envChanged = false;
+  bool explicitSyncDetected = CheckWaylandExplicitSyncEarly();
+  if(explicitSyncDetected)
+  {
+    fprintf(stderr,
+            "============================================================================\n");
+    fprintf(stderr, "WAYLAND EXPLICIT SYNC DETECTED - AUTOMATIC XWAYLAND FALLBACK\n");
+    fprintf(stderr,
+            "============================================================================\n");
+    fprintf(stderr, "Your Wayland compositor uses explicit synchronization\n");
+    fprintf(stderr, "(wp_linux_drm_syncobj_manager_v1), which is incompatible\n");
+    fprintf(stderr, "with Qt's default SHM backing store.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Automatically falling back to XWayland for stability.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "To override this fallback, set QT_QPA_PLATFORM=wayland\n");
+    fprintf(stderr, "or disable explicit sync in your compositor settings.\n");
+    fprintf(stderr,
+            "============================================================================\n\n");
+
+    setenv("QT_QPA_PLATFORM", "xcb", 1);
+    envChanged = true;
+  }
 #endif
 
   QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
@@ -223,30 +332,35 @@ int main(int argc, char *argv[])
 
 // shortcut here so we can run this with a non-GUI application
 #if ENABLE_UNIT_TESTS
-  if(QString::fromUtf8(argv[1]) == lit("--unittest"))
+  if(argc >= 2 && QString::fromUtf8(argv[1]) == lit("--unittest"))
   {
-    char **mod_argv = new char *[argc + 1];
-    char **alloc_argv = mod_argv;
-    for(int i = 0; i < argc; i++)
-      mod_argv[i] = argv[i];
-    mod_argv[argc] = 0;
-
-    // pop --unittest
-    argc--;
-    mod_argv++;
+    rdcarray<char *> appArgs;
+    appArgs.push_back(argv[0]);
 
     FILE *test_logOut = NULL;
 
-    if(argc >= 2 && QString::fromUtf8(mod_argv[1]).left(4) == lit("log="))
+    for(int i = 2; i < argc; i++)
     {
-      test_logOut = fopen(mod_argv[1] + 4, "w");
-
-      // pop
-      argc--;
-      mod_argv++;
+      QString arg = QString::fromUtf8(argv[i]);
+      if(arg.left(4) == lit("log="))
+      {
+        test_logOut = fopen(argv[i] + 4, "w");
+        if(test_logOut == NULL)
+        {
+          fprintf(stderr, "Failed to open log file '%s' for writing\n", argv[i] + 4);
+          test_logOut = stdout;
+        }
+      }
+      else
+      {
+        appArgs.push_back(argv[i]);
+      }
     }
 
-    mod_argv[0] = argv[0];
+    appArgs.push_back(NULL);
+
+    int appArgc = appArgs.count() - 1;
+    char **appArgv = appArgs.data();
 
     if(test_logOut == NULL)
       test_logOut = stdout;
@@ -265,7 +379,7 @@ int main(int argc, char *argv[])
       session.configData().name = "QRenderDoc";
       session.configData().shouldDebugBreak = Catch::isDebuggerActive();
 
-      ret = session.applyCommandLine(argc, mod_argv);
+      ret = session.applyCommandLine(appArgc, appArgv);
 
       if(ret == 0)
       {
@@ -285,7 +399,8 @@ int main(int argc, char *argv[])
     RENDERDOC_InitialiseReplay(env, coreargs);
 
     {
-      QCoreApplication application(argc, mod_argv);
+      QCoreApplication application(appArgc, appArgv);
+
       PythonContext::GlobalInit();
 
       logstream << "Checking python binding consistency.\n";
@@ -315,14 +430,19 @@ int main(int argc, char *argv[])
 
     logbuf.finish();
 
-    delete[] alloc_argv;
+    // Only close if we opened a file, not if using stdout
+    if(test_logOut != stdout)
+      fclose(test_logOut);
 
-    fclose(test_logOut);
     return ret;
   }
 #endif
 
   QApplication application(argc, argv);
+
+#if defined(RENDERDOC_PLATFORM_LINUX)
+  InstallGlobalWaylandWorkaround();
+#endif
 
   QCommandLineParser parser;
   parser.setApplicationDescription(tr("Qt UI for RenderDoc"));
@@ -577,20 +697,32 @@ int main(int argc, char *argv[])
     {
       GlobalEnvironment env;
 #if defined(RENDERDOC_PLATFORM_LINUX)
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+      QNativeInterface::QX11Application *x11Interface =
+          qApp->nativeInterface<QNativeInterface::QX11Application>();
+      if(x11Interface)
+        env.xlibDisplay = x11Interface->display();
+#else
       env.xlibDisplay = QX11Info::display();
+#endif
       if(QGuiApplication::platformName() == lit("wayland"))
       {
         env.waylandDisplay = (wl_display *)AccessWaylandPlatformInterface("display", NULL);
 
-        QString warning =
-            tr("Running directly on Wayland is NOT SUPPORTED and is likely to crash, hang, or "
-               "fail to render.");
-
-        qInfo() << "------ !!!! WARNING !!!! ------";
-        qInfo() << warning;
-        qInfo() << "------ !!!! WARNING !!!! ------";
-
-        RDDialog::critical(NULL, tr("Wayland Qt platform not supported"), warning);
+        bool hasExplicitSync = CheckWaylandExplicitSyncSupport();
+        if(hasExplicitSync)
+        {
+          qWarning() << "============================================================";
+          qWarning() << "WAYLAND EXPLICIT SYNC DETECTED";
+          qWarning() << "============================================================";
+          qWarning() << "Your Wayland compositor uses explicit synchronization";
+          qWarning() << "(wp_linux_drm_syncobj_manager_v1), which is incompatible";
+          qWarning() << "with Qt's default SHM backing store.";
+          qWarning() << "";
+          qWarning() << "You have overridden the automatic XWayland fallback.";
+          qWarning() << "Errors may occur. Proceeding with native Wayland support.";
+          qWarning() << "============================================================";
+        }
       }
 #endif
       rdcarray<rdcstr> coreargs;
@@ -606,7 +738,7 @@ int main(int argc, char *argv[])
       RENDERDOC_InitialiseReplay(env, coreargs);
     }
 
-#if defined(RENDERDOC_PLATFORM_LINUX) && !defined(RENDERDOC_WINDOWING_WAYLAND)
+#if defined(RENDERDOC_PLATFORM_LINUX)
     if(envChanged)
       unsetenv("QT_QPA_PLATFORM");
 #endif

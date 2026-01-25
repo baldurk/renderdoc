@@ -487,7 +487,7 @@ rdcstr CaptureContext::LoadExtension(rdcstr name)
   for(QAction *a : m_MainWindow->GetMenuActions())
     CleanMenu(a);
 
-  m_RegisteredMenuItems.removeAll(NULL);
+  m_RegisteredMenuItems.removeAll(nullptr);
 
   return ret;
 }
@@ -1051,9 +1051,27 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const Repla
       }
 
       if(m_CurWinSystem == WindowingSystem::XCB)
+      {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        QNativeInterface::QX11Application *x11Interface =
+            qApp->nativeInterface<QNativeInterface::QX11Application>();
+        if(x11Interface)
+          m_XCBConnection = x11Interface->connection();
+#else
         m_XCBConnection = QX11Info::connection();
+#endif
+      }
       else
+      {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        QNativeInterface::QX11Application *x11Interface =
+            qApp->nativeInterface<QNativeInterface::QX11Application>();
+        if(x11Interface)
+          m_X11Display = x11Interface->display();
+#else
         m_X11Display = QX11Info::display();
+#endif
+      }
     }
 
 #elif defined(RENDERDOC_PLATFORM_APPLE)

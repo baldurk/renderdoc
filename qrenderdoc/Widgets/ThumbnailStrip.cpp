@@ -24,11 +24,13 @@
 
 #include "ThumbnailStrip.h"
 #include <QScrollBar>
+#include "Code/QRDUtils.h"
 #include "Widgets/ResourcePreview.h"
 #include "ui_ThumbnailStrip.h"
 
 ThumbnailStrip::ThumbnailStrip(QWidget *parent) : QWidget(parent), ui(new Ui::ThumbnailStrip)
 {
+  ApplyWaylandWorkarounds(this);
   ui->setupUi(this);
 
   layout = new QVBoxLayout(ui->scrollAreaWidgetContents);

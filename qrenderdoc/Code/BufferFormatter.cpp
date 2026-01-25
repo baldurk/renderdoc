@@ -168,7 +168,7 @@ static QString MakeIdentifierName(const rdcstr &name)
 
   ret = ret.replace(QLatin1Char('['), QLatin1Char('_')).replace(QLatin1Char(']'), QString());
 
-  if(ret[0].isDigit())
+  if(!ret.isEmpty() && ret[0].isDigit())
     ret.prepend(QLatin1Char('_'));
 
   ret.replace(QRegularExpression(lit("[^A-Za-z0-9@_]+")), lit("_"));
@@ -2595,7 +2595,7 @@ QString BufferFormatter::GetBufferFormatString(Packing::Rules pack, ResourceId s
           format += QString::number(desc.columns);
 
         if(!desc.name.empty())
-          format += lit(" ") + desc.name;
+          format += lit(" ") + ToQStr(desc.name);
 
         if(desc.elements > 1)
           format += QFormatStr("[%1]").arg(desc.elements);
@@ -4144,7 +4144,7 @@ TEST_CASE("Packing rules respected when round-tripping", "[formatter]")
   rdcarray<ShaderConstant> &members = res.variableType.members;
   ParsedFormat parsed;
 
-  members.push_back({});
+  members.push_back(ShaderConstant());
   members.back().name = "a";
   members.back().byteOffset = 0;
   members.back().type.name = "float";
@@ -4465,15 +4465,15 @@ TEST_CASE("Buffer format parsing", "[formatter]")
   SECTION("comment, newline, semi-colon and whitespace handling")
   {
     rdcarray<ShaderConstant> members;
-    members.push_back({});
+    members.push_back(ShaderConstant());
     members.back().name = "a";
     members.back().byteOffset = 0;
     members.back().type = float_type;
-    members.push_back({});
+    members.push_back(ShaderConstant());
     members.back().name = "b";
     members.back().byteOffset = 4;
     members.back().type = int_type;
-    members.push_back({});
+    members.push_back(ShaderConstant());
     members.back().name = "c";
     members.back().byteOffset = 8;
     members.back().type = uint_type;
@@ -6461,7 +6461,7 @@ struct s
   byte h;  // if trailing padding can be overlapped this will be 'inside' g
 };
 )";
-      parsed = BufferFormatter::ParseFormatString(lit("#pack(cbuffer)\n") + def, 0, true);
+      parsed = BufferFormatter::ParseFormatString(lit("#pack(cbuffer)\n") + (QString)def, 0, true);
 
       CHECK(parsed.errors.isEmpty());
       CHECK(parsed.repeating.type.members.empty());
@@ -6478,7 +6478,7 @@ struct s
       CHECK(parsed.fixed.type.members[6].byteOffset == 160);    // g
       CHECK(parsed.fixed.type.members[7].byteOffset == 165);    // h
 
-      parsed = BufferFormatter::ParseFormatString(lit("#pack(d3duav)\n") + def, 0, true);
+      parsed = BufferFormatter::ParseFormatString(lit("#pack(d3duav)\n") + (QString)def, 0, true);
 
       CHECK(parsed.errors.isEmpty());
       CHECK(parsed.repeating.type.members.empty());
@@ -6495,7 +6495,7 @@ struct s
       CHECK(parsed.fixed.type.members[6].byteOffset == 160);    // g
       CHECK(parsed.fixed.type.members[7].byteOffset == 168);    // h
 
-      parsed = BufferFormatter::ParseFormatString(lit("#pack(std140)\n") + def, 0, true);
+      parsed = BufferFormatter::ParseFormatString(lit("#pack(std140)\n") + (QString)def, 0, true);
 
       CHECK(parsed.errors.isEmpty());
       CHECK(parsed.repeating.type.members.empty());
@@ -6512,7 +6512,7 @@ struct s
       CHECK(parsed.fixed.type.members[6].byteOffset == 160);    // g
       CHECK(parsed.fixed.type.members[7].byteOffset == 176);    // h
 
-      parsed = BufferFormatter::ParseFormatString(lit("#pack(std430)\n") + def, 0, true);
+      parsed = BufferFormatter::ParseFormatString(lit("#pack(std430)\n") + (QString)def, 0, true);
 
       CHECK(parsed.errors.isEmpty());
       CHECK(parsed.repeating.type.members.empty());
@@ -6529,7 +6529,7 @@ struct s
       CHECK(parsed.fixed.type.members[6].byteOffset == 160);    // g
       CHECK(parsed.fixed.type.members[7].byteOffset == 168);    // h
 
-      parsed = BufferFormatter::ParseFormatString(lit("#pack(scalar)\n") + def, 0, true);
+      parsed = BufferFormatter::ParseFormatString(lit("#pack(scalar)\n") + (QString)def, 0, true);
 
       CHECK(parsed.errors.isEmpty());
       CHECK(parsed.repeating.type.members.empty());
@@ -6561,7 +6561,7 @@ uint insecond : 14;
       for(rdcstr ruleset :
           {"", "#pack(c)", "#pack(scalar)", "#pack(std430)", "#pack(std140)", "#pack(cbuffer)"})
       {
-        parsed = BufferFormatter::ParseFormatString(ruleset + "\n" + def, 0, true);
+        parsed = BufferFormatter::ParseFormatString(ruleset + "\n" + (QString)def, 0, true);
 
         CHECK(parsed.errors.isEmpty());
         REQUIRE(parsed.fixed.type.members.size() == 4);

@@ -34,7 +34,12 @@
 #include "ReplayManager.h"
 
 #if defined(RENDERDOC_PLATFORM_LINUX)
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include <QtGui/qguiapplication_platform.h>
+#include <QtGui/QGuiApplication>
+#else
 #include <QX11Info>
+#endif
 #endif
 
 class MainWindow;

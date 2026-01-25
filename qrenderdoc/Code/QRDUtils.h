@@ -73,12 +73,16 @@ QString ToQStr(const ShadingRateCombiner addr, const GraphicsAPI apitype);
 
 inline QMetaType::Type GetVariantMetatype(const QVariant &v)
 {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+  return (QMetaType::Type)v.userType();
+#else
   // this is explicitly called out by the documentation as the recommended process:
   // "Although this function is declared as returning QVariant::Type, the return value should be
   // interpreted as QMetaType::Type."
   // Suppress static analysis complaints about the enums mismatching:
   // coverity[mixed_enums]
   return (QMetaType::Type)v.type();
+#endif
 }
 
 namespace Packing
@@ -1055,7 +1059,13 @@ void TruncateStringFromEnd(QString &name);
 float getLuminance(const QColor &col);
 QColor contrastingColor(const QColor &col, const QColor &defaultCol);
 
+void ApplyWaylandWorkarounds(QWidget *widget);
+void InstallGlobalWaylandWorkaround();
+
 void *AccessWaylandPlatformInterface(const QByteArray &resource, QWindow *window);
+
+bool CheckWaylandExplicitSyncEarly();
+bool CheckWaylandExplicitSyncSupport();
 
 void UpdateVisibleColumns(rdcstr windowTitle, int columnCount, QHeaderView *header,
                           const QStringList &headers);

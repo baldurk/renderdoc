@@ -789,7 +789,7 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
                       .arg(shaderInput->fixedBindNumber);
 
       if(!shaderInput->name.empty())
-        regname += lit(": ") + shaderInput->name;
+        regname += lit(": ") + ToQStr(shaderInput->name);
 
       if(shaderInput->bindArraySize > 1)
         regname += QFormatStr("[%1]").arg(view.access.arrayElement);
@@ -876,7 +876,7 @@ void D3D12PipelineStateViewer::addResourceRow(const D3D12ViewTag &view,
       if(shaderInput && !shaderInput->isTexture)
       {
         if(shaderInput->variableType.baseType == VarType::Struct)
-          format = lit("struct ") + shaderInput->variableType.name;
+          format = lit("struct ") + ToQStr(shaderInput->variableType.name);
         else if(descriptor.format.compType == CompType::Typeless)
           format = shaderInput->variableType.name;
         else
@@ -1707,7 +1707,7 @@ void D3D12PipelineStateViewer::setState()
                             .arg(shaderBind->fixedBindNumber);
 
             if(!shaderBind->name.empty())
-              regname += lit(": ") + shaderBind->name;
+              regname += lit(": ") + ToQStr(shaderBind->name);
 
             if(shaderBind->bindArraySize > 1)
               regname += QFormatStr("[%1]").arg(used.access.arrayElement);
@@ -1784,7 +1784,7 @@ void D3D12PipelineStateViewer::setState()
                             .arg(shaderBind->fixedBindNumber);
 
             if(!shaderBind->name.empty())
-              regname += lit(": ") + shaderBind->name;
+              regname += lit(": ") + ToQStr(shaderBind->name);
 
             if(shaderBind->bindArraySize > 1)
               regname += QFormatStr("[%1]").arg(used.access.arrayElement);
@@ -2749,7 +2749,7 @@ QVariantList D3D12PipelineStateViewer::exportViewHTML(const Descriptor &descript
       if(descriptor.format.compType == CompType::Typeless)
       {
         if(shaderInput->variableType.baseType == VarType::Struct)
-          viewFormat = format = lit("struct ") + shaderInput->variableType.name;
+          viewFormat = format = lit("struct ") + ToQStr(shaderInput->variableType.name);
         else
           viewFormat = format = shaderInput->variableType.name;
       }
@@ -2974,7 +2974,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
                       .arg(shaderCBuf->fixedBindNumber);
 
       if(!shaderCBuf->name.empty())
-        regname += lit(": ") + shaderCBuf->name;
+        regname += lit(": ") + ToQStr(shaderCBuf->name);
 
       if(shaderCBuf->bindArraySize > 1)
         regname += QFormatStr("[%1]").arg(used.access.arrayElement);
@@ -3073,7 +3073,7 @@ void D3D12PipelineStateViewer::exportHTML(QXmlStreamWriter &xml, const D3D12Pipe
                         .arg(shaderSamp->fixedBindNumber);
 
         if(!shaderSamp->name.empty())
-          regname += lit(": ") + shaderSamp->name;
+          regname += lit(": ") + ToQStr(shaderSamp->name);
 
         if(shaderSamp->bindArraySize > 1)
           regname += QFormatStr("[%1]").arg(used.access.arrayElement);

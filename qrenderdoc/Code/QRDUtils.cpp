@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "QRDUtils.h"
+#include <QAbstractScrollArea>
 #include <QAbstractTextDocumentLayout>
 #include <QApplication>
 #include <QCloseEvent>
@@ -53,6 +54,7 @@
 #include <QTextBoundaryFinder>
 #include <QTextDocument>
 #include <QtMath>
+#include <utility>
 #include "Code/Resources.h"
 #include "Widgets/Extended/RDListWidget.h"
 #include "Widgets/Extended/RDTreeWidget.h"
@@ -261,7 +263,7 @@ struct RichResourceText
         QString resname = GetTruncatedResourceName(ctx, v.value<ResourceId>());
         text += resname;
       }
-      else if(v.type() == QVariant::UInt)
+      else if(GetVariantMetatype(v) == QMetaType::UInt)
       {
         text += lit("EID @%1").arg(v.toUInt());
       }
@@ -354,7 +356,7 @@ struct RichResourceText
         fragmentIndexFromBlockIndex.push_back(i);
         fragmentIndexFromBlockIndex.push_back(i);
       }
-      else if(v.type() == QVariant::UInt)
+      else if(GetVariantMetatype(v) == QMetaType::UInt)
       {
         html += lit("<td valign=\"middle\" style=\"line-height: 14px\">"
                     "<font color='#0000FF'><u>EID @%1</u></font></td>")
@@ -1200,7 +1202,7 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
 
         return true;
       }
-      else if(v.type() == QVariant::UInt)
+      else if(GetVariantMetatype(v) == QMetaType::UInt)
       {
         uint32_t eid = v.value<uint32_t>();
 
@@ -1213,7 +1215,7 @@ bool RichResourceTextMouseEvent(const QWidget *owner, const QVariant &var, QRect
 
         return true;
       }
-      else if(v.type() == QVariant::Url)
+      else if(GetVariantMetatype(v) == QMetaType::QUrl)
       {
         QUrl url = v.value<QUrl>();
 
@@ -1858,7 +1860,11 @@ QIcon MakeSwatchIcon(QWidget *parentWidget, QColor swatchColor)
   {
     QPainter painter(&pm);
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    QPen pen(parentWidget->palette().windowText(), 1.0);
+#else
     QPen pen(parentWidget->palette().foreground(), 1.0);
+#endif
     painter.setPen(pen);
     painter.drawLine(QPoint(0, 0), QPoint(h - 1, 0));
     painter.drawLine(QPoint(h - 1, 0), QPoint(h - 1, h - 1));
@@ -2242,7 +2248,7 @@ void addStructuredChildren(RDTreeWidgetItem *parent, const SDObject &parentObj)
 
 static void validateForJSON(const QVariant &data, QString path = QString())
 {
-  switch((QMetaType::Type)data.type())
+  switch(GetVariantMetatype(data))
   {
     case QMetaType::QVariantList:
     {
@@ -2516,7 +2522,11 @@ QString RDDialog::getExistingDirectory(QWidget *parent, const QString &caption, 
 {
   QFileDialog fd(parent, caption, dir, QString());
   fd.setAcceptMode(QFileDialog::AcceptOpen);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+  fd.setFileMode(QFileDialog::Directory);
+#else
   fd.setFileMode(QFileDialog::DirectoryOnly);
+#endif
   fd.setOptions(options);
   show(&fd);
 
@@ -3522,6 +3532,123 @@ void *AccessWaylandPlatformInterface(const QByteArray &resource, QWindow *window
   return native->nativeResourceForWindow(resource, window);
 }
 
+#if defined(RENDERDOC_PLATFORM_LINUX)
+#if __has_include(<wayland-client.h>)
+#include <wayland-client.h>
+
+static const char *wp_linux_drm_syncobj_manager_v1_interface_name =
+    "wp_linux_drm_syncobj_manager_v1";
+
+struct CheckExplicitSyncData
+{
+  bool hasExplicitSync = false;
+  bool done = false;
+};
+
+static void check_global(void *data, struct wl_registry *registry, uint32_t id,
+                         const char *interface, uint32_t version)
+{
+  (void)registry;
+  (void)id;
+  (void)version;
+
+  CheckExplicitSyncData *checkData = (CheckExplicitSyncData *)data;
+  if(strcmp(interface, wp_linux_drm_syncobj_manager_v1_interface_name) == 0)
+  {
+    checkData->hasExplicitSync = true;
+    checkData->done = true;
+  }
+}
+
+static void check_global_remove(void *data, struct wl_registry *registry, uint32_t id)
+{
+  (void)data;
+  (void)registry;
+  (void)id;
+}
+
+static const struct wl_registry_listener check_registry_listener = {
+    check_global,
+    check_global_remove,
+};
+
+bool CheckWaylandExplicitSyncEarly()
+{
+#if defined(RENDERDOC_WINDOWING_WAYLAND) && defined(RENDERDOC_PLATFORM_LINUX)
+  const char *waylandDisplay = getenv("WAYLAND_DISPLAY");
+  if(!waylandDisplay || waylandDisplay[0] == '\0')
+    return false;
+
+  const char *qpaPlatform = getenv("QT_QPA_PLATFORM");
+  if(qpaPlatform && qpaPlatform[0] != '\0')
+    return false;
+
+  struct wl_display *display = wl_display_connect(waylandDisplay);
+  if(!display)
+    return false;
+
+  struct wl_registry *registry = wl_display_get_registry(display);
+  if(!registry)
+  {
+    wl_display_disconnect(display);
+    return false;
+  }
+
+  CheckExplicitSyncData data;
+  wl_registry_add_listener(registry, &check_registry_listener, &data);
+
+  wl_display_roundtrip(display);
+
+  wl_registry_destroy(registry);
+  wl_display_disconnect(display);
+
+  return data.hasExplicitSync;
+#else
+  return false;
+#endif
+}
+
+bool CheckWaylandExplicitSyncSupport()
+{
+  QString platform = QGuiApplication::platformName();
+  if(platform != QLatin1String("wayland"))
+    return false;
+
+  wl_display *display = (wl_display *)AccessWaylandPlatformInterface("display", NULL);
+  if(!display)
+    return false;
+
+  wl_registry *registry = wl_display_get_registry(display);
+  if(!registry)
+    return false;
+
+  CheckExplicitSyncData data;
+  wl_registry_add_listener(registry, &check_registry_listener, &data);
+
+  wl_display_roundtrip(display);
+
+  wl_registry_destroy(registry);
+
+  return data.hasExplicitSync;
+}
+#else
+bool CheckWaylandExplicitSyncEarly()
+{
+  return false;
+}
+
+bool CheckWaylandExplicitSyncSupport()
+{
+  return false;
+}
+#endif
+#else
+bool CheckWaylandExplicitSyncSupport()
+{
+  return false;
+}
+#endif
+
 // Default Qt doesn't do this in release Qt builds, which is all we use
 #if defined(Q_OS_WIN32)
 
@@ -3623,7 +3750,7 @@ void UpdateVisibleColumns(rdcstr windowTitle, int columnCount, QHeaderView *head
   QObject::connect(&buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
 
   QVBoxLayout *layout = new QVBoxLayout(&dialog);
-  layout->addWidget(new QLabel(QString::fromUtf8("Select the columns to enable."), &dialog));
+  layout->addWidget(new QLabel(lit("Select the columns to enable."), &dialog));
   layout->addWidget(&list);
   layout->addWidget(&buttons);
 
@@ -3941,7 +4068,7 @@ QVariant StructuredDataItemModel::headerData(int section, Qt::Orientation orient
 Qt::ItemFlags StructuredDataItemModel::flags(const QModelIndex &index) const
 {
   if(!index.isValid())
-    return 0;
+    return Qt::ItemFlags();
 
   return QAbstractItemModel::flags(index);
 }
@@ -3996,6 +4123,84 @@ QVariant StructuredDataItemModel::data(const QModelIndex &index, int role) const
   }
 
   return QVariant();
+}
+
+#if defined(RENDERDOC_PLATFORM_LINUX)
+
+class WaylandWorkaroundEventFilter : public QObject
+{
+public:
+  WaylandWorkaroundEventFilter(QObject *parent) : QObject(parent)
+  {
+    m_isWayland = (QGuiApplication::platformName() == QLatin1String("wayland"));
+  }
+
+protected:
+  bool eventFilter(QObject *watched, QEvent *event) override
+  {
+    if(!m_isWayland)
+      return false;
+
+    if(event->type() == QEvent::ChildAdded)
+    {
+      QChildEvent *childEvent = static_cast<QChildEvent *>(event);
+      if(childEvent->child())
+      {
+        if(QAbstractScrollArea *scrollArea = qobject_cast<QAbstractScrollArea *>(childEvent->child()))
+        {
+          scrollArea->setAttribute(Qt::WA_DontCreateNativeAncestors);
+          if(scrollArea->viewport())
+            scrollArea->viewport()->setAttribute(Qt::WA_DontCreateNativeAncestors);
+        }
+        else if(QWidget *widget = qobject_cast<QWidget *>(childEvent->child()))
+        {
+          widget->setAttribute(Qt::WA_DontCreateNativeAncestors);
+        }
+      }
+    }
+
+    return false;
+  }
+
+private:
+  bool m_isWayland;
+};
+
+static WaylandWorkaroundEventFilter *s_waylandEventFilter = NULL;
+
+void InstallGlobalWaylandWorkaround()
+{
+  if(!s_waylandEventFilter && qApp)
+  {
+    s_waylandEventFilter = new WaylandWorkaroundEventFilter(qApp);
+    qApp->installEventFilter(s_waylandEventFilter);
+  }
+}
+
+#else
+
+void InstallGlobalWaylandWorkaround()
+{
+  // No-op on non-Linux platforms
+}
+
+#endif
+
+void ApplyWaylandWorkarounds(QWidget *widget)
+{
+#if defined(RENDERDOC_PLATFORM_LINUX)
+  QString platform = QGuiApplication::platformName();
+  if(platform == QLatin1String("wayland"))
+  {
+    widget->setAttribute(Qt::WA_DontCreateNativeAncestors);
+    // For QAbstractScrollArea subclasses, also apply to the viewport
+    if(QAbstractScrollArea *scrollArea = qobject_cast<QAbstractScrollArea *>(widget))
+    {
+      if(scrollArea->viewport())
+        scrollArea->viewport()->setAttribute(Qt::WA_DontCreateNativeAncestors);
+    }
+  }
+#endif
 }
 
 QRClickToolButton::QRClickToolButton(QWidget *parent) : QToolButton(parent)

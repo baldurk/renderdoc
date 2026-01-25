@@ -841,6 +841,7 @@ public:
     return *this;
   }
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
   rdcarray(const QVector<T> &in)
   {
     elems = NULL;
@@ -864,6 +865,7 @@ public:
 
     return *this;
   }
+#endif
 #endif
 };
 
@@ -981,9 +983,12 @@ struct bytebuf : public rdcarray<byte>
 #if defined(RENDERDOC_QT_COMPAT)
   bytebuf(const QByteArray &in)
   {
-    resize(in.size());
-    memcpy(elems, in.data(), (size_t)in.size());
+    this->resize(in.size());
+    memcpy(this->elems, in.data(), (size_t)in.size());
   }
-  operator QByteArray() const { return QByteArray((const char *)elems, (int32_t)usedCount); }
+  operator QByteArray() const
+  {
+    return QByteArray((const char *)this->elems, (int32_t)this->usedCount);
+  }
 #endif
 };

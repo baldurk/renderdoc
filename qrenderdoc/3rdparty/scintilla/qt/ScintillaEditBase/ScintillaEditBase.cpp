@@ -152,7 +152,11 @@ void ScintillaEditBase::paintEvent(QPaintEvent *event)
 
 void ScintillaEditBase::wheelEvent(QWheelEvent *event)
 {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+	if (event->angleDelta().x() != 0) {
+#else
 	if (event->orientation() == Qt::Horizontal) {
+#endif
 		if (horizontalScrollBarPolicy() == Qt::ScrollBarAlwaysOff)
 			event->ignore();
 		else
@@ -161,7 +165,11 @@ void ScintillaEditBase::wheelEvent(QWheelEvent *event)
 		if (QApplication::keyboardModifiers() & Qt::ControlModifier) {
 			// Zoom! We play with the font sizes in the styles.
 			// Number of steps/line is ignored, we just care if sizing up or down
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+			if (event->angleDelta().y() > 0) {
+#else
 			if (event->delta() > 0) {
+#endif
 				sqt->KeyCommand(SCI_ZOOMIN);
 			} else {
 				sqt->KeyCommand(SCI_ZOOMOUT);
@@ -293,7 +301,11 @@ void ScintillaEditBase::mousePressEvent(QMouseEvent *event)
 
 	emit buttonPressed(event);
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+	if (event->button() == Qt::MiddleButton &&
+#else
 	if (event->button() == Qt::MidButton &&
+#endif
 	    QApplication::clipboard()->supportsSelection()) {
 		SelectionPosition selPos = sqt->SPositionFromLocation(
 					pos, false, false, sqt->UserVirtualSpace());
@@ -610,7 +622,11 @@ QVariant ScintillaEditBase::inputMethodQuery(Qt::InputMethodQuery query) const
 	int line = send(SCI_LINEFROMPOSITION, pos);
 
 	switch (query) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+		case Qt::ImCursorRectangle:
+#else
 		case Qt::ImMicroFocus:
+#endif
 		{
 			int startPos = (preeditPos >= 0) ? preeditPos : pos;
 			Point pt = sqt->LocationFromPosition(startPos);

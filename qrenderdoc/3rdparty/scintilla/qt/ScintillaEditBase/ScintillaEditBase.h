@@ -17,7 +17,11 @@
 
 #include <QAbstractScrollArea>
 #include <QMimeData>
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include <QElapsedTimer>
+#else
 #include <QTime>
+#endif
 
 #ifdef SCI_NAMESPACE
 namespace Scintilla {
@@ -137,7 +141,11 @@ protected:
 private:
 	ScintillaQt *sqt;
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+	QElapsedTimer time;
+#else
 	QTime time;
+#endif
 
 	int preeditPos;
 	QString preeditString;

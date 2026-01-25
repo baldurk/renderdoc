@@ -96,7 +96,7 @@ struct EventBrowserPersistentStorage : public CustomPersistentStorage
     int loadedVersion = settings[lit("version")].toInt();
 
     QVariant current = settings[lit("current")];
-    if(current.isValid() && current.type() == QVariant::String)
+    if(current.isValid() && GetVariantMetatype(current) == QMetaType::QString)
     {
       CurrentFilter = current.toString();
     }
@@ -108,14 +108,16 @@ struct EventBrowserPersistentStorage : public CustomPersistentStorage
     SavedFilters.clear();
 
     QVariant saved = settings[lit("filters")];
-    if(saved.isValid() && saved.type() == QVariant::List)
+    if(saved.isValid() && GetVariantMetatype(saved) == QMetaType::QVariantList)
     {
-      QVariantList filters = saved.toList();
-      for(QVariant filter : filters)
+      QVariantList filterList = saved.toList();
+
+      for(const QVariant &filter : filterList)
       {
         QVariantList filterPair = filter.toList();
-        if(filterPair.count() == 2 && filterPair[0].type() == QVariant::String &&
-           filterPair[1].type() == QVariant::String)
+
+        if(filterPair.count() == 2 && GetVariantMetatype(filterPair[0]) == QMetaType::QString &&
+           GetVariantMetatype(filterPair[1]) == QMetaType::QString)
         {
           QString name = filterPair[0].toString();
           QString expr = filterPair[1].toString();
@@ -192,8 +194,11 @@ static uint32_t GetEffectiveEID(QModelIndex idx)
   return idx.data(ROLE_EFFECTIVE_EID).toUInt();
 }
 
-struct EventItemModel : public QAbstractItemModel
+class EventItemModel : public QAbstractItemModel
 {
+public:
+  using QAbstractItemModel::createIndex;
+
   EventItemModel(QAbstractItemView *view, ICaptureContext &ctx) : m_View(view), m_Ctx(ctx)
   {
     UpdateDurationColumn();
@@ -226,8 +231,8 @@ struct EventItemModel : public QAbstractItemModel
 
   void ResetModel()
   {
-    emit beginResetModel();
-    emit endResetModel();
+    beginResetModel();
+    endResetModel();
 
     m_Nodes.clear();
     m_RowInParentCache.clear();
@@ -1283,7 +1288,7 @@ private:
     return v;
   }
 
-  friend struct EventFilterModel;
+  friend class EventFilterModel;
 };
 
 struct EventFilter
@@ -1421,7 +1426,7 @@ struct BuiltinFilterCallbacks
   IEventBrowser::AutoCompleteCallback completer;
 };
 
-struct EventFilterModel : public QSortFilterProxyModel
+class EventFilterModel : public QSortFilterProxyModel
 {
 public:
   EventFilterModel(EventItemModel *model, ICaptureContext &ctx) : m_Model(model), m_Ctx(ctx)
@@ -1593,7 +1598,7 @@ protected:
     int off = name.indexOf(QLatin1Char('<'));
     while(off >= 0 && off + 4 < name.size())
     {
-      if(name[off + 1] == QLatin1Char('/') || name.midRef(off, 5) == lit("<span"))
+      if(name[off + 1] == QLatin1Char('/') || name.mid(off, 5) == lit("<span"))
       {
         int end = name.indexOf(QLatin1Char('>'), off);
         name.remove(off, end - off + 1);
@@ -2326,7 +2331,14 @@ and these can be queried with a filter such as <code>$action(flags & Clear|Clear
       // split by whitespace)
       QStringList flagStrings;
       for(int i = 2; i < tokens.count(); i++)
-        flagStrings.append(tokens[i].text.split(QLatin1Char('|'), QString::KeepEmptyParts));
+      {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        QStringList parts = tokens[i].text.split(QLatin1Char('|'), Qt::KeepEmptyParts);
+#else
+        QStringList parts = tokens[i].text.split(QLatin1Char('|'));
+#endif
+        flagStrings.append(parts);
+      }
 
       // if we have an empty string in the list somewhere that means the | list was broken
       if(flagStrings.contains(QString()))
@@ -3398,7 +3410,7 @@ void ParseErrorTipLabel::paintEvent(QPaintEvent *ev)
 {
   QStylePainter p(this);
   QStyleOptionFrame opt;
-  opt.init(this);
+  opt.initFrom(this);
   p.drawPrimitive(QStyle::PE_PanelTipLabel, opt);
   p.end();
 
@@ -3412,7 +3424,7 @@ void ParseErrorTipLabel::resizeEvent(QResizeEvent *e)
 {
   QStyleHintReturnMask frameMask;
   QStyleOption option;
-  option.init(this);
+  option.initFrom(this);
   if(style()->styleHint(QStyle::SH_ToolTip_Mask, &option, this, &frameMask))
     setMask(frameMask.region);
 
@@ -3500,7 +3512,6 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   {
     QHBoxLayout *box = new QHBoxLayout(ui->breadcrumbStrip);
     box->setContentsMargins(QMargins(0, 0, 0, 0));
-    box->setMargin(0);
     box->setSpacing(0);
     m_Breadcrumbs = new MarkerBreadcrumbs(m_Ctx, this, this);
     box->addWidget(m_Breadcrumbs);
@@ -3907,6 +3918,7 @@ void EventBrowser::CreateFilterDialog()
   m_FilterSettings.FuncDocs = new RDTextEdit(this);
   m_FilterSettings.Filter = new RDTextEdit(this);
   m_FilterSettings.FuncList = new QListWidget(this);
+  ApplyWaylandWorkarounds(m_FilterSettings.FuncList);
   m_FilterSettings.Explanation = new RDTreeWidget(this);
 
   m_FilterSettings.Dialog->setWindowTitle(tr("Event Filter Configuration"));
@@ -4350,7 +4362,7 @@ For searching arbitrary parameters consider using the <code>$param()</code> func
     {
       // stop the timer, we'll manually fire it instantly
       m_FilterSettings.Timeout->stop();
-      m_FilterSettings.Timeout->timeout({});
+      filter_apply();
     }
 
     if(e->key() == Qt::Key_Down)
@@ -5111,7 +5123,7 @@ void EventBrowser::GetMaxNameLength(int &maxNameLength, int indent, bool firstch
 
   for(int i = 0, rowCount = idx.model()->rowCount(idx); i < rowCount; i++)
   {
-    GetMaxNameLength(maxNameLength, indent + 1, firstchild, idx.child(i, COL_NAME));
+    GetMaxNameLength(maxNameLength, indent + 1, firstchild, idx.model()->index(i, COL_NAME, idx));
     firstchild = false;
   }
 }
@@ -5149,7 +5161,7 @@ void EventBrowser::ExportAction(QTextStream &writer, int maxNameLength, int inde
 
   for(int i = 0, rowCount = idx.model()->rowCount(idx); i < rowCount; i++)
   {
-    ExportAction(writer, maxNameLength, indent + 1, firstchild, idx.child(i, COL_NAME));
+    ExportAction(writer, maxNameLength, indent + 1, firstchild, idx.model()->index(i, COL_NAME, idx));
     firstchild = false;
   }
 }

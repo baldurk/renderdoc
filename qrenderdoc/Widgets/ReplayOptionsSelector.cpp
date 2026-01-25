@@ -30,6 +30,7 @@
 ReplayOptionsSelector::ReplayOptionsSelector(ICaptureContext &ctx, bool actions, QWidget *parent)
     : m_Ctx(ctx), QWidget(parent), ui(new Ui::ReplayOptionsSelector)
 {
+  ApplyWaylandWorkarounds(this);
   ui->setupUi(this);
 
   if(!actions)

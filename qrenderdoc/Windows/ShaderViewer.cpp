@@ -33,9 +33,19 @@
 #include <QPainter>
 #include <QPen>
 #include <QRegularExpression>
+// Disable warning about size_t to uint conversion in Qt's qHash
+// Qt 6 returns size_t from qHash but QSet internally uses uint
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4267)
+#endif
 #include <QSet>
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 #include <QShortcut>
 #include <QToolTip>
+#include "Code/QRDUtils.h"
 #include "Code/Resources.h"
 #include "Code/ScintillaSyntax.h"
 #include "Widgets/Extended/RDLabel.h"
@@ -308,7 +318,7 @@ ShaderViewer::ShaderViewer(ICaptureContext &ctx, QWidget *parent)
 
     QVBoxLayout *framelayout = new QVBoxLayout(m_DisassemblyFrame);
     framelayout->setSpacing(0);
-    framelayout->setMargin(0);
+    framelayout->setContentsMargins(0, 0, 0, 0);
     framelayout->addWidget(m_DisassemblyToolbar);
     framelayout->addWidget(m_DisassemblyView);
 
@@ -3060,6 +3070,7 @@ QString ShaderViewer::targetName(const ShaderProcessingTool &disasm)
 void ShaderViewer::addFileList()
 {
   QListWidget *list = new QListWidget(this);
+  ApplyWaylandWorkarounds(list);
   list->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
   list->setSelectionMode(QAbstractItemView::SingleSelection);
   QObject::connect(list, &QListWidget::currentRowChanged, [this](int idx) {

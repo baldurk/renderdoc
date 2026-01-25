@@ -109,7 +109,7 @@ jobs:
       run: |
         mkdir build
         cd build
-        /tmp/cmake-2.8.12.2-Linux-i386/bin/cmake -DCMAKE_BUILD_TYPE=Debug ..
+        QT_SELECT=qt5 /tmp/cmake-2.8.12.2-Linux-i386/bin/cmake -DCMAKE_BUILD_TYPE=Debug ..
   windows:
     name: Windows
     needs: [commit-msg, clang-format]
@@ -369,7 +369,7 @@ jobs:
       run: |
         mkdir build
         pushd build
-        CC=${{ matrix.cc }} CXX=${{ matrix.cxx }} cmake -DCMAKE_BUILD_TYPE=${{ matrix.type }} ..
+        QT_SELECT=qt5 CC=${{ matrix.cc }} CXX=${{ matrix.cxx }} cmake -DCMAKE_BUILD_TYPE=${{ matrix.type }} ..
         make -j2
         popd
     - if: matrix.type == 'Debug'
@@ -381,6 +381,48 @@ jobs:
         fi
     - if: matrix.type == 'Debug'
       name: Run UI unit tests
+      run: |
+        if ! ./build/bin/qrenderdoc --unittest log=test.log; then
+          echo "::error::$(cat test.log)" | tr '\n' '\001' | sed -e 's#\x01#%0A#g';
+          exit 1;
+        fi
+  linux-qt6:
+    name: Linux (Qt 6)
+    needs: [commit-msg, clang-format]
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 5
+    - name: Install compilation dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libx11-dev mesa-common-dev libgl1-mesa-dev libxcb-keysyms1-dev libx11-xcb-dev clang-15 cmake python3-dev libwayland-dev wayland-protocols libglib2.0-0 libxkbcommon-x11-dev
+    - name: Install aqtinstall
+      run: |
+        pip3 install aqtinstall
+    - name: Install Qt 6.10
+      run: |
+        aqt install-qt linux desktop 6.10.0 linux_gcc_64 -O /opt/qt610
+    - name: Setup Qt environment
+      run: |
+        echo "/opt/qt610/6.10.0/gcc_64/bin" >> $GITHUB_PATH
+        echo "Qt6_DIR=/opt/qt610/6.10.0/gcc_64/lib/cmake/Qt6" >> $GITHUB_ENV
+        echo "CMAKE_PREFIX_PATH=/opt/qt610/6.10.0/gcc_64" >> $GITHUB_ENV
+    - name: Build
+      run: |
+        mkdir build
+        pushd build
+        CC=clang-15 CXX=clang++-15 cmake -DCMAKE_BUILD_TYPE=Debug -DENABLE_UNSUPPORTED_EXPERIMENTAL_POSSIBLY_BROKEN_WAYLAND=ON ..
+        make -j2
+        popd
+    - name: Run core unit tests
+      run: |
+        if ! ./build/bin/renderdoccmd test unit -o test.log; then
+          echo "::error::$(cat test.log)" | tr '\n' '\001' | sed -e 's#\x01#%0A#g';
+          exit 1;
+        fi
+    - name: Run UI unit tests
       run: |
         if ! ./build/bin/qrenderdoc --unittest log=test.log; then
           echo "::error::$(cat test.log)" | tr '\n' '\001' | sed -e 's#\x01#%0A#g';

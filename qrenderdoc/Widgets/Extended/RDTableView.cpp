@@ -36,6 +36,8 @@
 
 RDTableView::RDTableView(QWidget *parent) : QTableView(parent)
 {
+  ApplyWaylandWorkarounds(this);
+
   m_horizontalHeader = new RDHeaderView(Qt::Horizontal, this);
   setHorizontalHeader(m_horizontalHeader);
   m_horizontalHeader->setSectionsClickable(true);

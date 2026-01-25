@@ -48,7 +48,7 @@ public:
   void ViewD3D12State();
 
   // IDescriptorViewer
-  QWidget *Widget() override { return this; }
+  QWidget *Widget() override { return (QWidget *)this; }
   // ICaptureViewer
   void OnCaptureLoaded() override;
   void OnCaptureClosed() override;

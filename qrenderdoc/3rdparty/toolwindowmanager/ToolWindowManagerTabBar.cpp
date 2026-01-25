@@ -51,8 +51,8 @@ ToolWindowManagerTabBar::ToolWindowManagerTabBar(QWidget *parent) : QTabBar(pare
 
   buttonOpt.initFrom(parentWidget());
   buttonOpt.iconSize = QSize(size, size);
-  buttonOpt.subControls = 0;
-  buttonOpt.activeSubControls = 0;
+  buttonOpt.subControls = QStyle::SubControls();
+  buttonOpt.activeSubControls = QStyle::SubControls();
   buttonOpt.features = QStyleOptionToolButton::None;
   buttonOpt.arrowType = Qt::NoArrow;
   buttonOpt.state |= QStyle::State_AutoRaise;
@@ -157,8 +157,8 @@ void ToolWindowManagerTabBar::paintEvent(QPaintEvent *event)
 
     buttonOpt.initFrom(parentWidget());
     buttonOpt.iconSize = QSize(size, size);
-    buttonOpt.subControls = 0;
-    buttonOpt.activeSubControls = 0;
+    buttonOpt.subControls = QStyle::SubControls();
+    buttonOpt.activeSubControls = QStyle::SubControls();
     buttonOpt.features = QStyleOptionToolButton::None;
     buttonOpt.arrowType = Qt::NoArrow;
     buttonOpt.state = QStyle::State_Active | QStyle::State_Enabled | QStyle::State_AutoRaise;

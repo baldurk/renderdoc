@@ -163,7 +163,12 @@ void RDLabel::leaveEvent(QEvent *event)
 
 void RDLabel::resizeEvent(QResizeEvent *event)
 {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+  QPixmap pix = pixmap();
+  const QPixmap *p = pix.isNull() ? nullptr : &pix;
+#else
   const QPixmap *p = pixmap();
+#endif
   if(m_preserveRatio && p)
   {
     QRect r = rect();

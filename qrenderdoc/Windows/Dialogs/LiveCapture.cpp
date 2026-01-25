@@ -663,7 +663,7 @@ void LiveCapture::updateAPIStatus()
     {
       apiStatus += tr(", %1 (Unsupported)").arg(api);
       if(!m_APIs[api].supportMessage.isEmpty())
-        apiStatus += lit("\n") + m_APIs[api].supportMessage;
+        apiStatus += lit("\n") + ToQStr(m_APIs[api].supportMessage);
     }
     else if(!m_APIs[api].presenting)
     {
@@ -1147,9 +1147,9 @@ void LiveCapture::captureAdded(const QString &name, const NewCaptureData &newCap
       QDateTime(QDate(1970, 1, 1), QTime(0, 0, 0), Qt::UTC).addSecs(newCapture.timestamp).toLocalTime();
   cap->byteSize = newCapture.byteSize;
 
-  cap->thumb = QImage(newCapture.thumbnail.data(), newCapture.thumbWidth, newCapture.thumbHeight,
-                      newCapture.thumbWidth * 3, QImage::Format_RGB888)
-                   .copy(0, 0, newCapture.thumbWidth, newCapture.thumbHeight);
+  QImage thumb(newCapture.thumbnail.data(), newCapture.thumbWidth, newCapture.thumbHeight,
+               newCapture.thumbWidth * 3, QImage::Format_RGB888);
+  cap->thumb = thumb.rgbSwapped().copy(0, 0, newCapture.thumbWidth, newCapture.thumbHeight);
 
   cap->remoteID = newCapture.captureId;
   cap->saved = false;

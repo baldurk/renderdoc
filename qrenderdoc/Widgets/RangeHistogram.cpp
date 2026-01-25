@@ -28,9 +28,11 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
+#include "Code/QRDUtils.h"
 
 RangeHistogram::RangeHistogram(QWidget *parent) : QWidget(parent)
 {
+  ApplyWaylandWorkarounds(this);
   setMouseTracking(true);
 }
 

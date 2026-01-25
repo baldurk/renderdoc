@@ -122,7 +122,7 @@ QProcessList QProcessInfo::enumerate(bool includeWindowTitles)
 
 #include <QDir>
 #include <QProcess>
-#include <QRegExp>
+#include <QRegularExpression>
 #include <QStandardPaths>
 #include <QTextStream>
 
@@ -285,24 +285,26 @@ QProcessList QProcessInfo::enumerate(bool includeWindowTitles)
       // should be three lines: Window <id> \n Position: ... \n Geometry: ...
       if(winGeometry.size() >= 3)
       {
-        QRegExp pos(QStringLiteral("Position: (-?\\d+),(-?\\d+)"));
-        QRegExp geometry(QStringLiteral("Geometry: (\\d+)x(\\d+)"));
+        QRegularExpression pos(QStringLiteral("Position: (-?\\d+),(-?\\d+)"));
+        QRegularExpression geometry(QStringLiteral("Geometry: (\\d+)x(\\d+)"));
 
         QString posString = QString::fromUtf8(winGeometry[1]);
         QString geometryString = QString::fromUtf8(winGeometry[2]);
 
         int x = 0, y = 0, w = 1000, h = 1000;
 
-        if(pos.indexIn(posString) >= 0)
+        QRegularExpressionMatch posMatch = pos.match(posString);
+        if(posMatch.hasMatch())
         {
-          x = pos.cap(1).toInt();
-          y = pos.cap(2).toInt();
+          x = posMatch.captured(1).toInt();
+          y = posMatch.captured(2).toInt();
         }
 
-        if(geometry.indexIn(geometryString) >= 0)
+        QRegularExpressionMatch geometryMatch = geometry.match(geometryString);
+        if(geometryMatch.hasMatch())
         {
-          w = geometry.cap(1).toInt();
-          h = geometry.cap(2).toInt();
+          w = geometryMatch.captured(1).toInt();
+          h = geometryMatch.captured(2).toInt();
         }
 
         // some invisible windows are placed off screen, if we detect that skip it

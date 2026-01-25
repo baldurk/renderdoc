@@ -484,8 +484,7 @@ manually, but since it is common this helper is provided.
 )");
   inline PointerVal GetPointer() const
   {
-    ResourceId pointerShader;
-    memcpy(&pointerShader, &value.u64v[2], sizeof(pointerShader));
+    ResourceId pointerShader = *reinterpret_cast<const ResourceId *>(&value.u64v[2]);
     return {value.u64v[0], pointerShader, uint32_t(value.u64v[1] & 0xFFFFFFFF)};
   }
 
@@ -548,8 +547,7 @@ The :class:`ShaderDirectAccess` uniquely refers to a resource descriptor.
 )");
   inline ShaderDirectAccess GetDirectAccess() const
   {
-    ResourceId descriptorStore;
-    memcpy(&descriptorStore, &value.u64v[2], sizeof(descriptorStore));
+    ResourceId descriptorStore = *reinterpret_cast<const ResourceId *>(&value.u64v[2]);
     return ShaderDirectAccess((DescriptorType)value.u64v[0], descriptorStore, value.u32v[1],
                               value.u32v[2]);
   }

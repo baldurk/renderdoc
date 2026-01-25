@@ -153,7 +153,7 @@ public:
   Qt::ItemFlags flags(const QModelIndex &index) const override
   {
     if(!index.isValid())
-      return 0;
+      return {};
 
     RDTreeWidgetItem *item = itemForIndex(index);
 
@@ -614,6 +614,8 @@ RDTreeWidgetItemIterator &RDTreeWidgetItemIterator::operator++()
 
 RDTreeWidget::RDTreeWidget(QWidget *parent) : RDTreeView(parent)
 {
+  ApplyWaylandWorkarounds(this);
+
   header()->setSectionsMovable(false);
 
   m_root = new RDTreeWidgetItem;
@@ -648,7 +650,7 @@ void RDTreeWidget::beginUpdate()
   m_queueUpdates = true;
 
   m_queuedItem = NULL;
-  m_lowestIndex = m_highestIndex = qMakePair<int, int>(-1, -1);
+  m_lowestIndex = m_highestIndex = qMakePair(-1, -1);
   m_queuedChildren = false;
   m_queuedRoles = 0;
 
@@ -895,8 +897,8 @@ void RDTreeWidget::itemDataChanged(RDTreeWidgetItem *item, int column, int role)
     if(m_lowestIndex.first == -1)
     {
       m_queuedItem = item;
-      m_lowestIndex = qMakePair<int, int>(row, 0);
-      m_highestIndex = qMakePair<int, int>(m_lowestIndex.first, m_headers.count() - 1);
+      m_lowestIndex = qMakePair(row, 0);
+      m_highestIndex = qMakePair(m_lowestIndex.first, m_headers.count() - 1);
     }
     else
     {
@@ -934,8 +936,8 @@ void RDTreeWidget::beginInsertChild(RDTreeWidgetItem *item, int index)
       // in a later row, but we're generally only changing data *or* adding children, not both,
       // and in either case this is primarily about batching updates not providing a minimal update
       // set
-      m_lowestIndex = qMakePair<int, int>(0, 0);
-      m_highestIndex = qMakePair<int, int>(0, m_headers.count() - 1);
+      m_lowestIndex = qMakePair(0, 0);
+      m_highestIndex = qMakePair(0, m_headers.count() - 1);
     }
     else
     {

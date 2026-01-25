@@ -363,7 +363,7 @@ DECLARE_REFLECTION_STRUCT(ExtensionMetadata);
 
 typedef struct _object PyObject;
 
-DOCUMENT(R"(Python can have direct access to Qt via PySide2, but this is not always available in
+DOCUMENT(R"(Python can have direct access to Qt via PySide, but this is not always available in
 all RenderDoc builds. To aid extensions to manipulate widgets in a simple but portable fashion this
 helper exposes a small subset of Qt via RenderDoc's python bindings.
 
@@ -373,8 +373,8 @@ basic UI building tools for simple data input and display which can be used on a
 This manager is retrieved by calling :meth:`ExtensionManager.GetMiniQtHelper`.
 
 .. note::
-  The widget handles returned are PySide2 widgets where that is available, so this can be used to
-  make a basic UI and optionally customise it further with PySide2 when possible.
+  The widget handles returned are PySide widgets where that is available, so this can be used to
+  make a basic UI and optionally customise it further with PySide when possible.
 
 .. function:: WidgetCallback(context, widget, text)
 

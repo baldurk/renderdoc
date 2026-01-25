@@ -1546,7 +1546,7 @@ void RDStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *opt, Q
 
     return;
   }
-  else if(element == QStyle::PE_IndicatorViewItemCheck || element == QStyle::PE_IndicatorCheckBox)
+  else if(element == QStyle::PE_IndicatorItemViewItemCheck || element == QStyle::PE_IndicatorCheckBox)
   {
     QRect rect = opt->rect;
     int w = rect.width();

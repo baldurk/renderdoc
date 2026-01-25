@@ -148,7 +148,7 @@ public:
   Qt::ItemFlags flags(const QModelIndex &index) const override
   {
     if(!index.isValid())
-      return 0;
+      return {};
 
     return QAbstractItemModel::flags(index);
   }
@@ -210,7 +210,7 @@ public:
 
             if(!actionstack.isEmpty())
             {
-              ret += lit("> ") + actionstack.back()->customName;
+              ret += lit("> ") + ToQStr(actionstack.back()->customName);
 
               if(actionstack.count() > 3)
                 ret += lit(" ...");
@@ -218,9 +218,9 @@ public:
               ret += lit("\n");
 
               if(actionstack.count() > 2)
-                ret += lit("> ") + actionstack[1]->customName + lit("\n");
+                ret += lit("> ") + ToQStr(actionstack[1]->customName) + lit("\n");
               if(actionstack.count() > 1)
-                ret += lit("> ") + actionstack[0]->customName + lit("\n");
+                ret += lit("> ") + ToQStr(actionstack[0]->customName) + lit("\n");
 
               ret += lit("\n");
             }
@@ -740,7 +740,11 @@ void PixelHistoryView::disableTimelineHighlight()
     m_Ctx.GetTimelineBar()->HighlightHistory(ResourceId(), {});
 }
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+void PixelHistoryView::enterEvent(QEnterEvent *event)
+#else
 void PixelHistoryView::enterEvent(QEvent *event)
+#endif
 {
   enableTimelineHighlight();
 }

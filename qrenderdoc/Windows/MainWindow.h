@@ -26,6 +26,11 @@
 
 #include <stdint.h>
 #include <QMainWindow>
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include <QtGui/QAction>
+#else
+#include <QtWidgets/QAction>
+#endif
 #include <QMutex>
 #include <QSemaphore>
 #include <QThread>
@@ -79,7 +84,7 @@ public:
   ~MainWindow();
 
   // IMainWindow
-  QWidget *Widget() override { return this; }
+  QWidget *Widget() override { return (QWidget *)this; }
   void RegisterShortcut(const rdcstr &shortcut, QWidget *widget, ShortcutCallback callback) override;
   void UnregisterShortcut(const rdcstr &shortcut, QWidget *widget) override;
   void BringToFront() override;

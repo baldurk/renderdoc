@@ -56,8 +56,8 @@ class QRClickToolButton;
 typedef QSet<uint> RDTreeViewExpansionState;
 
 class RichTextViewDelegate;
-struct EventItemModel;
-struct EventFilterModel;
+class EventItemModel;
+class EventFilterModel;
 
 struct ParseTrace;
 
@@ -97,9 +97,9 @@ struct FilterExpression
 
 class ParseErrorTipLabel : public QLabel
 {
-private:
   Q_OBJECT
 
+private:
   QPoint m_Pos;
   QWidget *m_Widget;
 

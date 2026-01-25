@@ -743,7 +743,7 @@ void D3D11PipelineStateViewer::addResourceRow(const D3D11ViewTag &view,
     QString slotname = view.type == D3D11ViewTag::OMDepth ? tr("Depth") : QString::number(view.index);
 
     if(shaderInput && !shaderInput->name.empty())
-      slotname += lit(": ") + shaderInput->name;
+      slotname += lit(": ") + ToQStr(shaderInput->name);
 
     uint32_t w = 1, h = 1, d = 1;
     uint32_t a = 1;
@@ -815,7 +815,7 @@ void D3D11PipelineStateViewer::addResourceRow(const D3D11ViewTag &view,
         if(desc.format.compType == CompType::Typeless)
         {
           if(shaderInput->variableType.baseType == VarType::Struct)
-            format = lit("struct ") + shaderInput->variableType.name;
+            format = lit("struct ") + ToQStr(shaderInput->variableType.name);
           else
             format = shaderInput->variableType.name;
         }
@@ -868,7 +868,7 @@ void D3D11PipelineStateViewer::addSamplerRow(const SamplerDescriptor &descriptor
     QString slotname = QString::number(reg);
 
     if(shaderBind && !shaderBind->name.empty())
-      slotname += lit(": ") + shaderBind->name;
+      slotname += lit(": ") + ToQStr(shaderBind->name);
 
     QString borderColor = QFormatStr("%1, %2, %3, %4")
                               .arg(descriptor.borderColorValue.floatValue[0])
@@ -957,7 +957,7 @@ void D3D11PipelineStateViewer::addCBufferRow(const Descriptor &descriptor, uint3
     QString slotname = QString::number(reg);
 
     if(shaderBind && !shaderBind->name.empty())
-      slotname += lit(": ") + shaderBind->name;
+      slotname += lit(": ") + ToQStr(shaderBind->name);
 
     QString sizestr;
     if(bytesize == (uint32_t)length)
@@ -2632,8 +2632,8 @@ QVariantList D3D11PipelineStateViewer::exportViewHTML(const Descriptor &view, ui
     {
       if(view.format.compType == CompType::Typeless)
       {
-        if(shaderInput->variableType.baseType == VarType::Struct)
-          viewFormat = format = lit("struct ") + shaderInput->variableType.name;
+        if(!shaderInput->variableType.name.empty())
+          viewFormat = format = lit("struct ") + ToQStr(shaderInput->variableType.name);
         else
           viewFormat = format = shaderInput->variableType.name;
       }

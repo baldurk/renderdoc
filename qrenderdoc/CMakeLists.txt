@@ -9,7 +9,7 @@ if( NOT DEFINED QT_QMAKE_EXECUTABLE )
     endif()
 endif()
 
-set(QMAKE_QT5_COMMAND ${QT_QMAKE_EXECUTABLE} CACHE STRING "Command to run to invoke Qt5's qmake. Normally this is qmake, possibly with qtchooser, but might be qmake-qt5")
+set(QT_QMAKE_COMMAND ${QT_QMAKE_EXECUTABLE} CACHE STRING "Command to run to invoke qmake. Normally this is qmake, possibly with qtchooser, but might be qmake-qt6 or qmake-qt5")
 set(RENDERDOC_SWIG_PACKAGE https://github.com/baldurk/swig/archive/renderdoc-modified-7.zip CACHE STRING "The location where RenderDoc's swig fork source can be found. By default points to the URL on github but can be pointed to a local file.")
 set(RENDERDOC_PCRE_PACKAGE https://sourceforge.net/projects/pcre/files/pcre/8.45/pcre-8.45.tar.gz CACHE STRING "The location where the pcre library package can be found. By default points to the URL on sourceforge but can be pointed to a local file.")
 
@@ -17,7 +17,7 @@ set(RENDERDOC_PCRE_PACKAGE https://sourceforge.net/projects/pcre/files/pcre/8.45
 if(ENABLE_QRENDERDOC)
 
 execute_process(
-    COMMAND ${QMAKE_QT5_COMMAND} -query QT_VERSION
+    COMMAND ${QT_QMAKE_COMMAND} -query QT_VERSION
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE QT_VERSION
     ERROR_VARIABLE QT_VERSION_STDERR
@@ -29,7 +29,35 @@ execute_process(
 if (QT_VERSION VERSION_GREATER 5.5.999)
     message(STATUS "Building using Qt ${QT_VERSION}")
 else()
-    message(FATAL_ERROR "${QMAKE_QT5_COMMAND} -query QT_VERSION returned: \"${QT_VERSION}\". Error output was: \"${QT_VERSION_STDERR}\". We require Qt >= 5.6 and for the qmake executable to run Qt5. Check your distribution for how to configure Qt5, you may need to set the QT_SELECT environment variable or customise the cmake variable QMAKE_QT5_COMMAND to qmake-qt5")
+    message(FATAL_ERROR "${QT_QMAKE_COMMAND} -query QT_VERSION returned: \"${QT_VERSION}\". Error output was: \"${QT_VERSION_STDERR}\". We require Qt >= 5.6 and for the qmake executable to run. Check your distribution for how to configure Qt, you may need to set the QT_SELECT environment variable or customise the cmake variable QT_QMAKE_COMMAND")
+endif()
+
+if (QT_VERSION VERSION_GREATER 5.99.999)
+    set(QT_MAJOR_VERSION 6)
+    execute_process(
+        COMMAND ${QT_QMAKE_COMMAND} -query QT_INSTALL_LIBEXECS
+        OUTPUT_VARIABLE QT_INSTALL_LIBEXECS
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    set(QT_UIC_COMMAND "${QT_INSTALL_LIBEXECS}/uic")
+    if(NOT EXISTS ${QT_UIC_COMMAND})
+        set(QT_UIC_COMMAND "uic")
+    endif()
+else()
+    set(QT_MAJOR_VERSION 5)
+    set(QT_UIC_COMMAND "uic")
+endif()
+
+# Qt 6 requires C++17 or later
+if(QT_MAJOR_VERSION EQUAL 6)
+    # Override parent's C++14 requirement for Qt 6
+    set (CMAKE_CXX_STANDARD 17)
+    set (CMAKE_CXX_STANDARD_REQUIRED ON)
+    set (CMAKE_CXX_EXTENSIONS OFF)
+    # Also set CXXFLAGS to ensure compatibility
+    if (CMAKE_VERSION VERSION_LESS "3.1")
+        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+    endif ()
 endif()
 
 endif() # if(ENABLE_QRENDERDOC)
@@ -193,8 +221,17 @@ ExternalProject_Add(custom_swig
     BUILD_COMMAND ${GENERATOR_MAKE} ${GENERATOR_MAKE_PARAMS} > /dev/null 2>&1
     INSTALL_COMMAND ${GENERATOR_MAKE} install > /dev/null 2>&1)
 
-find_package(Shiboken2 QUIET)
-find_package(PySide2 QUIET)
+if(QT_MAJOR_VERSION EQUAL 6)
+    find_package(Shiboken6 QUIET)
+    find_package(PySide6 QUIET)
+    set(PYSIDE_NAME "PySide6")
+    set(SHIBOKEN_NAME "Shiboken6")
+else()
+    find_package(Shiboken QUIET)
+    find_package(PySide QUIET)
+    set(PYSIDE_NAME "PySide")
+    set(SHIBOKEN_NAME "Shiboken")
+endif()
 
 set(PYTHON_LINK "${PYTHON_LIBRARY}")
 
@@ -243,7 +280,7 @@ endif()
 if(CMAKE_COMPILER_IS_GNUCXX)
     file(APPEND
         ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
-        "QMAKE_CXXFLAGS+=-Wno-unknown-warning -Wno-cast-function-type -Wno-stringop-truncation\n")
+        "QMAKE_CXXFLAGS+=\n")
     if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 14.0)
         file(APPEND
             ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
@@ -275,6 +312,18 @@ if(ENABLE_UNSUPPORTED_EXPERIMENTAL_POSSIBLY_BROKEN_WAYLAND)
     file(APPEND
         ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
         "DEFINES+=RENDERDOC_WINDOWING_WAYLAND\n")
+    # Link wayland-client library for explicit sync detection
+    if(PKG_WAYLAND_FOUND)
+        # Use LDFLAGS from pkg-config which has properly formatted -l flags
+        foreach(ldflag ${PKG_WAYLAND_LDFLAGS})
+            file(APPEND ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
+                "LIBS+=${ldflag}\n")
+        endforeach()
+        foreach(inc_dir ${PKG_WAYLAND_INCLUDE_DIRS})
+            file(APPEND ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
+                "INCLUDEPATH+=${inc_dir}\n")
+        endforeach()
+    endif()
 endif()
 
 # propagate build version info. Lots of escaping needed here to pass ""s into the define value
@@ -302,45 +351,69 @@ if(NOT BUILD_VERSION_DIST_CONTACT STREQUAL "")
          "DEFINES+=DISTRIBUTION_CONTACT='\\\\\"${BUILD_VERSION_DIST_CONTACT}\\\\\"'\n")
 endif()
 
-option(QRENDERDOC_ENABLE_PYSIDE2 "Enable PySide2 if found" ON)
+option(QRENDERDOC_ENABLE_PYSIDE "Enable PySide if found" ON)
 
-if(NOT QRENDERDOC_ENABLE_PYSIDE2)
-    message(STATUS "PySide2 integration disabled")
-elseif(PySide2_FOUND AND Shiboken2_FOUND AND TARGET Shiboken2::libshiboken AND TARGET PySide2::pyside2)
-    message(STATUS "Building with PySide2 ${PySide2_VERSION} from ${PySide2_DIR}")
+set(PYSIDE_FOUND_ALL OFF)
+if(QT_MAJOR_VERSION EQUAL 6)
+    if(PySide6_FOUND AND Shiboken6_FOUND AND TARGET Shiboken6::libshiboken AND TARGET PySide6::pyside6)
+        set(PYSIDE_FOUND_ALL ON)
+        set(SHIBOKEN_TARGET Shiboken6::libshiboken)
+        set(PYSIDE_TARGET PySide6::pyside6)
+        set(PYSIDE_VERSION ${PySide6_VERSION})
+        set(PYSIDE_DIR ${PySide6_DIR})
+        set(PYSIDE_DEF "PYSIDE6_ENABLED=1")
+        set(SHIBOKEN_LIB "shiboken6")
+    endif()
+else()
+    if(PySide_FOUND AND Shiboken_FOUND AND TARGET Shiboken::libshiboken AND TARGET PySide::pyside2)
+        set(PYSIDE_FOUND_ALL ON)
+        set(SHIBOKEN_TARGET Shiboken::libshiboken)
+        set(PYSIDE_TARGET PySide::pyside2)
+        set(PYSIDE_VERSION ${PySide2_VERSION})
+        set(PYSIDE_DIR ${PySide2_DIR})
+        set(PYSIDE_DEF "PYSIDE_ENABLED=1")
+        set(SHIBOKEN_LIB "shiboken")
+    endif()
+endif()
+
+if(NOT QRENDERDOC_ENABLE_PYSIDE)
+    message(STATUS "PySide integration disabled")
+elseif(PYSIDE_FOUND_ALL)
+    message(STATUS "Building with ${PYSIDE_NAME} ${PYSIDE_VERSION} from ${PYSIDE_DIR}")
 
     if(NOT PYTHONLIBS_VERSION_STRING MATCHES "${SHIBOKEN_PYTHON_VERSION_MAJOR}.${SHIBOKEN_PYTHON_VERSION_MINOR}")
-        message(FATAL_ERROR "Shiboken2 that we found was linked against python ${SHIBOKEN_PYTHON_VERSION_MAJOR}.${SHIBOKEN_PYTHON_VERSION_MINOR} but the python library we're linking against is ${PYTHONLIBS_VERSION_STRING}. Ensure these versions are identical or disable PySide2 compilation with QRENDERDOC_ENABLE_PYSIDE2.")
+        message(FATAL_ERROR "${SHIBOKEN_NAME} that we found was linked against python ${SHIBOKEN_PYTHON_VERSION_MAJOR}.${SHIBOKEN_PYTHON_VERSION_MINOR} but the python library we're linking against is ${PYTHONLIBS_VERSION_STRING}. Ensure these versions are identical or disable PySide compilation with QRENDERDOC_ENABLE_PYSIDE.")
     endif()
 
-    get_target_property(SHIBOKEN2_INCLUDE_DIRS Shiboken2::libshiboken INTERFACE_INCLUDE_DIRECTORIES)
-    get_target_property(PYSIDE2_INCLUDE_DIRS PySide2::pyside2 INTERFACE_INCLUDE_DIRECTORIES)
+    get_target_property(SHIBOKEN_INCLUDE_DIRS ${SHIBOKEN_TARGET} INTERFACE_INCLUDE_DIRECTORIES)
+    get_target_property(PYSIDE_INCLUDE_DIRS ${PYSIDE_TARGET} INTERFACE_INCLUDE_DIRECTORIES)
 
     # append each include dir
-    foreach(DIR ${SHIBOKEN2_INCLUDE_DIRS})
+    foreach(DIR ${SHIBOKEN_INCLUDE_DIRS})
         file(APPEND
              ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
              "INCLUDEPATH+=${DIR}\n")
     endforeach()
 
-    foreach(DIR ${PYSIDE2_INCLUDE_DIRS})
+    foreach(DIR ${PYSIDE_INCLUDE_DIRS})
         file(APPEND
              ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
              "INCLUDEPATH+=${DIR}\n")
     endforeach()
 
-    # Add configuration for PySide2
+    # Add configuration for PySide
     file(APPEND
          ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
-         "DEFINES+=PYSIDE2_ENABLED=1\n"
-         "DEFINES+=PYSIDE2_SYS_PATH=${PYSIDE_PYTHONPATH}\n"
-         "LIBS+=-lshiboken2${SHIBOKEN_PYTHON_SHARED_LIBRARY_SUFFIX}\n")
+         "DEFINES+=${PYSIDE_DEF}\n"
+         "DEFINES+=PYSIDE_ENABLED=1\n"
+         "DEFINES+=PYSIDE_SYS_PATH=${PYSIDE_PYTHONPATH}\n"
+         "LIBS+=-l${SHIBOKEN_LIB}${SHIBOKEN_PYTHON_SHARED_LIBRARY_SUFFIX}\n")
 else()
-    message(STATUS "PySide2 not found - Qt will not be accessible in python scripting. See https://github.com/baldurk/renderdoc/wiki/PySide2")
+    message(STATUS "PySide not found - Qt will not be accessible in python scripting. See https://github.com/baldurk/renderdoc/wiki/PySide")
 
     file(APPEND
          ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
-         "DEFINES+=PYSIDE2_ENABLED=0\n")
+         "DEFINES+=PYSIDE_ENABLED=0\n")
 endif()
 
 # generate the SWIG interface files
@@ -415,7 +488,7 @@ endif()
 # Xcode does not match this behaviour. Add broad brush file dependencies.
 # Xcode has an option to match this behaviour (not exposed by cmake).
 add_custom_command(OUTPUT QRenderDoc
-    COMMAND ${SET_SYSTEM_PATH_COMMAND} ${QMAKE_QT5_COMMAND} "CMAKE_DIR=${CMAKE_BINARY_DIR}" ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMAND ${SET_SYSTEM_PATH_COMMAND} ${QT_QMAKE_COMMAND} "QMAKE_UIC=${QT_UIC_COMMAND}" "CMAKE_DIR=${CMAKE_BINARY_DIR}" ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND ${GENERATOR_MAKE} ${GENERATOR_MAKE_PARAMS}
     DEPENDS ${QRD_DEPENDENCIES})
 add_custom_target(build-qrenderdoc ALL DEPENDS QRenderDoc DEPENDS renderdoc DEPENDS swig-bindings)

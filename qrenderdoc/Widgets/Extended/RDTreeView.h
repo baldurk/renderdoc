@@ -180,6 +180,15 @@ public:
 
   using QTreeView::sizeHintForColumn;
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+  QStyleOptionViewItem viewOptions() const
+  {
+    QStyleOptionViewItem opt;
+    initViewItemOption(&opt);
+    return opt;
+  }
+#endif
+
 signals:
   void leave(QEvent *e);
   void keyPress(QKeyEvent *e);

@@ -189,7 +189,7 @@ bool MiniQtHelper::ShowWidgetAsDialog(QWidget *widget)
 
   QVBoxLayout l;
   l.addWidget(widget);
-  l.setMargin(3);
+  l.setContentsMargins(3, 3, 3, 3);
 
   m_CurrentDialog->setLayout(&l);
 

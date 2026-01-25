@@ -43,6 +43,9 @@ AnalyticsConfirmDialog::AnalyticsConfirmDialog(QString report, QWidget *parent)
 
   QObject::connect(ui->buttonBox->button(QDialogButtonBox::Discard), &QPushButton::clicked, this,
                    &AnalyticsConfirmDialog::reject);
+
+  QObject::connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &AnalyticsConfirmDialog::accept);
+  QObject::connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &AnalyticsConfirmDialog::reject);
 }
 
 AnalyticsConfirmDialog::~AnalyticsConfirmDialog()

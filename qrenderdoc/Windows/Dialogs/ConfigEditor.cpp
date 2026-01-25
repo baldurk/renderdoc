@@ -135,7 +135,7 @@ public:
   Qt::ItemFlags flags(const QModelIndex &index) const override
   {
     if(!index.isValid())
-      return 0;
+      return {};
 
     Qt::ItemFlags ret = QAbstractItemModel::flags(index);
 
@@ -251,7 +251,7 @@ public:
       }
       else if(role == Qt::TextAlignmentRole && col == Column_ResetButton)
       {
-        return Qt::AlignHCenter + Qt::AlignTop;
+        return QVariant(Qt::AlignHCenter | Qt::AlignTop);
       }
       else if(role == Qt::ToolTipRole)
       {
@@ -419,8 +419,8 @@ void SettingDelegate::paint(QPainter *painter, const QStyleOptionViewItem &optio
       int size = m_Editor->style()->pixelMetric(QStyle::PM_SmallIconSize, 0, m_Editor);
 
       buttonOpt.iconSize = QSize(size, size);
-      buttonOpt.subControls = 0;
-      buttonOpt.activeSubControls = 0;
+      buttonOpt.subControls = QStyle::SC_None;
+      buttonOpt.activeSubControls = QStyle::SC_None;
       buttonOpt.features = QStyleOptionToolButton::None;
       buttonOpt.arrowType = Qt::NoArrow;
       buttonOpt.state = QStyle::State_Active | QStyle::State_Enabled | QStyle::State_AutoRaise;
@@ -708,6 +708,9 @@ ConfigEditor::ConfigEditor(QWidget *parent) : QDialog(parent), ui(new Ui::Config
   }
 
   ui->settings->setItemDelegate(new SettingDelegate(this, ui->settings));
+
+  QObject::connect(ui->buttons, &QDialogButtonBox::accepted, this, &ConfigEditor::accept);
+  QObject::connect(ui->buttons, &QDialogButtonBox::rejected, this, &ConfigEditor::reject);
 }
 
 ConfigEditor::~ConfigEditor()

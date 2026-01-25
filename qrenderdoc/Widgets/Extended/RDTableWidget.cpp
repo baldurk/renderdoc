@@ -27,9 +27,11 @@
 #include <QClipboard>
 #include <QDropEvent>
 #include "Code/Interface/QRDInterface.h"
+#include "Code/QRDUtils.h"
 
 RDTableWidget::RDTableWidget(QWidget *parent) : QTableWidget(parent)
 {
+  ApplyWaylandWorkarounds(this);
 }
 
 void RDTableWidget::dropEvent(QDropEvent *event)

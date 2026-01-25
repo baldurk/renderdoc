@@ -41,8 +41,13 @@ FindReplace::FindReplace(QWidget *parent) : QFrame(parent), ui(new Ui::FindRepla
   RDLineEdit *edit = new RDLineEdit(this);
   ui->findText->setLineEdit(edit);
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+  ui->findText->setCompleter(NULL);
+  ui->replaceText->setCompleter(NULL);
+#else
   ui->findText->setAutoCompletion(false);
   ui->replaceText->setAutoCompletion(false);
+#endif
 
   QObject::connect(edit, &RDLineEdit::keyPress, [this](QKeyEvent *event) {
     if(event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter)

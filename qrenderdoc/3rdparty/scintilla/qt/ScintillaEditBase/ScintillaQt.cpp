@@ -24,7 +24,9 @@
 #include <QMenu>
 #include <QScrollBar>
 #include <QTimer>
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QTextCodec>
+#endif
 
 #ifdef SCI_NAMESPACE
 using namespace Scintilla;
@@ -179,9 +181,13 @@ static QString StringFromSelectedText(const SelectionText &selectedText)
 	if (selectedText.codePage == SC_CP_UTF8) {
 		return QString::fromUtf8(selectedText.Data(), static_cast<int>(selectedText.Length()));
 	} else {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+		return QString::fromUtf8(selectedText.Data(), static_cast<int>(selectedText.Length()));
+#else
 		QTextCodec *codec = QTextCodec::codecForName(
 				CharacterSetID(selectedText.characterSet));
 		return codec->toUnicode(selectedText.Data(), static_cast<int>(selectedText.Length()));
+#endif
 	}
 }
 
@@ -477,9 +483,13 @@ QString ScintillaQt::StringFromDocument(const char *s) const
 	if (IsUnicodeMode()) {
 		return QString::fromUtf8(s);
 	} else {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+		return QString::fromUtf8(s);
+#else
 		QTextCodec *codec = QTextCodec::codecForName(
 				CharacterSetID(CharacterSetOfDocument()));
 		return codec->toUnicode(s);
+#endif
 	}
 }
 
@@ -488,13 +498,18 @@ QByteArray ScintillaQt::BytesForDocument(const QString &text) const
 	if (IsUnicodeMode()) {
 		return text.toUtf8();
 	} else {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+		return text.toUtf8();
+#else
 		QTextCodec *codec = QTextCodec::codecForName(
 				CharacterSetID(CharacterSetOfDocument()));
 		return codec->fromUnicode(text);
+#endif
 	}
 }
 
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 class CaseFolderDBCS : public CaseFolderTable {
 	QTextCodec *codec;
 public:
@@ -520,12 +535,17 @@ public:
 		return 1;
 	}
 };
+#endif
 
 CaseFolder *ScintillaQt::CaseFolderForEncoding()
 {
 	if (pdoc->dbcsCodePage == SC_CP_UTF8) {
 		return new CaseFolderUnicode();
 	} else {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+		// Qt 6 doesn't have QTextCodec, fall back to simple case folding
+		return new CaseFolderTable();
+#else
 		const char *charSetBuffer = CharacterSetIDOfDocument();
 		if (charSetBuffer) {
 			if (pdoc->dbcsCodePage == 0) {
@@ -549,6 +569,7 @@ CaseFolder *ScintillaQt::CaseFolderForEncoding()
 			}
 		}
 		return 0;
+#endif
 	}
 }
 
@@ -565,8 +586,12 @@ std::string ScintillaQt::CaseMapString(const std::string &s, int caseMapping)
 		return retMapped;
 	}
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+	QString text = QString::fromUtf8(s.c_str(), static_cast<int>(s.length()));
+#else
 	QTextCodec *codec = QTextCodec::codecForName(CharacterSetIDOfDocument());
 	QString text = codec->toUnicode(s.c_str(), static_cast<int>(s.length()));
+#endif
 
 	if (caseMapping == cmUpper) {
 		text = text.toUpper();
