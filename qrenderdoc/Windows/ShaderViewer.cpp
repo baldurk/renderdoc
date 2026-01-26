@@ -5417,27 +5417,15 @@ const ShaderVariable *ShaderViewer::GetDebugVariable(const DebugVariableReferenc
 {
   if(r.type == DebugVariableType::ReadOnlyResource)
   {
-    for(int i = 0; i < m_Trace->readOnlyResources.count(); i++)
-      if(m_Trace->readOnlyResources[i].name == r.name)
-        return &m_Trace->readOnlyResources[i];
-
-    return NULL;
+    return GetShaderDebugVariable(r.name, m_Trace->readOnlyResources);
   }
   else if(r.type == DebugVariableType::ReadWriteResource)
   {
-    for(int i = 0; i < m_Trace->readWriteResources.count(); i++)
-      if(m_Trace->readWriteResources[i].name == r.name)
-        return &m_Trace->readWriteResources[i];
-
-    return NULL;
+    return GetShaderDebugVariable(r.name, m_Trace->readWriteResources);
   }
   else if(r.type == DebugVariableType::Sampler)
   {
-    for(int i = 0; i < m_Trace->samplers.count(); i++)
-      if(m_Trace->samplers[i].name == r.name)
-        return &m_Trace->samplers[i];
-
-    return NULL;
+    return GetShaderDebugVariable(r.name, m_Trace->samplers);
   }
   else if(r.type == DebugVariableType::Input)
   {

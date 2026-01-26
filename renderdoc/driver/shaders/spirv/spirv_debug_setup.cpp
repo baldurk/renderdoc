@@ -1566,6 +1566,123 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *api, const ShaderStage s
       }
 
       bool bareUniform = false;
+      // GL Resource Arrays
+      if((api->GetGraphicsAPI() == GraphicsAPI::OpenGL) &&
+         (innertype->type == DataType::ArrayType && location != ~0U))
+      {
+        DataType *elementtype = &dataTypes[innertype->InnerType()];
+        DataType::Type baseType = elementtype->type;
+        if((baseType == DataType::SampledImageType) || (baseType == DataType::ImageType) ||
+           (baseType == DataType::SamplerType))
+        {
+          var.type = VarType::Struct;
+          debugType = DebugVariableType::ReadOnlyResource;
+
+          VarType memberType = VarType::ReadOnlyResource;
+          DescriptorCategory descCat = DescriptorCategory::ReadOnlyResource;
+          uint32_t texType = DebugAPIWrapper::Float_Texture;
+
+          if(baseType == DataType::SamplerType)
+          {
+            debugType = DebugVariableType::Sampler;
+            memberType = VarType::Sampler;
+            descCat = DescriptorCategory::Sampler;
+          }
+          else if(baseType == DataType::SampledImageType || baseType == DataType::ImageType)
+          {
+            // store the texture type here, since the image may be copied around and combined with
+            // a sampler, so accessing the original type might be non-trivial at point of access
+            Id imgid = elementtype->id;
+
+            if(baseType == DataType::SampledImageType)
+              imgid = sampledImageTypes[imgid].baseId;
+
+            RDCASSERT(imageTypes[imgid].dim != Dim::Max);
+
+            if(imageTypes[imgid].dim == Dim::Buffer)
+              texType |= DebugAPIWrapper::Buffer_Texture;
+
+            if(imageTypes[imgid].dim == Dim::SubpassData)
+              texType |= DebugAPIWrapper::Subpass_Texture;
+
+            if(imageTypes[imgid].retType.type == Op::TypeInt)
+            {
+              if(imageTypes[imgid].retType.signedness)
+                texType |= DebugAPIWrapper::SInt_Texture;
+              else
+                texType |= DebugAPIWrapper::UInt_Texture;
+            }
+
+            if(imageTypes[imgid].sampled == 2 && imageTypes[imgid].dim != Dim::SubpassData)
+            {
+              debugType = DebugVariableType::ReadWriteResource;
+              memberType = VarType::ReadWriteResource;
+              descCat = DescriptorCategory::ReadWriteResource;
+            }
+          }
+          int32_t idx = -1;
+          if(memberType == VarType::ReadOnlyResource)
+            idx = patchData.roInterface.indexOf(v.id);
+          else if(memberType == VarType::Sampler)
+            idx = patchData.samplerInterface.indexOf(v.id);
+          else if(memberType == VarType::ReadWriteResource)
+            idx = patchData.rwInterface.indexOf(v.id);
+
+          uint32_t len = uintComp(GetActiveLane().ids[innertype->length], 0);
+          for(uint32_t i = 0; i < len; ++i)
+          {
+            ShaderVariable member;
+
+            member.rows = 1;
+            member.columns = 1;
+            member.name = StringFormat::Fmt("[%u]", i);
+            member.type = memberType;
+
+            if((memberType == VarType::ReadOnlyResource) ||
+               (memberType == VarType::ReadWriteResource))
+              setTextureType(member, (DebugAPIWrapper::TextureType)texType);
+
+            // on GL we may have textures which are dead-code eliminated but remain part of the simulated
+            // code. Because we base our interfaces off the GLSL reflected data it may not be present.
+
+            // Bind to index "idx+i" because GL resource arrays are expanded in element order
+            if(idx >= 0)
+              member.SetBindIndex(ShaderBindIndex(descCat, idx + i, 0));
+            else
+              member.SetBindIndex(ShaderBindIndex());
+
+            var.members.push_back(member);
+
+            // Source mapping per array element because GL resource arrays are expanded
+            SourceVariableMapping sourceVar;
+            sourceVar.name = StringFormat::Fmt("%s[%u]", sourceName.c_str(), i);
+            sourceVar.type = var.members[i].type;
+            sourceVar.rows = 1;
+            sourceVar.columns = 1;
+            sourceVar.offset = 0;
+            sourceVar.variables.push_back(DebugVariableReference(
+                debugType, StringFormat::Fmt("%s[%u]", var.name.c_str(), i)));
+            ret->sourceVars.push_back(sourceVar);
+          }
+
+          if(debugType == DebugVariableType::ReadOnlyResource)
+          {
+            global.readOnlyResources.push_back(var);
+            pointerIDs.push_back(GLOBAL_POINTER(v.id, readOnlyResources));
+          }
+          else if(debugType == DebugVariableType::Sampler)
+          {
+            global.samplers.push_back(var);
+            pointerIDs.push_back(GLOBAL_POINTER(v.id, samplers));
+          }
+          else if(debugType == DebugVariableType::ReadWriteResource)
+          {
+            global.readWriteResources.push_back(var);
+            pointerIDs.push_back(GLOBAL_POINTER(v.id, readWriteResources));
+          }
+          continue;
+        }
+      }
 
       if(innertype->type == DataType::SamplerType)
       {

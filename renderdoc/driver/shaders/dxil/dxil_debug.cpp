@@ -8108,12 +8108,12 @@ const TypeData &Debugger::AddDebugType(const DXIL::Metadata *typeMD)
     case DXIL::DIBase::Type::CompositeType:
     {
       const DICompositeType *compositeType = base->As<DICompositeType>();
-      typeData.baseType = typeMD;
       switch(compositeType->tag)
       {
         case DW_TAG_class_type:
         case DW_TAG_structure_type:
         {
+          typeData.baseType = typeMD;
           typeData.sizeInBytes = (uint32_t)(compositeType->sizeInBits / 8);
           typeData.alignInBytes = (uint32_t)(compositeType->alignInBits / 8);
 
@@ -8228,6 +8228,10 @@ const TypeData &Debugger::AddDebugType(const DXIL::Metadata *typeMD)
           {
             AddDebugType(compositeType->base);
             typeData.baseType = compositeType->base;
+          }
+          else
+          {
+            typeData.baseType = typeMD;
           }
           break;
         }

@@ -235,6 +235,7 @@ layout(binding = 0, std430) buffer ssbo_test
 layout(binding = 0) uniform sampler2D tex2d_test;
 layout(binding = 1) uniform samplerBuffer texBuf_test;
 layout(binding = 2) uniform sampler2D bias_test;
+layout(binding = 3) uniform sampler2D resArray_test[2];
 
 layout(location = 1) in vec4 v2fColor;
 layout(location = 2) in vec2 v2fUV;
@@ -257,6 +258,8 @@ void main()
   col += texture(tex2d_test, v2fUV);
   col += texelFetch(texBuf_test, int(v2fUV.x*10));
   col += texture(bias_test, v2fUV, -0.8f);
+  col += texture(resArray_test[0], v2fUV);
+  col += texture(resArray_test[1], v2fUV);
   outColor = col;
 }
 
@@ -610,6 +613,39 @@ void main()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 
+    {
+      std::vector<uint32_t> pixels;
+      uint32_t countPixels = rgba8.height * rgba8.width;
+      uint32_t srcIdx = countPixels - 1;
+      for(uint32_t dstIdx = 0; dstIdx < countPixels; ++dstIdx)
+      {
+        pixels.push_back(rgba8.data[srcIdx]);
+        --srcIdx;
+      }
+      GLuint resArray_tex0 = MakeTexture();
+      glActiveTexture(GL_TEXTURE3);
+      glBindTexture(GL_TEXTURE_2D, resArray_tex0);
+      glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, rgba8.width, rgba8.height);
+      glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, rgba8.width, rgba8.height, GL_RGBA, GL_UNSIGNED_BYTE,
+                      pixels.data());
+    }
+    {
+      std::vector<uint32_t> pixels;
+      uint32_t countPixels = rgba8.height * rgba8.width;
+      uint32_t srcIdx = countPixels - 1;
+      for(uint32_t dstIdx = 0; dstIdx < countPixels; ++dstIdx)
+      {
+        pixels.push_back(rgba8.data[srcIdx % countPixels]);
+        srcIdx -= 2;
+      }
+      GLuint resArray_tex1 = MakeTexture();
+      glActiveTexture(GL_TEXTURE4);
+      glBindTexture(GL_TEXTURE_2D, resArray_tex1);
+      glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, rgba8.width, rgba8.height);
+      glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, rgba8.width, rgba8.height, GL_RGBA, GL_UNSIGNED_BYTE,
+                      pixels.data());
+    }
+
     // render offscreen to make picked values accurate
     GLuint fbo = MakeFBO();
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -617,7 +653,7 @@ void main()
     // Color render texture
     GLuint colattach = MakeTexture();
 
-    glActiveTexture(GL_TEXTURE3);
+    glActiveTexture(GL_TEXTURE5);
     glBindTexture(GL_TEXTURE_2D, colattach);
     glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA32F, screenWidth, screenHeight);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colattach, 0);

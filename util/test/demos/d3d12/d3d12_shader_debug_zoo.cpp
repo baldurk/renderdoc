@@ -1093,6 +1093,39 @@ float4 main(v2f IN) : SV_Target0
     Color.y = smiley.CalculateLevelOfDetailUnclamped(linearclamp, uv);
     return Color;
   }
+#if (SM_6_0 || SM_6_2 || SM_6_6)
+  enum TestEnum
+  {
+    ON,
+    OFF
+  };
+  struct TestStructEnum
+  {
+    bool bTest;
+    TestEnum eTest;
+  };
+  TestEnum testEnum = (IN.s.x > 1.0) ? ON : OFF;
+  TestStructEnum tStructEnum;
+  tStructEnum.bTest = (IN.s.x < 0.5);
+  tStructEnum.eTest = (IN.s.x < 1.0) ? ON : OFF;
+  if(IN.tri == 110)
+  {
+    float4 Color = float4(0,0,0,1);
+    if (testEnum == ON)
+      Color += float4(0.5, 0.0, 0.0, 0.0);
+    else if (testEnum == OFF)
+      Color += float4(0.2, 0.0, 0.0, 0.0);
+    if (tStructEnum.bTest)
+      Color += float4(0.0, 0.5, 0.0, 0.0);
+    else
+      Color += float4(0.0, 0.2, 0.0, 0.0);
+    if (tStructEnum.eTest == ON)
+      Color += float4(0.0, 0.0, 0.5, 0.0);
+    else if (tStructEnum.eTest == OFF)
+      Color += float4(0.0, 0.0, 0.2, 0.0);
+    return Color;
+  }
+#endif // #if (SM_6_0 || SM_6_2 || SM_6_6)
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
 )EOSHADER";
