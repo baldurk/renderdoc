@@ -33,8 +33,6 @@
 #include <QPainter>
 #include <QPen>
 #include <QRegularExpression>
-// Disable warning about size_t to uint conversion in Qt's qHash
-// Qt 6 returns size_t from qHash but QSet internally uses uint
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4267)

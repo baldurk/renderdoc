@@ -24,5 +24,14 @@
 
 #pragma once
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4267 4244 4146)
+#endif
+
 #include "Code/Interface/QRDInterface.h"
 #include "Code/QRDUtils.h"
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
