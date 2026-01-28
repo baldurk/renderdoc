@@ -824,7 +824,11 @@ void android_main(struct android_app *state)
   android_poll_source *source;
   do
   {
+#if __NDK_MAJOR__ >= 27
+    if(ALooper_pollOnce(1, nullptr, &events, (void **)&source) >= 0)
+#else
     if(ALooper_pollAll(1, nullptr, &events, (void **)&source) >= 0)
+#endif
     {
       if(source != NULL)
         source->process(android_state, source);
