@@ -3064,10 +3064,10 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
               resInfo.memreqs.alignment = mrq.alignment;
               resInfo.memreqs.memoryTypeBits = mrq.memoryTypeBits;
 
-              RDCWARN(
-                  "Android hardware buffer backed image, so pre-emptively banning dedicated "
-                  "memory");
-              resInfo.banDedicated = true;
+              resInfo.banDedicated =
+                  m_PhysicalDeviceData.driverProps.driverID != VK_DRIVER_ID_MESA_PANVK;
+              RDCWARN("Android hardware buffer backed image, %s dedicated memory",
+                      resInfo.banDedicated ? "banning" : "allowing");
             }
             else
             {
