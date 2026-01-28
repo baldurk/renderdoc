@@ -120,6 +120,11 @@ if(ANDROID)
 
     if(${Java_VERSION} VERSION_LESS 1.8)
         message(FATAL_ERROR "Building Android requires the 'java' program in your PATH to be at least Java 8 (1.8)")
+    elseif(${Java_VERSION} VERSION_LESS 20.0)
+        set(JAVA_TARGET "1.7")
+    else()
+        message(WARNING "Building with JDK ${Java_VERSION} may cause broken Android binaries, it is recommended to build with JDK 17 or earlier")
+        set(JAVA_TARGET "8")
     endif()
     message(STATUS "Using Java of version ${Java_VERSION}")
 
@@ -302,7 +307,7 @@ if(ANDROID)
 
     add_custom_command(OUTPUT ${APK_FILE} APPEND
                        COMMAND ${BUILD_TOOLS}/aapt package -f -m -S res -J src -M AndroidManifest.xml -I ${ANDROID_JAR}
-                       COMMAND ${JAVA_BIN}/javac -d ./obj -source 1.7 -target 1.7 -bootclasspath ${RT_JAR} -classpath "${CLASS_PATH}" -sourcepath src src/org/renderdoc/renderdoccmd/*.java
+                       COMMAND ${JAVA_BIN}/javac -d ./obj -source ${JAVA_TARGET} -target ${JAVA_TARGET} -bootclasspath ${RT_JAR} -classpath "${CLASS_PATH}" -sourcepath src src/org/renderdoc/renderdoccmd/*.java
                        COMMAND ${DEX_COMMAND}
                        COMMAND ${BUILD_TOOLS}/aapt package -f -M AndroidManifest.xml --version-code ${APK_VERSION_CODE} --version-name ${APK_VERSION_NAME} -S res -I ${ANDROID_JAR} -F RenderDocCmd-unaligned.apk bin libs
                        COMMAND ${BUILD_TOOLS}/zipalign -f 4 RenderDocCmd-unaligned.apk RenderDocCmd.apk
