@@ -20,7 +20,7 @@ if(NOT ANDROID AND NOT APPLE)
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 18.9)
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 19.0.999)
         set_property(SOURCE ${sources} ${sources_gl} ${sources_vulkan}
             APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-cast-function-type-mismatch")
     endif()
