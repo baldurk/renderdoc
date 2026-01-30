@@ -126,7 +126,7 @@ static void StripUnwantedLayers(rdcarray<rdcstr> &Layers)
     // came along with the application
     if(layer == "VK_LAYER_LUNARG_api_dump" || layer == "VK_LAYER_LUNARG_vktrace")
     {
-      return true;
+      //return true;
     }
 
     // also remove the framerate monitor layer as it's buggy and doesn't do anything
