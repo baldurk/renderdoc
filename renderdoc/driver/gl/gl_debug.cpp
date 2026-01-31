@@ -2794,6 +2794,8 @@ uint32_t GLReplay::PickVertex(uint32_t eventId, int32_t width, int32_t height,
 
     drv.glBindBuffer(eGL_SHADER_STORAGE_BUFFER, DebugData.pickIBBuf);
     drv.glBufferSubData(eGL_SHADER_STORAGE_BUFFER, 0, numIndices * sizeof(uint32_t), outidxs.data());
+
+    delete[] idxs;
   }
 
   // unpack and linearise the data
