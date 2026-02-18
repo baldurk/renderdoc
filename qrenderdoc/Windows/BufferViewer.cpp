@@ -3521,7 +3521,10 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
   m_Ctx.Replay().AsyncInvoke([this, me, bufdata](IReplayController *r) {
     if(!me)
+    {
+      delete bufdata;
       return;
+    }
 
     BufferData *buf = NULL;
 
@@ -3742,7 +3745,10 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
     GUIInvoke::call(this, [this, bufdata]() {
       if(bufdata->sequence != m_Sequence)
+      {
+        delete bufdata;
         return;
+      }
 
       if(!bufdata->out1Config.statusString.isEmpty())
       {
@@ -4044,12 +4050,18 @@ void BufferViewer::populateBBox(PopulateBufferData *bufdata)
     // fire up a thread to calculate the bounding box
     LambdaThread *thread = new LambdaThread([this, me, bbox] {
       if(!me)
+      {
+        delete bbox;
         return;
+      }
 
       calcBoundingData(*bbox);
 
       if(!me)
+      {
+        delete bbox;
         return;
+      }
 
       GUIInvoke::call(this, [this, bbox]() { UI_UpdateBoundingBox(*bbox); });
     });
