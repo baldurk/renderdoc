@@ -339,7 +339,11 @@ void GLReplay::GetOutputWindowData(uint64_t id, bytebuf &retData)
   {
     for(int32_t x = 0; x < outw.width; x++)
     {
+#ifdef ENABLE_ASAN
+      memmove(dst, src, 3);
+#else
       memcpy(dst, src, 3);
+#endif
       dst += 3;
       src += 4;
     }

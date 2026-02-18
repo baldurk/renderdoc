@@ -225,6 +225,7 @@ endif()
 
 if(ENABLE_ASAN)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+    add_definitions(-DENABLE_ASAN)
     message(STATUS "Enabling address sanitizer - may cause issues if capturing, only recommended for use with replay only")
 endif()
 
