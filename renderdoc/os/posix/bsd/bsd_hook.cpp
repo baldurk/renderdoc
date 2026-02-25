@@ -428,7 +428,7 @@ static void CheckLoadedLibraries()
 
       for(FunctionLoadCallback cb : callbacks)
         if(cb)
-          cb(handle);
+          cb(handle, libName.c_str());
     }
   }
 
@@ -470,7 +470,7 @@ void *intercept_dlopen(const char *filename, int flag, void *ret)
 
       for(FunctionLoadCallback cb : callbacks)
         if(cb)
-          cb(ret);
+          cb(ret, filename);
 
       ret = realdlopen("lib" STRINGIZE(RDOC_BASE_NAME) ".so", flag);
       break;
