@@ -22,8 +22,12 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "common/common.h"
 #include "os/os_specific.h"
 
+#include <errno.h>
+#include <pthread.h>
+#include <semaphore.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -41,4 +45,77 @@ uint64_t Timing::GetTick()
 
 void Threading::SetCurrentThreadName(const rdcstr &name)
 {
+  pthread_setname_np(pthread_self(), name.c_str());
 }
+
+uint32_t Threading::NumberOfCores()
+{
+  long ret = sysconf(_SC_NPROCESSORS_ONLN);
+  if(ret <= 0)
+    return 1;
+  return uint32_t(ret);
+}
+
+namespace Threading
+{
+
+// works for all posix except apple, hence being here
+struct PosixSemaphore : public Semaphore
+{
+  ~PosixSemaphore() {}
+
+  sem_t h;
+};
+
+Semaphore *Semaphore::Create()
+{
+  PosixSemaphore *sem = new PosixSemaphore();
+  int err = sem_init(&sem->h, 0, 0);
+  // only documented errors are too large initial value (impossible for 0) or for shared semaphores
+  // going wrong (we're not shared)
+  RDCASSERT(err == 0, (int)errno);
+  return sem;
+}
+
+void Semaphore::Destroy()
+{
+  PosixSemaphore *sem = (PosixSemaphore *)this;
+  sem_destroy(&sem->h);
+  delete sem;
+}
+
+void Semaphore::Wake(uint32_t numToWake)
+{
+  PosixSemaphore *sem = (PosixSemaphore *)this;
+  for(uint32_t i = 0; i < numToWake; i++)
+    sem_post(&sem->h);
+}
+
+void Semaphore::WaitForWake()
+{
+  PosixSemaphore *sem = (PosixSemaphore *)this;
+
+  while(true)
+  {
+    int ret = sem_wait(&sem->h);
+
+    if(ret == 0)
+      return;
+
+    if(errno == EINTR)
+      continue;
+
+    RDCWARN("Semaphore wait failed: %d", errno);
+    return;
+  }
+}
+
+Semaphore::Semaphore()
+{
+}
+
+Semaphore::~Semaphore()
+{
+}
+
+}    // namespace Threading
