@@ -76,19 +76,20 @@ else()
             glx_hooks.cpp
             glx_fake_vk_hooks.cpp)
     endif()
-    if(ENABLE_GLES)
-        list(APPEND sources
-            official/glesext.h)
-    endif()
-    if(ENABLE_EGL)
-        list(APPEND sources
-            official/egl.h
-            official/eglext.h
-            official/eglplatform.h
-            egl_dispatch_table.h
-            egl_platform.cpp
-            egl_hooks.cpp)
-    endif()
+endif()
+
+if(ENABLE_GLES)
+    list(APPEND sources
+        official/glesext.h)
+endif()
+if(ENABLE_EGL)
+    list(APPEND sources
+        official/egl.h
+        official/eglext.h
+        official/eglplatform.h
+        egl_dispatch_table.h
+        egl_platform.cpp
+        egl_hooks.cpp)
 endif()
 
 add_library(rdoc_gl OBJECT ${sources})

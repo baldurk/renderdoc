@@ -45,6 +45,8 @@ static void *GetEGLHandle()
   }
 
   return Process::LoadModule(libEGL);
+#elif ENABLED(RDOC_APPLE)
+  return Process::LoadModule("libEGL.dylib");
 #else
   void *handle = Process::LoadModule("libEGL.so.1");
 
@@ -156,6 +158,8 @@ class EGLPlatform : public GLPlatform
       case WindowingSystem::Win32: win = window.win32.window; break;
 #elif ENABLED(RDOC_ANDROID)
       case WindowingSystem::Android: win = window.android.window; break;
+#elif ENABLED(RDOC_APPLE)
+      case WindowingSystem::MacOS: win = window.macOS.layer; break;
 #elif ENABLED(RDOC_LINUX)
       case WindowingSystem::Xlib:
       {
@@ -373,9 +377,6 @@ class EGLPlatform : public GLPlatform
   void SetDriverType(RDCDriver api) { m_API = api; }
   RDResult InitialiseAPI(GLWindowingData &replayContext, RDCDriver api, bool debug)
   {
-    Display *xlibDisplay = RenderDoc::Inst().GetGlobalEnvironment().xlibDisplay;
-    wl_display *waylandDisplay = RenderDoc::Inst().GetGlobalEnvironment().waylandDisplay;
-
     // we support replaying both GLES and GL through EGL
     RDCASSERT(api == RDCDriver::OpenGLES || api == RDCDriver::OpenGL);
 
@@ -388,10 +389,14 @@ class EGLPlatform : public GLPlatform
       EGL.BindAPI(EGL_OPENGL_API);
 
     EGLNativeDisplayType display = EGL_DEFAULT_DISPLAY;
+#if ENABLED(RDOC_LINUX)
+    Display *xlibDisplay = RenderDoc::Inst().GetGlobalEnvironment().xlibDisplay;
+    wl_display *waylandDisplay = RenderDoc::Inst().GetGlobalEnvironment().waylandDisplay;
     if(waylandDisplay)
       display = (EGLNativeDisplayType)waylandDisplay;
     else if(xlibDisplay)
       display = (EGLNativeDisplayType)xlibDisplay;
+#endif
 
     EGLDisplay eglDisplay = EGL.GetDisplay(display);
     if(!eglDisplay)
@@ -427,6 +432,8 @@ class EGLPlatform : public GLPlatform
 
 #if ENABLED(RDOC_WIN32)
 #define LIBSUFFIX ".dll"
+#elif ENABLED(RDOC_APPLE)
+#define LIBSUFFIX ".dylib"
 #else
 #define LIBSUFFIX ".so"
 #endif

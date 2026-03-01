@@ -191,6 +191,11 @@ struct GLWindowingData
 
 #include "official/cgl.h"
 
+#include "official/eglplatform.h"
+
+#include "official/egl.h"
+#include "official/eglext.h"
+
 struct GLWindowingData
 {
   GLWindowingData()
@@ -198,16 +203,25 @@ struct GLWindowingData
     ctx = NULL;
     wnd = NULL;
     pix = NULL;
+    egl_ctx = NULL;
+    egl_dpy = NULL;
+    egl_wnd = NULL;
+    egl_cfg = NULL;
   }
 
   union
   {
     CGLContextObj ctx;
     void *nsgl_ctx;    // during replay only, this is the NSOpenGLContext
+    EGLContext egl_ctx;
   };
 
   void *wnd;    // during capture, this is the CGL window ID. During replay, it's the NSView
   CGLPixelFormatObj pix;
+
+  EGLDisplay egl_dpy;
+  EGLSurface egl_wnd;
+  EGLConfig egl_cfg;
 };
 
 #define DECL_HOOK_EXPORT(function)                                               \

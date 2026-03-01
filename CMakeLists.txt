@@ -274,12 +274,6 @@ if(RENDERDOC_VERSION_MINOR STREQUAL "")
     message(FATAL_ERROR "Couldn't calculate minor version")
 endif()
 
-if(APPLE)
-    message(STATUS "Disabling GLES driver on apple")
-    set(ENABLE_GLES OFF CACHE BOOL "" FORCE)
-    set(ENABLE_EGL OFF CACHE BOOL "" FORCE)
-endif()
-
 if(INTERNAL_SELF_CAPTURE)
     message(STATUS "Disabling GL/GLES for self-capture")
     set(ENABLE_GLES OFF CACHE BOOL "" FORCE)
