@@ -2439,7 +2439,7 @@ layout(std140) buffer Output
 #define ddy_fine dFdyFine
 #else
 #define ddx_fine dFdx
-#define ddy_fine dFdx
+#define ddy_fine dFdy
 #endif
 
 #define float4 vec4
