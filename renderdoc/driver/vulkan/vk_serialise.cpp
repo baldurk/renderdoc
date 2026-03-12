@@ -10469,20 +10469,19 @@ void DoSerialise(SerialiserType &ser, VkDescriptorGetInfoEXT &el)
   RDCASSERT(ser.IsReading() || el.sType == VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT);
   SerialiseNext(ser, el.sType, el.pNext);
 
-  // these fields must either be NULL or valid if present, never garbage
-  ser.SetStructArg(
-      uint64_t(VkDescriptorImageInfoValidity::Sampler | VkDescriptorImageInfoValidity::ImageView));
-
   SERIALISE_MEMBER(type);
   switch(el.type)
   {
     case VK_DESCRIPTOR_TYPE_SAMPLER:
     {
+      ser.SetStructArg(uint64_t(VkDescriptorImageInfoValidity::Sampler));
       SERIALISE_MEMBER_OPT(data.pSampler).Named("pSampler");
       break;
     }
     case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
     {
+      ser.SetStructArg(uint64_t(VkDescriptorImageInfoValidity::Sampler |
+                                VkDescriptorImageInfoValidity::ImageView));
       SERIALISE_MEMBER_OPT(data.pCombinedImageSampler).Named("pCombinedImageSampler");
       break;
     }
@@ -10490,6 +10489,7 @@ void DoSerialise(SerialiserType &ser, VkDescriptorGetInfoEXT &el)
     case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
     case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
     {
+      ser.SetStructArg(uint64_t(VkDescriptorImageInfoValidity::ImageView));
       SERIALISE_MEMBER_OPT(data.pStorageImage).Named("pStorageImage");
       break;
     }
