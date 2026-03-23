@@ -909,7 +909,7 @@ struct ValueList : private rdcarray<Value *>
   T *nextValue()
   {
     RDCASSERT(!pendingValue);
-    RDCCOMPILE_ASSERT(typename T::IsForwardReferenceable,
+    RDCCOMPILE_ASSERT(T::IsForwardReferenceable,
                       "alloc'ing next value for non-forward-referenceable type");
 
     pendingValue = true;
