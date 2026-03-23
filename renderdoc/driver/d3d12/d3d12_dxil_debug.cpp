@@ -22,8 +22,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#pragma once
-
 #include "d3d12_dxil_debug.h"
 #include "data/hlsl/hlsl_cbuffers.h"
 #include "driver/dxgi/dxgi_common.h"
