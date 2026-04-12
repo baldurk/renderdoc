@@ -1969,6 +1969,7 @@ ResourceReferenceInfo D3D12APIWrapper::FetchResourceReferenceInfo(const DXDebug:
       resRefInfo.resClass = DXIL::ResourceClass::CBuffer;
       resRefInfo.descType = DescriptorType::ConstantBuffer;
       resRefInfo.varType = VarType::ConstantBlock;
+      break;
     }
     case D3D12DescriptorType::SRV:
     {
