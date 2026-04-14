@@ -761,7 +761,7 @@ static bool OrdinalAsString(void *func)
   return uint64_t(func) <= 0xffff;
 }
 
-FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
+FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR const func)
 {
   if(mod == NULL || func == NULL || mod == s_HookData->ownmodule)
     return GetProcAddress(mod, func);
@@ -810,6 +810,8 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
       RDCDEBUG("Located module %s", it->first.c_str());
 #endif
 
+      LPCSTR searchFunc = func;
+
       if(OrdinalAsString((void *)func))
       {
 #if ENABLED(VERBOSE_DEBUG_HOOK)
@@ -822,53 +824,57 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
         {
           RDCERR("Unexpected ordinal - lower than ordinalbase %u for %s",
                  (uint32_t)it->second.OrdinalBase, it->first.c_str());
-
-          SetLastError(S_OK);
-          return GetProcAddress(mod, originalRequest);
+          searchFunc = NULL;
         }
-
-        ordinal -= it->second.OrdinalBase;
-
-        if(ordinal >= it->second.OrdinalNames.size())
+        else
         {
-          RDCERR("Unexpected ordinal - higher than fetched ordinal names (%u) for %s",
-                 (uint32_t)it->second.OrdinalNames.size(), it->first.c_str());
+          ordinal -= it->second.OrdinalBase;
 
-          SetLastError(S_OK);
-          return GetProcAddress(mod, originalRequest);
+          if(ordinal >= it->second.OrdinalNames.size())
+          {
+            RDCERR("Unexpected ordinal - higher than fetched ordinal names (%u) for %s",
+                   (uint32_t)it->second.OrdinalNames.size(), it->first.c_str());
+            searchFunc = NULL;
+          }
+          else
+          {
+            searchFunc = it->second.OrdinalNames[ordinal].c_str();
+
+            if(searchFunc && searchFunc[0] != 0)
+            {
+  #if ENABLED(VERBOSE_DEBUG_HOOK)
+              RDCDEBUG("found ordinal %s", searchFunc);
+  #endif
+            }
+            else
+            {
+              searchFunc = NULL;
+            }
+          }
         }
-
-        func = it->second.OrdinalNames[ordinal].c_str();
-
-        if(func == NULL || func[0] == 0)
-        {
-          SetLastError(S_OK);
-          return GetProcAddress(mod, originalRequest);
-        }
-
-#if ENABLED(VERBOSE_DEBUG_HOOK)
-        RDCDEBUG("found ordinal %s", func);
-#endif
       }
 
-      FunctionHook search(func, NULL, NULL);
-
-      auto found =
-          std::lower_bound(it->second.FunctionHooks.begin(), it->second.FunctionHooks.end(), search);
-      if(found != it->second.FunctionHooks.end() && !(search < *found))
+      if(searchFunc && searchFunc[0] != 0)
       {
-        FARPROC realfunc = GetProcAddress(mod, requestIsOrdinal ? originalRequest : func);
+        FunctionHook search(searchFunc, NULL, NULL);
+
+        auto found =
+            std::lower_bound(it->second.FunctionHooks.begin(), it->second.FunctionHooks.end(), search);
+        if(found != it->second.FunctionHooks.end() && !(search < *found))
+        {
+          FARPROC realfunc = GetProcAddress(mod, requestIsOrdinal ? originalRequest : searchFunc);
 
 #if ENABLED(VERBOSE_DEBUG_HOOK)
-        RDCDEBUG("Found hooked function, returning hook pointer %p", found->hook);
+          RDCDEBUG("Found hooked function, returning hook pointer %p", found->hook);
 #endif
 
-        SetLastError(S_OK);
+          SetLastError(S_OK);
 
-        if(realfunc == NULL)
-          return NULL;
+          if(realfunc == NULL)
+            return NULL;
 
-        return (FARPROC)found->hook;
+          return (FARPROC)found->hook;
+        }
       }
     }
   }
