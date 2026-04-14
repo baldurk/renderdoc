@@ -842,9 +842,9 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR const func)
 
             if(searchFunc && searchFunc[0] != 0)
             {
-  #if ENABLED(VERBOSE_DEBUG_HOOK)
+#if ENABLED(VERBOSE_DEBUG_HOOK)
               RDCDEBUG("found ordinal %s", searchFunc);
-  #endif
+#endif
             }
             else
             {
@@ -858,8 +858,8 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR const func)
       {
         FunctionHook search(searchFunc, NULL, NULL);
 
-        auto found =
-            std::lower_bound(it->second.FunctionHooks.begin(), it->second.FunctionHooks.end(), search);
+        auto found = std::lower_bound(it->second.FunctionHooks.begin(),
+                                      it->second.FunctionHooks.end(), search);
         if(found != it->second.FunctionHooks.end() && !(search < *found))
         {
           FARPROC realfunc = GetProcAddress(mod, requestIsOrdinal ? originalRequest : searchFunc);
