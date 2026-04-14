@@ -766,6 +766,9 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
   if(mod == NULL || func == NULL || mod == s_HookData->ownmodule)
     return GetProcAddress(mod, func);
 
+  const LPCSTR originalRequest = func;
+  const bool requestIsOrdinal = OrdinalAsString((void *)originalRequest);
+
 #if ENABLED(VERBOSE_DEBUG_HOOK)
   if(OrdinalAsString((void *)func))
     RDCDEBUG("Hooked_GetProcAddress(%p, %p)", mod, func);
@@ -813,7 +816,7 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
         RDCDEBUG("Ordinal hook");
 #endif
 
-        uint32_t ordinal = (uint16_t)(uintptr_t(func) & 0xffff);
+        uint32_t ordinal = (uint16_t)(uintptr_t(originalRequest) & 0xffff);
 
         if(ordinal < it->second.OrdinalBase)
         {
@@ -821,7 +824,7 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
                  (uint32_t)it->second.OrdinalBase, it->first.c_str());
 
           SetLastError(S_OK);
-          return GetProcAddress(mod, func);
+          return GetProcAddress(mod, originalRequest);
         }
 
         ordinal -= it->second.OrdinalBase;
@@ -832,10 +835,16 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
                  (uint32_t)it->second.OrdinalNames.size(), it->first.c_str());
 
           SetLastError(S_OK);
-          return GetProcAddress(mod, func);
+          return GetProcAddress(mod, originalRequest);
         }
 
         func = it->second.OrdinalNames[ordinal].c_str();
+
+        if(func == NULL || func[0] == 0)
+        {
+          SetLastError(S_OK);
+          return GetProcAddress(mod, originalRequest);
+        }
 
 #if ENABLED(VERBOSE_DEBUG_HOOK)
         RDCDEBUG("found ordinal %s", func);
@@ -848,7 +857,7 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
           std::lower_bound(it->second.FunctionHooks.begin(), it->second.FunctionHooks.end(), search);
       if(found != it->second.FunctionHooks.end() && !(search < *found))
       {
-        FARPROC realfunc = GetProcAddress(mod, func);
+        FARPROC realfunc = GetProcAddress(mod, requestIsOrdinal ? originalRequest : func);
 
 #if ENABLED(VERBOSE_DEBUG_HOOK)
         RDCDEBUG("Found hooked function, returning hook pointer %p", found->hook);
@@ -870,7 +879,7 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
 
   SetLastError(S_OK);
 
-  return GetProcAddress(mod, func);
+  return GetProcAddress(mod, requestIsOrdinal ? originalRequest : func);
 }
 static void InitHookData()
 {
