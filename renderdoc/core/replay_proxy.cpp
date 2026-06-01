@@ -1500,6 +1500,15 @@ void ReplayProxy::Proxied_ReplaceResource(ParamSerialiser &paramser, ReturnSeria
       m_Remote->ReplaceResource(from, to);
   }
 
+  // Invalidate cached shader reflections. The remote driver updates its
+  // ShaderModule reflections in place for replaced shaders (e.g. so the new
+  // SPV's NonSemantic.Shader.DebugInfo.100 source info is reported), so any
+  // proxy-side cached ShaderReflection objects are now stale and must be
+  // refetched on the next GetShader call.
+  for(auto it = m_ShaderReflectionCache.begin(); it != m_ShaderReflectionCache.end(); ++it)
+    delete it->second;
+  m_ShaderReflectionCache.clear();
+
   SERIALISE_RETURN_VOID();
 }
 

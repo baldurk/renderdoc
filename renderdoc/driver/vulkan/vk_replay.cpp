@@ -5233,6 +5233,38 @@ void VulkanReplay::ReplaceResource(ResourceId from, ResourceId to)
   // replace the shader module or shader object
   m_pDriver->GetResourceManager()->ReplaceResource(from, to);
 
+  // When replacing a shader module, propagate the new SPV's reflection into the
+  // original shader module's existing reflection slots in-place. This is needed
+  // because SavePipelineState reads `c.m_Pipeline[orig_pipeline].shaders[i].refl`
+  // which is a pointer baked in during the original Pipeline::Init, and the
+  // captured render-state keeps reporting the original pipeline id (the new
+  // pipeline that RefreshDerivedReplacements builds is reached transparently via
+  // the resource manager replacement, not via the m_Pipeline map). Without this
+  // copy, source-debug info (NonSemantic.Shader.DebugInfo.100) that the user
+  // built into the replacement SPV is never visible to the shader debugger UI
+  // ("Source debugging Unavailable"). See ShaderModuleReflection::Reload 鈥?it
+  // preserves the refl pointer identity and rebuilds *refl from the new spirv.
+  {
+    auto fromIt = m_pDriver->m_CreationInfo.m_ShaderModule.find(from);
+    auto toIt = m_pDriver->m_CreationInfo.m_ShaderModule.find(to);
+    if(fromIt != m_pDriver->m_CreationInfo.m_ShaderModule.end() &&
+       toIt != m_pDriver->m_CreationInfo.m_ShaderModule.end() &&
+       !toIt->second.spirv.GetSPIRV().empty())
+    {
+      // overwrite the original module's SPV with the new one so any future reflection
+      // lookup via GetShader(from, ...) also reflects the new debug info.
+      fromIt->second.spirv = toIt->second.spirv;
+
+      // rebuild each existing reflection IN PLACE (pointer identity preserved).
+      for(auto reflIt = fromIt->second.m_Reflections.begin();
+          reflIt != fromIt->second.m_Reflections.end(); ++reflIt)
+      {
+        reflIt->second.Reload(m_pDriver->GetResourceManager(), m_pDriver->m_CreationInfo, from,
+                              fromIt->second.spirv);
+      }
+    }
+  }
+
   // now update any derived resources
   RefreshDerivedReplacements();
 
