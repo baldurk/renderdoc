@@ -805,9 +805,10 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FloatVector clearCol, Debug
       {
         // generate 'index' list
         rdcarray<uint32_t> idxs;
+        uint32_t offset = action->vertexOffset;
         idxs.resize(action->numIndices);
         for(uint32_t i = 0; i < action->numIndices; i++)
-          idxs[i] = i;
+          idxs[i] = i + offset;
         PatchLineStripIndexBuffer(action, drawParams.topo, NULL, NULL, idxs.data(), patchedIndices);
       }
 
