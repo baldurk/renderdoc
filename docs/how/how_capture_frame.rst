@@ -52,6 +52,19 @@ This ``.cap`` file can be executed when RenderDoc's file associations are set up
 
 You can also use the "Auto start" option - when this option is enabled then a .cap file will immediately launch the program when it is loaded. This can allow you to configure a .cap which will open RenderDoc and launch the target application with the pre-configured settings in one click. If you wish to disable this, just uncheck the option and re-save to the same ``.cap`` file.
 
+Environment Variables (Linux/POSIX only)
+----------------------------------------
+
+The ``RENDERDOC_CAPTURE_FRAME`` environment variable can be used to automatically queue a capture of a specific frame number when the application starts.
+
+Example usage:
+
+.. code:: bash
+
+    RENDERDOC_CAPTURE_FRAME=100 ./myapp
+
+This will automatically queue frame 100 to be captured when the application starts.
+
 See Also
 --------
 

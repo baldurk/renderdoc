@@ -51,6 +51,7 @@ void library_loaded()
 
     rdcstr capturefile = Process::GetEnvVariable("RENDERDOC_CAPFILE");
     rdcstr opts = Process::GetEnvVariable("RENDERDOC_CAPOPTS");
+    rdcstr capframe = Process::GetEnvVariable("RENDERDOC_CAPTURE_FRAME");
 
     if(!opts.empty())
     {
@@ -65,6 +66,13 @@ void library_loaded()
     if(!capturefile.empty())
     {
       RenderDoc::Inst().SetCaptureFileTemplate(capturefile);
+    }
+
+    if(!capframe.empty())
+    {
+      uint32_t frameNum = (uint32_t)atoi(capframe.c_str());
+      RDCLOG("Queueing capture of frame %u from RENDERDOC_CAPTURE_FRAME", frameNum);
+      RenderDoc::Inst().QueueCapture(frameNum);
     }
 
     rdcstr curfile;
