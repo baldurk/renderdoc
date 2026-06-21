@@ -2165,8 +2165,8 @@ precision highp float;
   #extension GL_KHR_shader_subgroup_quad : require
 #endif
 
-// bool signature elements get reflected as ints, make macros for their access to cast to int
-#define gl_FrontFacing (gl_FrontFacing ? 1u : 0u)
+// bool-to-uint conversion is explicit at each use site; no macro to avoid
+// contaminating the user's shader code (gl_FrontFacing must remain bool)
 #define gl_HelperInvocation (gl_HelperInvocation ? 1u : 0u)
 
 )EOSHADER";
@@ -2522,7 +2522,7 @@ void main()
   rd_sample = gl_SampleID;
 #endif
 
-  isFrontFace = gl_FrontFacing;
+  isFrontFace = gl_FrontFacing ? 1u : 0u;
 
 #endif
 
