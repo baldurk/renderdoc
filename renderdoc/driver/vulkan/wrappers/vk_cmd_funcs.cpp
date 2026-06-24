@@ -8053,7 +8053,7 @@ void WrappedVulkan::vkCmdBeginRendering(VkCommandBuffer commandBuffer,
       }
 
       record->MarkImageViewFrameReferenced(viewRecord, ImageRange(), refType);
-      if(att->resolveMode)
+      if(att->resolveMode && att->resolveImageView != VK_NULL_HANDLE)
         record->MarkImageViewFrameReferenced(GetRecord(att->resolveImageView), ImageRange(), refType);
     }
   }
