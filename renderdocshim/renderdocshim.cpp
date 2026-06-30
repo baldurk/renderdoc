@@ -55,100 +55,106 @@ typedef void(__cdecl *pINTERNAL_SetDebugLogFile)(const char *logfile);
 
 void CheckHook()
 {
-  ShimData *data = NULL;
+    ShimData *data = NULL;
 
-  HANDLE datahandle = OpenFileMappingA(FILE_MAP_READ, FALSE, GLOBAL_HOOK_DATA_NAME);
+    // Use Unicode version
+    HANDLE datahandle = OpenFileMappingW(FILE_MAP_READ, FALSE, GLOBAL_HOOK_DATA_NAME);
 
-  if(datahandle == NULL)
-  {
-    LOGPRINT(L"renderdocshim: can't open global data\n");
-    return;
-  }
-
-  data = (ShimData *)MapViewOfFile(datahandle, FILE_MAP_READ, 0, 0, sizeof(ShimData));
-
-  if(data == NULL)
-  {
-    CloseHandle(datahandle);
-    LOGPRINT(L"renderdocshim: can't map global data\n");
-    return;
-  }
-
-  if(data->pathmatchstring[0] == 0 || data->pathmatchstring[1] == 0 ||
-     data->pathmatchstring[2] == 0 || data->pathmatchstring[3] == 0)
-  {
-    LOGPRINT(L"renderdocshim: invalid pathmatchstring: '");
-    LOGPRINT(data->pathmatchstring);
-    LOGPRINT(L"'\n");
-
-    UnmapViewOfFile(data);
-    CloseHandle(datahandle);
-    return;
-  }
-
-  // no new[], need to use VirtualAlloc
-  const int exepathLen = 1024;
-  wchar_t *exepath = (wchar_t *)VirtualAlloc(NULL, exepathLen * sizeof(wchar_t),
-                                             MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-
-  if(exepath)
-  {
-    // no memset :).
-    for(int i = 0; i < exepathLen; i++)
-      exepath[i] = 0;
-
-    GetModuleFileNameW(NULL, exepath, exepathLen - 1);
-
-    // no str*cmp functions
-    int find = FindStringOrdinal(FIND_FROMSTART, exepath, -1, data->pathmatchstring, -1, TRUE);
-
-    if(find >= 0)
+    if (datahandle == NULL)
     {
-      LOGPRINT(L"renderdocshim: Hooking into '");
-      LOGPRINT(exepath);
-      LOGPRINT(L"', based on '");
-      LOGPRINT(data->pathmatchstring);
-      LOGPRINT(L"'\n");
+        LOGPRINT(L"renderdocshim: can't open global data\n");
+        return;
+    }
 
-      HMODULE mod = LoadLibraryW(data->rdocpath);
+    data = (ShimData *)MapViewOfFile(datahandle, FILE_MAP_READ, 0, 0, sizeof(ShimData));
 
-      if(mod)
-      {
-        pINTERNAL_SetCaptureOptions setopts =
-            (pINTERNAL_SetCaptureOptions)GetProcAddress(mod, "INTERNAL_SetCaptureOptions");
-        pINTERNAL_SetLogFile setlogfile =
-            (pINTERNAL_SetLogFile)GetProcAddress(mod, "INTERNAL_SetLogFile");
-        pINTERNAL_SetDebugLogFile setdebuglog =
-            (pINTERNAL_SetDebugLogFile)GetProcAddress(mod, "INTERNAL_SetDebugLogFile");
+    if (data == NULL)
+    {
+        CloseHandle(datahandle);
+        LOGPRINT(L"renderdocshim: can't map global data\n");
+        return;
+    }
 
-        if(setopts)
-          setopts((const CaptureOptions *)data->opts);
+    if (data->pathmatchstring[0] == 0 || data->pathmatchstring[1] == 0 ||
+        data->pathmatchstring[2] == 0 || data->pathmatchstring[3] == 0)
+    {
+        LOGPRINT(L"renderdocshim: invalid pathmatchstring: '");
+        LOGPRINT(data->pathmatchstring);
+        LOGPRINT(L"'\n");
 
-        if(setlogfile && data->capfile[0])
-          setlogfile(data->capfile);
+        UnmapViewOfFile(data);
+        CloseHandle(datahandle);
+        return;
+    }
 
-        if(setdebuglog && data->debuglog[0])
-          setdebuglog(data->debuglog);
-      }
+    const int exepathLen = 1024;
+
+    // Better memory allocation
+    wchar_t *exepath = (wchar_t *)HeapAlloc(
+        GetProcessHeap(),
+        HEAP_ZERO_MEMORY,
+        exepathLen * sizeof(wchar_t));
+
+    if (exepath)
+    {
+        // More reliable process path retrieval
+        DWORD size = exepathLen;
+        QueryFullProcessImageNameW(GetCurrentProcess(), 0, exepath, &size);
+
+        // Simpler case-insensitive substring search
+        if (StrStrIW(exepath, data->pathmatchstring))
+        {
+            LOGPRINT(L"renderdocshim: Hooking into '");
+            LOGPRINT(exepath);
+            LOGPRINT(L"', based on '");
+            LOGPRINT(data->pathmatchstring);
+            LOGPRINT(L"'\n");
+
+            // Safer DLL loading
+            HMODULE mod = LoadLibraryExW(
+                data->rdocpath,
+                NULL,
+                LOAD_WITH_ALTERED_SEARCH_PATH);
+
+            if (mod)
+            {
+                pINTERNAL_SetCaptureOptions setopts =
+                    (pINTERNAL_SetCaptureOptions)GetProcAddress(mod, "INTERNAL_SetCaptureOptions");
+
+                pINTERNAL_SetLogFile setlogfile =
+                    (pINTERNAL_SetLogFile)GetProcAddress(mod, "INTERNAL_SetLogFile");
+
+                pINTERNAL_SetDebugLogFile setdebuglog =
+                    (pINTERNAL_SetDebugLogFile)GetProcAddress(mod, "INTERNAL_SetDebugLogFile");
+
+                if (setopts)
+                    setopts((const CaptureOptions *)data->opts);
+
+                if (setlogfile && data->capfile[0])
+                    setlogfile(data->capfile);
+
+                if (setdebuglog && data->debuglog[0])
+                    setdebuglog(data->debuglog);
+            }
+        }
+        else
+        {
+            LOGPRINT(L"renderdocshim: NOT Hooking into '");
+            LOGPRINT(exepath);
+            LOGPRINT(L"', based on '");
+            LOGPRINT(data->pathmatchstring);
+            LOGPRINT(L"'\n");
+        }
+
+        HeapFree(GetProcessHeap(), 0, exepath);
     }
     else
     {
-      LOGPRINT(L"renderdocshim: NOT Hooking into '");
-      LOGPRINT(exepath);
-      LOGPRINT(L"', based on '");
-      LOGPRINT(data->pathmatchstring);
-      LOGPRINT(L"'\n");
+        LOGPRINT(L"renderdocshim: Failed to allocate exepath\n");
     }
 
-    VirtualFree(exepath, 0, MEM_RELEASE);
-  }
-  else
-  {
-    LOGPRINT(L"renderdocshim: Failed to allocate exepath\n");
-  }
-
-  UnmapViewOfFile(data);
-  CloseHandle(datahandle);
+    UnmapViewOfFile(data);
+    CloseHandle(datahandle);
 }
 
 DWORD WINAPI CheckHookThread(LPVOID param)
