@@ -36,7 +36,7 @@ For the purposes of this example we use the API abstraction :py:class:`~renderdo
 	cb = state.GetConstantBlock(rd.ShaderStage.Pixel, 0, 0)
 
     print("Pixel shader:")
-    print(controller.DisassembleShader(pipe, ps.reflection, target))
+    print(controller.DisassembleShader(pipe, ps, target))
 
 Now we want to display the constants bound to this shader. Shader bindings is an area that diverges quite a lot between the APIs, and RenderDoc's abstraction over this is detailed in :ref:`more detail <descriptor-abstraction>`. For now, we'll simply select the first constant buffer in this shader and fetch the constants for it with :py:meth:`~renderdoc.ReplayController.GetCBufferVariableContents`.
 
