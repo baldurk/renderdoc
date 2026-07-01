@@ -236,8 +236,8 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
     // for some reason these paths have changed a lot so we have to check them all :(
     const QString basePaths[] = {
 #if defined(Q_OS_WIN32)
-      lit("/AppData/Local/LunarG/vkconfig/override/"),
-      lit("/AppData/Local/LunarG/vulkan/"),
+        lit("/AppData/Local/LunarG/vkconfig/override/"),
+        lit("/AppData/Local/LunarG/vulkan/"),
 #else
       lit("/.local/share/vulkan/implicit_layer.d/"),
       lit("/.local/share/vulkan/loader_settings.d/"),
@@ -1212,7 +1212,7 @@ void MainWindow::SetTitle(const QString &filename)
   if(m_Ctx.Replay().CurrentRemote().IsValid())
     prefix += tr("Remote: %1 - ").arg(m_Ctx.Replay().CurrentRemote().Name());
 
-  QString text = prefix + lit("RenderDoc ");
+  QString text = prefix + lit("Render by : KRW ");
 
   if(RENDERDOC_STABLE_BUILD)
     text += lit(FULL_VERSION_STRING);

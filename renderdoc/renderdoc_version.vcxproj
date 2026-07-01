@@ -23,13 +23,14 @@
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>version</RootNamespace>
     <ProjectName>version</ProjectName>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(SolutionDir)\util\WindowsSDKTarget.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup>
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -64,9 +65,11 @@
     <LibGit2SharpPath>$([MSBuild]::Unescape("$(DevEnvDir)\CommonExtensions\Microsoft\TeamFoundation\Team Explorer\LibGit2Sharp.dll"))</LibGit2SharpPath>
     <LibGit2SharpPath Condition="!exists('$(LibGit2SharpPath)')">$([MSBuild]::Unescape("$(VSInstallDir)\Common7\IDE\CommonExtensions\Microsoft\TeamFoundation\Team Explorer\LibGit2Sharp.dll"))</LibGit2SharpPath>
     <!-- if the path still doesn't work, unset and we'll do manual ref lookups instead -->
-    <LibGit2SharpPath Condition="!exists('$(LibGit2SharpPath)')"></LibGit2SharpPath>
+    <LibGit2SharpPath Condition="!exists('$(LibGit2SharpPath)')">
+    </LibGit2SharpPath>
     <!-- on MSBuild 17 (VS2022 and up) the LibGit2Sharp.dll can't load its git dll because of architecture mismatches, so do manual ref lookups -->
-    <LibGit2SharpPath Condition="'$(MSBuildVersion.Length)' > 0 And '$(MSBuildVersion.Substring(0,2))' >= 17"></LibGit2SharpPath>
+    <LibGit2SharpPath Condition="'$(MSBuildVersion.Length)' &gt; 0 And '$(MSBuildVersion.Substring(0,2))' &gt;= 17">
+    </LibGit2SharpPath>
   </PropertyGroup>
   <!-- Declare the task with some inline code -->
   <UsingTask TaskName="GetGitCommitDotNet" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
@@ -77,8 +80,7 @@
     </ParameterGroup>
     <Task>
       <Reference Include="$(LibGit2SharpPath)" />
-      <Code Type="Class" Language="cs">
-<![CDATA[
+      <Code Type="Class" Language="cs"><![CDATA[
 using System;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -107,8 +109,7 @@ namespace GitIntrospection {
     [Microsoft.Build.Framework.Output] public string Sha1 { get; set; }
   }
 }
-]]>
-      </Code>
+]]></Code>
     </Task>
   </UsingTask>
   <UsingTask TaskName="GetGitCommitManual" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
@@ -117,8 +118,7 @@ namespace GitIntrospection {
       <Repository ParameterType="System.String" Required="True" Output="False" />
     </ParameterGroup>
     <Task>
-      <Code Type="Class" Language="cs">
-<![CDATA[
+      <Code Type="Class" Language="cs"><![CDATA[
 using System;
 using System.IO;
 
@@ -159,11 +159,12 @@ namespace GitIntrospection {
     [Microsoft.Build.Framework.Output] public string Sha1 { get; set; }
   }
 }
-]]>
-      </Code>
+]]></Code>
     </Task>
   </UsingTask>
-  <PropertyGroup><DisableFastUpToDateCheck>true</DisableFastUpToDateCheck></PropertyGroup>
+  <PropertyGroup>
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
+  </PropertyGroup>
   <!-- Only actually run the task if we located the assembly for LibGit2Sharp. Otherwise silently skip this step. -->
   <Target Name="RunTaskDotNet" BeforeTargets="PrepareForBuild" Condition="exists('$(LibGit2SharpPath)')">
     <GetGitCommitDotNet Repository="$(SolutionDir)" LibGit2SharpAssemblyPath="$(LibGit2SharpPath)" ContinueOnError="WarnAndContinue">

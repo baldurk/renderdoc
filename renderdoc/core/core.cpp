@@ -629,12 +629,138 @@ RenderDoc::RenderDoc()
   ClearTrackedFiles();
 }
 
+// ��������Ϊʧȥ��ע�������ⲿ������DLL �����ڴ������趨�������� �·�������һ���µ� Initialise()
+// ����������ԭ���ĳ�ʼ���߼���ǿ���趨������������������־�����
+//void RenderDoc::Initialise()
+//{
+//  Callstack::Init();
+//
+//  Network::Init();
+//
+//  Threading::Init();
+//
+//#if !RENDERDOC_STABLE_BUILD
+//  Superluminal::Init();
+//#endif
+//
+//  m_RemoteIdent = 0;
+//  m_RemoteThread = 0;
+//
+//  m_TimeBase = 0;
+//  m_TimeFrequency = 1.0;
+//
+//  if(!IsReplayApp())
+//  {
+//    m_TimeBase = Timing::GetTick();
+//    m_TimeFrequency = Timing::GetTickFrequency() / 1000.0;
+//
+//    Process::ApplyEnvironmentModification();
+//
+//    uint32_t port = RenderDoc_FirstTargetControlPort;
+//
+//    Network::Socket *sock = Network::CreateServerSocket("0.0.0.0", port & 0xffff, 4);
+//
+//    while(sock == NULL)
+//    {
+//      port++;
+//      if(port > RenderDoc_LastTargetControlPort)
+//      {
+//        m_RemoteIdent = 0;
+//        break;
+//      }
+//
+//      sock = Network::CreateServerSocket("0.0.0.0", port & 0xffff, 4);
+//    }
+//
+//    if(sock)
+//    {
+//      m_RemoteIdent = port;
+//
+//      m_TargetControlThreadShutdown = false;
+//      m_RemoteThread = Threading::CreateThread([sock]() { TargetControlServerThread(sock); });
+//
+//      RDCLOG("Listening for target control on %u", port);
+//    }
+//    else
+//    {
+//      RDCWARN("Couldn't open socket for target control");
+//    }
+//  }
+//
+//  // set default capture log - useful for when hooks aren't setup
+//  // through the UI (and a log file isn't set manually)
+//  {
+//    rdcstr capture_filename;
+//
+//    const rdcstr base = IsReplayApp() ? "RenderDoc" : "RenderDoc_app";
+//
+//    FileIO::GetDefaultFiles(base, capture_filename, m_LoggingFilename, m_Target);
+//
+//    if(m_CaptureFileTemplate.empty())
+//      SetCaptureFileTemplate(capture_filename);
+//
+//    RDCLOGFILE(m_LoggingFilename.c_str());
+//  }
+//
+//  const char *platform =
+//#if ENABLED(RDOC_WIN32)
+//      "Windows";
+//#elif ENABLED(RDOC_LINUX)
+//      "Linux";
+//#elif ENABLED(RDOC_ANDROID)
+//      "Android";
+//#elif ENABLED(RDOC_APPLE)
+//      "macOS";
+//#else
+//      "Unknown";
+//#endif
+//
+//  RDCLOG("RenderDoc v%s %s %s %s (%s) %s", MAJOR_MINOR_VERSION_STRING, platform,
+//         sizeof(uintptr_t) == sizeof(uint64_t) ? "64-bit" : "32-bit",
+//         ENABLED(RDOC_RELEASE) ? "Release" : "Development", GitVersionHash,
+//         IsReplayApp() ? "loaded in replay application" : "capturing application");
+//
+//#if defined(DISTRIBUTION_VERSION)
+//  RDCLOG("Packaged for %s (%s) - %s", DISTRIBUTION_NAME, DISTRIBUTION_VERSION, DISTRIBUTION_CONTACT);
+//#endif
+//
+//#if defined(RENDERDOC_HOOK_DLSYM)
+//  RDCWARN("dlsym() hooking enabled!");
+//#endif
+//
+//  if(!IsReplayApp())
+//  {
+//    if(m_RemoteIdent == 0)
+//      RDCWARN("Couldn't open socket for target control");
+//    else
+//      RDCDEBUG("Listening for target control on %u", m_RemoteIdent);
+//  }
+//
+//  Keyboard::Init();
+//
+//  m_FrameTimer.InitTimers();
+//
+//  m_ExHandler = NULL;
+//
+//  ClearTrackedFiles();
+//
+//  RecreateCrashHandler();
+//
+//  // begin printing to stdout/stderr after this point, earlier logging is debugging
+//  // cruft that we don't want cluttering output.
+//  // However we don't want to print in captured applications, since they may be outputting important
+//  // information to stdout/stderr and being piped around and processed!
+//  if(IsReplayApp())
+//    RDCLOGOUTPUT();
+//
+//  ProcessConfig();
+//}
+
+//------------------------------Start of new code------------------------------
 void RenderDoc::Initialise()
 {
   Callstack::Init();
-
   Network::Init();
-
   Threading::Init();
 
 #if !RENDERDOC_STABLE_BUILD
@@ -643,7 +769,6 @@ void RenderDoc::Initialise()
 
   m_RemoteIdent = 0;
   m_RemoteThread = 0;
-
   m_TimeBase = 0;
   m_TimeFrequency = 1.0;
 
@@ -654,42 +779,37 @@ void RenderDoc::Initialise()
 
     Process::ApplyEnvironmentModification();
 
+    // =========================================================================
+    // ��ħ���ص� 1����ǿ��Ӳ����ץ֡·�������
+    // ��Ϊ�ⲿע�����Ѿ��ر��˾�����޷�ͨ�� InjectFunctionCall ���Σ����Ա���������д��
+    // =========================================================================
+    m_CaptureFileTemplate = "D:\\MyCaptures\\GameFrame";    // ��ȷ�����ļ������ֶ�����
+
+    m_Options.allowVSync = true;
+    m_Options.allowFullscreen = true;
+    m_Options.apiValidation = false;    // �ر���֤�����ٱ�������
+    m_Options.captureAllCmdLists = true;
+    m_Options.hookIntoChildren = false;    // ����رգ���ֹ�ݹ�ע�뵼��ĳЩ�����������
+    m_Options.refAllResources = true;
+
+    // =========================================================================
+    // ��ħ���ص� 2�������׽������������TargetControlSocket��
+    // ԭ������ѭ�����Կ��� 38920-38927 �˿ڽ��м��������Ƿ�����ϵͳ������ɨ��ľ�̬������
+    // ����ֱ�������ⲿ���߼����� m_RemoteIdent ����Ϊ 0��
+    // =========================================================================
+    /* --- ԭ����������߼������� ---
     uint32_t port = RenderDoc_FirstTargetControlPort;
-
     Network::Socket *sock = Network::CreateServerSocket("0.0.0.0", port & 0xffff, 4);
+    ... (�˴�����ʡ��) ...
+    --- ���ν��� --- */
 
-    while(sock == NULL)
-    {
-      port++;
-      if(port > RenderDoc_LastTargetControlPort)
-      {
-        m_RemoteIdent = 0;
-        break;
-      }
-
-      sock = Network::CreateServerSocket("0.0.0.0", port & 0xffff, 4);
-    }
-
-    if(sock)
-    {
-      m_RemoteIdent = port;
-
-      m_TargetControlThreadShutdown = false;
-      m_RemoteThread = Threading::CreateThread([sock]() { TargetControlServerThread(sock); });
-
-      RDCLOG("Listening for target control on %u", port);
-    }
-    else
-    {
-      RDCWARN("Couldn't open socket for target control");
-    }
+    m_RemoteIdent = 0;    // ��ʽ����������Զ�̿��ƶ˿�
+    RDCLOG("Stealth Mode: Target control socket disabled to avoid detection.");
   }
 
-  // set default capture log - useful for when hooks aren't setup
-  // through the UI (and a log file isn't set manually)
+  // ����Ĭ��·�����ⲿ�ֱ���������������д����ģ�壬m_CaptureFileTemplate ����Ϊ�գ�
   {
     rdcstr capture_filename;
-
     const rdcstr base = IsReplayApp() ? "RenderDoc" : "RenderDoc_app";
 
     FileIO::GetDefaultFiles(base, capture_filename, m_LoggingFilename, m_Target);
@@ -697,62 +817,30 @@ void RenderDoc::Initialise()
     if(m_CaptureFileTemplate.empty())
       SetCaptureFileTemplate(capture_filename);
 
-    RDCLOGFILE(m_LoggingFilename.c_str());
+    // RDCLOGFILE(m_LoggingFilename.c_str()); // ��ѡ��ע�͵��Լ�����־�ļ�����
   }
 
-  const char *platform =
-#if ENABLED(RDOC_WIN32)
-      "Windows";
-#elif ENABLED(RDOC_LINUX)
-      "Linux";
-#elif ENABLED(RDOC_ANDROID)
-      "Android";
-#elif ENABLED(RDOC_APPLE)
-      "macOS";
-#else
-      "Unknown";
-#endif
-
-  RDCLOG("RenderDoc v%s %s %s %s (%s) %s", MAJOR_MINOR_VERSION_STRING, platform,
-         sizeof(uintptr_t) == sizeof(uint64_t) ? "64-bit" : "32-bit",
-         ENABLED(RDOC_RELEASE) ? "Release" : "Development", GitVersionHash,
-         IsReplayApp() ? "loaded in replay application" : "capturing application");
-
-#if defined(DISTRIBUTION_VERSION)
-  RDCLOG("Packaged for %s (%s) - %s", DISTRIBUTION_NAME, DISTRIBUTION_VERSION, DISTRIBUTION_CONTACT);
-#endif
-
-#if defined(RENDERDOC_HOOK_DLSYM)
-  RDCWARN("dlsym() hooking enabled!");
-#endif
+  // ��־����汾��Ϣ����������ȷ�� DLL �Ƿ�ɹ����أ�
+  RDCLOG("RenderDoc v%s Stealth-Build Initialised", MAJOR_MINOR_VERSION_STRING);
 
   if(!IsReplayApp())
   {
-    if(m_RemoteIdent == 0)
-      RDCWARN("Couldn't open socket for target control");
-    else
-      RDCDEBUG("Listening for target control on %u", m_RemoteIdent);
+    // ��Ȼ�����㿪�����������ǾͲ��پ��� socket ����
+    // if(m_RemoteIdent == 0) RDCWARN("Couldn't open socket for target control");
   }
 
   Keyboard::Init();
-
   m_FrameTimer.InitTimers();
-
   m_ExHandler = NULL;
-
   ClearTrackedFiles();
-
   RecreateCrashHandler();
 
-  // begin printing to stdout/stderr after this point, earlier logging is debugging
-  // cruft that we don't want cluttering output.
-  // However we don't want to print in captured applications, since they may be outputting important
-  // information to stdout/stderr and being piped around and processed!
   if(IsReplayApp())
     RDCLOGOUTPUT();
 
   ProcessConfig();
 }
+//--------------------------------End of new code------------------------------
 
 RenderDoc::~RenderDoc()
 {

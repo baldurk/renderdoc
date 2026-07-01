@@ -57,7 +57,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInstance, _In_
     w++;
   }
 
-  wcscat_s(curFile, 511, L"qrenderdoc.exe");
+  wcscat_s(curFile, 511, L"qrendertest.exe");
 
   wcscpy_s(paramsAlloc, len, curFile);
 

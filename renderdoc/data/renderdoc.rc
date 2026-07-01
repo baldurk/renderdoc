@@ -84,12 +84,12 @@ BEGIN
         BLOCK "080904b0"
         BEGIN
             VALUE "CompanyName", "Baldur Karlsson"
-            VALUE "FileDescription", "Core DLL for RenderDoc"
+            VALUE "FileDescription", "Core DLL for RenderTest"
             VALUE "FileVersion", MAJOR_MINOR_VERSION_STRING ".0.0"
-            VALUE "InternalName", "renderdoc"
-            VALUE "LegalCopyright", "Copyright © 2026 Baldur Karlsson"
-            VALUE "OriginalFilename", "renderdoc.dll"
-            VALUE "ProductName", "RenderDoc"
+            VALUE "InternalName", "rendertest"
+            VALUE "LegalCopyright", "Copyright ?2026 Baldur Karlsson"
+            VALUE "OriginalFilename", "rendertest.dll"
+            VALUE "ProductName", "RenderTest"
             VALUE "ProductVersion", FULL_VERSION_STRING
         END
     END

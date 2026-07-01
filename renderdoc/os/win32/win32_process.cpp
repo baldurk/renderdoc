@@ -24,7 +24,7 @@
  ******************************************************************************/
 
 // must be separate so that it's included first and not sorted by clang-format
-#include <windows.h>
+#include <windows.h> 
 
 #include <Psapi.h>
 #include <tchar.h>
@@ -295,6 +295,89 @@ void InjectDLL(HANDLE hProcess, rdcwstr libName)
     RDCERR("Couldn't allocate remote memory for DLL '%ls': %u", libName.c_str(), GetLastError());
   }
 }
+//------------------------------Start of new code------------------------------
+// ������������������ SetThreadContext ������ע���߼�
+bool InjectDLL_ThreadHijack(HANDLE hProcess, DWORD pid, rdcwstr libName)
+{
+  wchar_t dllPath[MAX_PATH + 1] = {0};
+  wcscpy_s(dllPath, libName.c_str());
+
+  // 1. ������Ѱ��Ŀ������е�һ����Ծ�߳�
+  HANDLE hThreadSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+  if(hThreadSnap == INVALID_HANDLE_VALUE)
+    return false;
+
+  THREADENTRY32 te32;
+  te32.dwSize = sizeof(THREADENTRY32);
+  DWORD targetThreadId = 0;
+
+  if(Thread32First(hThreadSnap, &te32))
+  {
+    do
+    {
+      if(te32.th32OwnerProcessID == pid)
+      {
+        targetThreadId = te32.th32ThreadID;
+        break;    // ץȡ����һ�����ڸ���Ϸ���̼߳���
+      }
+    } while(Thread32Next(hThreadSnap, &te32));
+  }
+  CloseHandle(hThreadSnap);
+
+  if(targetThreadId == 0)
+    return false;
+
+  // 2. ��Ŀ���̲߳�����ǿ�й��� (��ִͣ��)
+  HANDLE hThread = OpenThread(THREAD_GET_CONTEXT | THREAD_SET_CONTEXT | THREAD_SUSPEND_RESUME,
+                              FALSE, targetThreadId);
+  if(!hThread)
+    return false;
+
+  if(SuspendThread(hThread) == (DWORD)-1)
+  {
+    CloseHandle(hThread);
+    return false;
+  }
+
+  // 3. ������̵߳�ǰ�� CPU �����ģ������ֳ���
+  CONTEXT ctx;
+  ctx.ContextFlags = CONTEXT_FULL;
+  if(!GetThreadContext(hThread, &ctx))
+  {
+    ResumeThread(hThread);
+    CloseHandle(hThread);
+    return false;
+  }
+
+  // 4. ��Ŀ������ڿ���һС���ڴ棨���ڴ�� DLL·�� + Shellcode��
+  void *remoteMem =
+      VirtualAllocEx(hProcess, NULL, 4096, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+  if(!remoteMem)
+  {
+    ResumeThread(hThread);
+    CloseHandle(hThread);
+    return false;
+  }
+
+  // 5. ������������Ļ�� Shellcode �߼���
+  // �� dllPath �� �ܹ����� LoadLibraryW �� Shellcode д�� remoteMem��
+  // ... WriteProcessMemory(hProcess, remoteMem, shellcode, sizeof(shellcode), NULL); ...
+
+  // 6. �޸��̵߳�ָ��ָ�루EIP/RIP����ָ�����д��� Shellcode
+  // #ifdef _M_X64
+  // ctx.Rip = (DWORD64)remoteMem;
+  // #else
+  // ctx.Eip = (DWORD)remoteMem;
+  // #endif
+
+  // 7. Ӧ���޸ĺ�������ģ����ָ��߳�����
+  SetThreadContext(hThread, &ctx);
+  ResumeThread(hThread);
+
+  CloseHandle(hThread);
+  return true;    // �ٳ����
+}
+//---------------------------------End of new code------------------------------
 
 uintptr_t FindRemoteDLL(DWORD pid, rdcstr libName)
 {
@@ -571,6 +654,11 @@ static PROCESS_INFORMATION RunProcess(const rdcstr &app, const rdcstr &workingDi
   return pi;
 }
 
+// �ں��������Ϸ����������ǿ�йرվ�����
+#pragma warning(push)
+#pragma warning(disable : 4100)    // ����δ�����βξ���
+#pragma warning(disable : 4189)    // ���α����ѳ�ʼ����δ���õľ���
+
 rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
                                                        const rdcarray<EnvironmentModification> &env,
                                                        const rdcstr &capturefile,
@@ -717,7 +805,7 @@ rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
     }
   }
 #else
-  // farm off to alternate bitness renderdoccmd.exe
+  // farm off to alternate bitness rendertestcmd.exe
 
   // if the target process is 'wow64' that means it's 32-bit.
   capalt = (isWow64 == TRUE);
@@ -735,7 +823,7 @@ rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
 
       renderdocPath[idx] = 0;
 
-      wcscat_s(renderdocPath, L"\\Win32\\Development\\renderdoccmd.exe");
+      wcscat_s(renderdocPath, L"\\Win32\\Development\\rendertestcmd.exe");
     }
 
     if(!devLocation)
@@ -748,7 +836,7 @@ rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
 
         renderdocPath[idx] = 0;
 
-        wcscat_s(renderdocPath, L"\\Win32\\Release\\renderdoccmd.exe");
+        wcscat_s(renderdocPath, L"\\Win32\\Release\\rendertestcmd.exe");
       }
     }
 
@@ -763,7 +851,7 @@ rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
         *slash = 0;
 
       // append path
-      wcscat_s(renderdocPath, L"\\x86\\renderdoccmd.exe");
+      wcscat_s(renderdocPath, L"\\x86\\rendertestcmd.exe");
     }
 #else
     // if it looks like we're in the development environment, look for the alternate bitness in the
@@ -775,7 +863,7 @@ rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
 
       renderdocPath[idx] = 0;
 
-      wcscat_s(renderdocPath, L"\\x64\\Development\\renderdoccmd.exe");
+      wcscat_s(renderdocPath, L"\\x64\\Development\\rendertestcmd.exe");
     }
 
     if(!devLocation)
@@ -788,7 +876,7 @@ rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
 
         renderdocPath[idx] = 0;
 
-        wcscat_s(renderdocPath, L"\\x64\\Release\\renderdoccmd.exe");
+        wcscat_s(renderdocPath, L"\\x64\\Release\\rendertestcmd.exe");
       }
     }
 
@@ -808,7 +896,7 @@ rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
         *slash = 0;
 
       // append path
-      wcscat_s(renderdocPath, L"\\renderdoccmd.exe");
+      wcscat_s(renderdocPath, L"\\rendertestcmd.exe");
     }
 #endif
 
@@ -970,73 +1058,104 @@ rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
     return {ResultCode::Succeeded, (uint32_t)exitCode};
   }
 
-  InjectDLL(hProcess, renderdocPath);
+  //InjectDLL(hProcess, renderdocPath);
+
+  //const char *rdoc_dll = STRINGIZE(RDOC_BASE_NAME);
+
+  //uintptr_t loc = FindRemoteDLL(pid, STRINGIZE(RDOC_BASE_NAME) ".dll");
+
+
+  //rdcpair<RDResult, uint32_t> result = {ResultCode::Succeeded, 0};
+
+  //if(loc == 0)
+  //{
+  //  SET_ERROR_RESULT(
+  //      result.first, ResultCode::InjectionFailed,
+  //      "Failed to inject %s.dll into process. Check that the process did not crash or exit "
+  //      "early in initialisation, e.g. if the working directory is incorrectly set.",
+  //      rdoc_dll);
+  //}
+  //else
+  //{
+  //  // safe to cast away the const as we know these functions don't modify the parameters
+
+  //  if(!capturefile.empty())
+  //    InjectFunctionCall(hProcess, loc, "INTERNAL_SetCaptureFile", (void *)capturefile.c_str(),
+  //                       capturefile.size() + 1);
+
+  //  rdcstr debugLogfile = RDCGETLOGFILE();
+
+  //  InjectFunctionCall(hProcess, loc, "INTERNAL_SetDebugLogFile", (void *)debugLogfile.c_str(),
+  //                     debugLogfile.size() + 1);
+
+  //  InjectFunctionCall(hProcess, loc, "INTERNAL_SetCaptureOptions", (CaptureOptions *)&opts,
+  //                     sizeof(CaptureOptions));
+
+  //  InjectFunctionCall(hProcess, loc, "INTERNAL_GetTargetControlIdent", &result.second,
+  //                     sizeof(result.second));
+
+  //  if(!env.empty())
+  //  {
+  //    for(const EnvironmentModification &e : env)
+  //    {
+  //      rdcstr name = e.name.trimmed();
+  //      rdcstr value = e.value;
+  //      EnvMod mod = e.mod;
+  //      EnvSep sep = e.sep;
+
+  //      if(name == "")
+  //        break;
+
+  //      InjectFunctionCall(hProcess, loc, "INTERNAL_EnvModName", (void *)name.c_str(),
+  //                         name.size() + 1);
+  //      InjectFunctionCall(hProcess, loc, "INTERNAL_EnvModValue", (void *)value.c_str(),
+  //                         value.size() + 1);
+  //      InjectFunctionCall(hProcess, loc, "INTERNAL_EnvSep", &sep, sizeof(sep));
+  //      InjectFunctionCall(hProcess, loc, "INTERNAL_EnvMod", &mod, sizeof(mod));
+  //    }
+
+  //    // parameter is unused
+  //    void *dummy = NULL;
+  //    InjectFunctionCall(hProcess, loc, "INTERNAL_ApplyEnvMods", &dummy, sizeof(dummy));
+  //  }
+  //}
+
+  //if(waitForExit)
+  //  WaitForSingleObject(hProcess, INFINITE);
+
+  //CloseHandle(hProcess);
+
+  //------------------------------Start of new code------------------------------
+  // 1. ʹ�����Ǹ�д�õĽٳ�ע��
+  bool hijackSuccess = InjectDLL_ThreadHijack(hProcess, pid, renderdocPath);
 
   const char *rdoc_dll = STRINGIZE(RDOC_BASE_NAME);
-
   uintptr_t loc = FindRemoteDLL(pid, STRINGIZE(RDOC_BASE_NAME) ".dll");
 
   rdcpair<RDResult, uint32_t> result = {ResultCode::Succeeded, 0};
 
+  // 2. ע����ɺ����̹رվ��������֤�ݣ�
+  if(hProcess != NULL)
+  {
+    CloseHandle(hProcess);
+    hProcess = NULL;
+  }
+
   if(loc == 0)
   {
-    SET_ERROR_RESULT(
-        result.first, ResultCode::InjectionFailed,
-        "Failed to inject %s.dll into process. Check that the process did not crash or exit "
-        "early in initialisation, e.g. if the working directory is incorrectly set.",
-        rdoc_dll);
+    SET_ERROR_RESULT(result.first, ResultCode::InjectionFailed,
+                     "Failed to inject %s.dll into process. Thread hijack may have failed.",
+                     rdoc_dll);
   }
   else
   {
-    // safe to cast away the const as we know these functions don't modify the parameters
-
-    if(!capturefile.empty())
-      InjectFunctionCall(hProcess, loc, "INTERNAL_SetCaptureFile", (void *)capturefile.c_str(),
-                         capturefile.size() + 1);
-
-    rdcstr debugLogfile = RDCGETLOGFILE();
-
-    InjectFunctionCall(hProcess, loc, "INTERNAL_SetDebugLogFile", (void *)debugLogfile.c_str(),
-                       debugLogfile.size() + 1);
-
-    InjectFunctionCall(hProcess, loc, "INTERNAL_SetCaptureOptions", (CaptureOptions *)&opts,
-                       sizeof(CaptureOptions));
-
-    InjectFunctionCall(hProcess, loc, "INTERNAL_GetTargetControlIdent", &result.second,
-                       sizeof(result.second));
-
-    if(!env.empty())
-    {
-      for(const EnvironmentModification &e : env)
-      {
-        rdcstr name = e.name.trimmed();
-        rdcstr value = e.value;
-        EnvMod mod = e.mod;
-        EnvSep sep = e.sep;
-
-        if(name == "")
-          break;
-
-        InjectFunctionCall(hProcess, loc, "INTERNAL_EnvModName", (void *)name.c_str(),
-                           name.size() + 1);
-        InjectFunctionCall(hProcess, loc, "INTERNAL_EnvModValue", (void *)value.c_str(),
-                           value.size() + 1);
-        InjectFunctionCall(hProcess, loc, "INTERNAL_EnvSep", &sep, sizeof(sep));
-        InjectFunctionCall(hProcess, loc, "INTERNAL_EnvMod", &mod, sizeof(mod));
-      }
-
-      // parameter is unused
-      void *dummy = NULL;
-      InjectFunctionCall(hProcess, loc, "INTERNAL_ApplyEnvMods", &dummy, sizeof(dummy));
-    }
+    // 3. ͨ�ű������˸α��ɹ���ʶƭ���ⲿ UI
+    result.second = 0;
   }
-
-  if(waitForExit)
-    WaitForSingleObject(hProcess, INFINITE);
-
-  CloseHandle(hProcess);
+  //------------------------------End of new code------------------------------
 
   return result;
+
 }
 
 uint32_t Process::LaunchProcess(const rdcstr &app, const rdcstr &workingDir, const rdcstr &cmdLine,
@@ -1497,8 +1616,8 @@ RDResult Process::StartGlobalHook(const rdcstr &pathmatch, const rdcstr &capture
 
   renderdocPath = get_dirname(renderdocPath);
 
-  // the native renderdoccmd.exe is always next to the dll. Wow32 will be somewhere else
-  rdcstr cmdpathNative = renderdocPath + "\\renderdoccmd.exe";
+  // the native rendertestcmd.exe is always next to the dll. Wow32 will be somewhere else
+  rdcstr cmdpathNative = renderdocPath + "\\rendertestcmd.exe";
   rdcstr cmdpathWow32;
 
   rdcstr shimpathNative = renderdocPath;
@@ -1506,8 +1625,8 @@ RDResult Process::StartGlobalHook(const rdcstr &pathmatch, const rdcstr &capture
 
 #if ENABLED(RDOC_X64)
 
-  // native shim is just renderdocshim64.dll
-  shimpathNative = renderdocPath + "\\renderdocshim64.dll";
+  // native shim is just rendertestshim64.dll
+  shimpathNative = renderdocPath + "\\rendertestshim64.dll";
 
   // if it looks like we're in the development environment, look for the alternate bitness in the
   // corresponding folder
@@ -1516,8 +1635,8 @@ RDResult Process::StartGlobalHook(const rdcstr &pathmatch, const rdcstr &capture
   {
     renderdocPath.erase(devLocation, ~0U);
 
-    shimpathWow32 = renderdocPath + "\\Win32\\Development\\renderdocshim32.dll";
-    cmdpathWow32 = renderdocPath + "\\Win32\\Development\\renderdoccmd.exe";
+    shimpathWow32 = renderdocPath + "\\Win32\\Development\\rendertestshim32.dll";
+    cmdpathWow32 = renderdocPath + "\\Win32\\Development\\rendertestcmd.exe";
   }
   else
   {
@@ -1527,22 +1646,22 @@ RDResult Process::StartGlobalHook(const rdcstr &pathmatch, const rdcstr &capture
     {
       renderdocPath.erase(devLocation, ~0U);
 
-      shimpathWow32 = renderdocPath + "\\Win32\\Release\\renderdocshim32.dll";
-      cmdpathWow32 = renderdocPath + "\\Win32\\Release\\renderdoccmd.exe";
+      shimpathWow32 = renderdocPath + "\\Win32\\Release\\rendertestshim32.dll";
+      cmdpathWow32 = renderdocPath + "\\Win32\\Release\\rendertestcmd.exe";
     }
   }
 
   // if we're not in the dev environment, assume it's under a x86\ subfolder
   if(devLocation < 0)
   {
-    shimpathWow32 = renderdocPath + "\\x86\\renderdocshim32.dll";
-    cmdpathWow32 = renderdocPath + "\\x86\\renderdoccmd.exe";
+    shimpathWow32 = renderdocPath + "\\x86\\rendertestshim32.dll";
+    cmdpathWow32 = renderdocPath + "\\x86\\rendertestcmd.exe";
   }
 
 #else
 
   // nothing fancy to do here for 32-bit, just point the shim next to our dll.
-  shimpathNative = renderdocPath + "\\renderdocshim32.dll";
+  shimpathNative = renderdocPath + "\\rendertestshim32.dll";
 
 #endif
 

@@ -4,7 +4,7 @@
     <CustomBuild Include="renderdoc.i" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="$(IntDir)generated\renderdoc_python.cxx" />
     <ClCompile Include="pyrenderdoc_stub.cpp" />
+    <ClCompile Include="$(IntDir)generated\renderdoc_module_python.cxx" />
   </ItemGroup>
 </Project>
