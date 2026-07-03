@@ -1263,8 +1263,21 @@ void LiveCapture::selfClose()
 
 void LiveCapture::connectionThreadEntry()
 {
-  ITargetControl *conn =
-      RENDERDOC_CreateTargetControl(m_Hostname, m_RemoteIdent, GetSystemUsername(), true);
+  ITargetControl *conn=nullptr;
+  //Number of retries
+  const int RETRY_NUM = 5;
+  
+  for(int i=0;i<RETRY_NUM;i++){
+    conn=RENDERDOC_CreateTargetControl(m_Hostname, m_RemoteIdent, GetSystemUsername(), true);
+
+    //If it had been successful
+    if(conn!=nullptr&&conn->Connected()){
+      break;      
+    }
+    //Wait a moment before retrying
+    QThread::msleep(100);
+  }
+
   m_Connected.release();
 
   if(!conn || !conn->Connected())
