@@ -3705,6 +3705,13 @@ void VulkanReplay::PrepareStateForPatchedShader(
 
   for(uint32_t i = 0; i < NumShaderStages; i++)
   {
+    // only recreate the shader objects the event actually executes: the compute slot for a
+    // dispatch, the graphics stages for a draw. Shader object binds persist across pipeline
+    // binds, so foreign-pipe slots can still hold objects from earlier commands that this event
+    // never runs.
+    if(compute != (ShaderStage(i) == ShaderStage::Compute))
+      continue;
+
     ResourceId shadId = modifiedstate.shaderObjects[i];
     if(shadId == ResourceId())
       continue;

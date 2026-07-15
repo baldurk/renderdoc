@@ -1770,6 +1770,11 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
     int idx = StageIndex(stage);
 
+    // the bound pipeline may not cover this stage - e.g. a graphics pipeline lacking a stage
+    // that a later vkCmdBindShadersEXT supplies. With no reflection there is nothing to annotate.
+    if(!pipeInfo.shaders[idx].refl || !pipeInfo.shaders[idx].patchData)
+      return false;
+
     modSpirv = origSpirv;
 
     static const rdcstr filename[NumShaderStages] = {
