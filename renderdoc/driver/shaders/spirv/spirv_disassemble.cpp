@@ -286,8 +286,12 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
   // stack of structured CFG constructs
   rdcarray<StructuredCFG> cfgStack;
 
+  std::map<Id, size_t> escapeHatches;
+
   // set of labels that must be printed because we have gotos for them
   std::set<Id> printLabels;
+
+  uint32_t loop_continue = 0;
 
   Id currentBlock;
 
@@ -695,7 +699,9 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
         {
           ret += "}\n\n";
           lineNum += 2;
-          indent.resize(indent.size() - 2);
+          // completely reset indent, just in case something went wrong in a previous function and
+          // it didn't reset itself
+          indent.clear();
           continue;
         }
         // indent around control flow
@@ -738,6 +744,22 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
             // selector and default are common beteen 32-bit and 64-bit versions of OpSwitch
             Id selector = switch32.selector;
             cfg.defaultTarget = switch32.def;
+
+            // a heuristic - ignore slang's dummy switch(0) as they are often not needed
+            if(constants.find(selector) != constants.end() &&
+               specConstants.find(selector) == specConstants.end())
+            {
+              int32_t val = EvaluateConstant(selector, {}).value.s32v[0];
+
+              if(val == 0 && switch32.targets.empty())
+              {
+                // we might see a goto to this, if this is an inlined function with a return that
+                // needs to jump over several ifs (effectively). If we print this label, then need
+                // to truncate the cfgs to close the ifs
+                escapeHatches[cfg.mergeTarget] = cfgStack.size();
+                continue;
+              }
+            }
 
             const DataType &type = dataTypes[idTypes[selector]];
             RDCASSERT(type.type == DataType::ScalarType);
@@ -786,6 +808,20 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
             // next opcode *must* be a label because this is the end of a block
             RDCASSERTEQUAL(nextit.opcode(), Op::Label);
             OpLabel decodedlabel(nextit);
+
+            // if the next label was the merge target that implies that we will eventually go from
+            // that flow into the other case, not a strict if/else but an if() ...
+            // For our purposes use the other label as merge target since that's when we will clean up the if()
+            if(decodedbranch.trueLabel == decodedlabel.result &&
+               decodedbranch.trueLabel == cfg.mergeTarget)
+            {
+              cfg.mergeTarget = decodedbranch.falseLabel;
+            }
+            else if(decodedbranch.falseLabel == decodedlabel.result &&
+                    decodedbranch.falseLabel == cfg.mergeTarget)
+            {
+              cfg.mergeTarget = decodedbranch.trueLabel;
+            }
 
             if(decodedbranch.trueLabel == decodedlabel.result ||
                decodedbranch.falseLabel == decodedlabel.result)
@@ -986,6 +1022,24 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
           // print the label if we decided it was needed
           if(printLabels.find(decoded.result) != printLabels.end())
           {
+            auto escapeIt = escapeHatches.find(decoded.result);
+            if(escapeIt != escapeHatches.end())
+            {
+              while(cfgStack.size() > escapeIt->second)
+              {
+                indent.resize(indent.size() - 2);
+
+                if(cfgStack.back().type == StructuredCFG::Switch)
+                  indent.resize(indent.size() - 2);
+
+                ret += indent;
+                ret += "} // escape hatch\n";
+                lineNum++;
+
+                cfgStack.pop_back();
+              }
+            }
+
             ret += idName(decoded.result) + ":\n";
             lineNum++;
           }
@@ -1075,9 +1129,9 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
           if(decodedlabelId == decoded.targetLabel)
           {
             // however if we're in a switch we might want to print a clarifying fallthrough comment
-            // or end-of-case break
+            // or end-of-case break, and in a loop we could need a break
 
-            if(!cfgStack.empty() && cfgStack.back().type == StructuredCFG::Switch)
+            if(!cfgStack.empty() && cfgStack.back().type != StructuredCFG::If)
             {
               // add a break even for the final branch to the merge block
               if(cfgStack.back().mergeTarget == decoded.targetLabel)
@@ -1086,7 +1140,10 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
                 lineNum++;
                 continue;
               }
+            }
 
+            if(!cfgStack.empty() && cfgStack.back().type == StructuredCFG::Switch)
+            {
               // if we're falling through to the next case, print a comment
               for(const SwitchPairU64LiteralId &caseTarget : cfgStack.back().caseTargets)
               {
@@ -1137,13 +1194,22 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
             continue;
           }
 
-          // if we're in a loop, branches to the continue target are printed as 'continue'
+          // if we're in a loop, branches to the header target are printed as 'continue' - notably
+          // branches to the continue block are _not_ because they may contain the increment code
           if(lastLoopSwitch && lastLoopSwitch->type == StructuredCFG::Loop &&
-             lastLoopSwitch->continueTarget == decoded.targetLabel)
+             lastLoopSwitch->headerBlock == decoded.targetLabel)
           {
             ret += indent + "continue;\n";
             lineNum++;
             continue;
+          }
+
+          if(lastLoopSwitch && lastLoopSwitch->type == StructuredCFG::Loop &&
+             lastLoopSwitch->continueTarget == decoded.targetLabel)
+          {
+            if(dynamicNames.find(decoded.targetLabel) == dynamicNames.end())
+              dynamicNames[decoded.targetLabel] =
+                  StringFormat::Fmt("loop_continue%u", ++loop_continue);
           }
 
           // if we're in a switch and we're about to print a goto, see if it's a case label and
@@ -1686,6 +1752,40 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint,
                 ret += args;
               }
 
+              ret += ")";
+            }
+            else if(dbg.inst == ShaderDbg::Scope)
+            {
+              ret += indent;
+              ret += "// DebugScope(";
+
+              OpShaderDbg scope(GetID(dbg.arg<Id>(0)));
+
+              rdcstr line;
+
+              if(scope.inst == ShaderDbg::Function)
+                line = idName(scope.arg<Id>(3));
+              else if(scope.inst == ShaderDbg::LexicalBlock)
+                line = idName(scope.arg<Id>(1));
+
+              while(scope.inst != ShaderDbg::Function && scope.arg<Id>(3) != Id())
+                scope = OpShaderDbg(GetID(scope.arg<Id>(3)));
+
+              if(scope.inst == ShaderDbg::Function)
+              {
+                ret += idName(scope.arg<Id>(0));
+                ret += ":";
+                ret += line;
+              }
+              else
+              {
+                ret += "<unknown_function>";
+                ret += ":";
+                ret += line;
+              }
+
+              if(dbg.params.size() >= 2)
+                ret += " (in-lined)";
               ret += ")";
             }
             else if(dbg.inst == ShaderDbg::Value)

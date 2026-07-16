@@ -2186,14 +2186,36 @@ void Debugger::FillCallstack(ThreadState &thread, ShaderDebugState &state) const
 
 void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo) const
 {
-  for(InstructionSourceInfo &i : instInfo)
+  const ScopeData *prevScope = NULL;
+  size_t prevScopeNumMappings = 0;
+
+  for(size_t i = 0; i < instInfo.size(); i++)
   {
-    size_t offs = instructionOffsets[i.instruction];
+    InstructionSourceInfo &inst = instInfo[i];
+
+    size_t offs = instructionOffsets[inst.instruction];
 
     const ScopeData *scope = GetScope(offs);
 
     if(!scope)
+    {
+      prevScope = NULL;
       continue;
+    }
+
+    // if we're in the same scope as the last instruction
+    if(scope == prevScope)
+    {
+      // and no new mappings are available in this instruction compared to last time
+      if(prevScopeNumMappings < scope->localMappings.size() &&
+         scope->localMappings[prevScopeNumMappings].instIndex > inst.instruction)
+      {
+        // we will get the same result - just copy.
+        // i must be > 0 here because prevScope is NULL on i = 0
+        inst.sourceVars = instInfo[i - 1].sourceVars;
+        continue;
+      }
+    }
 
     // track which mappings we've processed, so if the same variable has mappings in multiple scopes
     // we only pick the innermost.
@@ -2212,6 +2234,8 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo) co
       scope = scope->parent;
     }
 
+    prevScope = scope;
+
     // Iterate over the scopes downwards (parent->child)
     for(size_t s = 0; s < scopes.size(); ++s)
     {
@@ -2221,8 +2245,12 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo) co
         const LocalMapping &mapping = scope->localMappings[m];
 
         // if this mapping is past the current instruction, stop here.
-        if(mapping.instIndex > i.instruction)
+        if(mapping.instIndex > inst.instruction)
+        {
+          if(s == scopes.size() - 1)
+            prevScopeNumMappings = m;
           break;
+        }
 
         // see if this mapping is superceded by a later mapping in this scope for this instruction.
         // This is a bit inefficient but simple. The alternative would be to do record
@@ -2234,7 +2262,7 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo) co
           const LocalMapping &laterMapping = scope->localMappings[n];
 
           // if this mapping is past the current instruction, stop here.
-          if(laterMapping.instIndex > i.instruction)
+          if(laterMapping.instIndex > inst.instruction)
             break;
 
           // if this mapping will supercede and starts later
@@ -2478,7 +2506,8 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo) co
                 usage->children.resize(rows);
                 for(uint32_t x = 0; x < rows; x++)
                 {
-                  rdcstr suffix = StringFormat::Fmt(".%s", typeWalk->structMembers[x].first.c_str());
+                  rdcstr suffix = typeWalk->structMembers[x].first;
+                  suffix.insert(0, '.');
                   usage->children[x].debugVar = usage->debugVar;
                   usage->children[x].debugVarSuffix = usage->debugVarSuffix + suffix;
                   usage->children[x].name = usage->name + suffix;
@@ -2811,17 +2840,18 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo) co
           }
         }
       }
+      size_t baseSize = inst.sourceVars.size();
+      inst.sourceVars.resize(baseSize + sourceVarNodes.size());
       for(size_t x = 0; x < sourceVarNodes.size(); ++x)
       {
         const DebugVarNode *n = sourceVarNodes[x];
-        SourceVariableMapping sourceVar;
+        SourceVariableMapping &sourceVar = inst.sourceVars[baseSize + x];
         sourceVar.name = n->name;
         sourceVar.type = n->type;
         sourceVar.rows = n->rows;
         sourceVar.columns = n->columns;
         sourceVar.signatureIndex = -1;
         sourceVar.offset = n->offset;
-        sourceVar.variables.clear();
         // unknown is treated as a struct
         if(sourceVar.type == VarType::Unknown)
           sourceVar.type = VarType::Struct;
@@ -2830,34 +2860,38 @@ void Debugger::FillDebugSourceVars(rdcarray<InstructionSourceInfo> &instInfo) co
         {
           ConstIter it = GetID(n->debugVar);
 
+          rdcstr debugVarName = GetRawName(n->debugVar) + n->debugVarSuffix;
+
           if(it.opcode() == Op::Undef)
           {
             sourceVar.rows = sourceVar.columns = 1;
             sourceVar.undefinedValue = true;
 
-            sourceVar.variables.push_back(DebugVariableReference(
-                DebugVariableType::Variable, GetRawName(n->debugVar) + n->debugVarSuffix, 0));
+            sourceVar.variables.push_back(
+                DebugVariableReference(DebugVariableType::Variable, debugVarName, 0));
           }
           else
           {
             RDCASSERTNOTEQUAL(n->rows * n->columns, 0);
+            sourceVar.variables.resize(n->rows * n->columns);
             for(uint32_t c = 0; c < n->rows * n->columns; ++c)
             {
-              sourceVar.variables.push_back(DebugVariableReference(
-                  DebugVariableType::Variable, GetRawName(n->debugVar) + n->debugVarSuffix, c));
+              sourceVar.variables[c].type = DebugVariableType::Variable;
+              sourceVar.variables[c].name = debugVarName;
+              sourceVar.variables[c].component = c;
             }
           }
         }
         else
         {
           RDCASSERTEQUAL(n->rows * n->columns, (uint32_t)n->children.count());
+          sourceVar.variables.reserve(n->children.size());
           for(int32_t c = 0; c < n->children.count(); ++c)
             sourceVar.variables.push_back(DebugVariableReference(
                 DebugVariableType::Variable,
                 GetRawName(n->children[c].debugVar) + n->children[c].debugVarSuffix,
                 n->children[c].debugVarComponent));
         }
-        i.sourceVars.push_back(sourceVar);
       }
     }
   }

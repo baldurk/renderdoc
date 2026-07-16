@@ -855,9 +855,6 @@ private:
     // vkCmdNextSubpass for valid barrier counting.
     int activeSubpass = 0;
 
-    // Is custom resolve active : when it is active the resolve target of the colour attachment is the output
-    bool customResolve;
-
     ResourceId GetPushDescriptorID(VkPipelineBindPoint bindpoint, uint32_t set)
     {
       return pushDescriptorID[bindpoint == VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR ? 2 : bindpoint][set];

@@ -1716,8 +1716,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
     uint32_t physicalDeviceIndex = GetPhysicalDeviceIndexFromHandle(Unwrap(physicalDevice));
     physicalDevice = m_PhysicalDevices[physicalDeviceIndex];
 
-    RDCLOG("Creating replay device from physical device %u", physicalDeviceIndex);
-
     ObjDisp(physicalDevice)
         ->GetPhysicalDeviceProperties(Unwrap(physicalDevice), &m_PhysicalDeviceData.props);
 
@@ -1732,6 +1730,9 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
 
     m_PhysicalDeviceData.driverInfo =
         VkDriverInfo(m_PhysicalDeviceData.props, m_PhysicalDeviceData.driverProps, true);
+
+    RDCLOG("Creating replay device from physical device at capture-time index %u (%s)",
+           physicalDeviceIndex, m_PhysicalDeviceData.props.deviceName);
 
     rdcarray<VkDeviceQueueGlobalPriorityCreateInfo *> queuePriorities;
 

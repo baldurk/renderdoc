@@ -111,7 +111,7 @@ struct DescriptorSet
 of their descriptors.
 
 .. note::
-  The returned values from :meth:`PipeState.GetConstantBuffer` already have these offsets applied.
+  The returned values from :meth:`PipeState.GetConstantBlock` already have these offsets applied.
 
 :type: List[VKDynamicOffset]
 )");
