@@ -2066,6 +2066,30 @@ VkResult WrappedVulkan::vkQueueBindSparse(VkQueue queue, uint32_t bindInfoCount,
       Serialise_vkQueueBindSparse(ser, queue, bindInfoCount, pBindInfo, fence);
 
       m_FrameCaptureRecord->AddChunk(scope.Get());
+
+      for(uint32_t i = 0; i < bindInfoCount; i++)
+      {
+        for(uint32_t buf = 0; buf < pBindInfo[i].bufferBindCount; buf++)
+        {
+          const VkSparseBufferMemoryBindInfo &bind = pBindInfo[i].pBufferBinds[buf];
+          VkResourceRecord *bufferRecord = GetRecord(bind.buffer);
+          m_FrameCaptureRecord->AddParent(bufferRecord);
+        }
+
+        for(uint32_t op = 0; op < pBindInfo[i].imageOpaqueBindCount; op++)
+        {
+          const VkSparseImageOpaqueMemoryBindInfo &bind = pBindInfo[i].pImageOpaqueBinds[op];
+          VkResourceRecord *imageRecord = GetRecord(bind.image);
+          m_FrameCaptureRecord->AddParent(imageRecord);
+        }
+
+        for(uint32_t op = 0; op < pBindInfo[i].imageBindCount; op++)
+        {
+          const VkSparseImageMemoryBindInfo &bind = pBindInfo[i].pImageBinds[op];
+          VkResourceRecord *imageRecord = GetRecord(bind.image);
+          m_FrameCaptureRecord->AddParent(imageRecord);
+        }
+      }
     }
 
     for(uint32_t i = 0; i < bindInfoCount; i++)
