@@ -915,6 +915,12 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RASTERIZATION_ORDER_ATTACHMENT_ACCESS_FEATURES_EXT,   \
                VkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT)                          \
                                                                                                        \
+  /* VK_EXT_ray_tracing_invocation_reorder */                                                          \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_INVOCATION_REORDER_FEATURES_EXT,          \
+               VkPhysicalDeviceRayTracingInvocationReorderFeaturesEXT)                                 \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_INVOCATION_REORDER_PROPERTIES_EXT,        \
+               VkPhysicalDeviceRayTracingInvocationReorderPropertiesEXT)                               \
+                                                                                                       \
   /* VK_EXT_rgba10x6_formats */                                                                        \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RGBA10X6_FORMATS_FEATURES_EXT,                        \
                VkPhysicalDeviceRGBA10X6FormatsFeaturesEXT)                                             \
@@ -1687,6 +1693,12 @@ SERIALISE_VK_HANDLES();
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_NV,                                 \
                VkExternalMemoryImageCreateInfoNV)                                                      \
                                                                                                        \
+  /* VK_NV_ray_tracing_invocation_reorder */                                                           \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_INVOCATION_REORDER_FEATURES_NV,           \
+               VkPhysicalDeviceRayTracingInvocationReorderFeaturesNV)                                  \
+  PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_INVOCATION_REORDER_PROPERTIES_NV,         \
+               VkPhysicalDeviceRayTracingInvocationReorderPropertiesNV)                                \
+                                                                                                       \
   /* VK_NV_shader_image_footprint */                                                                   \
   PNEXT_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_IMAGE_FOOTPRINT_FEATURES_NV,                   \
                VkPhysicalDeviceShaderImageFootprintFeaturesNV)                                         \
@@ -2041,10 +2053,6 @@ SERIALISE_VK_HANDLES();
                                                                                                        \
   /* VK_EXT_primitive_restart_index */                                                                 \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRIMITIVE_RESTART_INDEX_FEATURES_EXT)            \
-                                                                                                       \
-  /* VK_EXT_ray_tracing_invocation_reorder */                                                          \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_INVOCATION_REORDER_FEATURES_EXT)     \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_INVOCATION_REORDER_PROPERTIES_EXT)   \
                                                                                                        \
   /* VK_EXT_shader_64bit_indexing */                                                                   \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_64_BIT_INDEXING_FEATURES_EXT)             \
@@ -2549,10 +2557,6 @@ SERIALISE_VK_HANDLES();
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_NV)                             \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV)                         \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV)                  \
-                                                                                                       \
-  /* VK_NV_ray_tracing_invocation_reorder */                                                           \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_INVOCATION_REORDER_FEATURES_NV)      \
-  PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_INVOCATION_REORDER_PROPERTIES_NV)    \
                                                                                                        \
   /* VK_NV_ray_tracing_motion_blur */                                                                  \
   PNEXT_UNSUPPORTED(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_MOTION_TRIANGLES_DATA_NV)        \
@@ -14103,6 +14107,73 @@ void Deserialise(const VkPhysicalDeviceRayTracingPipelinePropertiesKHR &el)
 }
 
 template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceRayTracingInvocationReorderFeaturesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_INVOCATION_REORDER_FEATURES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(rayTracingInvocationReorder);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceRayTracingInvocationReorderFeaturesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceRayTracingInvocationReorderPropertiesEXT &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType ==
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_INVOCATION_REORDER_PROPERTIES_EXT);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(rayTracingInvocationReorderReorderingHint);
+  SERIALISE_MEMBER(maxShaderBindingTableRecordIndex);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceRayTracingInvocationReorderPropertiesEXT &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceRayTracingInvocationReorderFeaturesNV &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType == VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_INVOCATION_REORDER_FEATURES_NV);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(rayTracingInvocationReorder);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceRayTracingInvocationReorderFeaturesNV &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
+void DoSerialise(SerialiserType &ser, VkPhysicalDeviceRayTracingInvocationReorderPropertiesNV &el)
+{
+  RDCASSERT(ser.IsReading() ||
+            el.sType ==
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_INVOCATION_REORDER_PROPERTIES_NV);
+  SerialiseNext(ser, el.sType, el.pNext);
+
+  SERIALISE_MEMBER(rayTracingInvocationReorderReorderingHint);
+}
+
+template <>
+void Deserialise(const VkPhysicalDeviceRayTracingInvocationReorderPropertiesNV &el)
+{
+  DeserialiseNext(el.pNext);
+}
+
+template <typename SerialiserType>
 void DoSerialise(SerialiserType &ser, VkStridedDeviceAddressRegionKHR &el)
 {
   SERIALISE_MEMBER(deviceAddress);
@@ -15476,6 +15547,10 @@ INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceProvokingVertexPropertiesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDevicePushDescriptorProperties);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceRasterizationOrderAttachmentAccessFeaturesEXT);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceRayQueryFeaturesKHR);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceRayTracingInvocationReorderFeaturesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceRayTracingInvocationReorderFeaturesNV);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceRayTracingInvocationReorderPropertiesEXT);
+INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceRayTracingInvocationReorderPropertiesNV);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceRayTracingMaintenance1FeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceRayTracingPipelineFeaturesKHR);
 INSTANTIATE_SERIALISE_TYPE(VkPhysicalDeviceRayTracingPipelinePropertiesKHR);

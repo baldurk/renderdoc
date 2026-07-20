@@ -99,6 +99,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_EXT_provoking_vertex`
 * `VK_EXT_queue_family_foreign`
 * `VK_EXT_rasterization_order_attachment_access`
+* `VK_EXT_ray_tracing_invocation_reorder`
 * `VK_EXT_rgba10x6_formats`
 * `VK_EXT_robustness2`
 * `VK_EXT_sample_locations`
@@ -265,6 +266,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_NV_external_memory`
 * `VK_NV_fragment_shader_barycentric`
 * `VK_NV_geometry_shader_passthrough`
+* `VK_NV_ray_tracing_invocation_reorder`
 * `VK_NV_sample_mask_override_coverage`
 * `VK_NV_shader_image_footprint`
 * `VK_NV_shader_subgroup_partitioned`
@@ -333,7 +335,6 @@ The portability subset is only relevant on mac, which is not a supported platfor
 * `VK_EXT_pipeline_library_group_handles`
 * `VK_EXT_present_timing`
 * `VK_EXT_primitive_restart_index`
-* `VK_EXT_ray_tracing_invocation_reorder`
 * `VK_EXT_shader_64bit_indexing`
 * `VK_EXT_shader_float8`
 * `VK_EXT_shader_long_vector`
@@ -453,7 +454,6 @@ The portability subset is only relevant on mac, which is not a supported platfor
 * `VK_NV_present_barrier`
 * `VK_NV_present_metering`
 * `VK_NV_raw_access_chains`
-* `VK_NV_ray_tracing_invocation_reorder`
 * `VK_NV_ray_tracing_linear_swept_spheres`
 * `VK_NV_ray_tracing_motion_blur`
 * `VK_NV_ray_tracing_validation`

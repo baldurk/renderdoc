@@ -3809,6 +3809,17 @@ rdcstr DoStringise(const VkProvokingVertexModeEXT &el)
 }
 
 template <>
+rdcstr DoStringise(const VkRayTracingInvocationReorderModeEXT &el)
+{
+  BEGIN_ENUM_STRINGISE(VkRayTracingInvocationReorderModeEXT);
+  {
+    STRINGISE_ENUM(VK_RAY_TRACING_INVOCATION_REORDER_MODE_NONE_EXT)
+    STRINGISE_ENUM(VK_RAY_TRACING_INVOCATION_REORDER_MODE_REORDER_EXT)
+  }
+  END_ENUM_STRINGISE();
+}
+
+template <>
 rdcstr DoStringise(const VkRayTracingShaderGroupTypeKHR &el)
 {
   BEGIN_ENUM_STRINGISE(VkRayTracingShaderGroupTypeKHR);
