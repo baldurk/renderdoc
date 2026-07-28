@@ -236,7 +236,8 @@ void Program::ParseConstant(ValueList &values, const LLVMBC::BlockOrRecord &cons
     c->setCompound(alloc, std::move(members));
     values.addValue();
   }
-  else if(IS_KNOWN(constant.id, ConstantsRecord::EVAL_GEP))
+  else if(IS_KNOWN(constant.id, ConstantsRecord::EVAL_GEP) ||
+          IS_KNOWN(constant.id, ConstantsRecord::EVAL_GEP_OLD))
   {
     Constant *c = values.nextValue<Constant>();
 

@@ -111,6 +111,7 @@ enum class ConstantsRecord : uint32_t
   CSTRING = 9,
   EVAL_BINOP = 10,
   EVAL_CAST = 11,
+  EVAL_GEP_OLD = 12,
   EVAL_GEP = 20,
   DATA = 22,
 };
