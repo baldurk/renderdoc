@@ -1808,7 +1808,7 @@ void ProgramEditor::EncodeConstants(LLVMBC::BitcodeWriter &writer,
         vals.push_back(getValueID(c->getMembers()[m]));
       }
 
-      writer.Record(LLVMBC::ConstantsRecord::EVAL_GEP, vals);
+      writer.Record(LLVMBC::ConstantsRecord::EVAL_INBOUNDS_GEP, vals);
     }
     else if(IsCast(c->op))
     {
