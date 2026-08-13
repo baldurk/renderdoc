@@ -747,7 +747,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
 
         VulkanEventNode &eventNode = GetLastEventNode();
         eventNode.indirectPatch = indirectPatch;
-        eventNode.resourceUsage.push_back(make_rdcpair(GetResID(buffer), ResourceUsage::Indirect));
+        eventNode.AddResourceUsage(GetResID(buffer), ResourceUsage::Indirect);
 
         return true;
       }
@@ -767,7 +767,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(SerialiserType &ser, VkCommandBu
 
       VulkanEventNode &eventNode = GetLastEventNode();
       eventNode.indirectPatch = indirectPatch;
-      eventNode.resourceUsage.push_back(make_rdcpair(GetResID(buffer), ResourceUsage::Indirect));
+      eventNode.AddResourceUsage(GetResID(buffer), ResourceUsage::Indirect);
 
       for(uint32_t i = 0; i < count; i++)
       {
@@ -1106,7 +1106,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
 
         VulkanEventNode &eventNode = GetLastEventNode();
         eventNode.indirectPatch = indirectPatch;
-        eventNode.resourceUsage.push_back(make_rdcpair(GetResID(buffer), ResourceUsage::Indirect));
+        eventNode.AddResourceUsage(GetResID(buffer), ResourceUsage::Indirect);
 
         return true;
       }
@@ -1127,7 +1127,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(SerialiserType &ser,
 
       VulkanEventNode &eventNode = GetLastEventNode();
       eventNode.indirectPatch = indirectPatch;
-      eventNode.resourceUsage.push_back(make_rdcpair(GetResID(buffer), ResourceUsage::Indirect));
+      eventNode.AddResourceUsage(GetResID(buffer), ResourceUsage::Indirect);
 
       for(uint32_t i = 0; i < count; i++)
       {
@@ -1335,7 +1335,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(SerialiserType &ser,
 
         VulkanEventNode &eventNode = GetLastEventNode();
         eventNode.indirectPatch = indirectPatch;
-        eventNode.resourceUsage.push_back(make_rdcpair(GetResID(buffer), ResourceUsage::Indirect));
+        eventNode.AddResourceUsage(GetResID(buffer), ResourceUsage::Indirect);
       }
     }
   }
@@ -1445,14 +1445,12 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(SerialiserType &ser, VkCommandBuffe
         VulkanEventNode &eventNode = GetLastEventNode();
         if(srcImage == destImage)
         {
-          eventNode.resourceUsage.push_back(make_rdcpair(GetResID(srcImage), ResourceUsage::Resolve));
+          eventNode.AddResourceUsage(GetResID(srcImage), ResourceUsage::Resolve);
         }
         else
         {
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(srcImage), ResourceUsage::ResolveSrc));
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(destImage), ResourceUsage::ResolveDst));
+          eventNode.AddResourceUsage(GetResID(srcImage), ResourceUsage::ResolveSrc);
+          eventNode.AddResourceUsage(GetResID(destImage), ResourceUsage::ResolveDst);
         }
       }
     }
@@ -1590,14 +1588,12 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage(SerialiserType &ser, VkCommandBu
         VulkanEventNode &eventNode = GetLastEventNode();
         if(srcImage == destImage)
         {
-          eventNode.resourceUsage.push_back(make_rdcpair(GetResID(srcImage), ResourceUsage::Resolve));
+          eventNode.AddResourceUsage(GetResID(srcImage), ResourceUsage::Resolve);
         }
         else
         {
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(srcImage), ResourceUsage::ResolveSrc));
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(destImage), ResourceUsage::ResolveDst));
+          eventNode.AddResourceUsage(GetResID(srcImage), ResourceUsage::ResolveSrc);
+          eventNode.AddResourceUsage(GetResID(destImage), ResourceUsage::ResolveDst);
         }
       }
     }
@@ -1725,12 +1721,12 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(SerialiserType &ser, VkCommandBuffe
         VulkanEventNode &eventNode = GetLastEventNode();
         if(srcImage == destImage)
         {
-          eventNode.resourceUsage.push_back(make_rdcpair(GetResID(srcImage), ResourceUsage::Copy));
+          eventNode.AddResourceUsage(GetResID(srcImage), ResourceUsage::Copy);
         }
         else
         {
-          eventNode.resourceUsage.push_back(make_rdcpair(GetResID(srcImage), ResourceUsage::CopySrc));
-          eventNode.resourceUsage.push_back(make_rdcpair(GetResID(destImage), ResourceUsage::CopyDst));
+          eventNode.AddResourceUsage(GetResID(srcImage), ResourceUsage::CopySrc);
+          eventNode.AddResourceUsage(GetResID(destImage), ResourceUsage::CopyDst);
         }
       }
     }
@@ -1848,8 +1844,8 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
         AddAction(action);
 
         VulkanEventNode &eventNode = GetLastEventNode();
-        eventNode.resourceUsage.push_back(make_rdcpair(GetResID(srcBuffer), ResourceUsage::CopySrc));
-        eventNode.resourceUsage.push_back(make_rdcpair(GetResID(destImage), ResourceUsage::CopyDst));
+        eventNode.AddResourceUsage(GetResID(srcBuffer), ResourceUsage::CopySrc);
+        eventNode.AddResourceUsage(GetResID(destImage), ResourceUsage::CopyDst);
       }
     }
   }
@@ -1956,8 +1952,8 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(SerialiserType &ser,
         AddAction(action);
 
         VulkanEventNode &eventNode = GetLastEventNode();
-        eventNode.resourceUsage.push_back(make_rdcpair(GetResID(srcImage), ResourceUsage::CopySrc));
-        eventNode.resourceUsage.push_back(make_rdcpair(GetResID(destBuffer), ResourceUsage::CopyDst));
+        eventNode.AddResourceUsage(GetResID(srcImage), ResourceUsage::CopySrc);
+        eventNode.AddResourceUsage(GetResID(destBuffer), ResourceUsage::CopyDst);
       }
     }
   }
@@ -2060,13 +2056,12 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(SerialiserType &ser, VkCommandBuff
         VulkanEventNode &eventNode = GetLastEventNode();
         if(srcBuffer == destBuffer)
         {
-          eventNode.resourceUsage.push_back(make_rdcpair(GetResID(srcBuffer), ResourceUsage::Copy));
+          eventNode.AddResourceUsage(GetResID(srcBuffer), ResourceUsage::Copy);
         }
         else
         {
-          eventNode.resourceUsage.push_back(make_rdcpair(GetResID(srcBuffer), ResourceUsage::CopySrc));
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(destBuffer), ResourceUsage::CopyDst));
+          eventNode.AddResourceUsage(GetResID(srcBuffer), ResourceUsage::CopySrc);
+          eventNode.AddResourceUsage(GetResID(destBuffer), ResourceUsage::CopyDst);
         }
       }
     }
@@ -2167,7 +2162,7 @@ bool WrappedVulkan::Serialise_vkCmdUpdateBuffer(SerialiserType &ser, VkCommandBu
         AddAction(action);
 
         VulkanEventNode &eventNode = GetLastEventNode();
-        eventNode.resourceUsage.push_back(make_rdcpair(GetResID(destBuffer), ResourceUsage::CopyDst));
+        eventNode.AddResourceUsage(GetResID(destBuffer), ResourceUsage::CopyDst);
       }
     }
   }
@@ -2259,7 +2254,7 @@ bool WrappedVulkan::Serialise_vkCmdFillBuffer(SerialiserType &ser, VkCommandBuff
         AddAction(action);
 
         VulkanEventNode &eventNode = GetLastEventNode();
-        eventNode.resourceUsage.push_back(make_rdcpair(GetResID(destBuffer), ResourceUsage::Clear));
+        eventNode.AddResourceUsage(GetResID(destBuffer), ResourceUsage::Clear);
       }
     }
   }
@@ -2361,7 +2356,7 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(SerialiserType &ser, VkComman
         AddAction(action);
 
         VulkanEventNode &eventNode = GetLastEventNode();
-        eventNode.resourceUsage.push_back(make_rdcpair(GetResID(image), ResourceUsage::Clear));
+        eventNode.AddResourceUsage(GetResID(image), ResourceUsage::Clear);
       }
     }
   }
@@ -2471,7 +2466,7 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
         AddAction(action);
 
         VulkanEventNode &eventNode = GetLastEventNode();
-        eventNode.resourceUsage.push_back(make_rdcpair(GetResID(image), ResourceUsage::Clear));
+        eventNode.AddResourceUsage(GetResID(image), ResourceUsage::Clear);
       }
     }
   }
@@ -2602,9 +2597,9 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(SerialiserType &ser,
                 att = rp.subpasses[state.subpass].colorAttachments[att];
                 if(att < (uint32_t)state.GetFramebufferAttachments().size())
                 {
-                  eventNode.resourceUsage.push_back(make_rdcpair(
+                  eventNode.AddResourceUsage(
                       m_CreationInfo.m_ImageView[state.GetFramebufferAttachments()[att]].image,
-                      ResourceUsage::Clear));
+                      ResourceUsage::Clear);
                 }
               }
             }
@@ -2614,9 +2609,9 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(SerialiserType &ser,
               if(rp.subpasses[state.subpass].depthstencilAttachment >= 0)
               {
                 att = (uint32_t)rp.subpasses[state.subpass].depthstencilAttachment;
-                eventNode.resourceUsage.push_back(make_rdcpair(
+                eventNode.AddResourceUsage(
                     m_CreationInfo.m_ImageView[state.GetFramebufferAttachments()[att]].image,
-                    ResourceUsage::Clear));
+                    ResourceUsage::Clear);
               }
             }
           }
@@ -2627,23 +2622,22 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(SerialiserType &ser,
 
           for(size_t a = 0; a < dyn.color.size(); a++)
           {
-            eventNode.resourceUsage.push_back(
-                make_rdcpair(m_CreationInfo.m_ImageView[GetResID(dyn.color[a].imageView)].image,
-                             ResourceUsage::Clear));
+            eventNode.AddResourceUsage(
+                m_CreationInfo.m_ImageView[GetResID(dyn.color[a].imageView)].image,
+                ResourceUsage::Clear);
           }
 
           if(dyn.depth.imageView != VK_NULL_HANDLE)
           {
-            eventNode.resourceUsage.push_back(
-                make_rdcpair(m_CreationInfo.m_ImageView[GetResID(dyn.depth.imageView)].image,
-                             ResourceUsage::Clear));
+            eventNode.AddResourceUsage(m_CreationInfo.m_ImageView[GetResID(dyn.depth.imageView)].image,
+                                       ResourceUsage::Clear);
           }
 
           if(dyn.stencil.imageView != VK_NULL_HANDLE && dyn.depth.imageView != dyn.stencil.imageView)
           {
-            eventNode.resourceUsage.push_back(
-                make_rdcpair(m_CreationInfo.m_ImageView[GetResID(dyn.stencil.imageView)].image,
-                             ResourceUsage::Clear));
+            eventNode.AddResourceUsage(
+                m_CreationInfo.m_ImageView[GetResID(dyn.stencil.imageView)].image,
+                ResourceUsage::Clear);
           }
         }
       }
@@ -3003,8 +2997,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount(SerialiserType &ser,
 
       VulkanEventNode &eventNode = GetLastEventNode();
       eventNode.indirectPatch = indirectPatch;
-      eventNode.resourceUsage.push_back(make_rdcpair(GetResID(buffer), ResourceUsage::Indirect));
-      eventNode.resourceUsage.push_back(make_rdcpair(GetResID(countBuffer), ResourceUsage::Indirect));
+      eventNode.AddResourceUsage(GetResID(buffer), ResourceUsage::Indirect);
+      eventNode.AddResourceUsage(GetResID(countBuffer), ResourceUsage::Indirect);
 
       if(maxDrawCount > 0)
         eventNode.action.flags = flags;
@@ -3310,8 +3304,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount(
 
       VulkanEventNode &eventNode = GetLastEventNode();
       eventNode.indirectPatch = indirectPatch;
-      eventNode.resourceUsage.push_back(make_rdcpair(GetResID(buffer), ResourceUsage::Indirect));
-      eventNode.resourceUsage.push_back(make_rdcpair(GetResID(countBuffer), ResourceUsage::Indirect));
+      eventNode.AddResourceUsage(GetResID(buffer), ResourceUsage::Indirect);
+      eventNode.AddResourceUsage(GetResID(countBuffer), ResourceUsage::Indirect);
 
       if(maxDrawCount > 0)
         eventNode.action.flags = flags;
@@ -3461,8 +3455,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectByteCountEXT(
 
       VulkanEventNode &eventNode = GetLastEventNode();
       eventNode.indirectPatch = indirectPatch;
-      eventNode.resourceUsage.push_back(
-          make_rdcpair(GetResID(counterBuffer), ResourceUsage::Indirect));
+      eventNode.AddResourceUsage(GetResID(counterBuffer), ResourceUsage::Indirect);
 
       return true;
     }
@@ -3568,15 +3561,12 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer2(SerialiserType &ser, VkCommandBuf
         VulkanEventNode &eventNode = GetLastEventNode();
         if(srcid == dstid)
         {
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(CopyInfo.srcBuffer), ResourceUsage::Copy));
+          eventNode.AddResourceUsage(GetResID(CopyInfo.srcBuffer), ResourceUsage::Copy);
         }
         else
         {
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(CopyInfo.srcBuffer), ResourceUsage::CopySrc));
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(CopyInfo.dstBuffer), ResourceUsage::CopyDst));
+          eventNode.AddResourceUsage(GetResID(CopyInfo.srcBuffer), ResourceUsage::CopySrc);
+          eventNode.AddResourceUsage(GetResID(CopyInfo.dstBuffer), ResourceUsage::CopyDst);
         }
       }
     }
@@ -3688,15 +3678,12 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage2(SerialiserType &ser, VkCommandBuff
         VulkanEventNode &eventNode = GetLastEventNode();
         if(srcid == dstid)
         {
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(CopyInfo.srcImage), ResourceUsage::Copy));
+          eventNode.AddResourceUsage(GetResID(CopyInfo.srcImage), ResourceUsage::Copy);
         }
         else
         {
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(CopyInfo.srcImage), ResourceUsage::CopySrc));
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(CopyInfo.dstImage), ResourceUsage::CopyDst));
+          eventNode.AddResourceUsage(GetResID(CopyInfo.srcImage), ResourceUsage::CopySrc);
+          eventNode.AddResourceUsage(GetResID(CopyInfo.dstImage), ResourceUsage::CopyDst);
         }
       }
     }
@@ -3819,10 +3806,8 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage2(
         AddAction(action);
 
         VulkanEventNode &eventNode = GetLastEventNode();
-        eventNode.resourceUsage.push_back(
-            make_rdcpair(GetResID(CopyInfo.srcBuffer), ResourceUsage::CopySrc));
-        eventNode.resourceUsage.push_back(
-            make_rdcpair(GetResID(CopyInfo.dstImage), ResourceUsage::CopyDst));
+        eventNode.AddResourceUsage(GetResID(CopyInfo.srcBuffer), ResourceUsage::CopySrc);
+        eventNode.AddResourceUsage(GetResID(CopyInfo.dstImage), ResourceUsage::CopyDst);
       }
     }
   }
@@ -3948,10 +3933,8 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer2(
         AddAction(action);
 
         VulkanEventNode &eventNode = GetLastEventNode();
-        eventNode.resourceUsage.push_back(
-            make_rdcpair(GetResID(CopyInfo.srcImage), ResourceUsage::CopySrc));
-        eventNode.resourceUsage.push_back(
-            make_rdcpair(GetResID(CopyInfo.dstBuffer), ResourceUsage::CopyDst));
+        eventNode.AddResourceUsage(GetResID(CopyInfo.srcImage), ResourceUsage::CopySrc);
+        eventNode.AddResourceUsage(GetResID(CopyInfo.dstBuffer), ResourceUsage::CopyDst);
       }
     }
   }
@@ -4073,15 +4056,12 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage2(SerialiserType &ser, VkCommandBuff
         VulkanEventNode &eventNode = GetLastEventNode();
         if(srcid == dstid)
         {
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(BlitInfo.srcImage), ResourceUsage::Resolve));
+          eventNode.AddResourceUsage(GetResID(BlitInfo.srcImage), ResourceUsage::Resolve);
         }
         else
         {
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(BlitInfo.srcImage), ResourceUsage::ResolveSrc));
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(BlitInfo.dstImage), ResourceUsage::ResolveDst));
+          eventNode.AddResourceUsage(GetResID(BlitInfo.srcImage), ResourceUsage::ResolveSrc);
+          eventNode.AddResourceUsage(GetResID(BlitInfo.dstImage), ResourceUsage::ResolveDst);
         }
       }
     }
@@ -4210,15 +4190,12 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage2(SerialiserType &ser, VkCommandB
         VulkanEventNode &eventNode = GetLastEventNode();
         if(srcid == dstid)
         {
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(ResolveInfo.srcImage), ResourceUsage::Resolve));
+          eventNode.AddResourceUsage(GetResID(ResolveInfo.srcImage), ResourceUsage::Resolve);
         }
         else
         {
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(ResolveInfo.srcImage), ResourceUsage::ResolveSrc));
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(ResolveInfo.dstImage), ResourceUsage::ResolveDst));
+          eventNode.AddResourceUsage(GetResID(ResolveInfo.srcImage), ResourceUsage::ResolveSrc);
+          eventNode.AddResourceUsage(GetResID(ResolveInfo.dstImage), ResourceUsage::ResolveDst);
         }
       }
     }
@@ -4621,7 +4598,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawMeshTasksIndirectEXT(SerialiserType &ser,
 
         VulkanEventNode &eventNode = GetLastEventNode();
         eventNode.indirectPatch = indirectPatch;
-        eventNode.resourceUsage.push_back(make_rdcpair(GetResID(buffer), ResourceUsage::Indirect));
+        eventNode.AddResourceUsage(GetResID(buffer), ResourceUsage::Indirect);
 
         return true;
       }
@@ -4641,7 +4618,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawMeshTasksIndirectEXT(SerialiserType &ser,
 
       VulkanEventNode &eventNode = GetLastEventNode();
       eventNode.indirectPatch = indirectPatch;
-      eventNode.resourceUsage.push_back(make_rdcpair(GetResID(buffer), ResourceUsage::Indirect));
+      eventNode.AddResourceUsage(GetResID(buffer), ResourceUsage::Indirect);
 
       for(uint32_t i = 0; i < drawCount; i++)
       {
@@ -4943,8 +4920,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawMeshTasksIndirectCountEXT(
 
       VulkanEventNode &eventNode = GetLastEventNode();
       eventNode.indirectPatch = indirectPatch;
-      eventNode.resourceUsage.push_back(make_rdcpair(GetResID(buffer), ResourceUsage::Indirect));
-      eventNode.resourceUsage.push_back(make_rdcpair(GetResID(countBuffer), ResourceUsage::Indirect));
+      eventNode.AddResourceUsage(GetResID(buffer), ResourceUsage::Indirect);
+      eventNode.AddResourceUsage(GetResID(countBuffer), ResourceUsage::Indirect);
 
       // only allocate up to one indirect sub-command to avoid pessimistic allocation if
       // maxDrawCount is very high but the actual action count is low.
@@ -5373,7 +5350,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToMemoryKHR(
         AddAction(action);
 
         VulkanEventNode &eventNode = GetLastEventNode();
-        eventNode.resourceUsage.push_back(make_rdcpair(imgid, ResourceUsage::CopySrc));
+        eventNode.AddResourceUsage(imgid, ResourceUsage::CopySrc);
       }
     }
   }
@@ -5750,7 +5727,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyMemoryToImageKHR(
         AddAction(action);
 
         VulkanEventNode &eventNode = GetLastEventNode();
-        eventNode.resourceUsage.push_back(make_rdcpair(imgid, ResourceUsage::CopyDst));
+        eventNode.AddResourceUsage(imgid, ResourceUsage::CopyDst);
       }
     }
   }
@@ -6177,7 +6154,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect2KHR(SerialiserType &ser,
 
       VulkanEventNode &eventNode = GetLastEventNode();
       eventNode.indirectPatch = indirectPatch;
-      eventNode.resourceUsage.push_back(make_rdcpair(id, ResourceUsage::Indirect));
+      eventNode.AddResourceUsage(id, ResourceUsage::Indirect);
 
       for(uint32_t i = 0; i < Info.drawCount; i++)
       {

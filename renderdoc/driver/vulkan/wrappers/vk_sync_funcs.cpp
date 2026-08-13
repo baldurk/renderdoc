@@ -810,8 +810,7 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
         const VkImageMemoryBarrier &b = pImageMemoryBarriers[i];
         if(b.image != VK_NULL_HANDLE && b.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED)
         {
-          m_LoadingEventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(b.image), ResourceUsage::Discard));
+          m_LoadingEventNode.AddResourceUsage(GetResID(b.image), ResourceUsage::Discard);
         }
       }
     }
@@ -1322,8 +1321,7 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents2(SerialiserType &ser, VkCommandBuf
           if(b.image != VK_NULL_HANDLE && b.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
              b.newLayout != VK_IMAGE_LAYOUT_UNDEFINED)
           {
-            m_LoadingEventNode.resourceUsage.push_back(
-                make_rdcpair(GetResID(b.image), ResourceUsage::Discard));
+            m_LoadingEventNode.AddResourceUsage(GetResID(b.image), ResourceUsage::Discard);
           }
         }
       }

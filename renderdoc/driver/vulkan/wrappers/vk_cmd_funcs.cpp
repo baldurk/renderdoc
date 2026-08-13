@@ -426,13 +426,13 @@ void WrappedVulkan::AddImplicitResolveResourceUsage(uint32_t subpass)
     if(attIdx == VK_ATTACHMENT_UNUSED)
       continue;
     ResourceId image = m_CreationInfo.m_ImageView[fbattachments[attIdx]].image;
-    m_LoadingEventNode.resourceUsage.push_back(make_rdcpair(image, ResourceUsage::ResolveDst));
+    m_LoadingEventNode.AddResourceUsage(image, ResourceUsage::ResolveDst);
 
     attIdx = rpinfo.subpasses[subpass].colorAttachments[i];
     if(attIdx == VK_ATTACHMENT_UNUSED)
       continue;
     image = m_CreationInfo.m_ImageView[fbattachments[attIdx]].image;
-    m_LoadingEventNode.resourceUsage.push_back(make_rdcpair(image, ResourceUsage::ResolveSrc));
+    m_LoadingEventNode.AddResourceUsage(image, ResourceUsage::ResolveSrc);
   }
 
   // also add any discards on the final subpass
@@ -443,7 +443,7 @@ void WrappedVulkan::AddImplicitResolveResourceUsage(uint32_t subpass)
       if(rpinfo.attachments[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
       {
         ResourceId image = m_CreationInfo.m_ImageView[fbattachments[i]].image;
-        m_LoadingEventNode.resourceUsage.push_back(make_rdcpair(image, ResourceUsage::Discard));
+        m_LoadingEventNode.AddResourceUsage(image, ResourceUsage::Discard);
       }
     }
   }
@@ -2312,10 +2312,10 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
            rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
         {
           ResourceId image = m_CreationInfo.m_ImageView[fbattachments[i]].image;
-          m_LoadingEventNode.resourceUsage.push_back(
-              make_rdcpair(image, rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR
-                                      ? ResourceUsage::Clear
-                                      : ResourceUsage::Discard));
+          m_LoadingEventNode.AddResourceUsage(
+              image, rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR
+                         ? ResourceUsage::Clear
+                         : ResourceUsage::Discard);
         }
       }
 
@@ -2932,10 +2932,10 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
            rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
         {
           ResourceId image = m_CreationInfo.m_ImageView[fbattachments[i]].image;
-          m_LoadingEventNode.resourceUsage.push_back(
-              make_rdcpair(image, rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR
-                                      ? ResourceUsage::Clear
-                                      : ResourceUsage::Discard));
+          m_LoadingEventNode.AddResourceUsage(
+              image, rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR
+                         ? ResourceUsage::Clear
+                         : ResourceUsage::Discard);
         }
       }
 
@@ -4599,8 +4599,8 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 
         if(IsLoading(m_State))
         {
-          m_LoadingEventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(pBufferMemoryBarriers[i].buffer), ResourceUsage::Barrier));
+          m_LoadingEventNode.AddResourceUsage(GetResID(pBufferMemoryBarriers[i].buffer),
+                                              ResourceUsage::Barrier);
         }
       }
     }
@@ -4617,8 +4617,8 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 
         if(IsLoading(m_State))
         {
-          m_LoadingEventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(pImageMemoryBarriers[i].image), ResourceUsage::Barrier));
+          m_LoadingEventNode.AddResourceUsage(GetResID(pImageMemoryBarriers[i].image),
+                                              ResourceUsage::Barrier);
         }
       }
     }
@@ -4640,8 +4640,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
           VulkanCreationInfo::Image &imgInfo = m_CreationInfo.m_Image[GetResID(b.image)];
           if(!imgInfo.external)
           {
-            m_LoadingEventNode.resourceUsage.push_back(
-                make_rdcpair(GetResID(b.image), ResourceUsage::Discard));
+            m_LoadingEventNode.AddResourceUsage(GetResID(b.image), ResourceUsage::Discard);
           }
         }
       }
@@ -4847,8 +4846,8 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier2(SerialiserType &ser,
 
         if(IsLoading(m_State))
         {
-          m_LoadingEventNode.resourceUsage.push_back(make_rdcpair(
-              GetResID(DependencyInfo.pBufferMemoryBarriers[i].buffer), ResourceUsage::Barrier));
+          m_LoadingEventNode.AddResourceUsage(
+              GetResID(DependencyInfo.pBufferMemoryBarriers[i].buffer), ResourceUsage::Barrier);
         }
       }
     }
@@ -4865,8 +4864,8 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier2(SerialiserType &ser,
 
         if(IsLoading(m_State))
         {
-          m_LoadingEventNode.resourceUsage.push_back(make_rdcpair(
-              GetResID(DependencyInfo.pImageMemoryBarriers[i].image), ResourceUsage::Barrier));
+          m_LoadingEventNode.AddResourceUsage(
+              GetResID(DependencyInfo.pImageMemoryBarriers[i].image), ResourceUsage::Barrier);
         }
       }
     }
@@ -4896,8 +4895,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier2(SerialiserType &ser,
           VulkanCreationInfo::Image &imgInfo = m_CreationInfo.m_Image[GetResID(b.image)];
           if(!imgInfo.external)
           {
-            m_LoadingEventNode.resourceUsage.push_back(
-                make_rdcpair(GetResID(b.image), ResourceUsage::Discard));
+            m_LoadingEventNode.AddResourceUsage(GetResID(b.image), ResourceUsage::Discard);
           }
         }
       }
@@ -7922,9 +7920,9 @@ bool WrappedVulkan::Serialise_vkCmdBeginRendering(SerialiserType &ser, VkCommand
            att->loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
         {
           ResourceId image = m_CreationInfo.m_ImageView[GetResID(att->imageView)].image;
-          m_LoadingEventNode.resourceUsage.push_back(make_rdcpair(
-              image, att->loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ? ResourceUsage::Clear
-                                                                : ResourceUsage::Discard));
+          m_LoadingEventNode.AddResourceUsage(image, att->loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR
+                                                         ? ResourceUsage::Clear
+                                                         : ResourceUsage::Discard);
         }
       }
 
@@ -8223,8 +8221,6 @@ bool WrappedVulkan::Serialise_vkCmdEndRendering(SerialiserType &ser, VkCommandBu
 
       VulkanRenderState &state = m_BakedCmdBufferInfo[m_LastCmdBufferID].state;
 
-      rdcarray<rdcpair<ResourceId, ResourceUsage>> &usage = m_LoadingEventNode.resourceUsage;
-
       VulkanRenderState::DynamicRendering &dyn = state.dynamicRendering;
 
       bool suspending = (dyn.flags & VK_RENDERING_SUSPENDING_BIT) != 0;
@@ -8243,19 +8239,21 @@ bool WrappedVulkan::Serialise_vkCmdEndRendering(SerialiserType &ser, VkCommandBu
         if((dynAtts[i].resolveMode && !(dynAtts[i].resolveMode & VK_RESOLVE_MODE_CUSTOM_BIT_EXT)) &&
            dynAtts[i].imageView != VK_NULL_HANDLE && dynAtts[i].resolveImageView != VK_NULL_HANDLE)
         {
-          usage.push_back(make_rdcpair(m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
-                                       ResourceUsage::ResolveSrc));
+          m_LoadingEventNode.AddResourceUsage(
+              m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
+              ResourceUsage::ResolveSrc);
 
-          usage.push_back(
-              make_rdcpair(m_CreationInfo.m_ImageView[GetResID(dynAtts[i].resolveImageView)].image,
-                           ResourceUsage::ResolveDst));
+          m_LoadingEventNode.AddResourceUsage(
+              m_CreationInfo.m_ImageView[GetResID(dynAtts[i].resolveImageView)].image,
+              ResourceUsage::ResolveDst);
         }
 
         // also add any discards
         if(dynAtts[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
         {
-          usage.push_back(make_rdcpair(m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
-                                       ResourceUsage::Discard));
+          m_LoadingEventNode.AddResourceUsage(
+              m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
+              ResourceUsage::Discard);
         }
       }
 
@@ -8509,8 +8507,6 @@ bool WrappedVulkan::Serialise_vkCmdEndRendering2EXT(SerialiserType &ser,
 
       VulkanRenderState &state = m_BakedCmdBufferInfo[m_LastCmdBufferID].state;
 
-      rdcarray<rdcpair<ResourceId, ResourceUsage>> &usage = m_LoadingEventNode.resourceUsage;
-
       VulkanRenderState::DynamicRendering &dyn = state.dynamicRendering;
 
       bool suspending = (dyn.flags & VK_RENDERING_SUSPENDING_BIT) != 0;
@@ -8529,19 +8525,21 @@ bool WrappedVulkan::Serialise_vkCmdEndRendering2EXT(SerialiserType &ser,
         if((dynAtts[i].resolveMode && !(dynAtts[i].resolveMode & VK_RESOLVE_MODE_CUSTOM_BIT_EXT)) &&
            dynAtts[i].imageView != VK_NULL_HANDLE && dynAtts[i].resolveImageView != VK_NULL_HANDLE)
         {
-          usage.push_back(make_rdcpair(m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
-                                       ResourceUsage::ResolveSrc));
+          m_LoadingEventNode.AddResourceUsage(
+              m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
+              ResourceUsage::ResolveSrc);
 
-          usage.push_back(
-              make_rdcpair(m_CreationInfo.m_ImageView[GetResID(dynAtts[i].resolveImageView)].image,
-                           ResourceUsage::ResolveDst));
+          m_LoadingEventNode.AddResourceUsage(
+              m_CreationInfo.m_ImageView[GetResID(dynAtts[i].resolveImageView)].image,
+              ResourceUsage::ResolveDst);
         }
 
         // also add any discards
         if(dynAtts[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
         {
-          usage.push_back(make_rdcpair(m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
-                                       ResourceUsage::Discard));
+          m_LoadingEventNode.AddResourceUsage(
+              m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
+              ResourceUsage::Discard);
         }
       }
 
@@ -10404,7 +10402,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginCustomResolveEXT(
           renderstate.dynamicRendering.color[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
           ResourceId image = m_CreationInfo.m_ImageView[resolveImageView].image;
-          m_LoadingEventNode.resourceUsage.push_back(make_rdcpair(image, ResourceUsage::Discard));
+          m_LoadingEventNode.AddResourceUsage(image, ResourceUsage::Discard);
         }
         else
         {

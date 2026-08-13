@@ -6357,25 +6357,19 @@ void WrappedVulkan::AddUsage(VulkanEventNode &eventNode)
   if(action.flags & ActionFlags::Drawcall)
   {
     if(action.flags & ActionFlags::Indexed && state.ibuffer.buf != ResourceId())
-      eventNode.resourceUsage.push_back(make_rdcpair(state.ibuffer.buf, ResourceUsage::IndexBuffer));
+      eventNode.AddResourceUsage(state.ibuffer.buf, ResourceUsage::IndexBuffer);
 
     for(size_t i = 0; i < state.vbuffers.size(); i++)
     {
       if(state.vbuffers[i].buf != ResourceId())
-      {
-        eventNode.resourceUsage.push_back(
-            make_rdcpair(state.vbuffers[i].buf, ResourceUsage::VertexBuffer));
-      }
+        eventNode.AddResourceUsage(state.vbuffers[i].buf, ResourceUsage::VertexBuffer);
     }
 
     for(uint32_t i = state.firstxfbcounter;
         i < state.firstxfbcounter + state.xfbcounters.size() && i < state.xfbbuffers.size(); i++)
     {
       if(state.xfbbuffers[i].buf != ResourceId())
-      {
-        eventNode.resourceUsage.push_back(
-            make_rdcpair(state.xfbbuffers[i].buf, ResourceUsage::StreamOut));
-      }
+        eventNode.AddResourceUsage(state.xfbbuffers[i].buf, ResourceUsage::StreamOut);
     }
   }
 
@@ -6460,7 +6454,6 @@ void WrappedVulkan::AddUsageForDescriptorBuffers(VulkanEventNode &eventNode,
     if(sh.module == ResourceId())
       continue;
 
-    ResourceId origPipe = pipe;
     ResourceId origShad = sh.module;
 
     for(const ConstantBlock &constantBlock : sh.refl->constantBlocks)
@@ -6592,7 +6585,6 @@ void WrappedVulkan::AddUsageForDescriptorSets(VulkanEventNode &eventNode)
     if(sh.module == ResourceId())
       continue;
 
-    ResourceId origPipe = pipe;
     ResourceId origShad = sh.module;
 
     for(const ConstantBlock &constantBlock : sh.refl->constantBlocks)
@@ -6751,7 +6743,7 @@ void WrappedVulkan::AddUsageForDescriptor(VulkanEventNode &eventNode, const Desc
   }
 
   if(id != ResourceId())
-    eventNode.resourceUsage.push_back(make_rdcpair(id, usage));
+    eventNode.AddResourceUsage(id, usage);
 }
 
 void WrappedVulkan::AddFramebufferUsage(VulkanEventNode &eventNode,
@@ -6788,8 +6780,8 @@ void WrappedVulkan::AddFramebufferUsage(VulkanEventNode &eventNode,
         uint32_t att = sub.inputAttachments[i];
         if(att == VK_ATTACHMENT_UNUSED)
           continue;
-        eventNode.resourceUsage.push_back(
-            make_rdcpair(c.m_ImageView[fbattachments[att]].image, ResourceUsage::InputTarget));
+        eventNode.AddResourceUsage(c.m_ImageView[fbattachments[att]].image,
+                                   ResourceUsage::InputTarget);
       }
 
       for(size_t i = 0; i < sub.colorAttachments.size(); i++)
@@ -6797,16 +6789,16 @@ void WrappedVulkan::AddFramebufferUsage(VulkanEventNode &eventNode,
         uint32_t att = sub.colorAttachments[i];
         if(att == VK_ATTACHMENT_UNUSED)
           continue;
-        eventNode.resourceUsage.push_back(make_rdcpair(
+        eventNode.AddResourceUsage(
             c.m_ImageView[fbattachments[att]].image,
-            sub.customResolve ? ResourceUsage::ResolveDst : ResourceUsage::ColorTarget));
+            sub.customResolve ? ResourceUsage::ResolveDst : ResourceUsage::ColorTarget);
       }
 
       if(sub.depthstencilAttachment >= 0)
       {
         int32_t att = sub.depthstencilAttachment;
-        eventNode.resourceUsage.push_back(make_rdcpair(c.m_ImageView[fbattachments[att]].image,
-                                                       ResourceUsage::DepthStencilTarget));
+        eventNode.AddResourceUsage(c.m_ImageView[fbattachments[att]].image,
+                                   ResourceUsage::DepthStencilTarget);
       }
     }
   }
@@ -6823,15 +6815,15 @@ void WrappedVulkan::AddFramebufferUsage(VulkanEventNode &eventNode,
                              (dyn.color[i].resolveMode & VK_RESOLVE_MODE_CUSTOM_BIT_EXT);
       if(!isCustomResolve)
       {
-        eventNode.resourceUsage.push_back(make_rdcpair(
-            c.m_ImageView[GetResID(dyn.color[i].imageView)].image, ResourceUsage::ColorTarget));
+        eventNode.AddResourceUsage(c.m_ImageView[GetResID(dyn.color[i].imageView)].image,
+                                   ResourceUsage::ColorTarget);
       }
       else
       {
-        eventNode.resourceUsage.push_back(make_rdcpair(
-            c.m_ImageView[GetResID(dyn.color[i].imageView)].image, ResourceUsage::InputTarget));
-        eventNode.resourceUsage.push_back(make_rdcpair(
-            c.m_ImageView[GetResID(dyn.color[i].resolveImageView)].image, ResourceUsage::ResolveDst));
+        eventNode.AddResourceUsage(c.m_ImageView[GetResID(dyn.color[i].imageView)].image,
+                                   ResourceUsage::InputTarget);
+        eventNode.AddResourceUsage(c.m_ImageView[GetResID(dyn.color[i].resolveImageView)].image,
+                                   ResourceUsage::ResolveDst);
       }
     }
 
@@ -6841,15 +6833,15 @@ void WrappedVulkan::AddFramebufferUsage(VulkanEventNode &eventNode,
                              (dyn.depth.resolveMode & VK_RESOLVE_MODE_CUSTOM_BIT_EXT);
       if(!isCustomResolve)
       {
-        eventNode.resourceUsage.push_back(make_rdcpair(
-            c.m_ImageView[GetResID(dyn.depth.imageView)].image, ResourceUsage::DepthStencilTarget));
+        eventNode.AddResourceUsage(c.m_ImageView[GetResID(dyn.depth.imageView)].image,
+                                   ResourceUsage::DepthStencilTarget);
       }
       else
       {
-        eventNode.resourceUsage.push_back(make_rdcpair(
-            c.m_ImageView[GetResID(dyn.depth.imageView)].image, ResourceUsage::InputTarget));
-        eventNode.resourceUsage.push_back(make_rdcpair(
-            c.m_ImageView[GetResID(dyn.depth.resolveImageView)].image, ResourceUsage::ResolveDst));
+        eventNode.AddResourceUsage(c.m_ImageView[GetResID(dyn.depth.imageView)].image,
+                                   ResourceUsage::InputTarget);
+        eventNode.AddResourceUsage(c.m_ImageView[GetResID(dyn.depth.resolveImageView)].image,
+                                   ResourceUsage::ResolveDst);
       }
     }
 
@@ -6860,15 +6852,15 @@ void WrappedVulkan::AddFramebufferUsage(VulkanEventNode &eventNode,
       if(!isCustomResolve)
 
       {
-        eventNode.resourceUsage.push_back(make_rdcpair(
-            c.m_ImageView[GetResID(dyn.stencil.imageView)].image, ResourceUsage::DepthStencilTarget));
+        eventNode.AddResourceUsage(c.m_ImageView[GetResID(dyn.stencil.imageView)].image,
+                                   ResourceUsage::DepthStencilTarget);
       }
       else
       {
-        eventNode.resourceUsage.push_back(make_rdcpair(
-            c.m_ImageView[GetResID(dyn.stencil.imageView)].image, ResourceUsage::InputTarget));
-        eventNode.resourceUsage.push_back(make_rdcpair(
-            c.m_ImageView[GetResID(dyn.stencil.resolveImageView)].image, ResourceUsage::ResolveDst));
+        eventNode.AddResourceUsage(c.m_ImageView[GetResID(dyn.stencil.imageView)].image,
+                                   ResourceUsage::InputTarget);
+        eventNode.AddResourceUsage(c.m_ImageView[GetResID(dyn.stencil.resolveImageView)].image,
+                                   ResourceUsage::ResolveDst);
       }
     }
   }

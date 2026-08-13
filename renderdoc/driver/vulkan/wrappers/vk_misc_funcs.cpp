@@ -1941,15 +1941,12 @@ bool WrappedVulkan::Serialise_vkCopyImageToImage(SerialiserType &ser, VkDevice d
       VulkanEventNode &eventNode = GetLastEventNode();
       if(CopyImageToImageInfo.srcImage == CopyImageToImageInfo.dstImage)
       {
-        eventNode.resourceUsage.push_back(
-            make_rdcpair(GetResID(CopyImageToImageInfo.srcImage), ResourceUsage::Copy));
+        eventNode.AddResourceUsage(GetResID(CopyImageToImageInfo.srcImage), ResourceUsage::Copy);
       }
       else
       {
-        eventNode.resourceUsage.push_back(
-            make_rdcpair(GetResID(CopyImageToImageInfo.srcImage), ResourceUsage::CopySrc));
-        eventNode.resourceUsage.push_back(
-            make_rdcpair(GetResID(CopyImageToImageInfo.dstImage), ResourceUsage::CopyDst));
+        eventNode.AddResourceUsage(GetResID(CopyImageToImageInfo.srcImage), ResourceUsage::CopySrc);
+        eventNode.AddResourceUsage(GetResID(CopyImageToImageInfo.dstImage), ResourceUsage::CopyDst);
       }
     }
   }
@@ -2030,7 +2027,7 @@ bool WrappedVulkan::Serialise_vkCopyImageToMemory(SerialiserType &ser, VkDevice 
       AddAction(action);
 
       VulkanEventNode &eventNode = GetLastEventNode();
-      eventNode.resourceUsage.push_back(make_rdcpair(GetResID(srcImage), ResourceUsage::CopySrc));
+      eventNode.AddResourceUsage(GetResID(srcImage), ResourceUsage::CopySrc);
     }
   }
 
@@ -2115,7 +2112,7 @@ bool WrappedVulkan::Serialise_vkCopyMemoryToImage(SerialiserType &ser, VkDevice 
       AddAction(action);
 
       VulkanEventNode &eventNode = GetLastEventNode();
-      eventNode.resourceUsage.push_back(make_rdcpair(GetResID(dstImage), ResourceUsage::CopyDst));
+      eventNode.AddResourceUsage(GetResID(dstImage), ResourceUsage::CopyDst);
     }
   }
 
