@@ -1246,11 +1246,6 @@ const ShaderReflection *ReplayProxy::GetShader(ResourceId pipeline, ResourceId s
   PROXY_FUNCTION(GetShader, pipeline, shader, entry);
 }
 
-const ShaderReflection *ReplayProxy::GetShaderReflectionByPointer(uint64_t reflectionPointer)
-{
-  PROXY_FUNCTION(GetShaderReflectionByPointer, reflectionPointer);
-}
-
 template <typename ParamSerialiser, typename ReturnSerialiser>
 const ShaderReflection *ReplayProxy::Proxied_GetShaderReflectionByPointer(ParamSerialiser &paramser,
                                                                           ReturnSerialiser &retser,
@@ -1292,6 +1287,9 @@ const ShaderReflection *ReplayProxy::Proxied_GetShaderReflectionByPointer(ParamS
     SERIALISE_ELEMENT(packet);
     ser.EndChunk();
 
+    // The remote pointer is only a lookup token, so the reflection is serialised to create a local
+    // copy. The serialiser owns this allocation; setting the pointer to NULL effectively steals it
+    // into the cache, which takes ownership.
     if(ser.IsReading())
     {
       m_PointerReflectionCache[reflectionPointer] = reflection;
@@ -1302,6 +1300,11 @@ const ShaderReflection *ReplayProxy::Proxied_GetShaderReflectionByPointer(ParamS
   CheckError(packet, expectedPacket);
 
   return m_PointerReflectionCache[reflectionPointer];
+}
+
+const ShaderReflection *ReplayProxy::GetShaderReflectionByPointer(uint64_t reflectionPointer)
+{
+  PROXY_FUNCTION(GetShaderReflectionByPointer, reflectionPointer);
 }
 
 template <typename ParamSerialiser, typename ReturnSerialiser>
@@ -1859,15 +1862,6 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
 {
   const ReplayProxyPacket expectedPacket = eReplayProxy_SavePipelineState;
   ReplayProxyPacket packet = eReplayProxy_SavePipelineState;
-  rdcarray<uint64_t> reflectionPointers;
-
-  const auto fillReflectionPointers = [&reflectionPointers](const auto &stages,
-                                                            size_t extraCount = 0) {
-    reflectionPointers.resize(ARRAY_COUNT(stages) + extraCount);
-
-    for(size_t i = 0; i < ARRAY_COUNT(stages); i++)
-      reflectionPointers[i] = (uint64_t)(uintptr_t)stages[i]->reflection;
-  };
 
   {
     BEGIN_PARAMS();
@@ -1888,60 +1882,20 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
     PACKET_HEADER(packet);
     if(m_APIProps.pipelineType == GraphicsAPI::D3D11)
     {
-      D3D11Pipe::Shader *stages[] = {
-          &m_D3D11PipelineState->vertexShader, &m_D3D11PipelineState->hullShader,
-          &m_D3D11PipelineState->domainShader, &m_D3D11PipelineState->geometryShader,
-          &m_D3D11PipelineState->pixelShader,  &m_D3D11PipelineState->computeShader};
-
-      fillReflectionPointers(stages, 1);
-
-      if(m_D3D11PipelineState->inputAssembly.resourceId != ResourceId())
-      {
-        reflectionPointers[ARRAY_COUNT(stages)] =
-            (uint64_t)(uintptr_t)m_D3D11PipelineState->inputAssembly.bytecode;
-      }
-
       SERIALISE_ELEMENT(*m_D3D11PipelineState);
     }
     else if(m_APIProps.pipelineType == GraphicsAPI::D3D12)
     {
-      D3D12Pipe::Shader *stages[] = {
-          &m_D3D12PipelineState->vertexShader, &m_D3D12PipelineState->hullShader,
-          &m_D3D12PipelineState->domainShader, &m_D3D12PipelineState->geometryShader,
-          &m_D3D12PipelineState->pixelShader,  &m_D3D12PipelineState->computeShader,
-          &m_D3D12PipelineState->ampShader,    &m_D3D12PipelineState->meshShader,
-      };
-
-      fillReflectionPointers(stages);
-
       SERIALISE_ELEMENT(*m_D3D12PipelineState);
     }
     else if(m_APIProps.pipelineType == GraphicsAPI::OpenGL)
     {
-      GLPipe::Shader *stages[] = {
-          &m_GLPipelineState->vertexShader,   &m_GLPipelineState->tessControlShader,
-          &m_GLPipelineState->tessEvalShader, &m_GLPipelineState->geometryShader,
-          &m_GLPipelineState->fragmentShader, &m_GLPipelineState->computeShader,
-      };
-
-      fillReflectionPointers(stages);
-
       SERIALISE_ELEMENT(*m_GLPipelineState);
     }
     else if(m_APIProps.pipelineType == GraphicsAPI::Vulkan)
     {
-      VKPipe::Shader *stages[] = {
-          &m_VulkanPipelineState->vertexShader,   &m_VulkanPipelineState->tessControlShader,
-          &m_VulkanPipelineState->tessEvalShader, &m_VulkanPipelineState->geometryShader,
-          &m_VulkanPipelineState->fragmentShader, &m_VulkanPipelineState->computeShader,
-          &m_VulkanPipelineState->taskShader,     &m_VulkanPipelineState->meshShader,
-      };
-
-      fillReflectionPointers(stages);
-
       SERIALISE_ELEMENT(*m_VulkanPipelineState);
     }
-    SERIALISE_ELEMENT(reflectionPointers);
     SERIALISE_ELEMENT(packet);
     ser.EndChunk();
 
@@ -1956,16 +1910,16 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
         };
 
         for(size_t i = 0; i < ARRAY_COUNT(stages); i++)
-          if(reflectionPointers[i] != 0)
+          if(stages[i]->reflection != 0)
           {
-            stages[i]->reflection = GetShaderReflectionByPointer(reflectionPointers[i]);
+            stages[i]->reflection =
+                GetShaderReflectionByPointer((uint64_t)(uintptr_t)stages[i]->reflection);
           }
 
-        if(m_D3D11PipelineState->inputAssembly.resourceId != ResourceId())
+        if(m_D3D11PipelineState->inputAssembly.bytecode != NULL)
         {
-          const size_t inputAssemblyByteCodeIndex = ARRAY_COUNT(stages);
-          m_D3D11PipelineState->inputAssembly.bytecode =
-              GetShaderReflectionByPointer(reflectionPointers[inputAssemblyByteCodeIndex]);
+          m_D3D11PipelineState->inputAssembly.bytecode = GetShaderReflectionByPointer(
+              (uint64_t)(uintptr_t)m_D3D11PipelineState->inputAssembly.bytecode);
         }
       }
       else if(m_APIProps.pipelineType == GraphicsAPI::D3D12 && m_D3D12PipelineState)
@@ -1978,8 +1932,9 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
         };
 
         for(size_t i = 0; i < ARRAY_COUNT(stages); i++)
-          if(reflectionPointers[i] != 0)
-            stages[i]->reflection = GetShaderReflectionByPointer(reflectionPointers[i]);
+          if(stages[i]->reflection != 0)
+            stages[i]->reflection =
+                GetShaderReflectionByPointer((uint64_t)(uintptr_t)stages[i]->reflection);
       }
       else if(m_APIProps.pipelineType == GraphicsAPI::OpenGL && m_GLPipelineState)
       {
@@ -1990,8 +1945,9 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
         };
 
         for(size_t i = 0; i < ARRAY_COUNT(stages); i++)
-          if(reflectionPointers[i] != 0)
-            stages[i]->reflection = GetShaderReflectionByPointer(reflectionPointers[i]);
+          if(stages[i]->reflection != 0)
+            stages[i]->reflection =
+                GetShaderReflectionByPointer((uint64_t)(uintptr_t)stages[i]->reflection);
       }
       else if(m_APIProps.pipelineType == GraphicsAPI::Vulkan && m_VulkanPipelineState)
       {
@@ -2004,8 +1960,9 @@ void ReplayProxy::Proxied_SavePipelineState(ParamSerialiser &paramser, ReturnSer
 
         for(size_t i = 0; i < ARRAY_COUNT(stages); i++)
         {
-          if(reflectionPointers[i] != 0)
-            stages[i]->reflection = GetShaderReflectionByPointer(reflectionPointers[i]);
+          if(stages[i]->reflection != 0)
+            stages[i]->reflection =
+                GetShaderReflectionByPointer((uint64_t)(uintptr_t)stages[i]->reflection);
         }
       }
     }
