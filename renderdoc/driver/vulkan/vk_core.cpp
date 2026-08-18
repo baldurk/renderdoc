@@ -4476,6 +4476,10 @@ bool WrappedVulkan::ContextProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     else if(chunk == VulkanChunk::SetCommandAnnotation || chunk == VulkanChunk::SetQueueAnnotation)
     {
     }
+    else if((SystemChunk)chunk == SystemChunk::CaptureEnd)
+    {
+      // don't add this as an APIEvent
+    }
     else
     {
       if(!m_AddedEventNode)
