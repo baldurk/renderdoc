@@ -460,6 +460,8 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
     if(meshShader)
       TEST_LOG("Running tests with mesh shaders");
 
+    setName(queue, "Main Queue");
+
     vkh::RenderPassCreator renderPassCreateInfo;
     renderPassCreateInfo.attachments.push_back(vkh::AttachmentDescription(
         mainWindow->format, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL,
@@ -488,6 +490,8 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
         CompileShaderModule(VKDefaultVertex, ShaderLang::glsl, ShaderStage::vert, "main"),
         CompileShaderModule(VKDefaultPixel, ShaderLang::glsl, ShaderStage::frag, "main"),
     };
+    setName(pipeCreateInfo.stages[0].module, "Default Vertex Shader");
+    setName(pipeCreateInfo.stages[1].module, "Default Pixel Shader");
 
     VkPipeline noDescSetPipe = createGraphicsPipeline(pipeCreateInfo);
     setName(noDescSetPipe, "No Descriptor Set Pipeline");
@@ -507,6 +511,9 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
         CompileShaderModule(VKDefaultVertex, ShaderLang::glsl, ShaderStage::vert, "main"),
         CompileShaderModule(pixel, ShaderLang::glsl, ShaderStage::frag, "main"),
     };
+    setName(pipeCreateInfo.stages[0].module, "Descriptor Vertex Shader");
+    setName(pipeCreateInfo.stages[1].module, "Descriptor Pixel Shader");
+
     VkPipeline descSetPipe = createGraphicsPipeline(pipeCreateInfo);
     setName(descSetPipe, "Descriptor Set Pipeline");
 
@@ -548,6 +555,8 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
                               SPIRVTarget::vulkan12),
           CompileShaderModule(simple_mesh_pixel, ShaderLang::glsl, ShaderStage::frag, "main"),
       };
+      setName(meshShaderPipeCreateInfo.stages[0].module, "Mesh Mesh Shader");
+      setName(meshShaderPipeCreateInfo.stages[1].module, "Mesh Pixel Shader");
 
       VkGraphicsPipelineCreateInfo *vkMeshShaderPipeCreateInfo = meshShaderPipeCreateInfo;
       vkMeshShaderPipeCreateInfo->pVertexInputState = NULL;
@@ -567,10 +576,12 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
         createPipelineLayout(vkh::PipelineLayoutCreateInfo({compDescSetLayout}));
     setName(compDescSetPipeLayout, "Compute Pipeline Layout");
 
-    VkPipeline compDescSetPipe = createComputePipeline(vkh::ComputePipelineCreateInfo(
+    vkh::ComputePipelineCreateInfo compDescSetPipeCreateInfo(
         compDescSetPipeLayout,
-        CompileShaderModule(compute, ShaderLang::glsl, ShaderStage::comp, "main")));
+        CompileShaderModule(compute, ShaderLang::glsl, ShaderStage::comp, "main"));
+    VkPipeline compDescSetPipe = createComputePipeline(compDescSetPipeCreateInfo);
     setName(compDescSetPipe, "Compute Descriptor Set Pipeline");
+    setName(compDescSetPipeCreateInfo.stage.module, "Descriptor Set Compute Shader");
 
     VkDescriptorSetLayout compWriteDataSetLayout =
         createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
@@ -584,10 +595,12 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
         {compWriteDataSetLayout}, {vkh::PushConstantRange(VK_SHADER_STAGE_COMPUTE_BIT, 0, 4)}));
     setName(compWriteDataPipeLayout, "Compute WriteData Pipeline Layout");
 
-    VkPipeline compWriteDataPipe = createComputePipeline(vkh::ComputePipelineCreateInfo(
+    vkh::ComputePipelineCreateInfo compWriteDataPipeCreateInfo(
         compWriteDataPipeLayout,
-        CompileShaderModule(computeWriteData, ShaderLang::glsl, ShaderStage::comp, "main")));
+        CompileShaderModule(computeWriteData, ShaderLang::glsl, ShaderStage::comp, "main"));
+    VkPipeline compWriteDataPipe = createComputePipeline(compWriteDataPipeCreateInfo);
     setName(compWriteDataPipe, "Compute WriteData Pipeline");
+    setName(compWriteDataPipeCreateInfo.stage.module, "WriteData Compute Shader");
 
     VkPipelineLayout compDescBuffPipeLayout = VK_NULL_HANDLE;
     VkPipeline compDescBuffPipe = VK_NULL_HANDLE;
@@ -596,11 +609,13 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
       compDescBuffPipeLayout = createPipelineLayout(vkh::PipelineLayoutCreateInfo({descBuffLayout}));
       setName(compDescSetPipeLayout, "Compute Descriptor Buffer Pipeline Layout");
 
-      compDescBuffPipe = createComputePipeline(vkh::ComputePipelineCreateInfo(
+      vkh::ComputePipelineCreateInfo compDescBuffPipeCreateInfo(
           compDescBuffPipeLayout,
           CompileShaderModule(compute, ShaderLang::glsl, ShaderStage::comp, "main"),
-          VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT));
+          VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT);
+      compDescBuffPipe = createComputePipeline(compDescBuffPipeCreateInfo);
       setName(compDescBuffPipe, "Compute Descriptor Buffer Pipeline");
+      setName(compDescBuffPipeCreateInfo.stage.module, "Descriptor Buffer Compute Shader");
     }
 
     const DefaultA2V vbData[15] = {
@@ -812,14 +827,15 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
         {vkh::BufferMemoryBarrier(VK_ACCESS_NONE, VK_ACCESS_NONE, barrierBuffer.buffer)});
     vkEndCommandBuffer(barrierCmd);
 
-    VkFence barrerCmdSubmitFence;
+    VkFence barrierCmdSubmitFence;
     CHECK_VKR(vkCreateFence(device, vkh::FenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT), NULL,
-                            &barrerCmdSubmitFence));
-    setName(barrerCmdSubmitFence, "Barrier Command Submit Fence");
+                            &barrierCmdSubmitFence));
+    setName(barrierCmdSubmitFence, "Barrier Command Submit Fence");
 
     while(Running())
     {
       viewPort = {0.0f, 0.0f, sqSize, sqSize, 0.0f, 1.0f};
+      setName(mainWindow->GetFB(), "Main Framebuffer");
 
       VkCommandBuffer barrierSecCmd = GetCommandBuffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY);
       vkBeginCommandBuffer(barrierSecCmd, vkh::CommandBufferBeginInfo(
@@ -936,6 +952,9 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
 
       VkImage swapimg =
           StartUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
+      setName(swapimg, "Main Swapchain Image");
+      VkImageView view = mainWindow->GetView();
+      setName(view, "Main Swapchain ImageView");
 
       vkCmdClearColorImage(cmd, swapimg, VK_IMAGE_LAYOUT_GENERAL,
                            vkh::ClearColorValue(0.2f, 0.2f, 0.2f, 1.0f), 1,
@@ -1525,6 +1544,8 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
 
       FinishUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
+      setMarker(cmd, "Barrier Command Submit Fence");
+
       vkEndCommandBuffer(cmd);
       cmds.push_back(cmd);
 
@@ -1535,10 +1556,10 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
       VkSubmitInfo submit = vkh::SubmitInfo(cmds2);
       for(uint32_t i = 0; i < 10; ++i)
       {
-        vkWaitForFences(device, 1, &barrerCmdSubmitFence, VK_TRUE, UINT64_MAX);
-        vkResetFences(device, 1, &barrerCmdSubmitFence);
-        CHECK_VKR(vkQueueSubmit(queue, 1, &submit, barrerCmdSubmitFence));
-        vkWaitForFences(device, 1, &barrerCmdSubmitFence, VK_TRUE, UINT64_MAX);
+        vkWaitForFences(device, 1, &barrierCmdSubmitFence, VK_TRUE, UINT64_MAX);
+        vkResetFences(device, 1, &barrierCmdSubmitFence);
+        CHECK_VKR(vkQueueSubmit(queue, 1, &submit, barrierCmdSubmitFence));
+        vkWaitForFences(device, 1, &barrierCmdSubmitFence, VK_TRUE, UINT64_MAX);
       }
 
       cmd = GetCommandBuffer();
@@ -1561,7 +1582,7 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
       Present();
     }
 
-    vkDestroyFence(device, barrerCmdSubmitFence, NULL);
+    vkDestroyFence(device, barrierCmdSubmitFence, NULL);
     vkDestroyCommandPool(device, barrierCmdPool, NULL);
 
     return 0;
