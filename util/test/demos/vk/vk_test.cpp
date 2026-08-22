@@ -1144,6 +1144,18 @@ void VulkanGraphicsTest::setName(VkCommandPool obj, const std::string &name)
   setName(VK_OBJECT_TYPE_COMMAND_POOL, (uint64_t)obj, name);
 }
 
+template <>
+void VulkanGraphicsTest::setName(VkQueue obj, const std::string &name)
+{
+  setName(VK_OBJECT_TYPE_QUEUE, (uint64_t)obj, name);
+}
+
+template <>
+void VulkanGraphicsTest::setName(VkShaderModule obj, const std::string &name)
+{
+  setName(VK_OBJECT_TYPE_SHADER_MODULE, (uint64_t)obj, name);
+}
+
 void VulkanGraphicsTest::setName(VkObjectType objType, uint64_t obj, const std::string &name)
 {
   if(vkSetDebugUtilsObjectNameEXT)
