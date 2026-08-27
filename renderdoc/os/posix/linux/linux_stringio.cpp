@@ -739,11 +739,15 @@ iconv_t iconvUTF82Wide = (iconv_t)-1;
 // iconv is not thread safe when sharing an iconv_t descriptor
 // I don't expect much contention but if it happens we could TryLock
 // before creating a temporary iconv_t, or hold two iconv_ts, or something.
-Threading::CriticalSection iconvLock;
+Threading::CriticalSection &iconvLock()
+{
+  static Threading::CriticalSection *lock = new Threading::CriticalSection;
+  return *lock;
+}
 
 void Shutdown()
 {
-  SCOPED_LOCK(iconvLock);
+  SCOPED_LOCK(iconvLock());
 
   if(iconvWide2UTF8 != (iconv_t)-1)
     iconv_close(iconvWide2UTF8);
@@ -766,7 +770,7 @@ rdcstr Wide2UTF8(const rdcwstr &s)
   size_t ret;
 
   {
-    SCOPED_LOCK(iconvLock);
+    SCOPED_LOCK(iconvLock());
 
     if(iconvWide2UTF8 == (iconv_t)-1)
       iconvWide2UTF8 = iconv_open("UTF-8", "WCHAR_T");
@@ -811,7 +815,7 @@ rdcwstr UTF82Wide(const rdcstr &s)
   size_t ret;
 
   {
-    SCOPED_LOCK(iconvLock);
+    SCOPED_LOCK(iconvLock());
 
     if(iconvUTF82Wide == (iconv_t)-1)
       iconvUTF82Wide = iconv_open("WCHAR_T", "UTF-8");
