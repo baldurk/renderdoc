@@ -3264,6 +3264,8 @@ BufferViewer::~BufferViewer()
     m_Ctx.Replay().BlockInvoke([this](IReplayController *r) { m_Output->Shutdown(); });
   }
 
+  delete m_Scrolls;
+
   delete m_Arcball;
   delete m_Flycam;
 
