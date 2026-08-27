@@ -2,6 +2,7 @@
 Version=1.0
 Name=RenderDoc
 Comment=A stand-alone graphics API debugger
+Comment[ru]=Автономный отладчик графических API
 GenericName=Graphics Debugger
 Exec=qrenderdoc %f
 Icon=application-x-renderdoc-capture
@@ -9,5 +10,7 @@ Terminal=false
 Type=Application
 X-MultipleArgs=false
 Categories=Development;
+Keywords=RenderDoc;
+Keywords[ru]=РендерДок;
 StartupNotify=true
 MimeType=application/x-renderdoc-capture;
