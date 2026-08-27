@@ -738,6 +738,7 @@ private:
   VulkanLayerCheck m_VulkanCheck;
   VulkanLayerInstall m_VulkanInstall;
 
+  Threading::CriticalSection m_ShutdownLock;
   rdcarray<ShutdownFunction> m_ShutdownFunctions;
   rdcarray<EnvSetupFunction> m_EnvSetups;
 
