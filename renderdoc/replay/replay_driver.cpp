@@ -193,10 +193,15 @@ void PatchLineStripIndexBuffer(const ActionDescription *action, Topology topolog
 {
   const uint32_t restart = 0xffffffff;
 
-#define IDX_VALUE(offs)                                                                        \
-  (idx16 ? idx16[index + (offs)]                                                               \
-         : (idx32 ? idx32[index + (offs)] : (idx8 ? idx8[index + (offs)] : index + (offs)))) + \
-      action->baseVertex
+  // For indexed draws the fetched index has baseVertex added to it.
+  // For non-indexed draws the index is generated and has vertexOffset added to it.
+  // clang-format off
+#define IDX_VALUE(offs)                                \
+  idx16   ? idx16[index + (offs)] + action->baseVertex \
+  : idx32 ? idx32[index + (offs)] + action->baseVertex \
+  : idx8  ? idx8[index + (offs)] + action->baseVertex  \
+          : index + (offs) + action->vertexOffset
+  // clang-format on
 
   switch(topology)
   {
