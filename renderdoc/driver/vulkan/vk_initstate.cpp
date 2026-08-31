@@ -2084,6 +2084,22 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *res, VkInitialContents &ini
       }
       else
       {
+        // srcBuf was initilized with a vkCmdCopyBuffer() or vkCmdFillBuffer() earlier
+        // in this command buffer. Add a barrier to make sure that command finishes
+        // before this copy.
+        VkBufferMemoryBarrier srcBufBarrier = {
+            VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+            NULL,
+            VK_ACCESS_TRANSFER_WRITE_BIT,
+            VK_ACCESS_TRANSFER_READ_BIT,
+            VK_QUEUE_FAMILY_IGNORED,
+            VK_QUEUE_FAMILY_IGNORED,
+            Unwrap(srcBuf),
+            0,
+            VK_WHOLE_SIZE,
+        };
+        DoPipelineBarrier(cmd, 1, &srcBufBarrier);
+
         VkBufferCopy bufCopy;
         bufCopy.srcOffset = boundMemoryOffset;
         bufCopy.size = boundMemorySize;
