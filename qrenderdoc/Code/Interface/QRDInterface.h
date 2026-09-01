@@ -450,18 +450,21 @@ expression.
 :param Callable[[CaptureContext,str,str,int,renderdoc.SDChunk,renderdoc.ActionDescription,str], bool] filter: The
   callback to call for each candidate event to perform filtering.
   Callback function signature must match :func:`EventFilterCallback`.
-:param Callable[[CaptureContext,str,str], str] parser: The callback to call when the parsing the
-  parameters and checking for any errors. This can be ``None`` if no pre-parsing is required.
+:param Callable[[CaptureContext,str,str], str] parser=None: **Optional parameter**. The callback to
+  call when the parsing the parameters and checking for any errors. This can be ``None`` if no
+  pre-parsing is required.
   Callback function signature must match :func:`FilterParseCallback`.
-:param Callable[[CaptureContext,str,str], List[str]] completer: The callback to call when trying
-  to provide autocomplete suggestions. This can be ``None`` if no completion is desired/applicable.
+:param Callable[[CaptureContext,str,str], List[str]] completer=None: **Optional parameter**. The
+  callback to call when trying to provide autocomplete suggestions. This can be ``None`` if no
+  completion is desired/applicable.
   Callback function signature must match :func:`AutoCompleteCallback`.
 :return: Whether or not the registration was successful.
 :rtype: bool
 )");
   virtual bool RegisterEventFilterFunction(const rdcstr &name, const rdcstr &description,
-                                           EventFilterCallback filter, FilterParseCallback parser,
-                                           AutoCompleteCallback completer) = 0;
+                                           EventFilterCallback filter,
+                                           FilterParseCallback parser = NULL,
+                                           AutoCompleteCallback completer = NULL) = 0;
 
   DOCUMENT(R"(Unregisters an event browser filter function that was previously registered.
 
