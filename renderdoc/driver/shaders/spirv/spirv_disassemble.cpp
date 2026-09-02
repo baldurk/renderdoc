@@ -1880,7 +1880,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint, const rdcarray<SpecConst
               else if(scope.inst == ShaderDbg::LexicalBlock)
                 line = idName(scope.arg<Id>(1));
 
-              while(scope.inst != ShaderDbg::Function && scope.arg<Id>(3) != Id())
+              while(scope.inst == ShaderDbg::LexicalBlock && scope.arg<Id>(3) != Id())
                 scope = OpShaderDbg(GetID(scope.arg<Id>(3)));
 
               if(scope.inst == ShaderDbg::Function)
