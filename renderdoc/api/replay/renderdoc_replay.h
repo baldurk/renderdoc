@@ -1556,7 +1556,7 @@ or an error has occurred.
   locally you can use :meth:`CopyCaptureToRemote` to transfer it over the remote connection.
 :param ReplayOptions opts: The options controlling how the capture should be replayed.
 :param Callable[[float], None] progress=None: **Optional parameter**. A callback that will be
- repeatedly called with an updated progress value for the opening. Can be ``None`` if no progress is
+  repeatedly called with an updated progress value for the opening. Can be ``None`` if no progress is
   desired.
   Callback function signature must match :func:`ProgressCallback`.
 :return: A tuple containing the status of opening the capture, whether success or failure, and the
