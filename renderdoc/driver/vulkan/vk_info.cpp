@@ -3379,10 +3379,21 @@ void DescUpdateTemplate::Apply(const void *pData, DescUpdateTemplateApplication 
 
       application.imgInfo.resize(idx + entry.descriptorCount);
 
+      const DescSetLayout::Binding *layoutBinding = &layout.bindings[entry.dstBinding];
+
       for(uint32_t d = 0; d < entry.descriptorCount; d++)
       {
         memcpy(&application.imgInfo[idx + d], src, sizeof(VkDescriptorImageInfo));
         src += entry.stride;
+
+        if((entry.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER ||
+            entry.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) &&
+           layoutBinding->immutableSampler != NULL)
+        {
+          // force potentially garbage samplers to NULL here as by the time we get to serialising we
+          // will have no way to determine this anymore
+          application.imgInfo[idx + d].sampler = VK_NULL_HANDLE;
+        }
       }
 
       write.pImageInfo = &application.imgInfo[idx];

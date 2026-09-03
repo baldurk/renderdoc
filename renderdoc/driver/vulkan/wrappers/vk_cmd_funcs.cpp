@@ -100,13 +100,15 @@ struct DescriptorTemplateRefs
                          entry.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
                          entry.descriptorType == VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT);
 
+        const DescSetLayout::Binding *layoutBinding = &tempInfo->layout.bindings[entry.dstBinding];
+
         for(uint32_t d = 0; d < entry.descriptorCount; d++)
         {
           memcpy(dst, src, sizeof(VkDescriptorImageInfo));
 
           VkDescriptorImageInfo *info = (VkDescriptorImageInfo *)dst;
 
-          if(hasSampler && info->sampler != VK_NULL_HANDLE)
+          if(hasSampler && layoutBinding->immutableSampler == NULL && info->sampler != VK_NULL_HANDLE)
           {
             frameRefs.push_back(make_rdcpair(GetResID(info->sampler), eFrameRef_Read));
             info->sampler = Unwrap(info->sampler);
