@@ -757,16 +757,16 @@ void PythonContext::GlobalInit(PersistentConfig &config)
           Py_DecRef(str);
         }
 
-        m_DebugPy = PyImport_ImportModule("debugpy");
+        PyObject *debugpy = PyImport_ImportModule("debugpy");
 
-        if(!m_DebugPy)
+        if(!debugpy)
         {
           qCritical() << "Failed to import debugpy";
           HandleException(NULL);
         }
         else
         {
-          PyObject *configure = PyObject_SafeGetAttrString(m_DebugPy, "configure");
+          PyObject *configure = PyObject_SafeGetAttrString(debugpy, "configure");
 
           // don't let debugpy create a subprocess, for obvious reasons
           if(configure)
@@ -779,8 +779,8 @@ void PythonContext::GlobalInit(PersistentConfig &config)
             {
               qCritical() << "Failed calling debugpy.configure";
               HandleException(NULL);
-              Py_XDECREF(m_DebugPy);
-              m_DebugPy = NULL;
+              Py_XDECREF(debugpy);
+              debugpy = NULL;
             }
 
             Py_XDECREF(ret);
@@ -793,9 +793,9 @@ void PythonContext::GlobalInit(PersistentConfig &config)
 
           Py_XDECREF(configure);
 
-          if(m_DebugPy)
+          if(debugpy)
           {
-            PyObject *listen = PyObject_SafeGetAttrString(m_DebugPy, "listen");
+            PyObject *listen = PyObject_SafeGetAttrString(debugpy, "listen");
 
             if(listen)
             {
@@ -810,8 +810,12 @@ void PythonContext::GlobalInit(PersistentConfig &config)
               {
                 qCritical() << "Failed calling debugpy.listen";
                 HandleException(NULL);
-                Py_XDECREF(m_DebugPy);
-                m_DebugPy = NULL;
+                Py_XDECREF(debugpy);
+                debugpy = NULL;
+              }
+              else
+              {
+                m_DebugPy = debugpy;
               }
 
               Py_XDECREF(ret);
