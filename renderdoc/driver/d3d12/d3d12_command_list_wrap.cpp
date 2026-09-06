@@ -3818,8 +3818,8 @@ void WrappedID3D12GraphicsCommandList::FinaliseExecuteIndirectEvents(BakedCmdLis
                                                                      size_t nodeIdx)
 {
   rdcarray<D3D12EventNode> &eventNodes = info.eventNodes;
-  D3D12EventNode &baseActionNode = eventNodes[nodeIdx];
-  const D3D12ExecuteData &exec = baseActionNode.executeData;
+  // Take a copy because eventNodes is likely to be resized
+  const D3D12ExecuteData exec = eventNodes[nodeIdx].executeData;
 
   WrappedID3D12CommandSignature *comSig = exec.sig;
 
@@ -3846,7 +3846,7 @@ void WrappedID3D12GraphicsCommandList::FinaliseExecuteIndirectEvents(BakedCmdLis
     return;
 
   // patch the name for the base action
-  baseActionNode.action.customName =
+  eventNodes[nodeIdx].action.customName =
       StringFormat::Fmt("ExecuteIndirect(maxCount %u, count <%u>)", exec.maxCount, count);
 
   // move to the first actual event of the commands
@@ -3875,7 +3875,7 @@ void WrappedID3D12GraphicsCommandList::FinaliseExecuteIndirectEvents(BakedCmdLis
   }
   // this can be negative if count is 0
   int32_t countExtraActions = count - exec.reservedCount;
-  // exec.reservedCount copies of the signatuire were reserved for the indirect count actions
+  // exec.reservedCount copies of the signature were reserved for the indirect count actions
   // if we ended up with a different number countExtraNodes will be non-zero,
   // we need to adjust and either remove the nodes we allocated (if no actions happened)
   // or clone the nodes to create more that we can then patch.
@@ -3889,17 +3889,19 @@ void WrappedID3D12GraphicsCommandList::FinaliseExecuteIndirectEvents(BakedCmdLis
     else if(countExtraActions > 0)
     {
       size_t baseCommandStart = idx;
-      // We need to clone the signature nodes countExtraNode times
+      size_t baseCommandEnd = baseCommandStart + sigSize;
       size_t countExtraNodes = countExtraActions * sigSize;
+
+      // We need to clone the signature nodes countExtraNode times
       sdFile->chunks.reserve(sdFile->chunks.size() + countExtraNodes);
       // Insert space for the new nodes
       eventNodes.resize(eventNodes.size() + countExtraNodes);
-      size_t endActionNode = idx + sigSize;
-      for(size_t e = eventNodes.size() - 1; e > endActionNode; e--)
+      // Shift the nodes after the placeholder forwards by countExtraNodes
+      for(size_t e = eventNodes.size() - 1; e >= baseCommandEnd + countExtraNodes; e--)
         eventNodes[e] = std::move(eventNodes[e - countExtraNodes]);
 
-      size_t newIdx = endActionNode;
-      for(size_t extra = 0; extra < countExtraNodes; ++extra)
+      size_t newIdx = baseCommandEnd;
+      for(int32_t extra = 0; extra < countExtraActions; ++extra)
       {
         for(uint32_t a = 0; a < sigSize; ++a)
         {
@@ -3945,7 +3947,7 @@ void WrappedID3D12GraphicsCommandList::FinaliseExecuteIndirectEvents(BakedCmdLis
         {
           case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW:
           {
-            D3D12_DRAW_ARGUMENTS *args = (D3D12_DRAW_ARGUMENTS *)data;
+            const D3D12_DRAW_ARGUMENTS *args = (D3D12_DRAW_ARGUMENTS *)data;
             data += sizeof(D3D12_DRAW_ARGUMENTS);
 
             curAction.drawIndex = a;
@@ -3967,7 +3969,7 @@ void WrappedID3D12GraphicsCommandList::FinaliseExecuteIndirectEvents(BakedCmdLis
           }
           case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED:
           {
-            D3D12_DRAW_INDEXED_ARGUMENTS *args = (D3D12_DRAW_INDEXED_ARGUMENTS *)data;
+            const D3D12_DRAW_INDEXED_ARGUMENTS *args = (D3D12_DRAW_INDEXED_ARGUMENTS *)data;
             data += sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
 
             curAction.drawIndex = a;
@@ -3990,7 +3992,7 @@ void WrappedID3D12GraphicsCommandList::FinaliseExecuteIndirectEvents(BakedCmdLis
           }
           case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH:
           {
-            D3D12_DISPATCH_ARGUMENTS *args = (D3D12_DISPATCH_ARGUMENTS *)data;
+            const D3D12_DISPATCH_ARGUMENTS *args = (D3D12_DISPATCH_ARGUMENTS *)data;
             data += sizeof(D3D12_DISPATCH_ARGUMENTS);
 
             curAction.dispatchDimension[0] = args->ThreadGroupCountX;
@@ -4010,7 +4012,7 @@ void WrappedID3D12GraphicsCommandList::FinaliseExecuteIndirectEvents(BakedCmdLis
           }
           case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_MESH:
           {
-            D3D12_DISPATCH_MESH_ARGUMENTS *args = (D3D12_DISPATCH_MESH_ARGUMENTS *)data;
+            const D3D12_DISPATCH_MESH_ARGUMENTS *args = (D3D12_DISPATCH_MESH_ARGUMENTS *)data;
             data += sizeof(D3D12_DISPATCH_MESH_ARGUMENTS);
 
             curAction.dispatchDimension[0] = args->ThreadGroupCountX;
@@ -4031,6 +4033,7 @@ void WrappedID3D12GraphicsCommandList::FinaliseExecuteIndirectEvents(BakedCmdLis
           }
           case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH_RAYS:
           {
+            // This modifies the mapped data via args
             D3D12_DISPATCH_RAYS_DESC *args = (D3D12_DISPATCH_RAYS_DESC *)data;
             data += sizeof(D3D12_DISPATCH_RAYS_DESC);
 
@@ -4070,7 +4073,7 @@ void WrappedID3D12GraphicsCommandList::FinaliseExecuteIndirectEvents(BakedCmdLis
           case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
           {
             size_t argSize = sizeof(uint32_t) * arg.Constant.Num32BitValuesToSet;
-            uint32_t *data32 = (uint32_t *)data;
+            const uint32_t *data32 = (uint32_t *)data;
             data += argSize;
 
             fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectSetRoot32BitConstants", i, a);
@@ -4120,6 +4123,7 @@ void WrappedID3D12GraphicsCommandList::FinaliseExecuteIndirectEvents(BakedCmdLis
           }
           case D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW:
           {
+            // This modifies the mapped data via ib
             D3D12_INDEX_BUFFER_VIEW *ib = (D3D12_INDEX_BUFFER_VIEW *)data;
             data += sizeof(D3D12_INDEX_BUFFER_VIEW);
 
@@ -4146,6 +4150,7 @@ void WrappedID3D12GraphicsCommandList::FinaliseExecuteIndirectEvents(BakedCmdLis
           case D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW:
           case D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW:
           {
+            // This modifies the mapped data via addr
             D3D12_GPU_VIRTUAL_ADDRESS *addr = (D3D12_GPU_VIRTUAL_ADDRESS *)data;
             data += sizeof(D3D12_GPU_VIRTUAL_ADDRESS);
 
