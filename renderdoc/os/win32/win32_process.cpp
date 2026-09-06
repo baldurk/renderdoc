@@ -980,11 +980,20 @@ rdcpair<RDResult, uint32_t> Process::InjectIntoProcess(uint32_t pid,
 
   if(loc == 0)
   {
+    const char *largeAddrMsg =
+#if ENABLED(RDOC_X64)
+        ", and is not built with /LARGEADDRESSAWARE:NO";
+#else
+        "";
+#endif
+
     SET_ERROR_RESULT(
         result.first, ResultCode::InjectionFailed,
         "Failed to inject %s.dll into process. Check that the process did not crash or exit "
-        "early in initialisation, e.g. if the working directory is incorrectly set.",
-        rdoc_dll);
+        "early in initialisation, e.g. if the working directory is incorrectly set.\n"
+        "Otherwise ensure the program does not have significant "
+        "code that will run on global constructors/thread start and crash%s",
+        rdoc_dll, largeAddrMsg);
   }
   else
   {
