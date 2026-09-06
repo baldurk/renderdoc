@@ -316,7 +316,7 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
         with rdtest.log.auto_section('Checking Count Buffer Draws'):
             base = self.find_action("Count Buffer Draws")
             tests = [
-                ("MaxCount: 1024 CountBuf: 5", 5, 170),
+                ("MaxCount: 1024 CountBuf: 256", 256, 170),
                 ("MaxCount: 1 CountBuf: 7", 1, 250),
                 ("MaxCount: 0 CountBuf: 11", 0, 0)
             ]
@@ -331,13 +331,14 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
                     countDraws = len(executeAction.children) - 1
                     self.check_eq(countDraws, expectedDraws)
                     action = self.find_action("IndirectDraw", executeAction.eventId)
-                    for drawNum in range(countDraws):
+                    for drawNum in range(min(countDraws, 12)):
                         eid = action.eventId
                         self.controller.SetFrameEvent(eid, False)
                         pipe = self.controller.GetPipelineState()
                         if len(pipe.GetOutputTargets()) != 1:
                             raise rdtest.TestFailureException(
                                 f"With event {eid} selected we should have one output target but there is {len(pipe.GetOutputTargets())}")
+                        drawNum = drawNum % 6
                         x = xpos
                         y = 210 - drawNum * 20
                         if drawNum > 2:
@@ -354,6 +355,8 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
                             self.check_pixel_history_succeeds(x, 165)
                         if drawNum > 3:
                             self.check_pixel_history_succeeds(x, 185)
+                        if drawNum > 4:
+                            self.check_pixel_history_succeeds(x, 205)
                         action = action.nextAction
 
         with rdtest.log.auto_section('Two Single Draws QuadOverdraw (Pass) replayed correctly'):

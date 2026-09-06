@@ -428,14 +428,14 @@ void main(uint3 gid : SV_GroupID)
     for(uint32_t i = 0; i < maxCountDraws; ++i)
     {
       countSingleDraws[i].VertexCountPerInstance = 3;
-      countSingleDraws[i].InstanceCount = i + 1;
+      countSingleDraws[i].InstanceCount = std::min(12U, i + 1);
       countSingleDraws[i].StartInstanceLocation = 0;
       countSingleDraws[i].StartVertexLocation = (9 + (i * 3)) % 18;
     }
     ID3D12ResourcePtr countSingleDrawsArgBuf =
         MakeBuffer().Size(sizeof(countSingleDraws)).Data(&countSingleDraws);
 
-    uint32_t counts[] = {0, 5, 7, 11};
+    uint32_t counts[] = {0, 256, 7, 11};
     ID3D12ResourcePtr countBuf = MakeBuffer().Data(counts);
 
     ID3D12PipelineStatePtr patchpso3 =
@@ -736,7 +736,7 @@ void main(uint3 gid : SV_GroupID)
 
         cmd->SetGraphicsRoot32BitConstants(3, 4, baseConstData, 0);
 
-        setMarker(cmd, "MaxCount: 1024 CountBuf: 5");
+        setMarker(cmd, "MaxCount: 1024 CountBuf: 256");
         cmd->ExecuteIndirect(plainArgSig, maxCountDraws, countSingleDrawsArgBuf, 0, countBuf, 4);
         NextTest();
         setMarker(cmd, "MaxCount: 1 CountBuf: 7");
