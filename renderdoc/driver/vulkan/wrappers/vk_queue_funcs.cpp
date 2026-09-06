@@ -690,21 +690,22 @@ SDObject *WrappedVulkan::InsertEventNodes(BakedCmdBufferInfo &cmdBufInfo)
         // or clone the subdraw to create more that we can then patch.
         if(countExtraNodes != 0)
         {
+          size_t baseCommandStart = i + 1;
           // everything afterwards is adjusted. Now see if we need to remove the subdraw or clone it
           if(indirectCount == 0)
           {
             // Copy the flags and resource usage from the subdraw to the indirect action (push marker)
-            n.action.flags |= eventNodes[i + 1].action.flags;
+            n.action.flags |= eventNodes[baseCommandStart].action.flags;
             // This ordering matches the existing ordering in the ActionNode resource usage
-            n.resourceUsage.swap(eventNodes[i + 1].resourceUsage);
-            n.resourceUsage.append(eventNodes[i + 1].resourceUsage);
+            n.resourceUsage.swap(eventNodes[baseCommandStart].resourceUsage);
+            n.resourceUsage.append(eventNodes[baseCommandStart].resourceUsage);
 
             // i is the pushmarker, which we leave. i+1 is the subdraw
-            eventNodes.erase(i + 1);
+            eventNodes.erase(baseCommandStart);
           }
           else if(countExtraNodes > 0)
           {
-            uint32_t chunkIndex = eventNodes[i + 1].event.chunkIndex;
+            uint32_t chunkIndex = eventNodes[baseCommandStart].event.chunkIndex;
             // duplicate the fake structured data chunk N times
             SDChunk *chunk = m_StructuredFile->chunks[chunkIndex];
 
@@ -714,17 +715,19 @@ SDObject *WrappedVulkan::InsertEventNodes(BakedCmdBufferInfo &cmdBufInfo)
               m_StructuredFile->chunks.push_back(chunk->Duplicate());
 
             // now copy the subdraw so we're not inserting into the array from itself
-            VulkanEventNode node = eventNodes[i + 1];
+            VulkanEventNode node = eventNodes[baseCommandStart];
+            size_t baseCommandEnd = baseCommandStart + 1;
 
             eventNodes.resize(eventNodes.size() + countExtraNodes);
-            for(size_t e = eventNodes.size() - 1; e > i + 1 + countExtraNodes; e--)
+            // Shift the nodes after the placeholder forwards by countExtraNodes
+            for(size_t e = eventNodes.size() - 1; e >= baseCommandEnd + countExtraNodes; e--)
               eventNodes[e] = std::move(eventNodes[e - countExtraNodes]);
 
             // then insert enough duplicates
             for(int32_t e = 0; e < countExtraNodes; e++)
             {
               node.event.chunkIndex = baseAddedChunk + e;
-              eventNodes[i + 2 + e] = node;
+              eventNodes[baseCommandEnd + e] = node;
             }
           }
         }
