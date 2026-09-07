@@ -150,7 +150,7 @@ public:
   DOCUMENT(R"(
 :return: The :class:`~renderdoc.DeviceProtocolController` for this host, or ``None`` if no protocol
   is in use
-:rtype: renderdoc.DeviceProtocolController
+:rtype: Optional[renderdoc.DeviceProtocolController]
 )");
   IDeviceProtocolController *Protocol() const { return m_protocol; }
   DOCUMENT(R"(

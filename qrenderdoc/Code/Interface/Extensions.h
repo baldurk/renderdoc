@@ -448,7 +448,7 @@ is a layout type widget, to allow customising how children are added. By default
 added in a vertical layout.
 
 :param str windowTitle: The title of any window with this widget as its root.
-:param Callable[[CaptureContext, QWidget, str], None] closed=None: **Optional parameter**. A callback
+:param Optional[Callable[[CaptureContext, QWidget, str], None]] closed=None: **Optional parameter**. A callback
   that will be called when the widget is closed by the user.
   This implicitly deletes the widget and all its children, which will no longer be valid even if a
   handle to them exists.
@@ -792,7 +792,7 @@ The widget needs to be added to a parent to become part of a panel or window.
 
   DOCUMENT(R"(Create a normal button widget.
 
-:param Callable[[CaptureContext, QWidget, str], None] pressed=None: **Optional parameter**. Callback
+:param Optional[Callable[[CaptureContext, QWidget, str], None]] pressed=None: **Optional parameter**. Callback
   to be called when the button is pressed.
   Callback function signature must match :func:`WidgetCallback`.
 :return: The handle to the newly created widget.
@@ -867,8 +867,8 @@ When a capture is closed and all outputs are destroyed, the widget will automati
 output so there is no need to do that manually.
 
 :param QWidget widget: The widget to set the output for.
-:param renderdoc.ReplayOutput output: The new output to set, or ``None`` to unset any previous
-  output.
+:param Optional[renderdoc.ReplayOutput] output: The new output to set, or ``None`` to unset any
+  previous output.
 )");
   virtual void SetWidgetReplayOutput(QWidget *widget, IReplayOutput *output) = 0;
 
@@ -890,7 +890,7 @@ checkerboard to be rendered instead. This is the default behaviour when a widget
   DOCUMENT(R"(Create a checkbox widget which can be toggled between unchecked and checked. When
 created the checkbox is unchecked.
 
-:param Callable[[CaptureContext, QWidget, str], None] changed=None: **Optional parameter**. Callback
+:param Optional[Callable[[CaptureContext, QWidget, str], None]] changed=None: **Optional parameter**. Callback
   to be called when the widget is toggled.
   Callback function signature must match :func:`WidgetCallback`.
 :return: The handle to the newly created widget.
@@ -904,7 +904,7 @@ at most one radio box in any group of sibling radio boxes being checked.
 Upon creation the radio box is unchecked, even in a group of other radio boxes that are unchecked.
 If you want a default radio box to be checked, you should use :meth:`SetWidgetChecked`.
 
-:param Callable[[CaptureContext, QWidget, str], None] changed=None: **Optional parameter**. Callback
+:param Optional[Callable[[CaptureContext, QWidget, str], None]] changed=None: **Optional parameter**. Callback
   to be called when the widget is toggled.
   Callback function signature must match :func:`WidgetCallback`.
 :return: The handle to the newly created widget.
@@ -976,7 +976,7 @@ happen.
 
 :param bool singleLine: ``True`` if the widget should be a single-line entry, otherwise it is a
   multi-line text box.
-:param Callable[[CaptureContext, QWidget, str], None] changed=None: **Optional parameter**. Callback
+:param Optional[Callable[[CaptureContext, QWidget, str], None]] changed=None: **Optional parameter**. Callback
   to be called when the text in the textbox is changed.
   Callback function signature must match :func:`WidgetCallback`.
 :return: The handle to the newly created widget.
@@ -991,7 +991,7 @@ When created there are no pre-defined entries in the drop-down section. This can
 
 :param bool editable: ``True`` if the widget should allow the user to enter any text they wish as
   well as being able to select a pre-defined entry.
-:param Callable[[CaptureContext, QWidget, str], None] changed=None: **Optional parameter**. Callback
+:param Optional[Callable[[CaptureContext, QWidget, str], None]] changed=None: **Optional parameter**. Callback
   to be called when the text in the combobox is changed. This
   will be called both when a new option is selected or when the user edits the text.
   Callback function signature must match :func:`WidgetCallback`.

@@ -106,7 +106,7 @@ def prepare_history():
 
         refl = pipe.GetShaderReflection(renderdoc.ShaderStage.Pixel)
 
-        if not refl.debugInfo.debuggable:
+        if refl is None or not refl.debugInfo.debuggable:
             print("Shader can't be debugged:")
             print(refl.debugInfo.debugStatus)
             return

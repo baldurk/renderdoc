@@ -117,6 +117,11 @@ def make_c_typeval(ret: str, pattern: bool, typelist: List[str]):
     elif ret[0:5] == 'List[':
         inner = make_c_typeval(ret[5:-1], pattern, typelist)
         ret = '(const )?rdcarray<{}> ?[&*]?'.format(inner) if pattern else 'rdcarray<{}>'.format(inner)
+    elif ret[0:9] == 'Optional[':
+        inner = make_c_typeval(ret[9:-1], pattern, typelist)
+        if 'std::function' in inner or (inner.startswith("RENDERDOC_") and inner.endswith("Callback")):
+            return inner
+        ret = '(const )?{} ?\\*?'.format(inner) if pattern else '{} *'.format(inner)
     elif ret[0:6] == 'Tuple[':
         inners = [make_c_typeval(i.strip(), pattern, typelist) for i in ret[6:-1].split(',')]
         if pattern:

@@ -1120,7 +1120,7 @@ shader and generate new debug states.
 
 If this is ``None`` then the trace is invalid.
 
-:type: ShaderDebugger
+:type: Optional[ShaderDebugger]
 )");
   ShaderDebugger *debugger = NULL;
 

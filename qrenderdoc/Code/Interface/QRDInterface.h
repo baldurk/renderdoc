@@ -405,7 +405,7 @@ If no capture is loaded or the EID doesn't correspond to a known event, ``None``
 
 :param int eventId: The EID to look up.
 :return: The action containing the EID, or ``None`` if no such EID exists.
-:rtype: renderdoc.ActionDescription
+:rtype: Optional[renderdoc.ActionDescription]
 )");
   virtual const ActionDescription *GetActionForEID(uint32_t eventId) = 0;
 
@@ -416,7 +416,7 @@ If no capture is loaded or the EID doesn't correspond to a known event, an empty
 returned.
 
 :param int eventId: The EID to look up.
-:return: The formatted name of the specified event, or ``None`` if no such EID exists.
+:return: The formatted name of the specified event, or an empty string if no such EID exists.
 :rtype: str
 )");
   virtual rdcstr GetEventName(uint32_t eventId) = 0;
@@ -450,11 +450,11 @@ expression.
 :param Callable[[CaptureContext,str,str,int,renderdoc.SDChunk,renderdoc.ActionDescription,str], bool] filter: The
   callback to call for each candidate event to perform filtering.
   Callback function signature must match :func:`EventFilterCallback`.
-:param Callable[[CaptureContext,str,str], str] parser=None: **Optional parameter**. The callback to
+:param Optional[Callable[[CaptureContext,str,str], str]] parser=None: **Optional parameter**. The callback to
   call when the parsing the parameters and checking for any errors. This can be ``None`` if no
   pre-parsing is required.
   Callback function signature must match :func:`FilterParseCallback`.
-:param Callable[[CaptureContext,str,str], List[str]] completer=None: **Optional parameter**. The
+:param Optional[Callable[[CaptureContext,str,str], List[str]]] completer=None: **Optional parameter**. The
   callback to call when trying to provide autocomplete suggestions. This can be ``None`` if no
   completion is desired/applicable.
   Callback function signature must match :func:`AutoCompleteCallback`.
@@ -1256,7 +1256,7 @@ If the PID is unrecognised, no connection will be made.
 
 :param int pid: The PID of the child to connect to.
 :return: The connection window if successful, or ``None`` if no connection was made.
-:rtype: CaptureConnection
+:rtype: Optional[CaptureConnection]
 )");
   virtual ICaptureConnection *ConnectToChild(uint32_t pid) = 0;
 
@@ -1334,7 +1334,7 @@ QWidget.
   DOCUMENT(R"(Launches a capture of the current executable.
 
 :return: The connection window if successful, or ``None`` if no connection was made.
-:rtype: CaptureConnection
+:rtype: Optional[CaptureConnection]
 )");
   virtual ICaptureConnection *Launch() = 0;
 
@@ -1958,7 +1958,7 @@ struct IReplayManager
   DOCUMENT(R"(Retrieves the capture access handle for the currently open file.
 
 :return: The file handle active, or ``None`` if no capture is open.
-:rtype: renderdoc.CaptureAccess
+:rtype: Optional[renderdoc.CaptureAccess]
 )");
   virtual ICaptureAccess *GetCaptureAccess() = 0;
 
@@ -1969,7 +1969,7 @@ will be usable.
 
 :return: The file handle active, or ``None`` if no capture is open or the capture is only available
   remotely.
-:rtype: renderdoc.CaptureFile
+:rtype: Optional[renderdoc.CaptureFile]
 )");
   virtual ICaptureFile *GetCaptureFile() = 0;
 
@@ -2374,7 +2374,7 @@ recommended that you do not cache this object and use it only in local areas of 
   non-blocking.
 
 :return: A blocking version of the :class:`renderdoc.ReplayController`.
-:rtype: renderdoc.ReplayController
+:rtype: Optional[renderdoc.ReplayController]
 )");
   //////////////////////////////////////////////////////////////
   // This function is implemented only for python! it will return NULL unconditionally
@@ -2613,21 +2613,21 @@ more information for how this differs.
   DOCUMENT(R"(Retrieve the current action.
 
 :return: The current action, or ``None`` if no action is selected.
-:rtype: renderdoc.ActionDescription
+:rtype: Optional[renderdoc.ActionDescription]
 )");
   virtual const ActionDescription *CurAction() = 0;
 
   DOCUMENT(R"(Retrieve the first action in the capture.
 
 :return: The first action.
-:rtype: renderdoc.ActionDescription
+:rtype: Optional[renderdoc.ActionDescription]
 )");
   virtual const ActionDescription *GetFirstAction() = 0;
 
   DOCUMENT(R"(Retrieve the last action in the capture.
 
 :return: The last action.
-:rtype: renderdoc.ActionDescription
+:rtype: Optional[renderdoc.ActionDescription]
 )");
   virtual const ActionDescription *GetLastAction() = 0;
 
@@ -2642,7 +2642,7 @@ more information for how this differs.
 
 :param renderdoc.ResourceId id: The ID of the resource to query about.
 :return: The information about a resource, or ``None`` if the ID does not correspond to a resource.
-:rtype: renderdoc.ResourceDescription
+:rtype: Optional[renderdoc.ResourceDescription]
 )");
   virtual const ResourceDescription *GetResource(ResourceId id) const = 0;
 
@@ -2732,7 +2732,7 @@ considered out of date
 
 :param renderdoc.ResourceId id: The ID of the texture to query about.
 :return: The information about a texture, or ``None`` if the ID does not correspond to a texture.
-:rtype: renderdoc.TextureDescription
+:rtype: Optional[renderdoc.TextureDescription]
 )");
   virtual TextureDescription *GetTexture(ResourceId id) = 0;
 
@@ -2747,7 +2747,7 @@ considered out of date
 
 :param renderdoc.ResourceId id: The ID of the buffer to query about.
 :return: The information about a buffer, or ``None`` if the ID does not correspond to a buffer.
-:rtype: renderdoc.BufferDescription
+:rtype: Optional[renderdoc.BufferDescription]
 )");
   virtual BufferDescription *GetBuffer(ResourceId id) = 0;
 
@@ -2763,7 +2763,7 @@ considered out of date
 :param renderdoc.ResourceId id: The ID of the buffer to query about.
 :return: The information about a descriptor store, or ``None`` if the ID does not correspond to a
   descriptor store.
-:rtype: renderdoc.DescriptorStoreDescription
+:rtype: Optional[renderdoc.DescriptorStoreDescription]
 )");
   virtual DescriptorStoreDescription *GetDescriptorStore(ResourceId id) = 0;
 
@@ -2773,7 +2773,7 @@ considered out of date
 :param int eventId: The :data:`eventId <renderdoc.APIEvent.eventId>` to query for.
 :return: The information about the action, or ``None`` if the
   :data:`eventId <renderdoc.APIEvent.eventId>` doesn't correspond to an action.
-:rtype: renderdoc.ActionDescription
+:rtype: Optional[renderdoc.ActionDescription]
 )");
   virtual const ActionDescription *GetAction(uint32_t eventId) = 0;
 
@@ -2809,7 +2809,7 @@ The handle returned is invalidated when the capture is closed, or if :meth:`Open
 called.
 
 :return: The RGP interop connection handle.
-:rtype: RGPInterop
+:rtype: Optional[RGPInterop]
 )");
   virtual IRGPInterop *GetRGPInterop() = 0;
 
@@ -3413,7 +3413,7 @@ The return value will be ``None`` if the capture is not using the D3D11 API.
 You should determine the API of the capture first before fetching it.
 
 :return: The current D3D11 pipeline state.
-:rtype: renderdoc.D3D11State
+:rtype: Optional[renderdoc.D3D11State]
 )");
   virtual const D3D11Pipe::State *CurD3D11PipelineState() = 0;
 
@@ -3423,7 +3423,7 @@ The return value will be ``None`` if the capture is not using the D3D12 API.
 You should determine the API of the capture first before fetching it.
 
 :return: The current D3D12 pipeline state.
-:rtype: renderdoc.D3D12State
+:rtype: Optional[renderdoc.D3D12State]
 )");
   virtual const D3D12Pipe::State *CurD3D12PipelineState() = 0;
 
@@ -3433,7 +3433,7 @@ The return value will be ``None`` if the capture is not using the OpenGL API.
 You should determine the API of the capture first before fetching it.
 
 :return: The current OpenGL pipeline state.
-:rtype: renderdoc.GLState
+:rtype: Optional[renderdoc.GLState]
 )");
   virtual const GLPipe::State *CurGLPipelineState() = 0;
 
@@ -3443,7 +3443,7 @@ The return value will be ``None`` if the capture is not using the Vulkan API.
 You should determine the API of the capture first before fetching it.
 
 :return: The current Vulkan pipeline state.
-:rtype: renderdoc.VKState
+:rtype: Optional[renderdoc.VKState]
 )");
   virtual const VKPipe::State *CurVulkanPipelineState() = 0;
 

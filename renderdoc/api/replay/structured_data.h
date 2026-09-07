@@ -707,7 +707,7 @@ returned.
 
 :param str childName: The name to search for.
 :return: A reference to the child object if found, or ``None`` if not.
-:rtype: SDObject
+:rtype: Optional[SDObject]
 )");
   inline SDObject *FindChild(const rdcstr &childName)
   {
@@ -724,7 +724,7 @@ The order of the search is not guaranteed, so care should be taken when the name
 
 :param str childName: The name to search for.
 :return: A reference to the child object if found, or ``None`` if not.
-:rtype: SDObject
+:rtype: Optional[SDObject]
 )");
   inline SDObject *FindChildRecursively(const rdcstr &childName)
   {
@@ -801,7 +801,7 @@ manipulated by key path exclusively or not at all.
 
 :param str keyPath: The key path to search for and return.
 :return: Whether or not a child exists at the given key path
-:rtype: SDObject
+:rtype: Optional[SDObject]
 )");
   inline const SDObject *FindChildByKeyPath(const rdcstr &keyPath) const
   {
@@ -868,7 +868,7 @@ returned.
 
 :param int index: The index to look up.
 :return: A reference to the child object if valid, or ``None`` if not.
-:rtype: SDObject
+:rtype: Optional[SDObject]
 )");
   inline SDObject *GetChild(size_t index)
   {
@@ -884,7 +884,7 @@ returned.
   DOCUMENT(R"(Get the parent of this object. If this object has no parent, ``None`` is returned.
 
 :return: A reference to the parent object if valid, or ``None`` if not.
-:rtype: SDObject
+:rtype: Optional[SDObject]
 )");
   inline SDObject *GetParent() { return m_Parent; }
 #if !defined(SWIG)

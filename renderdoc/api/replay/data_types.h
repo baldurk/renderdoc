@@ -893,7 +893,7 @@ typically it is one parent to many derived.
   DOCUMENT(R"(An optional set of annotations associated with this resource, may be ``None`` if
 annotations are not used.
 
-:type: SDObject
+:type: Optional[SDObject]
 )");
   SDObject *annotations = NULL;
 
@@ -1253,7 +1253,7 @@ markers added to the capture after load.
   DOCUMENT(R"(An optional set of annotations associated with this event, may be ``None`` if
 annotations are not used.
 
-:type: SDObject
+:type: Optional[SDObject]
 )");
   SDObject *annotations = NULL;
 
@@ -2526,19 +2526,19 @@ operation.
 
   DOCUMENT(R"(The parent of this action, or ``None`` if there is no parent for this action.
 
-:type: ActionDescription
+:type: Optional[ActionDescription]
 )");
   const ActionDescription *parent = NULL;
 
   DOCUMENT(R"(The previous action in the frame, or ``None`` if this is the first action in the
 frame.
 
-:type: ActionDescription
+:type: Optional[ActionDescription]
 )");
   const ActionDescription *previousAction = NULL;
   DOCUMENT(R"(The next action in the frame, or ``None`` if this is the last action in the frame.
 
-:type: ActionDescription
+:type: Optional[ActionDescription]
 )");
   const ActionDescription *nextAction = NULL;
 

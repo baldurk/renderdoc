@@ -117,7 +117,7 @@ Picking the first of these, we can then :ref:`move to that event <currentevent>`
 .. highlight:: python
 .. code:: python
 
-    if not refl.debugInfo.debuggable:
+    if refl is None or not refl.debugInfo.debuggable:
         print("Shader can't be debugged:")
         print(refl.debugInfo.debugStatus)
         return
