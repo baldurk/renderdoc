@@ -590,11 +590,15 @@ HOOK_EXPORT const char *EGLAPIENTRY eglQueryString_renderdoc_hooked(EGLDisplay d
 
   if(name == EGL_EXTENSIONS && !Android_AllowAllEGLExtensions())
   {
+    const char *implExts = EGL.QueryString(dpy, name);
+    if(implExts == NULL)
+      return NULL;
+
     rdcstr *extStr = eglhook.extStrings[dpy];
     if(extStr == NULL)
       extStr = eglhook.extStrings[dpy] = new rdcstr;
 
-    const rdcstr implExtStr = EGL.QueryString(dpy, name);
+    const rdcstr implExtStr = implExts;
 
     rdcarray<rdcstr> exts;
     split(implExtStr, exts, ' ');
