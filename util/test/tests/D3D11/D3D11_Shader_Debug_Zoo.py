@@ -9,6 +9,8 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
     def check_capture(self):
         undefined_tests = [int(test) for test in self.find_action("Undefined tests: ").customName.split(" ")[2:]]
 
+        failed = False
+
         # Jump to the action
         for idx, action in enumerate([self.find_action("Main Test"), self.find_action("Optimised Test")]):
             name = action.customName
@@ -17,15 +19,13 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
 
             self.controller.SetFrameEvent(action.eventId, False)
 
-            pipe: rd.PipeState = self.controller.GetPipelineState()
-
-            failed = False
+            pipe = self.controller.GetPipelineState()
 
             # Loop over every test
             rdtest.log.begin_section(name)
             for test in range(action.numInstances):
                 # Debug the shader
-                trace: rd.ShaderDebugTrace = self.controller.DebugPixel(4 * test, 4 * idx, rd.DebugPixelInputs())
+                trace = self.controller.DebugPixel(4 * test, 4 * idx, rd.DebugPixelInputs())
 
                 if trace.debugger is None:
                     rdtest.log.error("Test {} failed to debug.".format(test))
@@ -56,10 +56,10 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
         rdtest.log.begin_section("Flow tests")
         action = self.find_action("Flow Test").nextAction
         self.controller.SetFrameEvent(action.eventId, False)
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         # Debug the shader
-        trace: rd.ShaderDebugTrace = self.controller.DebugPixel(0, 8, rd.DebugPixelInputs())
+        trace = self.controller.DebugPixel(0, 8, rd.DebugPixelInputs())
 
         cycles, variables = self.process_trace(trace)
 
@@ -82,13 +82,13 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
         rdtest.log.begin_section("MSAA tests")
         action = self.find_action("MSAA Test").nextAction
         self.controller.SetFrameEvent(action.eventId, False)
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
         for (x,y) in [(4, 4), (4, 5), (3, 4), (3, 5)]:
             for test in range(4):
                 # Debug the shader
                 inputs = rd.DebugPixelInputs()
                 inputs.sample = test
-                trace: rd.ShaderDebugTrace = self.controller.DebugPixel(x, y, inputs)
+                trace = self.controller.DebugPixel(x, y, inputs)
 
                 # Validate that the correct sample index was debugged
                 sampRegister = self.find_input_source_var(trace, rd.ShaderBuiltin.MSAASampleIndex)

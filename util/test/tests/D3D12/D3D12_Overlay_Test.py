@@ -7,7 +7,7 @@ class D3D12_Overlay_Test(rdtest.Overlay_Test):
     internal = False
 
     def check_capture(self):
-        out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
+        out = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
 
         for base_event_name in ["sm5.0", "sm5.1", "sm6.0"]:
             base = self.find_action(base_event_name)
@@ -24,10 +24,10 @@ class D3D12_Overlay_Test(rdtest.Overlay_Test):
             rdtest.log.success("Base tests worked on {}".format(base_event_name))
 
             # Don't check any pixel values, but ensure all overlays at least work with no viewport/scissor bound
-            sub_marker: rd.ActionDescription = self.find_action("NoView draw", base_event)
+            sub_marker = self.find_action("NoView draw", base_event)
             self.controller.SetFrameEvent(sub_marker.nextAction.eventId, True)
 
-            pipe: rd.PipeState = self.controller.GetPipelineState()
+            pipe = self.controller.GetPipelineState()
 
             tex = rd.TextureDisplay()
             tex.resourceId = pipe.GetOutputTargets()[0].resource
@@ -50,7 +50,7 @@ class D3D12_Overlay_Test(rdtest.Overlay_Test):
 
                 out.Display()
 
-                overlay_id: rd.ResourceId = out.GetDebugOverlayTexID()
+                overlay_id = out.GetDebugOverlayTexID()
 
                 rdtest.log.success("Overlay {} rendered with no viewport/scissor".format(str(overlay)))
 

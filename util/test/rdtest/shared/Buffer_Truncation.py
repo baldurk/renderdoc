@@ -100,7 +100,7 @@ class Buffer_Truncation(rdtest.TestCase):
 
         rdtest.log.success("vertex/index buffers were truncated as expected")
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         stage = rd.ShaderStage.Pixel
 
@@ -114,7 +114,7 @@ class Buffer_Truncation(rdtest.TestCase):
                                                                pipe.GetShaderEntryPoint(stage), 0,
                                                                cbuf.resource, cbuf.byteOffset, cbuf.byteSize)
 
-        outcol: rd.ShaderVariable = variables[1]
+        outcol = variables[1]
 
         assert outcol.name == "outcol"
         if not rdtest.value_compare(outcol.value.f32v[0:4], [0.0, 0.0, 0.0, 0.0]):
@@ -123,9 +123,11 @@ class Buffer_Truncation(rdtest.TestCase):
         if self.controller.GetAPIProperties().shaderDebugging and pipe.GetShaderReflection(
                 rd.ShaderStage.Pixel).debugInfo.debuggable:
             # Debug the shader
-            trace: rd.ShaderDebugTrace = self.controller.DebugPixel(int(pipe.GetViewport(0).width/2),
-                                                                    int(pipe.GetViewport(0).height/2),
-                                                                    rd.DebugPixelInputs())
+            trace = self.controller.DebugPixel(
+                int(pipe.GetViewport(0).width / 2),
+                int(pipe.GetViewport(0).height / 2),
+                rd.DebugPixelInputs(),
+            )
 
             if trace.debugger is None:
                 self.controller.FreeTrace(trace)

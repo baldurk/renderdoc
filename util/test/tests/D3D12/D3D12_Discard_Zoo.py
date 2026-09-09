@@ -22,7 +22,7 @@ class D3D12_Discard_Zoo(rdtest.Discard_Zoo):
         # Check the buffer
         for res in self.controller.GetResources():
             if res.name == "Buffer":
-                data: bytes = self.controller.GetBufferData(res.resourceId, 0, 0)
+                data = self.controller.GetBufferData(res.resourceId, 0, 0)
 
                 assert all([b == 0x88 for b in data])
 
@@ -35,7 +35,7 @@ class D3D12_Discard_Zoo(rdtest.Discard_Zoo):
         # Check the buffer
         for res in self.controller.GetResources():
             if res.name == "Buffer":
-                data: bytes = self.controller.GetBufferData(res.resourceId, 0, 0)
+                data = self.controller.GetBufferData(res.resourceId, 0, 0)
 
                 data_u32 = struct.unpack_from('=256L', data, 0)
 

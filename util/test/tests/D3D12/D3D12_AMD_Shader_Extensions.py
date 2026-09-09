@@ -24,11 +24,11 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
                 x = int(vp.x + vp.width * 0.5)
                 y = int(vp.y + vp.height * 0.5)
 
-                picked: rd.PixelValue = self.controller.PickPixel(tex, x+ 0, y+ 0, rd.Subresource(), rd.CompType.UNorm)
+                picked = self.controller.PickPixel(tex, x+ 0, y+ 0, rd.Subresource(), rd.CompType.UNorm)
                 pixels.append(picked.floatValue[0:4])
-                picked: rd.PixelValue = self.controller.PickPixel(tex, x-20, y+20, rd.Subresource(), rd.CompType.UNorm)
+                picked = self.controller.PickPixel(tex, x-20, y+20, rd.Subresource(), rd.CompType.UNorm)
                 pixels.append(picked.floatValue[0:4])
-                picked: rd.PixelValue = self.controller.PickPixel(tex, x+20, y+20, rd.Subresource(), rd.CompType.UNorm)
+                picked = self.controller.PickPixel(tex, x+20, y+20, rd.Subresource(), rd.CompType.UNorm)
                 pixels.append(picked.floatValue[0:4])
 
                 if (not (1.0, 0.0, 0.0, 1.0) in pixels) or (not (1.0, 0.0, 0.0, 1.0) in pixels) or (
@@ -88,8 +88,9 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
                     cs = res.resourceId
                     break
 
-            refl: rd.ShaderReflection = self.controller.GetShader(pipe, cs,
-                                                                  rd.ShaderEntryPoint("main", rd.ShaderStage.Compute))
+            refl = self.controller.GetShader(
+                pipe, cs, rd.ShaderEntryPoint("main", rd.ShaderStage.Compute)
+            )
 
             assert len(refl.readWriteResources) == 2
             assert [rw.name for rw in refl.readWriteResources] == ["inUAV", "outUAV"]
@@ -109,7 +110,7 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
             if refl.debugInfo.debuggable:
                 self.controller.SetFrameEvent(self.find_action("Dispatch").eventId, False)
 
-                trace: rd.ShaderDebugTrace = self.controller.DebugThread((0, 0, 0), (0, 0, 0))
+                trace = self.controller.DebugThread((0, 0, 0), (0, 0, 0))
 
                 if trace.debugger is None:
                     self.controller.FreeTrace(trace)

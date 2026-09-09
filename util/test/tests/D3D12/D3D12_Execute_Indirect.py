@@ -8,11 +8,11 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
 
     def check_overlays(self, eid: int, x: int, y: int):
         with rdtest.log.auto_section(f'EID {eid} Checking Overlays at {x}, {y}'):
-            pipe: rd.PipeState = self.controller.GetPipelineState()
+            pipe = self.controller.GetPipelineState()
             if len(pipe.GetOutputTargets()) == 0:
                 raise rdtest.TestFailureException("No output targets found")
 
-            col_tex: rd.ResourceId = pipe.GetOutputTargets()[0].resource
+            col_tex = pipe.GetOutputTargets()[0].resource
 
             for overlay in rd.DebugOverlay:
                 if overlay == rd.DebugOverlay.NoOverlay:
@@ -26,10 +26,10 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
                 tex.overlay = overlay
                 tex.subresource.sample = 0
 
-                out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
+                out = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
                 out.SetTextureDisplay(tex)
                 out.Display()
-                overlayTex: rd.ResourceId = out.GetDebugOverlayTexID()
+                overlayTex = out.GetDebugOverlayTexID()
                 if overlay == rd.DebugOverlay.ClearBeforeDraw:
                     overlayTex = col_tex
                 if overlay == rd.DebugOverlay.ClearBeforePass:
@@ -42,19 +42,19 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
                 out.Shutdown()
 
     def check_pixel_history_succeeds(self, x: int, y: int):
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
         rt = pipe.GetOutputTargets()[0]
         tex = rt.resource
         sub = rd.Subresource()
-        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
+        modifs = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         if len(modifs) < 2:
             raise rdtest.TestFailureException(f"No pixel history found at ({x}, {y})")
         rdtest.log.success(f"Pixel History {x}, {y} Worked")
 
     def check_root_consts(self, expected: List[float]):
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
         root_consts = pipe.GetConstantBlock(rd.ShaderStage.Vertex, 1, 0)
-        if root_consts is None:
+        if root_consts.descriptor.resource == rd.ResourceId():
             raise rdtest.TestFailureException('rootConsts not found in pipeline state')
         bytes = self.controller.GetBufferData(root_consts.descriptor.resource, 0, root_consts.descriptor.byteSize)   
         assert len(bytes) == 16  # 4 floats
@@ -379,15 +379,15 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
 
                 overlay = rd.DebugOverlay.QuadOverdrawPass
                 tex = rd.TextureDisplay()
-                col_tex: rd.ResourceId = pipe.GetOutputTargets()[0].resource
+                col_tex = pipe.GetOutputTargets()[0].resource
                 tex.resourceId = col_tex
                 tex.overlay = overlay
                 tex.subresource.sample = 0
 
-                out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
-                out.SetTextureDisplay(tex)
-                out.Display()
-                out.Shutdown()
+                outw = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
+                outw.SetTextureDisplay(tex)
+                outw.Display()
+                outw.Shutdown()
 
         largeEIMarker = self.find_action("MaxCount: 1024 CountBuf: 256")
         skipEIDmin = largeEIMarker.eventId + 10
@@ -405,12 +405,12 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
                 rdtest.log.print(f"EID: {eid}")
                 for overlay in rd.DebugOverlay:
                     tex = rd.TextureDisplay()
-                    col_tex: rd.ResourceId = pipe.GetOutputTargets()[0].resource
+                    col_tex = pipe.GetOutputTargets()[0].resource
                     tex.resourceId = col_tex
                     tex.overlay = overlay
                     tex.subresource.sample = 0
 
-                    out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
-                    out.SetTextureDisplay(tex)
-                    out.Display()
-                    out.Shutdown()
+                    outw = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
+                    outw.SetTextureDisplay(tex)
+                    outw.Display()
+                    outw.Shutdown()

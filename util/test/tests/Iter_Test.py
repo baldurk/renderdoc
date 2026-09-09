@@ -34,7 +34,7 @@ class Iter_Test(rdtest.TestCase):
         self.controller.SaveTexture(texsave, filename + ".dds")
 
     def image_save(self, action: rd.ActionDescription):
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         texsave = rd.TextureSave()
 
@@ -51,14 +51,13 @@ class Iter_Test(rdtest.TestCase):
         rdtest.log.success('Successfully saved images at {}'.format(action.eventId))
 
     def compute_debug(self, action: rd.ActionDescription):
-        pipe: rd.PipeState = self.controller.GetPipelineState()
-
-        refl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Compute)
+        pipe = self.controller.GetPipelineState()
 
         if pipe.GetShader(rd.ShaderStage.Compute) == rd.ResourceId.Null():
             rdtest.log.print(f"No compute shader bound at {action.eventId}")
             return
 
+        refl = pipe.GetShaderReflection(rd.ShaderStage.Compute)
         if not (action.flags & rd.ActionFlags.Dispatch) and action.drawIndex == 0:
             rdtest.log.print(f"{action.eventId} is not a debuggable action")
             return
@@ -76,8 +75,11 @@ class Iter_Test(rdtest.TestCase):
         for i in range(3):
             threadid[i] = random.randint(0, refl.dispatchThreadsDimension[i]-1)
 
-        rdtest.log.print(f"Debug Thread Workgroup:{wgSize} groupid:{tuple(groupid)} threadid:{tuple(threadid)}")
-        trace: rd.ShaderDebugTrace = self.controller.DebugThread(tuple(groupid), tuple(threadid))
+        groupid = (groupid[0], groupid[1], groupid[2])
+        threadid = (threadid[0], threadid[1], threadid[2])
+
+        rdtest.log.print(f"Debug Thread Workgroup:{wgSize} groupid:{groupid} threadid:{threadid}")
+        trace = self.controller.DebugThread(groupid, threadid)
 
         if trace.debugger is None:
             self.controller.FreeTrace(trace)
@@ -95,9 +97,9 @@ class Iter_Test(rdtest.TestCase):
         self.controller.FreeTrace(trace)
 
     def vert_debug(self, action: rd.ActionDescription):
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
-        refl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
+        refl = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
 
         if pipe.GetShader(rd.ShaderStage.Vertex) == rd.ResourceId.Null():
             rdtest.log.print("No vertex shader bound at {}".format(action.eventId))
@@ -159,7 +161,7 @@ class Iter_Test(rdtest.TestCase):
             return
 
     def pixel_debug(self, action: rd.ActionDescription):
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         if pipe.GetShader(rd.ShaderStage.Pixel) == rd.ResourceId.Null():
             rdtest.log.print("No pixel shader bound at {}".format(action.eventId))
@@ -202,7 +204,7 @@ class Iter_Test(rdtest.TestCase):
 
         rdtest.log.success("Pixel %d,%d has %d history events" % (x, y, len(history)))
 
-        lastmod: rd.PixelModification = None
+        lastmod = None
 
         for i in reversed(range(len(history))):
             mod = history[i]
@@ -252,7 +254,7 @@ class Iter_Test(rdtest.TestCase):
             rdtest.log.print("Debugging pixel {},{} @ {}, primitive {}".format(x, y, lastmod.eventId, lastmod.primitiveID))
             self.controller.SetFrameEvent(lastmod.eventId, True)
 
-            pipe: rd.PipeState = self.controller.GetPipelineState()
+            pipe = self.controller.GetPipelineState()
 
             if pipe.GetShader(rd.ShaderStage.Pixel) == rd.ResourceId.Null():
                 rdtest.log.print("Nothing to debug. No pixel shader bound at {}".format(action.eventId))
@@ -371,7 +373,7 @@ class Iter_Test(rdtest.TestCase):
         mesh_output = 1.0       # Chance of fetching mesh output data
         drawcall_overlay = 0.0  # Always show drawcall overlay when we run tests
 
-        self.props: rd.APIProperties = self.controller.GetAPIProperties()
+        self.props = self.controller.GetAPIProperties()
 
         event_tests = {
             'Image Save': {'chance': do_image_save, 'func': self.image_save},

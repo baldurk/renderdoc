@@ -12,7 +12,7 @@ class VK_Int8_IBuffer(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 

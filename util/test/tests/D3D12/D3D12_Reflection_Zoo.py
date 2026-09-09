@@ -12,13 +12,12 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.nextAction.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         stage = rd.ShaderStage.Pixel
 
         # Verify that the DXBC action is first
-        disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), pipe.GetShaderReflection(stage),
-                                                   '')
+        disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, '')
 
         assert 'ps_5_1' in disasm
 
@@ -35,10 +34,9 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.nextAction.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
-        disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), pipe.GetShaderReflection(stage),
-                                                   '')
+        disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, '')
 
         assert 'SM6.0' in disasm
 
@@ -55,10 +53,9 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.nextAction.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
-        disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), pipe.GetShaderReflection(stage),
-                                                   '')
+        disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, '')
 
         assert 'SM6.7' in disasm
 
@@ -67,14 +64,14 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
         rdtest.log.success("SM6.7 DXIL action is as expected")
 
     def check_event(self):
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         stage = rd.ShaderStage.Pixel
 
-        refl: rd.ShaderReflection = pipe.GetShaderReflection(stage)
+        refl = pipe.GetShaderReflection(stage)
 
         # Check we have the source and it is unmangled
-        debugInfo: rd.ShaderDebugInfo = refl.debugInfo
+        debugInfo = refl.debugInfo
 
         assert len(debugInfo.files) == 1
 
@@ -405,7 +402,6 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
         for res_list, res_db, res_readonly in [(refl.readOnlyResources, ro_db, True),
                                                (refl.readWriteResources, rw_db, False)]:
             for idx, res in enumerate(res_list):
-                res: rd.ShaderResource
                 assert res.isReadOnly == res_readonly
                 assert res.fixedBindSetOrSpace == 0
 

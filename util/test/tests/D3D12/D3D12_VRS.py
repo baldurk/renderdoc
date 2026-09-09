@@ -6,7 +6,7 @@ class D3D12_VRS(rdtest.TestCase):
     demos_test_name = 'D3D12_VRS'
 
     def get_shading_rates(self):
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         v = pipe.GetViewport(0)
         tex = pipe.GetOutputTargets()[0].resource

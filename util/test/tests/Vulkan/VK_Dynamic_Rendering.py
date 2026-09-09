@@ -7,8 +7,9 @@ class VK_Dynamic_Rendering(rdtest.TestCase):
     demos_test_name = 'VK_Dynamic_Rendering'
 
     def check_capture(self):
-        out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100),
-                                                            rd.ReplayOutputType.Texture)
+        out = self.controller.CreateOutput(
+            rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture
+        )
 
         for cmdLevel in [0, 1]:
             action = self.find_action("Draw {}".format(cmdLevel)).nextAction

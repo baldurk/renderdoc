@@ -6,14 +6,14 @@ class VK_Custom_Resolve(rdtest.TestCase):
     demos_test_name = 'VK_Custom_Resolve'
 
     def check_triangle_draw(self):
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
         out = pipe.GetOutputTargets()[0].resource
         # centre
         green = [0.0, 1.0, 0.0, 1.0]
         self.check_pixel_value(out, 200, 150, green)
 
     def check_triangle_resolve(self):
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
         out = pipe.GetOutputTargets()[0].resource
         # left triangle edge
         left = [0.0, 0.0, 1.0, 1.0]
@@ -28,7 +28,7 @@ class VK_Custom_Resolve(rdtest.TestCase):
     def check_resource_usage(self, markerName, expectedUsages=[]):
         action = self.find_action(markerName)
         self.controller.SetFrameEvent(action.eventId+1, True)
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
         out = pipe.GetOutputTargets()[0].resource
         usages = self.controller.GetUsage(out)
         if len(usages) != len(expectedUsages):
@@ -38,7 +38,7 @@ class VK_Custom_Resolve(rdtest.TestCase):
                 raise rdtest.TestFailureException(f"EID:{u.eventId} Incorrect resource usage expected:{expectedUsages[i].name} actual:{u.usage.name}")
 
     def check_pixel_history(self, passed, preModValid, preMod, postModValid, postMod):
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
         rt = pipe.GetOutputTargets()[0]
         tex = rt.resource
         sub = rd.Subresource()

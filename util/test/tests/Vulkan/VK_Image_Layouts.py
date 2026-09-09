@@ -16,11 +16,10 @@ class VK_Image_Layouts(rdtest.TestCase):
     def check_capture(self):
         self.controller.SetFrameEvent(0, False)
 
-        pipe: rd.VKState = self.controller.GetVulkanPipelineState()
+        pipe = self.controller.GetVulkanPipelineState()
 
         # Check that the layout is reported correctly at the start of the frame
         for img in pipe.images:
-            img: rd.VKImageData
             res = self.get_resource(img.resourceId)
             if res.name == "Image:Preinitialised":
                 if img.layouts[0].name != "VK_IMAGE_LAYOUT_PREINITIALIZED":
@@ -38,11 +37,10 @@ class VK_Image_Layouts(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pipe: rd.VKState = self.controller.GetVulkanPipelineState()
+        pipe = self.controller.GetVulkanPipelineState()
 
         # Check that the layout is reported correctly before transitions still
         for img in pipe.images:
-            img: rd.VKImageData
             res = self.get_resource(img.resourceId)
             if res.name == "Image:Preinitialised":
                 if img.layouts[0].name != "VK_IMAGE_LAYOUT_PREINITIALIZED":
@@ -63,11 +61,10 @@ class VK_Image_Layouts(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pipe: rd.VKState = self.controller.GetVulkanPipelineState()
+        pipe = self.controller.GetVulkanPipelineState()
 
         # Check that after transitions, the images are in the right state
         for img in pipe.images:
-            img: rd.VKImageData
             res = self.get_resource(img.resourceId)
             if res.name == "Image:Preinitialised":
                 if img.layouts[0].name != "VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL":
@@ -89,11 +86,10 @@ class VK_Image_Layouts(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId+1, False)
 
-        pipe: rd.VKState = self.controller.GetVulkanPipelineState()
+        pipe = self.controller.GetVulkanPipelineState()
         
         # check that the pre-initialised image has transitioned + been cleared
         for img in pipe.images:
-            img: rd.VKImageData
             res = self.get_resource(img.resourceId)
             if res.name == "Image:Preinitialised":
                 if img.layouts[0].name != "VK_IMAGE_LAYOUT_GENERAL":
@@ -104,10 +100,9 @@ class VK_Image_Layouts(rdtest.TestCase):
         # finally check that it has reset to the correct value back at the start of the frame
         self.controller.SetFrameEvent(1, False)
 
-        pipe: rd.VKState = self.controller.GetVulkanPipelineState()
+        pipe = self.controller.GetVulkanPipelineState()
        
         for img in pipe.images:
-            img: rd.VKImageData
             res = self.get_resource(img.resourceId)
             if res.name == "Image:Preinitialised":
                 if img.layouts[0].name != "VK_IMAGE_LAYOUT_PREINITIALIZED":

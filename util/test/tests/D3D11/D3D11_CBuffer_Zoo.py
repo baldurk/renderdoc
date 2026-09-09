@@ -12,7 +12,7 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         stage = rd.ShaderStage.Pixel
         cbuf = pipe.GetConstantBlock(stage, 0, 0).descriptor
@@ -34,9 +34,11 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
 
         if self.controller.GetAPIProperties().shaderDebugging and pipe.GetShaderReflection(
                 rd.ShaderStage.Pixel).debugInfo.debuggable:
-            trace: rd.ShaderDebugTrace = self.controller.DebugPixel(int(pipe.GetViewport(0).width / 2.0),
-                                                                    int(pipe.GetViewport(0).height / 2.0),
-                                                                    rd.DebugPixelInputs())
+            trace = self.controller.DebugPixel(
+                int(pipe.GetViewport(0).width / 2.0),
+                int(pipe.GetViewport(0).height / 2.0),
+                rd.DebugPixelInputs(),
+            )
 
             debugVars = dict()
 
@@ -47,12 +49,10 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
             cbufferVars = []
 
             for sourceVar in trace.sourceVars:
-                sourceVar: rd.SourceVariableMapping
-
                 if sourceVar.variables[0].name not in debugVars.keys():
                     continue
 
-                eval: rd.ShaderVariable = self.evaluate_source_var(sourceVar, debugVars)
+                eval = self.evaluate_source_var(sourceVar, debugVars)
                 cbufferVars.append(eval)
 
             cbufferVars = self.combine_source_vars(cbufferVars)

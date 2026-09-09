@@ -21,7 +21,7 @@ class VK_Line_Raster(rdtest.TestCase):
             x = self.view[0] * col + p[0]
             y = self.view[1] * row + p[1]
 
-            picked: rd.PixelValue = self.controller.PickPixel(self.tex, x, y, rd.Subresource(0, 0, 0), rd.CompType.Typeless)
+            picked = self.controller.PickPixel(self.tex, x, y, rd.Subresource(0, 0, 0), rd.CompType.Typeless)
             ret.append(rdtest.value_compare(picked.floatValue, [0.0, 1.0, 1.0, 1.0]))
         return ret
 
@@ -34,7 +34,7 @@ class VK_Line_Raster(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         self.tex = pipe.GetOutputTargets()[0].resource
 

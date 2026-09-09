@@ -74,7 +74,7 @@ class TargetControl():
         start_time = datetime.datetime.now(datetime.timezone.utc)
 
         while keep_running(self):
-            msg: rd.TargetControlMessage = self.control.ReceiveMessage(None)
+            msg = self.control.ReceiveMessage()
 
             if (datetime.datetime.now(datetime.timezone.utc) - start_time).total_seconds() > self._timeout:
                 log.error("Timed out")

@@ -7,7 +7,7 @@ class VK_Shader_Printf(rdtest.TestCase):
     demos_test_name = 'VK_Shader_Printf'
 
     def check_capture(self):
-        action: rd.ActionDescription = self.find_action('CmdDraw')
+        action = self.find_action('CmdDraw')
 
         self.controller.SetFrameEvent(action.eventId, True)
 

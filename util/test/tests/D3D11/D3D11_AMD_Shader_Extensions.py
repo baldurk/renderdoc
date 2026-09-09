@@ -15,14 +15,17 @@ class D3D11_AMD_Shader_Extensions(rdtest.TestCase):
         # Without relying on barycentric order, ensure that the three pixels are red, green, and blue
         pixels = []
 
-        picked: rd.PixelValue = self.controller.PickPixel(action.copyDestination, 125, 215, rd.Subresource(),
-                                                          rd.CompType.UNorm)
+        picked = self.controller.PickPixel(
+            action.copyDestination, 125, 215, rd.Subresource(), rd.CompType.UNorm
+        )
         pixels.append(picked.floatValue[0:4])
-        picked: rd.PixelValue = self.controller.PickPixel(action.copyDestination, 200, 85, rd.Subresource(),
-                                                          rd.CompType.UNorm)
+        picked = self.controller.PickPixel(
+            action.copyDestination, 200, 85, rd.Subresource(), rd.CompType.UNorm
+        )
         pixels.append(picked.floatValue[0:4])
-        picked: rd.PixelValue = self.controller.PickPixel(action.copyDestination, 285, 215, rd.Subresource(),
-                                                          rd.CompType.UNorm)
+        picked = self.controller.PickPixel(
+            action.copyDestination, 285, 215, rd.Subresource(), rd.CompType.UNorm
+        )
         pixels.append(picked.floatValue[0:4])
 
         if (not (1.0, 0.0, 0.0, 1.0) in pixels) or (not (1.0, 0.0, 0.0, 1.0) in pixels) or (
@@ -60,8 +63,9 @@ class D3D11_AMD_Shader_Extensions(rdtest.TestCase):
         cs = self.get_resource_by_name("cs")
         pipe = rd.ResourceId()
 
-        refl: rd.ShaderReflection = self.controller.GetShader(pipe, cs.resourceId,
-                                                              rd.ShaderEntryPoint("main", rd.ShaderStage.Compute))
+        refl = self.controller.GetShader(
+            pipe, cs.resourceId, rd.ShaderEntryPoint("main", rd.ShaderStage.Compute)
+        )
 
         assert len(refl.readWriteResources) == 2
         assert [rw.name for rw in refl.readWriteResources] == ["inUAV", "outUAV"]
@@ -77,7 +81,7 @@ class D3D11_AMD_Shader_Extensions(rdtest.TestCase):
         if refl.debugInfo.debuggable:
             self.controller.SetFrameEvent(self.find_action("Dispatch").eventId, False)
 
-            trace: rd.ShaderDebugTrace = self.controller.DebugThread((0, 0, 0), (0, 0, 0))
+            trace = self.controller.DebugThread((0, 0, 0), (0, 0, 0))
 
             if trace.debugger is None:
                 self.controller.FreeTrace(trace)

@@ -45,7 +45,7 @@ class VK_Mesh_Shader(rdtest.TestCase):
         return reference
 
     def check_capture(self):
-        last_action: rd.ActionDescription = self.get_last_action()
+        last_action = self.get_last_action()
 
         self.controller.SetFrameEvent(last_action.eventId, True)
 

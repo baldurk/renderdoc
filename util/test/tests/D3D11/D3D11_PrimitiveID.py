@@ -8,14 +8,13 @@ class D3D11_PrimitiveID(rdtest.TestCase):
 
     def test_action(self, action: rd.ActionDescription, x, y, prim, expected_prim, expected_output):
         self.controller.SetFrameEvent(action.eventId, True)
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
-        inputs = rd.DebugPixelInputs()
-        inputs.primitive = prim
-        trace: rd.ShaderDebugTrace = self.controller.DebugPixel(x, y, inputs)
+        pixel_inputs = rd.DebugPixelInputs()
+        pixel_inputs.primitive = prim
+        trace = self.controller.DebugPixel(x, y, pixel_inputs)
 
-        sourceVars: List[rd.SourceVariableMapping] = list(trace.sourceVars)
-        cycles, variables = self.process_trace(trace)
+        _, variables = self.process_trace(trace)
 
         # Find the SV_PrimitiveID variable
         primInput = self.find_input_source_var(trace, rd.ShaderBuiltin.PrimitiveIndex)
@@ -27,7 +26,7 @@ class D3D11_PrimitiveID(rdtest.TestCase):
                 return False
         else:
             # Look up the matching register in the inputs, and see if the expected value matches
-            inputs: List[rd.ShaderVariable] = list(trace.inputs)
+            inputs = list(trace.inputs)
             primValue = [var for var in inputs if var.name == primInput.variables[0].name][0]
             if primValue.value.u32v[0] not in expected_prim:
                 rdtest.log.error("Expected prim {} at {},{} did not match actual prim {}.".format(
@@ -53,7 +52,7 @@ class D3D11_PrimitiveID(rdtest.TestCase):
         success = True
 
         # Jump to the action
-        test_marker: rd.ActionDescription = self.find_action("Test")
+        test_marker = self.find_action("Test")
 
         # Draw 1: No GS, PS without prim
         action = test_marker.nextAction

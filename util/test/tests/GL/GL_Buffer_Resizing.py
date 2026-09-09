@@ -39,7 +39,7 @@ class GL_Buffer_Resizing(rdtest.TestCase):
         idx = 0
 
         while True:
-            action: rd.ActionDescription = self.find_action('glDraw', action.eventId+1)
+            action = self.find_action('glDraw', action.eventId+1)
 
             if action is None:
                 break

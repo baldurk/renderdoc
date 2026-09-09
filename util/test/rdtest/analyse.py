@@ -127,11 +127,11 @@ class MeshAttribute:
 
 
 def get_vsin_attrs(controller: rd.ReplayController, vertexOffset: int, index_mesh: rd.MeshFormat):
-    pipe: rd.PipeState = controller.GetPipelineState()
-    inputs: List[rd.VertexInputAttribute] = pipe.GetVertexInputs()
+    pipe = controller.GetPipelineState()
+    inputs = pipe.GetVertexInputs()
 
     attrs: List[MeshAttribute] = []
-    vbs: List[rd.BoundVBuffer] = pipe.GetVBuffers()
+    vbs = pipe.GetVBuffers()
 
     for a in inputs:
         if not a.used:
@@ -159,7 +159,7 @@ def get_vsin_attrs(controller: rd.ReplayController, vertexOffset: int, index_mes
 
 
 def get_postvs_attrs(controller: rd.ReplayController, mesh: rd.MeshFormat, data_stage: rd.MeshDataStage):
-    pipe: rd.PipeState = controller.GetPipelineState()
+    pipe = controller.GetPipelineState()
 
     if data_stage == rd.MeshDataStage.VSOut:
         shader = pipe.GetShaderReflection(rd.ShaderStage.Vertex)

@@ -15,7 +15,7 @@ class D3D12_Parameter_Zoo(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0.5, 0.5, [0.0, 1.0, 0.0, 1.0])
 
@@ -55,8 +55,9 @@ class D3D12_Parameter_Zoo(rdtest.TestCase):
         tex.overlay = rd.DebugOverlay.Drawcall
         tex.resourceId = pipe.GetOutputTargets()[0].resource
 
-        out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100),
-                                                            rd.ReplayOutputType.Texture)
+        out = self.controller.CreateOutput(
+            rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture
+        )
 
         out.SetTextureDisplay(tex)
 
@@ -99,10 +100,10 @@ class D3D12_Parameter_Zoo(rdtest.TestCase):
 
         action = self.find_action("No Sig Draw")
         action = action.nextAction
-        
+
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0.5, 0.5, [0.0, 1.0, 0.0, 1.0])
 
@@ -110,17 +111,17 @@ class D3D12_Parameter_Zoo(rdtest.TestCase):
 
         action = self.find_action("No Sig Dispatch")
         action = action.nextAction
-        
+
         self.controller.SetFrameEvent(action.eventId, False)
 
         # nothing to actually check here
 
         action = self.find_action("Temp heap Draw")
         action = action.nextAction
-        
+
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0.5, 0.5, [0.0, 1.0, 0.0, 1.0])
 

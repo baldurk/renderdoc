@@ -23,7 +23,7 @@ class Repeat_Load(rdtest.TestCase):
                 raise rdtest.TestFailureException("ERROR: capture doesn't have valid event IDs.")
 
             # Do nothing, just ensure it's loaded
-            memory_usage: int = rd.GetCurrentProcessMemoryUsage()
+            memory_usage = rd.GetCurrentProcessMemoryUsage()
 
             # We measure the baseline memory usage during the second peak to avoid any persistent caches etc that might
             # not be full

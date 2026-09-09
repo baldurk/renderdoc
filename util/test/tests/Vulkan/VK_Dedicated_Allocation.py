@@ -43,7 +43,7 @@ class VK_Dedicated_Allocation(rdtest.TestCase):
 
         rdtest.log.success('Mesh data is as expected')
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 155, 195, [1.0, 0.0, 0.09, 1.0], eps=1.0/255.0)
         self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 190, 195, [0.0, 1.0, 0.09, 1.0], eps=1.0/255.0)

@@ -6,7 +6,7 @@ class VK_Multi_Entry(rdtest.TestCase):
     demos_test_name = 'VK_Multi_Entry'
 
     def check_capture(self):
-        last_action: rd.ActionDescription = self.get_last_action()
+        last_action = self.get_last_action()
 
         self.controller.SetFrameEvent(last_action.eventId, True)
 
@@ -30,7 +30,7 @@ class VK_Multi_Entry(rdtest.TestCase):
             raise rdtest.TestFailureException(
                 f"Graphics bind 0[15] isn't the accessed descriptor {str(rd.DumpObject(access))}")
 
-        refl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
+        refl = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
 
         assert len(refl.readOnlyResources) == 0
 
@@ -58,7 +58,7 @@ class VK_Multi_Entry(rdtest.TestCase):
         inputs.primitive = 0
         trace = self.controller.DebugPixel(200, 150, inputs)
 
-        refl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
+        refl = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
 
         assert len(refl.readOnlyResources) == 1
 

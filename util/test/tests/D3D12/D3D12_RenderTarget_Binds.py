@@ -11,7 +11,7 @@ class D3D12_RenderTarget_Binds(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         self.check_pixel_value(action.copyDestination, 0.5, 0.5, [1.0, 0.0, 1.0, 1.0])
 
@@ -23,7 +23,7 @@ class D3D12_RenderTarget_Binds(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         rtvs = pipe.GetOutputTargets()
         assert len(rtvs) == 2
@@ -39,7 +39,7 @@ class D3D12_RenderTarget_Binds(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         rtvs = pipe.GetOutputTargets()
         assert len(rtvs) == 2
@@ -55,7 +55,7 @@ class D3D12_RenderTarget_Binds(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         rtvs = pipe.GetOutputTargets()
         assert len(rtvs) == 2
@@ -71,7 +71,7 @@ class D3D12_RenderTarget_Binds(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         rtvs = pipe.GetOutputTargets()
         assert len(rtvs) == 2

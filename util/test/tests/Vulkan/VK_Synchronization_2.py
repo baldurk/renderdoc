@@ -16,11 +16,10 @@ class VK_Synchronization_2(rdtest.TestCase):
     def check_capture(self):
         self.controller.SetFrameEvent(0, False)
 
-        pipe: rd.VKState = self.controller.GetVulkanPipelineState()
+        pipe = self.controller.GetVulkanPipelineState()
 
         # Check that the layout is reported correctly at the start of the frame
         for img in pipe.images:
-            img: rd.VKImageData
             res = self.get_resource(img.resourceId)
             if res.name == "Image:Preinitialised":
                 if img.layouts[0].name != "VK_IMAGE_LAYOUT_PREINITIALIZED":
@@ -38,14 +37,13 @@ class VK_Synchronization_2(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pipe: rd.VKState = self.controller.GetVulkanPipelineState()
+        pipe = self.controller.GetVulkanPipelineState()
 
         pre_init = rd.ResourceId()
         undef_img = rd.ResourceId()
 
         # Check that the layout is reported correctly before transitions still
         for img in pipe.images:
-            img: rd.VKImageData
             res = self.get_resource(img.resourceId)
             if res.name == "Image:Preinitialised":
                 if img.layouts[0].name != "VK_IMAGE_LAYOUT_PREINITIALIZED":
@@ -76,11 +74,10 @@ class VK_Synchronization_2(rdtest.TestCase):
         # we copied its contents into the undefined image so it should also have the right colour
         self.check_triangle(out=undef_img, back=col, fore=col)
 
-        pipe: rd.VKState = self.controller.GetVulkanPipelineState()
+        pipe = self.controller.GetVulkanPipelineState()
 
         # Check that after transitions, the images are in the right state
         for img in pipe.images:
-            img: rd.VKImageData
             res = self.get_resource(img.resourceId)
             if res.name == "Image:Preinitialised":
                 if img.layouts[0].name != "VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL":

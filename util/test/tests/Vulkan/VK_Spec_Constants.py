@@ -16,10 +16,10 @@ class VK_Spec_Constants(rdtest.TestCase):
 
             self.controller.SetFrameEvent(action.eventId, False)
 
-            pipe: rd.PipeState = self.controller.GetPipelineState()
+            pipe = self.controller.GetPipelineState()
             vkpipe = self.controller.GetVulkanPipelineState()
 
-            shader: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
+            shader = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
 
             # uniform buffer and spec constants
             assert len(shader.constantBlocks) == 2

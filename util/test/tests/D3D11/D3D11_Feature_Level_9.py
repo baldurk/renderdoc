@@ -6,7 +6,7 @@ class D3D11_Feature_Level_9(rdtest.TestCase):
     demos_test_name = 'D3D11_Feature_Level_9'
 
     def check_capture(self):
-        last_action: rd.ActionDescription = self.get_last_action()
+        last_action = self.get_last_action()
 
         self.controller.SetFrameEvent(last_action.eventId, True)
 

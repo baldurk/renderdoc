@@ -11,19 +11,19 @@ class D3D12_Shader_Editing(rdtest.TestCase):
         eid = self.find_action("Draw 1").nextAction.eventId
         self.controller.SetFrameEvent(eid, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
-        psrefl1: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
+        psrefl1 = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
 
         eid = self.find_action("Draw 2").nextAction.eventId
         self.controller.SetFrameEvent(eid, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
-        psrefl2: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
-        vsrefl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
+        psrefl2 = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
+        vsrefl = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
 
-        tex: rd.ResourceId = pipe.GetOutputTargets()[0].resource
+        tex = pipe.GetOutputTargets()[0].resource
 
         # Both triangles should be green
         self.check_pixel_value(tex, 0.25, 0.5, [0.0, 1.0, 0.0, 1.0])
@@ -31,39 +31,45 @@ class D3D12_Shader_Editing(rdtest.TestCase):
 
         rdtest.log.success("Values are as expected initially")
 
-        source: str = psrefl1.debugInfo.files[0].contents.replace('#if 1', '#if 0')
+        source = psrefl1.debugInfo.files[0].contents.replace('#if 1', '#if 0')
 
-        newShader: Tuple[rd.ResourceId, str] = self.controller.BuildTargetShader(psrefl1.entryPoint,
-                                                                                 rd.ShaderEncoding.HLSL,
-                                                                                 bytes(source, 'UTF-8'),
-                                                                                 rd.ShaderCompileFlags(),
-                                                                                 rd.ShaderStage.Pixel)
+        newShader = self.controller.BuildTargetShader(
+            psrefl1.entryPoint,
+            rd.ShaderEncoding.HLSL,
+            bytes(source, "UTF-8"),
+            rd.ShaderCompileFlags(),
+            rd.ShaderStage.Pixel,
+        )
 
         if len(newShader[1]) != 0:
             raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))
 
         ps1 = newShader[0]
 
-        source: str = psrefl2.debugInfo.files[0].contents.replace('#if 1', '#if 0')
+        source = psrefl2.debugInfo.files[0].contents.replace('#if 1', '#if 0')
 
-        newShader: Tuple[rd.ResourceId, str] = self.controller.BuildTargetShader(psrefl2.entryPoint,
-                                                                                 rd.ShaderEncoding.HLSL,
-                                                                                 bytes(source, 'UTF-8'),
-                                                                                 rd.ShaderCompileFlags(),
-                                                                                 rd.ShaderStage.Pixel)
+        newShader = self.controller.BuildTargetShader(
+            psrefl2.entryPoint,
+            rd.ShaderEncoding.HLSL,
+            bytes(source, "UTF-8"),
+            rd.ShaderCompileFlags(),
+            rd.ShaderStage.Pixel,
+        )
 
         if len(newShader[1]) != 0:
             raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))
 
         ps2 = newShader[0]
 
-        source: str = vsrefl.debugInfo.files[0].contents.replace('INpos.xyz', 'INpos.xyz+float3(1,1,1)')
+        source = vsrefl.debugInfo.files[0].contents.replace('INpos.xyz', 'INpos.xyz+float3(1,1,1)')
 
-        newShader: Tuple[rd.ResourceId, str] = self.controller.BuildTargetShader(vsrefl.entryPoint,
-                                                                                 rd.ShaderEncoding.HLSL,
-                                                                                 bytes(source, 'UTF-8'),
-                                                                                 rd.ShaderCompileFlags(),
-                                                                                 rd.ShaderStage.Vertex)
+        newShader = self.controller.BuildTargetShader(
+            vsrefl.entryPoint,
+            rd.ShaderEncoding.HLSL,
+            bytes(source, "UTF-8"),
+            rd.ShaderCompileFlags(),
+            rd.ShaderStage.Vertex,
+        )
 
         if len(newShader[1]) != 0:
             raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))
@@ -71,13 +77,15 @@ class D3D12_Shader_Editing(rdtest.TestCase):
         offsetVS = newShader[0]
 
         # for D3D12 to ensure we get an actual different shader, we need to make a no-op source change
-        source: str = vsrefl.debugInfo.files[0].contents + ' '
+        source = vsrefl.debugInfo.files[0].contents + " "
 
-        newShader: Tuple[rd.ResourceId, str] = self.controller.BuildTargetShader(vsrefl.entryPoint,
-                                                                                 rd.ShaderEncoding.HLSL,
-                                                                                 bytes(source, 'UTF-8'),
-                                                                                 rd.ShaderCompileFlags(),
-                                                                                 rd.ShaderStage.Vertex)
+        newShader = self.controller.BuildTargetShader(
+            vsrefl.entryPoint,
+            rd.ShaderEncoding.HLSL,
+            bytes(source, "UTF-8"),
+            rd.ShaderCompileFlags(),
+            rd.ShaderStage.Vertex,
+        )
 
         if len(newShader[1]) != 0:
             raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))

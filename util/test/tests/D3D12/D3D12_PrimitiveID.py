@@ -8,15 +8,15 @@ class D3D12_PrimitiveID(rdtest.TestCase):
     
     def test_action(self, action: rd.ActionDescription, x, y, prim, expected_prim, expected_output):
         self.controller.SetFrameEvent(action.eventId, True)
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
             rdtest.log.print("Skipping undebuggable shader at {}.".format(action.eventId))
             return
 
-        inputs = rd.DebugPixelInputs()
-        inputs.primitive = prim
-        trace: rd.ShaderDebugTrace = self.controller.DebugPixel(x, y, inputs)
+        pixel_inputs = rd.DebugPixelInputs()
+        pixel_inputs.primitive = prim
+        trace = self.controller.DebugPixel(x, y, pixel_inputs)
 
         cycles, variables = self.process_trace(trace)
 
@@ -30,7 +30,7 @@ class D3D12_PrimitiveID(rdtest.TestCase):
                 return False
         else:
             # Look up the matching register in the inputs, and see if the expected value matches
-            inputs: List[rd.ShaderVariable] = list(trace.inputs)
+            inputs = list(trace.inputs)
             primInputName = primInput.variables[0].name
             if inputs[0].name.startswith('_IN') and primInputName.startswith('_IN.'):
                 # Walk the DXIL input structure
@@ -74,7 +74,7 @@ class D3D12_PrimitiveID(rdtest.TestCase):
         for i in range(2):
             rdtest.log.begin_section(markers[i])
             # Jump to the action
-            test_marker: rd.ActionDescription = self.find_action(markers[i])
+            test_marker = self.find_action(markers[i])
             if test_marker is None:
                 rdtest.log.print(f"No {markers[i]} actions to test")
                 return

@@ -86,8 +86,8 @@ class GL_Parameter_Zoo(rdtest.TestCase):
         if len(results) != 3:
             raise rdtest.TestFailureException("Expected 3 results, got {} results".format(len(results)))
         
+
         for r in results:
-            r: rd.CounterResult
             val = r.value.u32
             if r.counter == rd.GPUCounter.RasterizedPrimitives:
                 if not rdtest.value_compare(val, 1):
@@ -113,14 +113,15 @@ class GL_Parameter_Zoo(rdtest.TestCase):
 
         assert action is not None
         action = action.nextAction
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         tex = rd.TextureDisplay()
         tex.overlay = rd.DebugOverlay.Drawcall
         tex.resourceId = pipe.GetOutputTargets()[0].resource
 
-        out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100),
-                                                            rd.ReplayOutputType.Texture)
+        out = self.controller.CreateOutput(
+            rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture
+        )
 
         out.SetTextureDisplay(tex)
 

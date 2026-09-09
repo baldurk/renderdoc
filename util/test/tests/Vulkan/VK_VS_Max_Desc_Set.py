@@ -13,7 +13,7 @@ class VK_VS_Max_Desc_Set(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         # We only need to check the color output for the first vertex - if we got that, the test succeeded.
         # We're not testing VS out fetch in general here, just that it works when there's no spare descriptor set

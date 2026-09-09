@@ -17,7 +17,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0.5, 0.5, [0.0, 1.0, 0.0, 1.0])
 
@@ -31,11 +31,10 @@ class VK_Parameter_Zoo(rdtest.TestCase):
         action = action.nextAction
         self.controller.SetFrameEvent(action.eventId, False)
 
-        vkpipe: rd.VKState = self.controller.GetVulkanPipelineState()
+        vkpipe = self.controller.GetVulkanPipelineState()
 
         res_names = {}
         for res in self.controller.GetResources():
-            res: rd.ResourceDescription
             res_names[res.resourceId] = res.name
 
         expected_binds = [
@@ -74,15 +73,13 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
         setidx = 0
         for descset in vkpipe.graphics.descriptorSets:
-            descset: rd.VKDescriptorSet
-
             if setidx == 2 and not descset.pushDescriptor:
                 raise rdtest.TestFailureException("Expected set {} to be a push set", setidx)
 
             if setidx != 2 and descset.pushDescriptor:
                 raise rdtest.TestFailureException("Expected set {} to be a non-push set", setidx)
 
-            range: rd.DescriptorRange = rd.DescriptorRange()
+            range = rd.DescriptorRange()
             range.offset = 0
             # push descriptors don't include dynamic descriptors so don't fetch those
             range.count = len([
@@ -122,14 +119,14 @@ class VK_Parameter_Zoo(rdtest.TestCase):
             action = action.nextAction
             self.controller.SetFrameEvent(action.eventId, False)
 
-            vkpipe: rd.VKState = self.controller.GetVulkanPipelineState()
+            vkpipe = self.controller.GetVulkanPipelineState()
 
-            descset: rd.VKDescriptorSet = vkpipe.graphics.descriptorSets[2]
+            descset = vkpipe.graphics.descriptorSets[2]
 
             if not descset.pushDescriptor:
                 raise rdtest.TestFailureException("Expected set 2 to be a push set")
 
-            range: rd.DescriptorRange = rd.DescriptorRange()
+            range = rd.DescriptorRange()
             range.offset = 0
             # push descriptors don't include dynamic descriptors so don't fetch those
             range.count = len([
@@ -188,7 +185,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
                 raise rdtest.TestFailureException(
                     f"Graphics bind 0[1] isn't the accessed descriptor {str(rd.DumpObject(access))}")
 
-            vkpipe: rd.VKState = self.controller.GetVulkanPipelineState()
+            vkpipe = self.controller.GetVulkanPipelineState()
             assert len(vkpipe.viewportScissor.viewportScissors) == 0
 
             postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)

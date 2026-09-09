@@ -16,9 +16,9 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
         # Test render pass attachments
         action = self.find_action("TestStart")
 
-        rpcol: rd.TextureDescription = self.get_texture(
+        rpcol = self.get_texture(
             [res for res in self.controller.GetResources() if "RPCol" in res.name][0].resourceId)
-        rpdepth: rd.TextureDescription = self.get_texture(
+        rpdepth = self.get_texture(
             [res for res in self.controller.GetResources() if "RPDepth" in res.name][0].resourceId)
 
         assert action is not None
@@ -43,10 +43,12 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
 
                 # if we're in the rect, check for pattern colors
                 if 50 <= x < 125 and 50 <= y < 125:
-                    c: rd.PixelValue = self.controller.PickPixel(rpcol.resourceId, x, y, rd.Subresource(),
-                                                                 rd.CompType.Typeless)
-                    d: rd.PixelValue = self.controller.PickPixel(rpdepth.resourceId, x, y, rd.Subresource(),
-                                                                 rd.CompType.Typeless)
+                    c = self.controller.PickPixel(
+                        rpcol.resourceId, x, y, rd.Subresource(), rd.CompType.Typeless
+                    )
+                    d = self.controller.PickPixel(
+                        rpdepth.resourceId, x, y, rd.Subresource(), rd.CompType.Typeless
+                    )
 
                     if not rdtest.value_compare(c.floatValue, [0.0] * 4) and not rdtest.value_compare(c.floatValue,
                                                                                                       [1000.0] * 4):
@@ -75,10 +77,12 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
 
                 # if we're in the rect, check for pattern colors
                 if 50 <= x < 125 and 50 <= y < 125:
-                    c: rd.PixelValue = self.controller.PickPixel(rpcol.resourceId, x, y, rd.Subresource(),
-                                                                 rd.CompType.Typeless)
-                    d: rd.PixelValue = self.controller.PickPixel(rpdepth.resourceId, x, y, rd.Subresource(),
-                                                                 rd.CompType.Typeless)
+                    c = self.controller.PickPixel(
+                        rpcol.resourceId, x, y, rd.Subresource(), rd.CompType.Typeless
+                    )
+                    d = self.controller.PickPixel(
+                        rpdepth.resourceId, x, y, rd.Subresource(), rd.CompType.Typeless
+                    )
 
                     if not rdtest.value_compare(c.floatValue, [0.0] * 4) and not rdtest.value_compare(c.floatValue,
                                                                                                       [1000.0] * 4):
@@ -119,11 +123,13 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
 
         # check that they are all undefined pattern - initial layout affects the whole resource
         for y in range(0, rpcol.height-1, 17):
-            for x in range(0, rpcol.width-1, 17):
-                c: rd.PixelValue = self.controller.PickPixel(rpcol.resourceId, x, y, rd.Subresource(),
-                                                             rd.CompType.Typeless)
-                d: rd.PixelValue = self.controller.PickPixel(rpdepth.resourceId, x, y, rd.Subresource(),
-                                                             rd.CompType.Typeless)
+            for x in range(0, rpcol.width - 1, 17):
+                c = self.controller.PickPixel(
+                    rpcol.resourceId, x, y, rd.Subresource(), rd.CompType.Typeless
+                )
+                d = self.controller.PickPixel(
+                    rpdepth.resourceId, x, y, rd.Subresource(), rd.CompType.Typeless
+                )
 
                 if not rdtest.value_compare(c.floatValue, [0.0] * 4) and not rdtest.value_compare(c.floatValue,
                                                                                                   [1000.0] * 4):
@@ -141,7 +147,7 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
         assert action is not None
         self.controller.SetFrameEvent(action.eventId, True)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         tex_id = pipe.GetOutputTargets()[0].resource
 

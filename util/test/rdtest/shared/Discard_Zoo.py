@@ -20,12 +20,12 @@ class Discard_Zoo(rdtest.TestCase):
             return rdtest.value_compare(comp_val, val[0:fmt.compCount])
 
     def check_texture(self, id, discarded: bool):
-        tex: rd.TextureDescription = self.get_texture(id)
-        res: rd.ResourceDescription = self.get_resource(id)
+        tex = self.get_texture(id)
+        res = self.get_resource(id)
 
-        fmt: rd.ResourceFormat = tex.format
+        fmt = tex.format
 
-        props: rd.APIProperties = self.controller.GetAPIProperties()
+        props = self.controller.GetAPIProperties()
         gl = (props.pipelineType == rd.GraphicsAPI.OpenGL)
 
         name = '{} - {}x{} {} mip {} slice {}x MSAA {} format texture'.format(res.name, tex.width, tex.height,
@@ -110,7 +110,7 @@ class Discard_Zoo(rdtest.TestCase):
                             if gl and h > 1:
                                 y = h - 1 - y
 
-                            picked: rd.PixelValue = self.controller.PickPixel(id, x, y, sub, rd.CompType.Typeless)
+                            picked = self.controller.PickPixel(id, x, y, sub, rd.CompType.Typeless)
 
                             if self.check_val(picked, minval, fmt) or self.check_val(picked, maxval, fmt):
                                 raise rdtest.TestFailureException(
@@ -133,7 +133,7 @@ class Discard_Zoo(rdtest.TestCase):
                             if gl and h > 1:
                                 y = h - 1 - y
 
-                            picked: rd.PixelValue = self.controller.PickPixel(id, x, y, sub, rd.CompType.Typeless)
+                            picked = self.controller.PickPixel(id, x, y, sub, rd.CompType.Typeless)
 
                             is_min = self.check_val(picked, minval, fmt)
                             is_max = self.check_val(picked, maxval, fmt)
@@ -162,7 +162,7 @@ class Discard_Zoo(rdtest.TestCase):
                                 if gl and h > 1:
                                     y = h - 1 - y
 
-                                picked: rd.PixelValue = self.controller.PickPixel(id, x, y, sub, rd.CompType.Typeless)
+                                picked = self.controller.PickPixel(id, x, y, sub, rd.CompType.Typeless)
 
                                 is_min = self.check_val(picked, minval, fmt)
                                 is_max = self.check_val(picked, maxval, fmt)
@@ -192,8 +192,7 @@ class Discard_Zoo(rdtest.TestCase):
         self.controller.SetFrameEvent(action.eventId, True)
 
         for tex in self.controller.GetTextures():
-            tex: rd.TextureDescription
-            res: rd.ResourceDescription = self.get_resource(tex.resourceId)
+            res = self.get_resource(tex.resourceId)
 
             if "Discard" in res.name:
                 self.check_texture(tex.resourceId, False)
@@ -205,8 +204,7 @@ class Discard_Zoo(rdtest.TestCase):
         self.controller.SetFrameEvent(action.eventId, True)
 
         for tex in self.controller.GetTextures():
-            tex: rd.TextureDescription
-            res: rd.ResourceDescription = self.get_resource(tex.resourceId)
+            res = self.get_resource(tex.resourceId)
 
             if "Discard" in res.name:
                 self.check_texture(tex.resourceId, True)

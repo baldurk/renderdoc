@@ -12,14 +12,14 @@ class GL_Frame0(rdtest.TestCase):
         found = False
         sdfile = self.controller.GetStructuredFile()
         for e in first_action.events:
-            c: rd.SDChunk = sdfile.chunks[e.chunkIndex]
+            c = sdfile.chunks[e.chunkIndex]
             if 'glBufferData' in c.name:
                 found = True
 
         if not found:
             raise rdtest.TestFailureException("Expected an glBufferData() chunk in frame 0, but couldn't find it!")
 
-        last_action: rd.ActionDescription = self.get_last_action()
+        last_action = self.get_last_action()
 
         self.controller.SetFrameEvent(last_action.eventId, True)
 
@@ -64,8 +64,6 @@ class GL_Frame0(rdtest.TestCase):
 
         # Check that nothing breaks if we call typical enumeration functions on resources
         for res in self.controller.GetResources():
-            res: rd.ResourceDescription
-
             self.controller.GetShaderEntryPoints(res.resourceId)
             self.controller.GetUsage(res.resourceId)
             self.controller.GetBufferData(res.resourceId, 0, 0)

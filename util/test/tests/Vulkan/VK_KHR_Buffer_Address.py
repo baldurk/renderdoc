@@ -14,22 +14,22 @@ class VK_KHR_Buffer_Address(rdtest.TestCase):
 
         for test_name in ["Draw 1", "Draw 2", "Draw 3", "Draw 4"]:
             rdtest.log.print("Test {}".format(test_name))
-            action: rd.ActionDescription = self.find_action(test_name)
+            action = self.find_action(test_name)
             action = action.nextAction
             self.controller.SetFrameEvent(action.eventId, True)
-            pipe: rd.PipeState = self.controller.GetPipelineState()
+            pipe = self.controller.GetPipelineState()
 
             if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
                 raise rdtest.TestFailureException("Test {} shader can not be debugged".format(test_name))
 
             # Debug the pixel shader
-            trace: rd.ShaderDebugTrace = self.controller.DebugPixel(x, y, rd.DebugPixelInputs())
+            trace = self.controller.DebugPixel(x, y, rd.DebugPixelInputs())
             if trace.debugger is None:
                 self.controller.FreeTrace(trace)
                 raise rdtest.TestFailureException("Test {} did not debug at all".format(test_name))
 
             cycles, variables = self.process_trace(trace)
-            output: rd.SourceVariableMapping = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+            output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
             debugged = self.evaluate_source_var(output, variables)
             self.check_pixel_value(pipe.GetOutputTargets()[0].resource, x, y, debugged.value.f32v[0:4])
             self.controller.FreeTrace(trace)

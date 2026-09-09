@@ -6,7 +6,7 @@ class VK_Secondary_CmdBuf(rdtest.TestCase):
     demos_test_name = 'VK_Secondary_CmdBuf'
 
     def check_capture(self):
-        last_action: rd.ActionDescription = self.get_last_action()
+        last_action = self.get_last_action()
 
         self.controller.SetFrameEvent(last_action.eventId, True)
 
@@ -26,15 +26,14 @@ class VK_Secondary_CmdBuf(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.nextAction.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         assert pipe.GetVBuffers()[0].byteOffset == 0
         rdtest.log.success("Primary action has correct byte offset")
 
-        pipeline: rd.ResourceId = self.controller.GetVulkanPipelineState().graphics.pipelineResourceId
+        pipeline = self.controller.GetVulkanPipelineState().graphics.pipelineResourceId
 
         checked = False
-        res: rd.ResourceDescription
         for res in resources:
             if res.resourceId == pipeline:
                 assert res.name == "Pipeline 0"
@@ -51,15 +50,14 @@ class VK_Secondary_CmdBuf(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.nextAction.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         assert pipe.GetVBuffers()[0].byteOffset == 108
         rdtest.log.success("Secondary action has correct byte offset")
 
-        pipeline: rd.ResourceId = self.controller.GetVulkanPipelineState().graphics.pipelineResourceId
+        pipeline = self.controller.GetVulkanPipelineState().graphics.pipelineResourceId
 
         checked = False
-        res: rd.ResourceDescription
         for res in resources:
             if res.resourceId == pipeline:
                 assert res.name == "Pipeline 1"

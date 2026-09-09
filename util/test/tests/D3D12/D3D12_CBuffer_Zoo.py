@@ -12,13 +12,12 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.nextAction.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         stage = rd.ShaderStage.Pixel
 
         # Verify that the DXBC action is first
-        disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), pipe.GetShaderReflection(stage),
-                                                   '')
+        disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, '')
 
         assert 'ps_5_1' in disasm
 
@@ -37,10 +36,9 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
         rdtest.log.begin_section("SM6.0 Draw")
         self.controller.SetFrameEvent(action.nextAction.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
-        disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), pipe.GetShaderReflection(stage),
-                                                   '')
+        disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, '')
 
         assert 'SM6.0' in disasm
         self.check_event()
@@ -57,21 +55,21 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
         rdtest.log.begin_section("SM6.6 Draw")
         self.controller.SetFrameEvent(action.nextAction.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
-        disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), pipe.GetShaderReflection(stage),
-                                                   '')
+        disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, '')
+
         assert 'SM6.6' in disasm
         self.check_event()
         rdtest.log.success("SM 6.6 action is as expected")
         rdtest.log.end_section("SM6.6 Draw")
 
     def check_event(self):
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         stage = rd.ShaderStage.Pixel
 
-        refl: rd.ShaderReflection = pipe.GetShaderReflection(stage)
+        refl = pipe.GetShaderReflection(stage)
 
         # Make sure we have five constant buffers - b7 normal, b1 root constants, b2, b3 and space9999999:b0
         binds = [
@@ -151,9 +149,11 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
         if self.controller.GetAPIProperties().shaderDebugging and pipe.GetShaderReflection(
                 rd.ShaderStage.Pixel).debugInfo.debuggable:
-            trace: rd.ShaderDebugTrace = self.controller.DebugPixel(int(pipe.GetViewport(0).width / 2.0),
-                                                                    int(pipe.GetViewport(0).height / 2.0),
-                                                                    rd.DebugPixelInputs())
+            trace = self.controller.DebugPixel(
+                int(pipe.GetViewport(0).width / 2.0),
+                int(pipe.GetViewport(0).height / 2.0),
+                rd.DebugPixelInputs(),
+            )
 
             debugVars = dict()
 
@@ -164,12 +164,10 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
             cbufferVars = []
 
             for sourceVar in trace.sourceVars:
-                sourceVar: rd.SourceVariableMapping
-
                 if sourceVar.variables[0].name not in debugVars.keys():
                     continue
 
-                eval: rd.ShaderVariable = self.evaluate_source_var(sourceVar, debugVars)
+                eval = self.evaluate_source_var(sourceVar, debugVars)
                 cbufferVars.append(eval)
 
             cbufferVars = self.combine_source_vars(cbufferVars)

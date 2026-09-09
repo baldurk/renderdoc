@@ -14,13 +14,13 @@ class VK_Large_Descriptor_Sets(rdtest.TestCase):
 
         rdtest.log.print("Loading capture")
 
-        memory_before: int = rd.GetCurrentProcessMemoryUsage()
+        memory_before = rd.GetCurrentProcessMemoryUsage()
         start_time = self.get_time()
 
         self.controller = rdtest.open_capture(self.capture_filename, opts=self.get_replay_options())
 
         duration = self.get_time() - start_time
-        memory_after: int = rd.GetCurrentProcessMemoryUsage()
+        memory_after = rd.GetCurrentProcessMemoryUsage()
 
         memory_increase = memory_after - memory_before
 

@@ -13,7 +13,7 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
         self.controller.SetFrameEvent(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
-        vkpipe: rd.VKState = self.controller.GetVulkanPipelineState()
+        vkpipe = self.controller.GetVulkanPipelineState()
 
         if len(vkpipe.compute.descriptorSets) != 1:
             raise rdtest.TestFailureException("Wrong number of compute sets is bound: {}, not 1"

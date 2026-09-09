@@ -194,7 +194,7 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
 
     rd.InitialiseReplay(rd.GlobalEnvironment(), [])
 
-    server: RemoteServer = util.get_remote_server()
+    server = util.get_remote_server()
     if server is not None:
         server.init(in_process)
 

@@ -13,21 +13,21 @@ class D3D12_Shader_Linkage_Zoo(rdtest.TestCase):
 
         failed = False
 
-        test_marker: rd.ActionDescription = self.find_action("draw")
+        test_marker = self.find_action("draw")
         while test_marker is not None:
             action = test_marker.nextAction
             event_name = test_marker.customName
-            test_marker: rd.ActionDescription = self.find_action("draw", action.eventId)
+            test_marker = self.find_action("draw", action.eventId)
 
             self.controller.SetFrameEvent(action.eventId, False)
-            pipe: rd.PipeState = self.controller.GetPipelineState()
+            pipe = self.controller.GetPipelineState()
 
             if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
                 rdtest.log.print("Skipping undebuggable shader at {}.".format(event_name))
                 continue
 
             # Debug the shader
-            trace: rd.ShaderDebugTrace = self.controller.DebugPixel(200, 150, rd.DebugPixelInputs())
+            trace = self.controller.DebugPixel(200, 150, rd.DebugPixelInputs())
             if trace.debugger is None:
                 failed = True
                 rdtest.log.error("Test {} could not be debugged.".format(event_name))

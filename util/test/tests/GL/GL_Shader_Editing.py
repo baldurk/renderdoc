@@ -11,28 +11,28 @@ class GL_Shader_Editing(rdtest.TestCase):
         eid = self.find_action("fixedprog").eventId
         self.controller.SetFrameEvent(eid, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
-        fixedrefl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Fragment)
+        fixedrefl = pipe.GetShaderReflection(rd.ShaderStage.Fragment)
 
         eid = self.find_action("dynamicprog").eventId
         self.controller.SetFrameEvent(eid, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
-        dynamicrefl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Fragment)
-        vsrefl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
+        dynamicrefl = pipe.GetShaderReflection(rd.ShaderStage.Fragment)
+        vsrefl = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
 
         eid = self.find_action("sepprog").eventId
         self.controller.SetFrameEvent(eid, False)
 
-        vsseprefl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
-        fsseprefl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Fragment)
+        vsseprefl = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
+        fsseprefl = pipe.GetShaderReflection(rd.ShaderStage.Fragment)
 
         # Work at the last action, where the uniforms have been trashed
         self.controller.SetFrameEvent(self.get_last_action().eventId, False)
 
-        tex: rd.ResourceId = pipe.GetOutputTargets()[0].resource
+        tex = pipe.GetOutputTargets()[0].resource
 
         # On upper row: Left triangle is fully green, right triangle is half-green
         # On lower row: Left triangle is fully green
@@ -42,72 +42,90 @@ class GL_Shader_Editing(rdtest.TestCase):
 
         rdtest.log.success("Values are as expected initially")
 
-        source: bytes = fixedrefl.rawBytes.replace(b'.rgba', b'.rgga').replace(b'location = 9', b'location = 10')
+        source = fixedrefl.rawBytes.replace(b'.rgba', b'.rgga').replace(b'location = 9', b'location = 10')
 
-        newShader: Tuple[rd.ResourceId, str] = self.controller.BuildTargetShader(fixedrefl.entryPoint,
-                                                                                 fixedrefl.encoding, source,
-                                                                                 rd.ShaderCompileFlags(),
-                                                                                 rd.ShaderStage.Fragment)
+        newShader = self.controller.BuildTargetShader(
+            fixedrefl.entryPoint,
+            fixedrefl.encoding,
+            source,
+            rd.ShaderCompileFlags(),
+            rd.ShaderStage.Fragment,
+        )
 
         if len(newShader[1]) != 0:
             raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))
 
         fixedFS = newShader[0]
 
-        source: bytes = dynamicrefl.rawBytes.replace(b'.rgba', b'.rgga').replace(b'#if 1', b'#if 0')
+        source = dynamicrefl.rawBytes.replace(b'.rgba', b'.rgga').replace(b'#if 1', b'#if 0')
 
-        newShader: Tuple[rd.ResourceId, str] = self.controller.BuildTargetShader(dynamicrefl.entryPoint,
-                                                                                 dynamicrefl.encoding, source,
-                                                                                 rd.ShaderCompileFlags(),
-                                                                                 rd.ShaderStage.Fragment)
+        newShader = self.controller.BuildTargetShader(
+            dynamicrefl.entryPoint,
+            dynamicrefl.encoding,
+            source,
+            rd.ShaderCompileFlags(),
+            rd.ShaderStage.Fragment,
+        )
 
         if len(newShader[1]) != 0:
             raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))
 
         dynamicFS = newShader[0]
 
-        source: bytes = vsrefl.rawBytes.replace(b'Position.xyz', b'Position.xyz+vec3(1.0)')
+        source = vsrefl.rawBytes.replace(b'Position.xyz', b'Position.xyz+vec3(1.0)')
 
-        newShader: Tuple[rd.ResourceId, str] = self.controller.BuildTargetShader(vsrefl.entryPoint,
-                                                                                 vsrefl.encoding, source,
-                                                                                 rd.ShaderCompileFlags(),
-                                                                                 rd.ShaderStage.Vertex)
+        newShader = self.controller.BuildTargetShader(
+            vsrefl.entryPoint,
+            vsrefl.encoding,
+            source,
+            rd.ShaderCompileFlags(),
+            rd.ShaderStage.Vertex,
+        )
 
         if len(newShader[1]) != 0:
             raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))
 
         offsetVS = newShader[0]
 
-        source: bytes = vsrefl.rawBytes
+        source = vsrefl.rawBytes
 
-        newShader: Tuple[rd.ResourceId, str] = self.controller.BuildTargetShader(vsrefl.entryPoint,
-                                                                                 vsrefl.encoding, source,
-                                                                                 rd.ShaderCompileFlags(),
-                                                                                 rd.ShaderStage.Vertex)
+        newShader = self.controller.BuildTargetShader(
+            vsrefl.entryPoint,
+            vsrefl.encoding,
+            source,
+            rd.ShaderCompileFlags(),
+            rd.ShaderStage.Vertex,
+        )
 
         if len(newShader[1]) != 0:
             raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))
 
         nochangeVS = newShader[0]
 
-        source: bytes = vsseprefl.rawBytes.replace(b'Position.xyz', b'Position.xyz+vec3(1.0)')
+        source = vsseprefl.rawBytes.replace(b'Position.xyz', b'Position.xyz+vec3(1.0)')
 
-        newShader: Tuple[rd.ResourceId, str] = self.controller.BuildTargetShader(vsseprefl.entryPoint,
-                                                                                 vsseprefl.encoding, source,
-                                                                                 rd.ShaderCompileFlags(),
-                                                                                 rd.ShaderStage.Vertex)
+        newShader = self.controller.BuildTargetShader(
+            vsseprefl.entryPoint,
+            vsseprefl.encoding,
+            source,
+            rd.ShaderCompileFlags(),
+            rd.ShaderStage.Vertex,
+        )
 
         if len(newShader[1]) != 0:
             raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))
 
         sepVS = newShader[0]
 
-        source: bytes = fsseprefl.rawBytes.replace(b'.rgba', b'.rgga')
+        source = fsseprefl.rawBytes.replace(b'.rgba', b'.rgga')
 
-        newShader: Tuple[rd.ResourceId, str] = self.controller.BuildTargetShader(fsseprefl.entryPoint,
-                                                                                 fsseprefl.encoding, source,
-                                                                                 rd.ShaderCompileFlags(),
-                                                                                 rd.ShaderStage.Fragment)
+        newShader = self.controller.BuildTargetShader(
+            fsseprefl.entryPoint,
+            fsseprefl.encoding,
+            source,
+            rd.ShaderCompileFlags(),
+            rd.ShaderStage.Fragment,
+        )
 
         if len(newShader[1]) != 0:
             raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))

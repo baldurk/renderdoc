@@ -28,7 +28,7 @@ class VK_Counters(rdtest.TestCase):
         ps = samp = None
 
         for r in results:
-            desc: rd.CounterDescription = descs[r.counter]
+            desc = descs[r.counter]
 
             if r.eventId == durationAction.eventId:
                 if r.counter == rd.GPUCounter.EventGPUDuration:

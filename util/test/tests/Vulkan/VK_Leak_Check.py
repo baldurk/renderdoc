@@ -9,7 +9,7 @@ class VK_Leak_Check(rdtest.TestCase):
     demos_timeout = 120
 
     def check_capture(self):
-        memory: int = rd.GetCurrentProcessMemoryUsage()
+        memory = rd.GetCurrentProcessMemoryUsage()
 
         if memory > 500*1000*1000:
             raise rdtest.TestFailureException("Memory usage of {} is too high".format(memory))

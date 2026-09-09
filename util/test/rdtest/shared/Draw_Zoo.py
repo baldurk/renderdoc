@@ -31,15 +31,14 @@ class Draw_Zoo(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, True)
 
-        self.pipe: rd.PipeState = self.controller.GetPipelineState()
+        self.pipe = self.controller.GetPipelineState()
 
-        refl: rd.ShaderReflection = self.pipe.GetShaderReflection(rd.ShaderStage.Vertex)
+        refl = self.pipe.GetShaderReflection(rd.ShaderStage.Vertex)
 
         num_verts = len(ref_data['pos'])
 
         vsin_pos_name = 'pos'
         for sig in refl.inputSignature:
-            sig: rd.SigParameter
             if 'pos' in sig.varName.lower() or 'pos' in sig.semanticName.lower():
                 vsin_pos_name = sig.varName
                 if vsin_pos_name == '':
@@ -48,7 +47,6 @@ class Draw_Zoo(rdtest.TestCase):
 
         vsout_pos_name = 'pos'
         for sig in refl.outputSignature:
-            sig: rd.SigParameter
             if sig.systemValue == rd.ShaderBuiltin.Position:
                 vsout_pos_name = sig.varName
                 if vsout_pos_name == '':
@@ -137,13 +135,13 @@ class Draw_Zoo(rdtest.TestCase):
         rdtest.log.success("Checked action {}".format(action.eventId))
 
     def check_capture(self):
-        test_marker: rd.ActionDescription = self.find_action("Test")
+        test_marker = self.find_action("Test")
         self.check_capture_action(test_marker)
 
     def check_capture_action(self, marker: rd.ActionDescription):
-        self.props: rd.APIProperties = self.controller.GetAPIProperties()
+        self.props = self.controller.GetAPIProperties()
 
-        action: rd.ActionDescription = marker.nextAction
+        action = marker.nextAction
 
         rdtest.log.begin_section("Non-indexed, non-instanced cases")
 

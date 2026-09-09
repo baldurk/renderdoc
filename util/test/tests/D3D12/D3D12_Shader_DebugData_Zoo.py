@@ -84,7 +84,7 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
             rdtest.log.begin_section(shaderModels[sm] + " tests")
 
             # Jump to the action
-            test_marker: rd.ActionDescription = self.find_action(shaderModels[sm])
+            test_marker = self.find_action(shaderModels[sm])
             if (test_marker is None):
                 rdtest.log.print(f"Skipping Graphics tests for {shaderModels[sm]}")
                 rdtest.log.end_section(shaderModels[sm] + " tests")
@@ -92,12 +92,12 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
             action = test_marker.nextAction
             self.controller.SetFrameEvent(action.eventId, False)
 
-            pipe: rd.PipeState = self.controller.GetPipelineState()
+            pipe = self.controller.GetPipelineState()
 
             if pipe.GetShaderReflection(rd.ShaderStage.Vertex).debugInfo.debuggable:
                 # Debug the vertex shader
                 instId = 1
-                trace: rd.ShaderDebugTrace = self.controller.DebugVertex(0, instId, 0, 0)
+                trace = self.controller.DebugVertex(0, instId, 0, 0)
                 cycles, variables = self.process_trace(trace)
                 output = self.find_output_source_var(trace, rd.ShaderBuiltin.Undefined, 1)
                 debugged = self.evaluate_source_var(output, variables)
@@ -150,7 +150,7 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
             # Loop over every test
             for test in range(action.numInstances):
                 # Debug the shader
-                trace: rd.ShaderDebugTrace = self.controller.DebugPixel(4 * test, 0, rd.DebugPixelInputs())
+                trace = self.controller.DebugPixel(4 * test, 0, rd.DebugPixelInputs())
                 cycles, variables = self.process_trace(trace)
                 output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
                 debugged = self.evaluate_source_var(output, variables)
@@ -238,14 +238,14 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
             rdtest.log.begin_section(section)
 
             # Jump to the action
-            test_marker: rd.ActionDescription = self.find_action(test)
+            test_marker = self.find_action(test)
             if test_marker is None:
                 rdtest.log.print(f"Skipping Compute tests for {csShaderModels[sm]}")
                 rdtest.log.end_section(section)
                 continue
             action = test_marker.nextAction
             self.controller.SetFrameEvent(action.eventId, False)
-            pipe: rd.PipeState = self.controller.GetPipelineState()
+            pipe = self.controller.GetPipelineState()
             if not pipe.GetShaderReflection(rd.ShaderStage.Compute).debugInfo.debuggable:
                 rdtest.log.print(f"Skipping undebuggable Compute shader at {action.eventId} for {csShaderModels[sm]}.")
                 rdtest.log.end_section(section)
@@ -256,7 +256,7 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
                 # Debug the shader
                 groupid = (test,0,0)
                 threadid = (0,0,0)
-                trace: rd.ShaderDebugTrace = self.controller.DebugThread(groupid, threadid)
+                trace = self.controller.DebugThread(groupid, threadid)
                 cycles, variables = self.process_trace(trace)
                 # Check for non-zero cycles
                 if cycles == 0:

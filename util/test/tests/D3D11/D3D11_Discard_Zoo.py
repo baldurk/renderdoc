@@ -22,7 +22,7 @@ class D3D11_Discard_Zoo(rdtest.Discard_Zoo):
         # Check the buffer
         for res in self.controller.GetResources():
             if res.name == "Buffer" or res.name == "BufferSRV" or res.name == "BufferRTV":
-                data: bytes = self.controller.GetBufferData(res.resourceId, 0, 0)
+                data = self.controller.GetBufferData(res.resourceId, 0, 0)
 
                 assert all([b == 0x88 for b in data])
 
@@ -35,13 +35,13 @@ class D3D11_Discard_Zoo(rdtest.Discard_Zoo):
         # Check the buffers
         for res in self.controller.GetResources():
             if res.name == "Buffer" or res.name == "BufferSRV":
-                data: bytes = self.controller.GetBufferData(res.resourceId, 0, 0)
+                data = self.controller.GetBufferData(res.resourceId, 0, 0)
 
                 data_u32 = struct.unpack_from('=256L', data, 0)
 
                 assert all([u == 0xD15CAD3D for u in data_u32])
             elif res.name == "BufferRTV":
-                data: bytes = self.controller.GetBufferData(res.resourceId, 0, 0)
+                data = self.controller.GetBufferData(res.resourceId, 0, 0)
 
                 data_u32 = struct.unpack_from('=18L', data, 50)
 

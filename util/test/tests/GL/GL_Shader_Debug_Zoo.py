@@ -26,7 +26,7 @@ class GL_Shader_Debug_Zoo(rdtest.TestCase):
                 x += 4
 
                 self.controller.SetFrameEvent(action.eventId, False)
-                pipe: rd.PipeState = self.controller.GetPipelineState()
+                pipe = self.controller.GetPipelineState()
 
                 if not pipe.GetShaderReflection(rd.ShaderStage.Vertex).debugInfo.debuggable:
                     rdtest.log.print("Skipping undebuggable shader at {} in {}.".format(test, child))
@@ -47,7 +47,7 @@ class GL_Shader_Debug_Zoo(rdtest.TestCase):
                     inputs.primitive = 1
 
                 # Debug the shader
-                trace: rd.ShaderDebugTrace = self.controller.DebugPixel(x, y, inputs)
+                trace = self.controller.DebugPixel(x, y, inputs)
 
                 rdtest.log.print(f"debugging {x},{y}")
 
@@ -59,7 +59,7 @@ class GL_Shader_Debug_Zoo(rdtest.TestCase):
 
                 _, variables = self.process_trace(trace)
 
-                output: rd.SourceVariableMapping = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+                output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
 
                 debugged = self.evaluate_source_var(output, variables)
 

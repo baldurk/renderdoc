@@ -6,7 +6,7 @@ class D3D12_Vertex_UAV(rdtest.TestCase):
     demos_test_name = 'D3D12_Vertex_UAV'
 
     def check_capture(self):
-        out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
+        out = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
 
         quad_seen = []
 
@@ -22,7 +22,7 @@ class D3D12_Vertex_UAV(rdtest.TestCase):
 
                 self.controller.SetFrameEvent(marker.nextAction.eventId, True)
 
-                pipe: rd.PipeState = self.controller.GetPipelineState()
+                pipe = self.controller.GetPipelineState()
 
                 tex = rd.TextureDisplay()
                 tex.resourceId = pipe.GetOutputTargets()[0].resource
@@ -32,7 +32,7 @@ class D3D12_Vertex_UAV(rdtest.TestCase):
 
                 out.Display()
 
-                overlay_id: rd.ResourceId = out.GetDebugOverlayTexID()
+                overlay_id = out.GetDebugOverlayTexID()
 
                 picked = self.controller.PickPixel(overlay_id, 5, 5, rd.Subresource(0,0,0), rd.CompType.Float).floatValue
 

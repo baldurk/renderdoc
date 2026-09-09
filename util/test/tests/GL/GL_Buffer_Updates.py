@@ -17,7 +17,7 @@ class GL_Buffer_Updates(rdtest.TestCase):
                 pipe = self.controller.GetPipelineState()
                 tex = self.controller.GetPipelineState().GetOutputTargets()[0].resource
 
-                view: rd.Viewport = self.controller.GetPipelineState().GetViewport(0)
+                view = self.controller.GetPipelineState().GetViewport(0)
 
                 x,y = int(view.x + view.width / 2), int(view.y + view.height / 2)
 
@@ -42,7 +42,7 @@ class GL_Buffer_Updates(rdtest.TestCase):
             cap.Shutdown()
             raise rdtest.TestFailureException("Couldn't open '{}': {}".format(self.capture_filename, str(result)))
 
-        thumb: rd.Thumbnail = cap.GetThumbnail(rd.FileType.PNG, 0)
+        thumb = cap.GetThumbnail(rd.FileType.PNG, 0)
 
         tmp_path = rdtest.get_tmp_path('thumbnail.png')
 

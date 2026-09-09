@@ -8,11 +8,11 @@ class VK_Descriptor_Reuse(rdtest.TestCase):
     demos_frame_cap = 100
 
     def check_capture(self):
-        last_action: rd.ActionDescription = self.get_last_action()
+        last_action = self.get_last_action()
 
         self.controller.SetFrameEvent(last_action.eventId, True)
 
-        action: rd.ActionDescription = self.find_action('Duration')
+        action = self.find_action('Duration')
 
         min_duration = float(action.customName.split(' = ')[1])
 
@@ -25,8 +25,8 @@ class VK_Descriptor_Reuse(rdtest.TestCase):
 
         resources = self.controller.GetResources()
         for i in range(8):
-            res: rd.ResourceDescription = [r for r in resources if r.name == 'Offscreen{}'.format(i)][0]
-            tex: rd.TextureDescription = self.get_texture(res.resourceId)
+            res = [r for r in resources if r.name == f'Offscreen{i}'][0]
+            tex = self.get_texture(res.resourceId)
 
             data = self.controller.GetTextureData(res.resourceId, rd.Subresource(0, 0, 0))
 

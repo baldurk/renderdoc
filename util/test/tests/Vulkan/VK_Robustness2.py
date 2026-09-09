@@ -6,7 +6,7 @@ class VK_Robustness2(rdtest.TestCase):
     demos_test_name = 'VK_Robustness2'
 
     def check_capture(self):
-        action: rd.ActionDescription = self.find_action('vkCmdDraw')
+        action = self.find_action('vkCmdDraw')
 
         self.controller.SetFrameEvent(action.eventId, True)
 

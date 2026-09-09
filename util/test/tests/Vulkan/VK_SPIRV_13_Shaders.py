@@ -12,11 +12,11 @@ class VK_SPIRV_13_Shaders(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
-        refl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
+        refl = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
 
-        disasm: str = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, "")
+        disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, "")
 
         if (refl.inputSignature[0].varName != 'pos' or refl.inputSignature[0].compCount != 3):
             raise rdtest.TestFailureException("Vertex shader input 'pos' not reflected correctly")
@@ -33,9 +33,9 @@ class VK_SPIRV_13_Shaders(rdtest.TestCase):
         if 'vertmain' not in disasm:
             raise rdtest.TestFailureException("Vertex shader disassembly failed, entry point not found")
 
-        refl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Fragment)
+        refl = pipe.GetShaderReflection(rd.ShaderStage.Fragment)
 
-        disasm: str = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, "")
+        disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, "")
 
         if (refl.inputSignature[0].varName != 'incol' or refl.inputSignature[0].compCount != 4):
             raise rdtest.TestFailureException("Fragment shader input 'incol' not reflected correctly")

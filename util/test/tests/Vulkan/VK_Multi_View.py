@@ -20,7 +20,7 @@ class VK_Multi_View(rdtest.TestCase):
             action = label.nextAction
             self.controller.SetFrameEvent(action.eventId, True)
 
-            pipe: rd.PipeState = self.controller.GetPipelineState()
+            pipe = self.controller.GetPipelineState()
             if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
                 raise rdtest.TestFailureException("Test {} shader can not be debugged".format(test_name))
 
@@ -28,13 +28,13 @@ class VK_Multi_View(rdtest.TestCase):
                 # Debug the pixel shader
                 inputs = rd.DebugPixelInputs()
                 inputs.view = view
-                trace: rd.ShaderDebugTrace = self.controller.DebugPixel(x, y, inputs)
+                trace = self.controller.DebugPixel(x, y, inputs)
                 if trace.debugger is None:
                     self.controller.FreeTrace(trace)
                     raise rdtest.TestFailureException("Test {} view {} did not debug at all".format(test_name, view))
 
                 cycles, variables = self.process_trace(trace)
-                output: rd.SourceVariableMapping = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+                output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
                 debugged = self.evaluate_source_var(output, variables)
                 slice = view + 1
                 sub = rd.Subresource(0, slice, 0)
@@ -56,7 +56,7 @@ class VK_Multi_View(rdtest.TestCase):
             action = label.nextAction
             self.controller.SetFrameEvent(action.eventId, True)
 
-            pipe: rd.PipeState = self.controller.GetPipelineState()
+            pipe = self.controller.GetPipelineState()
             if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
                 raise rdtest.TestFailureException("Test {} shader can not be debugged".format(test_name))
 
@@ -69,13 +69,13 @@ class VK_Multi_View(rdtest.TestCase):
                 # Debug the pixel shader
                 inputs = rd.DebugPixelInputs()
                 inputs.view = view
-                trace: rd.ShaderDebugTrace = self.controller.DebugPixel(x, y, inputs)
+                trace = self.controller.DebugPixel(x, y, inputs)
                 if trace.debugger is None:
                     self.controller.FreeTrace(trace)
                     raise rdtest.TestFailureException("Test {} view {} did not debug at all".format(test_name, view))
 
                 cycles, variables = self.process_trace(trace)
-                output: rd.SourceVariableMapping = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+                output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
                 debugged = self.evaluate_source_var(output, variables)
                 slice = view + 1
                 sub = rd.Subresource(0, slice, 0)

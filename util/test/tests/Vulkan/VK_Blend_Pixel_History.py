@@ -31,7 +31,7 @@ class VK_Blend_Pixel_History(rdtest.TestCase):
     demos_test_name = 'VK_Blend'
 
     def check_capture(self):
-        apiprops: rd.APIProperties = self.controller.GetAPIProperties()
+        apiprops = self.controller.GetAPIProperties()
 
         if not apiprops.pixelHistory:
             rdtest.log.print("Vulkan pixel history not tested")
@@ -40,10 +40,10 @@ class VK_Blend_Pixel_History(rdtest.TestCase):
         self.primary_test()
 
     def primary_test(self):
-        test_marker: rd.ActionDescription = self.find_action("Test End")
+        test_marker = self.find_action("Test End")
         self.controller.SetFrameEvent(test_marker.eventId, True)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         rt = pipe.GetOutputTargets()[0]
 
@@ -65,7 +65,7 @@ class VK_Blend_Pixel_History(rdtest.TestCase):
         # Pixel inside of all of the triangles
         x, y = 200, 150
         rdtest.log.print("Testing pixel {}, {}".format(x, y))
-        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
+        modifs = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         self.check_modifs_consistent(modifs)
         red_modifs = [m for m in modifs if m.eventId >= red_eid and m.eventId < red_last_eid]
         green_modifs = [m for m in modifs if m.eventId == green_eid]

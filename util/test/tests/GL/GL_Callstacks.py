@@ -39,7 +39,7 @@ class GL_Callstacks(rdtest.TestCase):
 
         action = self.find_action("Draw")
 
-        event: rd.APIEvent = action.events[-1]
+        event = action.events[-1]
 
         expected_funcs = [
             "GL_Callstacks::testFunction",
@@ -65,7 +65,7 @@ class GL_Callstacks(rdtest.TestCase):
             raise rdtest.TestFailureException("Resolved callstack isn't long enough ({} stack frames), expected at least {}".format(len(event.callstack), len(expected_funcs)))
 
         for i in range(len(expected_funcs)):
-            stack: str = callstack[i]
+            stack= callstack[i]
             if expected_funcs[i] not in stack:
                 raise rdtest.TestFailureException("Expected '{}' in '{}'".format(expected_funcs[i], stack))
             idx = callstack[i].find("line")

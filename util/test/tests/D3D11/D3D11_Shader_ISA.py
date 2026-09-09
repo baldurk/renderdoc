@@ -15,18 +15,18 @@ class D3D11_Shader_ISA(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.nextAction.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
-        refl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
+        refl = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
 
-        isas: List[str] = self.controller.GetDisassemblyTargets(True)
+        isas = self.controller.GetDisassemblyTargets(True)
 
         if isas == []:
             raise rdtest.TestFailureException("Expected some disassembly targets, got none!")
 
         # Generic testing can't do much, we just ensure that we can successfully get a non-empty disassembly string
         for isa in isas:
-            disasm: str = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, isa)
+            disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, isa)
 
             if len(disasm) < 32:
                 raise rdtest.TestFailureException("Disassembly for target '{}' is degenerate: {}".format(isa, disasm))
@@ -39,7 +39,7 @@ class D3D11_Shader_ISA(rdtest.TestCase):
             raise rdtest.TestFailureException(
                 "AMDIL is not an available disassembly target. Are you missing plugins?")
 
-        disasm: str = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, 'AMDIL')
+        disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, 'AMDIL')
 
         expected = [
             'il_vs',
@@ -56,7 +56,7 @@ class D3D11_Shader_ISA(rdtest.TestCase):
             raise rdtest.TestFailureException(
                 "RDNA (gfx1010) is not an available disassembly target. Are you missing plugins?")
 
-        disasm: str = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, 'RDNA (gfx1010)')
+        disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, 'RDNA (gfx1010)')
 
         expected = [
             'asic(GFX10)',

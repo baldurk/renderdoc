@@ -6,14 +6,14 @@ class VK_Sample_Locations(rdtest.TestCase):
     demos_test_name = 'VK_Sample_Locations'
 
     def check_capture(self):
-        action: rd.ActionDescription = self.find_action("Degenerate")
+        action = self.find_action("Degenerate")
         self.controller.SetFrameEvent(action.nextAction.eventId, True)
-        pipe: rd.VKState = self.controller.GetVulkanPipelineState()
+        pipe = self.controller.GetVulkanPipelineState()
 
         if pipe.multisample.rasterSamples != 4:
             raise rdtest.TestFailureException("MSAA sample count is {}, not 1".format(pipe.multisample.rasterSamples))
 
-        sampleLoc: rd.VKSampleLocations = pipe.multisample.sampleLocations
+        sampleLoc = pipe.multisample.sampleLocations
 
         if sampleLoc.gridWidth != 1:
             raise rdtest.TestFailureException("Sample locations grid width is {}, not 1".format(sampleLoc.gridWidth))
@@ -33,14 +33,14 @@ class VK_Sample_Locations(rdtest.TestCase):
             raise rdtest.TestFailureException("In degenerate case, sample locations [1] and [2] DO match: {} vs {}"
                                               .format(sampleLoc.customLocations[1], sampleLoc.customLocations[2]))
 
-        action: rd.ActionDescription = self.find_action("Rotated")
+        action = self.find_action("Rotated")
         self.controller.SetFrameEvent(action.nextAction.eventId, True)
-        pipe: rd.VKState = self.controller.GetVulkanPipelineState()
+        pipe = self.controller.GetVulkanPipelineState()
 
         if pipe.multisample.rasterSamples != 4:
             raise rdtest.TestFailureException("MSAA sample count is {}, not 1".format(pipe.multisample.rasterSamples))
 
-        sampleLoc: rd.VKSampleLocations = pipe.multisample.sampleLocations
+        sampleLoc = pipe.multisample.sampleLocations
 
         if sampleLoc.gridWidth != 1:
             raise rdtest.TestFailureException("Sample locations grid width is {}, not 1".format(sampleLoc.gridWidth))
@@ -64,16 +64,15 @@ class VK_Sample_Locations(rdtest.TestCase):
 
         # Grab the multisampled image's ID here
         save_data = rd.TextureSave()
-        curpass: rd.VKCurrentPass = pipe.currentPass
+        curpass = pipe.currentPass
         save_data.resourceId = curpass.framebuffer.attachments[curpass.renderpass.colorAttachments[0]].resource
         save_data.destType = rd.FileType.PNG
         save_data.sample.mapToArray = False
 
         dim = (0, 0)
-        fmt: rd.ResourceFormat = None
+        fmt = rd.ResourceFormat()
         texs = self.controller.GetTextures()
         for tex in texs:
-            tex: rd.TextureDescription
             if tex.resourceId == save_data.resourceId:
                 dim = (tex.width, tex.height)
                 fmt = tex.format
@@ -88,7 +87,7 @@ class VK_Sample_Locations(rdtest.TestCase):
 
         stride = fmt.compByteWidth * fmt.compCount * dim[0]
 
-        last_action: rd.ActionDescription = self.get_last_action()
+        last_action = self.get_last_action()
 
         self.controller.SetFrameEvent(last_action.eventId, True)
 

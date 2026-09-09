@@ -30,7 +30,7 @@ class VK_Misaligned_Dirty(rdtest.TestCase):
 
         rdtest.log.success("No debug messages found")
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 

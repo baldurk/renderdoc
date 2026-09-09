@@ -13,8 +13,8 @@ class D3D11_Parameter_Zoo(rdtest.TestCase):
         action = self.find_action("Draw")
         assert action is not None
         self.controller.SetFrameEvent(action.eventId, False)
-     
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+
+        pipe = self.controller.GetPipelineState()
 
         v = pipe.GetViewport(0)
 
@@ -26,7 +26,7 @@ class D3D11_Parameter_Zoo(rdtest.TestCase):
         self.check_triangle()
 
         self.check_debug_pixel(int(0.5 * v.width), int(0.5 * v.height))
-  
+
         var_check = rdtest.ConstantBufferChecker(
             self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                        pipe.GetShader(stage), stage,
@@ -34,13 +34,14 @@ class D3D11_Parameter_Zoo(rdtest.TestCase):
                                                        cbuf.resource, cbuf.byteOffset, cbuf.byteSize))
 
         var_check.check('cbuf_zero').rows(1).cols(4).value([0.0, 0.0, 0.0, 0.0])
- 
+
         tex = rd.TextureDisplay()
         tex.overlay = rd.DebugOverlay.Drawcall
         tex.resourceId = pipe.GetOutputTargets()[0].resource
 
-        out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100),
-                                                            rd.ReplayOutputType.Texture)
+        out = self.controller.CreateOutput(
+            rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture
+        )
 
         out.SetTextureDisplay(tex)
 

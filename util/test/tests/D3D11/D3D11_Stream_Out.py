@@ -13,7 +13,7 @@ class D3D11_Stream_Out(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         # Get the input data as our reference
 
@@ -24,9 +24,9 @@ class D3D11_Stream_Out(rdtest.TestCase):
         pos = [(*v['POSITION'], 1.0) for v in vsin]
         col = [v['COLOR'] for v in vsin]
 
-        d3d11pipe: rd.D3D11State = self.controller.GetD3D11PipelineState()
+        d3d11pipe = self.controller.GetD3D11PipelineState()
 
-        so: rd.D3D11StreamOut = d3d11pipe.streamOut
+        so = d3d11pipe.streamOut
         so_bytes = self.controller.GetBufferData(so.outputs[0].resourceId, so.outputs[0].byteOffset, 0)
 
         for i,p in enumerate(pos):

@@ -6,7 +6,7 @@ class D3D12_Existing_Heap(rdtest.TestCase):
     demos_test_name = 'D3D12_Existing_Heap'
 
     def check_capture(self):
-        last_action: rd.ActionDescription = self.get_last_action()
+        last_action = self.get_last_action()
 
         self.controller.SetFrameEvent(last_action.eventId, True)
 

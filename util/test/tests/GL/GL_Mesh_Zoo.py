@@ -16,7 +16,7 @@ class GL_Mesh_Zoo(rdtest.TestCase):
         action = self.zoo_helper.find_action("Geom Only").nextAction
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pos: rd.MeshFormat = self.controller.GetPostVSData(0, 0, rd.MeshDataStage.VSOut)
+        pos = self.controller.GetPostVSData(0, 0, rd.MeshDataStage.VSOut)
 
         # vertex output should be completely empty
         assert pos.vertexByteStride == 0
@@ -48,13 +48,11 @@ class GL_Mesh_Zoo(rdtest.TestCase):
         baseInstance = [20, 22]
 
         for d, action in enumerate(multibase.children):
-            action: rd.ActionDescription
-
             self.controller.SetFrameEvent(action.eventId, False)
 
-            pipe: rd.PipeState = self.controller.GetPipelineState()
+            pipe = self.controller.GetPipelineState()
 
-            shad: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
+            shad = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
 
             builtins = [sig.systemValue for sig in shad.inputSignature if sig.systemValue != rd.ShaderBuiltin.Undefined]
 

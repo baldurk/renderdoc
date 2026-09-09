@@ -6,7 +6,7 @@ class VK_Extended_Dynamic_State(rdtest.TestCase):
     demos_test_name = 'VK_Extended_Dynamic_State'
 
     def check_capture(self):
-        action: rd.ActionDescription = self.find_action("Draw")
+        action = self.find_action("Draw")
 
         self.controller.SetFrameEvent(action.eventId, True)
 
@@ -78,7 +78,7 @@ class VK_Extended_Dynamic_State(rdtest.TestCase):
 
         self.check_mesh_data(postvs_ref, postvs_data)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 100, 200, [0.0, 1.0, 0.0, 1.0])
         self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 300, 200, [0.0, 0.0, 1.0, 1.0])
@@ -93,7 +93,7 @@ class VK_Extended_Dynamic_State(rdtest.TestCase):
 
         # check that the state listed is the dynamic state, not the static state
 
-        vkpipe: rd.VKState = self.controller.GetVulkanPipelineState()
+        vkpipe = self.controller.GetVulkanPipelineState()
 
         assert vkpipe.inputAssembly.topology == rd.Topology.TriangleList
 

@@ -256,7 +256,6 @@ class TestCase:
         return self.sdfile.chunks[action.events[-1].chunkIndex].name
 
     def _find_action(self, name: str, start_event: int, action_list):
-        action: rd.ActionDescription
         bestMatch = None
         distance = 1000000
         for action in action_list:
@@ -267,7 +266,7 @@ class TestCase:
                     distance = action.eventId - start_event
 
             # Recurse to children - depth-first search
-            ret: rd.ActionDescription = self._find_action(name, start_event, action.children)
+            ret = self._find_action(name, start_event, action.children)
 
             # If we found our action, return
             if ret is not None:
@@ -302,7 +301,7 @@ class TestCase:
         return self._find_action('', event, self.controller.GetRootActions())
 
     def get_vsin(self, action: rd.ActionDescription, first_index: int=0, num_indices: int=0, instance: int=0, view: int=0):
-        ib: rd.BoundVBuffer = self.controller.GetPipelineState().GetIBuffer()
+        ib = self.controller.GetPipelineState().GetIBuffer()
 
         if num_indices == 0:
             num_indices = action.numIndices
@@ -338,7 +337,7 @@ class TestCase:
 
     def get_postvs(self, action: rd.ActionDescription, data_stage: rd.MeshDataStage, first_index: int = 0,
                    num_indices: int = 0, instance: int = 0, view: int = 0):
-        mesh: rd.MeshFormat = self.controller.GetPostVSData(instance, view, data_stage)
+        mesh = self.controller.GetPostVSData(instance, view, data_stage)
 
         if mesh.numIndices == 0:
             return []
@@ -350,7 +349,7 @@ class TestCase:
 
         first_index = min(first_index, mesh.numIndices-1)
 
-        ib: rd.BoundVBuffer = self.controller.GetPipelineState().GetIBuffer()
+        ib = self.controller.GetPipelineState().GetIBuffer()
 
         ioffs = action.indexOffset * ib.byteStride
 
@@ -464,7 +463,7 @@ class TestCase:
             if tex_details.format.compByteWidth == 2 and eps == util.FLT_EPSILON:
                 eps = (1.0 / 16384.0)
 
-        picked: rd.PixelValue = self.controller.PickPixel(tex, x, y, sub, cast)
+        picked = self.controller.PickPixel(tex, x, y, sub, cast)
 
         picked_value = picked.floatValue
         if cast == rd.CompType.UInt:
@@ -495,7 +494,7 @@ class TestCase:
         log.success("Picked value at {},{} in {} is as expected".format(x, y, name))
 
     def check_triangle(self, out = None, back = None, fore = None, vp = None):
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         # if no output is specified, check the current colour output at this action
         if out is None:
@@ -632,7 +631,7 @@ class TestCase:
         self.debugMode = debugMode
 
     def get_first_action(self):
-        first_action: rd.ActionDescription = self.controller.GetRootActions()[0]
+        first_action = self.controller.GetRootActions()[0]
 
         while len(first_action.children) > 0:
             first_action = first_action.children[0]
@@ -643,7 +642,6 @@ class TestCase:
         texs = self.controller.GetTextures()
 
         for t in texs:
-            t: rd.TextureDescription
             if t.resourceId == id:
                 return t
 
@@ -653,7 +651,6 @@ class TestCase:
         resources = self.controller.GetResources()
 
         for r in resources:
-            r: rd.ResourceDescription
             if r.resourceId == id:
                 return r
 
@@ -663,14 +660,13 @@ class TestCase:
         resources = self.controller.GetResources()
 
         for r in resources:
-            r: rd.ResourceDescription
             if r.name == name:
                 return r
 
         return None
 
     def get_last_action(self):
-        last_action: rd.ActionDescription = self.controller.GetRootActions()[-1]
+        last_action = self.controller.GetRootActions()[-1]
 
         while len(last_action.children) > 0:
             last_action = last_action.children[-1]
@@ -681,7 +677,7 @@ class TestCase:
         img_path = util.get_tmp_path('backbuffer.png')
         ref_path = self.get_ref_path('backbuffer.png')
 
-        last_action: rd.ActionDescription = self.get_last_action()
+        last_action = self.get_last_action()
 
         self.controller.SetFrameEvent(last_action.eventId, True)
 
@@ -861,14 +857,14 @@ class TestCase:
         return vars[0]
 
     def find_input_source_var(self, trace: rd.ShaderDebugTrace, builtin: rd.ShaderBuiltin, reg_index: int = -1):
-        refl: rd.ShaderReflection = self.controller.GetPipelineState().GetShaderReflection(trace.stage)
+        refl = self.controller.GetPipelineState().GetShaderReflection(trace.stage)
 
         sig_index = self.get_sig_index(refl.inputSignature, builtin, reg_index)
 
         return self.find_source_var(trace.sourceVars, sig_index, rd.DebugVariableType.Input)
 
     def find_output_source_var(self, trace: rd.ShaderDebugTrace, builtin: rd.ShaderBuiltin, reg_index: int = -1):
-        refl: rd.ShaderReflection = self.controller.GetPipelineState().GetShaderReflection(trace.stage)
+        refl = self.controller.GetPipelineState().GetShaderReflection(trace.stage)
 
         sig_index = self.get_sig_index(refl.outputSignature, builtin, reg_index)
 
@@ -902,7 +898,6 @@ class TestCase:
 
         if child != '':
             for name, var in debugVars.items():
-                var: rd.ShaderVariable
                 if name == child:
                     if remaining == '':
                         return var
@@ -1040,7 +1035,7 @@ class TestCase:
         log.success("Recompressed and re-imported capture files are identical")
 
     def check_debug_pixel(self, x: int, y: int):
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
         if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
             log.print("Skipping undebuggable shader.")
             return 
@@ -1101,14 +1096,14 @@ class TestCase:
         return ret
 
     def get_task_data(self, action: rd.ActionDescription):
-        mesh: rd.MeshFormat = self.controller.GetPostVSData(0, 0, rd.MeshDataStage.TaskOut)
+        mesh = self.controller.GetPostVSData(0, 0, rd.MeshDataStage.TaskOut)
         if mesh.numIndices == 0:
             raise TestFailureException("Task data is empty")
 
         if len(mesh.taskSizes) == 0:
             raise TestFailureException("Task data is empty")
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
         shader = pipe.GetShaderReflection(rd.ShaderStage.Task)
         taskIdx = 0
         task = action.dispatchDimension

@@ -52,7 +52,7 @@ class Texture_Zoo():
     TEST_PNG = 2
 
     def check_test(self, fmt_name: str, name: str, test_mode: int):
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         image_view = (test_mode != Texture_Zoo.TEST_CAPTURE)
 
@@ -67,7 +67,7 @@ class Texture_Zoo():
         for t in texs:
             self.textures[t.resourceId] = t
 
-        tex: rd.TextureDescription = self.textures[tex_id]
+        tex = self.textures[tex_id]
 
         testCompType = desc.format.compType
         if testCompType == rd.CompType.Typeless:
@@ -91,7 +91,7 @@ class Texture_Zoo():
 
             path = rdtest.get_tmp_path(self.filename + '.dds')
 
-            success: bool = self.controller.SaveTexture(save_data, path)
+            success = self.controller.SaveTexture(save_data, path)
 
             if not success:
                 if self.d3d_mode:
@@ -118,7 +118,7 @@ class Texture_Zoo():
                 save_data.comp.blackPoint = -1.0
                 save_data.comp.whitePoint = 0.0
 
-            success: bool = self.controller.SaveTexture(save_data, path)
+            success = self.controller.SaveTexture(save_data, path)
 
             if not success:
                 try:
@@ -259,7 +259,7 @@ class Texture_Zoo():
 
                     self.out.Display()
 
-                    pixels: bytes = self.out.ReadbackOutputTexture()
+                    pixels = self.out.ReadbackOutputTexture()
                     dim = self.out.GetDimensions()
 
                     stencilpixels = None
@@ -274,7 +274,7 @@ class Texture_Zoo():
                         self.out.SetTextureDisplay(tex_display)
                         self.out.Display()
 
-                        stencilpixels: bytes = self.out.ReadbackOutputTexture()
+                        stencilpixels = self.out.ReadbackOutputTexture()
 
                     # Grab alpha if needed (since the readback output is RGB only)
                     if comp_count == 4 or tex.format.type == rd.ResourceFormatType.A8:
@@ -286,7 +286,7 @@ class Texture_Zoo():
                         self.out.SetTextureDisplay(tex_display)
                         self.out.Display()
 
-                        alphapixels: bytes = self.out.ReadbackOutputTexture()
+                        alphapixels = self.out.ReadbackOutputTexture()
 
                     all_good = True
 
@@ -371,10 +371,15 @@ class Texture_Zoo():
 
             # in the test captures pick the output texture, it should be identical to the
             # (0,0) pixel in slice 0, mip 0, sample 0
-            view: rd.Viewport = pipe.GetViewport(0)
+            view = pipe.GetViewport(0)
 
-            val: rd.PixelValue = self.pick(pipe.GetOutputTargets()[0].resource, int(view.x + view.width / 2),
-                                           int(view.y + view.height / 2), rd.Subresource(), rd.CompType.Typeless)
+            val = self.pick(
+                pipe.GetOutputTargets()[0].resource,
+                int(view.x + view.width / 2),
+                int(view.y + view.height / 2),
+                rd.Subresource(),
+                rd.CompType.Typeless,
+            )
 
             picked = list(val.floatValue)
 
@@ -502,7 +507,7 @@ class Texture_Zoo():
         return expected
 
     def get_picked_pixel_value(self, comp_count, comp_type, cur_sub, tex, tex_id, x, y):
-        picked_combo: rd.PixelValue = self.pick(tex_id, x, y, cur_sub, comp_type)
+        picked_combo = self.pick(tex_id, x, y, cur_sub, comp_type)
 
         if comp_type == rd.CompType.SInt:
             picked = [float(a) for a in picked_combo.intValue]
@@ -535,7 +540,6 @@ class Texture_Zoo():
         return picked
 
     def check_capture_with_controller(self, proxy_api: str):
-        self.controller: rd.ReplayController
         any_failed = False
 
         if proxy_api != '':
@@ -545,8 +549,9 @@ class Texture_Zoo():
             rdtest.log.print('Running on direct replay')
             self.proxied = False
 
-        self.out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100),
-                                                                 rd.ReplayOutputType.Texture)
+        self.out = self.controller.CreateOutput(
+            rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture
+        )
 
         for d in self.controller.GetRootActions():
             if 'slice tests' in d.customName:
@@ -590,7 +595,7 @@ class Texture_Zoo():
                                     tex_display.scale = scale
                                     self.out.SetTextureDisplay(tex_display)
                                     self.out.Display()
-                                    pixels: bytes = self.out.ReadbackOutputTexture()
+                                    pixels = self.out.ReadbackOutputTexture()
 
                                     actual = [int(a) for a in pixels[0:3]]
 
@@ -615,8 +620,6 @@ class Texture_Zoo():
 
                 # Iterate over actions in this region
                 for sub in d.children:
-                    sub: rd.ActionDescription
-
                     if sub.flags & rd.ActionFlags.SetMarker:
                         name = sub.customName
 
@@ -677,14 +680,12 @@ class Texture_Zoo():
         # Wait for it to start
         time.sleep(0.5)
 
-        ret: Tuple[rd.ResultDetails, rd.RemoteServer] = rd.CreateRemoteServerConnection('localhost')
-        result, remote = ret
+        result, remote = rd.CreateRemoteServerConnection('localhost')
 
         if result != rd.ResultCode.Succeeded:
             time.sleep(2)
 
-            ret: Tuple[rd.ResultDetails, rd.RemoteServer] = rd.CreateRemoteServerConnection('localhost')
-            result, remote = ret
+            result, remote = rd.CreateRemoteServerConnection('localhost')
 
         if result != rd.ResultCode.Succeeded:
             raise rdtest.TestFailureException("Couldn't connect to remote server: {}".format(str(result)))
@@ -700,10 +701,9 @@ class Texture_Zoo():
 
                 rdtest.log.begin_section("{} proxy".format(api))
                 try:
-                    ret: Tuple[rd.ResultDetails, rd.ReplayController] = remote.OpenCapture(proxies.index(api),
-                                                                                        capture_filename,
-                                                                                        rd.ReplayOptions(), None)
-                    result, self.controller = ret
+                    result, self.controller = remote.OpenCapture(
+                        proxies.index(api), capture_filename, rd.ReplayOptions(), None
+                    )
 
                     # Now check with the proxy
                     self.check_capture_with_controller(api)
@@ -738,8 +738,7 @@ class Texture_Zoo():
                 failed = True
                 continue
 
-            ret: Tuple[rd.ResultDetails, rd.ReplayController] = cap.OpenCapture(rd.ReplayOptions(), None)
-            result, self.controller = ret
+            result, self.controller = cap.OpenCapture(rd.ReplayOptions(), None)
 
             if result != rd.ResultCode.Succeeded:
                 rdtest.log.error("Couldn't open {}".format(file.name))
@@ -754,7 +753,7 @@ class Texture_Zoo():
 
             try:
                 self.opengl_mode = False
-                fmt: rd.ResourceFormat = self.controller.GetTextures()[0].format
+                fmt = self.controller.GetTextures()[0].format
 
                 is_compressed = (rd.ResourceFormatType.BC1 <= fmt.type <= rd.ResourceFormatType.BC7 or
                                  fmt.type == rd.ResourceFormatType.EAC or fmt.type == rd.ResourceFormatType.ETC2 or
@@ -766,7 +765,7 @@ class Texture_Zoo():
                 if was_opengl and not is_compressed:
                     self.opengl_mode = True
 
-                self.out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
+                self.out = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
 
                 rdtest.log.print("Checking {}".format(file.name))
 

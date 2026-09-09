@@ -6,7 +6,7 @@ class GL_Simple_Triangle(rdtest.TestCase):
     demos_test_name = 'GL_Simple_Triangle'
 
     def check_capture(self):
-        last_action: rd.ActionDescription = self.get_last_action()
+        last_action = self.get_last_action()
 
         self.controller.SetFrameEvent(last_action.eventId, True)
 
@@ -55,8 +55,6 @@ class GL_Simple_Triangle(rdtest.TestCase):
 
         # Check that nothing breaks if we call typical enumeration functions on resources
         for res in self.controller.GetResources():
-            res: rd.ResourceDescription
-
             save_data.resourceId = res.resourceId
 
             self.controller.GetShaderEntryPoints(res.resourceId)

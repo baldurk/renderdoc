@@ -6,7 +6,7 @@ class GL_Queries_In_Use(rdtest.TestCase):
     demos_test_name = 'GL_Queries_In_Use'
 
     def check_capture(self):
-        last_action: rd.ActionDescription = self.get_last_action()
+        last_action = self.get_last_action()
 
         self.controller.SetFrameEvent(last_action.eventId, True)
 
@@ -57,7 +57,6 @@ class GL_Queries_In_Use(rdtest.TestCase):
             raise rdtest.TestFailureException("Expected 3 results, got {} results".format(len(results)))
 
         for r in results:
-            r: rd.CounterResult
             val = r.value.u32
             if r.counter == rd.GPUCounter.RasterizedPrimitives:
                 if not rdtest.value_compare(val, 1):

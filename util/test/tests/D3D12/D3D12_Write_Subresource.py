@@ -10,7 +10,7 @@ class D3D12_Write_Subresource(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         # Should be black around the sides, white in the centre
         self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0.05, 0.05, [0.0, 0.0, 0.0, 0.0])

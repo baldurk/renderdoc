@@ -61,17 +61,17 @@ class VK_Indirect(rdtest.TestCase):
     ]
 
     def check_pixel_history_succeeds(self, eid: int, x: int, y: int):
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
         rt = pipe.GetOutputTargets()[0]
         tex = rt.resource
         sub = rd.Subresource()
-        modifs: List[rd.PixelModification] = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
+        modifs = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         if len(modifs) < 2:
             raise rdtest.TestFailureException(f"EID: {eid} No pixel history found at ({x}, {y})")
         rdtest.log.success(f"EID: {eid} Pixel History {x}, {y} Worked")
 
     def check_overlay(self, pass_samples, *, no_overlay = False):
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         tex = rd.TextureDisplay()
         tex.overlay = rd.DebugOverlay.Drawcall
@@ -101,10 +101,10 @@ class VK_Indirect(rdtest.TestCase):
         tex.overlay = overlay
         tex.subresource.sample = 0
 
-        out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
+        out = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
         out.SetTextureDisplay(tex)
         out.Display()
-        overlayTex: rd.ResourceId = out.GetDebugOverlayTexID()
+        overlayTex = out.GetDebugOverlayTexID()
         if overlay == rd.DebugOverlay.ClearBeforeDraw:
             overlayTex = col_tex
         if overlay == rd.DebugOverlay.ClearBeforePass:
@@ -116,11 +116,11 @@ class VK_Indirect(rdtest.TestCase):
 
     def check_overlays(self, eid: int, x: int, y: int):
         with rdtest.log.auto_section(f'EID {eid} Checking Overlays at {x}, {y}'):
-            pipe: rd.PipeState = self.controller.GetPipelineState()
+            pipe = self.controller.GetPipelineState()
             if len(pipe.GetOutputTargets()) == 0:
                 raise rdtest.TestFailureException("No output targets found")
 
-            col_tex: rd.ResourceId = pipe.GetOutputTargets()[0].resource
+            col_tex = pipe.GetOutputTargets()[0].resource
 
             for overlay in rd.DebugOverlay:
                 if overlay == rd.DebugOverlay.NoOverlay:
@@ -260,7 +260,6 @@ class VK_Indirect(rdtest.TestCase):
         with rdtest.log.auto_section('Checking Empty Draws'):
             for level in ["Primary", "Secondary"]:
                 empties = self.find_action(f"{level}: Empty count draws")
-                action: rd.ActionDescription
                 for action in real_action_children(empties):
                     eid = action.eventId
                     self.controller.SetFrameEvent(eid, False)
@@ -275,14 +274,14 @@ class VK_Indirect(rdtest.TestCase):
                         if overlay == rd.DebugOverlay.Wireframe:
                             continue
                         tex = rd.TextureDisplay()
-                        col_tex: rd.ResourceId = pipe.GetOutputTargets()[0].resource
+                        col_tex = pipe.GetOutputTargets()[0].resource
                         tex.resourceId = col_tex
                         tex.overlay = overlay
                         tex.subresource.sample = 0
-                        out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
+                        out = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
                         out.SetTextureDisplay(tex)
                         out.Display()
-                        overlayTex: rd.ResourceId = out.GetDebugOverlayTexID()
+                        overlayTex = out.GetDebugOverlayTexID()
                         expectEmpty = True
                         if overlay == rd.DebugOverlay.ClearBeforeDraw:
                             overlayTex = col_tex
@@ -326,7 +325,6 @@ class VK_Indirect(rdtest.TestCase):
         buffer_usage = {}
 
         for usage in self.controller.GetUsage(fill.copyDestination):
-            usage: rd.EventUsage
             if usage.eventId not in buffer_usage:
                 buffer_usage[usage.eventId] = []
             buffer_usage[usage.eventId].append(usage.usage)
@@ -363,13 +361,14 @@ class VK_Indirect(rdtest.TestCase):
             dispatches = self.find_action("{}: Dispatches".format(level))
 
             # Set up a ReplayOutput and TextureSave for quickly testing the action highlight overlay
-            self.out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100),
-                                                                     rd.ReplayOutputType.Texture)
+            self.out = self.controller.CreateOutput(
+                rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture
+            )
 
             assert self.out is not None
 
             # Rewind to the start of the capture
-            action: rd.ActionDescription = dispatches.children[0]
+            action = dispatches.children[0]
             while action.previousAction is not None:
                 action = action.previousAction
 
@@ -390,10 +389,10 @@ class VK_Indirect(rdtest.TestCase):
 
             self.controller.SetFrameEvent(dispatches.children[2].eventId, False)
 
-            pipe: rd.PipeState = self.controller.GetPipelineState()
+            pipe = self.controller.GetPipelineState()
 
             ssbo = pipe.GetReadWriteResources(rd.ShaderStage.Compute)[0].descriptor
-            data: bytes = self.controller.GetBufferData(ssbo.resource, 0, 0)
+            data = self.controller.GetBufferData(ssbo.resource, 0, 0)
 
             rdtest.log.print("Got {} bytes of uints".format(len(data)))
 
@@ -414,7 +413,6 @@ class VK_Indirect(rdtest.TestCase):
 
             assert empties and len(real_action_children(empties)) == 2
 
-            action: rd.ActionDescription
             for action in real_action_children(empties):
                 assert action.numIndices == 0
                 assert action.numInstances == 0
@@ -526,7 +524,6 @@ class VK_Indirect(rdtest.TestCase):
 
                 assert empties and len(real_action_children(empties)) == 3
 
-                action: rd.ActionDescription
                 for action in real_action_children(empties):
                     assert action.numIndices == 0
                     assert action.numInstances == 0
@@ -668,12 +665,12 @@ class VK_Indirect(rdtest.TestCase):
                 rdtest.log.print(f"EID: {eid}")
                 for overlay in rd.DebugOverlay:
                     tex = rd.TextureDisplay()
-                    col_tex: rd.ResourceId = pipe.GetOutputTargets()[0].resource
+                    col_tex = pipe.GetOutputTargets()[0].resource
                     tex.resourceId = col_tex
                     tex.overlay = overlay
                     tex.subresource.sample = 0
 
-                    out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
+                    out = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
                     out.SetTextureDisplay(tex)
                     out.Display()
                     out.Shutdown()

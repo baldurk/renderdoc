@@ -12,19 +12,19 @@ class VK_Shader_Editing(rdtest.TestCase):
         eid = self.find_action("Draw 1").nextAction.eventId
         self.controller.SetFrameEvent(eid, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
-        fsrefl1: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Fragment)
+        fsrefl1 = pipe.GetShaderReflection(rd.ShaderStage.Fragment)
 
         eid = self.find_action("Draw 2").nextAction.eventId
         self.controller.SetFrameEvent(eid, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
-        fsrefl2: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Fragment)
-        vsrefl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
+        fsrefl2 = pipe.GetShaderReflection(rd.ShaderStage.Fragment)
+        vsrefl = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
 
-        tex: rd.ResourceId = pipe.GetOutputTargets()[0].resource
+        tex = pipe.GetOutputTargets()[0].resource
 
         # Both triangles should be green
         self.check_pixel_value(tex, 0.25, 0.5, [0.0, 1.0, 0.0, 1.0])
@@ -32,56 +32,65 @@ class VK_Shader_Editing(rdtest.TestCase):
 
         rdtest.log.success("Values are as expected initially")
 
-        source: str = fsrefl1.debugInfo.files[0].contents.replace('#if 1', '#if 0')
+        source = fsrefl1.debugInfo.files[0].contents.replace('#if 1', '#if 0')
 
-        newShader: Tuple[rd.ResourceId, str] = self.controller.BuildTargetShader(fsrefl1.entryPoint,
-                                                                                 rd.ShaderEncoding.GLSL,
-                                                                                 bytes(source, 'UTF-8'),
-                                                                                 rd.ShaderCompileFlags(),
-                                                                                 rd.ShaderStage.Fragment)
+        newShader = self.controller.BuildTargetShader(
+            fsrefl1.entryPoint,
+            rd.ShaderEncoding.GLSL,
+            bytes(source, "UTF-8"),
+            rd.ShaderCompileFlags(),
+            rd.ShaderStage.Fragment,
+        )
 
         if len(newShader[1]) != 0:
             raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))
 
         FS1 = newShader[0]
 
-        source: str = fsrefl2.debugInfo.files[0].contents.replace('#if 1', '#if 0')
+        source = fsrefl2.debugInfo.files[0].contents.replace('#if 1', '#if 0')
 
-        newShader: Tuple[rd.ResourceId, str] = self.controller.BuildTargetShader(fsrefl2.entryPoint,
-                                                                                 rd.ShaderEncoding.GLSL,
-                                                                                 bytes(source, 'UTF-8'),
-                                                                                 rd.ShaderCompileFlags(),
-                                                                                 rd.ShaderStage.Fragment)
+        newShader = self.controller.BuildTargetShader(
+            fsrefl2.entryPoint,
+            rd.ShaderEncoding.GLSL,
+            bytes(source, "UTF-8"),
+            rd.ShaderCompileFlags(),
+            rd.ShaderStage.Fragment,
+        )
 
         if len(newShader[1]) != 0:
             raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))
 
         FS2 = newShader[0]
 
-        source: str = vsrefl.debugInfo.files[0].contents.replace('Position.xyz', 'Position.xyz+vec3(1.0)')
+        source = vsrefl.debugInfo.files[0].contents.replace('Position.xyz', 'Position.xyz+vec3(1.0)')
 
-        newShader: Tuple[rd.ResourceId, str] = self.controller.BuildTargetShader(vsrefl.entryPoint,
-                                                                                 rd.ShaderEncoding.GLSL,
-                                                                                 bytes(source, 'UTF-8'),
-                                                                                 rd.ShaderCompileFlags(),
-                                                                                 rd.ShaderStage.Vertex)
+        newShader = self.controller.BuildTargetShader(
+            vsrefl.entryPoint,
+            rd.ShaderEncoding.GLSL,
+            bytes(source, "UTF-8"),
+            rd.ShaderCompileFlags(),
+            rd.ShaderStage.Vertex,
+        )
 
         if len(newShader[1]) != 0:
             raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))
 
         offsetVS = newShader[0]
 
-        source: bytes = vsrefl.rawBytes
+        source_bytes = vsrefl.rawBytes
 
         assert vsrefl.entryPoint == "main"
 
         # we search-replace in the SPIR-V expecting that 'main' won't appear anywhere other than in the OpEntryPoint
-        patched_entry_source = source.replace(b'main', b't_st')
+        patched_entry_source = source_bytes.replace(b'main', b't_st')
 
-        newShader: Tuple[rd.ResourceId, str] = self.controller.BuildTargetShader('t_st',
-                                                                                 vsrefl.encoding, patched_entry_source,
-                                                                                 rd.ShaderCompileFlags(),
-                                                                                 rd.ShaderStage.Vertex)
+        newShader = self.controller.BuildTargetShader(
+            "t_st",
+            vsrefl.encoding,
+            patched_entry_source,
+            rd.ShaderCompileFlags(),
+            rd.ShaderStage.Vertex,
+        )
 
         if len(newShader[1]) != 0:
             raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))
@@ -167,8 +176,8 @@ class VK_Shader_Editing(rdtest.TestCase):
         bufout = self.get_resource_by_name("bufout").resourceId
 
         self.controller.SetFrameEvent(self.find_action("Pre-Dispatch").eventId, False)
-        pipe: rd.PipeState = self.controller.GetPipelineState()
-        csrefl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Compute)
+        pipe = self.controller.GetPipelineState()
+        csrefl = pipe.GetShaderReflection(rd.ShaderStage.Compute)
 
         uints = struct.unpack_from('=4L', self.controller.GetBufferData(bufout, 0, 0), 0)
         if not rdtest.value_compare(uints, [222, 222, 222, 222]):
@@ -187,15 +196,20 @@ class VK_Shader_Editing(rdtest.TestCase):
         assert csrefl.entryPoint == "hlsl_main"
         rdtest.log.success("Values are as expected before compute shader edits")
 
-        raw_source: bytes = csrefl.rawBytes
+        raw_source = csrefl.rawBytes
         # search-replace in the SPIR-V for 'hlsl_main' replace with a string of the same length
         patched_entry_source = raw_source.replace(b'hlsl_main', b'main_hlsl')
-        newShader: Tuple[rd.ResourceId, str] = self.controller.BuildTargetShader('main_hlsl',
-                                                                                 csrefl.encoding, patched_entry_source,
-                                                                                 rd.ShaderCompileFlags(),
-                                                                                 rd.ShaderStage.Compute)
+        newShader = self.controller.BuildTargetShader(
+            "main_hlsl",
+            csrefl.encoding,
+            patched_entry_source,
+            rd.ShaderCompileFlags(),
+            rd.ShaderStage.Compute,
+        )
+
         if len(newShader[1]) != 0:
             raise rdtest.TestFailureException("Failed to compile edited compute shader: {}".format(newShader[1]))
+
         nochangeCS = newShader[0]
         self.controller.ReplaceResource(csrefl.resourceId, nochangeCS)
         self.controller.SetFrameEvent(eid, False)
@@ -231,13 +245,17 @@ void main()
   outbuf.data[0].w += inbuf.data[0].w * push.data.x;
 }
 """
-        newShader: Tuple[rd.ResourceId, str] = self.controller.BuildTargetShader('main',
-                                                                                 rd.ShaderEncoding.GLSL, 
-                                                                                 glsl_source,
-                                                                                 rd.ShaderCompileFlags(),
-                                                                                 rd.ShaderStage.Compute)
+        newShader = self.controller.BuildTargetShader(
+            "main",
+            rd.ShaderEncoding.GLSL,
+            glsl_source,
+            rd.ShaderCompileFlags(),
+            rd.ShaderStage.Compute,
+        )
+
         if len(newShader[1]) != 0:
             raise rdtest.TestFailureException("Failed to compile edited compute shader: {}".format(newShader[1]))
+
         CS1 = newShader[0]
         self.controller.ReplaceResource(csrefl.resourceId, CS1)
         self.controller.SetFrameEvent(eid, False)

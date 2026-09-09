@@ -19,7 +19,7 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
             for child in range(len(action.children)):
                 section = action.children[child]
                 self.controller.SetFrameEvent(section.eventId, False)
-                pipe: rd.PipeState = self.controller.GetPipelineState()
+                pipe = self.controller.GetPipelineState()
 
                 if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
                     rdtest.log.print("Skipping undebuggable shader at {} in {}.".format(child, test_name))
@@ -30,7 +30,7 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
                     y = 4 * child + 1
 
                     # Debug the shader
-                    trace: rd.ShaderDebugTrace = self.controller.DebugPixel(x, y, rd.DebugPixelInputs())
+                    trace = self.controller.DebugPixel(x, y, rd.DebugPixelInputs())
 
                     if trace.debugger is None:
                         failed = True
@@ -40,7 +40,7 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
 
                     _, variables = self.process_trace(trace)
 
-                    output: rd.SourceVariableMapping = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+                    output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
 
                     debugged = self.evaluate_source_var(output, variables)
 
@@ -67,8 +67,8 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
 
             action = self.find_action("ASM tests")
             self.controller.SetFrameEvent(action.children[0].eventId, False)
-            pipe: rd.PipeState = self.controller.GetPipelineState()
-            refl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
+            pipe = self.controller.GetPipelineState()
+            refl = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
             disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, "")
             # Test for some expected strings in the disassembly
             expectedStrings = []
@@ -137,7 +137,7 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
                         continue
 
                     # Debug the shader
-                    trace: rd.ShaderDebugTrace = self.controller.DebugThread(groupid, threadid)
+                    trace = self.controller.DebugThread(groupid, threadid)
                     cycles, variables = self.process_trace(trace)
                     # Check for non-zero cycles
                     if cycles == 0:

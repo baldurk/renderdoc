@@ -12,7 +12,7 @@ class GL_CBuffer_Zoo(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         refl = pipe.GetShaderReflection(rd.ShaderStage.Fragment)
 

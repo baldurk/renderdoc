@@ -6,7 +6,7 @@ class GL_Renderbuffer_Zoo(rdtest.TestCase):
     demos_test_name = 'GL_Renderbuffer_Zoo'
 
     def check_capture(self):
-        action: rd.ActionDescription = self.find_action('glDraw')
+        action = self.find_action('glDraw')
 
         while action is not None:
             self.controller.SetFrameEvent(action.eventId, True)
@@ -93,6 +93,6 @@ class GL_Renderbuffer_Zoo(rdtest.TestCase):
 
                             raise rdtest.TestFailureException("Two MSAA samples returned the same data", img_path0, img_path1)
 
-            action: rd.ActionDescription = self.find_action('glDraw', action.eventId+1)
+            action = self.find_action('glDraw', action.eventId+1)
 
         rdtest.log.success('All renderbuffers checked and rendered correctly')

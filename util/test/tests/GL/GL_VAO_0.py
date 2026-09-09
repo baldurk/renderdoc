@@ -14,8 +14,8 @@ class GL_VAO_0(rdtest.TestCase):
 
             self.controller.SetFrameEvent(action.eventId, False)
 
-            pipe: rd.PipeState = self.controller.GetPipelineState()
-            vp: rd.Viewport = pipe.GetViewport(0)
+            pipe = self.controller.GetPipelineState()
+            vp = pipe.GetViewport(0)
 
             self.check_triangle(vp=(vp.x, vp.y, vp.width, vp.height))
 

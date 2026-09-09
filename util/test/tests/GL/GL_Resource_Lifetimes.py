@@ -7,7 +7,7 @@ class GL_Resource_Lifetimes(rdtest.TestCase):
     demos_frame_cap = 200
 
     def check_capture(self):
-        action: rd.ActionDescription = self.find_action("glDraw")
+        action = self.find_action("glDraw")
 
         self.controller.SetFrameEvent(action.eventId, True)
 
@@ -21,7 +21,7 @@ class GL_Resource_Lifetimes(rdtest.TestCase):
         location = self.controller.GetDescriptorLocations(rw[0].access.descriptorStore, [rd.DescriptorRange(rw[0].access)])[0]
         self.check_eq(location.fixedBindNumber, 3)
 
-        action: rd.ActionDescription = self.find_action("glDraw", action.eventId+1)
+        action = self.find_action("glDraw", action.eventId+1)
 
         self.controller.SetFrameEvent(action.eventId, True)
 
@@ -36,7 +36,7 @@ class GL_Resource_Lifetimes(rdtest.TestCase):
         self.check_eq(location.fixedBindNumber, 3)
 
 
-        last_action: rd.ActionDescription = self.get_last_action()
+        last_action = self.get_last_action()
 
         self.controller.SetFrameEvent(last_action.eventId, True)
 

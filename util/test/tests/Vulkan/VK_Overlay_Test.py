@@ -69,7 +69,7 @@ class VK_Overlay_Test(rdtest.Overlay_Test):
 
             out.Display()
 
-            overlay_id: rd.ResourceId = out.GetDebugOverlayTexID()
+            overlay_id = out.GetDebugOverlayTexID()
 
             rdtest.log.success("Overlay {} rendered with rasterizer discard".format(str(overlay)))
 

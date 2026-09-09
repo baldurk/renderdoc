@@ -16,6 +16,6 @@ class GL_Buffer_Spam(rdtest.TestCase):
         # Check that we get green in the centre of the screen, indicating that the
         # triangle's buffer serialised with the right data and rendered
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0.5, 0.5, [0.0, 1.0, 0.0, 1.0])

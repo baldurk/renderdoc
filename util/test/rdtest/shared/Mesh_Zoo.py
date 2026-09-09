@@ -12,7 +12,7 @@ class Mesh_Zoo():
 
         self.out.Display()
 
-        pixels: bytes = self.out.ReadbackOutputTexture()
+        pixels = self.out.ReadbackOutputTexture()
         dim = self.out.GetDimensions()
 
         pitch = dim[0]*3
@@ -71,14 +71,15 @@ class Mesh_Zoo():
 
         self.controller.SetFrameEvent(self.find_action("Quad").nextAction.eventId, False)
 
-        self.out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(200, 200),
-                                                            rd.ReplayOutputType.Mesh)
+        self.out = self.controller.CreateOutput(
+            rd.CreateHeadlessWindowingData(200, 200), rd.ReplayOutputType.Mesh
+        )
 
-        pipe: rd.PipeState = self.controller.GetPipelineState()
+        pipe = self.controller.GetPipelineState()
 
         self.cfg = rd.MeshDisplay()
 
-        cam: rd.Camera = rd.InitCamera(rd.CameraType.FPSLook)
+        cam = rd.InitCamera(rd.CameraType.FPSLook)
 
         cam.SetPosition(0, 0, 0)
         cam.SetFPSRotation(0, 0, 0)
@@ -87,7 +88,7 @@ class Mesh_Zoo():
         self.cfg.cam = cam
 
         # Position is always first, so getting the postvs data will give us
-        inst0: rd.MeshFormat = self.controller.GetPostVSData(0, 0, self.cfg.type)
+        inst0 = self.controller.GetPostVSData(0, 0, self.cfg.type)
         self.cfg.position = inst0
 
         # after position we have float2 Color2 then float4 Color4
@@ -207,7 +208,7 @@ class Mesh_Zoo():
         rdtest.log.success("Rendering of float2 color secondary in instance 0 is as expected")
 
         self.cfg.highlightVert = rd.MeshDisplay.NoHighlight
-        inst1: rd.MeshFormat = self.controller.GetPostVSData(1, 0, self.cfg.type)
+        inst1 = self.controller.GetPostVSData(1, 0, self.cfg.type)
 
         self.cfg.curInstance = 1
         self.cfg.second.vertexResourceId = self.cfg.position.vertexResourceId = inst1.vertexResourceId

@@ -17,7 +17,7 @@ class D3D12_RGP_Capture(rdtest.TestCase):
         return super().check_support(**kwargs)
 
     def check_capture(self):
-        apiprops: rd.APIProperties = self.controller.GetAPIProperties()
+        apiprops = self.controller.GetAPIProperties()
 
         if not apiprops.rgpCapture:
             rdtest.log.print("RGP capture not tested")
