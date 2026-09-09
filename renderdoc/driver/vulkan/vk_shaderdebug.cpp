@@ -2963,9 +2963,8 @@ private:
 
     editor.SetName(gatherOffsets, "gatherOffsets");
 
-    // create the output. It's always a 4-wide vector
-    rdcspv::Id outPtrType =
-        editor.DeclareType(rdcspv::Pointer(resultType, rdcspv::StorageClass::Output));
+    // create the output. It's always a 4-wide float vector to match the R32G32B32A32_SFLOAT render target.
+    rdcspv::Id outPtrType = editor.DeclareType(rdcspv::Pointer(v4f32, rdcspv::StorageClass::Output));
 
     rdcspv::Id outVar = editor.AddVariable(
         rdcspv::OpVariable(outPtrType, editor.MakeId(), rdcspv::StorageClass::Output));
@@ -2973,6 +2972,14 @@ private:
         rdcspv::OpDecorate(outVar, rdcspv::DecorationParam<rdcspv::Decoration::Location>(0)));
 
     editor.SetName(outVar, "output");
+
+    // helper to bitcast integer texture values to float.
+    auto storeOutput = [&editor, v4f32, uintTex, sintTex](rdcspv::OperationList &ops,
+                                                          rdcspv::Id outVar, rdcspv::Id result) {
+      if(uintTex || sintTex)
+        result = ops.add(rdcspv::OpBitcast(v4f32, editor.MakeId(), result));
+      ops.add(rdcspv::OpStore(outVar, result));
+    };
 
     rdcspv::ImageFormat unk = rdcspv::ImageFormat::Unknown;
 
@@ -3243,7 +3250,7 @@ private:
         rdcspv::Id loaded = cases.add(rdcspv::OpLoad(texSampTypes[i], editor.MakeId(), bindVars[i]));
         rdcspv::Id sampleResult = cases.add(
             rdcspv::OpImageFetch(resultType, editor.MakeId(), loaded, texel_coord[i], operands));
-        cases.add(rdcspv::OpStore(outVar, sampleResult));
+        storeOutput(cases, outVar, sampleResult);
         cases.add(rdcspv::OpBranch(breakLabel));
       }
 
@@ -3272,11 +3279,7 @@ private:
         sampleResult = cases.add(rdcspv::OpVectorShuffle(v4f32, editor.MakeId(), sampleResult,
                                                          sampleResult, {0, 1, 0, 1}));
 
-        // if we're sampling from an integer texture the output variable will be the same type.
-        // Just bitcast the float bits into it, which will come out the other side the right type.
-        if(uintTex || sintTex)
-          sampleResult = cases.add(rdcspv::OpBitcast(resultType, editor.MakeId(), sampleResult));
-
+        // the LOD result is already float, which matches the output type
         cases.add(rdcspv::OpStore(outVar, sampleResult));
         cases.add(rdcspv::OpBranch(breakLabel));
       }
@@ -3331,7 +3334,7 @@ private:
         cases.add(rdcspv::OpLabel(mergeLabel));
         rdcspv::Id sampleResult = cases.add(rdcspv::OpPhi(
             resultType, editor.MakeId(), {{lodResult, lodCase}, {gradResult, gradCase}}));
-        cases.add(rdcspv::OpStore(outVar, sampleResult));
+        storeOutput(cases, outVar, sampleResult);
         cases.add(rdcspv::OpBranch(breakLabel));
       }
 
@@ -3404,7 +3407,7 @@ private:
               scalarResultType, editor.MakeId(), {{lodResult, lodCase}, {gradResult, gradCase}}));
           rdcspv::Id sampleResult = cases.add(rdcspv::OpCompositeConstruct(
               resultType, editor.MakeId(), {scalarSampleResult, zerof, zerof, zerof}));
-          cases.add(rdcspv::OpStore(outVar, sampleResult));
+          storeOutput(cases, outVar, sampleResult);
           cases.add(rdcspv::OpBranch(breakLabel));
         }
       }
@@ -3502,7 +3505,7 @@ private:
                 resultType, editor.MakeId(), combined, coord[i], compare, operands));
         }
 
-        cases.add(rdcspv::OpStore(outVar, sampleResult));
+        storeOutput(cases, outVar, sampleResult);
         cases.add(rdcspv::OpBranch(breakLabel));
       }
     }
@@ -3514,8 +3517,8 @@ private:
 
     // default: store NULL data
     func.add(rdcspv::OpLabel(defaultLabel));
-    func.add(rdcspv::OpStore(
-        outVar, editor.AddConstant(rdcspv::OpConstantNull(resultType, editor.MakeId()))));
+    func.add(rdcspv::OpStore(outVar,
+                             editor.AddConstant(rdcspv::OpConstantNull(v4f32, editor.MakeId()))));
     func.add(rdcspv::OpBranch(breakLabel));
 
     func.add(rdcspv::OpLabel(breakLabel));
