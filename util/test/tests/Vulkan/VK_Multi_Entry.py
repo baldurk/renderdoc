@@ -32,7 +32,7 @@ class VK_Multi_Entry(rdtest.TestCase):
 
         refl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
 
-        self.check(len(refl.readOnlyResources) == 0)
+        assert len(refl.readOnlyResources) == 0
 
         postvs = self.get_postvs(action, rd.MeshDataStage.VSOut, first_index=0, num_indices=1, instance=0)
 
@@ -42,12 +42,12 @@ class VK_Multi_Entry(rdtest.TestCase):
                                                rd.CompType.Typeless)
 
         # should be a clear then a draw
-        self.check(len(history) == 2)
+        assert len(history) == 2
 
-        self.check(self.find_action('', history[0].eventId).flags & rd.ActionFlags.Clear)
+        assert self.find_action('', history[0].eventId).flags & rd.ActionFlags.Clear
 
-        self.check(self.find_action('', history[1].eventId).eventId == action.eventId)
-        self.check(history[1].Passed())
+        assert self.find_action('', history[1].eventId).eventId == action.eventId
+        assert history[1].Passed()
 
         if not rdtest.value_compare(history[1].shaderOut.col.floatValue, (0.0, 1.0, 0.0, 1.0)):
             raise rdtest.TestFailureException("History for drawcall output is wrong: {}".format(
@@ -60,7 +60,7 @@ class VK_Multi_Entry(rdtest.TestCase):
 
         refl: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
 
-        self.check(len(refl.readOnlyResources) == 1)
+        assert len(refl.readOnlyResources) == 1
 
         if trace.debugger is None:
             raise rdtest.TestFailureException("No pixel debug result")

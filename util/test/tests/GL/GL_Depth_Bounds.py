@@ -13,7 +13,7 @@ class GL_Depth_Bounds(rdtest.TestCase):
 
         glpipe = self.controller.GetGLPipelineState()
 
-        self.check(glpipe.depthState.depthBounds)
+        assert glpipe.depthState.depthBounds
 
         if (not rdtest.value_compare(glpipe.depthState.nearBound, 0.2) or
             not rdtest.value_compare(glpipe.depthState.farBound, 0.8)):

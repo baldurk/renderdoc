@@ -12,7 +12,7 @@ class Buffer_Truncation(rdtest.TestCase):
         if action is None:
             action = self.find_action("Draw")
 
-        self.check(action is not None)
+        assert action is not None
 
         self.controller.SetFrameEvent(action.eventId, False)
 
@@ -107,7 +107,7 @@ class Buffer_Truncation(rdtest.TestCase):
         cbuf = pipe.GetConstantBlock(stage, 0, 0).descriptor
 
         if self.find_action('NoCBufferRange') == None:
-            self.check(cbuf.byteSize == 256)
+            assert cbuf.byteSize == 256
 
         variables = self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
                                                                pipe.GetShader(stage), stage,
@@ -116,7 +116,7 @@ class Buffer_Truncation(rdtest.TestCase):
 
         outcol: rd.ShaderVariable = variables[1]
 
-        self.check(outcol.name == "outcol")
+        assert outcol.name == "outcol"
         if not rdtest.value_compare(outcol.value.f32v[0:4], [0.0, 0.0, 0.0, 0.0]):
             raise rdtest.TestFailureException("expected outcol to be 0s, but got {}".format(outcol.value.f32v[0:4]))
 
@@ -139,8 +139,8 @@ class Buffer_Truncation(rdtest.TestCase):
                 if len(cbuf_sourceVars) == 1:
                     debugged_cb = trace.constantBlocks[0]
 
-                    self.check(debugged_cb.members[0].name == 'padding')
-                    self.check(debugged_cb.members[1].name == 'outcol')
+                    assert debugged_cb.members[0].name == 'padding'
+                    assert debugged_cb.members[1].name == 'outcol'
 
                     if not rdtest.value_compare(debugged_cb.members[1].value.f32v[0:4], [0.0, 0.0, 0.0, 0.0]):
                         raise rdtest.TestFailureException("expected outcol to be 0s, but got {}".format(debugged_cb.members[1].value.f32v[0:4]))
@@ -148,10 +148,10 @@ class Buffer_Truncation(rdtest.TestCase):
                 elif len(cbuf_sourceVars) == 17:
                     debugged_cb = trace.constantBlocks[0].members[16]
 
-                    self.check(all(['consts.padding[' in c.name for c in cbuf_sourceVars[0:16]]))
-                    self.check(cbuf_sourceVars[16].name == 'consts.outcol')
+                    assert all(['consts.padding[' in c.name for c in cbuf_sourceVars[0:16]])
+                    assert cbuf_sourceVars[16].name == 'consts.outcol'
 
-                    self.check(cbuf_sourceVars[16].variables[0].name == 'cb0[16]' or cbuf_sourceVars[16].variables[0].name == 'consts[16]')
+                    assert cbuf_sourceVars[16].variables[0].name == 'cb0[16]' or cbuf_sourceVars[16].variables[0].name == 'consts[16]'
 
                     if not rdtest.value_compare(debugged_cb.value.f32v[0:4], [0.0, 0.0, 0.0, 0.0]):
                         raise rdtest.TestFailureException("expected outcol to be 0s, but got {}".format(debugged_cb.members[1].value.f32v[0:4]))

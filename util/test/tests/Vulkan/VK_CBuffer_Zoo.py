@@ -8,7 +8,7 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
     def check_capture(self):
         action = self.find_action("Draw")
 
-        self.check(action is not None)
+        assert action is not None
 
         self.controller.SetFrameEvent(action.eventId, False)
 
@@ -22,7 +22,7 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
         disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), pipe.GetShaderReflection(stage),
                                                    '')
 
-        self.check('GLSL' in disasm)
+        assert 'GLSL' in disasm
 
         cbuf = pipe.GetConstantBlock(stage, 0, 0).descriptor
 
@@ -80,7 +80,7 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
         # Move to the HLSL action
         action = action.nextAction
 
-        self.check(action is not None)
+        assert action is not None
 
         self.controller.SetFrameEvent(action.eventId, False)
 
@@ -90,7 +90,7 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
         disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), pipe.GetShaderReflection(stage),
                                                    '')
 
-        self.check('HLSL' in disasm)
+        assert 'HLSL' in disasm
 
         cbuf = pipe.GetConstantBlock(stage, 0, 0).descriptor
 

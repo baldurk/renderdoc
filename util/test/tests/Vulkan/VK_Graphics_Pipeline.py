@@ -58,13 +58,13 @@ class VK_Graphics_Pipeline(rdtest.TestCase):
         vsrefl = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
         fsrefl = pipe.GetShaderReflection(rd.ShaderStage.Fragment)
 
-        self.check(len(vsrefl.inputSignature) == 3)
-        self.check(vsrefl.inputSignature[0].varName == "Position")
-        self.check(vsrefl.inputSignature[1].varName == "Color")
-        self.check(vsrefl.inputSignature[2].varName == "UV")
+        assert len(vsrefl.inputSignature) == 3
+        assert vsrefl.inputSignature[0].varName == "Position"
+        assert vsrefl.inputSignature[1].varName == "Color"
+        assert vsrefl.inputSignature[2].varName == "UV"
 
-        self.check(len(fsrefl.readOnlyResources) == 1)
-        self.check(fsrefl.readOnlyResources[0].name == "smiley")
+        assert len(fsrefl.readOnlyResources) == 1
+        assert fsrefl.readOnlyResources[0].name == "smiley"
 
         access = pipe.GetDescriptorAccess()
 
@@ -82,12 +82,12 @@ class VK_Graphics_Pipeline(rdtest.TestCase):
                                                rd.CompType.Typeless)
 
         # should be a clear then a draw
-        self.check(len(history) == 2)
+        assert len(history) == 2
 
-        self.check(self.find_action('', history[0].eventId).flags & rd.ActionFlags.BeginPass)
+        assert self.find_action('', history[0].eventId).flags & rd.ActionFlags.BeginPass
 
-        self.check(self.find_action('', history[1].eventId).eventId == action.eventId)
-        self.check(history[1].Passed())
+        assert self.find_action('', history[1].eventId).eventId == action.eventId
+        assert history[1].Passed()
 
         if not rdtest.value_compare(history[1].shaderOut.col.floatValue, tri_col, eps=1.0 / 256.0):
             raise rdtest.TestFailureException("History for drawcall output is wrong: {}".format(

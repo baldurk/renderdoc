@@ -15,7 +15,7 @@ class D3D12_Discard_Zoo(rdtest.Discard_Zoo):
 
         action = self.find_action("TestStart")
 
-        self.check(action is not None)
+        assert action is not None
 
         self.controller.SetFrameEvent(action.eventId, True)
 
@@ -24,11 +24,11 @@ class D3D12_Discard_Zoo(rdtest.Discard_Zoo):
             if res.name == "Buffer":
                 data: bytes = self.controller.GetBufferData(res.resourceId, 0, 0)
 
-                self.check(all([b == 0x88 for b in data]))
+                assert all([b == 0x88 for b in data])
 
         action = self.find_action("TestEnd")
 
-        self.check(action is not None)
+        assert action is not None
 
         self.controller.SetFrameEvent(action.eventId, True)
 
@@ -39,4 +39,4 @@ class D3D12_Discard_Zoo(rdtest.Discard_Zoo):
 
                 data_u32 = struct.unpack_from('=256L', data, 0)
 
-                self.check(all([u == 0xD15CAD3D for u in data_u32]))
+                assert all([u == 0xD15CAD3D for u in data_u32])

@@ -22,13 +22,13 @@ class VK_Secondary_CmdBuf(rdtest.TestCase):
 
         resources = self.controller.GetResources()
 
-        self.check(action is not None and action.nextAction is not None)
+        assert action is not None and action.nextAction is not None
 
         self.controller.SetFrameEvent(action.nextAction.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        self.check(pipe.GetVBuffers()[0].byteOffset == 0)
+        assert pipe.GetVBuffers()[0].byteOffset == 0
         rdtest.log.success("Primary action has correct byte offset")
 
         pipeline: rd.ResourceId = self.controller.GetVulkanPipelineState().graphics.pipelineResourceId
@@ -37,7 +37,7 @@ class VK_Secondary_CmdBuf(rdtest.TestCase):
         res: rd.ResourceDescription
         for res in resources:
             if res.resourceId == pipeline:
-                self.check(res.name == "Pipeline 0")
+                assert res.name == "Pipeline 0"
                 checked = True
 
         if not checked:
@@ -47,13 +47,13 @@ class VK_Secondary_CmdBuf(rdtest.TestCase):
 
         action = self.find_action("Secondary")
 
-        self.check(action is not None and action.nextAction is not None)
+        assert action is not None and action.nextAction is not None
 
         self.controller.SetFrameEvent(action.nextAction.eventId, False)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()
 
-        self.check(pipe.GetVBuffers()[0].byteOffset == 108)
+        assert pipe.GetVBuffers()[0].byteOffset == 108
         rdtest.log.success("Secondary action has correct byte offset")
 
         pipeline: rd.ResourceId = self.controller.GetVulkanPipelineState().graphics.pipelineResourceId
@@ -62,7 +62,7 @@ class VK_Secondary_CmdBuf(rdtest.TestCase):
         res: rd.ResourceDescription
         for res in resources:
             if res.resourceId == pipeline:
-                self.check(res.name == "Pipeline 1")
+                assert res.name == "Pipeline 1"
                 checked = True
 
         if not checked:

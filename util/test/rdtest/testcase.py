@@ -191,21 +191,8 @@ class TestCase:
         else:
             return util.get_data_path(os.path.join(self.__class__.__name__, name))
 
-    def check(self, expr, msg=None):
-        if not expr:
-            callstack = traceback.extract_stack()
-            callstack.pop()
-            assertion_line = callstack[-1].line
-
-            assert_msg = re.sub(r'[^(]*\((.*)?\)', r'\1', assertion_line)
-
-            if msg is None:
-                raise TestFailureException('Assertion Failure: {}'.format(assert_msg))
-            else:
-                raise TestFailureException('Assertion Failure: {}'.format(msg))
-
     def check_eq(self, a, b):
-        self.check(a == b, '{} != {}'.format(a, b))
+        assert a == b, f"{a} != {b}"
 
     def get_replay_options(self):
         """
@@ -617,7 +604,7 @@ class TestCase:
     def run(self):
         self.capture_filename = self.get_capture()
 
-        self.check(util.target_path_exists(self.capture_filename), "Didn't generate capture in make_capture")
+        assert util.target_path_exists(self.capture_filename), "Didn't generate capture in make_capture"
 
         log.print("Loading capture")
 
@@ -1028,7 +1015,7 @@ class TestCase:
         origrdc = rd.OpenCaptureFile()
         result = origrdc.OpenFile(capture_filename, '', None)
 
-        self.check(result == rd.ResultCode.Succeeded, "Couldn't open '{}': {}".format(capture_filename, str(result)))
+        assert result == rd.ResultCode.Succeeded, f"Couldn't open '{capture_filename}': {result!s}"
 
         # Export to rdc, to recompress
         origrdc.Convert(recomp_path, '', None, None)
@@ -1040,7 +1027,7 @@ class TestCase:
         zipxml = rd.OpenCaptureFile()
         result = zipxml.OpenFile(conv_zipxml_path, 'zip.xml', None)
 
-        self.check(result == rd.ResultCode.Succeeded, "Couldn't open '{}': {}".format(conv_zipxml_path, str(result)))
+        assert result == rd.ResultCode.Succeeded, f"Couldn't open '{conv_zipxml_path}': {result!s}"
 
         # Convert out to rdc
         zipxml.Convert(conv_path, '', None, None)

@@ -21,12 +21,12 @@ class VK_Misaligned_Dirty(rdtest.TestCase):
     def check_capture(self):
         action = self.find_action("Draw")
 
-        self.check(action is not None)
+        assert action is not None
 
         self.controller.SetFrameEvent(action.eventId, False)
 
-        self.check(len(self.controller.GetFrameInfo().debugMessages) == 0)
-        self.check(len(self.controller.GetDebugMessages()) == 0)
+        assert len(self.controller.GetFrameInfo().debugMessages) == 0
+        assert len(self.controller.GetDebugMessages()) == 0
 
         rdtest.log.success("No debug messages found")
 
@@ -80,9 +80,9 @@ class VK_Misaligned_Dirty(rdtest.TestCase):
         checkpoint2 = self.find_action("Second Submit")
         checkpoint3 = self.find_action("Third Submit")
 
-        self.check(checkpoint1 is not None)
-        self.check(checkpoint2 is not None)
-        self.check(checkpoint3 is not None)
+        assert checkpoint1 is not None
+        assert checkpoint2 is not None
+        assert checkpoint3 is not None
 
         resources = self.controller.GetResources()
 
@@ -95,24 +95,24 @@ class VK_Misaligned_Dirty(rdtest.TestCase):
             elif r.name == 'vb':
                 vb = r.resourceId
 
-        self.check(copy_src is not None)
-        self.check(vb is not None)
+        assert copy_src is not None
+        assert vb is not None
 
         self.controller.SetFrameEvent(checkpoint1.eventId, False)
 
         val = struct.unpack('f', self.controller.GetBufferData(copy_src, 116, 4))
-        self.check(val[0] == 11.0)
+        assert val[0] == 11.0
 
         self.controller.SetFrameEvent(checkpoint2.eventId, False)
 
         val = struct.unpack('f', self.controller.GetBufferData(copy_src, 116, 4))
-        self.check(val[0] == 12.0)
+        assert val[0] == 12.0
         val = struct.unpack('f', self.controller.GetBufferData(vb, 116, 4))
-        self.check(val[0] == 12.0)
+        assert val[0] == 12.0
 
         self.controller.SetFrameEvent(checkpoint3.eventId, False)
 
         val = struct.unpack('f', self.controller.GetBufferData(copy_src, 116, 4))
-        self.check(val[0] == 11.0)
+        assert val[0] == 11.0
 
         rdtest.log.success("buffers have correct values in both submits")

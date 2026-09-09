@@ -34,7 +34,7 @@ class VK_Synchronization_2(rdtest.TestCase):
 
         action = self.find_action("Before Transition")
 
-        self.check(action is not None)
+        assert action is not None
 
         self.controller.SetFrameEvent(action.eventId, False)
 
@@ -61,7 +61,7 @@ class VK_Synchronization_2(rdtest.TestCase):
 
         action = self.find_action("vkCmdDraw")
 
-        self.check(action is not None)
+        assert action is not None
 
         self.controller.SetFrameEvent(action.eventId, False)
 

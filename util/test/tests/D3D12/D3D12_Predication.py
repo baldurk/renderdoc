@@ -20,14 +20,14 @@ class D3D12_Predication(rdtest.TestCase):
 
         rdtest.log.success("Non-predicated triangle is correct")
 
-        self.check(self.controller.GetD3D12PipelineState().predication.resourceId == rd.ResourceId())
+        assert self.controller.GetD3D12PipelineState().predication.resourceId == rd.ResourceId()
 
         self.controller.SetFrameEvent(b.eventId, False)
         pipe = self.controller.GetPipelineState()
         self.check_triangle(vp=viewport_array(pipe.GetViewport(0)))
 
-        self.check(self.controller.GetD3D12PipelineState().predication.resourceId != rd.ResourceId())
-        self.check(self.controller.GetD3D12PipelineState().predication.offset == 0)
+        assert self.controller.GetD3D12PipelineState().predication.resourceId != rd.ResourceId()
+        assert self.controller.GetD3D12PipelineState().predication.offset == 0
 
         rdtest.log.success("Fixed data predicated triangle is correct")
 
@@ -35,8 +35,8 @@ class D3D12_Predication(rdtest.TestCase):
         pipe = self.controller.GetPipelineState()
         self.check_triangle(vp=viewport_array(pipe.GetViewport(0)))
 
-        self.check(self.controller.GetD3D12PipelineState().predication.resourceId != rd.ResourceId())
-        self.check(self.controller.GetD3D12PipelineState().predication.offset > 0)
+        assert self.controller.GetD3D12PipelineState().predication.resourceId != rd.ResourceId()
+        assert self.controller.GetD3D12PipelineState().predication.offset > 0
 
         rdtest.log.success("Current frame query-predicated triangle is correct")
 
@@ -50,8 +50,8 @@ class D3D12_Predication(rdtest.TestCase):
         pipe = self.controller.GetPipelineState()
         self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 200, 150, [0.2, 0.2, 0.2, 1.0])
 
-        self.check(self.controller.GetD3D12PipelineState().predication.resourceId != rd.ResourceId())
-        self.check(self.controller.GetD3D12PipelineState().predication.offset > 0)
+        assert self.controller.GetD3D12PipelineState().predication.resourceId != rd.ResourceId()
+        assert self.controller.GetD3D12PipelineState().predication.offset > 0
 
         rdtest.log.success("Failing predicated triangle is correct")
 

@@ -187,7 +187,7 @@ class Discard_Zoo(rdtest.TestCase):
     def check_textures(self):
         action = self.find_action("TestStart")
 
-        self.check(action is not None)
+        assert action is not None
 
         self.controller.SetFrameEvent(action.eventId, True)
 
@@ -200,7 +200,7 @@ class Discard_Zoo(rdtest.TestCase):
 
         action = self.find_action("TestEnd")
 
-        self.check(action is not None)
+        assert action is not None
 
         self.controller.SetFrameEvent(action.eventId, True)
 

@@ -73,7 +73,7 @@ class VK_Shader_Editing(rdtest.TestCase):
 
         source: bytes = vsrefl.rawBytes
 
-        self.check(vsrefl.entryPoint == "main")
+        assert vsrefl.entryPoint == "main"
 
         # we search-replace in the SPIR-V expecting that 'main' won't appear anywhere other than in the OpEntryPoint
         patched_entry_source = source.replace(b'main', b't_st')
@@ -183,8 +183,8 @@ class VK_Shader_Editing(rdtest.TestCase):
             raise rdtest.TestFailureException(
                 'bufout data is incorrect after dispatch: {}'.format(uints))
 
-        self.check(csrefl.debugInfo.encoding == rd.ShaderEncoding.HLSL)
-        self.check(csrefl.entryPoint == "hlsl_main")
+        assert csrefl.debugInfo.encoding == rd.ShaderEncoding.HLSL
+        assert csrefl.entryPoint == "hlsl_main"
         rdtest.log.success("Values are as expected before compute shader edits")
 
         raw_source: bytes = csrefl.rawBytes

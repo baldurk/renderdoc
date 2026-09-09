@@ -11,7 +11,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
         action = self.find_action("Color Draw")
 
-        self.check(action is not None)
+        assert action is not None
 
         action = action.nextAction
 
@@ -27,7 +27,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
         # Find the action that contains resource references
         action = self.find_action("References")
-        self.check(action is not None)
+        assert action is not None
         action = action.nextAction
         self.controller.SetFrameEvent(action.eventId, False)
 
@@ -118,7 +118,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
         # Since we can only have one push descriptor set we have a second action for push AND template updates
         if descriptor_update_template and push_descriptor:
             action = self.find_action("PushTemplReferences")
-            self.check(action is not None)
+            assert action is not None
             action = action.nextAction
             self.controller.SetFrameEvent(action.eventId, False)
 
@@ -164,15 +164,14 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
         action = self.find_action("Tools available")
 
-        self.check(len(action.children) > 1)
-        self.check(any([d.customName == 'RenderDoc' for d in action.children]))
+        assert len(action.children) > 1
+        assert any([d.customName == 'RenderDoc' for d in action.children])
 
         rdtest.log.success("RenderDoc tool was listed as available")
 
         for variant in [1, 2]:
             action = self.find_action(f"ASM Draw {variant}")
-
-            self.check(action is not None)
+            assert action is not None
 
             action = action.nextAction
 
@@ -190,7 +189,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
                     f"Graphics bind 0[1] isn't the accessed descriptor {str(rd.DumpObject(access))}")
 
             vkpipe: rd.VKState = self.controller.GetVulkanPipelineState()
-            self.check(len(vkpipe.viewportScissor.viewportScissors) == 0)
+            assert len(vkpipe.viewportScissor.viewportScissors) == 0
 
             postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
@@ -273,7 +272,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
         action = self.find_action("Immutable Draw")
 
-        self.check(action is not None)
+        assert action is not None
 
         action = action.nextAction
 
@@ -304,26 +303,26 @@ class VK_Parameter_Zoo(rdtest.TestCase):
         action = self.get_action(action.eventId + 1)
         a = action.GetName(sdfile)
         # vkQueueSubmit with two submits each with zero command buffers
-        self.check("vkQueueSubmit(" in action.GetName(sdfile))
-        self.check("No Command Buffers" in action.GetName(sdfile))
+        assert "vkQueueSubmit(" in action.GetName(sdfile)
+        assert "No Command Buffers" in action.GetName(sdfile)
         action = self.get_action(action.eventId + 1)
-        self.check("vkQueueSubmit(" in action.GetName(sdfile))
-        self.check("No Command Buffers" in action.GetName(sdfile))
+        assert "vkQueueSubmit(" in action.GetName(sdfile)
+        assert "No Command Buffers" in action.GetName(sdfile)
         # vkQueueSubmit with zero submits 
         action = self.get_action(action.eventId + 1)
-        self.check("vkQueueSubmit()" in action.GetName(sdfile))
-        self.check("No Submit" in action.GetName(sdfile))
+        assert "vkQueueSubmit()" in action.GetName(sdfile)
+        assert "No Submit" in action.GetName(sdfile)
 
         action = self.get_action(action.eventId + 1)
         if "after_empty" not in action.GetName(sdfile):
             # vkQueueSubmit2 with one submit with zero command buffers
-            self.check("vkQueueSubmit2(" in action.GetName(sdfile))
-            self.check("No Command Buffers" in action.GetName(sdfile))
-            self.check(a != action.GetName(sdfile))
+            assert "vkQueueSubmit2(" in action.GetName(sdfile)
+            assert "No Command Buffers" in action.GetName(sdfile)
+            assert a != action.GetName(sdfile)
             # vkQueueSubmit with zero submits 
             action = self.get_action(action.eventId + 1)
-            self.check("vkQueueSubmit2()" in action.GetName(sdfile))
-            self.check("No Submit" in action.GetName(sdfile))
+            assert "vkQueueSubmit2()" in action.GetName(sdfile)
+            assert "No Submit" in action.GetName(sdfile)
 
         rdtest.log.success("Empty queue submits are as expected")
 

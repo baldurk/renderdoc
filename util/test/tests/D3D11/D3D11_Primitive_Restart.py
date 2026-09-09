@@ -8,7 +8,7 @@ class D3D11_Primitive_Restart(rdtest.TestCase):
     def check_capture(self):
         action = self.find_action("Draw")
 
-        self.check(action is not None)
+        assert action is not None
 
         self.controller.SetFrameEvent(action.eventId, False)
 
@@ -54,7 +54,7 @@ class D3D11_Primitive_Restart(rdtest.TestCase):
         # Now check the action with a vertex offset
         action = self.find_action("Draw", action.eventId+1)
 
-        self.check(action is not None)
+        assert action is not None
 
         self.controller.SetFrameEvent(action.eventId, False)
 

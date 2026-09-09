@@ -9,8 +9,7 @@ class D3D12_Parameter_Zoo(rdtest.TestCase):
 
     def check_capture(self):
         action = self.find_action("Color Draw")
-
-        self.check(action is not None)
+        assert action is not None
 
         action = action.nextAction
 
@@ -83,18 +82,18 @@ class D3D12_Parameter_Zoo(rdtest.TestCase):
         rdtest.log.comment('desc1234: ' + desc1234.name)
 
         # filter
-        self.check(desc1234.GetChild(0).AsString() == 'D3D12_FILTER_ANISOTROPIC')
-        self.check(desc1234.GetChild(0).AsInt() == 0x55)
+        assert desc1234.GetChild(0).AsString() == 'D3D12_FILTER_ANISOTROPIC'
+        assert desc1234.GetChild(0).AsInt() == 0x55
 
         # wrapping
-        self.check(desc1234.GetChild(1).AsString() == 'D3D12_TEXTURE_ADDRESS_MODE_BORDER')
-        self.check(desc1234.GetChild(1).AsInt() == 4)
+        assert desc1234.GetChild(1).AsString() == 'D3D12_TEXTURE_ADDRESS_MODE_BORDER'
+        assert desc1234.GetChild(1).AsInt() == 4
 
         # MaxAnisotropy
-        self.check(desc1234.GetChild(1).AsInt() == 4)
+        assert desc1234.GetChild(1).AsInt() == 4
 
         # MinLod
-        self.check(desc1234.GetChild(8).AsFloat() == 1.5)
+        assert desc1234.GetChild(8).AsFloat() == 1.5
 
         rdtest.log.success("Overlay color is as expected")
 

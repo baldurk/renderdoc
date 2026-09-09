@@ -13,7 +13,7 @@ class VK_Dynamic_Rendering(rdtest.TestCase):
         for cmdLevel in [0, 1]:
             action = self.find_action("Draw {}".format(cmdLevel)).nextAction
 
-            self.check(action is not None)
+            assert action is not None
 
             self.controller.SetFrameEvent(action.eventId, False)
 

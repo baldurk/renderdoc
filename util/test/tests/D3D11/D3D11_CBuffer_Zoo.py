@@ -8,7 +8,7 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
     def check_capture(self):
         action = self.find_action("Draw")
 
-        self.check(action is not None)
+        assert action is not None
 
         self.controller.SetFrameEvent(action.eventId, False)
 
@@ -57,9 +57,9 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
 
             cbufferVars = self.combine_source_vars(cbufferVars)
 
-            self.check(len(cbufferVars) == 2)
-            self.check(cbufferVars[0].name == 'consts')
-            self.check(cbufferVars[1].name == 'packed_consts')
+            assert len(cbufferVars) == 2
+            assert cbufferVars[0].name == 'consts'
+            assert cbufferVars[1].name == 'packed_consts'
             var_check = rdtest.ConstantBufferChecker(cbufferVars[0].members)
             packed_check = rdtest.ConstantBufferChecker(cbufferVars[1].members)
             self.check_cbuffer(var_check, packed_check)

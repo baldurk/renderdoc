@@ -63,8 +63,8 @@ class D3D11_AMD_Shader_Extensions(rdtest.TestCase):
         refl: rd.ShaderReflection = self.controller.GetShader(pipe, cs.resourceId,
                                                               rd.ShaderEntryPoint("main", rd.ShaderStage.Compute))
 
-        self.check(len(refl.readWriteResources) == 2)
-        self.check([rw.name for rw in refl.readWriteResources] == ["inUAV", "outUAV"])
+        assert len(refl.readWriteResources) == 2
+        assert [rw.name for rw in refl.readWriteResources] == ["inUAV", "outUAV"]
 
         disasm = self.controller.DisassembleShader(pipe, refl, "")
 

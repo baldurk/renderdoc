@@ -9,7 +9,7 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
     def check_capture(self):
 
         action = self.find_action("Dispatch")
-        self.check(action is not None)
+        assert action is not None
         self.controller.SetFrameEvent(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
@@ -37,10 +37,10 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
 
         # should get the same results for dynamic array indexing, the 'only used' is only for
         # statically unused or used bindings
-        self.check(rw == rw_used)
+        assert rw == rw_used
 
         action = self.find_action("Draw")
-        self.check(action is not None)
+        assert action is not None
         self.controller.SetFrameEvent(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()

@@ -9,6 +9,6 @@ class VK_Empty_Capture(rdtest.TestCase):
     def check_capture(self):
         actions = self.controller.GetRootActions()
 
-        self.check(len(actions) == 1)
-        self.check('End' in actions[0].customName)
-        self.check(actions[0].eventId == 1)
+        assert len(actions) == 1
+        assert 'End' in actions[0].customName
+        assert actions[0].eventId == 1

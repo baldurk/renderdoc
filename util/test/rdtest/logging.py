@@ -138,13 +138,23 @@ class TestLogger:
         self.logged_exception = True
         self.failed = self.section_failed = True
 
-        if ex is TestFailureException:
-            self.rawprint("!+ FAILURE in {}: {}".format(self.test_name, str(ex)))
+        tb = traceback.extract_tb(sys.exc_info()[2])
+
+        if isinstance(ex, AssertionError):
+            assertion_line = tb[-1].line
+            
+            if assertion_line is not None:
+                assert_msg = re.sub(r'assert (.*)', r'\1', assertion_line)
+            else:
+                assert_msg = "Unknown Assertion"
+
+            self.rawprint(f"!+ ASSERT FAILURE in {self.test_name}: {assert_msg}")
+        elif isinstance(ex, TestFailureException):
+            self.rawprint(f"!+ FAILURE in {self.test_name}: {ex!s}")
         else:
-            self.rawprint("!+ FAILURE in {}: {} {}".format(self.test_name, type(ex).__name__, str(ex)))
+            self.rawprint(f"!+ FAILURE in {self.test_name}: {type(ex).__name__} {ex!s}")
 
         self.rawprint('>> Callstack')
-        tb = traceback.extract_tb(sys.exc_info()[2])
         for frame in reversed(tb):
             filename = util.sanitise_filename(frame.filename)
             filename = re.sub('.*site-packages/', 'site-packages/', filename)

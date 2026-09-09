@@ -11,7 +11,7 @@ class GL_Draw_Zoo(rdtest.Draw_Zoo):
 
         action = self.find_action("GL_PRIMITIVE_RESTART")
 
-        self.check(action is not None)
+        assert action is not None
 
         action = action.nextAction
 
@@ -22,12 +22,12 @@ class GL_Draw_Zoo(rdtest.Draw_Zoo):
         ib = pipe.GetIBuffer()
 
 
-        self.check(pipe.IsRestartEnabled())
-        self.check((pipe.GetRestartIndex() & ((1 << (ib.byteStride*8)) - 1)) == 0xffff)
+        assert pipe.IsRestartEnabled()
+        assert (pipe.GetRestartIndex() & ((1 << (ib.byteStride*8)) - 1)) == 0xffff
 
         action = self.find_action("GL_PRIMITIVE_RESTART_FIXED_INDEX")
 
-        self.check(action is not None)
+        assert action is not None
 
         action = action.nextAction
 
@@ -37,13 +37,13 @@ class GL_Draw_Zoo(rdtest.Draw_Zoo):
 
         ib = pipe.GetIBuffer()
 
-        self.check(pipe.IsRestartEnabled())
-        self.check((pipe.GetRestartIndex() & ((1 << (ib.byteStride*8)) - 1)) == 0xffff)
+        assert pipe.IsRestartEnabled()
+        assert (pipe.GetRestartIndex() & ((1 << (ib.byteStride*8)) - 1)) == 0xffff
         
         action = self.find_action("GL_ClearDepth")
-        self.check(action is not None)
+        assert action is not None
         
         action = action.nextAction
         
-        self.check(action.flags & (rd.ActionFlags.Clear|rd.ActionFlags.ClearDepthStencil) == (rd.ActionFlags.Clear|rd.ActionFlags.ClearDepthStencil))
+        assert action.flags & (rd.ActionFlags.Clear|rd.ActionFlags.ClearDepthStencil) == (rd.ActionFlags.Clear|rd.ActionFlags.ClearDepthStencil)
         

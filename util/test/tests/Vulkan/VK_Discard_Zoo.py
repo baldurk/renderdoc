@@ -21,7 +21,7 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
         rpdepth: rd.TextureDescription = self.get_texture(
             [res for res in self.controller.GetResources() if "RPDepth" in res.name][0].resourceId)
 
-        self.check(action is not None)
+        assert action is not None
 
         self.controller.SetFrameEvent(action.nextAction.eventId, True)
 
@@ -98,8 +98,8 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
         end_col_bytes = self.controller.GetTextureData(rpcol.resourceId, rd.Subresource())
         end_depth_bytes = self.controller.GetTextureData(rpdepth.resourceId, rd.Subresource())
 
-        self.check(middle_col_bytes != end_col_bytes)
-        self.check(middle_depth_bytes != end_depth_bytes)
+        assert middle_col_bytes != end_col_bytes
+        assert middle_depth_bytes != end_depth_bytes
 
         action = self.find_action("UndefinedLoad_Before")
 
@@ -138,7 +138,7 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
         rdtest.log.success("Values are correct after the UNDEFINED initial layout renderpass")
 
         action = self.find_action("CmdDraw")
-        self.check(action is not None)
+        assert action is not None
         self.controller.SetFrameEvent(action.eventId, True)
 
         pipe: rd.PipeState = self.controller.GetPipelineState()

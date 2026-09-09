@@ -87,7 +87,7 @@ class VK_Indirect(rdtest.TestCase):
         off_alpha = 0.5
         # If the overlay isn't even for a action, it will be cleared to black
         if no_overlay:
-            self.check(len(pass_samples) == 0)
+            assert len(pass_samples) == 0
         for s in [s for s in self.samples if s not in pass_samples]:
             self.check_pixel_value(overlay_id, s[0], s[1], [0.0, 0.0, 0.0, off_alpha], eps=1.0/256.0)
 
@@ -321,7 +321,7 @@ class VK_Indirect(rdtest.TestCase):
 
         fill = self.find_action("vkCmdFillBuffer")
 
-        self.check(fill is not None)
+        assert fill is not None
 
         buffer_usage = {}
 
@@ -366,7 +366,7 @@ class VK_Indirect(rdtest.TestCase):
             self.out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100),
                                                                      rd.ReplayOutputType.Texture)
 
-            self.check(self.out is not None)
+            assert self.out is not None
 
             # Rewind to the start of the capture
             action: rd.ActionDescription = dispatches.children[0]
@@ -380,11 +380,11 @@ class VK_Indirect(rdtest.TestCase):
 
             rdtest.log.success("Selected all {} actions".format(level))
 
-            self.check(dispatches and len(real_action_children(dispatches)) == 3)
+            assert dispatches and len(real_action_children(dispatches)) == 3
 
-            self.check(dispatches.children[0].dispatchDimension == (0, 0, 0))
-            self.check(dispatches.children[1].dispatchDimension == (1, 1, 1))
-            self.check(dispatches.children[2].dispatchDimension == (3, 4, 5))
+            assert dispatches.children[0].dispatchDimension == (0, 0, 0)
+            assert dispatches.children[1].dispatchDimension == (1, 1, 1)
+            assert dispatches.children[2].dispatchDimension == (3, 4, 5)
 
             rdtest.log.success("{} Indirect dispatches are the correct dimensions".format(level))
 
@@ -412,18 +412,18 @@ class VK_Indirect(rdtest.TestCase):
 
             empties = self.find_action("{}: Empty draws".format(level))
 
-            self.check(empties and len(real_action_children(empties)) == 2)
+            assert empties and len(real_action_children(empties)) == 2
 
             action: rd.ActionDescription
             for action in real_action_children(empties):
-                self.check(action.numIndices == 0)
-                self.check(action.numInstances == 0)
+                assert action.numIndices == 0
+                assert action.numInstances == 0
 
                 self.controller.SetFrameEvent(action.eventId, False)
 
                 # Check that we have empty PostVS
                 postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, 1)
-                self.check(len(postvs_data) == 0)
+                assert len(postvs_data) == 0
 
                 # No samples should be passing in the empties
                 self.check_overlay([])
@@ -432,20 +432,20 @@ class VK_Indirect(rdtest.TestCase):
 
             indirects = self.find_action("{}: Indirect draws".format(level))
 
-            self.check('vkCmdDrawIndirect' in indirects.children[0].customName)
-            self.check('vkCmdDrawIndexedIndirect' in indirects.children[1].customName)
-            self.check(len(real_action_children(indirects.children[1])) == 2)
+            assert 'vkCmdDrawIndirect' in indirects.children[0].customName
+            assert 'vkCmdDrawIndexedIndirect' in indirects.children[1].customName
+            assert len(real_action_children(indirects.children[1])) == 2
 
             rdtest.log.success("Correct number of {} indirect draws".format(level))
 
             # vkCmdDrawIndirect(...)
             action = indirects.children[0]
-            self.check(action.numIndices == 3)
-            self.check(action.numInstances == 2)
+            assert action.numIndices == 3
+            assert action.numInstances == 2
 
             self.controller.SetFrameEvent(action.eventId, False)
 
-            self.check(rd.ResourceUsage.Indirect in buffer_usage[action.eventId])
+            assert rd.ResourceUsage.Indirect in buffer_usage[action.eventId]
 
             # Check that we have PostVS as expected
             postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut)
@@ -457,18 +457,18 @@ class VK_Indirect(rdtest.TestCase):
             }
 
             self.check_mesh_data(postvs_ref, postvs_data)
-            self.check(len(postvs_data) == len(postvs_ref))  # We shouldn't have any extra vertices
+            assert len(postvs_data) == len(postvs_ref)  # We shouldn't have any extra vertices
 
             self.check_overlay([(60, 40)])
 
             rdtest.log.success("{} {} is as expected".format(level, action.customName))
 
-            self.check(rd.ResourceUsage.Indirect in buffer_usage[indirects.children[1].eventId])
+            assert rd.ResourceUsage.Indirect in buffer_usage[indirects.children[1].eventId]
 
             # vkCmdDrawIndexedIndirect[0](...)
             action = indirects.children[1].children[0]
-            self.check(action.numIndices == 3)
-            self.check(action.numInstances == 3)
+            assert action.numIndices == 3
+            assert action.numInstances == 3
 
             self.controller.SetFrameEvent(action.eventId, False)
 
@@ -484,7 +484,7 @@ class VK_Indirect(rdtest.TestCase):
             }
 
             self.check_mesh_data(postvs_ref, postvs_data)
-            self.check(len(postvs_data) == len(postvs_ref))  # We shouldn't have any extra vertices
+            assert len(postvs_data) == len(postvs_ref)  # We shouldn't have any extra vertices
 
             self.check_overlay([(100, 40)])
 
@@ -492,8 +492,8 @@ class VK_Indirect(rdtest.TestCase):
 
             # vkCmdDrawIndexedIndirect[1](...)
             action = indirects.children[1].children[1]
-            self.check(action.numIndices == 6)
-            self.check(action.numInstances == 2)
+            assert action.numIndices == 6
+            assert action.numInstances == 2
 
             self.controller.SetFrameEvent(action.eventId, False)
 
@@ -511,7 +511,7 @@ class VK_Indirect(rdtest.TestCase):
             }
 
             self.check_mesh_data(postvs_ref, postvs_data)
-            self.check(len(postvs_data) == len(postvs_ref))  # We shouldn't have any extra vertices
+            assert len(postvs_data) == len(postvs_ref)  # We shouldn't have any extra vertices
 
             self.check_overlay([(140, 40), (200, 40)])
 
@@ -519,38 +519,38 @@ class VK_Indirect(rdtest.TestCase):
 
             if indirect_count_root is not None:
                 rdtest.log.print(f"Testing {indirect_count_root.customName}")
-                self.check(indirect_count_root.children[0].customName == '{}: Empty count draws'.format(level))
-                self.check(indirect_count_root.children[1].customName == '{}: Indirect count draws'.format(level))
+                assert indirect_count_root.children[0].customName == f'{level}: Empty count draws'
+                assert indirect_count_root.children[1].customName == f'{level}: Indirect count draws'
 
                 empties = indirect_count_root.children[0]
 
-                self.check(empties and len(real_action_children(empties)) == 3)
+                assert empties and len(real_action_children(empties)) == 3
 
                 action: rd.ActionDescription
                 for action in real_action_children(empties):
-                    self.check(action.numIndices == 0)
-                    self.check(action.numInstances == 0)
+                    assert action.numIndices == 0
+                    assert action.numInstances == 0
 
                     self.controller.SetFrameEvent(action.eventId, False)
 
                     # Check that we have empty PostVS
                     postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, 1)
-                    self.check(len(postvs_data) == 0)
+                    assert len(postvs_data) == 0
 
                     self.check_overlay([], no_overlay=True)
 
                 # vkCmdDrawIndirectCountKHR
                 action_indirect = indirect_count_root.children[1].children[0]
 
-                self.check(rd.ResourceUsage.Indirect in buffer_usage[action_indirect.eventId])
+                assert rd.ResourceUsage.Indirect in buffer_usage[action_indirect.eventId]
 
-                self.check(action_indirect and len(real_action_children(action_indirect)) == 1)
+                assert action_indirect and len(real_action_children(action_indirect)) == 1
 
                 # vkCmdDrawIndirectCountKHR[0]
                 action = action_indirect.children[0]
 
-                self.check(action.numIndices == 3)
-                self.check(action.numInstances == 4)
+                assert action.numIndices == 3
+                assert action.numInstances == 4
 
                 self.controller.SetFrameEvent(action.eventId, False)
 
@@ -566,7 +566,7 @@ class VK_Indirect(rdtest.TestCase):
                 }
 
                 self.check_mesh_data(postvs_ref, postvs_data)
-                self.check(len(postvs_data) == len(postvs_ref))  # We shouldn't have any extra vertices
+                assert len(postvs_data) == len(postvs_ref)  # We shouldn't have any extra vertices
 
                 self.check_overlay([(60, 190)])
 
@@ -575,12 +575,12 @@ class VK_Indirect(rdtest.TestCase):
                 # vkCmdDrawIndexedIndirectCountKHR
                 action_indirect = indirect_count_root.children[1].children[1]
 
-                self.check(action_indirect and len(real_action_children(action_indirect)) == 3)
+                assert action_indirect and len(real_action_children(action_indirect)) == 3
 
                 # vkCmdDrawIndirectCountKHR[0]
                 action = action_indirect.children[0]
-                self.check(action.numIndices == 3)
-                self.check(action.numInstances == 1)
+                assert action.numIndices == 3
+                assert action.numInstances == 1
 
                 self.controller.SetFrameEvent(action.eventId, False)
 
@@ -596,7 +596,7 @@ class VK_Indirect(rdtest.TestCase):
                 }
 
                 self.check_mesh_data(postvs_ref, postvs_data)
-                self.check(len(postvs_data) == len(postvs_ref))  # We shouldn't have any extra vertices
+                assert len(postvs_data) == len(postvs_ref)  # We shouldn't have any extra vertices
 
                 self.check_overlay([(100, 190)])
 
@@ -604,14 +604,14 @@ class VK_Indirect(rdtest.TestCase):
 
                 # vkCmdDrawIndirectCountKHR[1]
                 action = action_indirect.children[1]
-                self.check(action.numIndices == 0)
-                self.check(action.numInstances == 0)
+                assert action.numIndices == 0
+                assert action.numInstances == 0
 
                 self.controller.SetFrameEvent(action.eventId, False)
 
                 postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut)
 
-                self.check(len(postvs_data) == 0)
+                assert len(postvs_data) == 0
 
                 self.check_overlay([])
 
@@ -619,8 +619,8 @@ class VK_Indirect(rdtest.TestCase):
 
                 # vkCmdDrawIndirectCountKHR[2]
                 action = action_indirect.children[2]
-                self.check(action.numIndices == 6)
-                self.check(action.numInstances == 2)
+                assert action.numIndices == 6
+                assert action.numInstances == 2
 
                 self.controller.SetFrameEvent(action.eventId, False)
 
@@ -640,7 +640,7 @@ class VK_Indirect(rdtest.TestCase):
                 }
 
                 self.check_mesh_data(postvs_ref, postvs_data)
-                self.check(len(postvs_data) == len(postvs_ref))  # We shouldn't have any extra vertices
+                assert len(postvs_data) == len(postvs_ref)  # We shouldn't have any extra vertices
 
                 self.check_overlay([(140, 190), (200, 190)])
 

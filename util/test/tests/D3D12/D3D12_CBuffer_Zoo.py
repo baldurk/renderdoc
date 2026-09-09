@@ -8,7 +8,7 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
         rdtest.log.begin_section("DXBC Draw")
         action = self.find_action("DXBC Draw")
 
-        self.check(action is not None)
+        assert action is not None
 
         self.controller.SetFrameEvent(action.nextAction.eventId, False)
 
@@ -20,7 +20,7 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
         disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), pipe.GetShaderReflection(stage),
                                                    '')
 
-        self.check('ps_5_1' in disasm)
+        assert 'ps_5_1' in disasm
 
         self.check_event()
 
@@ -42,7 +42,7 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
         disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), pipe.GetShaderReflection(stage),
                                                    '')
 
-        self.check('SM6.0' in disasm)
+        assert 'SM6.0' in disasm
         self.check_event()
         rdtest.log.success("SM 6.0 action is as expected")
         rdtest.log.end_section("SM6.0 Draw")
@@ -61,7 +61,7 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
         disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), pipe.GetShaderReflection(stage),
                                                    '')
-        self.check('SM6.6' in disasm)
+        assert 'SM6.6' in disasm
         self.check_event()
         rdtest.log.success("SM 6.6 action is as expected")
         rdtest.log.end_section("SM6.6 Draw")
@@ -174,12 +174,12 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
             cbufferVars = self.combine_source_vars(cbufferVars)
 
-            self.check(len(cbufferVars) == 5)
-            self.check(cbufferVars[0].name == 'consts')
-            self.check(cbufferVars[1].name == 'rootconsts')
-            self.check(cbufferVars[2].name == 'packed_consts')
-            self.check(cbufferVars[3].name == 'array_consts')
-            self.check(cbufferVars[4].name == 'hugespace')
+            assert len(cbufferVars) == 5
+            assert cbufferVars[0].name == 'consts'
+            assert cbufferVars[1].name == 'rootconsts'
+            assert cbufferVars[2].name == 'packed_consts'
+            assert cbufferVars[3].name == 'array_consts'
+            assert cbufferVars[4].name == 'hugespace'
 
             var_check = rdtest.ConstantBufferChecker(cbufferVars[0].members)
             root_check = rdtest.ConstantBufferChecker(cbufferVars[1].members)

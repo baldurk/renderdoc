@@ -87,7 +87,7 @@ class Pixel_History(rdtest.TestCase):
             tex = col.resource
             self.is_depth = False
         else:
-            self.check(self.has_depth)
+            assert self.has_depth
             self.is_depth = True
             rt = depth
 
@@ -936,8 +936,7 @@ class Pixel_History(rdtest.TestCase):
                 # property disabled, e.g. because colour or depth is not present, or we're in a secondary
                 if prop_getter is None:
                     # must have a reason - don't allow tests to skip in the main check
-                    self.check(
-                        not self.has_colour or not self.has_depth or not self.has_stencil or self.is_secondary)
+                    assert not self.has_colour or not self.has_depth or not self.has_stencil or self.is_secondary
                     continue
 
                 actual = prop_getter(m)

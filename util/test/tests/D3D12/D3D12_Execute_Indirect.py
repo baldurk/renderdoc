@@ -57,7 +57,7 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
         if root_consts is None:
             raise rdtest.TestFailureException('rootConsts not found in pipeline state')
         bytes = self.controller.GetBufferData(root_consts.descriptor.resource, 0, root_consts.descriptor.byteSize)   
-        self.check(len(bytes) == 16)  # 4 floats
+        assert len(bytes) == 16  # 4 floats
         data = struct.unpack("ffff", bytes)
         for i in range(len(expected)):
             if not rdtest.value_compare(expected[i], data[i]):
@@ -159,10 +159,10 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
                 vbs = pipe.GetVBuffers()
                 ro = pipe.GetReadOnlyResources(rd.ShaderStage.Vertex)
                 rw = pipe.GetReadWriteResources(rd.ShaderStage.Vertex)
-                self.check(vbs[0].resourceId != rd.ResourceId())
-                self.check(ro[0].descriptor.resource != rd.ResourceId())
-                self.check(rw[0].descriptor.resource != rd.ResourceId())
-                self.check(pipe.GetConstantBlock(rd.ShaderStage.Vertex, 0, 0).descriptor.resource != rd.ResourceId())
+                assert vbs[0].resourceId != rd.ResourceId()
+                assert ro[0].descriptor.resource != rd.ResourceId()
+                assert rw[0].descriptor.resource != rd.ResourceId()
+                assert pipe.GetConstantBlock(rd.ShaderStage.Vertex, 0, 0).descriptor.resource != rd.ResourceId()
 
                 viewX += sqSize
                 if viewX + sqSize >= 400:
@@ -184,10 +184,10 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
             vbs = pipe.GetVBuffers()
             ro = pipe.GetReadOnlyResources(rd.ShaderStage.Vertex)
             rw = pipe.GetReadWriteResources(rd.ShaderStage.Vertex)
-            self.check(len(vbs) == 0 or vbs[0].resourceId == rd.ResourceId())
-            self.check(len(ro) == 0 or ro[0].descriptor.resource == rd.ResourceId())
-            self.check(len(rw) == 0 or rw[0].descriptor.resource == rd.ResourceId())
-            self.check(pipe.GetConstantBlock(rd.ShaderStage.Vertex, 0, 0).descriptor.resource == rd.ResourceId())
+            assert len(vbs) == 0 or vbs[0].resourceId == rd.ResourceId()
+            assert len(ro) == 0 or ro[0].descriptor.resource == rd.ResourceId()
+            assert len(rw) == 0 or rw[0].descriptor.resource == rd.ResourceId()
+            assert pipe.GetConstantBlock(rd.ShaderStage.Vertex, 0, 0).descriptor.resource == rd.ResourceId()
 
         self.check_pixel_history_succeeds(185, 50)
 

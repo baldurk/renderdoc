@@ -28,7 +28,7 @@ class VK_Line_Raster(rdtest.TestCase):
     def check_capture(self):
         action = self.find_action("vkCmdEndRenderPass")
 
-        self.check(action is not None)
+        assert action is not None
 
         action = action.previousAction
 

@@ -12,7 +12,7 @@ class Overlay_Test(rdtest.TestCase):
 
         out: rd.ReplayOutput = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
 
-        self.check(out is not None)
+        assert out is not None
 
         api: rd.GraphicsAPI = self.controller.GetAPIProperties().pipelineType
 

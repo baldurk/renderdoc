@@ -9,7 +9,7 @@ class GL_Empty_Capture(rdtest.TestCase):
     def check_capture(self):
         actions = self.controller.GetRootActions()
 
-        self.check(len(actions) == 1)
-        self.check('End' in actions[0].customName)
+        assert len(actions) == 1
+        assert 'End' in actions[0].customName
         # EID 1 is the implicit context activation
-        self.check(actions[0].eventId == 2)
+        assert actions[0].eventId == 2

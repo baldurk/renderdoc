@@ -12,7 +12,7 @@ class VK_Spec_Constants(rdtest.TestCase):
 
         # We should have 4 actions, with spec constant values 0, 1, 2, 3
         for num_colors in range(4):
-            self.check(action is not None)
+            assert action is not None
 
             self.controller.SetFrameEvent(action.eventId, False)
 
@@ -22,10 +22,10 @@ class VK_Spec_Constants(rdtest.TestCase):
             shader: rd.ShaderReflection = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
 
             # uniform buffer and spec constants
-            self.check(len(shader.constantBlocks) == 2)
-            self.check(shader.constantBlocks[0].bufferBacked)
-            self.check(not shader.constantBlocks[1].bufferBacked)
-            self.check(len(shader.constantBlocks[1].variables) == 3)
+            assert len(shader.constantBlocks) == 2
+            assert shader.constantBlocks[0].bufferBacked
+            assert not shader.constantBlocks[1].bufferBacked
+            assert len(shader.constantBlocks[1].variables) == 3
 
             # should be an array of num_colors+1 elements
             array_len = shader.constantBlocks[0].variables[0].type.elements
@@ -40,7 +40,7 @@ class VK_Spec_Constants(rdtest.TestCase):
                                                                      pipe.GetShaderEntryPoint(rd.ShaderStage.Pixel), 0,
                                                                      cbuf.resource, cbuf.byteOffset, cbuf.byteSize)
 
-                self.check(len(cb_vars) == 1)
+                assert len(cb_vars) == 1
 
                 if not rdtest.value_compare(len(cb_vars[0].members), num_colors+1):
                     raise rdtest.TestFailureException("CBuffer variable is array of {}, not {}".format(len(cb_vars[0].members), num_colors+1))
@@ -63,7 +63,7 @@ class VK_Spec_Constants(rdtest.TestCase):
                                                                  pipe.GetShaderEntryPoint(rd.ShaderStage.Pixel), 1,
                                                                  cbuf.resource, cbuf.byteOffset, cbuf.byteSize)
 
-            self.check(len(cb_vars) == 3)
+            assert len(cb_vars) == 3
 
             refl = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
 

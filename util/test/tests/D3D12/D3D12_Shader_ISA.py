@@ -9,7 +9,7 @@ class D3D12_Shader_ISA(rdtest.TestCase):
     def check_capture(self):
         action = self.find_action("GPU=")
 
-        self.check(action is not None)
+        assert action is not None
 
         is_amd = 'AMD' in action.customName
 

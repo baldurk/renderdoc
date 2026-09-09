@@ -11,7 +11,7 @@ class D3D11_Parameter_Zoo(rdtest.TestCase):
         rdtest.log.success("Got {} captures as expected".format(self.demos_frame_count))
 
         action = self.find_action("Draw")
-        self.check(action is not None)
+        assert action is not None
         self.controller.SetFrameEvent(action.eventId, False)
      
         pipe: rd.PipeState = self.controller.GetPipelineState()
@@ -66,13 +66,13 @@ class D3D11_Parameter_Zoo(rdtest.TestCase):
         out.Shutdown()
 
         action = self.find_action("RastState")
-        self.check(action is not None)
+        assert action is not None
         self.controller.SetFrameEvent(action.eventId, False)
 
         pipe11 = self.controller.GetD3D11PipelineState()
 
-        self.check(pipe11.rasterizer.state.resourceId != rd.ResourceId())
+        assert pipe11.rasterizer.state.resourceId != rd.ResourceId()
 
-        self.check(self.get_resource(pipe11.rasterizer.state.resourceId).name == "RastState")
-     
+        assert self.get_resource(pipe11.rasterizer.state.resourceId).name == "RastState"
+
         rdtest.log.success("Overlay color is as expected")

@@ -13,7 +13,7 @@ class Annotations(rdtest.TestCase):
             res = self.get_resource_by_name('Annotated Image')
 
             annots = res.annotations
-            self.check(annots is not None)
+            assert annots is not None
 
             self.check_eq(annot("basic.bool").type.basetype, rd.SDBasic.Boolean)
             self.check_eq(annot("basic.bool").AsBool(), True)
@@ -40,7 +40,7 @@ class Annotations(rdtest.TestCase):
             
             self.check_eq(annot("basic.double").type.basetype, rd.SDBasic.Float)
             self.check_eq(annot("basic.double").type.byteSize, 8)
-            self.check(rdtest.value_compare(annot("basic.double").AsFloat(), 3.25000000001))
+            assert rdtest.value_compare(annot("basic.double").AsFloat(), 3.25000000001)
 
             self.check_eq(annot("basic.string").type.basetype, rd.SDBasic.String)
             self.check_eq(annot("basic.string").AsString(), "Hello, World!")
@@ -52,19 +52,19 @@ class Annotations(rdtest.TestCase):
             self.check_eq(annot("basic.object.__offset").AsInt(), 64)
             self.check_eq(annot("basic.object.__size").AsInt(), 32)
             
-            self.check(rdtest.value_compare(annot("basic.vec3.1").AsFloat(), 1.1))
-            self.check(rdtest.value_compare(annot("basic.vec3.2").AsFloat(), 2.2))
-            self.check(rdtest.value_compare(annot("basic.vec3.3").AsFloat(), 3.3))
+            assert rdtest.value_compare(annot("basic.vec3.1").AsFloat(), 1.1)
+            assert rdtest.value_compare(annot("basic.vec3.2").AsFloat(), 2.2)
+            assert rdtest.value_compare(annot("basic.vec3.3").AsFloat(), 3.3)
             
             self.check_eq(annot("deep.nested.path.to.annotation").AsInt(), -4)
             self.check_eq(annot("deep.nested.path.to.annotation2").AsInt(), -5)
             self.check_eq(annot("deep.alternate.path.to.annotation").AsInt(), -6)
             
-            self.check(annot("deleteme") is None)
+            assert annot("deleteme") is None
             
-            self.check(annot("path.deleted.by.parent") is None)
-            self.check(annot("path.deleted.by.parent2") is None)
-            self.check(annot("path.deleted") is None)
+            assert annot("path.deleted.by.parent") is None
+            assert annot("path.deleted.by.parent2") is None
+            assert annot("path.deleted") is None
 
     def check_command_annotations(self, cmd_buffers: bool):
         annot = lambda x: annots.FindChildByKeyPath(x)
@@ -74,10 +74,10 @@ class Annotations(rdtest.TestCase):
             rdtest.log.print(f"Checking {action.customName}")
 
             annots = action.events[-1].annotations
-            self.check(annots is not None)
+            assert annots is not None
 
             # Should not have this annotation, it happened prior to the capture
-            self.check(annot("queue.too_old") is None)
+            assert annot("queue.too_old") is None
 
             # normal value set on the queue
             self.check_eq(annot("queue.value").type.basetype, rd.SDBasic.SignedInteger)
@@ -99,7 +99,7 @@ class Annotations(rdtest.TestCase):
             rdtest.log.print(f"Checking {action.customName}")
 
             annots = action.events[-1].annotations
-            self.check(annots is not None)
+            assert annots is not None
 
             # normal value set on the queue
             self.check_eq(annot("queue.value").type.basetype, rd.SDBasic.SignedInteger)
@@ -114,7 +114,7 @@ class Annotations(rdtest.TestCase):
             self.check_eq(annot("command.inherited").AsInt(), 1234)
             
             # this has now been deleted
-            self.check(annot("command.deleted") is None)
+            assert annot("command.deleted") is None
 
             # this is a new command-local value
             self.check_eq(annot("command.new").type.basetype, rd.SDBasic.SignedInteger)
@@ -128,7 +128,7 @@ class Annotations(rdtest.TestCase):
             rdtest.log.print(f"Checking {action.customName}")
 
             annots = action.events[-1].annotations
-            self.check(annots is not None)
+            assert annots is not None
 
             # normal value set on the queue
             self.check_eq(annot("queue.value").type.basetype, rd.SDBasic.SignedInteger)
@@ -143,7 +143,7 @@ class Annotations(rdtest.TestCase):
             self.check_eq(annot("command.inherited").AsInt(), 1234)
             
             # this has now been deleted
-            self.check(annot("command.deleted") is None)
+            assert annot("command.deleted") is None
 
             # this is a command-local value, which has changed type
             self.check_eq(annot("command.new").type.basetype, rd.SDBasic.Float)
@@ -159,7 +159,7 @@ class Annotations(rdtest.TestCase):
             rdtest.log.print(f"Checking {action.customName}")
 
             annots = action.events[-1].annotations
-            self.check(annots is not None)
+            assert annots is not None
 
             # should be no events between these
             self.check_eq(predraw_id + 1, action.eventId)
@@ -181,7 +181,7 @@ class Annotations(rdtest.TestCase):
             self.check_eq(annot("command.inherited").AsInt(), 1234)
             
             # this has now been deleted
-            self.check(annot("command.deleted") is None)
+            assert annot("command.deleted") is None
 
             # this is a command-local value, which has changed type
             self.check_eq(annot("command.new").type.basetype, rd.SDBasic.Float)
@@ -194,7 +194,7 @@ class Annotations(rdtest.TestCase):
             rdtest.log.print(f"Checking {action.customName}")
 
             annots = action.events[-1].annotations
-            self.check(annots is not None)
+            assert annots is not None
 
             # all of the values should still be present
 
@@ -207,7 +207,7 @@ class Annotations(rdtest.TestCase):
             self.check_eq(annot("command.inherited").type.basetype, rd.SDBasic.SignedInteger)
             self.check_eq(annot("command.inherited").AsInt(), 1234)
             
-            self.check(annot("command.deleted") is None)
+            assert annot("command.deleted") is None
 
             self.check_eq(annot("command.new").type.basetype, rd.SDBasic.Float)
             self.check_eq(annot("command.new").AsFloat(), 1.75)
@@ -219,7 +219,7 @@ class Annotations(rdtest.TestCase):
             rdtest.log.print(f"Checking {action.customName}")
             
             annots = action.events[-1].annotations
-            self.check(annots is not None)
+            assert annots is not None
 
             # normal value set on the queue
             self.check_eq(annot("queue.value").type.basetype, rd.SDBasic.SignedInteger)
@@ -236,14 +236,14 @@ class Annotations(rdtest.TestCase):
                 self.check_eq(annot("command.deleted").type.basetype, rd.SDBasic.SignedInteger)
                 self.check_eq(annot("command.deleted").AsInt(), 50)
 
-                self.check(annot("command.new") is None)
-                self.check(annot("new.value") is None)
+                assert annot("command.new") is None
+                assert annot("new.value") is None
             # otherwise they will be the same as on the command buffer
             else:
                 self.check_eq(annot("command.overwritten").type.basetype, rd.SDBasic.SignedInteger)
                 self.check_eq(annot("command.overwritten").AsInt(), -3333)
                 
-                self.check(annot("command.deleted") is None)
+                assert annot("command.deleted") is None
                 
                 self.check_eq(annot("command.new").type.basetype, rd.SDBasic.Float)
                 self.check_eq(annot("command.new").AsFloat(), 1.75)

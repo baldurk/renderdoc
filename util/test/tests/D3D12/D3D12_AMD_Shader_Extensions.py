@@ -91,8 +91,8 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
             refl: rd.ShaderReflection = self.controller.GetShader(pipe, cs,
                                                                   rd.ShaderEntryPoint("main", rd.ShaderStage.Compute))
 
-            self.check(len(refl.readWriteResources) == 2)
-            self.check([rw.name for rw in refl.readWriteResources] == ["inUAV", "outUAV"])
+            assert len(refl.readWriteResources) == 2
+            assert [rw.name for rw in refl.readWriteResources] == ["inUAV", "outUAV"]
 
             # Don't test disassembly or debugging with DXIL, we don't do any of that
             if pass_type == "SM60":

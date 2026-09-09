@@ -9,7 +9,7 @@ class VK_VS_Max_Desc_Set(rdtest.TestCase):
 
         action = self.find_action("Draw")
 
-        self.check(action is not None)
+        assert action is not None
 
         self.controller.SetFrameEvent(action.eventId, False)
 

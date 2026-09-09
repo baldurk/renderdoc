@@ -49,7 +49,7 @@ class VK_Mesh_Zoo(rdtest.TestCase):
 
             self.check_mesh_data(postgs_ref, postgs_data)
 
-            self.check(self.controller.GetPipelineState().GetRasterizedStream() == 2)
+            assert self.controller.GetPipelineState().GetRasterizedStream() == 2
 
             xfbDraw = self.find_action("XFB After")
 

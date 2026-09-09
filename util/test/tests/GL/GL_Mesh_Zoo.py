@@ -19,9 +19,9 @@ class GL_Mesh_Zoo(rdtest.TestCase):
         pos: rd.MeshFormat = self.controller.GetPostVSData(0, 0, rd.MeshDataStage.VSOut)
 
         # vertex output should be completely empty
-        self.check(pos.vertexByteStride == 0)
-        self.check(pos.numIndices == 0)
-        self.check(self.controller.GetBufferData(pos.vertexResourceId, 0, 0) == bytes())
+        assert pos.vertexByteStride == 0
+        assert pos.numIndices == 0
+        assert self.controller.GetBufferData(pos.vertexResourceId, 0, 0) == bytes()
 
         gsout_ref = {
             0: {
@@ -58,9 +58,9 @@ class GL_Mesh_Zoo(rdtest.TestCase):
 
             builtins = [sig.systemValue for sig in shad.inputSignature if sig.systemValue != rd.ShaderBuiltin.Undefined]
 
-            self.check(rd.ShaderBuiltin.BaseInstance in builtins)
-            self.check(rd.ShaderBuiltin.BaseVertex in builtins)
-            self.check(rd.ShaderBuiltin.DrawIndex in builtins)
+            assert rd.ShaderBuiltin.BaseInstance in builtins
+            assert rd.ShaderBuiltin.BaseVertex in builtins
+            assert rd.ShaderBuiltin.DrawIndex in builtins
 
             bv = baseVertex[d]
             bi = baseInstance[d]

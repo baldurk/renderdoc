@@ -10,7 +10,7 @@ class GL_VAO_0(rdtest.TestCase):
 
         # There are 4 actions with variations on client-memory VBs or IBs
         for i in range(0, 4):
-            self.check(action is not None)
+            assert action is not None
 
             self.controller.SetFrameEvent(action.eventId, False)
 
@@ -54,7 +54,7 @@ class GL_VAO_0(rdtest.TestCase):
 
         action = self.find_action("Instanced")
 
-        self.check(action is not None)
+        assert action is not None
 
         self.controller.SetFrameEvent(action.eventId, False)
 
