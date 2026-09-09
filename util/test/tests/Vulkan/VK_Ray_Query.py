@@ -1,4 +1,3 @@
-import renderdoc as rd
 import rdtest
 
 class VK_Ray_Query(rdtest.TestCase):

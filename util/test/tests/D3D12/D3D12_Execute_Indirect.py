@@ -65,6 +65,7 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
         rdtest.log.success("rootConsts is as expected")
 
     def check_capture(self):
+        assert self.controller is not None
 
         with rdtest.log.auto_section("Checking Indirect Action Names"):
             if not self.check_indirect_action_name_consistency(self.controller):
@@ -96,6 +97,7 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
             viewH = sqSize
             for i in range(8):
                 action = self.find_action("IndirectDraw", from_eid)
+                assert action is not None
                 eid = action.eventId
                 self.controller.SetFrameEvent(eid, False)
                 self.check_root_consts([123.0, 9.0, 8.0, 7.0])
@@ -103,7 +105,7 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
                 # Should be a green triangle in the centre of the screen on a black background
                 self.check_triangle(back=[0.0, 0.0, 0.0, 1.0], vp=[viewX, viewY, viewW, viewH])
 
-                vsin_ref = {
+                vsin_ref: rdtest.MeshReference = {
                     0: {
                         'vtx': 0,
                         'idx': 0,
@@ -125,7 +127,7 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
                 }
                 self.check_mesh_data(vsin_ref, self.get_vsin(action))
                 postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
-                postvs_ref = {
+                postvs_ref: rdtest.MeshReference = {
                     0: {
                         'vtx': 0,
                         'idx': 0,
@@ -246,7 +248,7 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
                     out = pipe.GetOutputTargets()[0].resource
 
                     count = 0
-                    draws = []
+                    draws: List[int] = []
                     for i, p in enumerate(drawPoints):
                         picked = self.controller.PickPixel(out, p[0], p[1], rd.Subresource(), rd.CompType.UNorm)
                         if rdtest.value_compare(picked.floatValue, [0.0, 1.0, 0.0, 1.0]):

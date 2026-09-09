@@ -1,3 +1,6 @@
+from __future__ import annotations
+from typing import Callable
+
 import renderdoc as rd
 import rdtest
 
@@ -10,7 +13,7 @@ class D3D12_Annotations(rdtest.Annotations):
         super().check_resource_annotations()
         super().check_command_annotations(True)
 
-        annot = lambda x: annots.FindChildByKeyPath(x)
+        annot: Callable[[str], rd.SDObject | None] = lambda x: annots.FindChildByKeyPath(x)
 
         # Check annotations attached to indirect draws
         draw_indirect_count = self.find_action("DrawIndirectCount")

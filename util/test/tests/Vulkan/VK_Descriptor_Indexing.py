@@ -1,3 +1,5 @@
+from typing import Any, Dict, Tuple
+
 import rdtest
 import struct
 import renderdoc as rd
@@ -54,7 +56,7 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
         #     image 4 in bind 0 should be used for the global access from a function with no dynamic/patched parameters
         #   - images 381 & 386 in bind 1 should be used for the second fixed index
         #   - image 1 in bind 2 should be used
-        bind_info = {
+        bind_info: Dict[Tuple[rd.DescriptorType, int], Dict[str, Any]] = {
             (rd.DescriptorType.ReadWriteBuffer, 0): {'loc': (0, 0), 'elems': [15]},
             (rd.DescriptorType.ReadWriteBuffer, 1): {'loc': (0, 3), 'elems': [6]},
             (rd.DescriptorType.ReadWriteBuffer, 2): {'loc': (0, 3), 'elems': [12]},

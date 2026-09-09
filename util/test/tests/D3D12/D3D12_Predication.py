@@ -1,3 +1,5 @@
+from typing import Callable, Tuple
+
 import renderdoc as rd
 import rdtest
 
@@ -12,7 +14,7 @@ class D3D12_Predication(rdtest.TestCase):
         d = self.find_action("Draw", c.eventId+1)
         e = self.find_action("Draw", d.eventId+1)
 
-        viewport_array = lambda view: (view.x, view.y, view.width, view.height)
+        viewport_array: Callable[[rd.Viewport], Tuple[float,float,float,float]] = lambda view: (view.x, view.y, view.width, view.height)
 
         self.controller.SetFrameEvent(a.eventId, False)
         pipe = self.controller.GetPipelineState()

@@ -19,7 +19,7 @@ class D3D12_Overlay_Test(rdtest.Overlay_Test):
 
             rdtest.log.print(f"Checking tests on {base_event_name}")
 
-            super(D3D12_Overlay_Test, self).check_capture(base_event)
+            super(D3D12_Overlay_Test, self).check_overlay_capture(base_event)
 
             rdtest.log.success(f"Base tests worked on {base_event_name}")
 

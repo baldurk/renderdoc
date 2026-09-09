@@ -16,11 +16,13 @@ class VK_Simple_Triangle(rdtest.TestCase):
 
         action = self.find_action("Draw")
 
+        assert action is not None
+
         self.controller.SetFrameEvent(action.eventId, False)
 
         postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
-        postvs_ref = {
+        postvs_ref: rdtest.MeshReference = {
             0: {
                 'vtx': 0,
                 'idx': 0,

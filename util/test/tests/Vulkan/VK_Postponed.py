@@ -1,5 +1,4 @@
 import rdtest
-import renderdoc as rd
 
 
 class VK_Postponed(rdtest.TestCase):

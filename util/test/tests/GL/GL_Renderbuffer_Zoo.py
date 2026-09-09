@@ -1,3 +1,5 @@
+from typing import List
+
 import renderdoc as rd
 import rdtest
 
@@ -67,7 +69,7 @@ class GL_Renderbuffer_Zoo(rdtest.TestCase):
             tex_details = self.get_texture(id)
 
             if tex_details.msSamp > 1:
-                samples = []
+                samples: List[bytes] = []
                 for i in range(tex_details.msSamp):
                     samples.append(self.controller.GetTextureData(id, rd.Subresource(0, 0, i)))
 

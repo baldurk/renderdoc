@@ -1,5 +1,3 @@
-import struct
-import math
 import renderdoc as rd
 import rdtest
 
@@ -12,6 +10,7 @@ class D3D12_Parameter_Zoo(rdtest.TestCase):
         assert action is not None
 
         action = action.nextAction
+        assert action is not None
 
         self.controller.SetFrameEvent(action.eventId, False)
 
@@ -23,7 +22,7 @@ class D3D12_Parameter_Zoo(rdtest.TestCase):
 
         postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
-        postvs_ref = {
+        postvs_ref: rdtest.MeshReference = {
             0: {
                 'vtx': 0,
                 'idx': 0,

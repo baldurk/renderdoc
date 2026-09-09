@@ -1,5 +1,3 @@
-import struct
-import math
 import renderdoc as rd
 import rdtest
 

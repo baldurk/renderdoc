@@ -107,12 +107,16 @@ class VK_Descriptor_Buffer(rdtest.TestCase):
                             f"Expected resource {resname} to be named {expected_name}")
 
                     data = self.controller.GetBufferData(
-                        cb.descriptor.resource, cb.descriptor.byteOffset, cb.descriptor.byteSize)
+                        cb.descriptor.resource,
+                        cb.descriptor.byteOffset,
+                        cb.descriptor.byteSize,
+                    )
 
                     floats = struct.unpack_from("8f", data, 0)
 
                     picked = self.controller.PickPixel(
-                        out, x, y, rd.Subresource(), rd.CompType.Float)
+                        out, x, y, rd.Subresource(), rd.CompType.Float
+                    )
 
                     output_vec = picked.floatValue[0:4]
                     second_vec = floats[4:8]

@@ -8,13 +8,15 @@ class D3D12_List_Types(rdtest.TestCase):
     def check_capture(self):
         action = self.find_action("Draw")
 
+        assert action is not None
+
         self.controller.SetFrameEvent(action.eventId, False)
 
         self.check_triangle(out=action.outputs[0], fore=[0.0, 1.0, 1.0, 1.0])
 
         postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
-        postvs_ref = {
+        postvs_ref: rdtest.MeshReference = {
             0: {
                 'vtx': 0,
                 'idx': 0,

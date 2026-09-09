@@ -1,3 +1,5 @@
+from typing import List
+
 import renderdoc as rd
 import rdtest
 
@@ -91,8 +93,8 @@ class VK_Sample_Locations(rdtest.TestCase):
         # in the rotated grid case each sample's image is distinct.
         # In future we could also check that the degenerate case 'stretches' the triangle up, as with the way the
         # geometry is defined the second sample image should be a superset (i.e. strictly more samples covered).
-        rotated_paths = []
-        degenerate_paths = []
+        rotated_paths: List[str] = []
+        degenerate_paths: List[str] = []
 
         for sample in range(0, 4):
             tmp_path = rdtest.get_tmp_path(f'sample{sample}.png')
@@ -108,15 +110,15 @@ class VK_Sample_Locations(rdtest.TestCase):
             combined_data = rdtest.png_load_data(tmp_path)
 
             # crop left for degenerate, and crop right for rotated
-            degenerate = []
-            rotated = []
+            degenerate: List[bytes] = []
+            rotated: List[bytes] = []
             for row in range(0, dim[1]):
                 srcstart = row * stride
 
                 len = halfdim[0] * fmt.compCount
 
-                degenerate.append(combined_data[row][0:len])
-                rotated.append(combined_data[row][len:])
+                degenerate.append(bytes(combined_data[row][0:len]))
+                rotated.append(bytes(combined_data[row][len:]))
 
             rdtest.png_save(degenerate_path, degenerate, halfdim, True)
             rdtest.png_save(rotated_path, rotated, halfdim, True)

@@ -1,5 +1,4 @@
 import rdtest
-import renderdoc as rd
 
 
 class GL_Marker_Test(rdtest.TestCase):

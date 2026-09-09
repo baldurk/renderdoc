@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 import sys
 import re
@@ -5,15 +6,16 @@ import traceback
 import mimetypes
 import difflib
 import shutil
+from typing import Any, List, Type
 from . import util
 
 
 class TestFailureException(Exception):
-    def __init__(self, message, *args):
+    def __init__(self, message: str, *args: str):
         self.message = message
-        self.files = []
+        self.files: List[str] = []
         for a in args:
-            self.files.append(str(a))
+            self.files.append(a)
 
     def __str__(self):
         return self.message
@@ -49,7 +51,7 @@ class TestLogger:
 
             o.flush()
 
-    def add_output(self, o, header='', footer=''):
+    def add_output(self, o: str, header='', footer=''):
         os.makedirs(os.path.dirname(o), exist_ok=True)
         self.outputs.append(open(o, "a"))
 
@@ -59,7 +61,7 @@ class TestLogger:
     def comment(self, line: str):
         self.rawprint('// ' + line)
 
-    def header(self, text):
+    def header(self, text: str):
         self.rawprint('\n## ' + text + ' ##\n')
 
     def indent(self):
@@ -106,7 +108,7 @@ class TestLogger:
             def __enter__(self):
                 self.logger.begin_section(name)
 
-            def __exit__(self, exc_type, exc_value, traceback):
+            def __exit__(self, exc_type: Type[Exception] | None, exc_value: Exception | None, traceback: Any):
                 if exc_value is not None:
                     self.logger.failure(exc_value)
                 self.logger.end_section(name)
@@ -123,15 +125,15 @@ class TestLogger:
         self.dedent()
         self.rawprint(f"<< Raw {name}")
 
-    def success(self, message):
+    def success(self, message: str):
         self.rawprint("** " + message)
 
-    def error(self, message):
+    def error(self, message: str):
         self.failed = self.section_failed = True
 
         self.rawprint("!! " + message)
 
-    def failure(self, ex):
+    def failure(self, ex: Exception):
         if self.logged_exception:
             return
 
@@ -165,7 +167,7 @@ class TestLogger:
         self.rawprint('<< Callstack')
 
         if isinstance(ex, TestFailureException):
-            file_list = []
+            file_list: List[str] = []
             for f in ex.files:
                 fname = f'{self.test_name}_{os.path.basename(f)}'
                 if 'data' in f:
@@ -184,7 +186,9 @@ class TestLogger:
             if len(file_list) == 2:
                 mime = mimetypes.guess_type(ex.files[0])
 
-                if 'image' in mime[0]:
+                if mime[0] is None:
+                    pass
+                elif 'image' in mime[0]:
                     # If we have two files and they are images, a failed image comparison should have
                     # generated a diff.png. Grab it and include it
                     diff_tmp_file = util.get_tmp_path('diff.png')

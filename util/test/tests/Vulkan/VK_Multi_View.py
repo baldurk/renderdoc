@@ -18,6 +18,7 @@ class VK_Multi_View(rdtest.TestCase):
             if label is None:
                 continue
             action = label.nextAction
+            assert action is not None
             self.controller.SetFrameEvent(action.eventId, True)
 
             pipe = self.controller.GetPipelineState()
@@ -35,6 +36,7 @@ class VK_Multi_View(rdtest.TestCase):
 
                 cycles, variables = self.process_trace(trace)
                 output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+                assert output is not None
                 debugged = self.evaluate_source_var(output, variables)
                 slice = view + 1
                 sub = rd.Subresource(0, slice, 0)
@@ -54,6 +56,7 @@ class VK_Multi_View(rdtest.TestCase):
             if label is None:
                 continue
             action = label.nextAction
+            assert action is not None
             self.controller.SetFrameEvent(action.eventId, True)
 
             pipe = self.controller.GetPipelineState()
@@ -76,6 +79,7 @@ class VK_Multi_View(rdtest.TestCase):
 
                 cycles, variables = self.process_trace(trace)
                 output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+                assert output is not None
                 debugged = self.evaluate_source_var(output, variables)
                 slice = view + 1
                 sub = rd.Subresource(0, slice, 0)

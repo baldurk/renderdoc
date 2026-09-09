@@ -13,7 +13,7 @@ class D3D11_Vertex_Attr_Zoo(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
-        ref = {
+        ref: rdtest.MeshReference = {
             0: {
                 'SNORM': [1.0, -1.0, 1.0, -1.0],
                 'UNORM': [12345.0/65535.0, 6789.0/65535.0, 1234.0/65535.0, 567.0/65535.0],

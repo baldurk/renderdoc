@@ -18,7 +18,7 @@ class D3D12_VRS(rdtest.TestCase):
         return (self.get_shading_rate_for_quad(tex, x + 24, y + 50),
                 self.get_shading_rate_for_quad(tex, x + 74, y + 42))
 
-    def get_shading_rate_for_quad(self, tex, x, y):
+    def get_shading_rate_for_quad(self, tex: rd.ResourceId, x: int, y: int):
         picked = [self.controller.PickPixel(tex, x+0, y+0, rd.Subresource(), rd.CompType.Typeless),
                   self.controller.PickPixel(tex, x+1, y+0, rd.Subresource(), rd.CompType.Typeless),
                   self.controller.PickPixel(tex, x+0, y+1, rd.Subresource(), rd.CompType.Typeless),

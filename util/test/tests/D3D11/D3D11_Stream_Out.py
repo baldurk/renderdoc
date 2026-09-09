@@ -1,6 +1,5 @@
 import rdtest
 import struct
-import renderdoc as rd
 
 
 class D3D11_Stream_Out(rdtest.TestCase):
@@ -21,8 +20,12 @@ class D3D11_Stream_Out(rdtest.TestCase):
 
         vsin = self.get_vsin(action)
 
-        pos = [(*v['POSITION'], 1.0) for v in vsin]
-        col = [v['COLOR'] for v in vsin]
+        pos = [
+            (*v["POSITION"], 1.0)
+            for v in vsin
+            if isinstance(v["POSITION"], tuple) or isinstance(v["POSITION"], list)
+        ]
+        col = [v["COLOR"] for v in vsin]
 
         d3d11pipe = self.controller.GetD3D11PipelineState()
 
@@ -37,6 +40,7 @@ class D3D11_Stream_Out(rdtest.TestCase):
         so_bytes = self.controller.GetBufferData(so.outputs[1].resourceId, so.outputs[1].byteOffset, 0)
 
         for i,c in enumerate(col):
+            assert c is not None
             so_c = struct.unpack_from("4f", so_bytes, 0 + 8*4*i)
             if not rdtest.value_compare(c, so_c):
                 raise rdtest.TestFailureException(f"Streamed-out color {so_c} doesn't match expected {c}")

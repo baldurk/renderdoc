@@ -1,7 +1,4 @@
-import copy
 import rdtest
-import renderdoc as rd
-from typing import Tuple
 
 
 class GL_Depth_Bounds(rdtest.TestCase):

@@ -1,26 +1,7 @@
-import renderdoc as rd
-import rdtest
 from typing import List
 
-def value_selector(x): return x.floatValue
-def passed(x): return x.Passed()
-def event_id(x): return x.eventId
-def culled(x): return x.backfaceCulled
-def depth_test_failed(x): return x.depthTestFailed
-def depth_clipped(x): return x.depthClipped
-def depth_bounds_failed(x): return x.depthBoundsFailed
-def scissor_clipped(x): return x.scissorClipped
-def stencil_test_failed(x): return x.stencilTestFailed
-def shader_discarded(x): return x.shaderDiscarded
-def shader_out_col(x): return value_selector(x.shaderOut.col)
-def shader_out_depth(x): return x.shaderOut.depth
-def pre_mod_col(x): return value_selector(x.preMod.col)
-def post_mod_col(x): return value_selector(x.postMod.col)
-def shader_out_depth(x): return x.shaderOut.depth
-def pre_mod_depth(x): return x.preMod.depth
-def post_mod_depth(x): return x.postMod.depth
-def primitive_id(x): return x.primitiveID
-def unboundPS(x): return x.unboundPS
+import renderdoc as rd
+import rdtest
 
 NUM_TRIANGLES_RED = 16
 NUM_TRIANGLES_RED_REAL = NUM_TRIANGLES_RED * 2 - 1
@@ -145,11 +126,11 @@ class VK_Blend_Pixel_History(rdtest.TestCase):
                     if not rdtest.value_compare(modif.postMod.col.floatValue, (NUM_TRIANGLES_RED/255.0, 1.0, NUM_TRIANGLES_BLUE/255.0, 1.0), eps=1.0/256.0):
                         raise rdtest.TestFailureException(f"Wrong post mod for final (blue) triangle in all {i}; got {modif.postMod.col.floatValue}, wanted {(NUM_TRIANGLES_RED / 255.0, 1.0, NUM_TRIANGLES_BLUE / 255.0, 1.0)}")
 
-    def check_modifs_consistent(self, modifs):
+    def check_modifs_consistent(self, modifs: List[rd.PixelModification]):
         # postmod of each should match premod of the next
         for i in range(len(modifs) - 1):
-            a = value_selector(modifs[i].postMod.col)
-            b = value_selector(modifs[i + 1].preMod.col)
+            a = modifs[i].postMod.col.floatValue
+            b = modifs[i + 1].preMod.col.floatValue
 
             if a != b:
                 raise rdtest.TestFailureException(

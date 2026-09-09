@@ -1,8 +1,8 @@
+from __future__ import annotations
+from typing import Callable, Dict, Tuple
 import rdtest
 import os
 import random
-import struct
-from typing import List
 import renderdoc as rd
 
 
@@ -58,6 +58,8 @@ class Iter_Test(rdtest.TestCase):
             return
 
         refl = pipe.GetShaderReflection(rd.ShaderStage.Compute)
+        assert refl is not None
+
         if not (action.flags & rd.ActionFlags.Dispatch) and action.drawIndex == 0:
             rdtest.log.print(f"{action.eventId} is not a debuggable action")
             return
@@ -97,6 +99,7 @@ class Iter_Test(rdtest.TestCase):
         self.controller.FreeTrace(trace)
 
     def vert_debug(self, action: rd.ActionDescription):
+        assert self.controller is not None
         pipe = self.controller.GetPipelineState()
 
         refl = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
@@ -208,15 +211,17 @@ class Iter_Test(rdtest.TestCase):
 
         for i in reversed(range(len(history))):
             mod = history[i]
-            action = self.find_action('', mod.eventId)
+            next_action = self.find_action('', mod.eventId)
 
-            if action is None:
+            if next_action is None:
                 continue
+
+            action = next_action
 
             if not(action.flags & rd.ActionFlags.Drawcall):
                 if action.drawIndex == 0:
                     continue
-                if not(action.flags & rd.ActionFlags.Clea):
+                if not(action.flags & rd.ActionFlags.Clear):
                     continue
                 if not(action.flags & rd.ActionFlags.Copy):
                     continue
@@ -351,8 +356,8 @@ class Iter_Test(rdtest.TestCase):
 
         col = pipe.GetOutputTargets()
         depth = pipe.GetDepthTarget()
-        if len(col) > 1 and col[0].resourceId != rd.ResourceId():
-            tex.resourceId = col[0].resourceId
+        if len(col) > 1 and col[0].resource != rd.ResourceId():
+            tex.resourceId = col[0].resource
         elif depth.resource != rd.ResourceId():
             tex.resourceId = depth.resource
 
@@ -374,20 +379,20 @@ class Iter_Test(rdtest.TestCase):
 
         self.props = self.controller.GetAPIProperties()
 
-        event_tests = {
-            'Image Save': {'chance': do_image_save, 'func': self.image_save},
-            'Compute Debug': {'chance': do_compute_debug, 'func': self.compute_debug},
-            'Vertex Debug': {'chance': do_vert_debug, 'func': self.vert_debug},
-            'Pixel History & Debug': {'chance': do_pixel_debug, 'func': self.pixel_debug},
-            'Mesh Output': {'chance': mesh_output, 'func': self.mesh_output},
-            'Drawcall overlay': {'chance': drawcall_overlay, 'func': self.drawcall_overlay},
+        event_tests: Dict[str, Tuple[float, Callable[[rd.ActionDescription], None]]] = {
+            'Image Save': (do_image_save, self.image_save),
+            'Compute Debug': (do_compute_debug, self.compute_debug),
+            'Vertex Debug': (do_vert_debug, self.vert_debug),
+            'Pixel History & Debug': (do_pixel_debug, self.pixel_debug),
+            'Mesh Output': (mesh_output, self.mesh_output),
+            'Drawcall overlay': (drawcall_overlay, self.drawcall_overlay),
         }
 
         # To choose an action, if we're going to do one, we take random in range(0, choice_max) then check each action
         # type in turn to see which part of the range we landed in
-        choice_max = 0
+        choice_max = 0.0
         for event_test in event_tests:
-            choice_max += event_tests[event_test]['chance']
+            choice_max += event_tests[event_test][0]
 
         action = self.get_first_action()
         last_action = self.get_last_action()
@@ -406,10 +411,10 @@ class Iter_Test(rdtest.TestCase):
                 c = random.random() * choice_max
 
                 for event_test in event_tests:
-                    chance = event_tests[event_test]['chance']
+                    chance = event_tests[event_test][0]
                     if c < chance or chance == 0.0:
-                        event_tests[event_test]['func'](action)
                         rdtest.log.print(f"Performing test '{event_test}' on event {action.eventId}")
+                        event_tests[event_test][1](action)
                         break
                     else:
                         c -= chance
@@ -462,6 +467,6 @@ class Iter_Test(rdtest.TestCase):
         self.iter_test()
 
 
-def run_locally(r):
+def run_locally(r: rd.ReplayController):
     test = Iter_Test()
     test.run_external(r)

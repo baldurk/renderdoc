@@ -1,3 +1,5 @@
+from typing import List
+
 import rdtest
 import renderdoc as rd
 
@@ -15,8 +17,8 @@ class VK_Line_Raster(rdtest.TestCase):
 
     view = [ 100, 75 ]
 
-    def sample(self, row, col):
-        ret = []
+    def sample(self, row: int, col: int):
+        ret: List[bool] = []
         for p in self.points:
             x = self.view[0] * col + p[0]
             y = self.view[1] * row + p[1]
@@ -44,7 +46,7 @@ class VK_Line_Raster(rdtest.TestCase):
         s = self.sample(0, 0)
 
         # All points should be the line color
-        if not rdtest.value_compare(s, [True, True, True]):
+        if not all(s):
             raise rdtest.TestFailureException(f"Normal line picked values {s} doesn't match expectation")
 
         # Next row is unstippled. The lines should either be all present, or not present

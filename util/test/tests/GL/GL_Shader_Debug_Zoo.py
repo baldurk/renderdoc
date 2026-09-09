@@ -1,5 +1,4 @@
 import renderdoc as rd
-from typing import List
 import rdtest
 
 
@@ -7,6 +6,7 @@ class GL_Shader_Debug_Zoo(rdtest.TestCase):
     demos_test_name = 'GL_Shader_Debug_Zoo'
 
     def check_capture(self):
+        assert self.controller is not None
         if not self.controller.GetAPIProperties().shaderDebugging:
             rdtest.log.success("Shader debugging not enabled, skipping test")
             return
@@ -60,6 +60,8 @@ class GL_Shader_Debug_Zoo(rdtest.TestCase):
                 _, variables = self.process_trace(trace)
 
                 output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+                
+                assert output is not None
 
                 debugged = self.evaluate_source_var(output, variables)
 
@@ -94,6 +96,8 @@ class GL_Shader_Debug_Zoo(rdtest.TestCase):
                     indices = rdtest.fetch_indices(self.controller, action, mesh, 0, vtx, 1)
 
                     idx = indices[1]
+
+                    assert idx is not None
 
                 postvs = self.get_postvs(action, rd.MeshDataStage.VSOut, first_index=vtx, num_indices=1, instance=inst)
 

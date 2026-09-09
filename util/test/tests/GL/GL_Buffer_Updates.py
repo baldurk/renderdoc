@@ -38,7 +38,7 @@ class GL_Buffer_Updates(rdtest.TestCase):
         result = cap.OpenFile(self.capture_filename, '', None)
 
         # Make sure the file opened successfully
-        if result != rd.ResultCode.Succeeded:
+        if not result:
             cap.Shutdown()
             raise rdtest.TestFailureException(f"Couldn't open '{self.capture_filename}': {result!s}")
 
@@ -52,6 +52,8 @@ class GL_Buffer_Updates(rdtest.TestCase):
         test_reader = rdtest.png.Reader(filename=tmp_path)
 
         test_w, test_h, test_data, test_info = test_reader.read()
+
+        assert isinstance(test_w, int) and isinstance(test_h, int)
 
         box_w = test_w//8
         rows = test_h//box_w

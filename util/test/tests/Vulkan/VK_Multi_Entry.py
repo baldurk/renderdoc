@@ -16,6 +16,8 @@ class VK_Multi_Entry(rdtest.TestCase):
 
         action = self.find_action('CmdDraw')
 
+        assert action is not None
+
         self.controller.SetFrameEvent(action.eventId, True)
 
         pipe = self.controller.GetPipelineState()

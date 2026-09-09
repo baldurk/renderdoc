@@ -10,10 +10,12 @@ class GL_Mesh_Zoo(rdtest.TestCase):
         self.zoo_helper = rdtest.Mesh_Zoo()
 
     def check_capture(self):
+        assert self.controller is not None
         self.zoo_helper.check_capture(self.capture_filename, self.controller)
 
         # Test GL-only thing with geometry shader only and completely no-op vertex shader
         action = self.zoo_helper.find_action("Geom Only").nextAction
+        assert action is not None
         self.controller.SetFrameEvent(action.eventId, False)
 
         pos = self.controller.GetPostVSData(0, 0, rd.MeshDataStage.VSOut)
@@ -23,7 +25,7 @@ class GL_Mesh_Zoo(rdtest.TestCase):
         assert pos.numIndices == 0
         assert self.controller.GetBufferData(pos.vertexResourceId, 0, 0) == bytes()
 
-        gsout_ref = {
+        gsout_ref: rdtest.MeshReference = {
             0: {
                 'gl_Position': [-0.4, -0.4, 0.5, 1.0],
                 'col': [1.0, 0.0, 0.0, 1.0],
@@ -64,7 +66,7 @@ class GL_Mesh_Zoo(rdtest.TestCase):
             bi = baseInstance[d]
 
             for inst in range(action.numInstances):
-                multi_ref = {
+                multi_ref: rdtest.MeshReference = {
                     0: {
                         'basevtx': bv,
                         'baseinst': bi,

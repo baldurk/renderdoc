@@ -1,3 +1,5 @@
+from typing import Dict
+
 import renderdoc as rd
 import rdtest
 
@@ -14,7 +16,7 @@ class GL_Counters(rdtest.TestCase):
         counters = list(set(avail).intersection(set(wanted)))
 
         results = self.controller.FetchCounters(counters)
-        descs = {}
+        descs: Dict[int, rd.CounterDescription] = {}
 
         for c in counters:
             descs[c] = self.controller.DescribeCounter(c)

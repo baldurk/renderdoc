@@ -6,11 +6,10 @@ class Groupshared(rdtest.TestCase):
     internal = True
     demos_test_name = None
 
-    def check_compute_thread_result(self, test, action, x, y, z, expected):
+    def check_compute_thread_result(self, test: int, action: rd.ActionDescription, x: int, y: int, z: int, expected: rdtest.VectorValue):
+        workgroup = (0, 0, 0)
+        trace = self.controller.DebugThread(workgroup, (x, y, z))
         try:
-            workgroup = (0, 0, 0)
-            trace = self.controller.DebugThread(workgroup, (x, y, z))
-
             _, variables = self.process_trace(trace)
 
             if trace.debugger is None:
@@ -51,7 +50,7 @@ class Groupshared(rdtest.TestCase):
 
         return True
 
-    def check_compute_tests(self, action):
+    def check_compute_tests(self, action: rd.ActionDescription):
         overallFailed = False
         tests = [a for a in action.children if a.flags & rd.ActionFlags.Dispatch]
 
@@ -80,10 +79,10 @@ class Groupshared(rdtest.TestCase):
             for x in range(dim[0]):
                 y = 0
                 z = 0
-                expected = struct.unpack_from("4f", bufdata, 16*x)
+                expected: rdtest.VectorValue = struct.unpack_from("4f", bufdata, 16*x)
                 # Test 2 is a special case with hard coded results
                 if test == 2:
-                    expected = [x, 1.25, 1.25, 1.25]
+                    expected = (x, 1.25, 1.25, 1.25)
 
                 if not self.check_compute_thread_result(test, action, x, y, z, expected):
                     failed = True
@@ -97,7 +96,7 @@ class Groupshared(rdtest.TestCase):
 
         return overallFailed
 
-    def check_compute_section_tests(self, sectionAction):
+    def check_compute_section_tests(self, sectionAction: rd.ActionDescription):
         sectionName = sectionAction.customName
         rdtest.log.begin_section(sectionName)
         failed = self.check_compute_tests(sectionAction)
@@ -107,6 +106,7 @@ class Groupshared(rdtest.TestCase):
 
     def check_capture(self):
         action = self.find_action("Compute Tests")
+        assert action is not None
         self.check_compute_section_tests(action)
         self.check_renderdoc_log_asserts()
 

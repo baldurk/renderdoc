@@ -1,8 +1,6 @@
-import copy
 import rdtest
 import struct
 import renderdoc as rd
-from typing import Tuple
 
 
 class VK_Shader_Editing(rdtest.TestCase):

@@ -1,3 +1,5 @@
+from typing import List, Tuple
+
 import renderdoc as rd
 import struct
 import rdtest
@@ -8,7 +10,7 @@ class Subgroup_Zoo(rdtest.TestCase):
     demos_test_name = None
     workgroup = (0, 0, 0)
 
-    def check_compute_thread_result(self, test, action, x, y, z, dim, bufdata):
+    def check_compute_thread_result(self, test: int, action: rd.ActionDescription, x: int, y: int, z: int, dim: Tuple[int,int,int], bufdata: bytes):
         try:
             real = struct.unpack_from(
                 "4f", bufdata, 16*y*dim[0] + 16*x)
@@ -16,9 +18,8 @@ class Subgroup_Zoo(rdtest.TestCase):
             rdtest.log.error(f"Exception Test {test} failed {ex}")
             return False
 
+        trace = self.controller.DebugThread(self.workgroup, (x, y, z))
         try:
-            trace = self.controller.DebugThread(self.workgroup, (x, y, z))
-
             _, variables = self.process_trace(trace)
 
             if trace.debugger is None:
@@ -56,7 +57,7 @@ class Subgroup_Zoo(rdtest.TestCase):
 
         return True
 
-    def check_compute_tests(self, compute_dims, thread_checks):
+    def check_compute_tests(self, compute_dims: List[rd.ActionDescription], thread_checks: List[int]):
         overallFailed = False
         for comp_dim in compute_dims:
             rdtest.log.begin_section(
@@ -82,7 +83,8 @@ class Subgroup_Zoo(rdtest.TestCase):
 
                 # each test writes up to 16k data, one vec4 per thread * up to 1024 threads
                 bufdata = self.controller.GetBufferData(
-                    rw[0].descriptor.resource, test*16*1024, 16*1024)
+                    rw[0].descriptor.resource, test * 16 * 1024, 16 * 1024
+                )
 
                 for t in thread_checks:
                     xrange = 1
@@ -154,8 +156,7 @@ class Subgroup_Zoo(rdtest.TestCase):
                         action, rd.MeshDataStage.VSOut, first_index=0, num_indices=action.numIndices, instance=inst)
 
                     for vtx in range(action.numIndices):
-                        trace = self.controller.DebugVertex(
-                            vtx, inst, vtx, view)
+                        trace = self.controller.DebugVertex(vtx, inst, vtx, view)
 
                         if trace.debugger is None:
                             self.controller.FreeTrace(trace)
@@ -178,6 +179,7 @@ class Subgroup_Zoo(rdtest.TestCase):
                                     continue
 
                                 real = postvs[vtx][name]
+                                assert rdtest.is_vector(real)
                                 debugged = self.evaluate_source_var(
                                     var, variables)
 
@@ -202,7 +204,8 @@ class Subgroup_Zoo(rdtest.TestCase):
                     x, y = pixel
 
                     picked = self.controller.PickPixel(
-                        target, x, y, rd.Subresource(0, 0, 0), rd.CompType.Float)
+                        target, x, y, rd.Subresource(0, 0, 0), rd.CompType.Float
+                    )
 
                     real = picked.floatValue
 

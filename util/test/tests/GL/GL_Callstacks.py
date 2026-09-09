@@ -27,7 +27,7 @@ class GL_Callstacks(rdtest.TestCase):
         result = cap.OpenFile(self.capture_filename, '', None)
 
         # Make sure the file opened successfully
-        if result != rd.ResultCode.Succeeded:
+        if not result:
             cap.Shutdown()
             raise rdtest.TestFailureException(f"Couldn't open capture {self.capture_filename} for access: {result!s}")
 

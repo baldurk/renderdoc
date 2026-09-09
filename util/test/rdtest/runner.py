@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 import shutil
 import ctypes
@@ -9,16 +10,18 @@ import threading
 import queue
 import datetime
 import time
+from typing import IO, List, Tuple, Type
 import renderdoc as rd
 from . import util
 from . import testcase
 from .logging import log
 from pathlib import Path
-from rdtest.remoteserver import RemoteServer
 
+TestCase = testcase.TestCase
+TestCaseType = Type[TestCase]
 
 def get_tests():
-    testcases = []
+    testcases: List[TestCaseType] = []
 
     for m in sys.modules.values():
         for name in m.__dict__:
@@ -34,7 +37,7 @@ def get_tests():
 RUNNER_DEBUG = False   # Debug test runner running by printing messages to track it
 
 
-def _enqueue_output(process: subprocess.Popen, out, q: queue.Queue):
+def _enqueue_output(process: subprocess.Popen[str], out: IO[str], q: queue.Queue[str]):
     try:
         for line in iter(out.readline, b''):
             q.put(line)
@@ -45,7 +48,7 @@ def _enqueue_output(process: subprocess.Popen, out, q: queue.Queue):
         pass
 
 
-def _run_test(testclass, runner_timeout, failedcases: list):
+def _run_test(testclass: TestCaseType, runner_timeout: int, failedcases: List[TestCaseType]):
     name = testclass.__name__
 
     # Fork the interpreter to run the test, in case it crashes we can catch it.
@@ -59,16 +62,16 @@ def _run_test(testclass, runner_timeout, failedcases: list):
 
     test_run = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 
-    output_threads = []
+    output_threads: List[threading.Thread] = []
 
-    test_stdout = queue.Queue()
+    test_stdout: queue.Queue[str] = queue.Queue()
     t = threading.Thread(target=_enqueue_output, args=(test_run, test_run.stdout, test_stdout))
     t.daemon = True  # thread dies with the program
     t.start()
 
     output_threads.append(t)
 
-    test_stderr = queue.Queue()
+    test_stderr: queue.Queue[str] = queue.Queue()
     t = threading.Thread(target=_enqueue_output, args=(test_run, test_run.stderr, test_stderr))
     t.daemon = True  # thread dies with the program
     t.start()
@@ -297,9 +300,9 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
     else:
         log.print(f"Running tests matching '{test_include}'")
 
-    failedcases = []
-    skippedcases = []
-    runcases = []
+    failedcases: List[TestCaseType] = []
+    skippedcases: List[TestCaseType] = []
+    runcases: List[Tuple[TestCaseType, str, TestCase]] = []
 
     ver = 0
 
@@ -316,7 +319,7 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
 
         instance = testclass()
 
-        supported, unsupported_reason = instance.check_support(test_include=test_include)
+        supported, unsupported_reason = instance.check_support()
 
         if not supported:
             log.print(f"Skipping {name} as {unsupported_reason}")
@@ -346,7 +349,7 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
 
         util.set_current_test(name)
 
-        def do(debugMode):
+        def do(debugMode: bool):
             if in_process:
                 instance.invoketest(debugMode)
             else:
@@ -434,7 +437,7 @@ def become_remote_server():
     rd.BecomeRemoteServer('localhost', 0, None, None)
 
 
-def internal_run_test(test_name):
+def internal_run_test(test_name: str):
     # In case of out-of-process testing, connect to the server
     server = util.get_remote_server()
     if server is not None:
@@ -464,8 +467,7 @@ def internal_run_test(test_name):
 
             logfile = rd.GetLogFile()
             if server is not None:
-                logfile = server.retrieve_latest_test_log(os.path.join(util.get_tmp_dir(), test_name),
-                                                          None)
+                logfile = server.retrieve_latest_test_log(os.path.join(util.get_tmp_dir(), test_name))
 
             if logfile is not None and os.path.exists(logfile):
                 log.inline_file(f"{'Test' if server is not None else ''} RenderDoc log", logfile)

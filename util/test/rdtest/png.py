@@ -169,7 +169,8 @@ the PNG image comes from something that uses a similar format
 (for example, 1-bit BMPs, or another PNG file).
 """
 
-from __future__ import print_function
+from __future__ import print_function, annotations
+from typing import Any, Dict, IO, List
 
 __version__ = "0.0.19"
 
@@ -358,7 +359,7 @@ class Writer:
 
     def __init__(self, width=None, height=None,
                  size=None,
-                 greyscale=Default,
+                 greyscale:Default|bool=Default,
                  alpha=False,
                  bitdepth=8,
                  palette=None,
@@ -621,7 +622,7 @@ class Writer:
         # :todo: fix for bitdepth < 8
         self.psize = (self.bitdepth / 8) * self.planes
 
-    def write(self, outfile, rows):
+    def write(self, outfile: IO[bytes], rows: List[bytes]):
         """
         Write a PNG image to the output file.
         `rows` should be an iterable that yields each row
@@ -1829,7 +1830,7 @@ class Reader:
             rows = rows_from_interlace()
         else:
             rows = self._iter_bytes_to_values(self._iter_straight_packed(raw))
-        info = dict()
+        info: Dict[str, Any] = dict()
         for attr in 'greyscale alpha planes bitdepth interlace'.split():
             info[attr] = getattr(self, attr)
         info['size'] = (self.width, self.height)

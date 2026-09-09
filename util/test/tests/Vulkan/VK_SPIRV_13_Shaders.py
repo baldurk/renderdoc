@@ -15,6 +15,7 @@ class VK_SPIRV_13_Shaders(rdtest.TestCase):
         pipe = self.controller.GetPipelineState()
 
         refl = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
+        assert refl is not None
 
         disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, "")
 
@@ -34,6 +35,7 @@ class VK_SPIRV_13_Shaders(rdtest.TestCase):
             raise rdtest.TestFailureException("Vertex shader disassembly failed, entry point not found")
 
         refl = pipe.GetShaderReflection(rd.ShaderStage.Fragment)
+        assert refl is not None
 
         disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, "")
 
@@ -50,7 +52,7 @@ class VK_SPIRV_13_Shaders(rdtest.TestCase):
 
         postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
-        postvs_ref = {
+        postvs_ref: rdtest.MeshReference = {
             0: {
                 'vtx': 0,
                 'idx': 0,

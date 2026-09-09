@@ -1,12 +1,11 @@
 import renderdoc as rd
-from typing import List
 import rdtest
 
 
 class D3D12_Resource_Mapping_Zoo(rdtest.TestCase):
     demos_test_name = 'D3D12_Resource_Mapping_Zoo'
 
-    def test_debug_pixel(self, x, y, test_name):
+    def test_debug_pixel(self, x: int, y: int, test_name: str):
         pipe = self.controller.GetPipelineState()
 
         if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
@@ -19,6 +18,8 @@ class D3D12_Resource_Mapping_Zoo(rdtest.TestCase):
         cycles, variables = self.process_trace(trace)
 
         output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+        
+        assert output is not None
 
         debugged = self.evaluate_source_var(output, variables)
 

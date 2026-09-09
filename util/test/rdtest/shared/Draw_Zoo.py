@@ -1,3 +1,6 @@
+from __future__ import annotations
+from typing import Callable, List, Tuple
+
 import renderdoc as rd
 import rdtest
 
@@ -74,9 +77,7 @@ class Draw_Zoo(rdtest.TestCase):
 
         out_tex = self.pipe.GetOutputTargets()[0].resource
 
-        vsin_ref = {}
-        restarts = []
-
+        vsin_ref: rdtest.MeshReference = {}
         restarts = ref_data.restarts
 
         ib = self.pipe.GetIBuffer()
@@ -105,9 +106,9 @@ class Draw_Zoo(rdtest.TestCase):
         rdtest.log.success("Checked vertex in data")
 
         for inst in range(num_instances):
-            conv_out_pos = lambda x: [x[0] + float(inst) * 0.5, x[1], x[2], 1.0]
+            conv_out_pos: Callable[[rdtest.VectorValue], rdtest.VectorValue] = lambda x: [x[0] + float(inst) * 0.5, x[1], x[2], 1.0]
 
-            vsout_ref = {}
+            vsout_ref: rdtest.MeshReference = {}
 
             for v in range(num_verts):
                 if v in restarts:
@@ -137,6 +138,8 @@ class Draw_Zoo(rdtest.TestCase):
 
                     idx = vsout_ref[vtx]['idx']
 
+                    assert isinstance(idx, int)
+
                     self.check_vertex_debug(vtx, idx, inst, postvs)
             else:
                 rdtest.log.print('Not checking shader debugging, unsupported')
@@ -146,6 +149,10 @@ class Draw_Zoo(rdtest.TestCase):
                     continue
                 col = postvs[vert]['COLOR']
                 tex = postvs[vert]['TEXCOORD']
+
+                assert rdtest.is_vector(col)
+                assert rdtest.is_vector(tex)
+
                 val = (self.vid(action, ref_data.base + vert), self.iid(action, inst), float(inst) * 0.5,
                        col[1] + tex[0])
                 self.check_pixel_value(out_tex, coord[0], coord[1], val, eps=0.3)
@@ -156,12 +163,14 @@ class Draw_Zoo(rdtest.TestCase):
 
     def check_capture(self):
         test_marker = self.find_action("Test")
+        assert test_marker
         self.check_capture_action(test_marker)
 
     def check_capture_action(self, marker: rd.ActionDescription):
         self.props = self.controller.GetAPIProperties()
 
         action = marker.nextAction
+        assert action is not None
 
         rdtest.log.begin_section("Non-indexed, non-instanced cases")
 
@@ -176,6 +185,7 @@ class Draw_Zoo(rdtest.TestCase):
         assert action.vertexOffset == 0
         assert self.pipe.GetVBuffers()[0].byteOffset == 0
         action = action.nextAction
+        assert action is not None
 
         # Vertex offset in the action
         ref = ActionRef(
@@ -188,6 +198,7 @@ class Draw_Zoo(rdtest.TestCase):
         assert action.vertexOffset > 0
         assert self.pipe.GetVBuffers()[0].byteOffset == 0
         action = action.nextAction
+        assert action is not None
 
         # Vertex offset in action and in vertex binding
         ref = ActionRef(
@@ -200,6 +211,7 @@ class Draw_Zoo(rdtest.TestCase):
         assert action.vertexOffset > 0
         assert self.pipe.GetVBuffers()[0].byteOffset > 0
         action = action.nextAction
+        assert action is not None
 
         rdtest.log.end_section("Non-indexed, non-instanced cases")
 
@@ -219,6 +231,7 @@ class Draw_Zoo(rdtest.TestCase):
         assert self.pipe.GetVBuffers()[0].byteOffset == 0
         assert self.pipe.GetIBuffer().byteOffset == 0
         action = action.nextAction
+        assert action is not None
 
         # first index in the action
         ref = ActionRef(
@@ -234,6 +247,7 @@ class Draw_Zoo(rdtest.TestCase):
         assert self.pipe.GetVBuffers()[0].byteOffset == 0
         assert self.pipe.GetIBuffer().byteOffset == 0
         action = action.nextAction
+        assert action is not None
 
         # first index and base vertex in the action
         ref = ActionRef(
@@ -249,6 +263,7 @@ class Draw_Zoo(rdtest.TestCase):
         assert self.pipe.GetVBuffers()[0].byteOffset == 0
         assert self.pipe.GetIBuffer().byteOffset == 0
         action = action.nextAction
+        assert action is not None
 
         # first index and base vertex in the action, and vertex binding offset
         ref = ActionRef(
@@ -264,6 +279,7 @@ class Draw_Zoo(rdtest.TestCase):
         assert self.pipe.GetVBuffers()[0].byteOffset > 0
         assert self.pipe.GetIBuffer().byteOffset == 0
         action = action.nextAction
+        assert action is not None
 
         # first index and base vertex in the action, and vertex & index binding offset
         ref = ActionRef(
@@ -281,6 +297,7 @@ class Draw_Zoo(rdtest.TestCase):
         if self.props.pipelineType != rd.GraphicsAPI.OpenGL:
             assert self.pipe.GetIBuffer().byteOffset > 0
         action = action.nextAction
+        assert action is not None
 
         # Skip indexed strips for now
         ref = ActionRef(
@@ -300,6 +317,7 @@ class Draw_Zoo(rdtest.TestCase):
 
         self.check_action(action, ref)
         action = action.nextAction
+        assert action is not None
 
         ref = ActionRef(
             base=30,
@@ -318,6 +336,7 @@ class Draw_Zoo(rdtest.TestCase):
 
         self.check_action(action, ref)
         action = action.nextAction
+        assert action is not None
 
         rdtest.log.end_section("indexed, non-instanced")
 
@@ -337,6 +356,7 @@ class Draw_Zoo(rdtest.TestCase):
         assert action.instanceOffset == 0
         assert self.pipe.GetVBuffers()[1].byteOffset == 0
         action = action.nextAction
+        assert action is not None
 
         # instance offset in the action
         ref = ActionRef(
@@ -352,6 +372,7 @@ class Draw_Zoo(rdtest.TestCase):
         assert action.instanceOffset > 0
         assert self.pipe.GetVBuffers()[1].byteOffset == 0
         action = action.nextAction
+        assert action is not None
 
         # instance offset in the action and offset on the instanced VB
         ref = ActionRef(
@@ -367,6 +388,7 @@ class Draw_Zoo(rdtest.TestCase):
         assert action.instanceOffset > 0
         assert self.pipe.GetVBuffers()[1].byteOffset > 0
         action = action.nextAction
+        assert action is not None
 
         rdtest.log.end_section("non-indexed, instanced")
 
@@ -386,6 +408,7 @@ class Draw_Zoo(rdtest.TestCase):
         assert action.instanceOffset == 0
         assert self.pipe.GetVBuffers()[1].byteOffset == 0
         action = action.nextAction
+        assert action is not None
 
         # instance offset in the action
         ref = ActionRef(
@@ -401,6 +424,7 @@ class Draw_Zoo(rdtest.TestCase):
         assert action.instanceOffset > 0
         assert self.pipe.GetVBuffers()[1].byteOffset == 0
         action = action.nextAction
+        assert action is not None
 
         # instance offset in the action and offset on the instanced VB
         ref = ActionRef(
@@ -416,5 +440,6 @@ class Draw_Zoo(rdtest.TestCase):
         assert action.instanceOffset > 0
         assert self.pipe.GetVBuffers()[1].byteOffset > 0
         action = action.nextAction
+        assert action is not None
 
         rdtest.log.end_section("indexed, instanced")

@@ -1,10 +1,9 @@
-import renderdoc as rd
 import rdtest
 
 class D3D12_Multi_Wait_Before_Signal(rdtest.TestCase):
     demos_test_name = 'D3D12_Multi_Wait_Before_Signal'
 
-    def check_support(self, **kwargs):
+    def check_support(self):
         # TODO: Enable this if/when rdoc can reorder from the original submission
         # order, which blocks multiple queues with waits that get signalled by
         # later submissions to other queues.
@@ -12,6 +11,9 @@ class D3D12_Multi_Wait_Before_Signal(rdtest.TestCase):
 
     def check_capture(self):
         draw_marker = self.find_action("Last draw")
+
+        assert draw_marker is not None
+
         self.controller.SetFrameEvent(draw_marker.eventId, False)
 
         pipe = self.controller.GetPipelineState()

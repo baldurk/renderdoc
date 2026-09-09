@@ -1,18 +1,19 @@
+from __future__ import annotations
+from typing import Dict
 import renderdoc as rd
 import rdtest
-from typing import List, Tuple
 import time
 import os
 
 
-def srgb2linear(f):
+def srgb2linear(f: float):
     if f <= 0.04045:
         return f / 12.92
     else:
         return ((f + 0.055) / 1.055) ** 2.4
 
 
-def linear2srgb(f):
+def linear2srgb(f: float):
     if f <= 0.0031308:
         return f * 12.92
     else:
@@ -24,13 +25,10 @@ class Texture_Zoo():
     def __init__(self):
         self.proxied = False
         self.fake_msaa = False
-        self.textures = {}
         self.filename = ''
-        self.textures = {}
-        self.controller = None
-        self.controller: rd.ReplayController
-        self.out: rd.ReplayOutput
-        self.out = None
+        self.textures: Dict[rd.ResourceId | str, rd.TextureDescription] = {}
+        self.controller: rd.ReplayController | None = None
+        self.out: rd.ReplayOutput | None = None
         self.pipeType = rd.GraphicsAPI.D3D11
         self.opengl_mode = False
         self.d3d_mode = False
@@ -260,7 +258,8 @@ class Texture_Zoo():
                     pixels = self.out.ReadbackOutputTexture()
                     dim = self.out.GetDimensions()
 
-                    stencilpixels = None
+                    stencilpixels = bytes()
+                    alphapixels = bytes()
 
                     # Grab stencil separately
                     if tex.format.type == rd.ResourceFormatType.D16S8 or tex.format.type == rd.ResourceFormatType.D24S8 or tex.format.type == rd.ResourceFormatType.D32S8:
@@ -308,19 +307,18 @@ class Texture_Zoo():
 
                             # get the bytes from the displayed pixel
                             offs = y * dim[0] * 3 + x * 3
-                            displayed = [int(a) for a in pixels[offs:offs + comp_count]]
+                            displayed_raw = [int(a) for a in pixels[offs:offs + comp_count]]
                             if comp_count == 4:
-                                del displayed[3]
-                                displayed.append(int(alphapixels[offs]))
-                            if stencilpixels is not None:
-                                del displayed[1:]
-                                displayed.append(int(stencilpixels[offs]))
+                                del displayed_raw[3]
+                                displayed_raw.append(int(alphapixels[offs]))
+                            if len(stencilpixels) > 0:
+                                del displayed_raw[1:]
+                                displayed_raw.append(int(stencilpixels[offs]))
                             if tex.format.type == rd.ResourceFormatType.A8:
-                                displayed = [int(alphapixels[offs])]
+                                displayed_raw = [int(alphapixels[offs])]
 
                             # normalise the displayed values
-                            for i in range(len(displayed)):
-                                displayed[i] = float(displayed[i]) / 255.0
+                            displayed = [float(x) / 255.0 for x in displayed_raw]
 
                             # For SRGB textures match linear picked values. We do this for alpha too since it's rendered
                             # via RGB
@@ -502,7 +500,16 @@ class Texture_Zoo():
 
         return expected
 
-    def get_picked_pixel_value(self, comp_count, comp_type, cur_sub, tex, tex_id, x, y):
+    def get_picked_pixel_value(
+        self,
+        comp_count: int,
+        comp_type: rd.CompType,
+        cur_sub: rd.Subresource,
+        tex: rd.TextureDescription,
+        tex_id: rd.ResourceId,
+        x: int,
+        y: int,
+    ):
         picked_combo = self.pick(tex_id, x, y, cur_sub, comp_type)
 
         if comp_type == rd.CompType.SInt:
@@ -675,12 +682,12 @@ class Texture_Zoo():
 
         result, remote = rd.CreateRemoteServerConnection('localhost')
 
-        if result != rd.ResultCode.Succeeded:
+        if not result:
             time.sleep(2)
 
             result, remote = rd.CreateRemoteServerConnection('localhost')
 
-        if result != rd.ResultCode.Succeeded:
+        if not result:
             raise rdtest.TestFailureException(f"Couldn't connect to remote server: {result!s}")
 
         proxies = remote.LocalProxies()
@@ -706,8 +713,9 @@ class Texture_Zoo():
                     rdtest.log.error(str(ex))
                     failed = True
                 finally:
-                    remote.CloseCapture(self.controller)
                     rdtest.log.end_section(f"{api} proxy")
+                    if self.controller is not None:
+                        remote.CloseCapture(self.controller)
                     self.controller = None
         finally:
             remote.ShutdownServerAndConnection()
@@ -726,14 +734,14 @@ class Texture_Zoo():
             cap = rd.OpenCaptureFile()
             result = cap.OpenFile(file.path, 'rdc', None)
 
-            if result != rd.ResultCode.Succeeded:
+            if not result:
                 rdtest.log.error(f"Couldn't open {file.name}")
                 failed = True
                 continue
 
             result, self.controller = cap.OpenCapture(rd.ReplayOptions(), None)
 
-            if result != rd.ResultCode.Succeeded:
+            if not result:
                 rdtest.log.error(f"Couldn't open {file.name}")
                 failed = True
                 continue

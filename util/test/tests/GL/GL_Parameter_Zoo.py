@@ -1,5 +1,5 @@
 import struct
-import math
+from typing import Tuple
 import renderdoc as rd
 import rdtest
 
@@ -22,7 +22,7 @@ class GL_Parameter_Zoo(rdtest.TestCase):
         if not rdtest.value_compare(first_pixel, val):
             raise rdtest.TestFailureException(f"First pixel should be clear color {val}, not {first_pixel}")
 
-        magic_pixel = struct.unpack_from("BBBB", data, (50 * tex_details.width + 320) * 4)
+        magic_pixel: Tuple[int,int,int,int] = struct.unpack_from("BBBB", data, (50 * tex_details.width + 320) * 4)
 
         # allow 127 or 128 for alpha
         val = [0, 0, 255, magic_pixel[3]]
@@ -52,11 +52,13 @@ class GL_Parameter_Zoo(rdtest.TestCase):
 
         action = self.find_action("Draw")
 
+        assert action is not None
+
         self.controller.SetFrameEvent(action.eventId, False)
 
         postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
-        postvs_ref = {
+        postvs_ref: rdtest.MeshReference = {
             0: {
                 'vtx': 0,
                 'idx': 0,

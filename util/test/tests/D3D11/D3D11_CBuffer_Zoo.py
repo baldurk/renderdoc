@@ -1,3 +1,5 @@
+from typing import Dict, List
+
 import rdtest
 import renderdoc as rd
 
@@ -40,13 +42,13 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
                 rd.DebugPixelInputs(),
             )
 
-            debugVars = dict()
+            debugVars: Dict[str, rd.ShaderVariable] = dict()
 
             for base in trace.constantBlocks:
                 for var in base.members:
                     debugVars[base.name + var.name] = var
 
-            cbufferVars = []
+            cbufferVars: List[rd.ShaderVariable] = []
 
             for sourceVar in trace.sourceVars:
                 if sourceVar.variables[0].name not in debugVars.keys():
@@ -70,6 +72,8 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
 
             output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
 
+            assert output is not None
+
             debugged = self.evaluate_source_var(output, variables)
 
             if not rdtest.util.value_compare(debugged.value.f32v[0:4], [542.1, 543.0, 544.0, 545.0]):
@@ -84,7 +88,7 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
 
         rdtest.log.success("Picked value is as expected")
 
-    def check_cbuffer(self, var_check, packed_check):
+    def check_cbuffer(self, var_check: rdtest.ConstantBufferChecker, packed_check: rdtest.ConstantBufferChecker):
         # For more detailed reference for the below checks, see the commented definition of the cbuffer
         # in the shader source code in the demo itself
 

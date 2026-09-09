@@ -36,7 +36,7 @@ class VK_Misaligned_Dirty(rdtest.TestCase):
 
         val = 2.0 / 3.0
 
-        postvs_ref = {
+        postvs_ref: rdtest.MeshReference = {
             0: {
                 'vtx': 0,
                 'idx': 0,

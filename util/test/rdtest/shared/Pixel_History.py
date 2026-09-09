@@ -1,13 +1,15 @@
+from __future__ import annotations
 import renderdoc as rd
 import rdtest
-import pprint
 import math
-from typing import List
+from typing import Any, Callable, Dict, List
 
 
-def float_value(x): return x.floatValue
-def uint_value(x): return x.uintValue
-def unknown_stencil(x): return x == -2
+def float_value(x: rd.PixelValue): return x.floatValue
+def uint_value(x: rd.PixelValue): return x.uintValue
+def unknown_stencil(x: int): return x == -2
+
+PropGetter = Callable[[rd.PixelModification], Any]
 
 # Not a real test, re-used by API-specific tests
 
@@ -18,7 +20,7 @@ class Pixel_History(rdtest.TestCase):
 
     def check_capture(self):
         # cache some information since our python bindings deep copy actions and this can add up
-        self.eventCache = {}
+        self.eventCache: Dict[int, Dict[str, Any]] = {}
         for a in self.controller.GetRootActions():
             self.populate_eventcache(a, '', [])
 
@@ -35,11 +37,11 @@ class Pixel_History(rdtest.TestCase):
         if self.errored:
             raise rdtest.TestFailureException("Detected problems in pixel history")
 
-    def error(self, message):
+    def error(self, message: str):
         rdtest.log.error(message)
         self.errored = True
 
-    def relative_xy(self, x, y):
+    def relative_xy(self, x: int, y: int):
         self.x, self.y = (x >> self.sub.mip, y >> self.sub.mip)
         return (self.x, self.y)
 
@@ -115,7 +117,7 @@ class Pixel_History(rdtest.TestCase):
         def event_name(x: rd.PixelModification):
             return self.get_eventname(x.eventId)
 
-        value_func = float_value
+        self.value_func = float_value
         alpha_value = 2.75  # 1 + ALPHA_ADD=1.75
         overflow_value = 100000.0
         clear_col = 0.2
@@ -123,20 +125,19 @@ class Pixel_History(rdtest.TestCase):
         if self.comp == rd.CompType.UInt:
             alpha_value = 4  # 1 + ALPHA_ADD=3
             clear_col = 5  # uint values are shifted by 16, we clear to 80,80,80,160
-            value_func = uint_value
+            self.value_func = uint_value
             overflow_value = (1 << 28)-1
 
-        def roundToInf(col):
+        def roundToInf(col: rdtest.VectorValue):
             # for half-floats lower inf to the largest representable value since either is valid
             if tex_details.format.compType == rd.CompType.Float and tex_details.format.compByteWidth == 2:
                 return tuple([65504.0 if x == math.inf else x for x in col])
 
             return col
 
-        self.fetch_property = {
+        self.fetch_property: Dict[str, PropGetter | None] = {
             '_': None,  # dynamically skipped test via with_col or with_depth below
             'event_name': event_name,
-            'value': value_func,
             'passed': lambda x: x.Passed(),
             'culled': lambda x: x.backfaceCulled,
             'depth_test_failed': lambda x: x.depthTestFailed,
@@ -146,10 +147,10 @@ class Pixel_History(rdtest.TestCase):
             'scissor_clipped': lambda x: x.scissorClipped,
             'stencil_test_failed': lambda x: x.stencilTestFailed,
             'shader_discarded': lambda x: x.shaderDiscarded,
-            'shader_out_col': lambda x: value_func(x.shaderOut.col),
+            'shader_out_col': lambda x: self.value_func(x.shaderOut.col),
             'shader_out_depth': lambda x: x.shaderOut.depth,
-            'pre_mod_col': lambda x: value_func(x.preMod.col),
-            'post_mod_col': lambda x: roundToInf(value_func(x.postMod.col)),
+            'pre_mod_col': lambda x: self.value_func(x.preMod.col),
+            'post_mod_col': lambda x: roundToInf(self.value_func(x.postMod.col)),
             'pre_mod_depth': lambda x: x.preMod.depth,
             'post_mod_depth': lambda x: x.postMod.depth,
             'post_mod_stencil': lambda x: x.postMod.stencil,
@@ -159,13 +160,13 @@ class Pixel_History(rdtest.TestCase):
             'directWrite': lambda x: x.directShaderWrite,
         }
 
-        def with_depth(x):
+        def with_depth(x: str):
             return x if self.has_depth else '_'
 
-        def with_stencil(x):
+        def with_stencil(x: str):
             return x if self.has_stencil else '_'
 
-        def fmt_adjusted(r, g, b, a):
+        def fmt_adjusted(r: int|float, g: int|float, b: int|float, a: int|float):
             if tex_details.format.compType == rd.CompType.UInt:
                 r = int(r * 16)
                 g = int(g * 16)
@@ -174,7 +175,7 @@ class Pixel_History(rdtest.TestCase):
 
             return (r, g, b, a)
 
-        def fmt_clamped(r, g, b, a):
+        def fmt_clamped(r: int|float, g: int|float, b: int|float, a: int|float):
             r, g, b, a = fmt_adjusted(r, g, b, a)
 
             if tex_details.format.compType == rd.CompType.UNorm:
@@ -231,6 +232,8 @@ class Pixel_History(rdtest.TestCase):
 
         # check if depth bounds is supportted - D3D11 does not
         has_depth_bounds = self.find_action('Depth Bounds Prep') is not None
+
+        events: List[Dict[str, Any]]
 
         x, y = self.relative_xy(110, 100)
         rdtest.log.print(f"Testing Unbound PS {x}, {y}")
@@ -902,15 +905,15 @@ class Pixel_History(rdtest.TestCase):
             ]
             self.check_events(events, modifs)
 
-    def check_final_colour(self, tex, x, y, modifs: List[rd.PixelModification], sub, comp):
+    def check_final_colour(self, tex: rd.ResourceId, x: int, y: int, modifs: List[rd.PixelModification], sub: rd.Subresource, comp: rd.CompType):
         m = modifs[-1]
         if self.has_colour:
-            expected = self.fetch_property['value'](m.postMod.col)
+            expected = self.value_func(m.postMod.col)
         else:
             expected = (m.postMod.depth, m.postMod.stencil/255.0, 0, 1)
         self.check_pixel_value(tex, x, y, expected, sub=sub, cast=comp)
 
-    def check_events(self, events, modifs: List[rd.PixelModification]):
+    def check_events(self, events: List[Dict[str, Any]], modifs: List[rd.PixelModification]):
         # remove any modifs that didn't happen in the batch we're looking at -
         # targets can be reused between batches
         modifs = [
@@ -918,7 +921,9 @@ class Pixel_History(rdtest.TestCase):
 
         if len(modifs) != len(events):
             rdtest.log.print(str([e['event_name'] for e in events]))
-            rdtest.log.print(str([self.fetch_property['event_name'](m) for m in modifs]))
+            getter = self.fetch_property['event_name']
+            assert getter is not None
+            rdtest.log.print(str([getter(m) for m in modifs]))
             self.error(f"Expected {len(events)} events got {len(modifs)}")
             return
 
@@ -961,8 +966,8 @@ class Pixel_History(rdtest.TestCase):
             if not m.postMod.IsValid() or not n.preMod.IsValid():
                 continue
 
-            a = self.fetch_property['value'](m.postMod.col)
-            b = self.fetch_property['value'](n.preMod.col)
+            a = self.value_func(m.postMod.col)
+            b = self.value_func(n.preMod.col)
 
             # A fragment event. If we have depth postMod.stencil should be unknown and depth should be consistent
             if m.eventId == n.eventId and self.has_depth:
@@ -1014,9 +1019,10 @@ class Pixel_History(rdtest.TestCase):
 
         # Check that if the test failed, its postmod is the same as premod
         for i in range(len(modifs)):
+            m = modifs[i]
             if not m.Passed() and m.preMod.IsValid() and m.postMod.IsValid():
-                a = self.fetch_property['value'](m.preMod.col)
-                b = self.fetch_property['value'](m.postMod.col)
+                a = self.value_func(m.preMod.col)
+                b = self.value_func(m.postMod.col)
 
                 epsilon = self.epsilon
 

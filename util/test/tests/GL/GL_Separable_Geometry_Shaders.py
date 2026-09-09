@@ -10,9 +10,11 @@ class GL_Separable_Geometry_Shaders(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
+        assert action is not None
+
         postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
-        postvs_ref = {
+        postvs_ref: rdtest.MeshReference = {
             0: {
                 'vtx': 0,
                 'idx': 0,
@@ -40,7 +42,7 @@ class GL_Separable_Geometry_Shaders(rdtest.TestCase):
 
         postgs_data = self.get_postvs(action, rd.MeshDataStage.GSOut, 0, action.numIndices*3)
 
-        postgs_ref = {
+        postgs_ref: rdtest.MeshReference = {
             0: {
                 'vtx': 0,
                 'idx': 0,

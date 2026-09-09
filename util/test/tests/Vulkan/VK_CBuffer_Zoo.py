@@ -17,6 +17,8 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
         stage = rd.ShaderStage.Pixel
 
         # Verify that the GLSL action is first
+        refl = pipe.GetShaderReflection(stage)
+        assert refl is not None
         disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, '')
 
         assert 'GLSL' in disasm
@@ -84,6 +86,8 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
         pipe = self.controller.GetPipelineState()
 
         # Verify that this is the HLSL action
+        refl = pipe.GetShaderReflection(stage)
+        assert refl is not None
         disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, '')
 
         assert 'HLSL' in disasm
@@ -116,7 +120,7 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
 
         rdtest.log.success("HLSL picked value is as expected")
 
-    def check_inline_cbuffer(self, inline_check):
+    def check_inline_cbuffer(self, inline_check: rdtest.ConstantBufferChecker):
         # float4 zero;
         inline_check.check('inline_zero').rows(1).cols(4).value([0.0, 0.0, 0.0, 0.0])
 
@@ -137,7 +141,7 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
 
         inline_check.done()
 
-    def check_glsl_cbuffer(self, var_check):
+    def check_glsl_cbuffer(self, var_check: rdtest.ConstantBufferChecker):
         # For more detailed reference for the below checks, see the commented definition of the cbuffer
         # in the shader source code in the demo itself
 
@@ -475,7 +479,7 @@ class VK_CBuffer_Zoo(rdtest.TestCase):
 
         var_check.done()
 
-    def check_hlsl_cbuffer(self, var_check):
+    def check_hlsl_cbuffer(self, var_check: rdtest.ConstantBufferChecker):
         # For more detailed reference for the below checks, see the commented definition of the cbuffer
         # in the shader source code in the demo itself
 

@@ -1,14 +1,14 @@
 from __future__ import annotations
+import array
 import os
 import re
-import time
 import math
 import struct
 import platform
 import hashlib
 import zipfile
 import subprocess
-from typing import Tuple, List, Union
+from typing import Callable, Tuple, List, Union
 from . import png
 from rdtest.remoteserver import RemoteServer, AndroidRemoteServer 
 
@@ -18,12 +18,8 @@ ADRD_DEMO_APP32 = 'renderdoc.org.demos.arm32'
 ADRD_DEMO_APP64 = 'renderdoc.org.demos.arm64'
 
 
-def _timestr():
-    return time.strftime("%Y%m%d_%H_%M_%S", time.gmtime()) + "_" + str(round(time.time() % 1000))
-
-
 # Thanks to https://stackoverflow.com/a/3431838 for this file definition
-def _md5_file(fname):
+def _md5_file(fname: str):
     hash_md5 = hashlib.md5()
     with open(fname, "rb") as f:
         for chunk in iter(lambda: f.read(4096), b""):
@@ -94,12 +90,12 @@ def set_demos_binary(path: str):
         _demos_bin = os.path.abspath(path)
 
 
-def set_remote_server(server: RemoteServer):
+def set_remote_server(server: RemoteServer | None):
     global _remote_server
     _remote_server = server
 
 
-def get_remote_server():
+def get_remote_server() -> RemoteServer | None:
     return _remote_server
 
 
@@ -182,16 +178,6 @@ def sanitise_filename(name: str):
 
     return re.sub('^/', '', name)
 
-
-def linear_to_SRGB(val):
-    if type(val) == float:
-        if val <= 0.0031308:
-            return val * 12.92
-        else:
-            return 1.055 * math.pow(val, 1.0 / 2.4) - 0.055
-
-    return [linear_to_SRGB(v) for v in val]
-
 def png_save(out_path: str, rows: List[bytes], dimensions: Tuple[int, int], has_alpha: bool):
     try:
         f = open(out_path, 'wb')
@@ -208,12 +194,6 @@ def png_load_data(in_path: str):
     return list(reader.read()[2])
 
 
-def png_load_dimensions(in_path: str):
-    reader = png.Reader(filename=in_path)
-    info = reader.read()
-    return (info[0], info[1])
-
-
 def png_compare(test_img: str, ref_img: str, tolerance: int = 2):
     test_reader = png.Reader(filename=test_img)
     ref_reader = png.Reader(filename=ref_img)
@@ -222,9 +202,9 @@ def png_compare(test_img: str, ref_img: str, tolerance: int = 2):
     ref_w, ref_h, ref_data, ref_info = ref_reader.read()
 
     # lookup rgba data straight
-    rgba_get = lambda data, x: data[x]
+    rgba_get: Callable[[bytearray | array.array[int], int], int] = lambda data, x: data[x]
     # lookup rgb data and return 255 for alpha
-    rgb_get = lambda data, x: data[ (x >> 2)*3 + (x % 4) ] if (x % 4) < 3 else 255
+    rgb_get: Callable[[bytearray | array.array[int], int], int] = lambda data, x: data[ (x >> 2)*3 + (x % 4) ] if (x % 4) < 3 else 255
 
     test_get = (rgba_get if test_info['alpha'] else rgb_get)
     ref_get = (rgba_get if ref_info['alpha'] else rgb_get)
@@ -233,7 +213,7 @@ def png_compare(test_img: str, ref_img: str, tolerance: int = 2):
         return False
 
     is_same = True
-    diff_data = []
+    diff_data: List[bytes] = []
 
     for test_row, ref_row in zip(test_data, ref_data):
 
@@ -241,7 +221,7 @@ def png_compare(test_img: str, ref_img: str, tolerance: int = 2):
 
         is_same = is_same and not any([d > tolerance*4 for d in diff])
 
-        diff_data.append([255 if i % 4 == 3 else d for i, d in enumerate(diff)])
+        diff_data.append(bytes([255 if i % 4 == 3 else d for i, d in enumerate(diff)]))
 
     if is_same:
         return True
@@ -265,7 +245,7 @@ def zip_compare(test_file: str, ref_file: str):
     test = zipfile.ZipFile(test_file)
     ref = zipfile.ZipFile(ref_file)
 
-    test_files = []
+    test_files: List[Tuple[str, int, str]] = []
     for file in test.infolist():
         hash_md5 = hashlib.md5()
         with test.open(file.filename) as f:
@@ -273,7 +253,7 @@ def zip_compare(test_file: str, ref_file: str):
                 hash_md5.update(chunk)
         test_files.append((file.filename, file.file_size, hash_md5.hexdigest()))
 
-    ref_files = []
+    ref_files: List[Tuple[str, int, str]] = []
     for file in ref.infolist():
         hash_md5 = hashlib.md5()
         with test.open(file.filename) as f:
@@ -366,7 +346,7 @@ def value_compare(ref: ScalarOrVectorValue | str | None, data: ScalarOrVectorVal
     return is_eq
 
 
-def run_demo_blocking(args: [str], timeout=100):
+def run_demo_blocking(args: List[str], timeout=100):
     """
     Executes the demo application with the given args and returns the stdout.
 

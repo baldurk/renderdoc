@@ -38,7 +38,6 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                 rw = pipe.GetReadWriteResources(rd.ShaderStage.Compute)
                 if len(rw) != 1:
                     rdtest.log.error("Unexpected number of RW resources")
-                    self.controller.FreeTrace(trace)
                     failed = True
                     continue
 
@@ -50,7 +49,8 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                     tid = ( min(threadid[0], dim[0]-1), min(threadid[1], dim[1]-1), min(threadid[2], dim[2]-1))
                     # each test writes up to 16k data, one vec4 per thread * up to 1024 threads
                     bufdata = self.controller.GetBufferData(
-                        rw[0].descriptor.resource, test*16*1024, 16*1024)
+                        rw[0].descriptor.resource, test * 16 * 1024, 16 * 1024
+                    )
                     try:
                         expectedValue = struct.unpack_from(
                             "4f", bufdata, 16*tid[1]*dim[0] + 16*tid[0])
@@ -95,6 +95,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                         failed = True
                         continue
 
+                    self.controller.FreeTrace(trace)
                     rdtest.log.success(f"Test {test} Group:{groupid} Thread:{tid} as expected")
 
             rdtest.log.end_section(section)
@@ -140,6 +141,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                         trace = self.controller.DebugVertex(0, instId, 0, 0)
                         cycles, variables = self.process_trace(trace)
                         output = self.find_output_source_var(trace, rd.ShaderBuiltin.Undefined, 4)
+                        assert output is not None
                         debugged = self.evaluate_source_var(output, variables)
                         self.controller.FreeTrace(trace)
                         actual = debugged.value.u32v[0]
@@ -165,6 +167,8 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                         cycles, variables = self.process_trace(trace)
 
                         output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+
+                        assert output is not None
 
                         debugged = self.evaluate_source_var(output, variables)
                         self.controller.FreeTrace(trace)
@@ -215,6 +219,8 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
 
                     output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
 
+                    assert output is not None
+
                     debugged = self.evaluate_source_var(output, variables)
                     self.controller.FreeTrace(trace)
 
@@ -245,6 +251,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                 trace = self.controller.DebugVertex(0, 0, 0, 0)
                 cycles, variables = self.process_trace(trace)
                 output = self.find_output_source_var(trace, rd.ShaderBuiltin.Undefined, 1)
+                assert output is not None
                 debugged = self.evaluate_source_var(output, variables)
                 self.controller.FreeTrace(trace)
 
@@ -267,6 +274,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                 trace = self.controller.DebugPixel(51, 51, inputs)
                 cycles, variables = self.process_trace(trace)
                 output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+                assert output is not None
                 debugged = self.evaluate_source_var(output, variables)
                 self.controller.FreeTrace(trace)
 
@@ -295,7 +303,10 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
 
         output = self.find_output_source_var(trace, rd.ShaderBuiltin.Position, 0)
 
+        assert output is not None
+
         debugged = self.evaluate_source_var(output, variables)
+
         self.controller.FreeTrace(trace)
 
         actual = debugged.value.f32v[0:4]
@@ -315,6 +326,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
         cycles, variables = self.process_trace(trace)
 
         output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+        assert output is not None
 
         debugged = self.evaluate_source_var(output, variables)
         self.controller.FreeTrace(trace)

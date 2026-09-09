@@ -1,5 +1,4 @@
 import renderdoc as rd
-from typing import List
 import rdtest
 
 
@@ -36,6 +35,8 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
 
                 output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
 
+                assert output is not None
+
                 debugged = self.evaluate_source_var(output, variables)
 
                 try:
@@ -64,6 +65,8 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
         cycles, variables = self.process_trace(trace)
 
         output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+
+        assert output is not None
 
         debugged = self.evaluate_source_var(output, variables)
 
@@ -99,6 +102,8 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
                 cycles, variables = self.process_trace(trace)
 
                 output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+
+                assert output is not None
 
                 debugged = self.evaluate_source_var(output, variables)
 

@@ -1,3 +1,6 @@
+from __future__ import annotations
+from typing import Any, Callable, Dict
+
 import rdtest
 import renderdoc as rd
 
@@ -17,6 +20,8 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
         stage = rd.ShaderStage.Pixel
 
         # Verify that the DXBC action is first
+        refl = pipe.GetShaderReflection(stage)
+        assert refl is not None
         disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, '')
 
         assert 'ps_5_1' in disasm
@@ -36,6 +41,8 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
 
         pipe = self.controller.GetPipelineState()
 
+        refl = pipe.GetShaderReflection(stage)
+        assert refl is not None
         disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, '')
 
         assert 'SM6.0' in disasm
@@ -55,6 +62,8 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
 
         pipe = self.controller.GetPipelineState()
 
+        refl = pipe.GetShaderReflection(stage)
+        assert refl is not None
         disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, '')
 
         assert 'SM6.7' in disasm
@@ -85,7 +94,7 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
                     *,
                     isTexture: bool = True,
                     regCount: int = 1,
-                    structVarCheck=None):
+                    structVarCheck: Callable[[rd.ShaderConstantType], None] | None=None) -> Dict[str, Any]:
             return {
                 'textureType': textureType,
                 'isTexture': isTexture,

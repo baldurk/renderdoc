@@ -1,15 +1,16 @@
+from __future__ import annotations
 import os
 import signal
 import datetime
 import time
+from typing import Callable, List
 import renderdoc as rd
 from . import util
 from .logging import log
-from time import sleep
 
 
 class TargetControl():
-    def __init__(self, ident: int, host="localhost", username="testrunner", force=True, timeout=None, exit_kill=True):
+    def __init__(self, ident: int, host="localhost", username="testrunner", force=True, timeout: float | None=None, exit_kill=True):
         """
         Creates a target control manager for a given ident
 
@@ -21,12 +22,13 @@ class TargetControl():
         :param exit_kill: Whether to kill the process when the control loop ends.
         """
         self._pid = 0
-        self._captures = []
-        self._children = []
+        self._captures: List[rd.NewCaptureData] = []
+        self._children: List[rd.NewChildData] = []
         self.control = rd.CreateTargetControl(host, ident, username, force)
-        self._timeout = timeout
-        if self._timeout is None:
-            self._timeout = 60
+        if timeout is not None:
+            self._timeout = timeout
+        else:
+            self._timeout = 60.0
         self._exit_kill = exit_kill
 
         if self.control is None:
@@ -56,7 +58,7 @@ class TargetControl():
         if self.control is not None:
             self.control.QueueCapture(frame, num)
 
-    def run(self, keep_running):
+    def run(self, keep_running: Callable[[TargetControl], bool]):
         """
         Runs a loop ticking the target control. The callback is called each time and
         can be used to determine if the loop should keep running. The default callback
@@ -112,9 +114,14 @@ class TargetControl():
                     continue
 
 
-def run_executable(exe: str, cmdline: str,
-                   workdir="", envmods=None, cappath=None,
-                   opts=None):
+def run_executable(
+    exe: str,
+    cmdline: str,
+    workdir="",
+    envmods: List[rd.EnvironmentModification] | None = None,
+    cappath: str | None = None,
+    opts: rd.CaptureOptions | None = None,
+) -> int:
     """
     Runs an executable with RenderDoc injected, and returns the control ident.
 
@@ -146,14 +153,24 @@ def run_executable(exe: str, cmdline: str,
     else:
         res = server.inject_and_run_exe(cmdline, envmods, opts)
 
-    if res.result != rd.ResultCode.Succeeded:
+    if not res.result:
         raise RuntimeError(f"Couldn't launch program: {res.result!s}")
 
     return res.ident
 
 
-def run_and_capture(exe: str, cmdline: str, frame: int, *, frame_count=1, captures_expected=None, capture_name=None, opts=None,
-                    timeout=None, logfile=None):
+def run_and_capture(
+    exe: str,
+    cmdline: str,
+    frame: int,
+    *,
+    frame_count=1,
+    captures_expected: int | None = None,
+    capture_name="",
+    opts: rd.CaptureOptions | None = None,
+    timeout: float | None = None,
+    logfile: str | None = None,
+) -> str:
     """
     Helper function to run an executable with a command line, capture a particular frame, and exit.
 
@@ -172,7 +189,7 @@ def run_and_capture(exe: str, cmdline: str, frame: int, *, frame_count=1, captur
     :rtype: str
     """
 
-    if capture_name is None:
+    if capture_name == "":
         capture_name = 'capture'
 
     if opts is None:
@@ -210,7 +227,7 @@ def run_and_capture(exe: str, cmdline: str, frame: int, *, frame_count=1, captur
     log.print(f'Retrieved {len(captures)} captures')
 
     # Retrieve the demo logfile from the remote device
-    if server is not None:
+    if server is not None and logfile is not None:
         remote_logfile = server.get_temp_path('demos.log')
         if server.path_exists(remote_logfile):
             log.print("Copying remote demo log from '{}' to '{}'".format(server.get_temp_path('demos.log'), logfile))

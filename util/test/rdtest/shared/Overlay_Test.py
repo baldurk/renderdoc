@@ -6,7 +6,10 @@ import rdtest
 class Overlay_Test(rdtest.TestCase):
     internal = True
 
-    def check_capture(self, base_event=0):
+    def check_capture(self):
+        self.check_overlay_capture(0)
+
+    def check_overlay_capture(self, base_event: int):
         if base_event != 0:
             rdtest.log.print(f"Checking overlays from base event {base_event}")
 
@@ -17,6 +20,8 @@ class Overlay_Test(rdtest.TestCase):
         api = self.controller.GetAPIProperties().pipelineType
 
         fmts = ["D24_S8", "D32F_S8", "D16_S0", "D24_S0", "D32F_S0"]
+
+        tex = rd.TextureDisplay()
 
         # Check the actual output is as expected first.
         for fmt in fmts:
@@ -43,7 +48,6 @@ class Overlay_Test(rdtest.TestCase):
 
                 col_tex = pipe.GetOutputTargets()[0].resource
 
-                tex = rd.TextureDisplay()
                 tex.resourceId = col_tex
                 tex.subresource.sample = 0
 
@@ -421,6 +425,8 @@ class Overlay_Test(rdtest.TestCase):
                 else:
                     rdtest.log.success(f"All normal overlays are as expected Format {fmt}")
 
+            eps = 0.01
+
             # Shader with discard
             test_marker = self.find_action("Discard " + marker_name, base_event)
             self.controller.SetFrameEvent(test_marker.nextAction.eventId, True)
@@ -766,6 +772,8 @@ class Overlay_Test(rdtest.TestCase):
                 self.check_pixel_value(overlay_id, 203 >> shift, 153 >> shift, [0.0, 0.0, 0.0, 0.0], sub=rd.Subresource(mip, 0, 0))
 
                 rdtest.log.success(f"Other mips are empty as expected for overlay {overlay!s}")
+
+                eps = 0.001
 
                 if overlay == rd.DebugOverlay.Drawcall:
                     self.check_pixel_value(overlay_id, 50 >> shift, 36 >> shift, [0.8, 0.1, 0.8, 1.0], sub=sub, eps=eps)

@@ -1,3 +1,5 @@
+from typing import List, Tuple
+
 import renderdoc as rd
 import rdtest
 import struct
@@ -5,7 +7,7 @@ import struct
 class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
     demos_test_name = 'D3D12_Shader_DebugData_Zoo'
 
-    def parse_shader_source(self, shaderSrcRaw, realTestResult, test):
+    def parse_shader_source(self, shaderSrcRaw: str, realTestResult: rdtest.VectorValue, test: int):
         '''
         // TEST_DEBUG_VAR_START
         TEST_DEBUG_VAR_DECLARE(int, testIndex, TEST_INDEX)
@@ -17,7 +19,7 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
         TEST_DEBUG_VAR_DECLARE_MATRIX23(float, fish, 7.2)
         // TEST_DEBUG_VAR_END
         '''
-        varsToCheck = []
+        varsToCheck: List[Tuple[str, str, rdtest.ScalarOrVectorValue]] = []
         foundStart = False
         foundEnd = False
         shaderSrc = shaderSrcRaw.splitlines()
@@ -39,6 +41,7 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
             valString = toks[2].split(')')[0].strip()
             scalarType, countElems = self.parse_shader_var_type(type)
             isMatrix23 = line.startswith('TEST_DEBUG_VAR_DECLARE_MATRIX23')
+            rows = 0
             if isMatrix23:
                 rows = 2
                 columns = 3
@@ -100,6 +103,7 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
                 trace = self.controller.DebugVertex(0, instId, 0, 0)
                 cycles, variables = self.process_trace(trace)
                 output = self.find_output_source_var(trace, rd.ShaderBuiltin.Undefined, 1)
+                assert output is not None
                 debugged = self.evaluate_source_var(output, variables)
                 actual = debugged.value.u32v[0]
                 expected = instId
@@ -113,7 +117,7 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
 
                 # Look for MAT0 variable in the trace initial source variables
                 matched = True
-                varsToCheck = []
+                varsToCheck: List[Tuple[str, str, rdtest.ScalarOrVectorValue]] = []
                 varsToCheck.append((f"MAT0[0]", "float4", [1.0, 2.0, 3.0, 4.0]))
                 varsToCheck.append((f"MAT0[1]", "float4", [5.0, 6.0, 7.0, 8.0]))
                 varsToCheck.append((f"MAT0[2]", "float4", [9.0, 10.0, 11.0, 12.0]))
@@ -153,6 +157,7 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
                 trace = self.controller.DebugPixel(4 * test, 0, rd.DebugPixelInputs())
                 cycles, variables = self.process_trace(trace)
                 output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+                assert output is not None
                 debugged = self.evaluate_source_var(output, variables)
 
                 try:
@@ -200,6 +205,7 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
                     varsToCheck.append((f"[1]", "float4", [5.0, 6.0, 7.0, 8.0]))
                     varsToCheck.append((f"[2]", "float4", [9.0, 10.0, 11.0, 12.0]))
                     for name, varType, expectedValue in varsToCheck:
+                        assert isinstance(expectedValue, list)
                         debuggedValue = None
                         for v in inVar[0].members:
                             if v.name == name:

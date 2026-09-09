@@ -1,4 +1,3 @@
-import renderdoc as rd
 import rdtest
 
 
@@ -10,6 +9,8 @@ class VK_Load_Store_None(rdtest.TestCase):
 
         for action in [self.find_action("BeginRender"), self.find_action("Draw"), self.find_action("EndRender"),
                        self.find_action("Blit")]:
+            assert action is not None
+
             self.controller.SetFrameEvent(action.eventId, True)
 
             self.check_pixel_value(res, 200, 125, [0.0, 1.0, 0.0, 1.0])

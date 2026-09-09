@@ -22,7 +22,7 @@ class VK_Int8_IBuffer(rdtest.TestCase):
         striprestart_index = pipe.GetRestartIndex() & ((1 << (ib.byteStride*8)) - 1)
 
         # We don't check all of the output, we check a few key vertices to ensure they match up
-        postvs_ref = {
+        postvs_ref: rdtest.MeshReference = {
             0: {
                 'vtx': 0,
                 'idx': 0,

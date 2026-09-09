@@ -1,3 +1,5 @@
+from typing import Dict, List
+
 import rdtest
 import renderdoc as rd
 
@@ -17,6 +19,8 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
         stage = rd.ShaderStage.Pixel
 
         # Verify that the DXBC action is first
+        refl = pipe.GetShaderReflection(stage)
+        assert refl is not None
         disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, '')
 
         assert 'ps_5_1' in disasm
@@ -38,6 +42,8 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
         pipe = self.controller.GetPipelineState()
 
+        refl = pipe.GetShaderReflection(stage)
+        assert refl is not None
         disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, '')
 
         assert 'SM6.0' in disasm
@@ -57,6 +63,8 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
         pipe = self.controller.GetPipelineState()
 
+        refl = pipe.GetShaderReflection(stage)
+        assert refl is not None
         disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, '')
 
         assert 'SM6.6' in disasm
@@ -154,13 +162,13 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
                 rd.DebugPixelInputs(),
             )
 
-            debugVars = dict()
+            debugVars: Dict[str, rd.ShaderVariable] = dict()
 
             for base in trace.constantBlocks:
                 for var in base.members:
                     debugVars[base.name + var.name] = var
 
-            cbufferVars = []
+            cbufferVars: List[rd.ShaderVariable] = []
 
             for sourceVar in trace.sourceVars:
                 if sourceVar.variables[0].name not in debugVars.keys():
@@ -198,6 +206,8 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
             output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
 
+            assert output is not None
+
             debugged = self.evaluate_source_var(output, variables)
 
             if not rdtest.util.value_compare(debugged.value.f32v[0:4], [543.1, 546.0, 545.0, 546.0]):
@@ -212,7 +222,13 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
         rdtest.log.success("Picked value is as expected")
 
-    def check_cbuffers(self, var_check, root_check, huge_check, packed_check):
+    def check_cbuffers(
+        self,
+        var_check: rdtest.ConstantBufferChecker,
+        root_check: rdtest.ConstantBufferChecker,
+        huge_check: rdtest.ConstantBufferChecker,
+        packed_check: rdtest.ConstantBufferChecker,
+    ):
         # For more detailed reference for the below checks, see the commented definition of the cbuffer
         # in the shader source code in the demo itself
 

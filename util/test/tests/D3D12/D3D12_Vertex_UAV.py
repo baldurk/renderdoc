@@ -1,3 +1,5 @@
+from typing import List
+
 import rdtest
 import renderdoc as rd
 
@@ -8,7 +10,7 @@ class D3D12_Vertex_UAV(rdtest.TestCase):
     def check_capture(self):
         out = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
 
-        quad_seen = []
+        quad_seen: List[float] = []
 
         for pass_name in ["Normal", "Collide"]:
             for base_event_name in ["5_0", "5_1", "6_0"]:
@@ -56,6 +58,8 @@ class D3D12_Vertex_UAV(rdtest.TestCase):
                 cycles, variables = self.process_trace(trace)
 
                 output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+                    
+                assert output is not None
 
                 debugged = self.evaluate_source_var(output, variables)
 

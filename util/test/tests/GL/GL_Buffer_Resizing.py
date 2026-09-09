@@ -7,7 +7,7 @@ class GL_Buffer_Resizing(rdtest.TestCase):
     demos_frame_cap = 10
 
     def check_capture(self):
-        postvs_ref = {
+        postvs_ref: rdtest.MeshReference = {
             0: {
                 'vtx': 0,
                 'idx': 0,

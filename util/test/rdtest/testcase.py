@@ -1,5 +1,5 @@
+from __future__ import annotations
 import os
-import traceback
 import re
 import datetime
 import renderdoc as rd
@@ -7,7 +7,7 @@ from . import util
 from . import analyse
 from . import capture
 from .logging import log, TestFailureException
-from typing import List
+from typing import Any, Callable, Dict, List, Set, Tuple
 
 
 class ShaderVariableCheck:
@@ -35,7 +35,7 @@ class ShaderVariableCheck:
 
         return self
 
-    def value(self, value_: list):
+    def value(self, value_: List[float] | List[int]):
         count = len(value_)
         if isinstance(value_[0], float):
             vals = []
@@ -72,7 +72,7 @@ class ShaderVariableCheck:
 
         return self
 
-    def longvalue(self, value_: list):
+    def longvalue(self, value_: List[float] | List[int]):
         count = len(value_)
         if isinstance(value_[0], float):
             if list(self.var.value.f64v[0:count]) != list(value_):
@@ -111,7 +111,7 @@ class ShaderVariableCheck:
 
         return self
 
-    def members(self, member_callbacks: dict):
+    def members(self, member_callbacks: Dict[str | int, Callable[[ShaderVariableCheck], ShaderVariableCheck | None]]):
         for i, m in enumerate(self.var.members):
             if i in member_callbacks:
                 member_callbacks[i](ShaderVariableCheck(m, m.name))
@@ -122,7 +122,7 @@ class ShaderVariableCheck:
 
 
 class ConstantBufferChecker:
-    def __init__(self, variables: list):
+    def __init__(self, variables: List[rd.ShaderVariable]):
         self._variables = variables
 
     def check(self, name: str):
@@ -149,10 +149,10 @@ class TestCase:
     _test_list = {}
 
     @staticmethod
-    def set_test_list(tests):
+    def set_test_list(tests: Dict[str, Tuple[bool, str]]):
         TestCase._test_list = tests
 
-    def check_support(self, **kwargs):
+    def check_support(self):
         if self.demos_test_name != '':
             if self.demos_test_name not in TestCase._test_list:
                 return False,f'Test {self.demos_test_name} not in compiled tests'
@@ -163,8 +163,8 @@ class TestCase:
 
     def __init__(self):
         self.capture_filename = ""
-        self.controller: rd.ReplayController = None
-        self.sdfile: rd.SDFile = None
+        self.controller: rd.ReplayController | None = None
+        self.sdfile: rd.SDFile | None = None
         self._variables = []
 
     def get_time(self):
@@ -176,7 +176,7 @@ class TestCase:
         else:
             return util.get_data_path(os.path.join(self.__class__.__name__, name))
 
-    def check_eq(self, a, b):
+    def check_eq(self, a: Any, b: Any):
         assert a == b, f"{a} != {b}"
 
     def get_replay_options(self):
@@ -226,7 +226,7 @@ class TestCase:
         raise NotImplementedError("If run() is not implemented in a test, then"
                                   "get_capture() and check_capture() must be.")
 
-    def check_capture(self):
+    def check_capture(self) -> None:
         """
         Method to overload if not implementing a run(), using the default run which
         handles everything and calls get_capture() and check_capture() for you.
@@ -240,7 +240,7 @@ class TestCase:
 
         return self.sdfile.chunks[action.events[-1].chunkIndex].name
 
-    def _find_action(self, name: str, start_event: int, action_list):
+    def _find_action(self, name: str, start_event: int, action_list: List[rd.ActionDescription]) -> rd.ActionDescription | None:
         bestMatch = None
         distance = 1000000
         for action in action_list:
@@ -286,6 +286,9 @@ class TestCase:
         return self._find_action('', event, self.controller.GetRootActions())
 
     def get_vsin(self, action: rd.ActionDescription, first_index: int=0, num_indices: int=0, instance: int=0, view: int=0):
+        # keep type checker happy
+        assert self.controller is not None
+
         ib = self.controller.GetPipelineState().GetIBuffer()
 
         if num_indices == 0:
@@ -321,7 +324,10 @@ class TestCase:
         return analyse.decode_mesh_data(self.controller, indices, indices, attrs, 0, 0)
 
     def get_postvs(self, action: rd.ActionDescription, data_stage: rd.MeshDataStage, first_index: int = 0,
-                   num_indices: int = 0, instance: int = 0, view: int = 0):
+                   num_indices: int = 0, instance: int = 0, view: int = 0) -> analyse.MeshData:
+        # keep type checker happy
+        assert self.controller is not None
+
         mesh = self.controller.GetPostVSData(instance, view, data_stage)
 
         if mesh.numIndices == 0:
@@ -362,7 +368,7 @@ class TestCase:
 
         return analyse.decode_mesh_data(self.controller, indices, in_indices, attrs, 0, mesh.baseVertex)
 
-    def parse_shader_var_type(self, varType):
+    def parse_shader_var_type(self, varType: str):
         scalarType = varType
         countElems = 1
         if str(varType[-1]).isdigit():
@@ -373,15 +379,15 @@ class TestCase:
                 scalarType = varType[:-1]
                 countElems = int(varType[-1:])
         return (scalarType, countElems)
-        
-    def get_source_shader_var_value(self, sourceVars: List[rd.SourceVariableMapping], name, varType, debuggerVars):
+
+    def get_source_shader_var_value(self, sourceVars: List[rd.SourceVariableMapping], name: str, varType: str, debugVars: Dict[str, rd.ShaderVariable]):
         sourceVar = [v for v in sourceVars if v.name == name]
         if len(sourceVar) != 1:
             raise TestFailureException(f"Couldn't find source variable {name} type:{varType}")
 
         scalarType, countElems = self.parse_shader_var_type(varType)
 
-        debugged = self.evaluate_source_var(sourceVar[0], debuggerVars)
+        debugged = self.evaluate_source_var(sourceVar[0], debugVars)
         if scalarType == 'float':
             return list(debugged.value.f32v[0:countElems])
         elif scalarType == 'int':
@@ -418,7 +424,17 @@ class TestCase:
     def check_mesh_data(self, mesh_ref: analyse.MeshReference, mesh_data: analyse.MeshData):
         return self.check_ref_data('Mesh', mesh_ref, mesh_data)
 
-    def check_pixel_value(self, tex: rd.ResourceId, x, y, value, *, sub=None, cast=None, eps=util.FLT_EPSILON):
+    def check_pixel_value(
+        self,
+        tex: rd.ResourceId,
+        x: float | int,
+        y: float | int,
+        value: Any,
+        *,
+        sub: rd.Subresource | None = None,
+        cast: rd.CompType | None = None,
+        eps=util.FLT_EPSILON,
+    ):
         tex_details = self.get_texture(tex)
         res_details = self.get_resource(tex)
 
@@ -441,6 +457,8 @@ class TestCase:
                 eps = (1.0 / 255.0)
             if tex_details.format.compByteWidth == 2 and eps == util.FLT_EPSILON:
                 eps = (1.0 / 16384.0)
+
+        assert type(x) is int and type(y) is int
 
         picked = self.controller.PickPixel(tex, x, y, sub, cast)
 
@@ -472,7 +490,13 @@ class TestCase:
 
         log.success(f"Picked value at {x},{y} in {name} is as expected")
 
-    def check_triangle(self, out = None, back = None, fore = None, vp = None):
+    def check_triangle(
+        self,
+        out: rd.ResourceId | None = None,
+        back: util.VectorValue | None = None,
+        fore: util.VectorValue | None = None,
+        vp: util.VectorValue | None = None,
+    ):
         pipe = self.controller.GetPipelineState()
 
         # if no output is specified, check the current colour output at this action
@@ -596,13 +620,18 @@ class TestCase:
 
         self.check_capture()
 
+        self.finish()
+
+    def finish(self):
+        # normally this can't be None, but Texture_Zoo (or any test that opens its own controllers)
+        # will have shut down self.controller and set it to None
         if self.controller is not None:
             if not util.get_remote_server() is None:
                 util.get_remote_server().CloseCapture(self.controller)
             else:
                 self.controller.Shutdown()
 
-    def invoketest(self, debugMode):
+    def invoketest(self, debugMode: bool):
         start_time = self.get_time()
         self.run()
         duration = self.get_time() - start_time
@@ -780,8 +809,10 @@ class TestCase:
         return ret
 
     def generate_full_trace(self, trace: rd.ShaderDebugTrace) -> List[rd.ShaderDebugState]:
-        allStates = []
-        allChanges = []
+        assert trace.debugger is not None
+
+        allStates: List[rd.ShaderDebugState] = []
+        allChanges: List[List[rd.ShaderVariableChange]] = []
         while True:
             states = self.controller.ContinueDebug(trace.debugger)
             if len(states) == 0:
@@ -793,10 +824,12 @@ class TestCase:
         return allStates
 
     def process_trace(self, trace: rd.ShaderDebugTrace, validate: bool = True):
-        variables = {}
+        assert trace.debugger is not None
+
+        variables: Dict[str, rd.ShaderVariable] = {}
         cycles = 0
-        allChanges = []
-                
+        allChanges: List[List[rd.ShaderVariableChange]] = []
+
         while True:
             states = self.controller.ContinueDebug(trace.debugger)
             if len(states) == 0:
@@ -815,19 +848,22 @@ class TestCase:
 
         return cycles, variables
 
-    def get_sig_index(self, signature, builtin: rd.ShaderBuiltin, reg_index: int = -1):
+    def get_sig_index(self, signature: List[rd.SigParameter], builtin: rd.ShaderBuiltin, reg_index: int = -1):
         search = (builtin, reg_index)
         signature_mapped = [(sig.systemValue, sig.regIndex) for sig in signature]
 
         if reg_index == -1:
-            search = builtin
             signature_mapped = [x[0] for x in signature_mapped]
 
-        if search in signature_mapped:
-            return signature_mapped.index(search)
+            if builtin in signature_mapped:
+                return signature_mapped.index(builtin)
+        else:
+            if search in signature_mapped:
+                return signature_mapped.index(search)
+
         return -1
 
-    def find_source_var(self, sourceVars, signatureIndex, varType):
+    def find_source_var(self, sourceVars: List[rd.SourceVariableMapping], signatureIndex: int, varType: rd.DebugVariableType):
         vars = [x for x in sourceVars if x.signatureIndex == signatureIndex and x.variables[0].type == varType]
 
         if len(vars) == 0:
@@ -849,7 +885,7 @@ class TestCase:
 
         return self.find_source_var(trace.sourceVars, sig_index, rd.DebugVariableType.Variable)
 
-    def get_debug_var(self, debugVars, path: str):
+    def get_debug_var(self, debugVars: Dict[str, rd.ShaderVariable], path: str) -> rd.ShaderVariable:
         # first look for exact match
         for name, var in debugVars.items():
             if name == path:
@@ -887,8 +923,7 @@ class TestCase:
 
         raise KeyError(f"Couldn't find '{path}' in debug vars or parse it")
 
-
-    def evaluate_source_var(self, sourceVar: rd.SourceVariableMapping, debugVars) -> rd.ShaderVariable:
+    def evaluate_source_var(self, sourceVar: rd.SourceVariableMapping, debugVars: Dict[str, rd.ShaderVariable]):
         debugged = rd.ShaderVariable()
         debugged.name = sourceVar.name
         debugged.type = sourceVar.type
@@ -899,13 +934,13 @@ class TestCase:
             debugVar = self.get_debug_var(debugVars, debugVarPath.name)
             debugged.flags = debugVar.flags
             f32v[i] = debugVar.value.f32v[debugVarPath.component]
-        debugged.value.f32v = f32v
+        debugged.value.f32v = tuple(f32v)
         return debugged
 
-    def combine_source_vars(self, vars):
+    def combine_source_vars(self, vars: List[rd.ShaderVariable]):
         NOT_FOUND = 100000
 
-        processed = []
+        processed: List[rd.ShaderVariable] = []
 
         # Keep looping until we're done
         while len(vars) > 0:
@@ -939,7 +974,7 @@ class TestCase:
             if base == '':
                 continue
 
-            members = []
+            members: List[rd.ShaderVariable] = []
 
             combined = rd.ShaderVariable()
             combined.name = base
@@ -979,7 +1014,7 @@ class TestCase:
         util.get_remote_server().CopyCaptureFromRemote(self.capture_filename, dest, None)
         return dest
 
-    def check_export(self, capture_filename):
+    def check_export(self, capture_filename: str):
         capture_filename = self.retrieve_capture()
 
         recomp_path = util.get_tmp_path('recompressed.rdc')
@@ -1027,6 +1062,8 @@ class TestCase:
 
         _, variables = self.process_trace(trace)
         output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+        if output is None:
+            raise TestFailureException(f"Couldn't find colour output source variable")
         debugged = self.evaluate_source_var(output, variables)
         self.controller.FreeTrace(trace)
 
@@ -1042,10 +1079,10 @@ class TestCase:
         end = min(begin + mesh.vertexByteSize, 0xffffffffffffffff)
         buffer_data = controller.GetBufferData(mesh.vertexResourceId, begin, end - begin)
 
-        ret = {}
+        ret: analyse.MeshElementData = {}
         offset = 0
         for var in payload.variables:
-            accum_data = []
+            accum_data: util.VectorValue = []
             if (var.type.baseType == rd.VarType.Struct):
                 structSize = 0
                 structSize += var.type.members[0].byteOffset
@@ -1073,6 +1110,9 @@ class TestCase:
         return ret
 
     def get_task_data(self, action: rd.ActionDescription):
+        # keep type checker happy
+        assert self.controller is not None
+
         mesh = self.controller.GetPostVSData(0, 0, rd.MeshDataStage.TaskOut)
         if mesh.numIndices == 0:
             raise TestFailureException("Task data is empty")
@@ -1084,7 +1124,7 @@ class TestCase:
         shader = pipe.GetShaderReflection(rd.ShaderStage.Task)
         taskIdx = 0
         task = action.dispatchDimension
-        data = []
+        data: analyse.MeshData = []
         for x in range(task[0]):
             for y in range(task[1]):
                 for z in range(task[2]):
@@ -1134,9 +1174,9 @@ class TestCase:
 
         return True
 
-    def validate_trace(self, allChanges):
+    def validate_trace(self, allChanges: List[List[rd.ShaderVariableChange]]):
         # Step Forwards
-        variables = {}
+        variables: Dict[str, rd.ShaderVariable] = {}
         for i in range(len(allChanges)):
             for c in allChanges[i]:
                 if len(c.after.name) == 0 and len(c.before.name) == 0:
@@ -1206,7 +1246,7 @@ class TestCase:
 
     def validate_eventids(self, controller: rd.ReplayController) -> bool:
         actions = controller.GetRootActions().copy()
-        eventIds = set()
+        eventIds: Set[int] = set()
         maxEventId = 0
         while len(actions) > 0:
             action = actions.pop()
@@ -1226,7 +1266,7 @@ class TestCase:
                 return False
         return True
 
-    def check_indirect_action_name_consistency(self, controller: rd.ReplayController) -> str:
+    def check_indirect_action_name_consistency(self, controller: rd.ReplayController):
         actions = controller.GetRootActions().copy()
         sdfile = controller.GetStructuredFile()
         while len(actions) > 0:

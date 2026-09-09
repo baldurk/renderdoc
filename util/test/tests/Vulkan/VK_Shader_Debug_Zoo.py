@@ -1,5 +1,6 @@
-import renderdoc as rd
 from typing import List
+
+import renderdoc as rd
 import rdtest
 import struct
 
@@ -41,6 +42,8 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
                     _, variables = self.process_trace(trace)
 
                     output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+                    
+                    assert output is not None
 
                     debugged = self.evaluate_source_var(output, variables)
 
@@ -69,9 +72,10 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
             self.controller.SetFrameEvent(action.children[0].eventId, False)
             pipe = self.controller.GetPipelineState()
             refl = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
+            assert refl is not None
             disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, "")
             # Test for some expected strings in the disassembly
-            expectedStrings = []
+            expectedStrings: List[str] = []
             # OpSwitch disassembly of 32-bit and 64-bit literals
             expectedStrings.append("case 305419896:")
             expectedStrings.append("case 4063516280:")
@@ -116,7 +120,6 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
                 rw = pipe.GetReadWriteResources(rd.ShaderStage.Compute)
                 if len(rw) != 1:
                     rdtest.log.error("Unexpected number of RW resources")
-                    self.controller.FreeTrace(trace)
                     failed = True
                     continue
 
@@ -172,6 +175,7 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
                         failed = True
                         continue
 
+                    self.controller.FreeTrace(trace)
                     rdtest.log.success(f"Test {test} Group:{groupid} Thread:{threadid} as expected")
 
             rdtest.log.end_section(section)

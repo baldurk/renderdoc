@@ -1,12 +1,20 @@
+from __future__ import annotations
 import renderdoc as rd
-from typing import List
 import rdtest
 
 
 class D3D12_PrimitiveID(rdtest.TestCase):
     demos_test_name = 'D3D12_PrimitiveID'
-    
-    def test_action(self, action: rd.ActionDescription, x, y, prim, expected_prim, expected_output):
+
+    def test_action(
+        self,
+        action: rd.ActionDescription,
+        x: int,
+        y: int,
+        prim: int,
+        expected_prim: rdtest.VectorValue,
+        expected_output: rdtest.VectorValue | None,
+    ):
         self.controller.SetFrameEvent(action.eventId, True)
         pipe = self.controller.GetPipelineState()
 
@@ -50,6 +58,7 @@ class D3D12_PrimitiveID(rdtest.TestCase):
         # since we're testing overlapping primitives in a single action
         if expected_output is not None:
             output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+            assert output is not None
             debugged = self.evaluate_source_var(output, variables)
             if list(debugged.value.f32v[0:4]) != expected_output:
                 rdtest.log.error(f"Expected value {expected_output} at {x},{y} did not match actual {debugged.value.f32v[0:4]}.")
@@ -79,19 +88,23 @@ class D3D12_PrimitiveID(rdtest.TestCase):
             y = 40 + i * 150
             # Draw 1: No GS, PS without prim
             action = test_marker.nextAction
+            assert action is not None
             success &= self.test_action(action, 100, y, rd.ReplayController.NoPreference, [0], [0, 1, 0, 1])
 
             # Draw 2: No GS, PS with prim
             action = action.nextAction
+            assert action is not None
             success &= self.test_action(action, 300, y, rd.ReplayController.NoPreference, [0], [0, 1, 0, 1])
 
             # Draw 3: GS, PS without prim
             y = 125 + i * 150
             action = action.nextAction
+            assert action is not None
             success &= self.test_action(action, 125, y, rd.ReplayController.NoPreference, [0], [0, 1, 0, 1])
 
             # Draw 4: GS, PS with prim
             action = action.nextAction
+            assert action is not None
             success &= self.test_action(action, 325, y, 2, [2], [0.5, 1, 0, 1])
             success &= self.test_action(action, 325, y, 3, [3], [0.75, 1, 0, 1])
             # No expected output here, since it's nondeterministic which primitive gets selected

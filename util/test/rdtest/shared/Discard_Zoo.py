@@ -5,8 +5,8 @@ import rdtest
 class Discard_Zoo(rdtest.TestCase):
     internal = True
 
-    def check_val(self, picked, val, fmt):
-        if type(val) != list:
+    def check_val(self, picked: rd.PixelValue, val: rdtest.ScalarOrVectorValue, fmt: rd.ResourceFormat):
+        if isinstance(val, float) or isinstance(val, int):
             val = [val, val, val, val]
 
         if fmt.compType == rd.CompType.UInt or fmt.compType == rd.CompType.SInt or fmt.type == rd.ResourceFormatType.S8:
@@ -19,7 +19,7 @@ class Discard_Zoo(rdtest.TestCase):
 
             return rdtest.value_compare(comp_val, val[0:fmt.compCount])
 
-    def check_texture(self, id, discarded: bool):
+    def check_texture(self, id: rd.ResourceId, discarded: bool):
         tex = self.get_texture(id)
         res = self.get_resource(id)
 

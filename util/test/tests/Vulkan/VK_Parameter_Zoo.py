@@ -1,3 +1,5 @@
+from typing import Dict
+
 import renderdoc as rd
 import rdtest
 
@@ -6,6 +8,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
     demos_test_name = 'VK_Parameter_Zoo'
 
     def check_capture(self):
+        assert self.controller is not None
         if not self.validate_eventids(self.controller):
             raise rdtest.TestFailureException("Event IDs are not valid")
 
@@ -33,7 +36,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
         vkpipe = self.controller.GetVulkanPipelineState()
 
-        res_names = {}
+        res_names: Dict[rd.ResourceId, str] = {}
         for res in self.controller.GetResources():
             res_names[res.resourceId] = res.name
 
@@ -167,6 +170,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
             assert action is not None
 
             action = action.nextAction
+            assert action is not None
 
             self.controller.SetFrameEvent(action.eventId, False)
 
@@ -186,7 +190,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
             postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
-            postvs_ref = {
+            postvs_ref: rdtest.MeshReference = {
                 0: {
                     'vtx': 0,
                     'idx': 0,

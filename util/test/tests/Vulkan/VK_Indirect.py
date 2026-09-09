@@ -1,9 +1,11 @@
+from __future__ import annotations
+from typing import Dict, List, Tuple
+
 import rdtest
 import struct
 import renderdoc as rd
-from typing import List
 
-def real_action_children(action):
+def real_action_children(action: rd.ActionDescription):
     return [c for c in action.children if not c.flags & rd.ActionFlags.PopMarker]
 
 
@@ -70,7 +72,7 @@ class VK_Indirect(rdtest.TestCase):
             raise rdtest.TestFailureException(f"EID: {eid} No pixel history found at ({x}, {y})")
         rdtest.log.success(f"EID: {eid} Pixel History {x}, {y} Worked")
 
-    def check_overlay(self, pass_samples, *, no_overlay = False):
+    def check_overlay(self, pass_samples: List[Tuple[int,int]], *, no_overlay = False):
         pipe = self.controller.GetPipelineState()
 
         tex = rd.TextureDisplay()
@@ -145,7 +147,7 @@ class VK_Indirect(rdtest.TestCase):
             if pickedDraw.floatValue != pickedPass.floatValue:
                 raise rdtest.TestFailureException(f"Triangle Size Draw and Pass do not match: {pickedDraw.floatValue} vs {pickedPass.floatValue}")
 
-    def check_overlay_and_pixel_history(self, eid, coords):
+    def check_overlay_and_pixel_history(self, eid: int, coords: List[Tuple[int,int]]):
         self.controller.SetFrameEvent(eid, False)
         for c in coords:
             x = c[0]
@@ -260,6 +262,7 @@ class VK_Indirect(rdtest.TestCase):
         with rdtest.log.auto_section('Checking Empty Draws'):
             for level in ["Primary", "Secondary"]:
                 empties = self.find_action(f"{level}: Empty count draws")
+                assert empties is not None
                 for action in real_action_children(empties):
                     eid = action.eventId
                     self.controller.SetFrameEvent(eid, False)
@@ -313,6 +316,7 @@ class VK_Indirect(rdtest.TestCase):
                         out.Shutdown()
 
     def check_capture(self):
+        assert self.controller is not None
 
         with rdtest.log.auto_section("Checking Indirect Action Names"):
             if not self.check_indirect_action_name_consistency(self.controller):
@@ -322,7 +326,7 @@ class VK_Indirect(rdtest.TestCase):
 
         assert fill is not None
 
-        buffer_usage = {}
+        buffer_usage: Dict[int, List[rd.ResourceUsage]] = {}
 
         for usage in self.controller.GetUsage(fill.copyDestination):
             if usage.eventId not in buffer_usage:
@@ -447,7 +451,7 @@ class VK_Indirect(rdtest.TestCase):
             # Check that we have PostVS as expected
             postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut)
 
-            postvs_ref = {
+            postvs_ref: rdtest.MeshReference = {
                 0: {'vtx': 0, 'idx': 0, 'gl_Position': [-0.8, -0.5, 0.0, 1.0]},
                 1: {'vtx': 1, 'idx': 1, 'gl_Position': [-0.7, -0.8, 0.0, 1.0]},
                 2: {'vtx': 2, 'idx': 2, 'gl_Position': [-0.6, -0.5, 0.0, 1.0]},
@@ -474,7 +478,7 @@ class VK_Indirect(rdtest.TestCase):
 
             # These indices are the *output* indices, which have been rebased/remapped, so are not the same as the input
             # indices
-            postvs_ref = {
+            postvs_ref: rdtest.MeshReference = {
                 0: {'vtx': 0, 'idx': 6, 'gl_Position': [-0.6, -0.5, 0.0, 1.0]},
                 1: {'vtx': 1, 'idx': 7, 'gl_Position': [-0.5, -0.8, 0.0, 1.0]},
                 2: {'vtx': 2, 'idx': 8, 'gl_Position': [-0.4, -0.5, 0.0, 1.0]},
@@ -497,7 +501,7 @@ class VK_Indirect(rdtest.TestCase):
             # Check that we have PostVS as expected
             postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut)
 
-            postvs_ref = {
+            postvs_ref: rdtest.MeshReference = {
                 0: {'vtx': 0, 'idx': 9, 'gl_Position': [-0.4, -0.5, 0.0, 1.0]},
                 1: {'vtx': 1, 'idx': 10, 'gl_Position': [-0.3, -0.8, 0.0, 1.0]},
                 2: {'vtx': 2, 'idx': 11, 'gl_Position': [-0.2, -0.8, 0.0, 1.0]},
@@ -555,7 +559,7 @@ class VK_Indirect(rdtest.TestCase):
 
                 # These indices are the *output* indices, which have been rebased/remapped, so are not the same as the input
                 # indices
-                postvs_ref = {
+                postvs_ref: rdtest.MeshReference = {
                     0: {'vtx': 0, 'idx': 0, 'gl_Position': [-0.8, 0.5, 0.0, 1.0]},
                     1: {'vtx': 1, 'idx': 1, 'gl_Position': [-0.7, 0.2, 0.0, 1.0]},
                     2: {'vtx': 2, 'idx': 2, 'gl_Position': [-0.6, 0.5, 0.0, 1.0]},
@@ -585,7 +589,7 @@ class VK_Indirect(rdtest.TestCase):
 
                 # These indices are the *output* indices, which have been rebased/remapped, so are not the same as the input
                 # indices
-                postvs_ref = {
+                postvs_ref: rdtest.MeshReference = {
                     0: {'vtx': 0, 'idx': 15, 'gl_Position': [-0.6, 0.5, 0.0, 1.0]},
                     1: {'vtx': 1, 'idx': 16, 'gl_Position': [-0.5, 0.2, 0.0, 1.0]},
                     2: {'vtx': 2, 'idx': 17, 'gl_Position': [-0.4, 0.5, 0.0, 1.0]},
@@ -625,7 +629,7 @@ class VK_Indirect(rdtest.TestCase):
 
                 # These indices are the *output* indices, which have been rebased/remapped, so are not the same as the input
                 # indices
-                postvs_ref = {
+                postvs_ref: rdtest.MeshReference = {
                     0: {'vtx': 0, 'idx': 18, 'gl_Position': [-0.4, 0.5, 0.0, 1.0]},
                     1: {'vtx': 1, 'idx': 19, 'gl_Position': [-0.3, 0.2, 0.0, 1.0]},
                     2: {'vtx': 2, 'idx': 20, 'gl_Position': [-0.2, 0.2, 0.0, 1.0]},

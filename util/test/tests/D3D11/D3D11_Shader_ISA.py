@@ -1,5 +1,4 @@
 import renderdoc as rd
-from typing import List
 import rdtest
 
 
@@ -18,6 +17,7 @@ class D3D11_Shader_ISA(rdtest.TestCase):
         pipe = self.controller.GetPipelineState()
 
         refl = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
+        assert refl is not None
 
         isas = self.controller.GetDisassemblyTargets(True)
 

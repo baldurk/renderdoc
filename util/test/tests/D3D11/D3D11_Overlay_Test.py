@@ -1,5 +1,4 @@
 import rdtest
-import renderdoc as rd
 
 
 class D3D11_Overlay_Test(rdtest.Overlay_Test):

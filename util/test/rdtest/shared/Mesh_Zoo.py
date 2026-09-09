@@ -1,10 +1,18 @@
+from __future__ import annotations
+from typing import Callable, List, Tuple
 import renderdoc as rd
 import rdtest
+
+Region = Tuple[int,int,int,int]
+Color = Tuple[int,int,int]
+ColorList = List[Color]
+ColorCheck = Callable[[Color], bool]
+ColorListCheck = Callable[[ColorList], bool]
 
 # Not a real test, re-used by API-specific tests
 class Mesh_Zoo():
     def __init__(self):
-        self.out = None
+        self.out: rd.ReplayOutput | None = None
         self.cfg = rd.MeshDisplay()
 
     def cache_output(self):
@@ -20,7 +28,7 @@ class Mesh_Zoo():
 
         rdtest.png_save(rdtest.get_tmp_path('output.png'), self.rows, dim, False)
 
-    def find_action(self, name):
+    def find_action(self, name: str):
         action = None
 
         for d in self.controller.GetRootActions():
@@ -35,12 +43,13 @@ class Mesh_Zoo():
 
     # To avoid needing to do image comparisons, we instead do quad region probes to see which colours are present. That
     # way we can programmatically check that the wireframe we expect to be there, is there
-    def get_region_cols(self, region):
+    def get_region_cols(self, region: Region):
         x0, y0, x1, y1 = region
-        cols = []
+        cols: ColorList = []
         for y in range(y0, y1+1):
             for x in range(x0, x1+1):
-                col = tuple(self.rows[y][x*3:x*3+3])
+                px = self.rows[y][x*3:x*3+3]
+                col = (px[0], px[1], px[2])
 
                 # skip pure gray, this comes from the checkerboard or frustum, all our lines and data are coloured
                 if col[0] == col[1] and col[1] == col[2]:
@@ -50,7 +59,7 @@ class Mesh_Zoo():
                     cols.append(col)
         return cols
 
-    def check_region(self, region, test):
+    def check_region(self, region: Region, test: ColorListCheck):
         colors = self.get_region_cols(region)
 
         if not test(colors):
@@ -58,7 +67,7 @@ class Mesh_Zoo():
             rdtest.png_save(tmp_path, self.rows, self.out.GetDimensions(), False)
             raise rdtest.TestFailureException(f"Expected line segment wrong, colors: {colors}", tmp_path)
 
-    def check_vertex(self, x, y, result):
+    def check_vertex(self, x: int, y: int, result: rdtest.VectorValue):
         pick = self.out.PickVertex(x, y)
 
         if not rdtest.value_compare(result, pick):
@@ -123,13 +132,13 @@ class Mesh_Zoo():
         self.cfg.wireframeDraw = False
 
         # allow for blending with white for the frustum
-        isred = lambda col: col[0] > col[1] and col[1] == col[2]
-        isgreen = lambda col: col[1] > col[0] and col[0] == col[2]
-        isblue = lambda col: col[2] > col[0] and col[0] == col[1]
+        isred: ColorCheck = lambda col: col[0] > col[1] and col[1] == col[2]
+        isgreen: ColorCheck = lambda col: col[1] > col[0] and col[0] == col[2]
+        isblue: ColorCheck = lambda col: col[2] > col[0] and col[0] == col[1]
 
-        isredgreen = lambda col: isred(col) or isgreen(col) or col[2] == 0
+        isredgreen: ColorCheck = lambda col: isred(col) or isgreen(col) or col[2] == 0
 
-        isyellow = lambda col: col[0] == col[1] and col[2] < col[1]
+        isyellow: ColorCheck = lambda col: col[0] == col[1] and col[2] < col[1]
 
         self.cache_output()
 

@@ -1,3 +1,5 @@
+from typing import Callable, List
+
 import rdtest
 import renderdoc as rd
 
@@ -367,7 +369,9 @@ class GL_CBuffer_Zoo(rdtest.TestCase):
         # to save duplicating if this array changes, we calculate out from the start, as the array is tightly packed
         base = 540.0
 
-        exp_vals = lambda wi,yi,xi: [base + wi * 24.0 + yi * 8.0 + xi * 4.0 + c * 1.0 for c in range(0,4)]
+        exp_vals: Callable[[int, int, int], List[float]] = lambda wi, yi, xi: [
+            base + wi * 24.0 + yi * 8.0 + xi * 4.0 + c * 1.0 for c in range(0, 4)
+        ]
 
         # vec4 multiarray2[4][3][2];
         var_check.check('multiarray2').cols(0).rows(0).arraySize(4).members({

@@ -6,7 +6,7 @@ import renderdoc as rd
 class Repeat_Load(rdtest.TestCase):
     slow_test = True
 
-    def repeat_load(self, path):
+    def repeat_load(self, path: str):
         memory_usage = memory_baseline = 0
 
         for i in range(20):

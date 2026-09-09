@@ -1,10 +1,12 @@
+from typing import Dict, List, Tuple
+
 import renderdoc as rd
 import rdtest
 
 class VK_Resource_Usage(rdtest.TestCase):
     demos_test_name = 'VK_Resource_Usage'
-    resourceUsages = {}
-    eids = []
+    resourceUsages: Dict[rd.ResourceId, List[rd.EventUsage]] = {}
+    eids: List[int] = []
 
     def add_action(self, action: rd.ActionDescription):
         self.eids.append(action.eventId)
@@ -13,7 +15,7 @@ class VK_Resource_Usage(rdtest.TestCase):
         for e in action.events:
             self.eids.append(e.eventId)
 
-    def check_resource_usage(self, res: rd.ResourceDescription, expectedUsages=[]):
+    def check_resource_usage(self, res: rd.ResourceDescription, expectedUsages: List[Tuple[int,rd.ResourceUsage]]):
         usages = self.resourceUsages[res.resourceId]
         if len(usages) != len(expectedUsages):
             for u in usages:
@@ -30,6 +32,7 @@ class VK_Resource_Usage(rdtest.TestCase):
                 raise rdtest.TestFailureException(f"'{res.name}' {res.resourceId} usage:{u.usage.name} Incorrect resource usage EID expected:{eid} actual:{u.eventId}")
 
     def check_capture(self):
+        assert self.controller is not None
         # Cache the resource usage before running any replay i.e. without calling SetFrameEvent
         resources = self.controller.GetResources()
         for res in resources:
@@ -58,19 +61,19 @@ class VK_Resource_Usage(rdtest.TestCase):
         sdfile = self.controller.GetStructuredFile()
         actions = self.controller.GetRootActions().copy()
 
-        drawEIDs = []
-        meshDispatchEIDs = []
-        indexedEIDs = []
-        indexedSpecialEIDs = []
-        dispatchEIDs = []
-        indirectEIDs = []
-        multiEIDs = []
-        indirectCountEIDs = []
-        submitEIDs = []
-        waitFencesEIDs = []
-        resetFencesEIDs = []
-        descSetDrawEIDs = []
-        descBufferDrawEIDs = []
+        drawEIDs: List[int] = []
+        meshDispatchEIDs: List[int] = []
+        indexedEIDs: List[int] = []
+        indexedSpecialEIDs: List[int] = []
+        dispatchEIDs: List[int] = []
+        indirectEIDs: List[int] = []
+        multiEIDs: List[int] = []
+        indirectCountEIDs: List[int] = []
+        submitEIDs: List[int] = []
+        waitFencesEIDs: List[int] = []
+        resetFencesEIDs: List[int] = []
+        descSetDrawEIDs: List[int] = []
+        descBufferDrawEIDs: List[int] = []
 
         markerGraphicsDescriptorSet = 0
         markerGraphicsSecondaryCommandBuffer = 0
@@ -162,7 +165,7 @@ class VK_Resource_Usage(rdtest.TestCase):
 
         with rdtest.log.auto_section("Checking Resource Usage"):
             for res in resources:
-                expectedUsage = []
+                expectedUsage: List[Tuple[int,rd.ResourceUsage]] = []
                 if res.type == rd.ResourceType.Device:
                     expectedUsage = [(0,rd.ResourceUsage.Unused)]
                 elif res.type == rd.ResourceType.Queue:

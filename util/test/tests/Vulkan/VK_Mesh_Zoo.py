@@ -1,3 +1,5 @@
+from typing import List, Tuple
+
 import rdtest
 import struct
 import renderdoc as rd
@@ -11,16 +13,18 @@ class VK_Mesh_Zoo(rdtest.TestCase):
         self.zoo_helper = rdtest.Mesh_Zoo()
 
     def check_capture(self):
+        assert self.controller is not None
         self.zoo_helper.check_capture(self.capture_filename, self.controller)
 
         xfbDraw = self.find_action("XFB")
 
         if xfbDraw is not None:
+            assert xfbDraw.nextAction is not None
             self.controller.SetFrameEvent(xfbDraw.nextAction.eventId, False)
 
             postgs_data = self.get_postvs(xfbDraw.nextAction, rd.MeshDataStage.GSOut, 0, 4)
 
-            postgs_ref = {
+            postgs_ref: rdtest.MeshReference = {
                 0: {
                     'vtx': 0,
                     'idx': 0,
@@ -57,7 +61,7 @@ class VK_Mesh_Zoo(rdtest.TestCase):
 
             xfb = self.controller.GetVulkanPipelineState().transformFeedback
 
-            bufs = []
+            bufs: List[Tuple[float,...]] = []
             for i, fmt in enumerate(['8f', '4f', '24f']):
                 xfbBuf = xfb.buffers[i]
                 bufs.append(struct.unpack_from(fmt,

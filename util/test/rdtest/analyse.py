@@ -1,14 +1,13 @@
+from __future__ import annotations
 import struct
-from typing import List
-from typing import Tuple
-import renderdoc
+from typing import Dict, List, Tuple, Union
+import renderdoc as rd
 from . import util
 
-# Alias for convenience - we need to import as-is so types don't get confused
-rd = renderdoc
 
-
-def open_capture(filename="", cap: rd.CaptureFile=None, opts: rd.ReplayOptions=None):
+def open_capture(
+    filename="", cap: rd.CaptureFile | None = None, opts: rd.ReplayOptions | None = None
+):
     """
     Opens a capture file and begins a replay.
 
@@ -38,7 +37,7 @@ def open_capture(filename="", cap: rd.CaptureFile=None, opts: rd.ReplayOptions=N
             result = cap.OpenFile(filename, '', None)
 
             # Make sure the file opened successfully
-            if result != rd.ResultCode.Succeeded:
+            if not result:
                 cap.Shutdown()
                 raise RuntimeError(f"Couldn't open '{filename}': {result!s}")
 
@@ -56,19 +55,19 @@ def open_capture(filename="", cap: rd.CaptureFile=None, opts: rd.ReplayOptions=N
 
         result, controller = util.get_remote_server().OpenCapture(rd.RemoteServer.NoPreference,
                                                                   filename, opts, None)
-        if result == rd.ResultCode.Succeeded:
+        if result:
             api = util.get_remote_server().remote.DriverName()
 
     if own_cap:
         cap.Shutdown()
 
-    if result != rd.ResultCode.Succeeded:
+    if not result:
         raise RuntimeError(f"Couldn't initialise replay for {api}: {result!s}")
 
     return controller
 
 
-def fetch_indices(controller: rd.ReplayController, action: rd.ActionDescription, mesh: rd.MeshFormat, index_offset: int, first_index: int, num_indices: int):
+def fetch_indices(controller: rd.ReplayController, action: rd.ActionDescription, mesh: rd.MeshFormat, index_offset: int, first_index: int, num_indices: int) -> List[int | None]:
 
     pipe = controller.GetPipelineState()
     restart_idx = pipe.GetRestartIndex() & ((1 << (mesh.indexByteStride*8)) - 1)
@@ -107,7 +106,7 @@ def fetch_indices(controller: rd.ReplayController, action: rd.ActionDescription,
         index_fmt = '=' + str(min([avail_indices, num_indices])) + index_fmt
 
         # Unpack all the indices
-        indices = struct.unpack_from(index_fmt, ibdata)
+        indices: Tuple[int,...] = struct.unpack_from(index_fmt, ibdata)
 
         extra = []
         if avail_indices < num_indices:
@@ -117,7 +116,7 @@ def fetch_indices(controller: rd.ReplayController, action: rd.ActionDescription,
         return [i if restart_enabled and i == restart_idx else i + mesh.baseVertex for i in indices] + extra
     else:
         # With no index buffer, just generate a range
-        return tuple(range(first_index, first_index + num_indices))
+        return list(range(first_index, first_index + num_indices))
 
 
 class MeshAttribute:
@@ -233,7 +232,6 @@ def get_postvs_attrs(controller: rd.ReplayController, mesh: rd.MeshFormat, data_
 
     return attrs
 
-
 # Unpack a tuple of the given format, from the data
 def unpack_data(fmt: rd.ResourceFormat, data: bytes, data_offset: int):
     # We don't handle 'special' formats - typically bit-packed such as 10:10:10:2
@@ -282,12 +280,15 @@ def unpack_data(fmt: rd.ResourceFormat, data: bytes, data_offset: int):
 
     return value
 
+MeshElementData = Dict[str, Union[util.ScalarOrVectorValue, None]]
+MeshData = List[MeshElementData]
+MeshReference = Dict[int, MeshElementData]
 
-def decode_mesh_data(controller: rd.ReplayController, indices: List[int], display_indices: List[int],
+def decode_mesh_data(controller: rd.ReplayController, indices: List[int | None], display_indices: List[int | None],
                      attrs: List[MeshAttribute], instance: int = 0, indexOffset: int = 0):
-    ret = []
+    ret: MeshData = []
 
-    buffer_ranges = {}
+    buffer_ranges: Dict[rd.ResourceId, Tuple[int,int]] = {}
     for attr in attrs:
         begin = attr.mesh.vertexByteOffset
         end = min(begin + attr.mesh.vertexByteSize, 0xffffffffffffffff)
@@ -304,7 +305,7 @@ def decode_mesh_data(controller: rd.ReplayController, indices: List[int], displa
 
         buffer_ranges[attr.mesh.vertexResourceId] = (begin, end)
 
-    buffer_data = {}
+    buffer_data: Dict[rd.ResourceId, bytes] = {}
     for buf, buf_range in buffer_ranges.items():
         buffer_data[buf] = controller.GetBufferData(buf, buf_range[0], buf_range[1] - buf_range[0])
 
@@ -315,7 +316,7 @@ def decode_mesh_data(controller: rd.ReplayController, indices: List[int], displa
                               ((1 << (attrs[0].mesh.indexByteStride*8)) - 1))
 
     for i,idx in enumerate(indices):
-        vertex = {'vtx': i, 'idx': display_indices[i]}
+        vertex: MeshElementData = {'vtx': i, 'idx': display_indices[i]}
 
         if striprestart_index is None or idx != striprestart_index:
             for attr in attrs:
@@ -337,7 +338,7 @@ def decode_mesh_data(controller: rd.ReplayController, indices: List[int], displa
 
     return ret
 
-def str_vartype(t: rd.VarType) -> str:
+def str_vartype(t: rd.VarType):
     if t == rd.VarType.Bool:
         return "Bool"
     elif t == rd.VarType.ConstantBlock:
@@ -426,7 +427,7 @@ def shadervariable_equal(a: rd.ShaderVariable, b : rd.ShaderVariable) -> Tuple[b
 
     return (True, "")
 
-def get_event_parameters_text(chunk: rd.SDChunk):
+def get_event_parameters_text(chunk: rd.SDObject) -> str:
     parameters = ""
     if chunk.type.basetype == rd.SDBasic.SignedInteger:
         parameters += str(chunk.AsInt())
@@ -441,6 +442,7 @@ def get_event_parameters_text(chunk: rd.SDChunk):
     first = True
     for i in range(chunk.NumChildren()):
         child = chunk.GetChild(i)
+        assert child is not None # always true because i is in range
         if not onlyImportant or child.type.flags & rd.SDTypeFlags.Important != 0:
             if not first:
                 parameters += ", "

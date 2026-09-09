@@ -1,3 +1,5 @@
+from typing import List
+
 import renderdoc as rd
 import rdtest
 import struct
@@ -19,7 +21,7 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
 
                 # Should have barycentrics showing the closest vertex for each pixel in the triangle
                 # Without relying on barycentric order, ensure that the three pixels are red, green, and blue
-                pixels = []
+                pixels: List[rdtest.VectorValue] = []
 
                 x = int(vp.x + vp.width * 0.5)
                 y = int(vp.y + vp.height * 0.5)

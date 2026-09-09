@@ -1,5 +1,6 @@
+from typing import List
+
 import rdtest
-import renderdoc as rd
 
 
 class GL_Entry_Points(rdtest.TestCase):
@@ -21,7 +22,7 @@ class GL_Entry_Points(rdtest.TestCase):
                 raise rdtest.TestFailureException(f'Failed to find action {test}')
             action = marker.nextAction
 
-            calls = []
+            calls: List[str] = []
 
             for ev in action.events:
                 # skip any events up to and including the marker itself

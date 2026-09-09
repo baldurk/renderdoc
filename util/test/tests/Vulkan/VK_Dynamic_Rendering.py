@@ -1,4 +1,3 @@
-import copy
 import rdtest
 import renderdoc as rd
 
@@ -20,7 +19,7 @@ class VK_Dynamic_Rendering(rdtest.TestCase):
 
             postgs_data = self.get_postvs(action, rd.MeshDataStage.GSOut, 0, action.numIndices)
 
-            postgs_ref = {
+            postgs_ref: rdtest.MeshReference = {
                 0: {
                     'vtx': 0,
                     'idx': 0,

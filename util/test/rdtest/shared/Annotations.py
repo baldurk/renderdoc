@@ -1,3 +1,6 @@
+from __future__ import annotations
+from typing import Callable
+
 import renderdoc as rd
 import rdtest
 
@@ -7,7 +10,7 @@ class Annotations(rdtest.TestCase):
     internal = True
 
     def check_resource_annotations(self):
-        annot = lambda x: annots.FindChildByKeyPath(x)
+        annot: Callable[[str], rd.SDObject | None] = lambda x: annots.FindChildByKeyPath(x)
 
         with rdtest.log.auto_section('Resource annotations'):
             res = self.get_resource_by_name('Annotated Image')
@@ -67,7 +70,7 @@ class Annotations(rdtest.TestCase):
             assert annot("path.deleted") is None
 
     def check_command_annotations(self, cmd_buffers: bool):
-        annot = lambda x: annots.FindChildByKeyPath(x)
+        annot: Callable[[str], rd.SDObject | None] = lambda x: annots.FindChildByKeyPath(x)
 
         with rdtest.log.auto_section('Event annotations'):
             action = self.find_action("Start")

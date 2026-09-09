@@ -1,7 +1,5 @@
-import copy
 import rdtest
 import renderdoc as rd
-from typing import Tuple
 
 
 class D3D11_Shader_Editing(rdtest.TestCase):

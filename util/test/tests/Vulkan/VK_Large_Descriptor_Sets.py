@@ -1,6 +1,4 @@
 import renderdoc as rd
-import os
-import datetime
 import rdtest
 
 

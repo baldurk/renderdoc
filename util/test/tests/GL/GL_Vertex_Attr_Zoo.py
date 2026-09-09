@@ -13,7 +13,7 @@ class GL_Vertex_Attr_Zoo(rdtest.TestCase):
 
         self.controller.SetFrameEvent(action.eventId, False)
 
-        ref = {
+        ref: rdtest.MeshReference = {
             0: {
                 'SNorm': [1.0, -1.0, 1.0, -1.0],
                 'UNorm': [12345.0/65535.0, 6789.0/65535.0, 1234.0/65535.0, 567.0/65535.0],
@@ -50,14 +50,14 @@ class GL_Vertex_Attr_Zoo(rdtest.TestCase):
         }
 
         # Copy the ref values and prepend 'In'
-        in_ref = {}
+        in_ref: rdtest.MeshReference = {}
         for idx in ref:
             in_ref[idx] = {}
             for key in ref[idx]:
                 in_ref[idx]['In' + key] = ref[idx][key]
 
         # Copy the ref values and prepend 'Out'
-        out_ref = {}
+        out_ref: rdtest.MeshReference = {}
         for idx in ref:
             out_ref[idx] = {}
             for key in ref[idx]:
