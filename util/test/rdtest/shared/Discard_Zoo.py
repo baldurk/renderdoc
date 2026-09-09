@@ -28,9 +28,7 @@ class Discard_Zoo(rdtest.TestCase):
         props = self.controller.GetAPIProperties()
         gl = (props.pipelineType == rd.GraphicsAPI.OpenGL)
 
-        name = '{} - {}x{} {} mip {} slice {}x MSAA {} format texture'.format(res.name, tex.width, tex.height,
-                                                                              tex.mips, tex.arraysize,
-                                                                              tex.msSamp, tex.format.Name())
+        name = f'{res.name} - {tex.width}x{tex.height} {tex.mips} mip {tex.arraysize} slice {tex.msSamp}x MSAA {tex.format.Name()} format texture'
 
         minval = 0.0
         maxval = 1000.0
@@ -114,8 +112,7 @@ class Discard_Zoo(rdtest.TestCase):
 
                             if self.check_val(picked, minval, fmt) or self.check_val(picked, maxval, fmt):
                                 raise rdtest.TestFailureException(
-                                    '{} has unexpected value at {},{}: {}'.format(name, x, y,
-                                                                                  picked.floatValue))
+                                    f'{name} has unexpected value at {x},{y}: {picked.floatValue}')
 
                     if sub_discarded:
                         seen = [False, False]
@@ -140,8 +137,7 @@ class Discard_Zoo(rdtest.TestCase):
 
                             if not is_min and not is_max:
                                 raise rdtest.TestFailureException(
-                                    '{} has unexpected value at {},{}: {}'.format(name, x, y,
-                                                                                  picked.floatValue))
+                                    f'{name} has unexpected value at {x},{y}: {picked.floatValue}')
 
                             if is_min:
                                 seen[0] = True
@@ -169,8 +165,7 @@ class Discard_Zoo(rdtest.TestCase):
 
                                 if not is_min and not is_max:
                                     raise rdtest.TestFailureException(
-                                        '{} has unexpected value at {},{}: {}'.format(name, x, y,
-                                                                                      picked.floatValue))
+                                        f'{name} has unexpected value at {x},{y}: {picked.floatValue}')
 
                                 if is_min:
                                     seen[0] = True
@@ -180,9 +175,9 @@ class Discard_Zoo(rdtest.TestCase):
                         # We also expect to have seen both colours. That means if we only saw black for example then we
                         # fail
                         if not seen[0] or not seen[1]:
-                            raise rdtest.TestFailureException('{} doesn\'t contain expected pattern'.format(name))
+                            raise rdtest.TestFailureException(f'{name} doesn\'t contain expected pattern')
 
-        rdtest.log.success('{} is OK {} discarding'.format(name, "after" if discarded else "before"))
+        rdtest.log.success(f"{name} is OK {'after' if discarded else 'before'} discarding")
 
     def check_textures(self):
         action = self.find_action("TestStart")

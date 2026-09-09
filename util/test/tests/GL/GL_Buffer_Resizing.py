@@ -53,4 +53,4 @@ class GL_Buffer_Resizing(rdtest.TestCase):
             self.check_mesh_data(postvs_ref, postvs_data)
 
             idx = idx + 1
-            rdtest.log.success('Draw {} at {} is correct'.format(idx, action.eventId))
+            rdtest.log.success(f'Draw {idx} at {action.eventId} is correct')

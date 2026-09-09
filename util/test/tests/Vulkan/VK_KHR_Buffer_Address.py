@@ -13,20 +13,20 @@ class VK_KHR_Buffer_Address(rdtest.TestCase):
         y = 150
 
         for test_name in ["Draw 1", "Draw 2", "Draw 3", "Draw 4"]:
-            rdtest.log.print("Test {}".format(test_name))
+            rdtest.log.print(f"Test {test_name}")
             action = self.find_action(test_name)
             action = action.nextAction
             self.controller.SetFrameEvent(action.eventId, True)
             pipe = self.controller.GetPipelineState()
 
             if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
-                raise rdtest.TestFailureException("Test {} shader can not be debugged".format(test_name))
+                raise rdtest.TestFailureException(f"Test {test_name} shader can not be debugged")
 
             # Debug the pixel shader
             trace = self.controller.DebugPixel(x, y, rd.DebugPixelInputs())
             if trace.debugger is None:
                 self.controller.FreeTrace(trace)
-                raise rdtest.TestFailureException("Test {} did not debug at all".format(test_name))
+                raise rdtest.TestFailureException(f"Test {test_name} did not debug at all")
 
             cycles, variables = self.process_trace(trace)
             output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)

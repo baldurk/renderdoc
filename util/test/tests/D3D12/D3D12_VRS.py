@@ -93,4 +93,4 @@ class D3D12_VRS(rdtest.TestCase):
                 assert self.get_shading_rates() == ("2x2", "2x2"), f"{action.customName} shading rates unexpected: {self.get_shading_rates()}"
                 num_checks += 1
 
-            rdtest.log.success("{}pass: Shading rates were as expected in {} test cases".format(pass_name, num_checks))
+            rdtest.log.success(f"{pass_name}pass: Shading rates were as expected in {num_checks} test cases")

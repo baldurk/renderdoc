@@ -54,7 +54,7 @@ if args.pyrenderdoc is not None:
     elif os.path.isdir(args.pyrenderdoc):
         custom_pyrenderdoc = os.path.abspath(args.pyrenderdoc)
     else:
-        raise RuntimeError("'{}' is not a valid path to the pyrenderdoc module".format(args.pyrenderdoc))
+        raise RuntimeError(f"'{args.pyrenderdoc}' is not a valid path to the pyrenderdoc module")
 
 if args.renderdoc is not None:
     if os.path.isfile(args.renderdoc):
@@ -62,7 +62,7 @@ if args.renderdoc is not None:
     elif os.path.isdir(args.renderdoc):
         renderdoc_dirpath = os.path.abspath(args.renderdoc)
     else:
-        raise RuntimeError("'{}' is not a valid path to the renderdoc library".format(args.renderdoc))
+        raise RuntimeError(f"'{args.renderdoc}' is not a valid path to the renderdoc library")
     os.environ["PATH"] += os.pathsep + renderdoc_dirpath
     # Python 3.8 doesn't search PATH so add it to the DLL search path
     if sys.platform == 'win32' and sys.version_info[1] >= 8:
@@ -107,7 +107,7 @@ except (ModuleNotFoundError, ImportError) as ex:
     os.makedirs(artifacts_dir, exist_ok=True)
 
     with open(os.path.join(artifacts_dir, 'output.log.html'), "w") as f:
-        f.write("<body><h1>Failed to import rdtest: {}</h1></body>".format(ex))
+        f.write(f"<body><h1>Failed to import rdtest: {ex}</h1></body>")
 
     print("Couldn't import renderdoc module. Try specifying path to python module with --pyrenderdoc " +
           "or the path to the native library with --renderdoc")
@@ -119,7 +119,7 @@ from tests import *
 
 if args.list:
     for test in rdtest.get_tests():
-        print("Test: {}".format(test.__name__))
+        print(f"Test: {test.__name__}")
     sys.exit(0)
 
 rdtest.set_root_dir(os.path.realpath(os.path.dirname(__file__)))

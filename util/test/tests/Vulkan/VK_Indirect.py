@@ -309,7 +309,7 @@ class VK_Indirect(rdtest.TestCase):
                                 raise rdtest.TestFailureException(f"EID {eid} {overlay.name} {x}, {y} {picked.floatValue} is not as expected {emptyPixel}")
                         if expectEmpty != empty:
                             raise rdtest.TestFailureException(f"EID {eid} {overlay.name} is not as expected")
-                        
+
                         out.Shutdown()
 
     def check_capture(self):
@@ -333,11 +333,11 @@ class VK_Indirect(rdtest.TestCase):
         tex = self.get_last_action().copyDestination
 
         for level in ["Primary", "Secondary"]:
-            rdtest.log.print("Checking {} indirect calls".format(level))
+            rdtest.log.print(f"Checking {level} indirect calls")
 
-            final = self.find_action("{}: Final".format(level))
+            final = self.find_action(f"{level}: Final")
 
-            indirect_count_root = self.find_action("{}: KHR_draw_indirect_count".format(level))
+            indirect_count_root = self.find_action(f"{level}: KHR_draw_indirect_count")
 
             self.controller.SetFrameEvent(final.eventId, False)
 
@@ -358,7 +358,7 @@ class VK_Indirect(rdtest.TestCase):
                 self.check_pixel_value(tex, 340, 115, [1.0, 0.5, 0.5, 1.0])
                 self.check_pixel_value(tex, 340, 190, [1.0, 0.0, 0.5, 1.0])
 
-            dispatches = self.find_action("{}: Dispatches".format(level))
+            dispatches = self.find_action(f"{level}: Dispatches")
 
             # Set up a ReplayOutput and TextureSave for quickly testing the action highlight overlay
             self.out = self.controller.CreateOutput(
@@ -377,7 +377,7 @@ class VK_Indirect(rdtest.TestCase):
                 self.controller.SetFrameEvent(action.eventId, False)
                 action = action.nextAction
 
-            rdtest.log.success("Selected all {} actions".format(level))
+            rdtest.log.success(f"Selected all {level} actions")
 
             assert dispatches and len(real_action_children(dispatches)) == 3
 
@@ -385,7 +385,7 @@ class VK_Indirect(rdtest.TestCase):
             assert dispatches.children[1].dispatchDimension == (1, 1, 1)
             assert dispatches.children[2].dispatchDimension == (3, 4, 5)
 
-            rdtest.log.success("{} Indirect dispatches are the correct dimensions".format(level))
+            rdtest.log.success(f"{level} Indirect dispatches are the correct dimensions")
 
             self.controller.SetFrameEvent(dispatches.children[2].eventId, False)
 
@@ -394,7 +394,7 @@ class VK_Indirect(rdtest.TestCase):
             ssbo = pipe.GetReadWriteResources(rd.ShaderStage.Compute)[0].descriptor
             data = self.controller.GetBufferData(ssbo.resource, 0, 0)
 
-            rdtest.log.print("Got {} bytes of uints".format(len(data)))
+            rdtest.log.print(f"Got {len(data)} bytes of uints")
 
             uints = [struct.unpack_from('=4L', data, offs) for offs in range(0, len(data), 16)]
 
@@ -404,12 +404,11 @@ class VK_Indirect(rdtest.TestCase):
                         idx = 100 + z*8*6 + y*6 + x
                         if not rdtest.value_compare(uints[idx], [x, y, z, 12345]):
                             raise rdtest.TestFailureException(
-                                'expected thread index data @ {},{},{}: {} is not as expected: {}'
-                                    .format(x, y, z, uints[idx], [x, y, z, 12345]))
+                                f'expected thread index data @ {x},{y},{z}: {uints[idx]} is not as expected: {[x, y, z, 12345]}')
 
-            rdtest.log.success("Dispatched buffer contents are as expected for {}".format(level))
+            rdtest.log.success(f"Dispatched buffer contents are as expected for {level}")
 
-            empties = self.find_action("{}: Empty draws".format(level))
+            empties = self.find_action(f"{level}: Empty draws")
 
             assert empties and len(real_action_children(empties)) == 2
 
@@ -426,15 +425,15 @@ class VK_Indirect(rdtest.TestCase):
                 # No samples should be passing in the empties
                 self.check_overlay([])
 
-            rdtest.log.success("{} empty actions are empty".format(level))
+            rdtest.log.success(f"{level} empty actions are empty")
 
-            indirects = self.find_action("{}: Indirect draws".format(level))
+            indirects = self.find_action(f"{level}: Indirect draws")
 
             assert 'vkCmdDrawIndirect' in indirects.children[0].customName
             assert 'vkCmdDrawIndexedIndirect' in indirects.children[1].customName
             assert len(real_action_children(indirects.children[1])) == 2
 
-            rdtest.log.success("Correct number of {} indirect draws".format(level))
+            rdtest.log.success(f"Correct number of {level} indirect draws")
 
             # vkCmdDrawIndirect(...)
             action = indirects.children[0]
@@ -459,7 +458,7 @@ class VK_Indirect(rdtest.TestCase):
 
             self.check_overlay([(60, 40)])
 
-            rdtest.log.success("{} {} is as expected".format(level, action.customName))
+            rdtest.log.success(f"{level} {action.customName} is as expected")
 
             assert rd.ResourceUsage.Indirect in buffer_usage[indirects.children[1].eventId]
 
@@ -486,7 +485,7 @@ class VK_Indirect(rdtest.TestCase):
 
             self.check_overlay([(100, 40)])
 
-            rdtest.log.success("{} {} is as expected".format(level, action.customName))
+            rdtest.log.success(f"{level} {action.customName} is as expected")
 
             # vkCmdDrawIndexedIndirect[1](...)
             action = indirects.children[1].children[1]
@@ -513,7 +512,7 @@ class VK_Indirect(rdtest.TestCase):
 
             self.check_overlay([(140, 40), (200, 40)])
 
-            rdtest.log.success("{} {} is as expected".format(level, action.customName))
+            rdtest.log.success(f"{level} {action.customName} is as expected")
 
             if indirect_count_root is not None:
                 rdtest.log.print(f"Testing {indirect_count_root.customName}")
@@ -567,7 +566,7 @@ class VK_Indirect(rdtest.TestCase):
 
                 self.check_overlay([(60, 190)])
 
-                rdtest.log.success("{} {} is as expected".format(level, action.customName))
+                rdtest.log.success(f"{level} {action.customName} is as expected")
 
                 # vkCmdDrawIndexedIndirectCountKHR
                 action_indirect = indirect_count_root.children[1].children[1]
@@ -597,7 +596,7 @@ class VK_Indirect(rdtest.TestCase):
 
                 self.check_overlay([(100, 190)])
 
-                rdtest.log.success("{} {} is as expected".format(level, action.customName))
+                rdtest.log.success(f"{level} {action.customName} is as expected")
 
                 # vkCmdDrawIndirectCountKHR[1]
                 action = action_indirect.children[1]
@@ -612,7 +611,7 @@ class VK_Indirect(rdtest.TestCase):
 
                 self.check_overlay([])
 
-                rdtest.log.success("{} {} is as expected".format(level, action.customName))
+                rdtest.log.success(f"{level} {action.customName} is as expected")
 
                 # vkCmdDrawIndirectCountKHR[2]
                 action = action_indirect.children[2]
@@ -641,14 +640,14 @@ class VK_Indirect(rdtest.TestCase):
 
                 self.check_overlay([(140, 190), (200, 190)])
 
-                rdtest.log.success("{} {} is as expected".format(level, action.customName))
+                rdtest.log.success(f"{level} {action.customName} is as expected")
 
                 # Now check that the draws post-count are correctly highlighted
-                self.controller.SetFrameEvent(self.find_action("{}: Post-count 1".format(level)).children[0].eventId, False)
+                self.controller.SetFrameEvent(self.find_action(f"{level}: Post-count 1").children[0].eventId, False)
                 self.check_overlay([(340, 40)])
-                self.controller.SetFrameEvent(self.find_action("{}: Post-count 2".format(level)).children[0].eventId, False)
+                self.controller.SetFrameEvent(self.find_action(f"{level}: Post-count 2").children[0].eventId, False)
                 self.check_overlay([(340, 190)])
-                self.controller.SetFrameEvent(self.find_action("{}: Post-count 3".format(level)).children[0].eventId, False)
+                self.controller.SetFrameEvent(self.find_action(f"{level}: Post-count 3").children[0].eventId, False)
                 self.check_overlay([(340, 115)])
             else:
                 rdtest.log.print("KHR_draw_indirect_count not tested")

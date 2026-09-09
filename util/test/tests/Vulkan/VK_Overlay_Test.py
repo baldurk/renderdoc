@@ -62,7 +62,7 @@ class VK_Overlay_Test(rdtest.Overlay_Test):
             if overlay == rd.DebugOverlay.ClearBeforeDraw or overlay == rd.DebugOverlay.ClearBeforePass:
                 continue
 
-            rdtest.log.success("Checking overlay {} with rasterizer discard".format(str(overlay)))
+            rdtest.log.success(f"Checking overlay {overlay!s} with rasterizer discard")
 
             tex.overlay = overlay
             out.SetTextureDisplay(tex)
@@ -71,6 +71,6 @@ class VK_Overlay_Test(rdtest.Overlay_Test):
 
             overlay_id = out.GetDebugOverlayTexID()
 
-            rdtest.log.success("Overlay {} rendered with rasterizer discard".format(str(overlay)))
+            rdtest.log.success(f"Overlay {overlay!s} rendered with rasterizer discard")
 
         out.Shutdown()

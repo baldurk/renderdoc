@@ -18,7 +18,7 @@ class GL_Entry_Points(rdtest.TestCase):
         for test in expected.keys():
             marker = self.find_action(test)
             if marker is None:
-                raise rdtest.TestFailureException('Failed to find action {}'.format(test))
+                raise rdtest.TestFailureException(f'Failed to find action {test}')
             action = marker.nextAction
 
             calls = []
@@ -32,8 +32,7 @@ class GL_Entry_Points(rdtest.TestCase):
 
             for i in range(len(expected[test])):
                 if expected[test][i] != calls[i]:
-                    raise rdtest.TestFailureException('After marker {} got call {} but expected {}'
-                                                      .format(test, calls[i], expected[test][i]))
+                    raise rdtest.TestFailureException(f'After marker {test} got call {calls[i]} but expected {expected[test][i]}')
 
         rdtest.log.success("API calls are as expected")
 

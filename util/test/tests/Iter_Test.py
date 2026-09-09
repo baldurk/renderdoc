@@ -48,7 +48,7 @@ class Iter_Test(rdtest.TestCase):
         texsave.mip = depth.firstMip
         self.save_texture(texsave)
 
-        rdtest.log.success('Successfully saved images at {}'.format(action.eventId))
+        rdtest.log.success(f'Successfully saved images at {action.eventId}')
 
     def compute_debug(self, action: rd.ActionDescription):
         pipe = self.controller.GetPipelineState()
@@ -102,11 +102,11 @@ class Iter_Test(rdtest.TestCase):
         refl = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
 
         if pipe.GetShader(rd.ShaderStage.Vertex) == rd.ResourceId.Null():
-            rdtest.log.print("No vertex shader bound at {}".format(action.eventId))
+            rdtest.log.print(f"No vertex shader bound at {action.eventId}")
             return
 
         if not (action.flags & rd.ActionFlags.Drawcall) and action.drawIndex == 0:
-            rdtest.log.print("{} is not a debuggable action".format(action.eventId))
+            rdtest.log.print(f"{action.eventId} is not a debuggable action")
             return
 
         vtx = int(random.random()*action.numIndices)
@@ -157,22 +157,22 @@ class Iter_Test(rdtest.TestCase):
         try:
             self.check_vertex_debug(vtx, idx, inst, postvs, eps=5.0E-06, single_postvs=True, ignore_uninit=True)
         except rdtest.TestFailureException as err:
-            rdtest.log.error(f"Error debugging: {err.message}")
+            rdtest.log.error(f"Error debugging at EID {action.eventId}: {err.message}")
             return
 
     def pixel_debug(self, action: rd.ActionDescription):
         pipe = self.controller.GetPipelineState()
 
         if pipe.GetShader(rd.ShaderStage.Pixel) == rd.ResourceId.Null():
-            rdtest.log.print("No pixel shader bound at {}".format(action.eventId))
+            rdtest.log.print(f"No pixel shader bound at {action.eventId}")
             return
 
         if len(pipe.GetOutputTargets()) == 0 and pipe.GetDepthTarget().resource == rd.ResourceId.Null():
-            rdtest.log.print("No render targets bound at {}".format(action.eventId))
+            rdtest.log.print(f"No render targets bound at {action.eventId}")
             return
 
         if not (action.flags & rd.ActionFlags.Drawcall):
-            rdtest.log.print("{} is not a debuggable action".format(action.eventId))
+            rdtest.log.print(f"{action.eventId} is not a debuggable action")
             return
 
         viewport = pipe.GetViewport(0)
@@ -187,7 +187,7 @@ class Iter_Test(rdtest.TestCase):
 
         if len(pipe.GetOutputTargets()) > 0:
             valid_targets = [o.resource for o in pipe.GetOutputTargets() if o.resource != rd.ResourceId.Null()]
-            rdtest.log.print("Valid targets at {} are {}".format(action.eventId, valid_targets))
+            rdtest.log.print(f"Valid targets at {action.eventId} are {valid_targets}")
             if len(valid_targets) > 0:
                 target = valid_targets[int(random.random()*len(valid_targets))]
 
@@ -195,7 +195,7 @@ class Iter_Test(rdtest.TestCase):
             target = pipe.GetDepthTarget().resource
 
         if target == rd.ResourceId.Null():
-            rdtest.log.print("No targets bound! Can't fetch history at {}".format(action.eventId))
+            rdtest.log.print(f"No targets bound! Can't fetch history at {action.eventId}")
             return
 
         rdtest.log.print("Fetching history for %d,%d on target %s" % (x, y, str(target)))
@@ -251,13 +251,13 @@ class Iter_Test(rdtest.TestCase):
             return
 
         if lastmod is not None:
-            rdtest.log.print("Debugging pixel {},{} @ {}, primitive {}".format(x, y, lastmod.eventId, lastmod.primitiveID))
+            rdtest.log.print(f"Debugging pixel {x},{y} @ {lastmod.eventId}, primitive {lastmod.primitiveID}")
             self.controller.SetFrameEvent(lastmod.eventId, True)
 
             pipe = self.controller.GetPipelineState()
 
             if pipe.GetShader(rd.ShaderStage.Pixel) == rd.ResourceId.Null():
-                rdtest.log.print("Nothing to debug. No pixel shader bound at {}".format(action.eventId))
+                rdtest.log.print(f"Nothing to debug. No pixel shader bound at {action.eventId}")
                 return
 
             inputs = rd.DebugPixelInputs()
@@ -280,16 +280,16 @@ class Iter_Test(rdtest.TestCase):
             output_index = [o.resource for o in pipe.GetOutputTargets()].index(target)
 
             if action.outputs[0] == rd.ResourceId.Null():
-                rdtest.log.success('Successfully debugged pixel in {} cycles, skipping result check due to no output'.format(cycles))
+                rdtest.log.success(f'Successfully debugged pixel in {cycles} cycles, skipping result check due to no output')
                 self.controller.FreeTrace(trace)
             elif (action.flags & rd.ActionFlags.Instanced) and action.numInstances > 1:
-                rdtest.log.success('Successfully debugged pixel in {} cycles, skipping result check due to instancing'.format(cycles))
+                rdtest.log.success(f'Successfully debugged pixel in {cycles} cycles, skipping result check due to instancing')
                 self.controller.FreeTrace(trace)
             elif pipe.GetColorBlends()[output_index].writeMask == 0:
-                rdtest.log.success('Successfully debugged pixel in {} cycles, skipping result check due to write mask'.format(cycles))
+                rdtest.log.success(f'Successfully debugged pixel in {cycles} cycles, skipping result check due to write mask')
                 self.controller.FreeTrace(trace)
             else:
-                rdtest.log.print("At event {} the target is index {}".format(lastmod.eventId, output_index))
+                rdtest.log.print(f"At event {lastmod.eventId} the target is index {output_index}")
 
                 output_sourcevar = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, output_index)
 
@@ -319,13 +319,12 @@ class Iter_Test(rdtest.TestCase):
                     is_eq, diff_amt = rdtest.value_compare_diff(historyValue, debuggedValue, eps=5.0E-06)
                     if not is_eq:
                         rdtest.log.error(
-                            "Debugged value {} at EID {} {},{}: {} difference. {} doesn't exactly match history shader output {}".format(
-                                debugged.name, lastmod.eventId, x, y, diff_amt, debuggedValue, historyValue))
+                            f"Debugged value {debugged.name} at EID {lastmod.eventId} {x},{y}: {diff_amt} difference. {debuggedValue} doesn't exactly match history shader output {historyValue}")
 
-                    rdtest.log.success('Successfully debugged pixel in {} cycles, result matches'.format(cycles))
+                    rdtest.log.success(f'Successfully debugged pixel in {cycles} cycles, result matches')
                 else:
                     # This could be an application error - undefined but seen in the wild
-                    rdtest.log.error("At EID {} No output variable declared for index {}".format(lastmod.eventId, output_index))
+                    rdtest.log.error(f"At EID {lastmod.eventId} No output variable declared for index {output_index}")
 
             self.controller.SetFrameEvent(action.eventId, True)
 
@@ -339,11 +338,11 @@ class Iter_Test(rdtest.TestCase):
         pipe = self.controller.GetPipelineState()
 
         if len(pipe.GetOutputTargets()) == 0 and pipe.GetDepthTarget().resource == rd.ResourceId.Null():
-            rdtest.log.print("No render targets bound at {}".format(action.eventId))
+            rdtest.log.print(f"No render targets bound at {action.eventId}")
             return
 
         if not (action.flags & rd.ActionFlags.Drawcall):
-            rdtest.log.print("{} is not a drawcall".format(action.eventId))
+            rdtest.log.print(f"{action.eventId} is not a drawcall")
             return
 
         tex = rd.TextureDisplay()
@@ -396,7 +395,7 @@ class Iter_Test(rdtest.TestCase):
         self.texout = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
 
         while action:
-            rdtest.log.print("{}/{}".format(action.eventId, last_action.eventId))
+            rdtest.log.print(f"{action.eventId}/{last_action.eventId}")
 
             self.controller.SetFrameEvent(action.eventId, False)
 
@@ -409,8 +408,8 @@ class Iter_Test(rdtest.TestCase):
                 for event_test in event_tests:
                     chance = event_tests[event_test]['chance']
                     if c < chance or chance == 0.0:
-                        rdtest.log.print("Performing test '{}' on event {}".format(event_test, action.eventId))
                         event_tests[event_test]['func'](action)
+                        rdtest.log.print(f"Performing test '{event_test}' on event {action.eventId}")
                         break
                     else:
                         c -= chance
@@ -436,15 +435,15 @@ class Iter_Test(rdtest.TestCase):
 
             self.filename = file.name
 
-            rdtest.log.print("Opening '{}'.".format(file.name))
+            rdtest.log.print(f"Opening '{file.name}'.")
 
             try:
                 self.controller = rdtest.open_capture(file.path)
             except RuntimeError as err:
-                rdtest.log.print("Skipping. Can't open {}: {}".format(file.path, err))
+                rdtest.log.print(f"Skipping. Can't open {file.path}: {err}")
                 continue
 
-            section_name = 'Iterating {}'.format(file.name)
+            section_name = f'Iterating {file.name}'
             if not self.validate_eventids(self.controller):
                 raise rdtest.TestFailureException("ERROR: capture doesn't have valid event IDs.")
 

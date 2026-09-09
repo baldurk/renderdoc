@@ -23,13 +23,13 @@ class VK_Synchronization_2(rdtest.TestCase):
             res = self.get_resource(img.resourceId)
             if res.name == "Image:Preinitialised":
                 if img.layouts[0].name != "VK_IMAGE_LAYOUT_PREINITIALIZED":
-                    raise rdtest.TestFailureException("Pre-initialised image is in {} layout".format(img.layouts[0].name))
+                    raise rdtest.TestFailureException(f"Pre-initialised image is in {img.layouts[0].name} layout")
             elif res.name == "Image:Undefined":
                 if img.layouts[0].name != "VK_IMAGE_LAYOUT_UNDEFINED":
-                    raise rdtest.TestFailureException("Undefined image is in {} layout".format(img.layouts[0].name))
+                    raise rdtest.TestFailureException(f"Undefined image is in {img.layouts[0].name} layout")
             elif res.name == "Image:Swapchain":
                 if img.layouts[0].name != "VK_IMAGE_LAYOUT_PRESENT_SRC_KHR":
-                    raise rdtest.TestFailureException("Swapchain image is in {} layout".format(img.layouts[0].name))
+                    raise rdtest.TestFailureException(f"Swapchain image is in {img.layouts[0].name} layout")
 
         action = self.find_action("Before Transition")
 
@@ -47,15 +47,15 @@ class VK_Synchronization_2(rdtest.TestCase):
             res = self.get_resource(img.resourceId)
             if res.name == "Image:Preinitialised":
                 if img.layouts[0].name != "VK_IMAGE_LAYOUT_PREINITIALIZED":
-                    raise rdtest.TestFailureException("Pre-initialised image is in {} layout".format(img.layouts[0].name))
+                    raise rdtest.TestFailureException(f"Pre-initialised image is in {img.layouts[0].name} layout")
                 pre_init = img.resourceId
             elif res.name == "Image:Undefined":
                 if img.layouts[0].name != "VK_IMAGE_LAYOUT_UNDEFINED":
-                    raise rdtest.TestFailureException("Undefined image is in {} layout".format(img.layouts[0].name))
+                    raise rdtest.TestFailureException(f"Undefined image is in {img.layouts[0].name} layout")
                 undef_img = img.resourceId
             elif res.name == "Image:Swapchain":
                 if img.layouts[0].name != "VK_IMAGE_LAYOUT_PRESENT_SRC_KHR":
-                    raise rdtest.TestFailureException("Swapchain image is in {} layout".format(img.layouts[0].name))
+                    raise rdtest.TestFailureException(f"Swapchain image is in {img.layouts[0].name} layout")
 
         action = self.find_action("vkCmdDraw")
 
@@ -81,10 +81,10 @@ class VK_Synchronization_2(rdtest.TestCase):
             res = self.get_resource(img.resourceId)
             if res.name == "Image:Preinitialised":
                 if img.layouts[0].name != "VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL":
-                    raise rdtest.TestFailureException("Pre-initialised image is in {} layout".format(img.layouts[0].name))
+                    raise rdtest.TestFailureException(f"Pre-initialised image is in {img.layouts[0].name} layout")
             elif res.name == "Image:Undefined":
                 if img.layouts[0].name != "VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL":
-                    raise rdtest.TestFailureException("Undefined image is in {} layout".format(img.layouts[0].name))
+                    raise rdtest.TestFailureException(f"Undefined image is in {img.layouts[0].name} layout")
             elif img.resourceId == pipe.currentPass.framebuffer.attachments[0].resource:
                 if img.layouts[0].name != "VK_IMAGE_LAYOUT_GENERAL":
-                    raise rdtest.TestFailureException("Rendered swapchain image is in {} layout".format(img.layouts[0].name))
+                    raise rdtest.TestFailureException(f"Rendered swapchain image is in {img.layouts[0].name} layout")

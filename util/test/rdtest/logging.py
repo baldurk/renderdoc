@@ -19,7 +19,7 @@ class TestFailureException(Exception):
         return self.message
 
     def __repr__(self):
-        return "<TestFailureException '{}' with files: {}>".format(self.message, repr(self.files))
+        return f"<TestFailureException '{self.message}' with files: {repr(self.files)}>"
 
 
 class TestLogger:
@@ -71,7 +71,7 @@ class TestLogger:
     def begin_test(self, test_name: str, print_header: bool=True):
         self.test_name = test_name
         if print_header:
-            self.rawprint(">> Test {}".format(test_name))
+            self.rawprint(f">> Test {test_name}")
         self.indent()
 
         self.failed = False
@@ -82,11 +82,11 @@ class TestLogger:
             self.rawprint("$$ FAILED")
         self.dedent()
         if print_footer:
-            self.rawprint("<< Test {}".format(test_name))
+            self.rawprint(f"<< Test {test_name}")
         self.test_name = ''
 
     def begin_section(self, name: str):
-        self.rawprint(">> Section {}".format(name))
+        self.rawprint(f">> Section {name}")
         self.indent()
         self.section_failed = False
         self.logged_exception = False
@@ -95,7 +95,7 @@ class TestLogger:
         if self.section_failed:
             self.rawprint("$$ FAILED")
         self.dedent()
-        self.rawprint("<< Section {}".format(name))
+        self.rawprint(f"<< Section {name}")
 
     def auto_section(self, name: str):
         class ScopedSection():
@@ -114,14 +114,14 @@ class TestLogger:
         return ScopedSection(self, name)
 
     def inline_file(self, name: str, path: str, with_stdout: bool = False):
-        self.rawprint(">> Raw {}".format(name))
+        self.rawprint(f">> Raw {name}")
         self.indent()
         with open(path) as f:
             lines = f.readlines()
             for l in lines:
                 self.rawprint(l.strip(), with_stdout=with_stdout)
         self.dedent()
-        self.rawprint("<< Raw {}".format(name))
+        self.rawprint(f"<< Raw {name}")
 
     def success(self, message):
         self.rawprint("** " + message)
@@ -160,14 +160,14 @@ class TestLogger:
             filename = re.sub('.*site-packages/', 'site-packages/', filename)
             if filename[0] == '/':
                 filename = filename[1:]
-            self.rawprint("    File \"{}\", line {}, in {}".format(filename, frame.lineno, frame.name))
-            self.rawprint("        {}".format(frame.line))
+            self.rawprint(f"    File \"{filename}\", line {frame.lineno}, in {frame.name}")
+            self.rawprint(f"        {frame.line}")
         self.rawprint('<< Callstack')
 
         if isinstance(ex, TestFailureException):
             file_list = []
             for f in ex.files:
-                fname = '{}_{}'.format(self.test_name, os.path.basename(f))
+                fname = f'{self.test_name}_{os.path.basename(f)}'
                 if 'data' in f:
                     ext = fname.rfind('.')
                     if ext > 0:
@@ -189,9 +189,9 @@ class TestLogger:
                     # generated a diff.png. Grab it and include it
                     diff_tmp_file = util.get_tmp_path('diff.png')
                     if os.path.exists(diff_tmp_file):
-                        diff_artifact = '{}_diff.png'.format(self.test_name)
+                        diff_artifact = f'{self.test_name}_diff.png'
                         shutil.move(diff_tmp_file, util.get_artifact_path(diff_artifact))
-                        diff_file = ' ({})'.format(diff_artifact)
+                        diff_file = f' ({diff_artifact})'
 
                 elif 'text' in mime[0] or 'xml' in mime[0]:
                     with open(ex.files[0]) as f:

@@ -11,54 +11,48 @@ class VK_Sample_Locations(rdtest.TestCase):
         pipe = self.controller.GetVulkanPipelineState()
 
         if pipe.multisample.rasterSamples != 4:
-            raise rdtest.TestFailureException("MSAA sample count is {}, not 1".format(pipe.multisample.rasterSamples))
+            raise rdtest.TestFailureException(f"MSAA sample count is {pipe.multisample.rasterSamples}, not 1")
 
         sampleLoc = pipe.multisample.sampleLocations
 
         if sampleLoc.gridWidth != 1:
-            raise rdtest.TestFailureException("Sample locations grid width is {}, not 1".format(sampleLoc.gridWidth))
+            raise rdtest.TestFailureException(f"Sample locations grid width is {sampleLoc.gridWidth}, not 1")
         if sampleLoc.gridHeight != 1:
-            raise rdtest.TestFailureException("Sample locations grid height is {}, not 1".format(sampleLoc.gridHeight))
+            raise rdtest.TestFailureException(f"Sample locations grid height is {sampleLoc.gridHeight}, not 1")
 
         # [0] and [1] should be identical, as should [2] and [3], but they should be different from each other
         if not sampleLoc.customLocations[0] == sampleLoc.customLocations[1]:
-            raise rdtest.TestFailureException("In degenerate case, sample locations [0] and [1] don't match: {} vs {}"
-                                              .format(sampleLoc.customLocations[0], sampleLoc.customLocations[1]))
+            raise rdtest.TestFailureException(f"In degenerate case, sample locations [0] and [1] don't match: {sampleLoc.customLocations[0]} vs {sampleLoc.customLocations[1]}")
 
         if not sampleLoc.customLocations[2] == sampleLoc.customLocations[3]:
-            raise rdtest.TestFailureException("In degenerate case, sample locations [2] and [3] don't match: {} vs {}"
-                                              .format(sampleLoc.customLocations[2], sampleLoc.customLocations[3]))
+            raise rdtest.TestFailureException(f"In degenerate case, sample locations [2] and [3] don't match: {sampleLoc.customLocations[2]} vs {sampleLoc.customLocations[3]}")
 
         if sampleLoc.customLocations[1] == sampleLoc.customLocations[2]:
-            raise rdtest.TestFailureException("In degenerate case, sample locations [1] and [2] DO match: {} vs {}"
-                                              .format(sampleLoc.customLocations[1], sampleLoc.customLocations[2]))
+            raise rdtest.TestFailureException(f"In degenerate case, sample locations [1] and [2] DO match: {sampleLoc.customLocations[1]} vs {sampleLoc.customLocations[2]}")
 
         action = self.find_action("Rotated")
         self.controller.SetFrameEvent(action.nextAction.eventId, True)
         pipe = self.controller.GetVulkanPipelineState()
 
         if pipe.multisample.rasterSamples != 4:
-            raise rdtest.TestFailureException("MSAA sample count is {}, not 1".format(pipe.multisample.rasterSamples))
+            raise rdtest.TestFailureException(f"MSAA sample count is {pipe.multisample.rasterSamples}, not 1")
 
         sampleLoc = pipe.multisample.sampleLocations
 
         if sampleLoc.gridWidth != 1:
-            raise rdtest.TestFailureException("Sample locations grid width is {}, not 1".format(sampleLoc.gridWidth))
+            raise rdtest.TestFailureException(f"Sample locations grid width is {sampleLoc.gridWidth}, not 1")
         if sampleLoc.gridHeight != 1:
-            raise rdtest.TestFailureException("Sample locations grid height is {}, not 1".format(sampleLoc.gridHeight))
+            raise rdtest.TestFailureException(f"Sample locations grid height is {sampleLoc.gridHeight}, not 1")
 
         # All sample locations should be unique
         if sampleLoc.customLocations[0] == sampleLoc.customLocations[1]:
-            raise rdtest.TestFailureException("In rotated case, sample locations [0] and [1] DO match: {} vs {}"
-                                              .format(sampleLoc.customLocations[0], sampleLoc.customLocations[1]))
+            raise rdtest.TestFailureException(f"In rotated case, sample locations [0] and [1] DO match: {sampleLoc.customLocations[0]} vs {sampleLoc.customLocations[1]}")
 
         if sampleLoc.customLocations[1] == sampleLoc.customLocations[2]:
-            raise rdtest.TestFailureException("In rotated case, sample locations [1] and [2] DO match: {} vs {}"
-                                              .format(sampleLoc.customLocations[1], sampleLoc.customLocations[2]))
+            raise rdtest.TestFailureException(f"In rotated case, sample locations [1] and [2] DO match: {sampleLoc.customLocations[1]} vs {sampleLoc.customLocations[2]}")
 
         if sampleLoc.customLocations[2] == sampleLoc.customLocations[3]:
-            raise rdtest.TestFailureException("In rotated case, sample locations [2] and [3] DO match: {} vs {}"
-                                              .format(sampleLoc.customLocations[2], sampleLoc.customLocations[3]))
+            raise rdtest.TestFailureException(f"In rotated case, sample locations [2] and [3] DO match: {sampleLoc.customLocations[2]} vs {sampleLoc.customLocations[3]}")
 
         rdtest.log.success("Pipeline state is correct")
 
@@ -83,7 +77,7 @@ class VK_Sample_Locations(rdtest.TestCase):
         halfdim = (dim[0] >> 1, dim[1])
 
         if (fmt.type != rd.ResourceFormatType.Regular or fmt.compByteWidth != 1 or fmt.compCount != 4):
-            raise rdtest.TestFailureException("Texture is not RGBA8 as expected: {}".format(fmt.Name()))
+            raise rdtest.TestFailureException(f"Texture is not RGBA8 as expected: {fmt.Name()}")
 
         stride = fmt.compByteWidth * fmt.compCount * dim[0]
 
@@ -101,9 +95,9 @@ class VK_Sample_Locations(rdtest.TestCase):
         degenerate_paths = []
 
         for sample in range(0, 4):
-            tmp_path = rdtest.get_tmp_path('sample{}.png'.format(sample))
-            degenerate_path = rdtest.get_tmp_path('degenerate{}.png'.format(sample))
-            rotated_path = rdtest.get_tmp_path('rotated{}.png'.format(sample))
+            tmp_path = rdtest.get_tmp_path(f'sample{sample}.png')
+            degenerate_path = rdtest.get_tmp_path(f'degenerate{sample}.png')
+            rotated_path = rdtest.get_tmp_path(f'rotated{sample}.png')
 
             rotated_paths.append(rotated_path)
             degenerate_paths.append(degenerate_path)
@@ -146,7 +140,7 @@ class VK_Sample_Locations(rdtest.TestCase):
         for A in range(0, 4):
             for B in range(A+1, 4):
                 if rdtest.png_compare(rotated_paths[A], rotated_paths[B], 0):
-                    raise rdtest.TestFailureException("Rotated grid sample {} and {} are identical".format(A, B),
+                    raise rdtest.TestFailureException(f"Rotated grid sample {A} and {B} are identical",
                                                       rotated_paths[A], rotated_paths[B])
 
         rdtest.log.success("Rotated grid sample images are as expected")

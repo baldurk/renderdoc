@@ -40,7 +40,7 @@ class VK_Secondary_CmdBuf(rdtest.TestCase):
                 checked = True
 
         if not checked:
-            raise rdtest.TestFailureException("Couldn't find resource description for pipeline {}".format(pipeline))
+            raise rdtest.TestFailureException(f"Couldn't find resource description for pipeline {pipeline}")
 
         rdtest.log.success("Primary action has correct pipeline bound")
 
@@ -64,6 +64,6 @@ class VK_Secondary_CmdBuf(rdtest.TestCase):
                 checked = True
 
         if not checked:
-            raise rdtest.TestFailureException("Couldn't find resource description for pipeline {}".format(pipeline))
+            raise rdtest.TestFailureException(f"Couldn't find resource description for pipeline {pipeline}")
 
         rdtest.log.success("Secondary action has correct pipeline bound")

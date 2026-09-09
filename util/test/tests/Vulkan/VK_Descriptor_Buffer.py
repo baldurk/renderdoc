@@ -142,7 +142,7 @@ class VK_Descriptor_Buffer(rdtest.TestCase):
                     if not rdtest.value_compare(second_vec, output_vec):
                         raise rdtest.TestFailureException(
                             f"Expected constant data {output_vec}, but got {second_vec}")
-                    
+
                     rdtest.log.success(f"CBuffer {resname} bound as expected with correct data")
 
                 rdtest.log.end_section(f"{prefix} Test {test}")

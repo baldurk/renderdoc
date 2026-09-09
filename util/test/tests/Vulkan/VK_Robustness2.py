@@ -96,5 +96,4 @@ class VK_Robustness2(rdtest.TestCase):
                     val[0] = val[1] = 1000000
                 var_check.check('coord').type(rd.VarType.SInt).rows(1).cols(4).value(val)
 
-            rdtest.log.success('CBuffer {} at bindpoint {}.{}[0] contains the correct contents'
-                               .format(cb.name, cb.fixedBindSetOrSpace, cb.fixedBindNumber))
+            rdtest.log.success(f'CBuffer {cb.name} at bindpoint {cb.fixedBindSetOrSpace}.{cb.fixedBindNumber}[0] contains the correct contents')

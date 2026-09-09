@@ -23,11 +23,11 @@ class GL_Renderbuffer_Zoo(rdtest.TestCase):
 
             if not rdtest.value_compare(mn.floatValue, [0.2, 0.2, 0.2, 1.0], eps=1.0/255.0):
                 raise rdtest.TestFailureException(
-                    "Minimum color values {} are not as expected".format(mn.floatValue))
+                    f"Minimum color values {mn.floatValue} are not as expected")
 
             if not rdtest.value_compare(mx.floatValue, [0.2, 0.75, 0.2, 1.0], eps=1.0/255.0):
                 raise rdtest.TestFailureException(
-                    "Maximum color values {} are not as expected".format(mx.floatValue))
+                    f"Maximum color values {mx.floatValue} are not as expected")
 
             hist = self.controller.GetHistogram(id, rd.Subresource(), rd.CompType.Typeless, 0.199, 0.75,
                                                 (False, True, False, False))
@@ -36,7 +36,7 @@ class GL_Renderbuffer_Zoo(rdtest.TestCase):
                 raise rdtest.TestFailureException(
                     "Green histogram didn't return expected values, values should have landed in first or last bucket")
 
-            rdtest.log.success('Color Renderbuffer at action {} is working as expected'.format(action.eventId))
+            rdtest.log.success(f'Color Renderbuffer at action {action.eventId} is working as expected')
 
             if depth.resource != rd.ResourceId():
                 val = self.controller.PickPixel(depth.resource, int(0.5 * vp.width), int(0.5 * vp.height),
@@ -44,7 +44,7 @@ class GL_Renderbuffer_Zoo(rdtest.TestCase):
 
                 if not rdtest.value_compare(val.floatValue[0], 0.75):
                     raise rdtest.TestFailureException(
-                        "Picked value {} in triangle for depth doesn't match expectation".format(val))
+                        f"Picked value {val} in triangle for depth doesn't match expectation")
 
                 mn, mx = self.controller.GetMinMax(depth.resource, rd.Subresource(), rd.CompType.Typeless)
                 hist = self.controller.GetHistogram(depth.resource, rd.Subresource(),
@@ -52,17 +52,17 @@ class GL_Renderbuffer_Zoo(rdtest.TestCase):
 
                 if not rdtest.value_compare(mn.floatValue[0], 0.75):
                     raise rdtest.TestFailureException(
-                        "Minimum depth values {} are not as expected".format(mn.floatValue))
+                        f"Minimum depth values {mn.floatValue} are not as expected")
 
                 if not rdtest.value_compare(mx.floatValue[0], 0.9):
                     raise rdtest.TestFailureException(
-                        "Maximum depth values {} are not as expected".format(mx.floatValue))
+                        f"Maximum depth values {mx.floatValue} are not as expected")
 
                 if hist[0] == 0 or hist[-1] == 0 or any([x > 0 for x in hist[1:-1]]):
                     raise rdtest.TestFailureException(
                         "Depth histogram didn't return expected values, values should have landed in first or last bucket")
 
-                rdtest.log.success('Depth Renderbuffer at action {} is working as expected'.format(action.eventId))
+                rdtest.log.success(f'Depth Renderbuffer at action {action.eventId} is working as expected')
 
             tex_details = self.get_texture(id)
 
@@ -83,8 +83,8 @@ class GL_Renderbuffer_Zoo(rdtest.TestCase):
                             save_data.slice.sliceIndex = 0
                             save_data.mip = 0
 
-                            img_path0 = rdtest.get_tmp_path('sample{}.png'.format(i))
-                            img_path1 = rdtest.get_tmp_path('sample{}.png'.format(j))
+                            img_path0 = rdtest.get_tmp_path(f'sample{i}.png')
+                            img_path1 = rdtest.get_tmp_path(f'sample{j}.png')
 
                             save_data.sample.sampleIndex = i
                             self.controller.SaveTexture(save_data, img_path0)

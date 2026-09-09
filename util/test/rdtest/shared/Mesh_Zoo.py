@@ -29,7 +29,7 @@ class Mesh_Zoo():
                 break
 
         if action is None:
-            raise rdtest.TestFailureException("Couldn't find '{}' action".format(name))
+            raise rdtest.TestFailureException(f"Couldn't find '{name}' action")
 
         return action
 
@@ -56,15 +56,15 @@ class Mesh_Zoo():
         if not test(colors):
             tmp_path = rdtest.get_tmp_path('output.png')
             rdtest.png_save(tmp_path, self.rows, self.out.GetDimensions(), False)
-            raise rdtest.TestFailureException("Expected line segment wrong, colors: {}".format(colors), tmp_path)
+            raise rdtest.TestFailureException(f"Expected line segment wrong, colors: {colors}", tmp_path)
 
     def check_vertex(self, x, y, result):
         pick = self.out.PickVertex(x, y)
 
         if not rdtest.value_compare(result, pick):
-            raise rdtest.TestFailureException("When picking ({},{}) expected vertex {} in instance {}, but found {} in {}".format(x, y, result[0], result[1], pick[0], pick[1]))
+            raise rdtest.TestFailureException(f"When picking ({x},{y}) expected vertex {result[0]} in instance {result[1]}, but found {pick[0]} in {pick[1]}")
 
-        rdtest.log.success("Picking {},{} returns vertex {} in instance {} as expected".format(x, y, result[0], result[1]))
+        rdtest.log.success(f"Picking {x},{y} returns vertex {result[0]} in instance {result[1]} as expected")
 
     def check_capture(self, capture_filename: str, controller: rd.ReplayController):
         self.controller = controller

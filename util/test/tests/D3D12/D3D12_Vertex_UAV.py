@@ -18,7 +18,7 @@ class D3D12_Vertex_UAV(rdtest.TestCase):
                 if marker is None:
                     continue
 
-                rdtest.log.print("Checking quad overdraw on {}".format(name))
+                rdtest.log.print(f"Checking quad overdraw on {name}")
 
                 self.controller.SetFrameEvent(marker.nextAction.eventId, True)
 
@@ -37,11 +37,11 @@ class D3D12_Vertex_UAV(rdtest.TestCase):
                 picked = self.controller.PickPixel(overlay_id, 5, 5, rd.Subresource(0,0,0), rd.CompType.Float).floatValue
 
                 if any([p != picked[0] for p in picked]):
-                    raise rdtest.TestFailureException("Quad overdraw isn't correct: {}".format(picked))
+                    raise rdtest.TestFailureException(f"Quad overdraw isn't correct: {picked}")
 
                 quad_seen.append(picked[0])
 
-                rdtest.log.success("Quad overdraw is good on {}".format(name))
+                rdtest.log.success(f"Quad overdraw is good on {name}")
 
                 if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
                     rdtest.log.print("Skipping undebuggable shader.")
@@ -50,7 +50,7 @@ class D3D12_Vertex_UAV(rdtest.TestCase):
                 # Debug the shader
                 trace = self.controller.DebugPixel(50, 50, rd.DebugPixelInputs())
                 if trace.debugger is None:
-                    raise rdtest.TestFailureException("Pixel shader at {} could not be debugged.".format(name))
+                    raise rdtest.TestFailureException(f"Pixel shader at {name} could not be debugged.")
                     self.controller.FreeTrace(trace)
 
                 cycles, variables = self.process_trace(trace)
@@ -62,12 +62,12 @@ class D3D12_Vertex_UAV(rdtest.TestCase):
                 self.controller.FreeTrace(trace)
 
                 if not rdtest.value_compare(debugged.value.f32v[0:4], [1.0, 1.0, 0.0, 1.0]):
-                    raise rdtest.TestFailureException("Pixel shader at {} did not debug correctly.".format(name))
+                    raise rdtest.TestFailureException(f"Pixel shader at {name} did not debug correctly.")
 
-                rdtest.log.success("Shader debugging at {} was successful".format(name))
+                rdtest.log.success(f"Shader debugging at {name} was successful")
 
         quad_seen = sorted(quad_seen)
         if quad_seen != [float(a) for a in range(1, len(quad_seen) + 1)]:
-            raise rdtest.TestFailureException("Quad overdraw values are inconsistent: {}".format(quad_seen))
+            raise rdtest.TestFailureException(f"Quad overdraw values are inconsistent: {quad_seen}")
 
         out.Shutdown()

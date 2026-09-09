@@ -32,27 +32,27 @@ class D3D11_Stream_Out(rdtest.TestCase):
         for i,p in enumerate(pos):
             so_p = struct.unpack_from("4f", so_bytes, 0 + 4*4*i)
             if not rdtest.value_compare(p, so_p):
-                raise rdtest.TestFailureException("Streamed-out position {} doesn't match expected {}".format(so_p, p))
+                raise rdtest.TestFailureException(f"Streamed-out position {so_p} doesn't match expected {p}")
 
         so_bytes = self.controller.GetBufferData(so.outputs[1].resourceId, so.outputs[1].byteOffset, 0)
 
         for i,c in enumerate(col):
             so_c = struct.unpack_from("4f", so_bytes, 0 + 8*4*i)
             if not rdtest.value_compare(c, so_c):
-                raise rdtest.TestFailureException("Streamed-out color {} doesn't match expected {}".format(so_c, c))
+                raise rdtest.TestFailureException(f"Streamed-out color {so_c} doesn't match expected {c}")
 
         action_auto = self.find_action("DrawAuto", action.eventId)
 
         # First action should be 3 vertices
         if not rdtest.value_compare(action_auto.numIndices, 3):
-            raise rdtest.TestFailureException("First DrawAuto() actions {} vertices".format(action_auto.numIndices))
+            raise rdtest.TestFailureException(f"First DrawAuto() actions {action_auto.numIndices} vertices")
 
         action_auto = self.find_action("DrawAuto", action_auto.eventId+1)
 
         # Second action should be 6 vertices (3 vertices, instanced twice
         if not rdtest.value_compare(action_auto.numIndices, 6):
-            raise rdtest.TestFailureException("Second DrawAuto() actions {} vertices".format(action_auto.numIndices))
+            raise rdtest.TestFailureException(f"Second DrawAuto() actions {action_auto.numIndices} vertices")
         if not rdtest.value_compare(action_auto.numInstances, 1):
-            raise rdtest.TestFailureException("Second DrawAuto() actions {} instances".format(action_auto.numInstances))
+            raise rdtest.TestFailureException(f"Second DrawAuto() actions {action_auto.numInstances} instances")
 
         rdtest.log.success("First action stream-out data is correct")

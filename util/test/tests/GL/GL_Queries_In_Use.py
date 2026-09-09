@@ -54,26 +54,26 @@ class GL_Queries_In_Use(rdtest.TestCase):
         results = [r for r in results if r.eventId == action.eventId]
 
         if len(results) != 3:
-            raise rdtest.TestFailureException("Expected 3 results, got {} results".format(len(results)))
+            raise rdtest.TestFailureException(f"Expected 3 results, got {len(results)} results")
 
         for r in results:
             val = r.value.u32
             if r.counter == rd.GPUCounter.RasterizedPrimitives:
                 if not rdtest.value_compare(val, 1):
-                    raise rdtest.TestFailureException("RasterizedPrimitives result {} is not as expected".format(val))
+                    raise rdtest.TestFailureException(f"RasterizedPrimitives result {val} is not as expected")
                 else:
                     rdtest.log.success("RasterizedPrimitives result is as expected")
             elif r.counter == rd.GPUCounter.VSInvocations:
                 if not rdtest.value_compare(val, 3):
-                    raise rdtest.TestFailureException("VSInvocations result {} is not as expected".format(val))
+                    raise rdtest.TestFailureException(f"VSInvocations result {val} is not as expected")
                 else:
                     rdtest.log.success("VSInvocations result is as expected")
             elif r.counter == rd.GPUCounter.FSInvocations:
                 if val < int(0.1 * tex_details.width * tex_details.height):
-                    raise rdtest.TestFailureException("FSInvocations result {} is not as expected".format(val))
+                    raise rdtest.TestFailureException(f"FSInvocations result {val} is not as expected")
                 else:
                     rdtest.log.success("FSInvocations result is as expected")
             else:
-                raise rdtest.TestFailureException("Unexpected counter result {}".format(r.counter))
+                raise rdtest.TestFailureException(f"Unexpected counter result {r.counter}")
 
         rdtest.log.success("Counter data retrieved successfully")

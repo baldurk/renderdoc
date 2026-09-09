@@ -28,13 +28,13 @@ class GL_Shader_ISA(rdtest.TestCase):
         for isa in isas:
             # The AMD disassembler does an audible ping when it fails, so skip ones we know won't work
             if not is_amd and ('GCN (' in isa or 'RDNA (' in isa or 'RDNA2 (' in isa or isa == 'AMDIL'):
-                rdtest.log.print("Skipping {} as we know it will fail".format(isa))
+                rdtest.log.print(f"Skipping {isa} as we know it will fail")
                 continue
 
             disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, isa)
 
             if len(disasm) < 32:
-                raise rdtest.TestFailureException("Disassembly for target '{}' is degenerate: {}".format(isa, disasm))
+                raise rdtest.TestFailureException(f"Disassembly for target '{isa}' is degenerate: {disasm}")
 
         rdtest.log.success("All disassembly targets successfully fetched and seem reasonable")
 
@@ -59,7 +59,7 @@ class GL_Shader_ISA(rdtest.TestCase):
             for fragment in expected:
                 if not fragment in disasm:
                     raise rdtest.TestFailureException(
-                        "AMDIL ISA doesn't contain '{}' as expected: {}".format(fragment, disasm))
+                        f"AMDIL ISA doesn't contain '{fragment}' as expected: {disasm}")
 
             if 'RDNA (gfx1010)' not in isas:
                 raise rdtest.TestFailureException(
@@ -77,7 +77,7 @@ class GL_Shader_ISA(rdtest.TestCase):
             for fragment in expected:
                 if not fragment in disasm:
                     raise rdtest.TestFailureException(
-                        "RDNA ISA doesn't contain '{}' as expected: {}".format(fragment, disasm))
+                        f"RDNA ISA doesn't contain '{fragment}' as expected: {disasm}")
 
             rdtest.log.success("AMD disassembly is as expected")
 

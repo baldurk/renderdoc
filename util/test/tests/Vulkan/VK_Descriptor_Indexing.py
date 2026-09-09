@@ -16,8 +16,7 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
         vkpipe = self.controller.GetVulkanPipelineState()
 
         if len(vkpipe.compute.descriptorSets) != 1:
-            raise rdtest.TestFailureException("Wrong number of compute sets is bound: {}, not 1"
-                                              .format(len(vkpipe.compute.descriptorSets)))
+            raise rdtest.TestFailureException(f"Wrong number of compute sets is bound: {len(vkpipe.compute.descriptorSets)}, not 1")
 
         rw = pipe.GetReadWriteResources(rd.ShaderStage.Compute)
 
@@ -65,8 +64,7 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
         }
 
         if len(vkpipe.graphics.descriptorSets) != 1:
-            raise rdtest.TestFailureException("Wrong number of sets is bound: {}, not 1"
-                                              .format(len(vkpipe.graphics.descriptorSets)))
+            raise rdtest.TestFailureException(f"Wrong number of sets is bound: {len(vkpipe.graphics.descriptorSets)}, not 1")
 
         desc_set = vkpipe.graphics.descriptorSets[0]
 
@@ -82,7 +80,7 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
             idx = (a.access.type, a.access.index)
             if idx not in bind_info.keys():
                 raise rdtest.TestFailureException(
-                    "Accessed bind {} of type {} doesn't exist in expected list".format(a.access.index, str(a.access.type)))
+                    f"Accessed bind {a.access.index} of type {a.access.type!s} doesn't exist in expected list")
 
             if rd.IsReadOnlyDescriptor(a.access.type):
                 res = refl.readOnlyResources[a.access.index]
@@ -90,26 +88,22 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
                 res = refl.readWriteResources[a.access.index]
 
             if a.access.arrayElement not in bind_info[idx]['elems']:
-                raise rdtest.TestFailureException("Bind {} reports array element {} as used, which shouldn't be"
-                                                  .format(res.name, a.access.arrayElement))
+                raise rdtest.TestFailureException(f"Bind {res.name} reports array element {a.access.arrayElement} as used, which shouldn't be")
 
             if a.access.descriptorStore != desc_set.descriptorSetResourceId:
-                raise rdtest.TestFailureException("Access is in descriptor store {} but expected set 0 {}"
-                                                  .format(a.access.descriptorStore, desc_set))
+                raise rdtest.TestFailureException(f"Access is in descriptor store {a.access.descriptorStore} but expected set 0 {desc_set}")
 
             if (res.fixedBindSetOrSpace, res.fixedBindNumber) != bind_info[idx]['loc']:
-                raise rdtest.TestFailureException("Bind {} expected to be {} but is {}, {}"
-                                                  .format(res.name, bind_info[idx]['loc']), res.fixedBindSetOrSpace, res.fixedBindNumber)
+                raise rdtest.TestFailureException(f"Bind {res.name} expected to be {bind_info[idx]['loc']} but is {res.fixedBindSetOrSpace}, {res.fixedBindNumber}")
 
             # On vulkan the logical bind name is set-relative bind[idx]. The fixed bind number is the bind only
             loc = self.controller.GetDescriptorLocations(
-                a.access.descriptorStore, [rd.DescriptorRange(a.access)])[0]
+                a.access.descriptorStore, [rd.DescriptorRange(a.access)]
+            )[0]
             if loc.fixedBindNumber != bind_info[idx]['loc'][1]:
-                raise rdtest.TestFailureException("Bind {} not expected for set,bind {}"
-                                                  .format(loc.fixedBindNumber, bind_info[idx]['loc']))
-            if loc.logicalBindName != "{}[{}]".format(bind_info[idx]['loc'][1], a.access.arrayElement):
-                raise rdtest.TestFailureException("Bind {} not expected for set,bind {} array element {}"
-                                                  .format(loc.logicalBindName, bind_info[idx]['loc'], a.access.arrayElement))
+                raise rdtest.TestFailureException(f"Bind {loc.fixedBindNumber} not expected for set,bind {bind_info[idx]['loc']}")
+            if loc.logicalBindName != f"{bind_info[idx]['loc'][1]}[{a.access.arrayElement}]":
+                raise rdtest.TestFailureException(f"Bind {loc.logicalBindName} not expected for set,bind {bind_info[idx]['loc']} array element {a.access.arrayElement}")
 
             bind_info[idx]['elems'].remove(a.access.arrayElement)
 
@@ -132,6 +126,6 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
             col = struct.unpack_from("4f", data, offset)
             if col[0] == 0.0 or col[1] == 0.0 or col[2] == 0.0 or col[3] == 0.0:
                 raise rdtest.TestFailureException(
-                    "Color from aliased buffer {} doesn't match expected value: {}".format(res.name, col))
+                    f"Color from aliased buffer {res.name} doesn't match expected value: {col}")
 
         rdtest.log.success("Dynamic usage is as expected")

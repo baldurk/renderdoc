@@ -20,14 +20,14 @@ class GL_Parameter_Zoo(rdtest.TestCase):
 
         val = [255, 0, 255, 255]
         if not rdtest.value_compare(first_pixel, val):
-            raise rdtest.TestFailureException("First pixel should be clear color {}, not {}".format(val, first_pixel))
+            raise rdtest.TestFailureException(f"First pixel should be clear color {val}, not {first_pixel}")
 
         magic_pixel = struct.unpack_from("BBBB", data, (50 * tex_details.width + 320) * 4)
 
         # allow 127 or 128 for alpha
         val = [0, 0, 255, magic_pixel[3]]
         if not rdtest.value_compare(magic_pixel, val) or magic_pixel[3] not in [127, 128]:
-            raise rdtest.TestFailureException("Pixel @ 320,50 should be blue: {}, not {}".format(val, magic_pixel))
+            raise rdtest.TestFailureException(f"Pixel @ 320,50 should be blue: {val}, not {magic_pixel}")
 
         rdtest.log.success("Decoded pixels from texture data are correct")
 
@@ -48,7 +48,7 @@ class GL_Parameter_Zoo(rdtest.TestCase):
 
         val = [0, 0, 255, magic_pixel[3]]
         if not rdtest.value_compare(magic_pixel, val) or magic_pixel[3] not in [127, 128]:
-            raise rdtest.TestFailureException("Pixel @ 320,50 should be blue: {}, not {}".format(val, magic_pixel))
+            raise rdtest.TestFailureException(f"Pixel @ 320,50 should be blue: {val}, not {magic_pixel}")
 
         action = self.find_action("Draw")
 
@@ -84,28 +84,27 @@ class GL_Parameter_Zoo(rdtest.TestCase):
         results = [r for r in results if r.eventId == action.eventId]
 
         if len(results) != 3:
-            raise rdtest.TestFailureException("Expected 3 results, got {} results".format(len(results)))
-        
+            raise rdtest.TestFailureException(f"Expected 3 results, got {len(results)} results")
 
         for r in results:
             val = r.value.u32
             if r.counter == rd.GPUCounter.RasterizedPrimitives:
                 if not rdtest.value_compare(val, 1):
-                    raise rdtest.TestFailureException("RasterizedPrimitives result {} is not as expected".format(val))
+                    raise rdtest.TestFailureException(f"RasterizedPrimitives result {val} is not as expected")
                 else:
                     rdtest.log.success("RasterizedPrimitives result is as expected")
             elif r.counter == rd.GPUCounter.VSInvocations:
                 if not rdtest.value_compare(val, 3):
-                    raise rdtest.TestFailureException("VSInvocations result {} is not as expected".format(val))
+                    raise rdtest.TestFailureException(f"VSInvocations result {val} is not as expected")
                 else:
                     rdtest.log.success("VSInvocations result is as expected")
             elif r.counter == rd.GPUCounter.FSInvocations:
                 if val < int(0.1 * tex_details.width * tex_details.height):
-                    raise rdtest.TestFailureException("FSInvocations result {} is not as expected".format(val))
+                    raise rdtest.TestFailureException(f"FSInvocations result {val} is not as expected")
                 else:
                     rdtest.log.success("FSInvocations result is as expected")
             else:
-                raise rdtest.TestFailureException("Unexpected counter result {}".format(r.counter))
+                raise rdtest.TestFailureException(f"Unexpected counter result {r.counter}")
 
         rdtest.log.success("Counter data retrieved successfully")
 

@@ -24,10 +24,10 @@ class VK_Large_Descriptor_Sets(rdtest.TestCase):
 
         memory_increase = memory_after - memory_before
 
-        rdtest.log.print("Loaded capture in {} seconds, consuming {} bytes of memory".format(duration, memory_increase))
+        rdtest.log.print(f"Loaded capture in {duration} seconds, consuming {memory_increase} bytes of memory")
 
         if memory_increase > 2000*1000*1000:
-            raise rdtest.TestFailureException("Memory increase {} is too high".format(memory_increase))
+            raise rdtest.TestFailureException(f"Memory increase {memory_increase} is too high")
         else:
             rdtest.log.success("Memory usage is OK")
 
@@ -38,5 +38,4 @@ class VK_Large_Descriptor_Sets(rdtest.TestCase):
         else:
             rdtest.log.print("Not checking time to load in non-release build")
 
-        if self.controller is not None:
-            self.controller.Shutdown()
+        self.controller.Shutdown()

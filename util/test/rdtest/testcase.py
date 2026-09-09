@@ -15,27 +15,23 @@ class ShaderVariableCheck:
         self.var = var
 
         if self.var.name != name:
-            raise TestFailureException("Variable {} name mismatch, expected '{}' but got '{}'"
-                                       .format(self.var.name, name, self.var.name))
+            raise TestFailureException(f"Variable {self.var.name} name mismatch, expected '{name}' but got '{self.var.name}'")
 
     def rows(self, rows_: int):
         if self.var.rows != rows_:
-            raise TestFailureException("Variable {} row count mismatch, expected {} but got {}"
-                                       .format(self.var.name, rows_, self.var.rows))
+            raise TestFailureException(f"Variable {self.var.name} row count mismatch, expected {rows_} but got {self.var.rows}")
 
         return self
 
     def cols(self, cols_: int):
         if self.var.columns != cols_:
-            raise TestFailureException("Variable {} column count mismatch, expected {} but got {}"
-                                       .format(self.var.name, cols_, self.var.columns))
+            raise TestFailureException(f"Variable {self.var.name} column count mismatch, expected {cols_} but got {self.var.columns}")
 
         return self
 
     def type(self, type_: rd.VarType):
         if self.var.type != type_:
-            raise TestFailureException("Variable {} type mismatch, expected {} but got {}"
-                                       .format(self.var.name, str(type_), str(self.var.type)))
+            raise TestFailureException(f"Variable {self.var.name} type mismatch, expected {type_!s} but got {self.var.type!s}")
 
         return self
 
@@ -51,8 +47,7 @@ class ShaderVariableCheck:
                 vals = list(self.var.value.f16v[0:count])
 
             if vals != list(value_):
-                raise TestFailureException("Float variable {} value mismatch, expected {} but got {}"
-                                           .format(self.var.name, value_, self.var.value.f32v[0:count]))
+                raise TestFailureException(f"Float variable {self.var.name} value mismatch, expected {value_} but got {self.var.value.f32v[0:count]}")
         else:
             vals = []
             if self.var.type == rd.VarType.UInt or self.var.type == rd.VarType.Bool:
@@ -73,8 +68,7 @@ class ShaderVariableCheck:
                 vals = list(self.var.value.s8v[0:count])
 
             if vals != list(value_):
-                raise TestFailureException("Int variable {} value mismatch, expected {} but got {}"
-                                           .format(self.var.name, value_, vals))
+                raise TestFailureException(f"Int variable {self.var.name} value mismatch, expected {value_} but got {vals}")
 
         return self
 
@@ -82,46 +76,38 @@ class ShaderVariableCheck:
         count = len(value_)
         if isinstance(value_[0], float):
             if list(self.var.value.f64v[0:count]) != list(value_):
-                raise TestFailureException("Float variable {} value mismatch, expected {} but got {}"
-                                           .format(self.var.name, value_, self.var.value.f64v[0:count]))
+                raise TestFailureException(f"Float variable {self.var.name} value mismatch, expected {value_} but got {self.var.value.f64v[0:count]}")
         else:
             # hack - check signed and unsigned values
             if list(self.var.value.s64v[0:count]) != list(value_) and list(self.var.value.u64v[0:count]) != list(value_):
-                raise TestFailureException("Int variable {} value mismatch, expected {} but got {} / {}"
-                                           .format(self.var.name, value_, self.var.value.s64v[0:count],
-                                                   self.var.value.u64v[0:count]))
+                raise TestFailureException(f"Int variable {self.var.name} value mismatch, expected {value_} but got {self.var.value.s64v[0:count]} / {self.var.value.u64v[0:count]}")
 
         return self
 
     def row_major(self):
         if not self.var.RowMajor():
-            raise TestFailureException("Variable {} is not row-major, as expected"
-                                       .format(self.var.name))
+            raise TestFailureException(f"Variable {self.var.name} is not row-major, as expected")
 
         return self
 
     def column_major(self):
         if not self.var.ColMajor():
-            raise TestFailureException("Variable {} is not column-major, as expected"
-                                       .format(self.var.name))
+            raise TestFailureException(f"Variable {self.var.name} is not column-major, as expected")
 
         return self
 
     def arraySize(self, elements_: int):
         if len(self.var.members) != elements_:
-            raise TestFailureException("Variable {} array size mismatch, expected {} but got {}"
-                                       .format(self.var.name, elements_, len(self.var.members)))
+            raise TestFailureException(f"Variable {self.var.name} array size mismatch, expected {elements_} but got {len(self.var.members)}")
 
         return self
 
     def structSize(self, elements_: int):
         if not self.var.type == rd.VarType.Struct:
-            raise TestFailureException("Variable {} is not a struct as was expected"
-                                       .format(self.var.name))
+            raise TestFailureException(f"Variable {self.var.name} is not a struct as was expected")
 
         if len(self.var.members) != elements_:
-            raise TestFailureException("Variable {} struct size mismatch, expected {} but got {}"
-                                       .format(self.var.name, elements_, len(self.var.members)))
+            raise TestFailureException(f"Variable {self.var.name} struct size mismatch, expected {elements_} but got {len(self.var.members)}")
 
         return self
 
@@ -132,8 +118,7 @@ class ShaderVariableCheck:
             elif m.name in member_callbacks:
                 member_callbacks[m.name](ShaderVariableCheck(m, m.name))
             else:
-                raise TestFailureException("Unexpected member in {}: {}"
-                                           .format(self.var.name, m.name))
+                raise TestFailureException(f"Unexpected member in {self.var.name}: {m.name}")
 
 
 class ConstantBufferChecker:
@@ -142,7 +127,7 @@ class ConstantBufferChecker:
 
     def check(self, name: str):
         if len(self._variables) == 0:
-            raise TestFailureException("Too many variables checked, {} has no matching data".format(name))
+            raise TestFailureException(f"Too many variables checked, {name} has no matching data")
         return ShaderVariableCheck(self._variables.pop(0), name)
 
     def next_var(self):
@@ -150,7 +135,7 @@ class ConstantBufferChecker:
 
     def done(self):
         if len(self._variables) != 0:
-            raise TestFailureException("Not all variables checked, {} still remain".format(len(self._variables)))
+            raise TestFailureException(f"Not all variables checked, {len(self._variables)} still remain")
 
 
 class TestCase:
@@ -170,7 +155,7 @@ class TestCase:
     def check_support(self, **kwargs):
         if self.demos_test_name != '':
             if self.demos_test_name not in TestCase._test_list:
-                return False,'Test {} not in compiled tests'.format(self.demos_test_name)
+                return False,f'Test {self.demos_test_name} not in compiled tests'
             return TestCase._test_list[self.demos_test_name]
 
         # Otherwise assume we can run - child tests can override if they want to do some other check
@@ -478,14 +463,14 @@ class TestCase:
             self.controller.SaveTexture(save_data, img_path)
 
             raise TestFailureException(
-                "Picked value {} at {},{} doesn't match expectation of {}".format(picked_value, x, y, value),
+                f"Picked value {picked_value} at {x},{y} doesn't match expectation of {value}",
                 img_path)
 
         name = "Texture"
         if res_details is not None:
             name = res_details.name
 
-        log.success("Picked value at {},{} in {} is as expected".format(x, y, name))
+        log.success(f"Picked value at {x},{y} in {name} is as expected")
 
     def check_triangle(self, out = None, back = None, fore = None, vp = None):
         pipe = self.controller.GetPipelineState()
@@ -621,7 +606,7 @@ class TestCase:
         start_time = self.get_time()
         self.run()
         duration = self.get_time() - start_time
-        log.print("Test {} ran in {}".format(self.demos_test_name, duration))
+        log.print(f"Test {self.demos_test_name} ran in {duration}")
         self.debugMode = debugMode
 
     def get_first_action(self):
@@ -898,7 +883,7 @@ class TestCase:
                     else:
                         return self.get_debug_var({mem.name: mem for mem in var.members}, remaining)
 
-            raise KeyError("Couldn't find {} in debug vars".format(path))
+            raise KeyError(f"Couldn't find {path} in debug vars")
 
         raise KeyError(f"Couldn't find '{path}' in debug vars or parse it")
 
@@ -990,7 +975,7 @@ class TestCase:
             return self.capture_filename
 
         dest = util.get_tmp_path(self.capture_filename.split('/')[-1])
-        log.print("Copying remote capture from '{}' to '{}'".format(self.capture_filename, dest))
+        log.print(f"Copying remote capture from '{self.capture_filename}' to '{dest}'")
         util.get_remote_server().CopyCaptureFromRemote(self.capture_filename, dest, None)
         return dest
 
@@ -1268,5 +1253,5 @@ class TestCase:
                 if actionParameters != eventParameters:
                     log.error(f"EID:{action.eventId} Indirect action parameters {actionParameters} do not match event {eventParameters}")
                     return False
-        
+
         return True

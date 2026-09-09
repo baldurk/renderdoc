@@ -30,7 +30,7 @@ class D3D12_RGP_Capture(rdtest.TestCase):
 
         path = self.controller.CreateRGPProfile(rd.CreateWin32WindowingData(int(window.frame(), 16)))
 
-        rdtest.log.print("RGP capture created: '{}'".format(path))
+        rdtest.log.print(f"RGP capture created: '{path}'")
 
         if os.path.exists(path) and os.path.getsize(path) > 100:
             rdtest.log.success("RGP capture created successfully")

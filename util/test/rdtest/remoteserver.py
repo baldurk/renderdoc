@@ -281,8 +281,7 @@ class AndroidRemoteServer(RemoteServer):
         package_and_activity = f"{util.get_android_demo_app_name()}/.Loader"
         args = "-e demos RenderDoc -e rd_demos \'\"" + cmdline + "\"\'"
 
-        log.print("Running package:'{}' cmd:'{}' with env:'{}'".format(
-            package_and_activity, cmdline, envmods))
+        log.print(f"Running package:'{package_and_activity}' cmd:'{cmdline}' with env:'{envmods}'")
         res = util.get_remote_server().ExecuteAndInject(
             package_and_activity, "", args, envmods, opts)
 
@@ -355,7 +354,7 @@ class AndroidRemoteServer(RemoteServer):
         os.makedirs(util.get_tmp_dir(), exist_ok=True)
 
         dst = os.path.join(util.get_tmp_dir(), 'RenderDoc_Server.log')
-        log.print("Copying remote server comms log from '{}' to '{}'".format(src, dst))
+        log.print(f"Copying remote server comms log from '{src}' to '{dst}'")
         self.CopyCaptureFromRemote(src, dst, None)
 
         return dst
@@ -372,7 +371,7 @@ class AndroidRemoteServer(RemoteServer):
     def OpenCapture(self, proxyid, logfile, replayOptions, progressCallback):
         with self.mutex:
             return self.remote.OpenCapture(proxyid, logfile, replayOptions, progressCallback)
-    
+   
     def CloseCapture(self, controller):
         with self.mutex:
             return self.remote.CloseCapture(controller)

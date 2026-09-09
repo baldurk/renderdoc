@@ -28,7 +28,7 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
                 trace = self.controller.DebugPixel(4 * test, 4 * idx, rd.DebugPixelInputs())
 
                 if trace.debugger is None:
-                    rdtest.log.error("Test {} failed to debug.".format(test))
+                    rdtest.log.error(f"Test {test} failed to debug.")
                     self.controller.FreeTrace(trace)
                     continue
 
@@ -42,15 +42,15 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
                     self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 4 * test, 4 * idx, debugged.value.f32v[0:4])
                 except rdtest.TestFailureException as ex:
                     if test in undefined_tests:
-                        rdtest.log.comment("Undefined test {} did not match. {}".format(test, str(ex)))
+                        rdtest.log.comment(f"Undefined test {test} did not match. {ex!s}")
                     else:
-                        rdtest.log.error("Test {} did not match. {}".format(test, str(ex)))
+                        rdtest.log.error(f"Test {test} did not match. {ex!s}")
                         failed = True
                     continue
                 finally:
                     self.controller.FreeTrace(trace)
 
-                rdtest.log.success("Test {} matched as expected".format(test))
+                rdtest.log.success(f"Test {test} matched as expected")
             rdtest.log.end_section(name)
 
         rdtest.log.begin_section("Flow tests")
@@ -71,7 +71,7 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
             self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0, 8, debugged.value.f32v[0:4])
             self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0, 8, [9.0, 66.0, 4.0, 18.0])
         except rdtest.TestFailureException as ex:
-            raise rdtest.TestFailureException("Flow test did not match. {}".format(str(ex)))
+            raise rdtest.TestFailureException(f"Flow test did not match. {ex!s}")
         finally:
             self.controller.FreeTrace(trace)
 
@@ -94,7 +94,7 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
                 sampRegister = self.find_input_source_var(trace, rd.ShaderBuiltin.MSAASampleIndex)
                 sampInput = [var for var in trace.inputs if var.name == sampRegister.variables[0].name][0]
                 if sampInput.value.u32v[0] != test:
-                    rdtest.log.error("Test {} did not pick the correct sample.".format(test))
+                    rdtest.log.error(f"Test {test} did not pick the correct sample.")
 
                 cycles, variables = self.process_trace(trace)
 
@@ -107,7 +107,7 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
                     self.check_pixel_value(pipe.GetOutputTargets()[0].resource, x, y, debugged.value.f32v[0:4], sub=rd.Subresource(0, 0, test))
                 except rdtest.TestFailureException as ex:
                     failed = True
-                    rdtest.log.error("Test {} did not match. {}".format(test, str(ex)))
+                    rdtest.log.error(f"Test {test} did not match. {ex!s}")
                     continue
 
         rdtest.log.end_section("MSAA tests")

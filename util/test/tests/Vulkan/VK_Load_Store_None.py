@@ -18,4 +18,4 @@ class VK_Load_Store_None(rdtest.TestCase):
             self.check_pixel_value(res, 250, 125, [0.2, 0.2, 0.2, 1.0])
             self.check_pixel_value(res, 100, 125, [0.2, 0.2, 0.2, 1.0])
 
-            rdtest.log.success("Preserved image is as expected at {}".format(self.action_name(action)))
+            rdtest.log.success(f"Preserved image is as expected at {self.action_name(action)}")

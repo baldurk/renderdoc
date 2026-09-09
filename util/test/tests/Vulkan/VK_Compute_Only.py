@@ -19,13 +19,13 @@ class VK_Compute_Only(rdtest.TestCase):
 
         if not rdtest.value_compare(uints, [111, 111, 111, 111]):
             raise rdtest.TestFailureException(
-                'bufin data is incorrect before dispatch: {}'.format(uints))
+                f'bufin data is incorrect before dispatch: {uints}')
 
         uints = struct.unpack_from('=4L', self.controller.GetBufferData(bufout, 0, 0), 0)
 
         if not rdtest.value_compare(uints, [222, 222, 222, 222]):
             raise rdtest.TestFailureException(
-                'bufout data is incorrect before dispatch: {}'.format(uints))
+                f'bufout data is incorrect before dispatch: {uints}')
 
         self.controller.SetFrameEvent(self.find_action("Post-Dispatch").eventId, True)
 
@@ -33,4 +33,4 @@ class VK_Compute_Only(rdtest.TestCase):
 
         if not rdtest.value_compare(uints, [777, 888, 999, 1110]):
             raise rdtest.TestFailureException(
-                'bufout data is incorrect after dispatch: {}'.format(uints))
+                f'bufout data is incorrect after dispatch: {uints}')

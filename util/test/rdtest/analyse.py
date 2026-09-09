@@ -40,20 +40,19 @@ def open_capture(filename="", cap: rd.CaptureFile=None, opts: rd.ReplayOptions=N
             # Make sure the file opened successfully
             if result != rd.ResultCode.Succeeded:
                 cap.Shutdown()
-                raise RuntimeError("Couldn't open '{}': {}".format(filename, str(result)))
+                raise RuntimeError(f"Couldn't open '{filename}': {result!s}")
 
             api = cap.DriverName()
 
             # Make sure we can replay
             if not cap.LocalReplaySupport():
                 cap.Shutdown()
-                raise RuntimeError("{} capture cannot be replayed".format(api))
+                raise RuntimeError(f"{api} capture cannot be replayed")
 
         result, controller = cap.OpenCapture(opts, None)
     else:
         if not cap is None:
-            raise ValueError("Cannot call analyse.open_capture() with capture handle for remote {}"
-                        .format(util.get_remote_server().remote))
+            raise ValueError(f"Cannot call analyse.open_capture() with capture handle for remote {util.get_remote_server().remote}")
 
         result, controller = util.get_remote_server().OpenCapture(rd.RemoteServer.NoPreference,
                                                                   filename, opts, None)
@@ -64,7 +63,7 @@ def open_capture(filename="", cap: rd.CaptureFile=None, opts: rd.ReplayOptions=N
         cap.Shutdown()
 
     if result != rd.ResultCode.Succeeded:
-        raise RuntimeError("Couldn't initialise replay for {}: {}".format(api, str(result)))
+        raise RuntimeError(f"Couldn't initialise replay for {api}: {result!s}")
 
     return controller
 

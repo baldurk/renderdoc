@@ -74,10 +74,10 @@ class VK_Parameter_Zoo(rdtest.TestCase):
         setidx = 0
         for descset in vkpipe.graphics.descriptorSets:
             if setidx == 2 and not descset.pushDescriptor:
-                raise rdtest.TestFailureException("Expected set {} to be a push set", setidx)
+                raise rdtest.TestFailureException(f"Expected set {setidx} to be a push set")
 
             if setidx != 2 and descset.pushDescriptor:
-                raise rdtest.TestFailureException("Expected set {} to be a non-push set", setidx)
+                raise rdtest.TestFailureException(f"Expected set {setidx} to be a non-push set")
 
             range = rd.DescriptorRange()
             range.offset = 0
@@ -100,15 +100,13 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
                 if not sampname == expected_samp:
                     raise rdtest.TestFailureException(
-                        "Expected binding {} in set {} to have sampler {} but got {}".format(
-                            bindidx, setidx, expected_samp, sampname))
+                        f"Expected binding {bindidx} in set {setidx} to have sampler {expected_samp} but got {sampname}")
 
                 if not resname == expected_res:
                     raise rdtest.TestFailureException(
-                        "Expected binding {} in set {} to have resource {} but got {}".format(
-                            bindidx, setidx, expected_res, resname))
+                        f"Expected binding {bindidx} in set {setidx} to have resource {expected_res} but got {resname}")
 
-            rdtest.log.success("Resources in set {} were found as expected".format(setidx))
+            rdtest.log.success(f"Resources in set {setidx} were found as expected")
 
             setidx = setidx + 1
 
@@ -147,13 +145,11 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
                 if not sampname == expected_samp:
                     raise rdtest.TestFailureException(
-                        "Expected binding {} in set {} to have sampler {} but got {}".format(
-                            bindidx, setidx, expected_samp, sampname))
+                        f"Expected binding {bindidx} in set {setidx} to have sampler {expected_samp} but got {sampname}")
 
                 if not resname == expected_res:
                     raise rdtest.TestFailureException(
-                        "Expected binding {} in set {} to have resource {} but got {}".format(
-                            bindidx, setidx, expected_res, resname))
+                        f"Expected binding {bindidx} in set {setidx} to have resource {expected_res} but got {resname}")
 
             rdtest.log.success("Resources in push template set were found as expected")
 
@@ -183,7 +179,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
             if not (rd.DescriptorType.Image, 0, 1) in [(a.type, a.index, a.arrayElement) for a in access]:
                 raise rdtest.TestFailureException(
-                    f"Graphics bind 0[1] isn't the accessed descriptor {str(rd.DumpObject(access))}")
+                    f"Graphics bind 0[1] isn't the accessed descriptor {rd.DumpObject(access)!s}")
 
             vkpipe = self.controller.GetVulkanPipelineState()
             assert len(vkpipe.viewportScissor.viewportScissors) == 0
@@ -294,7 +290,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
         # Check for resource leaks
         if len(sdfile.chunks) > 500:
-            raise rdtest.TestFailureException("Too many chunks found: {}".format(len(sdfile.chunks)))
+            raise rdtest.TestFailureException(f"Too many chunks found: {len(sdfile.chunks)}")
 
         action = self.find_action("before_empty")
         action = self.get_action(action.eventId + 1)

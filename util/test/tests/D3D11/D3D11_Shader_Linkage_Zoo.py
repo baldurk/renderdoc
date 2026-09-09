@@ -22,7 +22,7 @@ class D3D11_Shader_Linkage_Zoo(rdtest.TestCase):
             trace = self.controller.DebugPixel(200, 150, rd.DebugPixelInputs())
             if trace.debugger is None:
                 failed = True
-                rdtest.log.error("Test {} could not be debugged.".format(event_name))
+                rdtest.log.error(f"Test {event_name} could not be debugged.")
                 continue
 
             cycles, variables = self.process_trace(trace)
@@ -35,12 +35,12 @@ class D3D11_Shader_Linkage_Zoo(rdtest.TestCase):
                 self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 200, 150, debugged.value.f32v[0:4])
             except rdtest.TestFailureException as ex:
                 failed = True
-                rdtest.log.error("Test {} did not match. {}".format(event_name, str(ex)))
+                rdtest.log.error(f"Test {event_name} did not match. {ex!s}")
                 continue
             finally:
                 self.controller.FreeTrace(trace)
 
-            rdtest.log.success("Test {} matched as expected".format(event_name))
+            rdtest.log.success(f"Test {event_name} matched as expected")
 
         if failed:
             raise rdtest.TestFailureException("Some tests were not as expected")

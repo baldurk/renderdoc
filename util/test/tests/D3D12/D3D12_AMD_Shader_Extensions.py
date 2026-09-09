@@ -33,7 +33,7 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
 
                 if (not (1.0, 0.0, 0.0, 1.0) in pixels) or (not (1.0, 0.0, 0.0, 1.0) in pixels) or (
                 not (1.0, 0.0, 0.0, 1.0) in pixels):
-                    raise rdtest.TestFailureException("Expected red, green and blue in picked pixels. Got {}".format(pixels))
+                    raise rdtest.TestFailureException(f"Expected red, green and blue in picked pixels. Got {pixels}")
 
                 rdtest.log.success("Picked barycentric values are as expected")
 
@@ -51,7 +51,7 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
 
                 if cpuMax != gpuMax or cpuMax == 0:
                     raise rdtest.TestFailureException(
-                        "captured cpuMax and gpuMax are not equal and positive: {} vs {}".format(cpuMax, gpuMax))
+                        f"captured cpuMax and gpuMax are not equal and positive: {cpuMax} vs {gpuMax}")
 
                 rdtest.log.success("recorded cpuMax and gpuMax are as expected")
 
@@ -63,12 +63,12 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
 
                 if replayedGpuMax != gpuMax:
                     raise rdtest.TestFailureException(
-                        "captured gpuMax and replayed gpuMax are not equal: {} vs {}".format(gpuMax, replayedGpuMax))
+                        f"captured gpuMax and replayed gpuMax are not equal: {gpuMax} vs {replayedGpuMax}")
 
                 rdtest.log.success("replayed gpuMax is as expected")
             # We should get everything except maybe DXIL
             elif pass_type != "SM60":
-                raise rdtest.TestFailureException("Didn't find test action for {}".format(pass_type))
+                raise rdtest.TestFailureException(f"Didn't find test action for {pass_type}")
 
             # We always check the CS pipe to ensure the reflection is OK
             cs_pipe = self.get_resource_by_name("cspipe" + pass_type)
@@ -76,7 +76,7 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
             if cs_pipe is None:
                 # everything but DXIL we must get, DXIL we may not be able to compile
                 if pass_type != "SM60":
-                    raise rdtest.TestFailureException("Didn't find compute pipeline for {}".format(pass_type))
+                    raise rdtest.TestFailureException(f"Didn't find compute pipeline for {pass_type}")
                 continue
 
             pipe = cs_pipe.resourceId
@@ -103,7 +103,7 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
 
             if "amd_u64_atomic" not in disasm:
                 raise rdtest.TestFailureException(
-                    "Didn't find expected AMD opcode in disassembly: {}".format(disasm))
+                    f"Didn't find expected AMD opcode in disassembly: {disasm}")
 
             rdtest.log.success("compute shader disassembly is as expected")
 
@@ -120,9 +120,9 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
                 cycles, variables = self.process_trace(trace)
 
                 if cycles < 3:
-                    raise rdtest.TestFailureException("Compute shader has too few cycles {}".format(cycles))
+                    raise rdtest.TestFailureException(f"Compute shader has too few cycles {cycles}")
             else:
                 raise rdtest.TestFailureException(
-                    "Compute shader is listed as non-debuggable: {}".format(refl.debugInfo.debugStatus))
+                    f"Compute shader is listed as non-debuggable: {refl.debugInfo.debugStatus}")
 
             rdtest.log.success("compute shader debugged successfully")

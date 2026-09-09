@@ -74,8 +74,7 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
 
             if not rdtest.util.value_compare(debugged.value.f32v[0:4], [542.1, 543.0, 544.0, 545.0]):
                 raise rdtest.TestFailureException(
-                    "Debugged output {} did not match expected {}".format(
-                        debugged.value.f32v[0:4], [542.1, 543.0, 544.0, 545.0]))
+                    f"Debugged output {debugged.value.f32v[0:4]} did not match expected {[542.1, 543.0, 544.0, 545.0]}")
 
             rdtest.log.success("Debugged output matched as expected")
 

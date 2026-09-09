@@ -397,7 +397,7 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
             elif s.name == 's2':
                 assert s.fixedBindNumber == 8
             else:
-                raise rdtest.TestFailureException('Unrecognised sampler {}'.format(s.name))
+                raise rdtest.TestFailureException(f'Unrecognised sampler {s.name}')
 
         for res_list, res_db, res_readonly in [(refl.readOnlyResources, ro_db, True),
                                                (refl.readWriteResources, rw_db, False)]:
@@ -428,6 +428,6 @@ class D3D12_Reflection_Zoo(rdtest.TestCase):
                 del res_db[res.name]
 
             if len(res_db) != 0:
-                raise rdtest.TestFailureException("Expected resources weren't found: {}".format(res_db.keys()))
+                raise rdtest.TestFailureException(f"Expected resources weren't found: {res_db.keys()}")
 
         rdtest.log.success("Reflected shader source as expected")

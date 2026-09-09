@@ -188,11 +188,11 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
                     name = "_IN"
                     inVar = [v for v in trace.inputs if v.name == name]
                     if len(inVar) != 1:
-                        raise rdtest.TestFailureException(f"Couldn't find source variable {name} type:{varType}")
+                        raise rdtest.TestFailureException(f"Couldn't find source input variable {name}")
                     name = "MAT0"
                     inVar = [v for v in inVar[0].members if v.name == name]
                     if len(inVar) != 1:
-                        raise rdtest.TestFailureException(f"Couldn't find source variable {name} type:{varType}")
+                        raise rdtest.TestFailureException(f"Couldn't find source input member {name}")
 
                     matched = True
                     varsToCheck = []
@@ -227,7 +227,7 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
                 finally:
                     self.controller.FreeTrace(trace)
 
-                rdtest.log.success("Test {} matched as expected".format(test))
+                rdtest.log.success(f"Test {test} matched as expected")
                 
             rdtest.log.end_section(shaderModels[sm] + " tests")
 
@@ -298,7 +298,7 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
                 finally:
                     self.controller.FreeTrace(trace)
 
-                rdtest.log.success("Test {} matched as expected".format(test))
+                rdtest.log.success(f"Test {test} matched as expected")
 
             rdtest.log.end_section(section)
 

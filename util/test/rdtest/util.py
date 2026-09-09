@@ -196,7 +196,7 @@ def png_save(out_path: str, rows: List[bytes], dimensions: Tuple[int, int], has_
     try:
         f = open(out_path, 'wb')
     except Exception as ex:
-        raise FileNotFoundError("Can't open {} for write".format(sanitise_filename(out_path)))
+        raise FileNotFoundError(f"Can't open {sanitise_filename(out_path)} for write")
 
     writer = png.Writer(dimensions[0], dimensions[1], alpha=has_alpha, greyscale=False, compression=7)
     writer.write(f, rows)
@@ -380,4 +380,3 @@ def target_path_exists(path: str, timeout=10):
         return os.path.exists(path)
     
     return get_remote_server().path_exists(path)
-

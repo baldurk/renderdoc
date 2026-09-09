@@ -66,11 +66,11 @@ class VK_Mesh_Zoo(rdtest.TestCase):
 
             if bufs[0] != (1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0):
                 raise rdtest.TestFailureException(
-                    "XFB buffer 0 is not as expected: {}".format(bufs[0]))
+                    f"XFB buffer 0 is not as expected: {bufs[0]}")
 
             if bufs[1] != (9.0, 10.0, 11.0, 12.0):
                 raise rdtest.TestFailureException(
-                    "XFB buffer 1 is not as expected: {}".format(bufs[0]))
+                    f"XFB buffer 1 is not as expected: {bufs[0]}")
 
             vert_ref = [
                 (0.8, 0.8),
@@ -86,4 +86,4 @@ class VK_Mesh_Zoo(rdtest.TestCase):
 
                 if not rdtest.value_compare(vert, ref):
                     raise rdtest.TestFailureException(
-                        "XFB buffer 2 vertex {} is not as expected: {}".format(i, vert))
+                        f"XFB buffer 2 vertex {i} is not as expected: {vert}")

@@ -45,38 +45,38 @@ class VK_Line_Raster(rdtest.TestCase):
 
         # All points should be the line color
         if not rdtest.value_compare(s, [True, True, True]):
-            raise rdtest.TestFailureException("Normal line picked values {} doesn't match expectation".format(s))
+            raise rdtest.TestFailureException(f"Normal line picked values {s} doesn't match expectation")
 
         # Next row is unstippled. The lines should either be all present, or not present
         names = ["Rectangle", "Bresenham", "Rectangle Round"]
         for col in [0, 1, 2]:
             s = self.sample(1, col)
 
-            n = "Unstippled {}".format(names[col])
+            n = f"Unstippled {names[col]}"
 
             if s[0]:
-                if not rdtest.value_compare(s, [True, True, True]):
-                    raise rdtest.TestFailureException("{} picked values {} doesn't match expectation".format(n, s))
-                rdtest.log.success("{} line looks as expected".format(n))
+                if not all(s):
+                    raise rdtest.TestFailureException(f"{n} picked values {s} doesn't match expectation")
+                rdtest.log.success(f"{n} line looks as expected")
             else:
-                if not rdtest.value_compare(s, [False, False, False]):
-                    raise rdtest.TestFailureException("{} picked values {} doesn't match expectation".format(n, s))
-                rdtest.log.success("{} line not supported".format(n))
+                if any(s):
+                    raise rdtest.TestFailureException(f"{n} picked values {s} doesn't match expectation")
+                rdtest.log.success(f"{n} line not supported")
 
         # Final row is stippled. The lines should be present on each end, and not present in the middle
         # (or not present at all)
         for col in [0, 1, 2]:
             s = self.sample(2, col)
 
-            n = "Stippled {}".format(names[col])
+            n = f"Stippled {names[col]}"
 
             if s[0]:
-                if not rdtest.value_compare(s, [True, False, True]):
-                    raise rdtest.TestFailureException("{} picked values {} doesn't match expectation".format(n, s))
-                rdtest.log.success("{} line looks as expected".format(n))
+                if s != [True, False, True]:
+                    raise rdtest.TestFailureException(f"{n} picked values {s} doesn't match expectation")
+                rdtest.log.success(f"{n} line looks as expected")
             else:
-                if not rdtest.value_compare(s, [False, False, False]):
-                    raise rdtest.TestFailureException("{} picked values {} doesn't match expectation".format(n, s))
-                rdtest.log.success("{} line not supported".format(n))
+                if s != [False, False, False]:
+                    raise rdtest.TestFailureException(f"{n} picked values {s} doesn't match expectation")
+                rdtest.log.success(f"{n} line not supported")
 
         rdtest.log.success("All lines look as expected")

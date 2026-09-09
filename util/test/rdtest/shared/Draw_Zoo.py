@@ -46,7 +46,7 @@ class Draw_Zoo(rdtest.TestCase):
         return float(val)
 
     def check_action(self, action: rd.ActionDescription, ref_data: ActionRef):
-        rdtest.log.print("Checking action {}".format(action.eventId))
+        rdtest.log.print(f"Checking action {action.eventId}")
 
         self.controller.SetFrameEvent(action.eventId, True)
 
@@ -128,7 +128,7 @@ class Draw_Zoo(rdtest.TestCase):
 
             self.check_mesh_data(vsout_ref, postvs)
 
-            rdtest.log.success("Checked vertex out data in instance {}".format(inst))
+            rdtest.log.success(f"Checked vertex out data in instance {inst}")
 
             if self.props.shaderDebugging and refl.debugInfo.debuggable:
                 for vtx in range(num_verts):
@@ -150,9 +150,9 @@ class Draw_Zoo(rdtest.TestCase):
                        col[1] + tex[0])
                 self.check_pixel_value(out_tex, coord[0], coord[1], val, eps=0.3)
 
-            rdtest.log.success("Checked pixels in instance {}".format(inst))
+            rdtest.log.success(f"Checked pixels in instance {inst}")
 
-        rdtest.log.success("Checked action {}".format(action.eventId))
+        rdtest.log.success(f"Checked action {action.eventId}")
 
     def check_capture(self):
         test_marker = self.find_action("Test")

@@ -40,7 +40,7 @@ class GL_Buffer_Updates(rdtest.TestCase):
         # Make sure the file opened successfully
         if result != rd.ResultCode.Succeeded:
             cap.Shutdown()
-            raise rdtest.TestFailureException("Couldn't open '{}': {}".format(self.capture_filename, str(result)))
+            raise rdtest.TestFailureException(f"Couldn't open '{self.capture_filename}': {result!s}")
 
         thumb = cap.GetThumbnail(rd.FileType.PNG, 0)
 

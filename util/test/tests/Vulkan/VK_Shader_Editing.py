@@ -43,7 +43,7 @@ class VK_Shader_Editing(rdtest.TestCase):
         )
 
         if len(newShader[1]) != 0:
-            raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))
+            raise rdtest.TestFailureException(f"Failed to compile edited shader: {newShader[1]}")
 
         FS1 = newShader[0]
 
@@ -58,7 +58,7 @@ class VK_Shader_Editing(rdtest.TestCase):
         )
 
         if len(newShader[1]) != 0:
-            raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))
+            raise rdtest.TestFailureException(f"Failed to compile edited shader: {newShader[1]}")
 
         FS2 = newShader[0]
 
@@ -73,7 +73,7 @@ class VK_Shader_Editing(rdtest.TestCase):
         )
 
         if len(newShader[1]) != 0:
-            raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))
+            raise rdtest.TestFailureException(f"Failed to compile edited shader: {newShader[1]}")
 
         offsetVS = newShader[0]
 
@@ -93,7 +93,7 @@ class VK_Shader_Editing(rdtest.TestCase):
         )
 
         if len(newShader[1]) != 0:
-            raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))
+            raise rdtest.TestFailureException(f"Failed to compile edited shader: {newShader[1]}")
 
         nochangeVS = newShader[0]
 
@@ -182,7 +182,7 @@ class VK_Shader_Editing(rdtest.TestCase):
         uints = struct.unpack_from('=4L', self.controller.GetBufferData(bufout, 0, 0), 0)
         if not rdtest.value_compare(uints, [222, 222, 222, 222]):
             raise rdtest.TestFailureException(
-                'bufout data is incorrect before dispatch: {}'.format(uints))
+                f'bufout data is incorrect before dispatch: {uints}')
 
         eid = self.find_action("Post-Dispatch").eventId
         self.controller.SetFrameEvent(eid, False)
@@ -190,7 +190,7 @@ class VK_Shader_Editing(rdtest.TestCase):
         uints = struct.unpack_from('=4L', self.controller.GetBufferData(bufout, 0, 0), 0)
         if not rdtest.value_compare(uints, [777, 888, 999, 1110]):
             raise rdtest.TestFailureException(
-                'bufout data is incorrect after dispatch: {}'.format(uints))
+                f'bufout data is incorrect after dispatch: {uints}')
 
         assert csrefl.debugInfo.encoding == rd.ShaderEncoding.HLSL
         assert csrefl.entryPoint == "hlsl_main"
@@ -208,7 +208,7 @@ class VK_Shader_Editing(rdtest.TestCase):
         )
 
         if len(newShader[1]) != 0:
-            raise rdtest.TestFailureException("Failed to compile edited compute shader: {}".format(newShader[1]))
+            raise rdtest.TestFailureException(f"Failed to compile edited compute shader: {newShader[1]}")
 
         nochangeCS = newShader[0]
         self.controller.ReplaceResource(csrefl.resourceId, nochangeCS)
@@ -216,7 +216,7 @@ class VK_Shader_Editing(rdtest.TestCase):
         uints = struct.unpack_from('=4L', self.controller.GetBufferData(bufout, 0, 0), 0)
         if not rdtest.value_compare(uints, [777, 888, 999, 1110]):
             raise rdtest.TestFailureException(
-                'bufout data is incorrect after dispatch: {}'.format(uints))
+                f'bufout data is incorrect after dispatch: {uints}')
 
         rdtest.log.success("Values are as expected after compute shader entry point change")
 
@@ -254,7 +254,7 @@ void main()
         )
 
         if len(newShader[1]) != 0:
-            raise rdtest.TestFailureException("Failed to compile edited compute shader: {}".format(newShader[1]))
+            raise rdtest.TestFailureException(f"Failed to compile edited compute shader: {newShader[1]}")
 
         CS1 = newShader[0]
         self.controller.ReplaceResource(csrefl.resourceId, CS1)
@@ -262,7 +262,7 @@ void main()
         uints = struct.unpack_from('=4L', self.controller.GetBufferData(bufout, 0, 0), 0)
         if not rdtest.value_compare(uints, [1110, 999, 888, 777]):
             raise rdtest.TestFailureException(
-                'bufout data is incorrect after dispatch: {}'.format(uints))
+                f'bufout data is incorrect after dispatch: {uints}')
 
         rdtest.log.success("Values are as expected after compute shader edit")
 

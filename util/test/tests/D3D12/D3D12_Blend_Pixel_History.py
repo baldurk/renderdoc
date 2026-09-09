@@ -58,7 +58,7 @@ class D3D12_Blend_Pixel_History(rdtest.TestCase):
 
         # Pixel inside of all of the triangles
         x, y = 200, 150
-        rdtest.log.print("Testing pixel {}, {}".format(x, y))
+        rdtest.log.print(f"Testing pixel {x}, {y}")
         modifs = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
         self.check_modifs_consistent(modifs)
         red_modifs = [m for m in modifs if m.eventId >= red_eid and m.eventId < red_last_eid]
@@ -67,13 +67,13 @@ class D3D12_Blend_Pixel_History(rdtest.TestCase):
         all_modifs = [m for m in modifs if m.eventId == all_eid]
 
         if len(red_modifs) != NUM_TRIANGLES_RED_REAL:
-            raise rdtest.TestFailureException("Expected {} modifications for red triangles (EIDS {} until {}) but got {}".format(NUM_TRIANGLES_RED_REAL, red_eid, red_last_eid, len(red_modifs)))
+            raise rdtest.TestFailureException(f"Expected {NUM_TRIANGLES_RED_REAL} modifications for red triangles (EIDS {red_eid} until {red_last_eid}) but got {len(red_modifs)}")
 
         for i, modif in enumerate(red_modifs):
             if not rdtest.value_compare(modif.shaderOut.col.floatValue, (1.0/255.0, 0.0, 0.0, 1.0), eps=1.0/256.0):
-                raise rdtest.TestFailureException("Wrong shader output for red triangle {}; got {}, wanted {}".format(i, modif.shaderOut.col.floatValue, (1.0/255.0, 0.0, 0.0, 1.0)))
+                raise rdtest.TestFailureException(f"Wrong shader output for red triangle {i}; got {modif.shaderOut.col.floatValue}, wanted {(1.0 / 255.0, 0.0, 0.0, 1.0)}")
             if not rdtest.value_compare(modif.postMod.col.floatValue, ((i+1)/255.0, 0.0, 0.0, 1.0), eps=1.0/256.0):
-                raise rdtest.TestFailureException("Wrong post mod for red triangle {}; got {}, wanted {}".format(i, modif.postMod.col.floatValue, ((i+1)/255.0, 0.0, 0.0, 1.0)))
+                raise rdtest.TestFailureException(f"Wrong post mod for red triangle {i}; got {modif.postMod.col.floatValue}, wanted {((i + 1) / 255.0, 0.0, 0.0, 1.0)}")
 
         i = 1
         eid_counter = 0
@@ -81,63 +81,63 @@ class D3D12_Blend_Pixel_History(rdtest.TestCase):
         while i <= NUM_TRIANGLES_RED:
             for primitive_id in range(i):
                 if red_modifs[modif_counter].eventId != red_eid + eid_counter:
-                    raise rdtest.TestFailureException("Expected red triangle {} to be part of EID {} but was {}".format(modif_counter, red_eid + eid_counter, red_modifs[modif_counter].eventId))
+                    raise rdtest.TestFailureException(f"Expected red triangle {modif_counter} to be part of EID {red_eid + eid_counter} but was {red_modifs[modif_counter].eventId}")
                 if red_modifs[modif_counter].primitiveID != primitive_id:
-                    raise rdtest.TestFailureException("Expected red triangle {} to have primitive ID {} but was {}".format(modif_counter, primitive_id, red_modifs[modif_counter].primitiveID))
+                    raise rdtest.TestFailureException(f"Expected red triangle {modif_counter} to have primitive ID {primitive_id} but was {red_modifs[modif_counter].primitiveID}")
                 modif_counter += 1
             eid_counter += 1
             i *= 2
 
         if len(green_modifs) != NUM_TRIANGLES_GREEN:
-            raise rdtest.TestFailureException("Expected {} modifications for green triangles (EID {}) but got {}".format(NUM_TRIANGLES_GREEN, green_eid, len(gren_modifs)))
+            raise rdtest.TestFailureException(f"Expected {NUM_TRIANGLES_GREEN} modifications for green triangles (EID {green_eid}) but got {len(green_modifs)}")
 
         for i, modif in enumerate(green_modifs):
             if modif.primitiveID != i:
-                raise rdtest.TestFailureException("Expected green triangle {} to have primitive ID {} but was {}".format(i, primitive_id, modif.primitiveID))
+                raise rdtest.TestFailureException(f"Expected green triangle {i} to have primitive ID {modif.primitiveID} but was {modif.primitiveID}")
             if not rdtest.value_compare(modif.shaderOut.col.floatValue, (0.0, 1.0/255.0, 0.0, 1.0), eps=1.0/256.0):
-                raise rdtest.TestFailureException("Wrong shader output for green triangle {}; got {}, wanted {}".format(i, modif.shaderOut.col.floatValue, (0.0, 1.0/255.0, 0.0, 1.0)))
+                raise rdtest.TestFailureException(f"Wrong shader output for green triangle {i}; got {modif.shaderOut.col.floatValue}, wanted {(0.0, 1.0 / 255.0, 0.0, 1.0)}")
             if not rdtest.value_compare(modif.postMod.col.floatValue, (NUM_TRIANGLES_RED_REAL/255.0, (i+1)/255.0, 0.0, 1.0), eps=1.0/256.0):
-                raise rdtest.TestFailureException("Wrong post mod for green triangle {}; got {}, wanted {}".format(i, modif.postMod.col.floatValue, (NUM_TRIANGLES_RED_REAL/255.0, (i+1)/255.0, 0.0, 1.0)))
+                raise rdtest.TestFailureException(f"Wrong post mod for green triangle {i}; got {modif.postMod.col.floatValue}, wanted {(NUM_TRIANGLES_RED_REAL / 255.0, (i + 1) / 255.0, 0.0, 1.0)}")
 
         # We can only record 255 modifications due to the stencil format
         if len(blue_modifs) != 255:
-            raise rdtest.TestFailureException("Expected {} modifications for blue triangles (EID {}) but got {}".format(255, blue_eid, len(blue_modifs)))
+            raise rdtest.TestFailureException(f"Expected {255} modifications for blue triangles (EID {blue_eid}) but got {len(blue_modifs)}")
 
         for i, modif in enumerate(blue_modifs):
             if modif.primitiveID != i:
-                raise rdtest.TestFailureException("Expected blue triangle {} to have primitive ID {} but was {}".format(i, primitive_id, modif.primitiveID))
+                raise rdtest.TestFailureException(f"Expected blue triangle {i} to have primitive ID {modif.primitiveID} but was {modif.primitiveID}")
             if not rdtest.value_compare(modif.shaderOut.col.floatValue, (0.0, 0.0, 1.0/255.0, 1.0), eps=1.0/256.0):
-                raise rdtest.TestFailureException("Wrong shader output for blue triangle {}; got {}, wanted {}".format(i, modif.shaderOut.col.floatValue, (0.0, 0.0, 1.0/255.0, 1.0)))
+                raise rdtest.TestFailureException(f"Wrong shader output for blue triangle {i}; got {modif.shaderOut.col.floatValue}, wanted {(0.0, 0.0, 1.0 / 255.0, 1.0)}")
             if i == 254:
                 if not rdtest.value_compare(modif.postMod.col.floatValue, (NUM_TRIANGLES_RED_REAL/255.0, 1.0, NUM_TRIANGLES_BLUE/255.0, 1.0), eps=1.0/256.0):
-                    raise rdtest.TestFailureException("Wrong post mod for final blue triangle {}; got {}, wanted {}".format(i, modif.postMod.col.floatValue, (NUM_TRIANGLES_RED_REAL/255.0, 1.0, NUM_TRIANGLES_BLUE/255.0, 1.0)))
+                    raise rdtest.TestFailureException(f"Wrong post mod for final blue triangle {i}; got {modif.postMod.col.floatValue}, wanted {(NUM_TRIANGLES_RED_REAL / 255.0, 1.0, NUM_TRIANGLES_BLUE / 255.0, 1.0)}")
             else:
                 if not rdtest.value_compare(modif.postMod.col.floatValue, (NUM_TRIANGLES_RED_REAL/255.0, 1.0, (i+1)/255.0, 1.0), eps=1.0/256.0):
-                    raise rdtest.TestFailureException("Wrong post mod for blue triangle {}; got {}, wanted {}".format(i, modif.postMod.col.floatValue, (NUM_TRIANGLES_RED_REAL/255.0, 1.0, (i+1)/255.0, 1.0)))
+                    raise rdtest.TestFailureException(f"Wrong post mod for blue triangle {i}; got {modif.postMod.col.floatValue}, wanted {(NUM_TRIANGLES_RED_REAL / 255.0, 1.0, (i + 1) / 255.0, 1.0)}")
 
         # Once again, we can only record 255 modifications due to the stencil format
         if len(all_modifs) != 255:
-            raise rdtest.TestFailureException("Expected {} modifications for all triangles (EID {}) but got {}".format(255, all_eid, len(all_modifs)))
+            raise rdtest.TestFailureException(f"Expected {255} modifications for all triangles (EID {all_eid}) but got {len(all_modifs)}")
 
         for i, modif in enumerate(all_modifs):
             if modif.primitiveID != i:
-                raise rdtest.TestFailureException("Expected triangle {} in all to have primitive ID {} but was {}".format(i, primitive_id, modif.primitiveID))
+                raise rdtest.TestFailureException(f"Expected triangle {i} in all to have primitive ID {modif.primitiveID} but was {modif.primitiveID}")
 
             if i < NUM_TRIANGLES_RED:
                 if not rdtest.value_compare(modif.shaderOut.col.floatValue, (1.0/255.0, 0.0, 0.0, 1.0), eps=1.0/256.0):
-                    raise rdtest.TestFailureException("Wrong shader output for red triangle in all {}; got {}, wanted {}".format(i, modif.shaderOut.col.floatValue, (1.0/255.0, 0.0, 0.0, 1.0)))
+                    raise rdtest.TestFailureException(f"Wrong shader output for red triangle in all {i}; got {modif.shaderOut.col.floatValue}, wanted {(1.0 / 255.0, 0.0, 0.0, 1.0)}")
                 if not rdtest.value_compare(modif.postMod.col.floatValue, ((i+1)/255.0, 0.0, 0.0, 1.0), eps=1.0/256.0):
-                    raise rdtest.TestFailureException("Wrong post mod for red triangle in all {}; got {}, wanted {}".format(i, modif.postMod.col.floatValue, ((i+1)/255.0, 0.0, 0.0, 1.0)))
+                    raise rdtest.TestFailureException(f"Wrong post mod for red triangle in all {i}; got {modif.postMod.col.floatValue}, wanted {((i + 1) / 255.0, 0.0, 0.0, 1.0)}")
             else:
                 if not rdtest.value_compare(modif.shaderOut.col.floatValue, (0.0, 1.0/255.0, 0.0, 1.0), eps=1.0/256.0):
-                    raise rdtest.TestFailureException("Wrong shader output for green triangle in all {}; got {}, wanted {}".format(i, modif.shaderOut.col.floatValue, (0.0, 1.0/255.0, 0.0, 1.0)))
+                    raise rdtest.TestFailureException(f"Wrong shader output for green triangle in all {i}; got {modif.shaderOut.col.floatValue}, wanted {(0.0, 1.0 / 255.0, 0.0, 1.0)}")
                 if i != 254:
                     if not rdtest.value_compare(modif.postMod.col.floatValue, (NUM_TRIANGLES_RED/255.0, (i+1-NUM_TRIANGLES_RED)/255.0, 0.0, 1.0), eps=1.0/256.0):
-                        raise rdtest.TestFailureException("Wrong post mod for green triangle in all {}; got {}, wanted {}".format(i, modif.postMod.col.floatValue, (NUM_TRIANGLES_RED/255.0, (i+1-NUM_TRIANGLES_RED)/255.0, 0.0, 1.0)))
+                        raise rdtest.TestFailureException(f"Wrong post mod for green triangle in all {i}; got {modif.postMod.col.floatValue}, wanted {(NUM_TRIANGLES_RED / 255.0, (i + 1 - NUM_TRIANGLES_RED) / 255.0, 0.0, 1.0)}")
                 else:
                     # For i = 254 (the last triangle), the post-mod value is always set to the final post-mod value, but everything else is correctly set to the 255th modification
                     if not rdtest.value_compare(modif.postMod.col.floatValue, (NUM_TRIANGLES_RED/255.0, 1.0, NUM_TRIANGLES_BLUE/255.0, 1.0), eps=1.0/256.0):
-                        raise rdtest.TestFailureException("Wrong post mod for final (blue) triangle in all {}; got {}, wanted {}".format(i, modif.postMod.col.floatValue, (NUM_TRIANGLES_RED/255.0, 1.0, NUM_TRIANGLES_BLUE/255.0, 1.0)))
+                        raise rdtest.TestFailureException(f"Wrong post mod for final (blue) triangle in all {i}; got {modif.postMod.col.floatValue}, wanted {(NUM_TRIANGLES_RED / 255.0, 1.0, NUM_TRIANGLES_BLUE / 255.0, 1.0)}")
 
     def check_modifs_consistent(self, modifs):
         # postmod of each should match premod of the next
@@ -147,9 +147,4 @@ class D3D12_Blend_Pixel_History(rdtest.TestCase):
 
             if a != b:
                 raise rdtest.TestFailureException(
-                    "postmod at {} primitive {}: {} doesn't match premod at {} primitive {}: {}".format(modifs[i].eventId,
-                                                                              modifs[i].primitiveID,
-                                                                              a,
-                                                                              modifs[i + 1].eventId,
-                                                                              modifs[i + 1].primitiveID,
-                                                                              b))
+                    f"postmod at {modifs[i].eventId} primitive {modifs[i].primitiveID}: {a} doesn't match premod at {modifs[i + 1].eventId} primitive {modifs[i + 1].primitiveID}: {b}")

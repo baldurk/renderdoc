@@ -29,7 +29,7 @@ class VK_Shader_ISA(rdtest.TestCase):
             disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, isa)
 
             if len(disasm) < 32:
-                raise rdtest.TestFailureException("Disassembly for target '{}' is degenerate: {}".format(isa, disasm))
+                raise rdtest.TestFailureException(f"Disassembly for target '{isa}' is degenerate: {disasm}")
 
         rdtest.log.success("All disassembly targets successfully fetched and seem reasonable")
 
@@ -50,7 +50,7 @@ class VK_Shader_ISA(rdtest.TestCase):
         for fragment in expected:
             if not fragment in disasm:
                 raise rdtest.TestFailureException(
-                    "AMDIL ISA doesn't contain '{}' as expected: {}".format(fragment, disasm))
+                    f"AMDIL ISA doesn't contain '{fragment}' as expected: {disasm}")
 
         if 'RDNA (gfx1010)' not in isas:
             raise rdtest.TestFailureException(
@@ -68,7 +68,7 @@ class VK_Shader_ISA(rdtest.TestCase):
         for fragment in expected:
             if not fragment in disasm:
                 raise rdtest.TestFailureException(
-                    "RDNA ISA doesn't contain '{}' as expected: {}".format(fragment, disasm))
+                    f"RDNA ISA doesn't contain '{fragment}' as expected: {disasm}")
 
         rdtest.log.success("AMD disassembly is as expected")
 
@@ -90,7 +90,7 @@ class VK_Shader_ISA(rdtest.TestCase):
             for fragment in expected:
                 if not fragment in disasm:
                     raise rdtest.TestFailureException(
-                        "AMD_shader_info ISA doesn't contain '{}' as expected: {}".format(fragment, disasm))
+                        f"AMD_shader_info ISA doesn't contain '{fragment}' as expected: {disasm}")
 
             if 'KHR_pipeline_executable_properties' not in isas:
                 raise rdtest.TestFailureException(
@@ -108,7 +108,6 @@ class VK_Shader_ISA(rdtest.TestCase):
             for fragment in expected:
                 if not fragment in disasm:
                     raise rdtest.TestFailureException(
-                        "KHR_pipeline_executable_properties ISA doesn't contain '{}' as expected: {}".format(fragment,
-                                                                                                             disasm))
+                        f"KHR_pipeline_executable_properties ISA doesn't contain '{fragment}' as expected: {disasm}")
 
             rdtest.log.success("Live driver disassembly is as expected")

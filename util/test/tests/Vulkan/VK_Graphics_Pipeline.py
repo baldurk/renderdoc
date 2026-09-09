@@ -70,11 +70,11 @@ class VK_Graphics_Pipeline(rdtest.TestCase):
 
         # only expect 4 accesses, the texture we actually read, spec constant, push constants, and VS UBO
         if len(access) != 4:
-            raise rdtest.TestFailureException("Only expected 4 descriptor accesses, but saw {}".format(len(access)))
+            raise rdtest.TestFailureException(f"Only expected 4 descriptor accesses, but saw {len(access)}")
 
         if not (rd.DescriptorType.ImageSampler, 0, 13) in [(a.type, a.index, a.arrayElement) for a in access]:
             raise rdtest.TestFailureException(
-                f"Graphics bind 0[15] isn't the accessed descriptor {str(rd.DumpObject(access))}")
+                f"Graphics bind 0[15] isn't the accessed descriptor {rd.DumpObject(access)!s}")
 
         self.check_vertex_debug(0, 0, 0, postvs_data)
 
@@ -90,8 +90,7 @@ class VK_Graphics_Pipeline(rdtest.TestCase):
         assert history[1].Passed()
 
         if not rdtest.value_compare(history[1].shaderOut.col.floatValue, tri_col, eps=1.0 / 256.0):
-            raise rdtest.TestFailureException("History for drawcall output is wrong: {}".format(
-                history[1].shaderOut.col.floatValue))
+            raise rdtest.TestFailureException(f"History for drawcall output is wrong: {history[1].shaderOut.col.floatValue}")
 
         inputs = rd.DebugPixelInputs()
         inputs.sample = 0
@@ -117,10 +116,9 @@ class VK_Graphics_Pipeline(rdtest.TestCase):
         is_eq, diff_amt = rdtest.value_compare_diff(history[1].shaderOut.col.floatValue, debuggedValue, eps=5.0E-06)
         if not is_eq:
             raise rdtest.TestFailureException(
-                "Debugged pixel value {}: {} difference. {} doesn't exactly match history shader output {}".format(
-                    debugged.name, diff_amt, debuggedValue, history[1].shaderOut.col.floatValue))
+                f"Debugged pixel value {debugged.name}: {diff_amt} difference. {debuggedValue} doesn't exactly match history shader output {history[1].shaderOut.col.floatValue}")
 
-        rdtest.log.success('Successfully debugged pixel in {} cycles, result matches'.format(cycles))
+        rdtest.log.success(f'Successfully debugged pixel in {cycles} cycles, result matches')
 
         out = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
 
@@ -146,7 +144,7 @@ class VK_Graphics_Pipeline(rdtest.TestCase):
                                                       rd.ShaderCompileFlags(), rd.ShaderStage.Vertex)
 
         if len(newShader[1]) != 0:
-            raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))
+            raise rdtest.TestFailureException(f"Failed to compile edited shader: {newShader[1]}")
 
         self.controller.ReplaceResource(vsrefl.resourceId, newShader[0])
 

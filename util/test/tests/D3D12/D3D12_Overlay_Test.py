@@ -17,11 +17,11 @@ class D3D12_Overlay_Test(rdtest.Overlay_Test):
 
             base_event = base.eventId
 
-            rdtest.log.print("Checking tests on {}".format(base_event_name))
+            rdtest.log.print(f"Checking tests on {base_event_name}")
 
             super(D3D12_Overlay_Test, self).check_capture(base_event)
 
-            rdtest.log.success("Base tests worked on {}".format(base_event_name))
+            rdtest.log.success(f"Base tests worked on {base_event_name}")
 
             # Don't check any pixel values, but ensure all overlays at least work with no viewport/scissor bound
             sub_marker = self.find_action("NoView draw", base_event)
@@ -43,7 +43,7 @@ class D3D12_Overlay_Test(rdtest.Overlay_Test):
                 if overlay == rd.DebugOverlay.ClearBeforeDraw or overlay == rd.DebugOverlay.ClearBeforePass:
                     continue
 
-                rdtest.log.success("Checking overlay {} with no viewport/scissor".format(str(overlay)))
+                rdtest.log.success(f"Checking overlay {overlay!s} with no viewport/scissor")
 
                 tex.overlay = overlay
                 out.SetTextureDisplay(tex)
@@ -52,8 +52,8 @@ class D3D12_Overlay_Test(rdtest.Overlay_Test):
 
                 overlay_id = out.GetDebugOverlayTexID()
 
-                rdtest.log.success("Overlay {} rendered with no viewport/scissor".format(str(overlay)))
+                rdtest.log.success(f"Overlay {overlay!s} rendered with no viewport/scissor")
 
-            rdtest.log.success("extended tests worked on {}".format(base_event_name))
+            rdtest.log.success(f"extended tests worked on {base_event_name}")
 
         out.Shutdown()

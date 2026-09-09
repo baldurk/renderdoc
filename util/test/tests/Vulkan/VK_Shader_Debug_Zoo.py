@@ -22,7 +22,7 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
                 pipe = self.controller.GetPipelineState()
 
                 if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
-                    rdtest.log.print("Skipping undebuggable shader at {} in {}.".format(child, test_name))
+                    rdtest.log.print(f"Skipping undebuggable shader at {child} in {test_name}.")
                     return
 
                 for test in range(section.numInstances):
@@ -34,7 +34,7 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
 
                     if trace.debugger is None:
                         failed = True
-                        rdtest.log.error("Test {} in sub-section {} did not debug at all".format(test, child))
+                        rdtest.log.error(f"Test {test} in sub-section {child} did not debug at all")
                         self.controller.FreeTrace(trace)
                         continue
 
@@ -54,12 +54,12 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
                         self.check_pixel_value(pipe.GetOutputTargets()[0].resource, x, y, debugged.value.f32v[0:4], eps=eps)
                     except rdtest.TestFailureException as ex:
                         failed = True
-                        rdtest.log.error("Test {} in sub-section {} did not match. {}".format(test, child, str(ex)))
+                        rdtest.log.error(f"Test {test} in sub-section {child} did not match. {ex!s}")
                         continue
                     finally:
                         self.controller.FreeTrace(trace)
 
-                    rdtest.log.success("Test {} in sub-section {} matched as expected".format(test, child))
+                    rdtest.log.success(f"Test {test} in sub-section {child} matched as expected")
             rdtest.log.end_section(test_name)
 
             test_name = "Disassembly Tests"
@@ -80,7 +80,7 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
             for exp in expectedStrings:
                 if exp not in disasm:
                     failed = True
-                    rdtest.log.error("Failed to find `{}` in disassembly".format(exp))
+                    rdtest.log.error(f"Failed to find `{exp}` in disassembly")
 
             rdtest.log.end_section(test_name)
 

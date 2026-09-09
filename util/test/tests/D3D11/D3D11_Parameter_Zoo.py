@@ -8,7 +8,7 @@ class D3D11_Parameter_Zoo(rdtest.TestCase):
     demos_frame_count = 10
 
     def check_capture(self):
-        rdtest.log.success("Got {} captures as expected".format(self.demos_frame_count))
+        rdtest.log.success(f"Got {self.demos_frame_count} captures as expected")
 
         action = self.find_action("Draw")
         assert action is not None
@@ -62,7 +62,7 @@ class D3D11_Parameter_Zoo(rdtest.TestCase):
         ]
         for marker in expected_markers:
             if self.find_action(marker) == None:
-                raise rdtest.TestFailureException("Failed to find marker `{}`".format(marker))
+                raise rdtest.TestFailureException(f"Failed to find marker `{marker}`")
 
         out.Shutdown()
 

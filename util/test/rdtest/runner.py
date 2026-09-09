@@ -111,10 +111,10 @@ def _run_test(testclass, runner_timeout, failedcases: list):
 
         if RUNNER_DEBUG:
             if out is not None:
-                print("Test stdout: {}".format(out))
+                print(f"Test stdout: {out}")
 
             if err is not None:
-                print("Test stderr: {}".format(err))
+                print(f"Test stderr: {err}")
         else:
             if out is not None:
                 out_pending += out
@@ -144,7 +144,7 @@ def _run_test(testclass, runner_timeout, failedcases: list):
                 break
 
         if out is None and err is None and test_run.poll() is None:
-            log.error('Timed out, no output within {}s elapsed'.format(runner_timeout))
+            log.error(f'Timed out, no output within {runner_timeout}s elapsed')
             test_run.kill()
             test_run.communicate()
             raise subprocess.TimeoutExpired(' '.join(args), runner_timeout)
@@ -173,8 +173,7 @@ def _run_test(testclass, runner_timeout, failedcases: list):
     elif test_run.returncode == 1:
         failedcases.append(testclass)
     else:
-        raise RuntimeError('Test did not exit cleanly while running, possible crash. Exit code {}'
-                           .format(test_run.returncode))
+        raise RuntimeError(f'Test did not exit cleanly while running, possible crash. Exit code {test_run.returncode}')
 
 
 def fetch_tests():  
@@ -223,29 +222,29 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
     if plat == 'nt' or 'Windows' in platform.platform():
         plat = 'win32'
 
-    log.header("Tests running for RenderDoc Version {} ({})".format(rd.GetVersionString(), rd.GetCommitHash()))
-    log.header("On {}".format(platform.platform()))
+    log.header(f"Tests running for RenderDoc Version {rd.GetVersionString()} ({rd.GetCommitHash()})")
+    log.header(f"On {platform.platform()}")
 
-    log.comment("plat={} git={}".format(platform.platform(), rd.GetCommitHash()))
-    log.print("Demos running from {}".format(util.get_demos_binary()))
+    log.comment(f"plat={platform.platform()} git={rd.GetCommitHash()}")
+    log.print(f"Demos running from {util.get_demos_binary()}")
 
     if server is None:
         driver = ""
         for api in rd.GraphicsAPI:
             v = rd.GetDriverInformation(api)
-            log.print("{} driver: {} {}".format(str(api), str(v.vendor), v.version))
+            log.print(f"{api!s} driver: {v.vendor!s} {v.version}")
 
             # Take the first version number we get, but prefer GL as it's universally available and
             # Produces a nice version number & device combination
             if (api == rd.GraphicsAPI.OpenGL or driver == "") and v.vendor != rd.GPUVendor.Unknown:
                 driver = v.version
 
-        log.comment("driver={}".format(driver))
+        log.comment(f"driver={driver}")
 
         layerInfo = rd.VulkanLayerRegistrationInfo()
         if rd.NeedVulkanLayerRegistration(layerInfo):
-            log.print("Vulkan layer needs to be registered: {}".format(str(layerInfo.flags)))
-            log.print("My JSONs: {}, Other JSONs: {}".format(layerInfo.myJSONs, layerInfo.otherJSONs))
+            log.print(f"Vulkan layer needs to be registered: {layerInfo.flags!s}")
+            log.print(f"My JSONs: {layerInfo.myJSONs}, Other JSONs: {layerInfo.otherJSONs}")
 
             # Update the layer registration without doing anything special first - if running automated we might have
             # granted user-writable permissions to the system files needed to update. If possible we register at user
@@ -294,9 +293,9 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
     exclude_regexp = None
     if test_exclude != '':
         exclude_regexp = re.compile(test_exclude, re.IGNORECASE)
-        log.print("Running tests matching '{}' and not matching '{}'".format(test_include, test_exclude))
+        log.print(f"Running tests matching '{test_include}' and not matching '{test_exclude}'")
     else:
-        log.print("Running tests matching '{}'".format(test_include))
+        log.print(f"Running tests matching '{test_include}'")
 
     failedcases = []
     skippedcases = []
@@ -320,22 +319,22 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
         supported, unsupported_reason = instance.check_support(test_include=test_include)
 
         if not supported:
-            log.print("Skipping {} as {}".format(name, unsupported_reason))
+            log.print(f"Skipping {name} as {unsupported_reason}")
             skippedcases.append(testclass)
             continue
 
         if not include_regexp.search(name):
-            log.print("Skipping {} as it doesn't match '{}'".format(name, test_include))
+            log.print(f"Skipping {name} as it doesn't match '{test_include}'")
             skippedcases.append(testclass)
             continue
 
         if exclude_regexp is not None and exclude_regexp.search(name):
-            log.print("Skipping {} as it matches '{}'".format(name, test_exclude))
+            log.print(f"Skipping {name} as it matches '{test_exclude}'")
             skippedcases.append(testclass)
             continue
 
         if not slow_tests and testclass.slow_test:
-            log.print("Skipping {} as it is a slow test, which are not enabled".format(name))
+            log.print(f"Skipping {name} as it is a slow test, which are not enabled")
             skippedcases.append(testclass)
             continue
 
@@ -380,15 +379,14 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
 
     logfile = rd.GetLogFile()
     if os.path.exists(logfile):
-        log.inline_file('{} RenderDoc log'.format("Host" if server is not None else ""), logfile)
+        log.inline_file(f"{'Host' if server is not None else ''} RenderDoc log", logfile)
 
-    log.comment("total={} fail={} skip={} time={}".format(len(testcases), len(failedcases), len(skippedcases), int(duration.total_seconds())))
-    log.header("Tests complete summary: {} passed out of {} run from {} total in {}"
-               .format(len(runcases)-len(failedcases), len(runcases), len(testcases), duration))
+    log.comment(f"total={len(testcases)} fail={len(failedcases)} skip={len(skippedcases)} time={int(duration.total_seconds())}")
+    log.header(f"Tests complete summary: {len(runcases) - len(failedcases)} passed out of {len(runcases)} run from {len(testcases)} total in {duration}")
     if len(failedcases) > 0:
         log.print("Failed tests:")
     for testclass in failedcases:
-        log.print("  - {}".format(testclass.__name__))
+        log.print(f"  - {testclass.__name__}")
 
     # Print a proper footer if we got here
     log.rawprint('\n\n\n</script>', with_stdout=False)
@@ -470,7 +468,7 @@ def internal_run_test(test_name):
                                                           None)
 
             if logfile is not None and os.path.exists(logfile):
-                log.inline_file('{} RenderDoc log'.format("Test" if server is not None else ""), logfile)
+                log.inline_file(f"{'Test' if server is not None else ''} RenderDoc log", logfile)
 
             log.end_test(test_name, print_footer=False)
 
@@ -488,4 +486,4 @@ def internal_run_test(test_name):
             else:
                 sys.exit(1)
 
-    log.error("INTERNAL ERROR: Couldn't find '{}' test to run".format(test_name))
+    log.error(f"INTERNAL ERROR: Couldn't find '{test_name}' test to run")

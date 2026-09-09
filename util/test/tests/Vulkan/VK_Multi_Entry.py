@@ -24,11 +24,11 @@ class VK_Multi_Entry(rdtest.TestCase):
 
         # only expect two accesses, the texture we actually read and the push constants
         if len(access) != 2:
-            raise rdtest.TestFailureException("Only expected two descriptor accesses, but saw {}".format(len(access)))
+            raise rdtest.TestFailureException(f"Only expected two descriptor accesses, but saw {len(access)}")
 
         if not (rd.DescriptorType.ImageSampler, 0, 15) in [(a.type, a.index, a.arrayElement) for a in access]:
             raise rdtest.TestFailureException(
-                f"Graphics bind 0[15] isn't the accessed descriptor {str(rd.DumpObject(access))}")
+                f"Graphics bind 0[15] isn't the accessed descriptor {rd.DumpObject(access)!s}")
 
         refl = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
 
@@ -50,8 +50,7 @@ class VK_Multi_Entry(rdtest.TestCase):
         assert history[1].Passed()
 
         if not rdtest.value_compare(history[1].shaderOut.col.floatValue, (0.0, 1.0, 0.0, 1.0)):
-            raise rdtest.TestFailureException("History for drawcall output is wrong: {}".format(
-                history[1].shaderOut.col.floatValue))
+            raise rdtest.TestFailureException(f"History for drawcall output is wrong: {history[1].shaderOut.col.floatValue}")
 
         inputs = rd.DebugPixelInputs()
         inputs.sample = 0
@@ -81,10 +80,9 @@ class VK_Multi_Entry(rdtest.TestCase):
         is_eq, diff_amt = rdtest.value_compare_diff(history[1].shaderOut.col.floatValue, debuggedValue, eps=5.0E-06)
         if not is_eq:
             rdtest.log.error(
-                "Debugged pixel value {}: {} difference. {} doesn't exactly match history shader output {}".format(
-                    debugged.name, diff_amt, debuggedValue, history[1].shaderOut.col.floatValue))
+                f"Debugged pixel value {debugged.name}: {diff_amt} difference. {debuggedValue} doesn't exactly match history shader output {history[1].shaderOut.col.floatValue}")
 
-        rdtest.log.success('Successfully debugged pixel in {} cycles, result matches'.format(cycles))
+        rdtest.log.success(f'Successfully debugged pixel in {cycles} cycles, result matches')
 
         out = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
 

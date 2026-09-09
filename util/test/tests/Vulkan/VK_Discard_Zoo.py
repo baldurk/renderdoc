@@ -53,12 +53,12 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
                     if not rdtest.value_compare(c.floatValue, [0.0] * 4) and not rdtest.value_compare(c.floatValue,
                                                                                                       [1000.0] * 4):
                         raise rdtest.TestFailureException(
-                            'middle color has unexpected value at {},{}: {}'.format(x, y, c.floatValue))
+                            f'middle color has unexpected value at {x},{y}: {c.floatValue}')
 
                     if not rdtest.value_compare(d.floatValue[0:2], [0.0] * 2) and not rdtest.value_compare(
                             d.floatValue[0:2], [1.0] * 2):
                         raise rdtest.TestFailureException(
-                            'middle depth has unexpected value at {},{}: {}'.format(x, y, d.floatValue))
+                            f'middle depth has unexpected value at {x},{y}: {d.floatValue}')
                 else:
                     self.check_pixel_value(rpcol.resourceId, x, y, [0.0, 1.0, 0.0, 1.0])
                     self.check_pixel_value(rpdepth.resourceId, x, y, [0.4, float(0x40)/float(255), 0.0, 1.0])
@@ -87,12 +87,12 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
                     if not rdtest.value_compare(c.floatValue, [0.0] * 4) and not rdtest.value_compare(c.floatValue,
                                                                                                       [1000.0] * 4):
                         raise rdtest.TestFailureException(
-                            'middle color has unexpected value at {},{}: {}'.format(x, y, c.floatValue))
+                            f'middle color has unexpected value at {x},{y}: {c.floatValue}')
 
                     if not rdtest.value_compare(d.floatValue[0:2], [0.0] * 2) and not rdtest.value_compare(
                             d.floatValue[0:2], [1.0] * 2):
                         raise rdtest.TestFailureException(
-                            'middle depth has unexpected value at {},{}: {}'.format(x, y, d.floatValue))
+                            f'middle depth has unexpected value at {x},{y}: {d.floatValue}')
                 else:
                     self.check_pixel_value(rpcol.resourceId, x, y, [0.0, 1.0, 0.0, 1.0])
                     self.check_pixel_value(rpdepth.resourceId, x, y, [0.4, float(0x40)/float(255), 0.0, 1.0])
@@ -134,12 +134,12 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
                 if not rdtest.value_compare(c.floatValue, [0.0] * 4) and not rdtest.value_compare(c.floatValue,
                                                                                                   [1000.0] * 4):
                     raise rdtest.TestFailureException(
-                        'undefined color has unexpected value at {},{}: {}'.format(x, y, c.floatValue))
+                        f'undefined color has unexpected value at {x},{y}: {c.floatValue}')
 
                 if not rdtest.value_compare(d.floatValue[0:2], [0.0] * 2) and not rdtest.value_compare(
                         d.floatValue[0:2], [1.0] * 2):
                     raise rdtest.TestFailureException(
-                        'undefined depth has unexpected value at {},{}: {}'.format(x, y, d.floatValue))
+                        f'undefined depth has unexpected value at {x},{y}: {d.floatValue}')
 
         rdtest.log.success("Values are correct after the UNDEFINED initial layout renderpass")
 

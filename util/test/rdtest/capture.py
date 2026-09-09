@@ -141,13 +141,13 @@ def run_executable(exe: str, cmdline: str,
     server = util.get_remote_server()
     res = None
     if server is None:
-        log.print("Running exe:'{}' cmd:'{}' in dir:'{}' with env:'{}'".format(exe, cmdline, workdir, envmods))
+        log.print(f"Running exe:'{exe}' cmd:'{cmdline}' in dir:'{workdir}' with env:'{envmods}'")
         res = rd.ExecuteAndInject(exe, workdir, cmdline, envmods, cappath, opts, wait_for_exit)
     else:
         res = server.inject_and_run_exe(cmdline, envmods, opts)
 
     if res.result != rd.ResultCode.Succeeded:
-        raise RuntimeError("Couldn't launch program: {}".format(str(res.result)))
+        raise RuntimeError(f"Couldn't launch program: {res.result!s}")
 
     return res.ident
 
@@ -196,7 +196,8 @@ def run_and_capture(exe: str, cmdline: str, frame: int, *, frame_count=1, captur
     control = TargetControl(run_executable(exe, cmdline, cappath=cappath, opts=opts),
                             host=host, username=username, timeout=timeout)
 
-    log.print("Queuing capture of frame {}..{} with timeout of {}".format(frame, frame+frame_count, "default" if timeout is None else timeout))
+    timeout_str = "default" if timeout is None else timeout
+    log.print(f"Queuing capture of frame {frame}..{frame+frame_count} with timeout of {timeout_str}")
 
     # Capture frame
     control.queue_capture(frame, frame_count)
@@ -223,6 +224,6 @@ def run_and_capture(exe: str, cmdline: str, frame: int, *, frame_count=1, captur
         if len(captures) == 0:
             raise RuntimeError("No capture made in program")
 
-        raise RuntimeError("Expected {} captures, but only got {}".format(frame_count, len(captures)))
+        raise RuntimeError(f"Expected {frame_count} captures, but only got {len(captures)}")
 
     return captures[0].path

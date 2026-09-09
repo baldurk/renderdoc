@@ -207,7 +207,7 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
 
                         if not rdtest.value_compare(expect, value):
                             raise rdtest.TestFailureException(
-                                "buffer at {},{},{}: {} doesn't match expected {}".format(x, y, z, value, expect))
+                                f"buffer at {x},{y},{z}: {value} doesn't match expected {expect}")
 
         self.check_pixel_history_succeeds(185, 50)
 
@@ -255,10 +255,9 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
 
                     if not rdtest.value_compare(drawNum + 1, count):
                         raise rdtest.TestFailureException(
-                            "With {} selected we should have {} draws, but counted {} draws".format(action.GetName(sdfile),
-                                                                                                    drawNum + 1, count))
+                            f"With {action.GetName(sdfile)} selected we should have {drawNum + 1} draws, but counted {count} draws")
 
-                    rdtest.log.print("With draw #{} selected we saw draws {} active".format(drawNum, str(draws)))
+                    rdtest.log.print(f"With draw #{drawNum} selected we saw draws {draws!s} active")
 
                     # the exploded verts are calibrated to render as purple. We don't handle the case where exploding polys
                     # reference vertices from other draws, but this _should_ not happen as we leave a large margin between
@@ -266,13 +265,13 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
 
                     data = self.controller.GetTextureData(out, rd.Subresource(0, 0, 0))
                     tex = self.get_texture(out)
-                    rdtest.log.print("{} - {} {} ".format(len(data), tex.width, tex.height))
+                    rdtest.log.print(f"{len(data)} - {tex.width} {tex.height} ")
                     pixels = [struct.unpack_from("4B", data, 4 * p) for p in range(int(tex.width * tex.height))]
                     unique_pixels = list(set(pixels))
 
                     if (255, 0, 255, 255) in unique_pixels:
                         raise rdtest.TestFailureException(
-                            "Detected an exploded polygon with {} selected".format(action.GetName(sdfile)))
+                            f"Detected an exploded polygon with {action.GetName(sdfile)} selected")
 
                     self.check_pixel_history_succeeds(185, 50)
 

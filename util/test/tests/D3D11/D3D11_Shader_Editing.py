@@ -42,7 +42,9 @@ class D3D11_Shader_Editing(rdtest.TestCase):
         )
 
         if len(newShader[1]) != 0:
-            raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))
+            raise rdtest.TestFailureException(
+                f"Failed to compile edited shader: {newShader[1]}"
+            )
 
         ps1 = newShader[0]
 
@@ -57,7 +59,9 @@ class D3D11_Shader_Editing(rdtest.TestCase):
         )
 
         if len(newShader[1]) != 0:
-            raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))
+            raise rdtest.TestFailureException(
+                f"Failed to compile edited shader: {newShader[1]}"
+            )
 
         ps2 = newShader[0]
 
@@ -74,7 +78,9 @@ class D3D11_Shader_Editing(rdtest.TestCase):
         )
 
         if len(newShader[1]) != 0:
-            raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))
+            raise rdtest.TestFailureException(
+                f"Failed to compile edited shader: {newShader[1]}"
+            )
 
         offsetVS = newShader[0]
 
@@ -89,7 +95,7 @@ class D3D11_Shader_Editing(rdtest.TestCase):
         )
 
         if len(newShader[1]) != 0:
-            raise rdtest.TestFailureException("Failed to compile edited shader: {}".format(newShader[1]))
+            raise rdtest.TestFailureException(f"Failed to compile edited shader: {newShader[1]}")
 
         nochangeVS = newShader[0]
 

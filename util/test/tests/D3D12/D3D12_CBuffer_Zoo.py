@@ -82,13 +82,12 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
         if len(refl.constantBlocks) != len(binds):
             raise rdtest.TestFailureException(
-                "Expected {} constant buffers, only got {}".format(len(binds), len(refl.constantBlocks)))
+                f"Expected {len(binds)} constant buffers, only got {len(refl.constantBlocks)}")
 
         for b in range(0, len(binds)):
             if binds[b][0] != refl.constantBlocks[b].fixedBindSetOrSpace or binds[b][1] != refl.constantBlocks[b].fixedBindNumber:
                 raise rdtest.TestFailureException(
-                    "Unexpected cb[{}] mapping: space {} bind {}".format(b, refl.constantBlocks[b].fixedBindSetOrSpace,
-                                                                         refl.constantBlocks[b].fixedBindNumber))
+                    f"Unexpected cb[{b}] mapping: space {refl.constantBlocks[b].fixedBindSetOrSpace} bind {refl.constantBlocks[b].fixedBindNumber}")
 
         cbuf = pipe.GetConstantBlock(stage, 0, 0).descriptor
 
@@ -203,8 +202,7 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
             if not rdtest.util.value_compare(debugged.value.f32v[0:4], [543.1, 546.0, 545.0, 546.0]):
                 raise rdtest.TestFailureException(
-                    "Debugged output {} did not match expected {}".format(
-                        debugged.value.f32v[0:4], [543.1, 546.0, 545.0, 546.0]))
+                    f"Debugged output {debugged.value.f32v[0:4]} did not match expected {[543.1, 546.0, 545.0, 546.0]}")
 
             rdtest.log.success("Debugged output matched as expected")
 

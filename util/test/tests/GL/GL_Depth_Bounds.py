@@ -17,8 +17,7 @@ class GL_Depth_Bounds(rdtest.TestCase):
 
         if (not rdtest.value_compare(glpipe.depthState.nearBound, 0.2) or
             not rdtest.value_compare(glpipe.depthState.farBound, 0.8)):
-            raise rdtest.TestFailureException("Bounds {} - {} aren't as expected"
-                                              .format(glpipe.depthState.nearBound, glpipe.depthState.farBound))
+            raise rdtest.TestFailureException(f"Bounds {glpipe.depthState.nearBound} - {glpipe.depthState.farBound} aren't as expected")
 
         pipe = self.controller.GetPipelineState()
 

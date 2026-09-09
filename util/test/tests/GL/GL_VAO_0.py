@@ -72,4 +72,4 @@ class GL_VAO_0(rdtest.TestCase):
 
             self.check_mesh_data(postvs_ref, postvs_data)
 
-            rdtest.log.success('Instance {} is OK'.format(i))
+            rdtest.log.success(f'Instance {i} is OK')

@@ -10,7 +10,7 @@ class D3D12_Resource_Mapping_Zoo(rdtest.TestCase):
         pipe = self.controller.GetPipelineState()
 
         if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
-            rdtest.log.print("Skipping undebuggable shader at {}.".format(test_name))
+            rdtest.log.print(f"Skipping undebuggable shader at {test_name}.")
             return True
 
         # Debug the shader
@@ -25,12 +25,12 @@ class D3D12_Resource_Mapping_Zoo(rdtest.TestCase):
         try:
             self.check_pixel_value(pipe.GetOutputTargets()[0].resource, x, y, debugged.value.f32v[0:4])
         except rdtest.TestFailureException as ex:
-            rdtest.log.error("Test {} did not match. {}".format(test_name, str(ex)))
+            rdtest.log.error(f"Test {test_name} did not match. {ex!s}")
             return False
         finally:
             self.controller.FreeTrace(trace)
 
-        rdtest.log.success("Test {} matched as expected".format(test_name))
+        rdtest.log.success(f"Test {test_name} matched as expected")
         return True
 
     def check_capture(self):
@@ -63,7 +63,7 @@ class D3D12_Resource_Mapping_Zoo(rdtest.TestCase):
 
         for y in range(4):
             for x in range(4):
-                failed = not self.test_debug_pixel(200 + x, 200 + y, "ResArray({},{})".format(x, y)) or failed
+                failed = not self.test_debug_pixel(200 + x, 200 + y, f"ResArray({x},{y})") or failed
 
         rdtest.log.end_section("Resource array tests")
 
@@ -74,7 +74,7 @@ class D3D12_Resource_Mapping_Zoo(rdtest.TestCase):
 
         for y in range(4):
             for x in range(4):
-                failed = not self.test_debug_pixel(200 + x, 200 + y, "Bindless({},{})".format(x, y)) or failed
+                failed = not self.test_debug_pixel(200 + x, 200 + y, f"Bindless({x},{y})") or failed
 
         rdtest.log.end_section("Bindless tests")
         rdtest.log.end_section("SM5.x tests")
@@ -102,7 +102,7 @@ class D3D12_Resource_Mapping_Zoo(rdtest.TestCase):
 
         for y in range(4):
             for x in range(4):
-                failed = not self.test_debug_pixel(200 + x, 200 + y, "SM6.0 ResArray({},{})".format(x, y)) or failed
+                failed = not self.test_debug_pixel(200 + x, 200 + y, f"SM6.0 ResArray({x},{y})") or failed
 
         rdtest.log.end_section("Resource array tests")
 
@@ -113,7 +113,7 @@ class D3D12_Resource_Mapping_Zoo(rdtest.TestCase):
 
         for y in range(4):
             for x in range(4):
-                failed = not self.test_debug_pixel(200 + x, 200 + y, "SM6.0 Bindless({},{})".format(x, y)) or failed
+                failed = not self.test_debug_pixel(200 + x, 200 + y, f"SM6.0 Bindless({x},{y})") or failed
 
         rdtest.log.end_section("Bindless tests")
         rdtest.log.end_section("SM6.0 tests")
@@ -141,7 +141,7 @@ class D3D12_Resource_Mapping_Zoo(rdtest.TestCase):
 
         for y in range(4):
             for x in range(4):
-                failed = not self.test_debug_pixel(200 + x, 200 + y, "SM6.6 ResArray({},{})".format(x, y)) or failed
+                failed = not self.test_debug_pixel(200 + x, 200 + y, f"SM6.6 ResArray({x},{y})") or failed
 
         rdtest.log.end_section("Resource array tests")
 
@@ -152,7 +152,7 @@ class D3D12_Resource_Mapping_Zoo(rdtest.TestCase):
 
         for y in range(4):
             for x in range(4):
-                failed = not self.test_debug_pixel(200 + x, 200 + y, "SM6.6 Bindless({},{})".format(x, y)) or failed
+                failed = not self.test_debug_pixel(200 + x, 200 + y, f"SM6.6 Bindless({x},{y})") or failed
 
         rdtest.log.end_section("Bindless tests")
         rdtest.log.end_section("SM6.6 tests")

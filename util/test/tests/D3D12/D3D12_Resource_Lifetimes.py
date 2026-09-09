@@ -55,4 +55,4 @@ class D3D12_Resource_Lifetimes(rdtest.TestCase):
         # Check for resource leaks
         if len(self.controller.GetResources()) > 75:
             raise rdtest.TestFailureException(
-                "Too many resources found: {}".format(len(self.controller.GetResources())))
+                f"Too many resources found: {len(self.controller.GetResources())}")

@@ -29,11 +29,11 @@ class GL_Shader_Debug_Zoo(rdtest.TestCase):
                 pipe = self.controller.GetPipelineState()
 
                 if not pipe.GetShaderReflection(rd.ShaderStage.Vertex).debugInfo.debuggable:
-                    rdtest.log.print("Skipping undebuggable shader at {} in {}.".format(test, child))
+                    rdtest.log.print(f"Skipping undebuggable shader at {test} in {child}.")
                     return
 
                 if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
-                    rdtest.log.print("Skipping undebuggable shader at {} in {}.".format(test, child))
+                    rdtest.log.print(f"Skipping undebuggable shader at {test} in {child}.")
                     return
 
                 y = 1
@@ -53,7 +53,7 @@ class GL_Shader_Debug_Zoo(rdtest.TestCase):
 
                 if trace.debugger is None:
                     failed = True
-                    rdtest.log.error("Test {} in sub-section {} did not debug pixel".format(test, child))
+                    rdtest.log.error(f"Test {test} in sub-section {child} did not debug pixel")
                     self.controller.FreeTrace(trace)
                     continue
 
@@ -67,12 +67,12 @@ class GL_Shader_Debug_Zoo(rdtest.TestCase):
                     self.check_pixel_value(pipe.GetOutputTargets()[0].resource, x, y, debugged.value.f32v[0:4])
                 except rdtest.TestFailureException as ex:
                     failed = True
-                    rdtest.log.error("Test {} in sub-section {} did not match pixel. {}".format(test, child, str(ex)))
+                    rdtest.log.error(f"Test {test} in sub-section {child} did not match pixel. {ex!s}")
                     continue
                 finally:
                     self.controller.FreeTrace(trace)
 
-                rdtest.log.success("Test {} pixel in sub-section {} matched as expected".format(test, child))
+                rdtest.log.success(f"Test {test} pixel in sub-section {child} matched as expected")
                 
                 vtx = 1
                 inst = 0

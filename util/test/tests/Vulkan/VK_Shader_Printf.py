@@ -21,7 +21,7 @@ class VK_Shader_Printf(rdtest.TestCase):
 
         if count != 3*64:
             raise rdtest.TestFailureException(
-                "With draw selected, buffer count is wrong: {} vs {}".format(count, 3*64))
+                f"With draw selected, buffer count is wrong: {count} vs {3 * 64}")
 
         vkpipe = self.controller.GetVulkanPipelineState()
 
@@ -32,8 +32,9 @@ class VK_Shader_Printf(rdtest.TestCase):
             if 'Invalid' in msg.message:
                 assert msg.message == "Unrecognised % formatter in \"Invalid printf string %y\"", f"Invalid message is wrong: {msg.message}"
             else:
-                expected = "pixel:{0},{1},{0}.50, {1}.50,{2}".format(msg.location.pixel.x, msg.location.pixel.y,
-                                                                     int(msg.location.pixel.x == 201))
+                x,y = msg.location.pixel.x, msg.location.pixel.y
+                val = int(msg.location.pixel.x == 201)
+                expected = f"pixel:{x},{y},{x}.50, {y}.50,{val}"
                 assert msg.message == expected, f"Message is wrong. Got '{msg.message}' expected '{expected}'"
 
                 assert msg.location.pixel.x in [200, 201, 202]
@@ -51,16 +52,14 @@ class VK_Shader_Printf(rdtest.TestCase):
 
         if count != 3*64:
             raise rdtest.TestFailureException(
-                "With dispatch selected, buffer count is wrong: {} vs {}".format(count, 3*64))
+                f"With dispatch selected, buffer count is wrong: {count} vs {3 * 64}")
 
         num_msgs = len(vkpipe.shaderMessages)
         assert num_msgs == 5, f"Expected 5 messages for dispatch, got {num_msgs}"
 
         for msg in vkpipe.shaderMessages:
             c = msg.location.compute
-            expected = "compute:{}, {}, {}".format(c.workgroup[0] * 64 + c.thread[0],
-                                                   c.workgroup[1] * 64 + c.thread[1],
-                                                   c.workgroup[2] * 64 + c.thread[2])
+            expected = f"compute:{c.workgroup[0] * 64 + c.thread[0]}, {c.workgroup[1] * 64 + c.thread[1]}, {c.workgroup[2] * 64 + c.thread[2]}"
             assert msg.message == expected, f"Message is wrong. Got '{msg.message}' expected '{expected}'"
 
             assert c.workgroup == (1, 0, 0)
