@@ -222,6 +222,12 @@ void WrappedVulkan::ReplayIndirectCB(VkCommandBuffer commandBuffer, VkBuffer buf
 
   const VkDeviceSize regionSize = (drawEnd > drawStart) ? drawEnd - drawStart : 0;
   VkBufferCopy region = {offset + drawStart, drawStart, regionSize};
+
+  // wait for the fill to complete before copying
+  bufBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+  bufBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+  DoPipelineBarrier(commandBuffer, 1, &bufBarrier);
+
   ObjDisp(commandBuffer)
       ->CmdCopyBuffer(Unwrap(commandBuffer), Unwrap(buffer), m_IndirectBufferCB.UnwrappedBuffer(),
                       1, &region);
