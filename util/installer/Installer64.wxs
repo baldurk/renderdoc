@@ -128,8 +128,16 @@
             <File Id='Py_pyexpat' Name='pyexpat.pyd' DiskId='1' Source='dist/Release64/pyexpat.pyd' />
             <File Id='Py_select' Name='select.pyd' DiskId='1' Source='dist/Release64/select.pyd' />
             <File Id='Py_unicodedata' Name='unicodedata.pyd' DiskId='1' Source='dist/Release64/unicodedata.pyd' />
+            <File Id='Py_libffi' Name='libffi-7.dll' DiskId='1' Source='dist/Release64/libffi-7.dll' />
             <File Id='Shiboken2' Name='shiboken2.dll' DiskId='1' Source='dist/Release64/shiboken2.dll' />
           </Component>
+
+          <Directory Id='shiboken2_dir' Name='shiboken2'>
+            <Component Id='Shiboken2Deps' Win64="yes" Guid='E5CB343C-5CC3-47FD-8D00-3124454A643B'>
+              <File Id='SB2init' Name='__init__.py' DiskId='1' Source='dist/Release32/shiboken2/__init__.py' />
+              <File Id='Shiboken2_pyd' Name='shiboken2.pyd' DiskId='1' Source='dist/Release32/shiboken2/shiboken2.pyd' />
+            </Component>
+          </Directory>
 
           <Component Id='Documentation' Win64="yes" Guid='C49ABF1D-1D73-469B-A44A-DD9470E85F19'>
             <File Id='Documentation' Name='renderdoc.chm' DiskId='1' Source='dist/Release64/renderdoc.chm' KeyPath='yes'>
@@ -430,6 +438,7 @@
         <ComponentRef Id='qt_platplugin' />
 
         <ComponentRef Id='PySide2Deps' />
+        <ComponentRef Id='Shiboken2Deps' />
 
         <ComponentRef Id='LICENSE' />
 
