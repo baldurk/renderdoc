@@ -647,6 +647,13 @@ void VulkanDebugManager::PatchLineStripIndexBuffer(const ActionDescription *acti
   ::PatchLineStripIndexBuffer(action, MakePrimitiveTopology(rs.primitiveTopology, 3), idx8, idx16,
                               idx32, patchedIndices);
 
+  // don't bother to create a 0 length index buffer which the caller won't use
+  if(patchedIndices.empty())
+  {
+    indexCount = 0;
+    return;
+  }
+
   indexBuffer.Create(m_pDriver, m_Device, patchedIndices.size() * sizeof(uint32_t), 1,
                      GPUBuffer::eGPUBufferIBuffer);
   indexBuffer.Name("PatchedStripIB");
