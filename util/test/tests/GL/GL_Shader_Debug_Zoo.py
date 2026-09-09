@@ -97,65 +97,14 @@ class GL_Shader_Debug_Zoo(rdtest.TestCase):
 
                 postvs = self.get_postvs(action, rd.MeshDataStage.VSOut, first_index=vtx, num_indices=1, instance=inst)
 
-                trace: rd.ShaderDebugTrace = self.controller.DebugVertex(vtx, inst, idx, 0)
-
-                if trace.debugger is None:
+                try:
+                    self.check_vertex_debug(vtx, idx, inst, postvs, single_postvs=True, name_retry = lambda x: x.replace(".", "Block."))
+                except rdtest.TestFailureException as err:
                     failed = True
-                    rdtest.log.error("Test {} in sub-section {} did not debug vertex".format(test, child))
-                    self.controller.FreeTrace(trace)
+                    rdtest.log.error(f"Error debugging vertex at test {test} in sub-section {child}: {err.message}")
                     continue
 
-                _, variables = self.process_trace(trace)
-
-                outputs = 0
-
-                for var in trace.sourceVars:
-                    var: rd.SourceVariableMapping
-                    if var.variables[0].type == rd.DebugVariableType.Variable and var.signatureIndex >= 0:
-                        name = var.name
-
-                        if name not in postvs[0].keys():
-                            name = name.replace(".", "Block.")
-                            if name not in postvs[0].keys():
-                                failed = True
-                                rdtest.log.error("Don't have expected output for {}".format(name))
-                                continue
-
-                        expect = postvs[0][name]
-                        value = self.evaluate_source_var(var, variables)
-
-                        if len(expect) != value.columns:
-                            failed = True
-                            rdtest.log.error(
-                                "Output {} at EID {} has different size ({} values) to expectation ({} values)"
-                                    .format(name, action.eventId, value.columns, len(expect)))
-                            continue
-
-                        compType = rd.VarTypeCompType(value.type)
-                        if compType == rd.CompType.UInt:
-                            debugged = list(value.value.u32v[0:value.columns])
-                        elif compType == rd.CompType.SInt:
-                            debugged = list(value.value.s32v[0:value.columns])
-                        else:
-                            debugged = list(value.value.f32v[0:value.columns])
-
-                        if not rdtest.value_compare(expect, debugged):
-                            failed = True
-                            rdtest.log.error("Test {} in sub-section {} did not match vertex.\nExpected {} but got {}".format(test, child, expect, debugged))
-                            break
-
-                        is_eq, diff_amt = rdtest.value_compare_diff(expect, debugged, eps=5.0E-06)
-                        if not is_eq:
-                            failed = True
-                            rdtest.log.error(
-                                "Debugged value {} at EID {} vert {} (idx {}) instance {}: {} difference. {} doesn't exactly match postvs output {}".format(
-                                    name, action.eventId, vtx, idx, inst, diff_amt, debugged, expect))
-
-                        outputs = outputs + 1
-
-                self.controller.FreeTrace(trace)
-
-                rdtest.log.success("Test {} vertex in sub-section {} matched as expected".format(test, child))
+                rdtest.log.success(f"Test {test} vertex in sub-section {child} matched as expected")
 
             rdtest.log.end_section(child)
 

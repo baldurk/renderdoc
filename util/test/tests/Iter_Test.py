@@ -152,69 +152,11 @@ class Iter_Test(rdtest.TestCase):
 
         postvs = self.get_postvs(action, rd.MeshDataStage.VSOut, first_index=vtx, num_indices=1, instance=inst)
 
-        trace: rd.ShaderDebugTrace = self.controller.DebugVertex(vtx, inst, idx, 0)
-
-        if trace.debugger is None:
-            self.controller.FreeTrace(trace)
-
-            rdtest.log.print("No debug result")
-            return
-
         try:
-            cycles, variables = self.process_trace(trace)
+            self.check_vertex_debug(vtx, idx, inst, postvs, eps=5.0E-06, single_postvs=True, ignore_uninit=True)
         except rdtest.TestFailureException as err:
             rdtest.log.error(f"Error debugging: {err.message}")
             return
-
-        outputs = 0
-
-        for var in trace.sourceVars:
-            var: rd.SourceVariableMapping
-            if var.variables[0].type == rd.DebugVariableType.Variable and var.signatureIndex >= 0:
-                name = var.name
-
-                if name not in postvs[0].keys():
-                    rdtest.log.error("Don't have expected output for {}".format(name))
-                    continue
-
-                expect = postvs[0][name]
-                value = self.evaluate_source_var(var, variables)
-
-                if len(expect) != value.columns:
-                    rdtest.log.error(
-                        "Output {} at EID {} has different size ({} values) to expectation ({} values)"
-                            .format(name, action.eventId, value.columns, len(expect)))
-                    continue
-
-                compType = rd.VarTypeCompType(value.type)
-                if compType == rd.CompType.UInt:
-                    debugged = list(value.value.u32v[0:value.columns])
-                elif compType == rd.CompType.SInt:
-                    debugged = list(value.value.s32v[0:value.columns])
-                else:
-                    debugged = list(value.value.f32v[0:value.columns])
-
-                # For now, ignore debugged values that are uninitialised. This is an application bug but it causes false
-                # reports of problems
-                for comp in range(4):
-                    if value.value.u32v[comp] == 0xcccccccc:
-                        debugged[comp] = expect[comp]
-
-                # Unfortunately we can't ever trust that we should get back a matching results, because some shaders
-                # rely on undefined/inaccurate maths that we don't emulate.
-                # So the best we can do is log an error for manual verification
-                is_eq, diff_amt = rdtest.value_compare_diff(expect, debugged, eps=5.0E-06)
-                if not is_eq:
-                    rdtest.log.error(
-                        "Debugged value {} at EID {} vert {} (idx {}) instance {}: {} difference. {} doesn't exactly match postvs output {}".format(
-                            name, action.eventId, vtx, idx, inst, diff_amt, debugged, expect))
-
-                outputs = outputs + 1
-
-        rdtest.log.success('Successfully debugged vertex in {} cycles, {}/{} outputs match'
-                           .format(cycles, outputs, len(refl.outputSignature)))
-
-        self.controller.FreeTrace(trace)
 
     def pixel_debug(self, action: rd.ActionDescription):
         pipe: rd.PipeState = self.controller.GetPipelineState()

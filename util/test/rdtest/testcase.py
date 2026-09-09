@@ -536,6 +536,84 @@ class TestCase:
 
         log.success("Simple triangle is as expected")
 
+    def check_vertex_debug(
+        self,
+        vtx: int,
+        idx: int,
+        inst: int,
+        postvs: analyse.MeshData,
+        *,
+        view=-1,
+        eps=util.FLT_EPSILON,
+        single_postvs=False,
+        ignore_uninit=False,
+        name_retry: Callable[[str], str] | None = None
+    ):
+        trace = self.controller.DebugVertex(vtx, inst, idx, max(0, view))
+
+        ctx = f"vertex {vtx} (idx {idx}) instance {inst}"
+        if view >= 0:
+            ctx += f" view {view}"
+
+        if trace.debugger is None:
+            self.controller.FreeTrace(trace)
+
+            raise TestFailureException(f"Couldn't debug {ctx}")
+
+        try:
+            cycles, variables = self.process_trace(trace)
+
+            postvs_vtx = vtx
+            if single_postvs:
+                postvs_vtx = 0
+
+            for var in trace.sourceVars:
+                if var.variables[0].type == rd.DebugVariableType.Variable and var.signatureIndex >= 0:
+                    name = var.name
+
+                    if name not in postvs[postvs_vtx].keys() and name_retry is not None:
+                        name = name_retry(name)
+
+                    if name not in postvs[postvs_vtx].keys():
+                        raise TestFailureException(f"Don't have expected output for {name}")
+
+                    expect = postvs[postvs_vtx][name]
+                    assert expect is not None
+                    value = self.evaluate_source_var(var, variables)
+
+                    expect_cols = 1
+                    if util.is_vector(expect):
+                        expect_cols = len(expect)
+                    if expect_cols != value.columns:
+                        raise TestFailureException(
+                            f"Output {name} at {ctx} has different size ({value.columns} values) to expectation ({expect_cols} values)")
+
+                    compType = rd.VarTypeCompType(value.type)
+                    debugged: util.VectorValue = []
+                    if compType == rd.CompType.UInt:
+                        debugged = list(value.value.u32v[0:value.columns])
+                    elif compType == rd.CompType.SInt:
+                        debugged = list(value.value.s32v[0:value.columns])
+                    else:
+                        debugged = list(value.value.f32v[0:value.columns])
+
+                    # For now, ignore debugged values that are uninitialised. This is an application bug but it causes false
+                    # reports of problems
+                    if ignore_uninit and value.columns > 1:
+                        assert util.is_vector(expect)
+                        for comp in range(4):
+                            if value.value.u32v[comp] == 0xcccccccc:
+                                debugged[comp] = expect[comp]
+
+                    is_eq, diff_amt = util.value_compare_diff(expect, debugged, eps=5.0E-06)
+                    if not is_eq:
+                        raise TestFailureException(
+                            f"Debugged value {name} at {ctx}: {debugged} doesn't exactly match postvs output {expect}. {diff_amt} difference")
+
+            log.success(f'Successfully debugged vertex {ctx} in {cycles} cycles')
+        finally:
+            self.controller.FreeTrace(trace)
+
     def run(self):
         self.capture_filename = self.get_capture()
 

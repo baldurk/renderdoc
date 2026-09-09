@@ -76,51 +76,7 @@ class VK_Graphics_Pipeline(rdtest.TestCase):
             raise rdtest.TestFailureException(
                 f"Graphics bind 0[15] isn't the accessed descriptor {str(rd.DumpObject(access))}")
 
-        trace = self.controller.DebugVertex(0, 0, 0, 0)
-
-        if trace.debugger is None:
-            raise rdtest.TestFailureException("No vertex debug result")
-
-        cycles, variables = self.process_trace(trace)
-
-        outputs = 0
-
-        for var in trace.sourceVars:
-            var: rd.SourceVariableMapping
-            if var.variables[0].type == rd.DebugVariableType.Variable and var.signatureIndex >= 0:
-                name = var.name
-
-                if name not in postvs_data[0].keys():
-                    raise rdtest.TestFailureException("Don't have expected output for {}".format(name))
-
-                expect = postvs_data[0][name]
-                value = self.evaluate_source_var(var, variables)
-
-                if len(expect) != value.columns:
-                    raise rdtest.TestFailureException(
-                        "Vertex output {} has different size ({} values) to expectation ({} values)".format(
-                            name, action.eventId, value.columns, len(expect)))
-
-                compType = rd.VarTypeCompType(value.type)
-                if compType == rd.CompType.UInt:
-                    debugged = list(value.value.u32v[0:value.columns])
-                elif compType == rd.CompType.SInt:
-                    debugged = list(value.value.s32v[0:value.columns])
-                else:
-                    debugged = list(value.value.f32v[0:value.columns])
-
-                is_eq, diff_amt = rdtest.value_compare_diff(expect, debugged, eps=5.0E-06)
-                if not is_eq:
-                    rdtest.log.error(
-                        "Debugged vertex output value {}: {} difference. {} doesn't exactly match postvs output {}".
-                        format(name, action.eventId, diff_amt, debugged, expect))
-
-                outputs = outputs + 1
-
-        rdtest.log.success('Successfully debugged vertex in {} cycles, {}/{} outputs match'.format(
-            cycles, outputs, len(vsrefl.outputSignature)))
-
-        self.controller.FreeTrace(trace)
+        self.check_vertex_debug(0, 0, 0, postvs_data)
 
         history = self.controller.PixelHistory(pipe.GetOutputTargets()[0].resource, 200, 150, rd.Subresource(0, 0, 0),
                                                rd.CompType.Typeless)
