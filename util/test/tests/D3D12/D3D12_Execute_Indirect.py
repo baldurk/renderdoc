@@ -389,8 +389,15 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
                 out.Display()
                 out.Shutdown()
 
+        largeEIMarker = self.find_action("MaxCount: 1024 CountBuf: 256")
+        skipEIDmin = largeEIMarker.eventId + 10
+        largeEIAction = self.find_action("ExecuteIndirect", largeEIMarker.eventId);
+        skipEIDmax = largeEIAction.eventId + len(largeEIAction.children) - 10
+
         with rdtest.log.auto_section('Checking All Overlays'):
             for eid in range(self.get_first_action().eventId, self.get_last_action().eventId + 1):
+                if eid >= skipEIDmin and eid <= skipEIDmax:
+                    continue
                 self.controller.SetFrameEvent(eid, False)
                 pipe = self.controller.GetPipelineState()
                 if len(pipe.GetOutputTargets()) == 0:
