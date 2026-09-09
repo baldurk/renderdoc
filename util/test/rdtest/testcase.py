@@ -405,39 +405,33 @@ class TestCase:
             raise TestFailureException(f"Unhandled scalarType {scalarType} type:{varType}")
         return None
 
-    def check_task_data(self, task_ref, task_data):
-        for idx in task_ref:
-            ref = task_ref[idx]
-            if idx >= len(task_data):
-                raise TestFailureException('Task data doesn\'t have expected element {}'.format(idx))
+    def check_ref_data(self, name: str, ref: analyse.MeshReference, data: analyse.MeshData):
+        for idx in ref:
+            ref_elem = ref[idx]
+            if idx >= len(data):
+                raise TestFailureException(f"{name} data doesn't have expected element {idx}")
 
-            data = task_data[idx]
+            data_elem = data[idx]
 
-            for key in ref:
-                if key not in data:
-                    raise TestFailureException('Task data[{}] doesn\'t contain data {} as expected. Data is: {}'.format(idx, key, list(data.keys())))
+            for key in ref_elem:
+                if key not in data_elem:
+                    raise TestFailureException(f"{name} data[{idx}] doesn't contain data {key} as expected. Data is: {list(data_elem.keys())}")
 
-                if not util.value_compare(ref[key], data[key]):
-                    raise TestFailureException('Task data[{}] \'{}\': {} is not as expected: {}'.format(idx, key, data[key], ref[key]))
+                ref_val = ref_elem[key]
+                data_val = data_elem[key]
 
-        log.success("Task data is identical to reference")
+                if ref_val is None and data_val is None:
+                    continue
+                elif ref_val is None or data_val is None or not util.value_compare(ref_val, data_val):
+                    raise TestFailureException(f"{name} data[{idx}] '{key}': {data_elem[key]} is not as expected: {ref_elem[key]}")
 
-    def check_mesh_data(self, mesh_ref, mesh_data):
-        for idx in mesh_ref:
-            ref = mesh_ref[idx]
-            if idx >= len(mesh_data):
-                raise TestFailureException('Mesh data doesn\'t have expected element {}'.format(idx))
+        log.success(f"{name} data is identical to reference")
 
-            data = mesh_data[idx]
+    def check_task_data(self, task_ref: analyse.MeshReference, task_data: analyse.MeshData):
+        return self.check_ref_data('Task', task_ref, task_data)
 
-            for key in ref:
-                if key not in data:
-                    raise TestFailureException('Mesh data[{}] doesn\'t contain data {} as expected. Data is: {}'.format(idx, key, list(data.keys())))
-
-                if not util.value_compare(ref[key], data[key]):
-                    raise TestFailureException('Mesh data[{}] \'{}\': {} is not as expected: {}'.format(idx, key, data[key], ref[key]))
-
-        log.success("Mesh data is identical to reference")
+    def check_mesh_data(self, mesh_ref: analyse.MeshReference, mesh_data: analyse.MeshData):
+        return self.check_ref_data('Mesh', mesh_ref, mesh_data)
 
     def check_pixel_value(self, tex: rd.ResourceId, x, y, value, *, sub=None, cast=None, eps=util.FLT_EPSILON):
         tex_details = self.get_texture(tex)
@@ -1058,17 +1052,15 @@ class TestCase:
 
         log.success(f"Pixel shader debugging at {x},{y} was successful")
 
-    def decode_task_data(self, controller: rd.ReplayController, mesh: rd.MeshFormat, payload: rd.ConstantBlock, task: int = 0):
-
+    def decode_task_payload(self, controller: rd.ReplayController, mesh: rd.MeshFormat, payload: rd.ConstantBlock, task: int = 0):
         begin = mesh.vertexByteOffset + mesh.vertexByteStride * task
         end = min(begin + mesh.vertexByteSize, 0xffffffffffffffff)
-        buffer_data = controller.GetBufferData(mesh.vertexResourceId, begin, end -begin)
+        buffer_data = controller.GetBufferData(mesh.vertexResourceId, begin, end - begin)
 
-        ret = []
+        ret = {}
         offset = 0
         for var in payload.variables:
-            var_data = {}
-            var_data[var.name] = []
+            accum_data = []
             if (var.type.baseType == rd.VarType.Struct):
                 structSize = 0
                 structSize += var.type.members[0].byteOffset
@@ -1087,11 +1079,11 @@ class TestCase:
                 format.compType = rd.VarTypeCompType(var.type.baseType)
                 format.type = rd.ResourceFormatType.Regular
 
-                data =  analyse.unpack_data(format, buffer_data, offset)
-                if data:
-                    var_data[var.name] += data
+                data = analyse.unpack_data(format, buffer_data, offset)
+                if data is not None:
+                    accum_data += data
                 offset += format.compByteWidth * format.compCount
-            ret.append(var_data)
+            ret[var.name] = accum_data
 
         return ret
 
@@ -1111,7 +1103,7 @@ class TestCase:
         for x in range(task[0]):
             for y in range(task[1]):
                 for z in range(task[2]):
-                    data += self.decode_task_data(self.controller, mesh, shader.taskPayload, taskIdx)
+                    data.append(self.decode_task_payload(self.controller, mesh, shader.taskPayload, taskIdx))
                     taskIdx += 1
         return data
 
