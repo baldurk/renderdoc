@@ -1,6 +1,25 @@
 import renderdoc as rd
 import rdtest
 
+
+class ActionRef:
+    def __init__(
+        self,
+        *,
+        base: int,
+        pos: List[Tuple[float, float, float]],
+        pixels: List[List[Tuple[int, int]]],
+        restarts: List[int] | None = None,
+    ):
+        self.base = base
+        self.pos = pos
+        self.pixels = pixels
+        if restarts is None:
+            self.restarts = []
+        else:
+            self.restarts = restarts
+
+
 # Not a real test, re-used by API-specific tests
 class Draw_Zoo(rdtest.TestCase):
     internal = True
@@ -26,7 +45,7 @@ class Draw_Zoo(rdtest.TestCase):
 
         return float(val)
 
-    def check_action(self, action: rd.ActionDescription, ref_data):
+    def check_action(self, action: rd.ActionDescription, ref_data: ActionRef):
         rdtest.log.print("Checking action {}".format(action.eventId))
 
         self.controller.SetFrameEvent(action.eventId, True)
@@ -35,7 +54,7 @@ class Draw_Zoo(rdtest.TestCase):
 
         refl = self.pipe.GetShaderReflection(rd.ShaderStage.Vertex)
 
-        num_verts = len(ref_data['pos'])
+        num_verts = len(ref_data.pos)
 
         vsin_pos_name = 'pos'
         for sig in refl.inputSignature:
@@ -58,8 +77,7 @@ class Draw_Zoo(rdtest.TestCase):
         vsin_ref = {}
         restarts = []
 
-        if 'restarts' in ref_data:
-            restarts = ref_data['restarts']
+        restarts = ref_data.restarts
 
         ib = self.pipe.GetIBuffer()
 
@@ -74,8 +92,8 @@ class Draw_Zoo(rdtest.TestCase):
             else:
                 vsin_ref[v] = {
                     'vtx': v,
-                    'idx': ref_data['base']+v,
-                    vsin_pos_name: ref_data['pos'][v],
+                    'idx': ref_data.base+v,
+                    vsin_pos_name: ref_data.pos[v],
                 }
 
         self.check_mesh_data(vsin_ref, self.get_vsin(action))
@@ -100,9 +118,9 @@ class Draw_Zoo(rdtest.TestCase):
                 else:
                     vsout_ref[v] = {
                         'vtx': v,
-                        'idx': ref_data['base']+v,
-                        vsout_pos_name: conv_out_pos(ref_data['pos'][v]),
-                        'VID': self.vid(action, ref_data['base']+v),
+                        'idx': ref_data.base+v,
+                        vsout_pos_name: conv_out_pos(ref_data.pos[v]),
+                        'VID': self.vid(action, ref_data.base+v),
                         'IID': self.iid(action, inst),
                     }
 
@@ -123,11 +141,13 @@ class Draw_Zoo(rdtest.TestCase):
             else:
                 rdtest.log.print('Not checking shader debugging, unsupported')
 
-            for vert, coord in enumerate(ref_data['pixels'][inst]):
+            for vert, coord in enumerate(ref_data.pixels[inst]):
                 if coord[0] == 0 and coord[1] == 0:
                     continue
-                val = (self.vid(action, ref_data['base'] + vert), self.iid(action, inst), float(inst) * 0.5,
-                       postvs[vert]['COLOR'][1] + postvs[vert]['TEXCOORD'][0])
+                col = postvs[vert]['COLOR']
+                tex = postvs[vert]['TEXCOORD']
+                val = (self.vid(action, ref_data.base + vert), self.iid(action, inst), float(inst) * 0.5,
+                       col[1] + tex[0])
                 self.check_pixel_value(out_tex, coord[0], coord[1], val, eps=0.3)
 
             rdtest.log.success("Checked pixels in instance {}".format(inst))
@@ -146,11 +166,11 @@ class Draw_Zoo(rdtest.TestCase):
         rdtest.log.begin_section("Non-indexed, non-instanced cases")
 
         # Basic case
-        ref = {
-            'base': 0,
-            'pos': [[-0.5, 0.5, 0.0], [0.0, -0.5, 0.0], [0.5, 0.5, 0.0]],
-            'pixels': [[(12, 12), (24, 34), (35, 12)]],
-        }
+        ref = ActionRef(
+            base=0,
+            pos=[(-0.5, 0.5, 0.0), (0.0, -0.5, 0.0), (0.5, 0.5, 0.0)],
+            pixels=[[(12, 12), (24, 34), (35, 12)]]
+        )
 
         self.check_action(action, ref)
         assert action.vertexOffset == 0
@@ -158,11 +178,11 @@ class Draw_Zoo(rdtest.TestCase):
         action = action.nextAction
 
         # Vertex offset in the action
-        ref = {
-            'base': 0,
-            'pos': [[-0.5, -0.5, 0.0], [0.0, 0.5, 0.0], [0.5, -0.5, 0.0]],
-            'pixels': [[(60, 35), (72, 13), (83, 35)]],
-        }
+        ref = ActionRef(
+            base=0,
+            pos=[(-0.5, -0.5, 0.0), (0.0, 0.5, 0.0), (0.5, -0.5, 0.0)],
+            pixels=[[(60, 35), (72, 13), (83, 35)]]
+        )
 
         self.check_action(action, ref)
         assert action.vertexOffset > 0
@@ -170,11 +190,11 @@ class Draw_Zoo(rdtest.TestCase):
         action = action.nextAction
 
         # Vertex offset in action and in vertex binding
-        ref = {
-            'base': 0,
-            'pos': [[-0.5, 0.0, 0.0], [0.0, -0.5, 0.0], [0.0, 0.5, 0.0]],
-            'pixels': [[(108, 23), (119, 35), (119, 13)]],
-        }
+        ref = ActionRef(
+            base=0,
+            pos=[(-0.5, 0.0, 0.0), (0.0, -0.5, 0.0), (0.0, 0.5, 0.0)],
+            pixels=[[(108, 23), (119, 35), (119, 13)]]
+        )
 
         self.check_action(action, ref)
         assert action.vertexOffset > 0
@@ -186,11 +206,11 @@ class Draw_Zoo(rdtest.TestCase):
         rdtest.log.begin_section("indexed, non-instanced")
 
         # Basic case
-        ref = {
-            'base': 0,
-            'pos': [[-0.5, 0.5, 0.0], [0.0, -0.5, 0.0], [0.5, 0.5, 0.0]],
-            'pixels': [[(12, 60), (24, 82), (35, 60)]],
-        }
+        ref = ActionRef(
+            base=0,
+            pos=[(-0.5, 0.5, 0.0), (0.0, -0.5, 0.0), (0.5, 0.5, 0.0)],
+            pixels=[[(12, 60), (24, 82), (35, 60)]]
+        )
 
         self.check_action(action, ref)
         assert action.indexOffset == 0
@@ -201,11 +221,11 @@ class Draw_Zoo(rdtest.TestCase):
         action = action.nextAction
 
         # first index in the action
-        ref = {
-            'base': 5,
-            'pos': [[-0.5, -0.5, 0.0], [0.0, 0.5, 0.0], [0.5, -0.5, 0.0]],
-            'pixels': [[(60, 83), (72, 61), (83, 83)]],
-        }
+        ref = ActionRef(
+            base=5,
+            pos=[(-0.5, -0.5, 0.0), (0.0, 0.5, 0.0), (0.5, -0.5, 0.0)],
+            pixels=[[(60, 83), (72, 61), (83, 83)]]
+        )
 
         self.check_action(action, ref)
         assert action.indexOffset > 0
@@ -216,11 +236,11 @@ class Draw_Zoo(rdtest.TestCase):
         action = action.nextAction
 
         # first index and base vertex in the action
-        ref = {
-            'base': 13,
-            'pos': [[-0.5, 0.0, 0.0], [0.0, -0.5, 0.0], [0.0, 0.5, 0.0]],
-            'pixels': [[(108, 71), (119, 83), (119, 61)]],
-        }
+        ref = ActionRef(
+            base=13,
+            pos=[(-0.5, 0.0, 0.0), (0.0, -0.5, 0.0), (0.0, 0.5, 0.0)],
+            pixels=[[(108, 71), (119, 83), (119, 61)]]
+        )
 
         self.check_action(action, ref)
         assert action.indexOffset > 0
@@ -231,11 +251,11 @@ class Draw_Zoo(rdtest.TestCase):
         action = action.nextAction
 
         # first index and base vertex in the action, and vertex binding offset
-        ref = {
-            'base': 3,
-            'pos': [[-0.5, 0.0, 0.0], [0.0, -0.5, 0.0], [0.0, 0.5, 0.0]],
-            'pixels': [[(156, 71), (167, 83), (167, 61)]],
-        }
+        ref = ActionRef(
+            base=3,
+            pos=[(-0.5, 0.0, 0.0), (0.0, -0.5, 0.0), (0.0, 0.5, 0.0)],
+            pixels=[[(156, 71), (167, 83), (167, 61)]]
+        )
 
         self.check_action(action, ref)
         assert action.indexOffset > 0
@@ -246,11 +266,11 @@ class Draw_Zoo(rdtest.TestCase):
         action = action.nextAction
 
         # first index and base vertex in the action, and vertex & index binding offset
-        ref = {
-            'base': 4,
-            'pos': [[0.0, -0.5, 0.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0]],
-            'pixels': [[(216, 82), (226, 71), (216, 61)]],
-        }
+        ref = ActionRef(
+            base=4,
+            pos=[(0.0, -0.5, 0.0), (0.5, 0.0, 0.0), (0.0, 0.5, 0.0)],
+            pixels=[[(216, 82), (226, 71), (216, 61)]]
+        )
 
         self.check_action(action, ref)
         assert action.indexOffset > 0
@@ -263,38 +283,38 @@ class Draw_Zoo(rdtest.TestCase):
         action = action.nextAction
 
         # Skip indexed strips for now
-        ref = {
-            'base': 30,
-            'pos': [
-                [-0.5, 0.2, 0.0], [-0.5, 0.0, 0.0],
-                [-0.3, 0.2, 0.0], [-0.3, 0.0, 0.0],
-                [-0.1, 0.2, 0.0],
-                [],  # restart
-                [0.1, 0.2, 0.0], [0.1, 0.0, 0.0],
-                [0.3, 0.2, 0.0], [0.3, 0.0, 0.0],
-                [0.5, 0.2, 0.0], [0.5, 0.0, 0.0],
+        ref = ActionRef(
+            base=30,
+            pos=[
+                (-0.5, 0.2, 0.0), (-0.5, 0.0, 0.0),
+                (-0.3, 0.2, 0.0), (-0.3, 0.0, 0.0),
+                (-0.1, 0.2, 0.0),
+                (0.0, 0.0, 0.0),  # restart
+                (0.1, 0.2, 0.0), (0.1, 0.0, 0.0),
+                (0.3, 0.2, 0.0), (0.3, 0.0, 0.0),
+                (0.5, 0.2, 0.0), (0.5, 0.0, 0.0),
             ],
-            'restarts': [5],
-            'pixels': [[(252, 67), (252, 71), (256, 67)]],
-        }
+            restarts=[5],
+            pixels=[[(252, 67), (252, 71), (256, 67)]]
+        )
 
         self.check_action(action, ref)
         action = action.nextAction
 
-        ref = {
-            'base': 30,
-            'pos': [
-                [-0.5, 0.2, 0.0], [-0.5, 0.0, 0.0],
-                [-0.3, 0.2, 0.0], [-0.3, 0.0, 0.0],
-                [-0.1, 0.2, 0.0],
-                [],  # restart
-                [0.1, 0.2, 0.0], [0.1, 0.0, 0.0],
-                [0.3, 0.2, 0.0], [0.3, 0.0, 0.0],
-                [0.5, 0.2, 0.0], [0.5, 0.0, 0.0],
+        ref = ActionRef(
+            base=30,
+            pos=[
+                (-0.5, 0.2, 0.0), (-0.5, 0.0, 0.0),
+                (-0.3, 0.2, 0.0), (-0.3, 0.0, 0.0),
+                (-0.1, 0.2, 0.0),
+                (0.0, 0.0, 0.0),  # restart
+                (0.1, 0.2, 0.0), (0.1, 0.0, 0.0),
+                (0.3, 0.2, 0.0), (0.3, 0.0, 0.0),
+                (0.5, 0.2, 0.0), (0.5, 0.0, 0.0),
             ],
-            'restarts': [5],
-            'pixels': [[(300, 67), (300, 71), (304, 67)]],
-        }
+            restarts=[5],
+            pixels=[[(300, 67), (300, 71), (304, 67)]]
+        )
 
         self.check_action(action, ref)
         action = action.nextAction
@@ -304,14 +324,14 @@ class Draw_Zoo(rdtest.TestCase):
         rdtest.log.begin_section("non-indexed, instanced")
 
         # Basic case
-        ref = {
-            'base': 0,
-            'pos': [[-0.5, 0.5, 0.0], [0.0, -0.5, 0.0], [0.5, 0.5, 0.0]],
-            'pixels': [
+        ref = ActionRef(
+            base=0,
+            pos=[(-0.5, 0.5, 0.0), (0.0, -0.5, 0.0), (0.5, 0.5, 0.0)],
+            pixels=[
                 [(12, 108), (24, 130), (0, 0)],
                 [(24, 108), (36, 130), (47, 108)],
-            ],
-        }
+            ]
+        )
 
         self.check_action(action, ref)
         assert action.instanceOffset == 0
@@ -319,14 +339,14 @@ class Draw_Zoo(rdtest.TestCase):
         action = action.nextAction
 
         # instance offset in the action
-        ref = {
-            'base': 0,
-            'pos': [[-0.5, -0.5, 0.0], [0.0, 0.5, 0.0], [0.5, -0.5, 0.0]],
-            'pixels': [
+        ref = ActionRef(
+            base=0,
+            pos=[(-0.5, -0.5, 0.0), (0.0, 0.5, 0.0), (0.5, -0.5, 0.0)],
+            pixels=[
                 [(60, 131), (72, 109), (0, 0)],
                 [(72, 131), (84, 109), (95, 131)],
-            ],
-        }
+            ]
+        )
 
         self.check_action(action, ref)
         assert action.instanceOffset > 0
@@ -334,14 +354,14 @@ class Draw_Zoo(rdtest.TestCase):
         action = action.nextAction
 
         # instance offset in the action and offset on the instanced VB
-        ref = {
-            'base': 0,
-            'pos': [[-0.5, 0.0, 0.0], [0.0, -0.5, 0.0], [0.0, 0.5, 0.0]],
-            'pixels': [
+        ref = ActionRef(
+            base=0,
+            pos=[(-0.5, 0.0, 0.0), (0.0, -0.5, 0.0), (0.0, 0.5, 0.0)],
+            pixels=[
                 [(108, 120), (119, 131), (119, 108)],
                 [(120, 120), (131, 131), (131, 108)],
-            ],
-        }
+            ]
+        )
 
         self.check_action(action, ref)
         assert action.instanceOffset > 0
@@ -353,14 +373,14 @@ class Draw_Zoo(rdtest.TestCase):
         rdtest.log.begin_section("indexed, instanced")
 
         # Basic case
-        ref = {
-            'base': 5,
-            'pos': [[-0.5, -0.5, 0.0], [0.0, 0.5, 0.0], [0.5, -0.5, 0.0]],
-            'pixels': [
+        ref = ActionRef(
+            base=5,
+            pos=[(-0.5, -0.5, 0.0), (0.0, 0.5, 0.0), (0.5, -0.5, 0.0)],
+            pixels=[
                 [(12, 179), (24, 157), (0, 0)],
                 [(24, 179), (36, 157), (47, 179)],
-            ],
-        }
+            ]
+        )
 
         self.check_action(action, ref)
         assert action.instanceOffset == 0
@@ -368,14 +388,14 @@ class Draw_Zoo(rdtest.TestCase):
         action = action.nextAction
 
         # instance offset in the action
-        ref = {
-            'base': 13,
-            'pos': [[-0.5, 0.0, 0.0], [0.0, -0.5, 0.0], [0.0, 0.5, 0.0]],
-            'pixels': [
+        ref = ActionRef(
+            base=13,
+            pos=[(-0.5, 0.0, 0.0), (0.0, -0.5, 0.0), (0.0, 0.5, 0.0)],
+            pixels=[
                 [(60, 168), (71, 179), (71, 156)],
                 [(72, 168), (83, 179), (83, 156)],
-            ],
-        }
+            ]
+        )
 
         self.check_action(action, ref)
         assert action.instanceOffset > 0
@@ -383,14 +403,14 @@ class Draw_Zoo(rdtest.TestCase):
         action = action.nextAction
 
         # instance offset in the action and offset on the instanced VB
-        ref = {
-            'base': 23,
-            'pos': [[0.0, -0.5, 0.0], [0.5, 0.0, 0.0], [0.0, 0.5, 0.0]],
-            'pixels': [
+        ref = ActionRef(
+            base=23,
+            pos=[(0.0, -0.5, 0.0), (0.5, 0.0, 0.0), (0.0, 0.5, 0.0)],
+            pixels=[
                 [(120, 178), (130, 168), (120, 157)],
                 [(132, 178), (142, 168), (132, 157)],
-            ],
-        }
+            ]
+        )
 
         self.check_action(action, ref)
         assert action.instanceOffset > 0
