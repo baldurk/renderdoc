@@ -71,9 +71,33 @@ if args.renderdoc is not None:
     # if the user didn't specify a pyrenderdoc but we do have a renderdoc, try the default location as a backup
     if custom_pyrenderdoc is None:
         if sys.platform == 'win32':
-            custom_pyrenderdoc = os.path.abspath(args.renderdoc) + os.path.sep + "pymodules"
+            custom_pyrenderdoc = os.path.join(os.path.abspath(args.renderdoc), "pymodules")
         else:
             custom_pyrenderdoc = os.path.abspath(args.renderdoc)
+
+# on windows if we still didn't get a custom_pyrenderdoc and importing fails,
+# try to just pull in the default build location. Favour development over release
+if sys.platform == "win32" and custom_pyrenderdoc is None:
+    try:
+        import renderdoc as _
+    except ImportError:
+        root = os.path.dirname(os.path.dirname(script_dir))
+        import struct
+
+        if struct.calcsize("P") == 8:
+            base = "x64"
+        else:
+            base = "Win32"
+        dev = os.path.join(root, base, "Development", "pymodules")
+        rls = os.path.join(root, base, "Release", "pymodules")
+
+        if os.path.isdir(dev):
+            custom_pyrenderdoc = dev
+        elif os.path.isdir(rls):
+            custom_pyrenderdoc = rls
+
+        if sys.platform == 'win32' and sys.version_info[1] >= 8 and custom_pyrenderdoc is not None:
+            os.add_dll_directory(os.path.dirname(custom_pyrenderdoc))
 
 if custom_pyrenderdoc is not None:
     # explicit paths go at the start, implicit paths go at the end
