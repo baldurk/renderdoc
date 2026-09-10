@@ -154,6 +154,53 @@ rm -f dist/*.wixobj dist/*.wixpdb
 
 popd # $REPO_ROOT
 
+# make zip manifests, excluding files we know are supposed to be zip-exclusive
+
+pushd "${REPO_ROOT}"/dist/Release32
+find . -type f -exec md5sum {} \; | grep -v './LICENSE.md' | grep -v './renderdocui.exe' > "${REPO_ROOT}"/dist/manifest_zip32.txt
+popd
+
+pushd "${REPO_ROOT}"/dist/Release64
+find . -type f -exec md5sum {} \; | grep -v './LICENSE.md' | grep -v './renderdocui.exe' > "${REPO_ROOT}"/dist/manifest_zip64.txt
+popd
+
+# extract the msi files
+
+msiexec -a $(native_path "${REPO_ROOT}"/dist/Installer32.msi) -qn TARGETDIR=$(native_path "${REPO_ROOT}"/dist/msi32)
+msiexec -a $(native_path "${REPO_ROOT}"/dist/Installer64.msi) -qn TARGETDIR=$(native_path "${REPO_ROOT}"/dist/msi64)
+
+# make msi manifests as above
+
+pushd "${REPO_ROOT}"/dist/msi32/PFiles/RenderDoc
+find . -type f -exec md5sum {} \; | grep -v './LICENSE.rtf' > "${REPO_ROOT}"/dist/manifest_msi32.txt
+popd
+
+pushd "${REPO_ROOT}"/dist/msi64/PFiles/RenderDoc
+find . -type f -exec md5sum {} \; | grep -v './LICENSE.rtf' > "${REPO_ROOT}"/dist/manifest_msi64.txt
+popd
+
+diff "${REPO_ROOT}"/dist/manifest_msi32.txt "${REPO_ROOT}"/dist/manifest_zip32.txt
+
+if [ $? -ne 0 ]; then
+	if [[ "$STRICT" == "yes" ]]; then
+		echo "Manifest for 32-bit msi and zip did not match."
+		exit 1;
+	else
+		echo "WARNING: Manifest for 32-bit msi and zip did not match."
+	fi
+fi
+
+diff "${REPO_ROOT}"/dist/manifest_msi64.txt "${REPO_ROOT}"/dist/manifest_zip64.txt
+
+if [ $? -ne 0 ]; then
+	if [[ "$STRICT" == "yes" ]]; then
+		echo "Manifest for 64-bit msi and zip did not match."
+		exit 1;
+	else
+		echo "WARNING: Manifest for 64-bit msi and zip did not match."
+	fi
+fi
+
 mkdir "${REPO_ROOT}"/package
 pushd "${REPO_ROOT}"/package
 
