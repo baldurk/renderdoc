@@ -623,8 +623,8 @@ void VulkanRenderState::BindDynamicState(WrappedVulkan *vk, VkCommandBuffer cmd)
     {
       ObjDisp(cmd)->CmdSetStencilOpEXT(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, front.failOp,
                                        front.passOp, front.depthFailOp, front.compareOp);
-      ObjDisp(cmd)->CmdSetStencilOpEXT(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, front.failOp,
-                                       front.passOp, front.depthFailOp, front.compareOp);
+      ObjDisp(cmd)->CmdSetStencilOpEXT(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, back.failOp,
+                                       back.passOp, back.depthFailOp, back.compareOp);
     }
   }
 
