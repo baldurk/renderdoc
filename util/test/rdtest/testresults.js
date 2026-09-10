@@ -253,12 +253,6 @@ document.body.onload = function() {
     test.classList.add('expanded');
   }
 
-  var h1s = document.getElementsByTagName('h1');
-  var summary = h1s[h1s.length-1];
-
-  // move failed tests to the end
-  [].slice.call(document.getElementsByClassName('failed test')).forEach((x) => {document.body.removeChild(x); document.body.insertBefore(x, summary);})
-
   // do a pure javascript query and add a summary table of test timings
   {
     var div = document.createElement('div');
@@ -336,7 +330,17 @@ document.body.onload = function() {
     contents.appendChild(table);
 
     document.body.appendChild(div);
+
+    summary = div;
   }
+  
+  var h1s = document.getElementsByTagName('h1');
+  if(h1s[h1s.length-1].innerText.includes("summary:")) {
+  	summary = h1s[h1s.length-1];
+  }
+
+  // move failed tests to the end
+  [].slice.call(document.getElementsByClassName('failed test')).forEach((x) => {document.body.removeChild(x); document.body.insertBefore(x, summary);})
 
   var toggles = document.getElementsByClassName('expandtoggle');
   
