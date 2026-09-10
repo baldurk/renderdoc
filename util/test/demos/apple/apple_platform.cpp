@@ -24,6 +24,7 @@
 
 #include <mach-o/dyld.h>
 #include <mach/mach.h>
+#include <unistd.h>
 #include "test_common.h"
 
 uint64_t GetMemoryUsage()
@@ -94,4 +95,9 @@ std::string GetExecutableName()
     selfName = path;
 
   return selfName;
+}
+
+uint32_t GetPID()
+{
+  return (uint32_t)getpid();
 }

@@ -1560,6 +1560,9 @@ ID3DBlobPtr D3D12GraphicsTest::Compile(std::string src, std::string entry, std::
           path.erase(path.find_last_of("/\\"));
           path += "/tmp/";
           MakeDir(path.c_str());
+          path += demoName;
+          path += "/";
+          MakeDir(path.c_str());
           path += "dxcDebugBlobs/";
           MakeDir(path.c_str());
 

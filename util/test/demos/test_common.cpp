@@ -315,8 +315,9 @@ bool SpvCompilationSupported()
   return false;
 }
 
-std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTarget target,
-                                         ShaderLang lang, ShaderStage stage, const char *entry_point,
+std::vector<uint32_t> CompileShaderToSpv(const char *demo_name, const std::string &source_text,
+                                         SPIRVTarget target, ShaderLang lang, ShaderStage stage,
+                                         const char *entry_point,
                                          const std::map<std::string, std::string> &macros)
 {
   std::vector<uint32_t> ret;
@@ -409,7 +410,8 @@ std::vector<uint32_t> CompileShaderToSpv(const std::string &source_text, SPIRVTa
 
   std::string path = GetExecutableName();
   path.erase(path.find_last_of("/\\"));
-  path += "/tmp";
+  path += "/tmp/";
+  path += demo_name;
 
   MakeDir(path.c_str());
 

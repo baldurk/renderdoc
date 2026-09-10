@@ -160,9 +160,9 @@ void main()
       GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
 
       std::vector<uint32_t> vsSPIRV = CompileShaderToSpv(
-          vertex, SPIRVTarget::opengl, ShaderLang::glsl, ShaderStage::vert, "main");
+          demoName, vertex, SPIRVTarget::opengl, ShaderLang::glsl, ShaderStage::vert, "main");
       std::vector<uint32_t> fsSPIRV = CompileShaderToSpv(
-          pixel, SPIRVTarget::opengl, ShaderLang::glsl, ShaderStage::frag, "main");
+          demoName, pixel, SPIRVTarget::opengl, ShaderLang::glsl, ShaderStage::frag, "main");
 
       glShaderBinary(1, &vs, GL_SHADER_BINARY_FORMAT_SPIR_V, vsSPIRV.data(),
                      (GLsizei)vsSPIRV.size() * 4);

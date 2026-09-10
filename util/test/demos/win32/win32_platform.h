@@ -35,6 +35,7 @@ std::string Wide2UTF8(const std::wstring &s);
 std::wstring UTF82Wide(const std::string &s);
 
 std::string GetExecutableName();
+uint32_t GetPID();
 
 #define DEBUG_BREAK()       \
   do                        \

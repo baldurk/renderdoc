@@ -1014,7 +1014,7 @@ VkPipelineShaderStageCreateInfo VulkanGraphicsTest::CompileShaderModule(
   VkShaderModule ret = VK_NULL_HANDLE;
 
   std::vector<uint32_t> spirv =
-      ::CompileShaderToSpv(source_text, target, lang, stage, entry_point, macros);
+      ::CompileShaderToSpv(demoName, source_text, target, lang, stage, entry_point, macros);
 
   if(spirv.empty())
     return {};

@@ -136,3 +136,8 @@ std::string GetExecutableName()
 
   return Wide2UTF8(curFile);
 }
+
+uint32_t GetPID()
+{
+  return (uint32_t)GetCurrentProcessId();
+}

@@ -42,3 +42,4 @@
 #define MakeDir(dir) mkdir(dir, 0755)
 
 std::string GetExecutableName();
+uint32_t GetPID();

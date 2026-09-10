@@ -214,7 +214,7 @@ void main()
     pipeCreateInfo.vertexInputState.vertexAttributeDescriptions = {};
 
     std::vector<uint32_t> spirv = ::CompileShaderToSpv(
-        vertex, SPIRVTarget::vulkan12, ShaderLang::glsl, ShaderStage::vert, "main", {});
+        demoName, vertex, SPIRVTarget::vulkan12, ShaderLang::glsl, ShaderStage::vert, "main", {});
 
     VkShaderModuleCreateInfo vertShad = vkh::ShaderModuleCreateInfo(spirv);
 
@@ -235,8 +235,8 @@ void main()
     libInfo.pNext = NULL;
     pipeCreateInfo.flags = VK_PIPELINE_CREATE_LIBRARY_BIT_KHR;
 
-    spirv = ::CompileShaderToSpv(pixel, SPIRVTarget::vulkan12, ShaderLang::glsl, ShaderStage::frag,
-                                 "main", {});
+    spirv = ::CompileShaderToSpv(demoName, pixel, SPIRVTarget::vulkan12, ShaderLang::glsl,
+                                 ShaderStage::frag, "main", {});
 
     VkShaderModuleCreateInfo fragShad = vkh::ShaderModuleCreateInfo(spirv);
 

@@ -93,7 +93,7 @@ void main()
 
     {
       std::vector<uint32_t> spirv = ::CompileShaderToSpv(
-          pixel, SPIRVTarget::vulkan, ShaderLang::glsl, ShaderStage::frag, "main", {});
+          demoName, pixel, SPIRVTarget::vulkan, ShaderLang::glsl, ShaderStage::frag, "main", {});
 
       if(spirv.empty())
         return 4;

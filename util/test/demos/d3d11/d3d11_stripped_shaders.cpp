@@ -38,20 +38,20 @@ RD_TEST(D3D11_Stripped_Shaders, D3D11GraphicsTest)
     ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_5_0");
     ID3DBlobPtr psblob = Compile(D3DDefaultPixel, "main", "ps_5_0");
 
-    WriteBlob(GetCWD() + "/shader_debug.vs", vsblob, false);
-    WriteBlob(GetCWD() + "/shader_debug.ps", psblob, true);
+    WriteBlob(GetCWD() + "tmp/D3D11_Stripped_Shaders/shader_debug.vs", vsblob, false);
+    WriteBlob(GetCWD() + "tmp/D3D11_Stripped_Shaders/shader_debug.ps", psblob, true);
 
     Strip(vsblob);
     Strip(psblob);
 
-    SetBlobPath(GetCWD() + "/shader_debug.vs", vsblob);
+    SetBlobPath(GetCWD() + "tmp/D3D11_Stripped_Shaders/shader_debug.vs", vsblob);
 
     CreateDefaultInputLayout(vsblob);
 
     ID3D11VertexShaderPtr vs = CreateVS(vsblob);
     ID3D11PixelShaderPtr ps = CreatePS(psblob);
 
-    SetBlobPath("lz4#shader_debug.ps", ps);
+    SetBlobPath("lz4#tmp/D3D11_Stripped_Shaders/shader_debug.ps", ps);
 
     ID3D11BufferPtr vb = MakeBuffer().Vertex().Data(DefaultTri);
 
