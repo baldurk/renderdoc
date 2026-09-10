@@ -199,7 +199,7 @@ document.body.onload = function() {
             }
           }
 
-          test_name = words[1];
+          test_name = words.slice(1).join(" ");
           test_list.push(test_name)
           html += start ? '<div class="expandable test" id="' + test_name + '"><span class="expandtoggle"></span><div class="title">Test: ' + test_name + '</div><div class="contents">' : '</div></div>';
 
