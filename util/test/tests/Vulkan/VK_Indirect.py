@@ -148,7 +148,7 @@ class VK_Indirect(rdtest.TestCase):
                 raise rdtest.TestFailureException(f"Triangle Size Draw and Pass do not match: {pickedDraw.floatValue} vs {pickedPass.floatValue}")
 
     def check_overlay_and_pixel_history(self, eid: int, coords: List[Tuple[int,int]]):
-        self.controller.SetFrameEvent(eid, False)
+        self.set_event(eid, False)
         for c in coords:
             x = c[0]
             y = c[1]
@@ -265,7 +265,7 @@ class VK_Indirect(rdtest.TestCase):
                 assert empties is not None
                 for action in real_action_children(empties):
                     eid = action.eventId
-                    self.controller.SetFrameEvent(eid, False)
+                    self.set_event(eid, False)
                     pipe = self.controller.GetPipelineState()
                     for overlay in rd.DebugOverlay:
                         if overlay == rd.DebugOverlay.NoOverlay:
@@ -343,7 +343,7 @@ class VK_Indirect(rdtest.TestCase):
 
             indirect_count_root = self.find_action(f"{level}: KHR_draw_indirect_count")
 
-            self.controller.SetFrameEvent(final.eventId, False)
+            self.set_event(final.eventId, False)
 
             # Check the top row, non indirect count and always present
             self.check_pixel_value(tex, 60, 60, [1.0, 0.0, 0.0, 1.0])
@@ -378,7 +378,7 @@ class VK_Indirect(rdtest.TestCase):
 
             # Ensure we can select all actions
             while action is not None:
-                self.controller.SetFrameEvent(action.eventId, False)
+                self.set_event(action.eventId, False)
                 action = action.nextAction
 
             rdtest.log.success(f"Selected all {level} actions")
@@ -391,7 +391,7 @@ class VK_Indirect(rdtest.TestCase):
 
             rdtest.log.success(f"{level} Indirect dispatches are the correct dimensions")
 
-            self.controller.SetFrameEvent(dispatches.children[2].eventId, False)
+            self.set_event(dispatches.children[2].eventId, False)
 
             pipe = self.controller.GetPipelineState()
 
@@ -420,7 +420,7 @@ class VK_Indirect(rdtest.TestCase):
                 assert action.numIndices == 0
                 assert action.numInstances == 0
 
-                self.controller.SetFrameEvent(action.eventId, False)
+                self.set_event(action.eventId, False)
 
                 # Check that we have empty PostVS
                 postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, 1)
@@ -444,7 +444,7 @@ class VK_Indirect(rdtest.TestCase):
             assert action.numIndices == 3
             assert action.numInstances == 2
 
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
 
             assert rd.ResourceUsage.Indirect in buffer_usage[action.eventId]
 
@@ -471,7 +471,7 @@ class VK_Indirect(rdtest.TestCase):
             assert action.numIndices == 3
             assert action.numInstances == 3
 
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
 
             # Check that we have PostVS as expected
             postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut)
@@ -496,7 +496,7 @@ class VK_Indirect(rdtest.TestCase):
             assert action.numIndices == 6
             assert action.numInstances == 2
 
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
 
             # Check that we have PostVS as expected
             postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut)
@@ -531,7 +531,7 @@ class VK_Indirect(rdtest.TestCase):
                     assert action.numIndices == 0
                     assert action.numInstances == 0
 
-                    self.controller.SetFrameEvent(action.eventId, False)
+                    self.set_event(action.eventId, False)
 
                     # Check that we have empty PostVS
                     postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, 1)
@@ -552,7 +552,7 @@ class VK_Indirect(rdtest.TestCase):
                 assert action.numIndices == 3
                 assert action.numInstances == 4
 
-                self.controller.SetFrameEvent(action.eventId, False)
+                self.set_event(action.eventId, False)
 
                 # Check that we have PostVS as expected
                 postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut)
@@ -582,7 +582,7 @@ class VK_Indirect(rdtest.TestCase):
                 assert action.numIndices == 3
                 assert action.numInstances == 1
 
-                self.controller.SetFrameEvent(action.eventId, False)
+                self.set_event(action.eventId, False)
 
                 # Check that we have PostVS as expected
                 postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut)
@@ -607,7 +607,7 @@ class VK_Indirect(rdtest.TestCase):
                 assert action.numIndices == 0
                 assert action.numInstances == 0
 
-                self.controller.SetFrameEvent(action.eventId, False)
+                self.set_event(action.eventId, False)
 
                 postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut)
 
@@ -622,7 +622,7 @@ class VK_Indirect(rdtest.TestCase):
                 assert action.numIndices == 6
                 assert action.numInstances == 2
 
-                self.controller.SetFrameEvent(action.eventId, False)
+                self.set_event(action.eventId, False)
 
                 # Check that we have PostVS as expected
                 postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut)
@@ -647,11 +647,11 @@ class VK_Indirect(rdtest.TestCase):
                 rdtest.log.success(f"{level} {action.customName} is as expected")
 
                 # Now check that the draws post-count are correctly highlighted
-                self.controller.SetFrameEvent(self.find_action(f"{level}: Post-count 1").children[0].eventId, False)
+                self.set_event(self.find_action(f"{level}: Post-count 1").children[0].eventId, False)
                 self.check_overlay([(340, 40)])
-                self.controller.SetFrameEvent(self.find_action(f"{level}: Post-count 2").children[0].eventId, False)
+                self.set_event(self.find_action(f"{level}: Post-count 2").children[0].eventId, False)
                 self.check_overlay([(340, 190)])
-                self.controller.SetFrameEvent(self.find_action(f"{level}: Post-count 3").children[0].eventId, False)
+                self.set_event(self.find_action(f"{level}: Post-count 3").children[0].eventId, False)
                 self.check_overlay([(340, 115)])
             else:
                 rdtest.log.print("KHR_draw_indirect_count not tested")
@@ -661,7 +661,7 @@ class VK_Indirect(rdtest.TestCase):
 
         with rdtest.log.auto_section('Checking All Overlays'):
             for eid in range(self.get_first_action().eventId, self.get_last_action().eventId + 1):
-                self.controller.SetFrameEvent(eid, False)
+                self.set_event(eid, False)
                 pipe = self.controller.GetPipelineState()
                 if len(pipe.GetOutputTargets()) == 0:
                     continue

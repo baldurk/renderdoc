@@ -12,7 +12,7 @@ class D3D12_List_Alloc_Tests(rdtest.TestCase):
 
         action = action.nextAction
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 

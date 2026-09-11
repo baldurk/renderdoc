@@ -23,7 +23,7 @@ class VK_Misaligned_Dirty(rdtest.TestCase):
 
         assert action is not None
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         assert len(self.controller.GetFrameInfo().debugMessages) == 0
         assert len(self.controller.GetDebugMessages()) == 0
@@ -98,19 +98,19 @@ class VK_Misaligned_Dirty(rdtest.TestCase):
         assert copy_src is not None
         assert vb is not None
 
-        self.controller.SetFrameEvent(checkpoint1.eventId, False)
+        self.set_event(checkpoint1.eventId, False)
 
         val = struct.unpack('f', self.controller.GetBufferData(copy_src, 116, 4))
         assert val[0] == 11.0
 
-        self.controller.SetFrameEvent(checkpoint2.eventId, False)
+        self.set_event(checkpoint2.eventId, False)
 
         val = struct.unpack('f', self.controller.GetBufferData(copy_src, 116, 4))
         assert val[0] == 12.0
         val = struct.unpack('f', self.controller.GetBufferData(vb, 116, 4))
         assert val[0] == 12.0
 
-        self.controller.SetFrameEvent(checkpoint3.eventId, False)
+        self.set_event(checkpoint3.eventId, False)
 
         val = struct.unpack('f', self.controller.GetBufferData(copy_src, 116, 4))
         assert val[0] == 11.0

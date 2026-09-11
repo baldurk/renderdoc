@@ -15,7 +15,7 @@ class GL_Draw_Zoo(rdtest.Draw_Zoo):
 
         action = action.nextAction
 
-        self.controller.SetFrameEvent(action.eventId, True)
+        self.set_event(action.eventId, True)
 
         pipe = self.controller.GetPipelineState()
 
@@ -31,7 +31,7 @@ class GL_Draw_Zoo(rdtest.Draw_Zoo):
 
         action = action.nextAction
 
-        self.controller.SetFrameEvent(action.eventId, True)
+        self.set_event(action.eventId, True)
 
         pipe = self.controller.GetPipelineState()
 

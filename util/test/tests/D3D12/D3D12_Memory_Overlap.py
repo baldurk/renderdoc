@@ -7,6 +7,6 @@ class D3D12_Memory_Overlap(rdtest.TestCase):
     def check_capture(self):
         last_action = self.get_last_action()
 
-        self.controller.SetFrameEvent(last_action.eventId, True)
+        self.set_event(last_action.eventId, True)
 
         self.check_triangle(out=last_action.copyDestination)

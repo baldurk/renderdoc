@@ -10,7 +10,7 @@ class D3D12_Descriptor_Indexing(rdtest.TestCase):
     def check_compute(self, eventId: int):
         action = self.find_action("Dispatch", eventId)
         assert action is not None
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
         d3d12pipe = self.controller.GetD3D12PipelineState()
@@ -44,7 +44,7 @@ class D3D12_Descriptor_Indexing(rdtest.TestCase):
 
             action = self.find_action("Draw", base.eventId)
             assert action is not None
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
 
             pipe = self.controller.GetPipelineState()
             d3d12pipe = self.controller.GetD3D12PipelineState()
@@ -164,7 +164,7 @@ class D3D12_Descriptor_Indexing(rdtest.TestCase):
 
             action = self.find_action("Draw", base.eventId)
             assert action is not None
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
 
             pipe = self.controller.GetPipelineState()
 

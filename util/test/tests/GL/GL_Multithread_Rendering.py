@@ -7,7 +7,7 @@ class GL_Multithread_Rendering(rdtest.TestCase):
     def check_capture(self):
         action = self.get_last_action()
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 

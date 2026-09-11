@@ -11,7 +11,7 @@ class VK_Overlay_Test(rdtest.Overlay_Test):
         out = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
 
         setup_marker = self.find_action("Setup")
-        self.controller.SetFrameEvent(setup_marker.nextAction.eventId, True)
+        self.set_event(setup_marker.nextAction.eventId, True)
 
         pipe = self.controller.GetPipelineState()
 
@@ -24,10 +24,10 @@ class VK_Overlay_Test(rdtest.Overlay_Test):
         out.Display()
 
         # Select the next setup action
-        self.controller.SetFrameEvent(setup_marker.nextAction.eventId, True)
+        self.set_event(setup_marker.nextAction.eventId, True)
 
         # Select the real action for the first time
-        self.controller.SetFrameEvent(self.find_action("Normal Test").nextAction.eventId, True)
+        self.set_event(self.find_action("Normal Test").nextAction.eventId, True)
 
         self.check_pixel_value(tex.resourceId, 180, 150, [0.0, 0.0, 0.0, 0.0])
         self.check_pixel_value(tex.resourceId, 50, 50, [0.0, 0.0, 0.0, 0.0])
@@ -44,7 +44,7 @@ class VK_Overlay_Test(rdtest.Overlay_Test):
         # Don't check any pixel values, but ensure all overlays at least work with rasterizer discard and no
         # viewport/scissor bound
         sub_marker = self.find_action("Discard Test")
-        self.controller.SetFrameEvent(sub_marker.nextAction.eventId, True)
+        self.set_event(sub_marker.nextAction.eventId, True)
 
         pipe = self.controller.GetPipelineState()
 

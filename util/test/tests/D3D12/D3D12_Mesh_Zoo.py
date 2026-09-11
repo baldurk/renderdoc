@@ -10,4 +10,4 @@ class D3D12_Mesh_Zoo(rdtest.TestCase):
 
     def check_capture(self):
         assert self.controller is not None
-        self.zoo_helper.check_capture(self.capture_filename, self.controller)
+        self.zoo_helper.check_capture(self.capture_filename, self)

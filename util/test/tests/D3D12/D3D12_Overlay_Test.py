@@ -25,7 +25,7 @@ class D3D12_Overlay_Test(rdtest.Overlay_Test):
 
             # Don't check any pixel values, but ensure all overlays at least work with no viewport/scissor bound
             sub_marker = self.find_action("NoView draw", base_event)
-            self.controller.SetFrameEvent(sub_marker.nextAction.eventId, True)
+            self.set_event(sub_marker.nextAction.eventId, True)
 
             pipe = self.controller.GetPipelineState()
 

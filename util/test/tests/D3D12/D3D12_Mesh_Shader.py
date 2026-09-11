@@ -59,7 +59,7 @@ class D3D12_Mesh_Shader(rdtest.TestCase):
     def check_capture(self):
         last_action = self.get_last_action()
 
-        self.controller.SetFrameEvent(last_action.eventId, True)
+        self.set_event(last_action.eventId, True)
 
         action = self.find_action("Mesh Shaders")
 
@@ -67,7 +67,7 @@ class D3D12_Mesh_Shader(rdtest.TestCase):
         assert action is not None
         name = f"Pure Mesh Shader Test EID:{action.eventId}"
         rdtest.log.begin_section(name)
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         x = 70
         y = 70
@@ -85,7 +85,7 @@ class D3D12_Mesh_Shader(rdtest.TestCase):
         assert action is not None
         name = f"Amplification Shader with Global Payload EID:{action.eventId}"
         rdtest.log.begin_section(name)
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         postts_ref = self.build_global_taskout_reference()
         postts_data = self.get_task_data(action)
@@ -104,7 +104,7 @@ class D3D12_Mesh_Shader(rdtest.TestCase):
         assert action is not None
         name = f"Amplification Shader with Local Payload EID:{action.eventId}"
         rdtest.log.begin_section(name)
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         postts_ref = self.build_local_taskout_reference()
         postts_data = self.get_task_data(action)

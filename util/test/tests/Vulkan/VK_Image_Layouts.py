@@ -14,7 +14,7 @@ class VK_Image_Layouts(rdtest.TestCase):
         return opts
 
     def check_capture(self):
-        self.controller.SetFrameEvent(0, False)
+        self.set_event(0, False)
 
         pipe = self.controller.GetVulkanPipelineState()
 
@@ -35,7 +35,7 @@ class VK_Image_Layouts(rdtest.TestCase):
 
         assert action is not None
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetVulkanPipelineState()
 
@@ -59,7 +59,7 @@ class VK_Image_Layouts(rdtest.TestCase):
 
         assert action is not None
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetVulkanPipelineState()
 
@@ -84,7 +84,7 @@ class VK_Image_Layouts(rdtest.TestCase):
 
         assert action is not None
 
-        self.controller.SetFrameEvent(action.eventId+1, False)
+        self.set_event(action.eventId+1, False)
 
         pipe = self.controller.GetVulkanPipelineState()
         
@@ -98,7 +98,7 @@ class VK_Image_Layouts(rdtest.TestCase):
                 self.check_pixel_value(img.resourceId, 0, 0, [0.8, 0.8, 0.8, 1.0], eps=0.01)
 
         # finally check that it has reset to the correct value back at the start of the frame
-        self.controller.SetFrameEvent(1, False)
+        self.set_event(1, False)
 
         pipe = self.controller.GetVulkanPipelineState()
        

@@ -8,7 +8,7 @@ class VK_Shader_Printf(rdtest.TestCase):
     def check_capture(self):
         action = self.find_action('CmdDraw')
 
-        self.controller.SetFrameEvent(action.eventId, True)
+        self.set_event(action.eventId, True)
 
         self.check_triangle()
 
@@ -41,7 +41,7 @@ class VK_Shader_Printf(rdtest.TestCase):
 
         action = self.find_action("CmdDispatch")
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         vkpipe = self.controller.GetVulkanPipelineState()
 

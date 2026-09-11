@@ -29,7 +29,7 @@ class VK_Custom_Resolve(rdtest.TestCase):
 
     def check_resource_usage(self, markerName: str, expectedUsages: List[rd.ResourceUsage]):
         action = self.find_action(markerName)
-        self.controller.SetFrameEvent(action.eventId+1, True)
+        self.set_event(action.eventId+1, True)
         pipe = self.controller.GetPipelineState()
         out = pipe.GetOutputTargets()[0].resource
         usages = self.controller.GetUsage(out)
@@ -141,7 +141,7 @@ class VK_Custom_Resolve(rdtest.TestCase):
                     assert action is not None
 
                     rdtest.log.print(f'MSAA Draw: {self.action_name(action)} EID:{action.eventId}')
-                    self.controller.SetFrameEvent(action.eventId+1, True)
+                    self.set_event(action.eventId+1, True)
                     self.check_triangle_draw()
                     self.check_debug_pixel(200, 150)
                     # Clear : Draw
@@ -176,7 +176,7 @@ class VK_Custom_Resolve(rdtest.TestCase):
                     assert action is not None
 
                     rdtest.log.print(f'MSAA Resolve: {self.action_name(action)} EID:{action.eventId}')
-                    self.controller.SetFrameEvent(action.eventId+1, True)
+                    self.set_event(action.eventId+1, True)
                     self.check_triangle_resolve()
                     self.check_debug_pixel(200, 150)
                     self.check_debug_pixel(150, 149)

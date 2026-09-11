@@ -22,7 +22,7 @@ class VK_Blend_Pixel_History(rdtest.TestCase):
 
     def primary_test(self):
         test_marker = self.find_action("Test End")
-        self.controller.SetFrameEvent(test_marker.eventId, True)
+        self.set_event(test_marker.eventId, True)
 
         pipe = self.controller.GetPipelineState()
 

@@ -8,7 +8,7 @@ class GL_Separable_Geometry_Shaders(rdtest.TestCase):
     def check_capture(self):
         action = self.find_action("Draw")
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         assert action is not None
 

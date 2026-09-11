@@ -13,7 +13,7 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
             action = self.find_action(pass_type + " Draw")
 
             if action is not None:
-                self.controller.SetFrameEvent(action.nextAction.eventId, False)
+                self.set_event(action.nextAction.eventId, False)
 
                 pipe = self.controller.GetPipelineState()
                 tex = pipe.GetOutputTargets()[0].resource
@@ -41,7 +41,7 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
 
                 action = self.find_action(pass_type + " Dispatch")
 
-                self.controller.SetFrameEvent(action.nextAction.eventId, False)
+                self.set_event(action.nextAction.eventId, False)
 
                 # find the cpuMax and gpuMax actions
                 cpuMax = self.find_action(pass_type + " cpuMax")
@@ -110,7 +110,7 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
             rdtest.log.success("compute shader disassembly is as expected")
 
             if refl.debugInfo.debuggable:
-                self.controller.SetFrameEvent(self.find_action("Dispatch").eventId, False)
+                self.set_event(self.find_action("Dispatch").eventId, False)
 
                 trace = self.controller.DebugThread((0, 0, 0), (0, 0, 0))
 

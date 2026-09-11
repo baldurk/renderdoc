@@ -8,7 +8,7 @@ class VK_Graphics_Pipeline(rdtest.TestCase):
     def check_capture(self):
         last_action = self.get_last_action()
 
-        self.controller.SetFrameEvent(last_action.eventId, True)
+        self.set_event(last_action.eventId, True)
 
         tri_col = [0.408, 0.863, 0.182, 1.0]
 
@@ -20,7 +20,7 @@ class VK_Graphics_Pipeline(rdtest.TestCase):
 
         assert action is not None
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 
@@ -151,7 +151,7 @@ class VK_Graphics_Pipeline(rdtest.TestCase):
         self.controller.ReplaceResource(vsrefl.resourceId, newShader[0])
 
         # Refresh the replay if it didn't happen already
-        self.controller.SetFrameEvent(last_action.eventId, True)
+        self.set_event(last_action.eventId, True)
 
         tri_col2 = [0.906, 0.361, 0.182, 1.0]
         self.check_triangle(out=last_action.copyDestination, fore=tri_col2)

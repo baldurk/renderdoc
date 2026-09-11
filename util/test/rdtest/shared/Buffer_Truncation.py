@@ -14,7 +14,7 @@ class Buffer_Truncation(rdtest.TestCase):
 
         assert action is not None
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         vsin_ref: rdtest.MeshReference = {
             0: {

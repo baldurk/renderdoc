@@ -7,14 +7,14 @@ class GL_Shader_Editing(rdtest.TestCase):
 
     def check_capture(self):
         eid = self.find_action("fixedprog").eventId
-        self.controller.SetFrameEvent(eid, False)
+        self.set_event(eid, False)
 
         pipe = self.controller.GetPipelineState()
 
         fixedrefl = pipe.GetShaderReflection(rd.ShaderStage.Fragment)
 
         eid = self.find_action("dynamicprog").eventId
-        self.controller.SetFrameEvent(eid, False)
+        self.set_event(eid, False)
 
         pipe = self.controller.GetPipelineState()
 
@@ -22,13 +22,13 @@ class GL_Shader_Editing(rdtest.TestCase):
         vsrefl = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
 
         eid = self.find_action("sepprog").eventId
-        self.controller.SetFrameEvent(eid, False)
+        self.set_event(eid, False)
 
         vsseprefl = pipe.GetShaderReflection(rd.ShaderStage.Vertex)
         fsseprefl = pipe.GetShaderReflection(rd.ShaderStage.Fragment)
 
         # Work at the last action, where the uniforms have been trashed
-        self.controller.SetFrameEvent(self.get_last_action().eventId, False)
+        self.set_event(self.get_last_action().eventId, False)
 
         tex = pipe.GetOutputTargets()[0].resource
 
@@ -135,7 +135,7 @@ class GL_Shader_Editing(rdtest.TestCase):
         self.controller.ReplaceResource(dynamicrefl.resourceId, dynamicFS)
 
         # Refresh the replay if it didn't happen already
-        self.controller.SetFrameEvent(self.get_last_action().eventId, True)
+        self.set_event(self.get_last_action().eventId, True)
 
         # Triangles have green propagated across to the blue channel
         self.check_pixel_value(tex, 0.25, 0.25, [0.0, 1.0, 1.0, 1.0])
@@ -146,7 +146,7 @@ class GL_Shader_Editing(rdtest.TestCase):
 
         # Now "edit" the VS but don't change it. We should still get the same values
         self.controller.ReplaceResource(vsrefl.resourceId, nochangeVS)
-        self.controller.SetFrameEvent(self.get_last_action().eventId, True)
+        self.set_event(self.get_last_action().eventId, True)
 
         # Triangles have green propagated across to the blue channel
         self.check_pixel_value(tex, 0.25, 0.25, [0.0, 1.0, 1.0, 1.0])
@@ -157,7 +157,7 @@ class GL_Shader_Editing(rdtest.TestCase):
 
         # Change the VS to one that has offset the triangles off-centre
         self.controller.ReplaceResource(vsrefl.resourceId, offsetVS)
-        self.controller.SetFrameEvent(self.get_last_action().eventId, True)
+        self.set_event(self.get_last_action().eventId, True)
 
         # Original sample positions are now the clear color
         self.check_pixel_value(tex, 0.25, 0.25, [0.2, 0.2, 0.2, 1.0])
@@ -173,7 +173,7 @@ class GL_Shader_Editing(rdtest.TestCase):
 
         # Now undo the first FS edit
         self.controller.RemoveReplacement(fixedrefl.resourceId)
-        self.controller.SetFrameEvent(self.get_last_action().eventId, True)
+        self.set_event(self.get_last_action().eventId, True)
 
         # Original sample positions are still the clear color
         self.check_pixel_value(tex, 0.25, 0.25, [0.2, 0.2, 0.2, 1.0])
@@ -189,7 +189,7 @@ class GL_Shader_Editing(rdtest.TestCase):
 
         # Now undo the first VS edit
         self.controller.RemoveReplacement(vsrefl.resourceId)
-        self.controller.SetFrameEvent(self.get_last_action().eventId, True)
+        self.set_event(self.get_last_action().eventId, True)
 
         # Only the lower triangle is the edited colour, but they are back in the original positions
         self.check_pixel_value(tex, 0.25, 0.25, [0.0, 1.0, 0.0, 1.0])
@@ -200,7 +200,7 @@ class GL_Shader_Editing(rdtest.TestCase):
 
         # finally undo the second FS edit
         self.controller.RemoveReplacement(dynamicrefl.resourceId)
-        self.controller.SetFrameEvent(self.get_last_action().eventId, True)
+        self.set_event(self.get_last_action().eventId, True)
 
         # We should be back to where we started
         self.check_pixel_value(tex, 0.25, 0.25, [0.0, 1.0, 0.0, 1.0])
@@ -217,27 +217,27 @@ class GL_Shader_Editing(rdtest.TestCase):
         self.check_pixel_value(tex, 0.75, 0.75, [0.0, 1.0, 0.0, 1.0])
 
         self.controller.ReplaceResource(fsseprefl.resourceId, sepFS)
-        self.controller.SetFrameEvent(self.get_last_action().eventId, True)
+        self.set_event(self.get_last_action().eventId, True)
 
         # Now it should be green-blue
         self.check_pixel_value(tex, 0.75, 0.75, [0.0, 1.0, 1.0, 1.0])
 
         self.controller.ReplaceResource(vsseprefl.resourceId, sepVS)
-        self.controller.SetFrameEvent(self.get_last_action().eventId, True)
+        self.set_event(self.get_last_action().eventId, True)
 
         # Now it should be green-blue and offset
         self.check_pixel_value(tex, 0.75, 0.75, [0.2, 0.2, 0.2, 1.0])
         self.check_pixel_value(tex, 0.95, 0.55, [0.0, 1.0, 1.0, 1.0])
 
         self.controller.RemoveReplacement(fsseprefl.resourceId)
-        self.controller.SetFrameEvent(self.get_last_action().eventId, True)
+        self.set_event(self.get_last_action().eventId, True)
 
         # Now it should be back to green and offset
         self.check_pixel_value(tex, 0.75, 0.75, [0.2, 0.2, 0.2, 1.0])
         self.check_pixel_value(tex, 0.95, 0.55, [0.0, 1.0, 0.0, 1.0])
 
         self.controller.RemoveReplacement(vsseprefl.resourceId)
-        self.controller.SetFrameEvent(self.get_last_action().eventId, True)
+        self.set_event(self.get_last_action().eventId, True)
 
         # We should be back to where we started
         self.check_pixel_value(tex, 0.75, 0.75, [0.0, 1.0, 0.0, 1.0])

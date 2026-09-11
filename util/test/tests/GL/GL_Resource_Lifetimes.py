@@ -9,7 +9,7 @@ class GL_Resource_Lifetimes(rdtest.TestCase):
     def check_capture(self):
         action = self.find_action("glDraw")
 
-        self.controller.SetFrameEvent(action.eventId, True)
+        self.set_event(action.eventId, True)
 
         pipe = self.controller.GetPipelineState()
 
@@ -23,7 +23,7 @@ class GL_Resource_Lifetimes(rdtest.TestCase):
 
         action = self.find_action("glDraw", action.eventId+1)
 
-        self.controller.SetFrameEvent(action.eventId, True)
+        self.set_event(action.eventId, True)
 
         pipe = self.controller.GetPipelineState()
 
@@ -38,7 +38,7 @@ class GL_Resource_Lifetimes(rdtest.TestCase):
 
         last_action = self.get_last_action()
 
-        self.controller.SetFrameEvent(last_action.eventId, True)
+        self.set_event(last_action.eventId, True)
 
         tex = last_action.copyDestination
 

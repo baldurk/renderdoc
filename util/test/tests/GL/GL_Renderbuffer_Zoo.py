@@ -11,7 +11,7 @@ class GL_Renderbuffer_Zoo(rdtest.TestCase):
         action = self.find_action('glDraw')
 
         while action is not None:
-            self.controller.SetFrameEvent(action.eventId, True)
+            self.set_event(action.eventId, True)
 
             self.check_triangle(fore=[0.2, 0.75, 0.2, 1.0])
 

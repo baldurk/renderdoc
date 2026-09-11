@@ -14,7 +14,7 @@ class D3D11_Shader_Linkage_Zoo(rdtest.TestCase):
             event_name = test_marker.customName
             test_marker = self.find_action("draw", action.eventId)
 
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
             pipe = self.controller.GetPipelineState()
 
             # Debug the shader

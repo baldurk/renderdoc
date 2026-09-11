@@ -26,7 +26,7 @@ class GL_Shader_Debug_Zoo(rdtest.TestCase):
 
                 x += 4
 
-                self.controller.SetFrameEvent(action.eventId, False)
+                self.set_event(action.eventId, False)
                 pipe = self.controller.GetPipelineState()
 
                 if not pipe.GetShaderReflection(rd.ShaderStage.Vertex).debugInfo.debuggable:

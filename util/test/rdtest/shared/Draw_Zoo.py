@@ -51,7 +51,7 @@ class Draw_Zoo(rdtest.TestCase):
     def check_action(self, action: rd.ActionDescription, ref_data: ActionRef):
         rdtest.log.print(f"Checking action {action.eventId}")
 
-        self.controller.SetFrameEvent(action.eventId, True)
+        self.set_event(action.eventId, True)
 
         self.pipe = self.controller.GetPipelineState()
 

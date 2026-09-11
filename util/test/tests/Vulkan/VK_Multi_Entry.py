@@ -8,7 +8,7 @@ class VK_Multi_Entry(rdtest.TestCase):
     def check_capture(self):
         last_action = self.get_last_action()
 
-        self.controller.SetFrameEvent(last_action.eventId, True)
+        self.set_event(last_action.eventId, True)
 
         self.check_triangle(out=last_action.copyDestination)
 
@@ -18,7 +18,7 @@ class VK_Multi_Entry(rdtest.TestCase):
 
         assert action is not None
 
-        self.controller.SetFrameEvent(action.eventId, True)
+        self.set_event(action.eventId, True)
 
         pipe = self.controller.GetPipelineState()
 

@@ -34,7 +34,7 @@ class VK_Line_Raster(rdtest.TestCase):
 
         action = action.previousAction
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 

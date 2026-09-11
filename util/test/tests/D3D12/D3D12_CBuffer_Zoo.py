@@ -12,7 +12,7 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
         assert action is not None
 
-        self.controller.SetFrameEvent(action.nextAction.eventId, False)
+        self.set_event(action.nextAction.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 
@@ -38,7 +38,7 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
             return
 
         rdtest.log.begin_section("SM6.0 Draw")
-        self.controller.SetFrameEvent(action.nextAction.eventId, False)
+        self.set_event(action.nextAction.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 
@@ -59,7 +59,7 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
             return
 
         rdtest.log.begin_section("SM6.6 Draw")
-        self.controller.SetFrameEvent(action.nextAction.eventId, False)
+        self.set_event(action.nextAction.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 

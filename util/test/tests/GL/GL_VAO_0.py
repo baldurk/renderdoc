@@ -12,7 +12,7 @@ class GL_VAO_0(rdtest.TestCase):
         for i in range(0, 4):
             assert action is not None
 
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
 
             pipe = self.controller.GetPipelineState()
             vp = pipe.GetViewport(0)
@@ -56,7 +56,7 @@ class GL_VAO_0(rdtest.TestCase):
 
         assert action is not None
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         # Each instance should have color output of 0.5 * instance in blue
         for i in range(0, action.numInstances):

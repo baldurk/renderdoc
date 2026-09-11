@@ -11,7 +11,7 @@ class D3D11_AMD_Shader_Extensions(rdtest.TestCase):
     def check_capture(self):
         action = self.get_last_action()
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         # Should have barycentrics showing the closest vertex for each pixel in the triangle
         # Without relying on barycentric order, ensure that the three pixels are red, green, and blue
@@ -81,7 +81,7 @@ class D3D11_AMD_Shader_Extensions(rdtest.TestCase):
         rdtest.log.success("compute shader disassembly is as expected")
 
         if refl.debugInfo.debuggable:
-            self.controller.SetFrameEvent(self.find_action("Dispatch").eventId, False)
+            self.set_event(self.find_action("Dispatch").eventId, False)
 
             trace = self.controller.DebugThread((0, 0, 0), (0, 0, 0))
 

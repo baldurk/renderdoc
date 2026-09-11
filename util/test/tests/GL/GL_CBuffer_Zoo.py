@@ -12,7 +12,7 @@ class GL_CBuffer_Zoo(rdtest.TestCase):
 
         assert action is not None
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 

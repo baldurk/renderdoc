@@ -19,7 +19,7 @@ class D3D12_Blend_Pixel_History(rdtest.TestCase):
 
         assert test_marker is not None
 
-        self.controller.SetFrameEvent(test_marker.eventId, True)
+        self.set_event(test_marker.eventId, True)
 
         pipe = self.controller.GetPipelineState()
 

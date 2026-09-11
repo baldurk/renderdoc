@@ -16,7 +16,7 @@ class D3D12_Predication(rdtest.TestCase):
 
         viewport_array: Callable[[rd.Viewport], Tuple[float,float,float,float]] = lambda view: (view.x, view.y, view.width, view.height)
 
-        self.controller.SetFrameEvent(a.eventId, False)
+        self.set_event(a.eventId, False)
         pipe = self.controller.GetPipelineState()
         self.check_triangle(vp=viewport_array(pipe.GetViewport(0)))
 
@@ -24,7 +24,7 @@ class D3D12_Predication(rdtest.TestCase):
 
         assert self.controller.GetD3D12PipelineState().predication.resourceId == rd.ResourceId()
 
-        self.controller.SetFrameEvent(b.eventId, False)
+        self.set_event(b.eventId, False)
         pipe = self.controller.GetPipelineState()
         self.check_triangle(vp=viewport_array(pipe.GetViewport(0)))
 
@@ -33,7 +33,7 @@ class D3D12_Predication(rdtest.TestCase):
 
         rdtest.log.success("Fixed data predicated triangle is correct")
 
-        self.controller.SetFrameEvent(c.eventId, False)
+        self.set_event(c.eventId, False)
         pipe = self.controller.GetPipelineState()
         self.check_triangle(vp=viewport_array(pipe.GetViewport(0)))
 
@@ -42,13 +42,13 @@ class D3D12_Predication(rdtest.TestCase):
 
         rdtest.log.success("Current frame query-predicated triangle is correct")
 
-        self.controller.SetFrameEvent(d.eventId, False)
+        self.set_event(d.eventId, False)
         pipe = self.controller.GetPipelineState()
         self.check_triangle(vp=viewport_array(pipe.GetViewport(0)))
 
         rdtest.log.success("Previous frame query-predicated triangle is correct")
 
-        self.controller.SetFrameEvent(e.eventId, False)
+        self.set_event(e.eventId, False)
         pipe = self.controller.GetPipelineState()
         self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 200, 150, [0.2, 0.2, 0.2, 1.0])
 
@@ -58,7 +58,7 @@ class D3D12_Predication(rdtest.TestCase):
         rdtest.log.success("Failing predicated triangle is correct")
 
         for eid in range(self.get_last_action().eventId):
-            self.controller.SetFrameEvent(eid, False)
+            self.set_event(eid, False)
 
         if not self.controller.GetFatalErrorStatus().OK():
             raise rdtest.TestFailureException(self.controller.GetFatalErrorStatus().Message())

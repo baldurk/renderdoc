@@ -11,7 +11,7 @@ class GL_Buffer_Updates(rdtest.TestCase):
         # At each action, the centre pixel of the viewport should be green
         action = self.get_first_action()
         while action is not None:
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
 
             if action.flags & rd.ActionFlags.Drawcall:
                 pipe = self.controller.GetPipelineState()

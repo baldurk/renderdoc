@@ -8,7 +8,7 @@ class D3D11_Untyped_Backbuffer_Descriptor(rdtest.TestCase):
         # find the first action
         action = self.find_action("Draw")
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 
@@ -19,7 +19,7 @@ class D3D11_Untyped_Backbuffer_Descriptor(rdtest.TestCase):
         # find the second action
         action = self.find_action("Draw", action.eventId+1)
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 

@@ -11,12 +11,12 @@ class GL_Mesh_Zoo(rdtest.TestCase):
 
     def check_capture(self):
         assert self.controller is not None
-        self.zoo_helper.check_capture(self.capture_filename, self.controller)
+        self.zoo_helper.check_capture(self.capture_filename, self)
 
         # Test GL-only thing with geometry shader only and completely no-op vertex shader
         action = self.zoo_helper.find_action("Geom Only").nextAction
         assert action is not None
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pos = self.controller.GetPostVSData(0, 0, rd.MeshDataStage.VSOut)
 
@@ -44,13 +44,13 @@ class GL_Mesh_Zoo(rdtest.TestCase):
 
         # Test GL-only thing with geometry shader only and completely no-op vertex shader
         multibase = self.zoo_helper.find_action("Multi Draw").nextAction.parent
-        self.controller.SetFrameEvent(multibase.children[-1].eventId, False)
+        self.set_event(multibase.children[-1].eventId, False)
 
         baseVertex = [10, 11]
         baseInstance = [20, 22]
 
         for d, action in enumerate(multibase.children):
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
 
             pipe = self.controller.GetPipelineState()
 

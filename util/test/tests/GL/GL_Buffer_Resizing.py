@@ -44,7 +44,7 @@ class GL_Buffer_Resizing(rdtest.TestCase):
             if action is None:
                 break
 
-            self.controller.SetFrameEvent(action.eventId, True)
+            self.set_event(action.eventId, True)
 
             self.check_triangle(out=action.outputs[0])
 

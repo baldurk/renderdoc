@@ -8,7 +8,7 @@ class D3D12_Existing_Heap(rdtest.TestCase):
     def check_capture(self):
         last_action = self.get_last_action()
 
-        self.controller.SetFrameEvent(last_action.eventId, True)
+        self.set_event(last_action.eventId, True)
 
         self.check_triangle(out=last_action.copyDestination)
 
@@ -16,7 +16,7 @@ class D3D12_Existing_Heap(rdtest.TestCase):
 
         assert action is not None
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 

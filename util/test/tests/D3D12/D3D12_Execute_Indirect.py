@@ -74,10 +74,10 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
 
         with rdtest.log.auto_section('EI without Root Signature'):
             action = self.find_action("EI without Root Signature");
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
             action = self.find_action("IndirectDraw", action.eventId)
             for drawNum in range(3):
-                self.controller.SetFrameEvent(action.eventId + drawNum, False)
+                self.set_event(action.eventId + drawNum, False)
                 pipe = self.controller.GetPipelineState()
                 if len(pipe.GetOutputTargets()) != 1:
                     raise rdtest.TestFailureException(
@@ -89,7 +89,7 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
         with rdtest.log.auto_section('Multiple draws'):
             from_eid = self.find_action("Multiple draws").eventId
             ei_eid = self.find_action("ExecuteIndirect", from_eid).eventId
-            self.controller.SetFrameEvent(ei_eid - 1, False)
+            self.set_event(ei_eid - 1, False)
             self.check_root_consts([10.0, 9.0, 8.0, 7.0])
             viewX = 0
             viewY = 0
@@ -100,7 +100,7 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
                 action = self.find_action("IndirectDraw", from_eid)
                 assert action is not None
                 eid = action.eventId
-                self.controller.SetFrameEvent(eid, False)
+                self.set_event(eid, False)
                 self.check_root_consts([123.0, 9.0, 8.0, 7.0])
 
                 # Should be a green triangle in the centre of the screen on a black background
@@ -176,7 +176,7 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
             viewX = 0
             viewY = 0
             action = self.find_action("Post draw")
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
 
             # triangle should still be visible
             self.check_triangle(back=[0.0, 0.0, 0.0, 1.0], vp=[viewX, viewY, viewW, viewH])
@@ -196,7 +196,7 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
 
         with rdtest.log.auto_section('Dispatch buffer output is correct'):
             action = self.find_action("Post Single dispatch")
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
 
             pipe = self.controller.GetPipelineState()
             rw = pipe.GetReadWriteResources(rd.ShaderStage.Compute)
@@ -243,7 +243,7 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
             # do N passes since it will be unpredictable
             for passNum in range(50):
                 for drawNum in range(8):
-                    self.controller.SetFrameEvent(action.eventId + drawNum, False)
+                    self.set_event(action.eventId + drawNum, False)
 
                     pipe = self.controller.GetPipelineState()
                     out = pipe.GetOutputTargets()[0].resource
@@ -286,7 +286,7 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
             action = self.find_action("Full Arg Buffer")
             action = self.find_action("IndirectDraw", action.eventId)
             for drawNum in range(3):
-                self.controller.SetFrameEvent(action.eventId + drawNum, False)
+                self.set_event(action.eventId + drawNum, False)
                 pipe = self.controller.GetPipelineState()
                 if len(pipe.GetOutputTargets()) != 1:
                     raise rdtest.TestFailureException(
@@ -300,7 +300,7 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
             action = self.find_action("IndirectDraw", action.eventId)
             for drawNum in range(3):
                 eid = action.eventId
-                self.controller.SetFrameEvent(eid, False)
+                self.set_event(eid, False)
                 pipe = self.controller.GetPipelineState()
                 if len(pipe.GetOutputTargets()) != 1:
                     raise rdtest.TestFailureException(
@@ -335,7 +335,7 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
                     action = self.find_action("IndirectDraw", executeAction.eventId)
                     for drawNum in range(min(countDraws, 12)):
                         eid = action.eventId
-                        self.controller.SetFrameEvent(eid, False)
+                        self.set_event(eid, False)
                         pipe = self.controller.GetPipelineState()
                         if len(pipe.GetOutputTargets()) != 1:
                             raise rdtest.TestFailureException(
@@ -369,7 +369,7 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
                     action = self.find_action("IndirectDraw", action.eventId+1)
 
                 eid = action.eventId
-                self.controller.SetFrameEvent(action.eventId, False)
+                self.set_event(action.eventId, False)
                 pipe = self.controller.GetPipelineState()
                 if len(pipe.GetOutputTargets()) != 1:
                     raise rdtest.TestFailureException(
@@ -400,7 +400,7 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
             for eid in range(self.get_first_action().eventId, self.get_last_action().eventId + 1):
                 if eid >= skipEIDmin and eid <= skipEIDmax:
                     continue
-                self.controller.SetFrameEvent(eid, False)
+                self.set_event(eid, False)
                 pipe = self.controller.GetPipelineState()
                 if len(pipe.GetOutputTargets()) == 0:
                     continue

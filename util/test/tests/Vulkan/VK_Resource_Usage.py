@@ -160,7 +160,7 @@ class VK_Resource_Usage(rdtest.TestCase):
         descBufferDrawEIDs.sort()
 
         action = self.find_action("Draw")
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
         swapImage = self.controller.GetPipelineState().GetOutputTargets()[0].resource
 
         with rdtest.log.auto_section("Checking Resource Usage"):
@@ -339,7 +339,7 @@ class VK_Resource_Usage(rdtest.TestCase):
                     eid = u.eventId
                     if eid == 0:
                         continue
-                    self.controller.SetFrameEvent(eid, True)
+                    self.set_event(eid, True)
                     if eid not in self.eids:
                         raise rdtest.TestFailureException(f"'{res.name}' {res.resourceId} Missing EID:{eid}")
         

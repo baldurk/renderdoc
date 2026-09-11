@@ -57,7 +57,7 @@ class Groupshared(rdtest.TestCase):
 
         for test, action in enumerate(tests):
             failed = False
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
 
             pipe = self.controller.GetPipelineState()
             csrefl = pipe.GetShaderReflection(rd.ShaderStage.Compute)

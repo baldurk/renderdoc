@@ -11,19 +11,19 @@ class D3D12_Render_Pass(rdtest.TestCase):
 
         action = next(d for d in rp1.children if d.flags & rd.ActionFlags.Drawcall)
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         self.check_triangle(back=[0.0, 0.0, 1.0, 1.0])
 
         action = next(d for d in rp2.children if d.flags & rd.ActionFlags.Drawcall)
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         self.check_triangle(back=[1.0, 0.0, 1.0, 1.0])
 
         action = self.get_last_action()
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         self.check_pixel_value(action.copyDestination, 0.45, 0.45, [0.0, 0.0, 1.0, 1.0])
         self.check_pixel_value(action.copyDestination, 0.55, 0.55, [1.0, 0.0, 1.0, 1.0])

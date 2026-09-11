@@ -17,7 +17,7 @@ class VK_KHR_Buffer_Address(rdtest.TestCase):
             action = self.find_action(test_name)
             action = action.nextAction
             assert action is not None
-            self.controller.SetFrameEvent(action.eventId, True)
+            self.set_event(action.eventId, True)
             pipe = self.controller.GetPipelineState()
 
             if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:

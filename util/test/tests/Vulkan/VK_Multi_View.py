@@ -19,7 +19,7 @@ class VK_Multi_View(rdtest.TestCase):
                 continue
             action = label.nextAction
             assert action is not None
-            self.controller.SetFrameEvent(action.eventId, True)
+            self.set_event(action.eventId, True)
 
             pipe = self.controller.GetPipelineState()
             if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
@@ -57,7 +57,7 @@ class VK_Multi_View(rdtest.TestCase):
                 continue
             action = label.nextAction
             assert action is not None
-            self.controller.SetFrameEvent(action.eventId, True)
+            self.set_event(action.eventId, True)
 
             pipe = self.controller.GetPipelineState()
             if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:

@@ -52,7 +52,7 @@ class VK_Mesh_Shader(rdtest.TestCase):
         assert self.controller is not None
         last_action = self.get_last_action()
 
-        self.controller.SetFrameEvent(last_action.eventId, True)
+        self.set_event(last_action.eventId, True)
 
         action = self.find_action("Mesh Shaders")
 
@@ -60,7 +60,7 @@ class VK_Mesh_Shader(rdtest.TestCase):
         assert action is not None
         name = f"Pure Mesh Shader Test EID:{action.eventId}"
         with rdtest.log.auto_section(name):
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
 
             x = 70
             y = 240
@@ -77,7 +77,7 @@ class VK_Mesh_Shader(rdtest.TestCase):
         assert action is not None
         name = f"Task Shader with Local Payload EID:{action.eventId}"
         with rdtest.log.auto_section(name):
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
 
             postts_ref = self.build_local_taskout_reference()
             postts_data = self.get_task_data(action)
@@ -94,7 +94,7 @@ class VK_Mesh_Shader(rdtest.TestCase):
         with rdtest.log.auto_section(name):
             action = action.nextAction
             assert action is not None
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
             x = 290
             y = 90
 

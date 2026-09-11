@@ -529,6 +529,7 @@ def internal_run_test(thread: int, test_name: str):
 
             try:
                 instance = testclass()
+                log.set_context(lambda: instance.log_context())
                 instance.worker_thread = thread
                 instance.invoketest(False)
                 suceeded = True
@@ -538,6 +539,8 @@ def internal_run_test(thread: int, test_name: str):
             except Exception as ex:
                 log.failure(ex)
                 suceeded = False
+            finally:
+                log.set_context(None)
 
             logfile = rd.GetLogFile()
             if server is not None:

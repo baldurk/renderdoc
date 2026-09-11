@@ -14,7 +14,7 @@ class D3D12_Multi_Wait_Before_Signal(rdtest.TestCase):
 
         assert draw_marker is not None
 
-        self.controller.SetFrameEvent(draw_marker.eventId, False)
+        self.set_event(draw_marker.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 

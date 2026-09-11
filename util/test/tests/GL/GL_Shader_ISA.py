@@ -12,7 +12,7 @@ class GL_Shader_ISA(rdtest.TestCase):
 
         is_amd = 'AMD' in action.customName
 
-        self.controller.SetFrameEvent(action.nextAction.eventId, False)
+        self.set_event(action.nextAction.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 

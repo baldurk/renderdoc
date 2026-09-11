@@ -8,7 +8,7 @@ class D3D12_RenderTarget_Binds(rdtest.TestCase):
         # find the clear
         action = self.find_action("ClearRenderTargetView")
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 
@@ -20,7 +20,7 @@ class D3D12_RenderTarget_Binds(rdtest.TestCase):
 
         action = action.nextAction
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 
@@ -36,7 +36,7 @@ class D3D12_RenderTarget_Binds(rdtest.TestCase):
 
         action = action.nextAction
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 
@@ -52,7 +52,7 @@ class D3D12_RenderTarget_Binds(rdtest.TestCase):
 
         action = action.nextAction
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 
@@ -68,7 +68,7 @@ class D3D12_RenderTarget_Binds(rdtest.TestCase):
 
         action = action.nextAction
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 

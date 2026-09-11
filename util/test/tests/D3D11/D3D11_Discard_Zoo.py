@@ -16,7 +16,7 @@ class D3D11_Discard_Zoo(rdtest.Discard_Zoo):
 
         assert action is not None
 
-        self.controller.SetFrameEvent(action.eventId, True)
+        self.set_event(action.eventId, True)
 
         # Check the buffer
         for res in self.controller.GetResources():
@@ -29,7 +29,7 @@ class D3D11_Discard_Zoo(rdtest.Discard_Zoo):
 
         assert action is not None
 
-        self.controller.SetFrameEvent(action.eventId, True)
+        self.set_event(action.eventId, True)
 
         # Check the buffers
         for res in self.controller.GetResources():

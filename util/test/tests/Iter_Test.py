@@ -256,7 +256,7 @@ class Iter_Test(rdtest.TestCase):
 
         if lastmod is not None:
             rdtest.log.print(f"Debugging pixel {x},{y} @ {lastmod.eventId}, primitive {lastmod.primitiveID}")
-            self.controller.SetFrameEvent(lastmod.eventId, True)
+            self.set_event(lastmod.eventId, True)
 
             pipe = self.controller.GetPipelineState()
 
@@ -330,7 +330,7 @@ class Iter_Test(rdtest.TestCase):
                     # This could be an application error - undefined but seen in the wild
                     rdtest.log.error(f"At EID {lastmod.eventId} No output variable declared for index {output_index}")
 
-            self.controller.SetFrameEvent(action.eventId, True)
+            self.set_event(action.eventId, True)
 
     def mesh_output(self, action: rd.ActionDescription):
         self.controller.GetPostVSData(0, 0, rd.MeshDataStage.VSOut)
@@ -401,7 +401,7 @@ class Iter_Test(rdtest.TestCase):
         while action:
             rdtest.log.print(f"{action.eventId}/{last_action.eventId}")
 
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
 
             rdtest.log.print("Set event")
 

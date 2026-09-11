@@ -12,7 +12,7 @@ class D3D12_Compute_Only(rdtest.TestCase):
 
         self.check_pixel_value(tex, 0, 0, [0.25, 0.5, 0.75, 1.0])
 
-        self.controller.SetFrameEvent(self.find_action("Pre-Dispatch").eventId, True)
+        self.set_event(self.find_action("Pre-Dispatch").eventId, True)
 
         uints = struct.unpack_from('=4L', self.controller.GetBufferData(bufin, 0, 0), 0)
 
@@ -26,7 +26,7 @@ class D3D12_Compute_Only(rdtest.TestCase):
             raise rdtest.TestFailureException(
                 f'bufout data is incorrect before dispatch: {uints}')
 
-        self.controller.SetFrameEvent(self.find_action("Post-Dispatch").eventId, True)
+        self.set_event(self.find_action("Post-Dispatch").eventId, True)
 
         uints = struct.unpack_from('=4L', self.controller.GetBufferData(bufout, 0, 0), 0)
 

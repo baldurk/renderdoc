@@ -7,7 +7,7 @@ class D3D12_Write_Subresource(rdtest.TestCase):
     def check_capture(self):
         action = self.find_action("Draw")
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 

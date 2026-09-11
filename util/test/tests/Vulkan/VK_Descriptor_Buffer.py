@@ -22,7 +22,7 @@ class VK_Descriptor_Buffer(rdtest.TestCase):
 
                 eid = draw.eventId
 
-                self.controller.SetFrameEvent(draw.nextAction.eventId, False)
+                self.set_event(draw.nextAction.eventId, False)
 
                 pipe = self.controller.GetPipelineState()
 

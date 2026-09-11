@@ -13,7 +13,7 @@ class GL_Parameter_Zoo(rdtest.TestCase):
 
         tex_details = self.get_texture(id)
 
-        self.controller.SetFrameEvent(self.get_last_action().eventId, True)
+        self.set_event(self.get_last_action().eventId, True)
 
         data = self.controller.GetTextureData(id, rd.Subresource(0, 0, 0))
         first_pixel = struct.unpack_from("BBBB", data, 0)
@@ -33,7 +33,7 @@ class GL_Parameter_Zoo(rdtest.TestCase):
 
         img_path = rdtest.get_tmp_path('preserved_alpha.png')
 
-        self.controller.SetFrameEvent(self.get_last_action().eventId, True)
+        self.set_event(self.get_last_action().eventId, True)
 
         save_data = rd.TextureSave()
         save_data.resourceId = id
@@ -54,7 +54,7 @@ class GL_Parameter_Zoo(rdtest.TestCase):
 
         assert action is not None
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         postvs_data = self.get_postvs(action, rd.MeshDataStage.VSOut, 0, action.numIndices)
 

@@ -10,7 +10,7 @@ class VK_Extended_Dynamic_State(rdtest.TestCase):
 
         assert action is not None
 
-        self.controller.SetFrameEvent(action.eventId, True)
+        self.set_event(action.eventId, True)
 
         vsin_ref: rdtest.MeshReference = {
             0: {

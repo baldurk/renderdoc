@@ -12,7 +12,7 @@ class D3D11_Swapchain_Zoo(rdtest.TestCase):
         action = self.find_action("DrawIndexed")
 
         while action is not None:
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
 
             self.check_triangle(back=[0.0, 0.0, 0.0, 1.0])
 

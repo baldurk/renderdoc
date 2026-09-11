@@ -12,7 +12,7 @@ class D3D11_Parameter_Zoo(rdtest.TestCase):
 
         action = self.find_action("Draw")
         assert action is not None
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 
@@ -68,7 +68,7 @@ class D3D11_Parameter_Zoo(rdtest.TestCase):
 
         action = self.find_action("RastState")
         assert action is not None
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe11 = self.controller.GetD3D11PipelineState()
 

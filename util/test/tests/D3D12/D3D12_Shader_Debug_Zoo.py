@@ -28,7 +28,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                 a for a in comp_dim.children if a.flags & rd.ActionFlags.Dispatch]
 
             for test, action in enumerate(compute_tests):
-                self.controller.SetFrameEvent(action.eventId, False)
+                self.set_event(action.eventId, False)
                 pipe = self.controller.GetPipelineState()
                 csrefl = pipe.GetShaderReflection(rd.ShaderStage.Compute)
                 if not csrefl.debugInfo.debuggable:
@@ -134,7 +134,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                         continue
                     action = test_marker.nextAction
                     assert action is not None
-                    self.controller.SetFrameEvent(action.eventId, False)
+                    self.set_event(action.eventId, False)
 
                     pipe = self.controller.GetPipelineState()
 
@@ -196,7 +196,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
             rdtest.log.begin_section(marker)
             test_marker = self.find_action(marker)
             action = test_marker.nextAction
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
             pipe = self.controller.GetPipelineState()
             for (x,y) in [(4, 4), (4, 5), (3, 4), (3, 5)]:
                 for test in range(4):
@@ -240,7 +240,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                 continue
             action = test_marker.nextAction
             assert action is not None
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
             pipe = self.controller.GetPipelineState()
 
             if pipe.GetShaderReflection(rd.ShaderStage.Vertex).debugInfo.debuggable:
@@ -283,7 +283,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
         test_marker = self.find_action("Banned")
         action = test_marker.nextAction
         assert action is not None
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
         pipe = self.controller.GetPipelineState()
 
         # Debug the banned vertex shader
@@ -324,7 +324,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                 rdtest.log.end_section(section)
                 continue
             action = test_marker.nextAction
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
             pipe = self.controller.GetPipelineState()
             if not pipe.GetShaderReflection(rd.ShaderStage.Compute).debugInfo.debuggable:
                 rdtest.log.print(f"Skipping undebuggable Compute shader at {action.eventId} for {csShaderModels[sm]}.")

@@ -22,7 +22,7 @@ class D3D11_Refcount_Check(rdtest.TestCase):
 
         action = action.nextAction
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 

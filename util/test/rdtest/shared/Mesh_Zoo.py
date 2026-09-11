@@ -75,10 +75,11 @@ class Mesh_Zoo():
 
         rdtest.log.success(f"Picking {x},{y} returns vertex {result[0]} in instance {result[1]} as expected")
 
-    def check_capture(self, capture_filename: str, controller: rd.ReplayController):
-        self.controller = controller
+    def check_capture(self, capture_filename: str, test: rdtest.testcase.TestCase):
+        self.test = test
+        self.controller = test.controller
 
-        self.controller.SetFrameEvent(self.find_action("Quad").nextAction.eventId, False)
+        self.test.set_event(self.find_action("Quad").nextAction.eventId, False)
 
         self.out = self.controller.CreateOutput(
             rd.CreateHeadlessWindowingData(200, 200), rd.ReplayOutputType.Mesh
@@ -358,7 +359,7 @@ class Mesh_Zoo():
 
         rdtest.log.success("Both instance picking is as expected")
 
-        self.controller.SetFrameEvent(self.find_action("Points").nextAction.eventId, False)
+        self.test.set_event(self.find_action("Points").nextAction.eventId, False)
 
         # Only one instance, just check we can see the points
         self.cfg.curInstance = 0
@@ -388,7 +389,7 @@ class Mesh_Zoo():
 
         rdtest.log.success("Point solid and lit rendering works as expected")
 
-        self.controller.SetFrameEvent(self.find_action("Lines").nextAction.eventId, False)
+        self.test.set_event(self.find_action("Lines").nextAction.eventId, False)
 
         self.cache_output()
         self.cfg.visualisationMode = rd.Visualisation.Lit
@@ -396,7 +397,7 @@ class Mesh_Zoo():
 
         rdtest.log.success("Lines solid and lit rendering works as expected")
 
-        self.controller.SetFrameEvent(self.find_action("Stride 0").nextAction.eventId, False)
+        self.test.set_event(self.find_action("Stride 0").nextAction.eventId, False)
 
         self.cfg.position = self.controller.GetPostVSData(0, 0, self.cfg.type)
         self.cfg.position.nearPlane = 1.0
@@ -411,7 +412,7 @@ class Mesh_Zoo():
         self.check_vertex(105, 65, (rd.ReplayOutput.NoResult, rd.ReplayOutput.NoResult))
         self.check_vertex(115, 135, (rd.ReplayOutput.NoResult, rd.ReplayOutput.NoResult))
 
-        self.controller.SetFrameEvent(self.find_action("Empty").nextAction.eventId, False)
+        self.test.set_event(self.find_action("Empty").nextAction.eventId, False)
 
         self.cfg.position = self.controller.GetPostVSData(0, 0, self.cfg.type)
         self.cfg.position.nearPlane = 1.0

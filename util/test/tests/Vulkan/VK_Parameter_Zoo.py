@@ -18,7 +18,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
         action = action.nextAction
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 
@@ -32,7 +32,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
         action = self.find_action("References")
         assert action is not None
         action = action.nextAction
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         vkpipe = self.controller.GetVulkanPipelineState()
 
@@ -118,7 +118,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
             action = self.find_action("PushTemplReferences")
             assert action is not None
             action = action.nextAction
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
 
             vkpipe = self.controller.GetVulkanPipelineState()
 
@@ -172,7 +172,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
             action = action.nextAction
             assert action is not None
 
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
 
             pipe = self.controller.GetPipelineState()
 
@@ -230,7 +230,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
             rdtest.log.print(f"Checking {action.customName}")
 
-            self.controller.SetFrameEvent(action.nextAction.eventId, False)
+            self.set_event(action.nextAction.eventId, False)
 
             self.check_triangle(fore=[1.0, 0.0, 1.0, 1.0])
 
@@ -273,7 +273,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
         action = action.nextAction
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 
@@ -327,7 +327,7 @@ class VK_Parameter_Zoo(rdtest.TestCase):
 
         action = action.nextAction
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         self.check_triangle()
 

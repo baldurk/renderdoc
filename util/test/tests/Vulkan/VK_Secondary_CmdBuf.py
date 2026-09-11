@@ -7,7 +7,7 @@ class VK_Secondary_CmdBuf(rdtest.TestCase):
     def check_capture(self):
         last_action = self.get_last_action()
 
-        self.controller.SetFrameEvent(last_action.eventId, True)
+        self.set_event(last_action.eventId, True)
 
         tex = self.get_texture(last_action.copyDestination)
 
@@ -23,7 +23,7 @@ class VK_Secondary_CmdBuf(rdtest.TestCase):
 
         assert action is not None and action.nextAction is not None
 
-        self.controller.SetFrameEvent(action.nextAction.eventId, False)
+        self.set_event(action.nextAction.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 
@@ -47,7 +47,7 @@ class VK_Secondary_CmdBuf(rdtest.TestCase):
 
         assert action is not None and action.nextAction is not None
 
-        self.controller.SetFrameEvent(action.nextAction.eventId, False)
+        self.set_event(action.nextAction.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 

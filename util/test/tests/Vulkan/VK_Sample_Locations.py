@@ -9,7 +9,7 @@ class VK_Sample_Locations(rdtest.TestCase):
 
     def check_capture(self):
         action = self.find_action("Degenerate")
-        self.controller.SetFrameEvent(action.nextAction.eventId, True)
+        self.set_event(action.nextAction.eventId, True)
         pipe = self.controller.GetVulkanPipelineState()
 
         if pipe.multisample.rasterSamples != 4:
@@ -33,7 +33,7 @@ class VK_Sample_Locations(rdtest.TestCase):
             raise rdtest.TestFailureException(f"In degenerate case, sample locations [1] and [2] DO match: {sampleLoc.customLocations[1]} vs {sampleLoc.customLocations[2]}")
 
         action = self.find_action("Rotated")
-        self.controller.SetFrameEvent(action.nextAction.eventId, True)
+        self.set_event(action.nextAction.eventId, True)
         pipe = self.controller.GetVulkanPipelineState()
 
         if pipe.multisample.rasterSamples != 4:
@@ -85,7 +85,7 @@ class VK_Sample_Locations(rdtest.TestCase):
 
         last_action = self.get_last_action()
 
-        self.controller.SetFrameEvent(last_action.eventId, True)
+        self.set_event(last_action.eventId, True)
 
         # Due to the variability of rasterization between implementations or even drivers,
         # we don't want to check against a 'known good'.

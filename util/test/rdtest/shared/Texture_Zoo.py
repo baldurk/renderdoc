@@ -561,7 +561,7 @@ class Texture_Zoo():
             if 'slice tests' in d.customName:
                 for sub in d.children:
                     if sub.flags & rd.ActionFlags.Drawcall:
-                        self.controller.SetFrameEvent(sub.eventId, True)
+                        self.test.set_event(sub.eventId, True)
 
                         pipe = self.controller.GetPipelineState()
 
@@ -629,7 +629,7 @@ class Texture_Zoo():
                         tests_run = tests_run + 1
                         try:
                             # Set this event as current
-                            self.controller.SetFrameEvent(sub.eventId, True)
+                            self.test.set_event(sub.eventId, True)
 
                             self.filename = (d.customName + '@' + name).replace('->', '_')
 
@@ -653,8 +653,9 @@ class Texture_Zoo():
         else:
             raise rdtest.TestFailureException("Some tests were not as expected")
 
-    def check_capture(self, capture_filename: str, controller: rd.ReplayController):
-        self.controller = controller
+    def check_capture(self, capture_filename: str, test: rdtest.testcase.TestCase):
+        self.test = test
+        self.controller = test.controller
 
         self.pipeType = self.controller.GetAPIProperties().pipelineType
         self.opengl_mode = (self.controller.GetAPIProperties().pipelineType == rd.GraphicsAPI.OpenGL)
@@ -705,6 +706,7 @@ class Texture_Zoo():
                     result, self.controller = remote.OpenCapture(
                         proxies.index(api), capture_filename, rd.ReplayOptions(), None
                     )
+                    self.test.controller = self.controller
 
                     # Now check with the proxy
                     self.check_capture_with_controller(api)
@@ -741,6 +743,7 @@ class Texture_Zoo():
                 continue
 
             result, self.controller = cap.OpenCapture(rd.ReplayOptions(), None)
+            self.test.controller = self.controller
 
             if not result:
                 rdtest.log.error(f"Couldn't open {file.name}")
@@ -751,7 +754,7 @@ class Texture_Zoo():
 
             [a, b] = file.name.replace('.dds', ' (DDS)').replace('.png', ' (PNG)').split('@')
 
-            self.controller.SetFrameEvent(self.controller.GetRootActions()[0].eventId, True)
+            self.test.set_event(self.controller.GetRootActions()[0].eventId, True)
 
             try:
                 self.opengl_mode = False

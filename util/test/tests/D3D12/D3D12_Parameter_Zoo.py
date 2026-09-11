@@ -12,7 +12,7 @@ class D3D12_Parameter_Zoo(rdtest.TestCase):
         action = action.nextAction
         assert action is not None
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 
@@ -100,7 +100,7 @@ class D3D12_Parameter_Zoo(rdtest.TestCase):
         action = self.find_action("No Sig Draw")
         action = action.nextAction
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 
@@ -111,14 +111,14 @@ class D3D12_Parameter_Zoo(rdtest.TestCase):
         action = self.find_action("No Sig Dispatch")
         action = action.nextAction
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         # nothing to actually check here
 
         action = self.find_action("Temp heap Draw")
         action = action.nextAction
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 

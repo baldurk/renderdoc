@@ -14,13 +14,13 @@ class VK_Mesh_Zoo(rdtest.TestCase):
 
     def check_capture(self):
         assert self.controller is not None
-        self.zoo_helper.check_capture(self.capture_filename, self.controller)
+        self.zoo_helper.check_capture(self.capture_filename, self)
 
         xfbDraw = self.find_action("XFB")
 
         if xfbDraw is not None:
             assert xfbDraw.nextAction is not None
-            self.controller.SetFrameEvent(xfbDraw.nextAction.eventId, False)
+            self.set_event(xfbDraw.nextAction.eventId, False)
 
             postgs_data = self.get_postvs(xfbDraw.nextAction, rd.MeshDataStage.GSOut, 0, 4)
 
@@ -57,7 +57,7 @@ class VK_Mesh_Zoo(rdtest.TestCase):
 
             xfbDraw = self.find_action("XFB After")
 
-            self.controller.SetFrameEvent(xfbDraw.eventId, False)
+            self.set_event(xfbDraw.eventId, False)
 
             xfb = self.controller.GetVulkanPipelineState().transformFeedback
 

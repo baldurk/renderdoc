@@ -69,7 +69,7 @@ class Subgroup_Zoo(rdtest.TestCase):
 
             for test, action in enumerate(compute_tests):
                 failed = False
-                self.controller.SetFrameEvent(action.eventId, False)
+                self.set_event(action.eventId, False)
 
                 pipe = self.controller.GetPipelineState()
                 csrefl = pipe.GetShaderReflection(rd.ShaderStage.Compute)
@@ -145,7 +145,7 @@ class Subgroup_Zoo(rdtest.TestCase):
         overallFailed = False
         for idx, action in enumerate(graphics_tests):
             failed = False
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
 
             pipe = self.controller.GetPipelineState()
 

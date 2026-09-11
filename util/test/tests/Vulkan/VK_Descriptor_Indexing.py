@@ -12,7 +12,7 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
 
         action = self.find_action("Dispatch")
         assert action is not None
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
         vkpipe = self.controller.GetVulkanPipelineState()
@@ -42,7 +42,7 @@ class VK_Descriptor_Indexing(rdtest.TestCase):
 
         action = self.find_action("Draw")
         assert action is not None
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
         vkpipe = self.controller.GetVulkanPipelineState()

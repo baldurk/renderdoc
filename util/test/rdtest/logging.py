@@ -7,7 +7,7 @@ import mimetypes
 import threading
 import difflib
 import shutil
-from typing import IO, Any, List, Type
+from typing import IO, Any, Callable, List, Type
 from . import util
 
 
@@ -29,6 +29,7 @@ class TestLogger:
     def __init__(self):
         self.indentation = 0
         self.test_name = ''
+        self.ctx_callback: Callable[[], None] | None = None
         self.outputs: List[IO[str]] = [sys.stdout]
         self.failed = False
         self.section_failed = False
@@ -69,6 +70,9 @@ class TestLogger:
             self.outputs.append(open(o, "a"))
         else:
             self.outputs.append(o)
+
+    def set_context(self, ctx: Callable[[], None] | None | None):
+        self.ctx_callback = ctx
 
     def print(self, line: str, with_stdout=True):
         self.rawprint('.. ' + line, with_stdout)
@@ -176,6 +180,11 @@ class TestLogger:
             self.rawprint(f"!+ FAILURE in {self.test_name}: {ex!s}")
         else:
             self.rawprint(f"!+ FAILURE in {self.test_name}: {type(ex).__name__} {ex!s}")
+
+        if self.ctx_callback is not None:
+            self.rawprint('>> Section Context')
+            self.ctx_callback()
+            self.rawprint('<< Section Context')
 
         self.rawprint('>> Callstack')
         for frame in reversed(tb):

@@ -20,7 +20,7 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
             action = self.find_action(test_name)
             for child in range(len(action.children)):
                 section = action.children[child]
-                self.controller.SetFrameEvent(section.eventId, False)
+                self.set_event(section.eventId, False)
                 pipe = self.controller.GetPipelineState()
 
                 if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
@@ -70,7 +70,7 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
             rdtest.log.begin_section(test_name)
 
             action = self.find_action("ASM tests")
-            self.controller.SetFrameEvent(action.children[0].eventId, False)
+            self.set_event(action.children[0].eventId, False)
             pipe = self.controller.GetPipelineState()
             refl = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
             assert refl is not None
@@ -110,7 +110,7 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
                 a for a in comp_dim.children if a.flags & rd.ActionFlags.Dispatch]
 
             for test, action in enumerate(compute_tests):
-                self.controller.SetFrameEvent(action.eventId, False)
+                self.set_event(action.eventId, False)
                 pipe = self.controller.GetPipelineState()
                 csrefl = pipe.GetShaderReflection(rd.ShaderStage.Compute)
                 if not csrefl.debugInfo.debuggable:

@@ -49,7 +49,7 @@ class VK_VRS(rdtest.TestCase):
             
             action = self.find_action("Default", pass_action.eventId)
             assert action is not None
-            self.controller.SetFrameEvent(action.nextAction.eventId, False)
+            self.set_event(action.nextAction.eventId, False)
 
             num_checks = 0
 
@@ -57,39 +57,39 @@ class VK_VRS(rdtest.TestCase):
             num_checks += 1
 
             action = self.find_action("Base", pass_action.eventId)
-            self.controller.SetFrameEvent(action.nextAction.eventId, False)
+            self.set_event(action.nextAction.eventId, False)
             assert self.get_shading_rates() == ("2x2", "2x2"), f"{action.customName} shading rates unexpected: {self.get_shading_rates()}"
             num_checks += 1
 
             action = self.find_action("Vertex", pass_action.eventId)
             if action is not None:
-                self.controller.SetFrameEvent(action.nextAction.eventId, False)
+                self.set_event(action.nextAction.eventId, False)
                 assert self.get_shading_rates() == ("1x1", "2x2"), f"{action.customName} shading rates unexpected: {self.get_shading_rates()}"
                 num_checks += 1
                 rdtest.log.success("Shading rates were as expected in per-vertex case")
 
             action = self.find_action("Image", pass_action.eventId)
             if action is not None:
-                self.controller.SetFrameEvent(action.nextAction.eventId, False)
+                self.set_event(action.nextAction.eventId, False)
                 assert self.get_shading_rates() == ("2x2", "1x1"), f"{action.customName} shading rates unexpected: {self.get_shading_rates()}"
                 num_checks += 1
                 rdtest.log.success("Shading rates were as expected in image-based case")
 
             action = self.find_action("Base + Vertex", pass_action.eventId)
             if action is not None:
-                self.controller.SetFrameEvent(action.nextAction.eventId, False)
+                self.set_event(action.nextAction.eventId, False)
                 assert self.get_shading_rates() == ("2x2", "2x2"), f"{action.customName} shading rates unexpected: {self.get_shading_rates()}"
                 num_checks += 1
 
             action = self.find_action("Base + Image", pass_action.eventId)
             if action is not None:
-                self.controller.SetFrameEvent(action.nextAction.eventId, False)
+                self.set_event(action.nextAction.eventId, False)
                 assert self.get_shading_rates() == ("2x2", "2x2"), f"{action.customName} shading rates unexpected: {self.get_shading_rates()}"
                 num_checks += 1
 
             action = self.find_action("Vertex + Image", pass_action.eventId)
             if action is not None:
-                self.controller.SetFrameEvent(action.nextAction.eventId, False)
+                self.set_event(action.nextAction.eventId, False)
                 assert self.get_shading_rates() == ("2x2", "2x2"), f"{action.customName} shading rates unexpected: {self.get_shading_rates()}"
                 num_checks += 1
 

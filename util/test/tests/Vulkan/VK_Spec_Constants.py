@@ -14,7 +14,7 @@ class VK_Spec_Constants(rdtest.TestCase):
         for num_colors in range(4):
             assert action is not None
 
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
 
             pipe = self.controller.GetPipelineState()
             vkpipe = self.controller.GetVulkanPipelineState()

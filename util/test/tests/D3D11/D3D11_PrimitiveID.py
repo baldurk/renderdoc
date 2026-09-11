@@ -15,7 +15,7 @@ class D3D11_PrimitiveID(rdtest.TestCase):
         expected_prim: rdtest.VectorValue,
         expected_output: rdtest.VectorValue | None,
     ):
-        self.controller.SetFrameEvent(action.eventId, True)
+        self.set_event(action.eventId, True)
         pipe = self.controller.GetPipelineState()
 
         pixel_inputs = rd.DebugPixelInputs()

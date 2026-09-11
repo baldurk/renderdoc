@@ -14,7 +14,7 @@ class VK_Synchronization_2(rdtest.TestCase):
         return opts
 
     def check_capture(self):
-        self.controller.SetFrameEvent(0, False)
+        self.set_event(0, False)
 
         pipe = self.controller.GetVulkanPipelineState()
 
@@ -35,7 +35,7 @@ class VK_Synchronization_2(rdtest.TestCase):
 
         assert action is not None
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetVulkanPipelineState()
 
@@ -61,7 +61,7 @@ class VK_Synchronization_2(rdtest.TestCase):
 
         assert action is not None
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         # Check that the backbuffer didn't get discarded
         self.check_triangle(out=action.outputs[0])

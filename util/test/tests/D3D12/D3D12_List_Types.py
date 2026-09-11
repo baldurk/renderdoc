@@ -10,7 +10,7 @@ class D3D12_List_Types(rdtest.TestCase):
 
         assert action is not None
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         self.check_triangle(out=action.outputs[0], fore=[0.0, 1.0, 1.0, 1.0])
 

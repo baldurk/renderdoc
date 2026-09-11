@@ -11,7 +11,7 @@ class VK_Load_Store_None(rdtest.TestCase):
                        self.find_action("Blit")]:
             assert action is not None
 
-            self.controller.SetFrameEvent(action.eventId, True)
+            self.set_event(action.eventId, True)
 
             self.check_pixel_value(res, 200, 125, [0.0, 1.0, 0.0, 1.0])
             self.check_pixel_value(res, 200, 90, [0.2, 0.2, 0.2, 1.0])

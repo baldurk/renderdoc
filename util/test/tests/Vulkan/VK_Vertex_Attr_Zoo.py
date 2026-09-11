@@ -11,7 +11,7 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
 
         assert action is not None
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         ref: rdtest.MeshReference = {
             0: {
@@ -131,7 +131,7 @@ class VK_Vertex_Attr_Zoo(rdtest.TestCase):
         rdtest.log.success("Triangle picked value is as expected")
 
         # Step to the next action with awkward struct/array outputs
-        self.controller.SetFrameEvent(action.nextAction.eventId, False)
+        self.set_event(action.nextAction.eventId, False)
 
         ref: rdtest.MeshReference = {
             0: {

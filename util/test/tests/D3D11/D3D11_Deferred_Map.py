@@ -8,7 +8,7 @@ class D3D11_Deferred_Map(rdtest.TestCase):
         # Check at the last action
         action = self.get_last_action()
 
-        self.controller.SetFrameEvent(action.eventId, False)
+        self.set_event(action.eventId, False)
 
         pipe = self.controller.GetPipelineState()
 

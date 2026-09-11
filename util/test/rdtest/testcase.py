@@ -166,6 +166,7 @@ class TestCase:
         self.worker_thread = 0
         self.controller: rd.ReplayController | None = None
         self.sdfile: rd.SDFile | None = None
+        self.cur_event = 0
         self._variables = []
 
     def get_time(self):
@@ -240,6 +241,13 @@ class TestCase:
             return action.customName
 
         return self.sdfile.chunks[action.events[-1].chunkIndex].name
+
+    def set_event(self, eid: int, force: bool):
+        self.cur_event = eid
+        self.controller.SetFrameEvent(eid, force)
+
+    def log_context(self):
+        log.print(f"Current Event: {self.cur_event}")
 
     def _find_action(self, name: str, start_event: int, action_list: List[rd.ActionDescription]) -> rd.ActionDescription | None:
         bestMatch = None
@@ -694,7 +702,7 @@ class TestCase:
 
         last_action = self.get_last_action()
 
-        self.controller.SetFrameEvent(last_action.eventId, True)
+        self.set_event(last_action.eventId, True)
 
         save_data = rd.TextureSave()
         save_data.resourceId = last_action.copyDestination

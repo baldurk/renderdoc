@@ -93,7 +93,7 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
                 rdtest.log.end_section(shaderModels[sm] + " tests")
                 continue
             action = test_marker.nextAction
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
 
             pipe = self.controller.GetPipelineState()
 
@@ -250,7 +250,7 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
                 rdtest.log.end_section(section)
                 continue
             action = test_marker.nextAction
-            self.controller.SetFrameEvent(action.eventId, False)
+            self.set_event(action.eventId, False)
             pipe = self.controller.GetPipelineState()
             if not pipe.GetShaderReflection(rd.ShaderStage.Compute).debugInfo.debuggable:
                 rdtest.log.print(f"Skipping undebuggable Compute shader at {action.eventId} for {csShaderModels[sm]}.")
