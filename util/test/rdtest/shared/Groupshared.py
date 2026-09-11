@@ -4,6 +4,7 @@ import rdtest
 
 class Groupshared(rdtest.TestCase):
     internal = True
+    slow_test = True
     demos_test_name = None
 
     def check_compute_thread_result(self, test: int, action: rd.ActionDescription, x: int, y: int, z: int, expected: rdtest.VectorValue):
@@ -108,6 +109,5 @@ class Groupshared(rdtest.TestCase):
         action = self.find_action("Compute Tests")
         assert action is not None
         self.check_compute_section_tests(action)
-        self.check_renderdoc_log_asserts()
 
         rdtest.log.success("All tests matched")

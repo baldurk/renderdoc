@@ -15,10 +15,8 @@ parser.add_argument('-t', '--test_include', default=".*",
                     help="The tests to include, as a regexp filter", type=str)
 parser.add_argument('-x', '--test_exclude', default="",
                     help="The tests to exclude, as a regexp filter", type=str)
-parser.add_argument('--in-process',
-                    help="Run test code in the same process as test runner", action="store_true")
-parser.add_argument('--slow-tests',
-                    help="Run potentially slow tests", action="store_true")
+parser.add_argument('-j', '--parallel',
+                    help="Run test in N processes in parallel where possible", default=0, type=int)
 parser.add_argument('--test-timeout',
                     help="Timeout for output from tests", default=90, type=int)
 parser.add_argument('--data', default=os.path.join(script_dir, "data"),
@@ -44,6 +42,7 @@ parser.add_argument('--internal_run_test', help=argparse.SUPPRESS, type=str, req
 parser.add_argument('--internal_vulkan_register', help=argparse.SUPPRESS, action="store_true", required=False)
 # Internal command, when we re-run as a remote server
 parser.add_argument('--internal_remote_server', help=argparse.SUPPRESS, action="store_true", required=False)
+parser.add_argument('--internal_thread', help=argparse.SUPPRESS, type=int, default=0, required=False)
 args = parser.parse_args()
 
 custom_pyrenderdoc = None
@@ -158,15 +157,12 @@ if args.adb_device:
     rdtest.create_adb_device(args.adb_device)
 else:
     rdtest.set_remote_server(None)
-# debugger option implies in-process test running
-if args.debugger:
-    args.in_process = True
 
 if args.internal_vulkan_register:
     rdtest.vulkan_register()
 elif args.internal_remote_server:
-    rdtest.become_remote_server()
+    rdtest.become_remote_server(args.internal_thread)
 elif args.internal_run_test is not None:
-    rdtest.internal_run_test(args.internal_run_test)
+    rdtest.internal_run_test(args.internal_thread, args.internal_run_test)
 else:
-    rdtest.run_tests(args.test_include, args.test_exclude, args.in_process, args.slow_tests, args.debugger, args.test_timeout)
+    rdtest.run_tests(args.test_include, args.test_exclude, args.debugger, args.parallel, args.test_timeout)

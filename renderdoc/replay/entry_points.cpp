@@ -1012,8 +1012,6 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_RunFunctionalTests(const rdc
                          // specify python module path
                          L"--pyrenderdoc",
                          StringFormat::UTF82Wide(modulePath),
-                         // force in-process as we can't fork out to python to pass args
-                         L"--in-process",
                      });
 
   rdcarray<wchar_t *> wideArgStrings;

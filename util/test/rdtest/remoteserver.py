@@ -19,7 +19,7 @@ class RemoteServer(ABC):
         self.remote: rd.RemoteServer | None = None
 
     @abstractmethod
-    def init(self, in_process: bool):
+    def init(self, debugger: bool):
         pass
 
     @abstractmethod
@@ -115,7 +115,7 @@ class AndroidRemoteServer(RemoteServer):
         self.remote = None
         self._base_path = ''
 
-    def init(self, in_process):        
+    def init(self, debugger):        
         # Remove any existing Vulkan layers
         subprocess.run(['adb', '-s', self.device,
                         'shell', 'settings', 'delete', 'global', 'gpu_debug_layers'], check=False)
@@ -134,7 +134,7 @@ class AndroidRemoteServer(RemoteServer):
 
         # Close the connection if the tests are forked as each test will create their own
         # connection
-        if not in_process:
+        if not debugger:
             self.disconnect()
 
     def connect(self):

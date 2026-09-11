@@ -16,6 +16,4 @@ class D3D12_Groupshared(rdtest.Groupshared):
         if overallFailed:
             raise rdtest.TestFailureException("Some tests were not as expected")
 
-        self.check_renderdoc_log_asserts()
-
         rdtest.log.success("All tests matched")

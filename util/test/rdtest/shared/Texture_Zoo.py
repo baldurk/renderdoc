@@ -23,6 +23,7 @@ def linear2srgb(f: float):
 # Not a real test, re-used by API-specific tests
 class Texture_Zoo():
     def __init__(self):
+        self.worker_thread = 0
         self.proxied = False
         self.fake_msaa = False
         self.filename = ''
@@ -675,20 +676,20 @@ class Texture_Zoo():
         self.controller = None
 
         # Launch a remote server
-        rdtest.launch_remote_server()
+        base_port = rdtest.launch_remote_server()
 
         # Wait for it to start
         time.sleep(0.5)
 
-        result, remote = rd.CreateRemoteServerConnection('localhost')
+        result, remote = rd.CreateRemoteServerConnection(f'localhost:{base_port+self.worker_thread}')
 
         if not result:
             time.sleep(2)
 
-            result, remote = rd.CreateRemoteServerConnection('localhost')
+            result, remote = rd.CreateRemoteServerConnection(f'localhost:{base_port+self.worker_thread}')
 
         if not result:
-            raise rdtest.TestFailureException(f"Couldn't connect to remote server: {result!s}")
+            raise rdtest.TestFailureException(f"Couldn't connect to remote server {base_port+self.worker_thread}: {result!s}")
 
         proxies = remote.LocalProxies()
 

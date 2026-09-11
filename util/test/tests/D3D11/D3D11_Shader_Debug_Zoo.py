@@ -4,6 +4,7 @@ import rdtest
 
 class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
     demos_test_name = 'D3D11_Shader_Debug_Zoo'
+    slow_test = True
 
     def check_capture(self):
         undefined_tests = [int(test) for test in self.find_action("Undefined tests: ").customName.split(" ")[2:]]

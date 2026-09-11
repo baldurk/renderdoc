@@ -5,6 +5,7 @@ from typing import List
 
 class D3D12_Execute_Indirect(rdtest.TestCase):
     demos_test_name = 'D3D12_Execute_Indirect'
+    slow_test = True
 
     def check_overlays(self, eid: int, x: int, y: int):
         with rdtest.log.auto_section(f'EID {eid} Checking Overlays at {x}, {y}'):

@@ -4,6 +4,7 @@ import rdtest
 
 class GL_Shader_Debug_Zoo(rdtest.TestCase):
     demos_test_name = 'GL_Shader_Debug_Zoo'
+    slow_test = True
 
     def check_capture(self):
         assert self.controller is not None

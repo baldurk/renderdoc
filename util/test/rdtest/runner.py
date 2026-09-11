@@ -48,7 +48,10 @@ def _enqueue_output(process: subprocess.Popen[str], out: IO[str], q: queue.Queue
         pass
 
 
-def _run_test(testclass: TestCaseType, runner_timeout: int, failedcases: List[TestCaseType]):
+KEYBOARD_EXIT = 100
+
+
+def _run_test(testclass: TestCaseType, thread: int, runner_timeout: int, out_buf: List[str] | None, failedcases: List[TestCaseType]):
     name = testclass.__name__
 
     # Fork the interpreter to run the test, in case it crashes we can catch it.
@@ -57,6 +60,8 @@ def _run_test(testclass: TestCaseType, runner_timeout: int, failedcases: List[Te
     args.insert(0, sys.executable)
 
     # Add parameter to run the test itself
+    args.append('--internal_thread')
+    args.append(str(thread))
     args.append('--internal_run_test')
     args.append(name)
 
@@ -83,6 +88,7 @@ def _run_test(testclass: TestCaseType, runner_timeout: int, failedcases: List[Te
 
     out_pending = ""
     err_pending = ""
+    timeout = False
 
     while test_run.poll() is None:
         out = err = ""
@@ -124,33 +130,41 @@ def _run_test(testclass: TestCaseType, runner_timeout: int, failedcases: List[Te
             if err is not None:
                 err_pending += err
 
-        while True:
-            try:
-                nl = out_pending.index('\n')
-                line = out_pending[0:nl]
-                out_pending = out_pending[nl+1:]
-                line = line.replace('\r', '')
-                sys.stdout.write(line + '\n')
-                sys.stdout.flush()
-            except:
-                break
+        if out_buf is None:
+            while True:
+                try:
+                    nl = out_pending.index('\n')
+                    line = out_pending[0:nl]
+                    out_pending = out_pending[nl+1:]
+                    line = line.replace('\r', '')
+                    sys.stdout.write(line + '\n')
+                    sys.stdout.flush()
+                except:
+                    break
 
-        while True:
-            try:
-                nl = err_pending.index('\n')
-                line = err_pending[0:nl]
-                err_pending = err_pending[nl+1:]
-                line = line.replace('\r', '')
-                sys.stderr.write(line + '\n')
-                sys.stderr.flush()
-            except:
-                break
+            while True:
+                try:
+                    nl = err_pending.index('\n')
+                    line = err_pending[0:nl]
+                    err_pending = err_pending[nl+1:]
+                    line = line.replace('\r', '')
+                    sys.stderr.write(line + '\n')
+                    sys.stderr.flush()
+                except:
+                    break
 
         if out is None and err is None and test_run.poll() is None:
             log.error(f'Timed out, no output within {runner_timeout}s elapsed')
             test_run.kill()
             test_run.communicate()
-            raise subprocess.TimeoutExpired(' '.join(args), runner_timeout)
+            timeout = True
+            break
+
+    if out_buf is not None:
+        out_buf += [out_pending, err_pending]
+
+    if timeout:
+        raise subprocess.TimeoutExpired(' '.join(args), runner_timeout)
 
     if RUNNER_DEBUG:
         print("Test runner has finished")
@@ -175,6 +189,9 @@ def _run_test(testclass: TestCaseType, runner_timeout: int, failedcases: List[Te
     # so we just need to mark this test as failed
     elif test_run.returncode == 1:
         failedcases.append(testclass)
+    elif test_run.returncode == KEYBOARD_EXIT:
+        log.print("Propagating keyboard interrupt up from worker")
+        os._exit(KEYBOARD_EXIT)
     else:
         raise RuntimeError(f'Test did not exit cleanly while running, possible crash. Exit code {test_run.returncode}')
 
@@ -191,14 +208,14 @@ def fetch_tests():
     return { x[0]: (x[1] == 'True', x[2]) for x in split_tests }
 
 
-def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests: bool, debugger: bool, test_timeout: int):
+def run_tests(test_include: str, test_exclude: str, debugger: bool, parallel: int, test_timeout: int):
     start_time = datetime.datetime.now(datetime.timezone.utc)
 
     rd.InitialiseReplay(rd.GlobalEnvironment(), [])
 
     server = util.get_remote_server()
     if server is not None:
-        server.init(in_process)
+        server.init(debugger)
 
     # On windows, disable error reporting
     if 'windll' in dir(ctypes):
@@ -227,6 +244,20 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
 
     log.header(f"Tests running for RenderDoc Version {rd.GetVersionString()} ({rd.GetCommitHash()})")
     log.header(f"On {platform.platform()}")
+
+    # make parallel=0 for no parallelism so we can use it as bool flag
+    if parallel <= 1:
+        parallel = 0
+
+    if  debugger:
+        if parallel:
+            log.print(f"Disabling parallel={parallel} for debugging")
+        parallel = 0
+
+    if parallel:
+        log.header(f"With {parallel} parallel test runners")
+    else:
+        log.header(f"With serial test runners")
 
     log.comment(f"plat={platform.platform()} git={rd.GetCommitHash()}")
     log.print(f"Demos running from {util.get_demos_binary()}")
@@ -336,36 +367,66 @@ def run_tests(test_include: str, test_exclude: str, in_process: bool, slow_tests
             skippedcases.append(testclass)
             continue
 
-        if not slow_tests and testclass.slow_test:
-            log.print(f"Skipping {name} as it is a slow test, which are not enabled")
-            skippedcases.append(testclass)
-            continue
-
         runcases.append((testclass, name, instance))
 
-    for testclass, name, instance in runcases:
-        # Print header (and footer) outside the exec so we know they will always be printed successfully
-        log.begin_test(name)
-
-        util.set_current_test(name)
-
-        def do(debugMode: bool):
-            if in_process:
-                instance.invoketest(debugMode)
-            else:
-                _run_test(testclass, test_timeout, failedcases)
-
-        if debugger:
-            do(True)
+    def test_runner(thread: int):
+        if parallel:
+            tests_to_run = [runcases[i] for i in range(thread, len(runcases), parallel)]
         else:
-            try:
-                do(False)
-            except Exception as ex:
-                log.failure(ex)
-                failedcases.append(testclass)
+            tests_to_run = runcases
 
-        log.end_test(name)
+        for testclass, name, instance in tests_to_run:
+            output_buf: List[str] | None = []
 
+            # Print header (and footer) outside the exec so we know they will always be printed successfully
+            if not parallel:
+                log.begin_test(name)
+                output_buf = None
+
+            def do():
+                nonlocal output_buf
+                # don't exec if we're not running from python
+                if debugger or "python" not in os.path.basename(sys.executable):
+                    util.set_current_test(name)
+
+                    instance.invoketest(debugger)
+                else:
+                    _run_test(testclass, thread, test_timeout, output_buf, failedcases)
+
+            if debugger:
+                do()
+            else:
+                try:
+                    do()
+
+                    if parallel:
+                        assert output_buf is not None
+                        log.subprocess_test(name, thread, output_buf, util.get_tmp_path("output.log.html", name))
+
+                except KeyboardInterrupt as ex:
+                    log.print("Detected keyboard interrupt in harness - exiting")
+                    os._exit(KEYBOARD_EXIT)
+
+                except Exception as ex:
+                    if parallel:
+                        assert output_buf is not None
+                        log.subprocess_test(name, thread, output_buf, util.get_tmp_path("output.log.html", name), ex)
+                    else:
+                        log.failure(ex)
+                    failedcases.append(testclass)
+
+            if not parallel:
+                log.end_test(name)
+
+    if not parallel:
+        test_runner(-1)
+    else:
+        threads = [threading.Thread(target=test_runner, args=(k,)) for k in range(parallel)]
+        [t.start() for t in threads]
+
+        while any([t.is_alive() for t in threads]):
+            [t.join(5) for t in threads if t.is_alive()]
+ 
     duration = datetime.datetime.now(datetime.timezone.utc) - start_time
 
     if server is not None:
@@ -409,6 +470,8 @@ def vulkan_register():
     rd.UpdateVulkanLayerRegistration(True)
 
 
+FIRST_REMOTE_SERVER_PORT = 39930
+
 def launch_remote_server():
     # Fork the interpreter to run the test, in case it crashes we can catch it.
     # We can re-run with the same parameters
@@ -430,14 +493,16 @@ def launch_remote_server():
         args.insert(2, 'functional')
 
     subprocess.Popen(args)
-    return
+    return FIRST_REMOTE_SERVER_PORT
 
 
-def become_remote_server():
-    rd.BecomeRemoteServer('localhost', 0, None, None)
+def become_remote_server(thread: int):
+    if thread == -1:
+        thread = 0
+    rd.BecomeRemoteServer('localhost', FIRST_REMOTE_SERVER_PORT+thread, None, None)
 
 
-def internal_run_test(test_name: str):
+def internal_run_test(thread: int, test_name: str):
     # In case of out-of-process testing, connect to the server
     server = util.get_remote_server()
     if server is not None:
@@ -445,7 +510,12 @@ def internal_run_test(test_name: str):
 
     testcases = get_tests()
 
-    log.add_output(util.get_artifact_path("output.log.html"))
+    # if we're not running in parallel write directly to the output log
+    if thread == -1:
+        log.add_output(util.get_artifact_path("output.log.html"))
+        thread = 0
+    else:
+        log.add_output(util.get_tmp_path("output.log.html", test_name))
 
     for testclass in testcases:
         if testclass.__name__ == test_name:
@@ -459,8 +529,12 @@ def internal_run_test(test_name: str):
 
             try:
                 instance = testclass()
+                instance.worker_thread = thread
                 instance.invoketest(False)
                 suceeded = True
+            except KeyboardInterrupt:
+                log.print("Detected keyboard interrupt in test worker - exiting")
+                os._exit(KEYBOARD_EXIT)
             except Exception as ex:
                 log.failure(ex)
                 suceeded = False

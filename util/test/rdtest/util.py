@@ -158,9 +158,11 @@ def get_demos_timeout():
     return _demos_timeout
 
 
-def get_tmp_path(name: str):
-    os.makedirs(os.path.join(_temp_dir, _test_name), exist_ok=True)
-    return os.path.join(_temp_dir, _test_name, name)
+def get_tmp_path(name: str, test = ""):
+    if test == "":
+        test = get_current_test()
+    os.makedirs(os.path.join(_temp_dir, test), exist_ok=True)
+    return os.path.join(_temp_dir, test, name)
 
 
 def get_android_demo_app_name():

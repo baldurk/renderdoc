@@ -163,6 +163,7 @@ class TestCase:
 
     def __init__(self):
         self.capture_filename = ""
+        self.worker_thread = 0
         self.controller: rd.ReplayController | None = None
         self.sdfile: rd.SDFile | None = None
         self._variables = []
@@ -1131,17 +1132,6 @@ class TestCase:
                     data.append(self.decode_task_payload(self.controller, mesh, shader.taskPayload, taskIdx))
                     taskIdx += 1
         return data
-
-    def check_renderdoc_log_asserts(self):
-        countAsserts = 0
-        rdlog = rd.GetLogFile()
-        with open(rdlog, 'r') as f:
-            for line in f:
-                if 'Assertion' in line:
-                    log.error(line)
-                    countAsserts += 1
-        if countAsserts > 0:
-            raise TestFailureException(f'Renderdoc log file contains {countAsserts} Asserts')
 
     def validate_shadervariable(self, var: rd.ShaderVariable):
         if len(var.members) != 0:

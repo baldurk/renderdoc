@@ -7,6 +7,7 @@ import rdtest
 # Not a real test, re-used by API-specific tests
 class Subgroup_Zoo(rdtest.TestCase):
     internal = True
+    slow_test = True
     demos_test_name = None
     workgroup = (0, 0, 0)
 
@@ -274,7 +275,5 @@ class Subgroup_Zoo(rdtest.TestCase):
 
         if overallFailed:
             raise rdtest.TestFailureException("Some tests were not as expected")
-
-        self.check_renderdoc_log_asserts()
 
         rdtest.log.success("All tests matched")

@@ -13,6 +13,7 @@ def resolve_progress(progress: float):
 
 class GL_Callstacks(rdtest.TestCase):
     demos_test_name = 'GL_Callstacks'
+    slow_test = True
 
     def get_capture_options(self):
         ret = rd.CaptureOptions()

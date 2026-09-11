@@ -16,6 +16,7 @@ PropGetter = Callable[[rd.PixelModification], Any]
 
 class Pixel_History(rdtest.TestCase):
     internal = True
+    slow_test = True
     demos_test_name = None
 
     def check_capture(self):

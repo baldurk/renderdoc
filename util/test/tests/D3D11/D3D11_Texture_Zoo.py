@@ -12,5 +12,6 @@ class D3D11_Texture_Zoo(rdtest.TestCase):
     def check_capture(self):
         assert self.controller is not None
         # This takes ownership of the controller and shuts it down when it's finished
+        self.zoo_helper.worker_thread = self.worker_thread
         self.zoo_helper.check_capture(self.capture_filename, self.controller)
         self.controller = None

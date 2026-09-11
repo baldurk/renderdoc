@@ -4,6 +4,7 @@ import sys
 import re
 import traceback
 import mimetypes
+import threading
 import difflib
 import shutil
 from typing import Any, List, Type
@@ -32,11 +33,22 @@ class TestLogger:
         self.failed = False
         self.section_failed = False
         self.logged_exception = False
+        self.mutex = threading.Lock()
 
-    def subprocess_print(self, line: str):
-        for o in self.outputs:
-            o.write(line)
-            o.flush()
+    def subprocess_test(self, test: str, thread: int, out_buf: List[str], path: str, exc: Exception | None = None):
+        with self.mutex:
+            self.begin_test(test, True, thread)
+            with open(path) as f:
+                lines = f.readlines()
+                for l in lines:
+                    self.rawprint(l, with_stdout=False)
+            sys.stdout.write(out_buf[0])
+            sys.stdout.flush()
+            sys.stderr.write(out_buf[1])
+            sys.stderr.flush()
+            if exc is not None:
+                self.failure(exc)
+            self.end_test(test, True, thread)
 
     def rawprint(self, line: str, with_stdout=True):
         for o in self.outputs:
@@ -70,21 +82,27 @@ class TestLogger:
     def dedent(self):
         self.indentation -= 4
 
-    def begin_test(self, test_name: str, print_header: bool=True):
+    def begin_test(self, test_name: str, print_header: bool=True, thread=-1):
         self.test_name = test_name
         if print_header:
-            self.rawprint(f">> Test {test_name}")
+            if thread >= 0:
+                self.rawprint(f">> Test {test_name} (Worker {thread})")
+            else:
+                self.rawprint(f">> Test {test_name}")
         self.indent()
 
         self.failed = False
         self.logged_exception = False
 
-    def end_test(self, test_name: str, print_footer: bool=True):
+    def end_test(self, test_name: str, print_footer: bool=True, thread=-1):
         if self.failed:
             self.rawprint("$$ FAILED")
         self.dedent()
         if print_footer:
-            self.rawprint(f"<< Test {test_name}")
+            if thread >= 0:
+                self.rawprint(f"<< Test {test_name} (Worker {thread})")
+            else:
+                self.rawprint(f"<< Test {test_name}")
         self.test_name = ''
 
     def begin_section(self, name: str):
