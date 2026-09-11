@@ -1,0 +1,9 @@
+{
+	"extension_api": 1,
+	"name": "UI Test Harness",
+	"version": "1.0",
+	"minimum_renderdoc": "1.47",
+	"description": "UI extension for loading and running tests with context & introspection.",
+	"author": "Baldur Karlsson <baldurk@baldurk.org>",
+	"url": "https://github.com/baldurk/renderdoc"
+}
