@@ -147,7 +147,7 @@ class Buffer_Truncation(rdtest.TestCase):
                 assert cbuf_sourceVars[16].variables[0].name == 'cb0[16]' or cbuf_sourceVars[16].variables[0].name == 'consts[16]'
 
                 if not rdtest.value_compare(debugged_cb.value.f32v[0:4], [0.0, 0.0, 0.0, 0.0]):
-                    raise rdtest.TestFailureException(f"expected outcol to be 0s, but got {debugged_cb.members[1].value.f32v[0:4]}")
+                    raise rdtest.TestFailureException(f"expected outcol to be 0s, but got {debugged_cb.value.f32v[0:4]}")
             else:
                 raise rdtest.TestFailureException(f"Unexpected number of constant buffer source vars {len(cbuf_sourceVars)}")
 
