@@ -1428,25 +1428,26 @@ QString PythonContext::LoadExtension(ICaptureContext &ctx, const rdcstr &extensi
 
     if(!valueStr.isEmpty())
     {
-      qCritical("Error importing extension module '%s'. %s: %s", extension.c_str(),
-                typeStr.toUtf8().data(), valueStr.toUtf8().data());
-      ret +=
+      QString errorStr;
+
+      errorStr +=
           tr("Error importing extension module '%1'. %2: %3\n\n").arg(extension).arg(typeStr).arg(valueStr);
 
       if(!frames.isEmpty())
       {
-        qCritical() << "Traceback (most recent call last):";
-        ret += tr("Traceback (most recent call last):\n");
+        errorStr += tr("Traceback (most recent call last):\n");
         for(const QString &f : frames)
         {
           QStringList lines = f.split(QLatin1Char('\n'));
           for(const QString &line : lines)
           {
-            qCritical("  %s", line.toUtf8().data());
-            ret += line + lit("\n");
+            errorStr += lit("  %1\n").arg(line);
           }
         }
       }
+
+      qCritical("%s", errorStr.toUtf8().data());
+      ret += errorStr;
     }
 
     if(!ret.isEmpty())
