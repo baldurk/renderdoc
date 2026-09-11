@@ -307,6 +307,30 @@ void MiniQtHelper::InsertWidget(QWidget *parent, int32_t index, QWidget *child)
   box->insertWidget(qMin(qMax(0, index), box->count()), child);
 }
 
+void MiniQtHelper::SetLayoutSpacing(QWidget *layout, int spacing)
+{
+  if(!layout)
+    return;
+
+  QLayout *l = layout->layout();
+  if(!l)
+    return;
+
+  l->setSpacing(spacing);
+}
+
+void MiniQtHelper::SetLayoutMargins(QWidget *layout, int horizontal, int vertical)
+{
+  if(!layout)
+    return;
+
+  QLayout *l = layout->layout();
+  if(!l)
+    return;
+
+  l->setContentsMargins(horizontal, vertical, horizontal, vertical);
+}
+
 void MiniQtHelper::SetWidgetText(QWidget *widget, const rdcstr &text)
 {
   if(!widget)

@@ -676,6 +676,23 @@ added anywhere.
 )");
   virtual void InsertWidget(QWidget *parent, int32_t index, QWidget *child) = 0;
 
+  DOCUMENT(R"(Set the internal spacing in pixels between items. If the widget is not a layout
+(either grid or horizontal/vertical) this call will have no effect.
+
+:param QWidget layout: The layout widget.
+:param int spacing: The spacing in pixels to use between items
+)");
+  virtual void SetLayoutSpacing(QWidget *layout, int spacing) = 0;
+
+  DOCUMENT(R"(Set the external margins on the outside of all of the items in the layout. If
+the widget is not a layout (either grid or horizontal/vertical) this call will have no effect.
+
+:param QWidget layout: The layout widget.
+:param int horizontal: The horizontal margins on the left and right.
+:param int vertical: The vertical margins on the top and bottom.
+)");
+  virtual void SetLayoutMargins(QWidget *layout, int horizontal, int vertical) = 0;
+
   // widget manipulation
 
   DOCUMENT(R"(Set the 'text' of a widget. How this manifests depends on the type of the widget, for

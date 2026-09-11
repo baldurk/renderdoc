@@ -68,6 +68,8 @@ public:
                      int32_t columnSpan) override;
   void AddWidget(QWidget *parent, QWidget *child) override;
   void InsertWidget(QWidget *parent, int32_t index, QWidget *child) override;
+  void SetLayoutSpacing(QWidget *layout, int spacing) override;
+  void SetLayoutMargins(QWidget *layout, int horizontal, int vertical) override;
 
   // widget manipulation
 

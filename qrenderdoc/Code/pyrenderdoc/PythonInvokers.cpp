@@ -170,6 +170,14 @@ struct MiniQtInvoker : UIThreadInvoker<IMiniQtHelper>
   {
     InvokeVoidFunction(&IMiniQtHelper::InsertWidget, parent, index, child);
   }
+  void SetLayoutSpacing(QWidget *layout, int spacing)
+  {
+    InvokeVoidFunction(&IMiniQtHelper::SetLayoutSpacing, layout, spacing);
+  }
+  void SetLayoutMargins(QWidget *layout, int horizontal, int vertical)
+  {
+    InvokeVoidFunction(&IMiniQtHelper::SetLayoutMargins, layout, horizontal, vertical);
+  }
 
   // widget manipulation
 
