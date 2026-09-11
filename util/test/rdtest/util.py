@@ -119,7 +119,7 @@ def create_adb_device(name: str):
     set_remote_server(server)
 
 
-def get_current_test():
+def get_current_test_name():
     return _test_name
 
 
@@ -175,7 +175,7 @@ def get_demos_timeout():
 
 def get_tmp_path(name: str, test = ""):
     if test == "":
-        test = get_current_test()
+        test = get_current_test_name()
     os.makedirs(os.path.join(_temp_dir, test), exist_ok=True)
     return os.path.join(_temp_dir, test, name)
 

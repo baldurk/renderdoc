@@ -296,7 +296,7 @@ class TestCase:
         """
 
         if self.demos_test_name != '':
-            logfile = os.path.join(util.get_tmp_dir(), util.get_current_test(), 'demos.log')
+            logfile = os.path.join(util.get_tmp_dir(), util.get_current_test_name(), 'demos.log')
             remote_logfile = logfile
             exe = util.get_demos_binary()
             if util.get_remote_server() is not None:

@@ -236,10 +236,10 @@ class AndroidRemoteServer(RemoteServer):
 
     def get_temp_path(self, name="", timeout=20):
         subprocess.run(['adb', '-s', self.device, 'shell', 'mkdir', '-p',
-                        self._base_path + '/' + util.get_current_test()],
+                        self._base_path + '/' + util.get_current_test_name()],
                        timeout=timeout,
                        check=True)
-        return self._base_path + util.get_current_test() + '/' + name
+        return self._base_path + util.get_current_test_name() + '/' + name
 
     def get_renderdoc_path(self):
         return self._data_path + '/' + AndroidRemoteServer.ADRD_SERVER_APP64 + '/files/RenderDoc/'

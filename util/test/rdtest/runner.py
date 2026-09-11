@@ -1,4 +1,5 @@
 from __future__ import annotations
+import importlib
 import os
 import shutil
 import ctypes
@@ -32,6 +33,16 @@ def get_tests():
     testcases.sort(key=lambda t: (t.slow_test,t.__name__))
 
     return testcases
+
+
+def get_test(name: str):
+    return next(filter(lambda t: t.__name__ == name, get_tests()))
+
+def reload_test(name: str):
+    importlib.reload(sys.modules[get_test(name).__module__])
+
+def get_current_test() -> TestCaseType:
+    return get_test(util.get_current_test_name())
 
 
 RUNNER_DEBUG = False   # Debug test runner running by printing messages to track it
