@@ -166,8 +166,8 @@ popd
 
 # extract the msi files
 
-msiexec -a $(native_path "${REPO_ROOT}"/dist/Installer32.msi) -qn TARGETDIR=$(native_path "${REPO_ROOT}"/dist/msi32)
-msiexec -a $(native_path "${REPO_ROOT}"/dist/Installer64.msi) -qn TARGETDIR=$(native_path "${REPO_ROOT}"/dist/msi64)
+msiexec.exe -a $(native_path "${REPO_ROOT}"/dist/Installer32.msi) -qn TARGETDIR=$(native_path "${REPO_ROOT}"/dist/msi32)
+msiexec.exe -a $(native_path "${REPO_ROOT}"/dist/Installer64.msi) -qn TARGETDIR=$(native_path "${REPO_ROOT}"/dist/msi64)
 
 # make msi manifests as above
 
