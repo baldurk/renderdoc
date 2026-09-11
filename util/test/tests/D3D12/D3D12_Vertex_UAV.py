@@ -36,7 +36,7 @@ class D3D12_Vertex_UAV(rdtest.TestCase):
 
                 overlay_id = out.GetDebugOverlayTexID()
 
-                picked = self.controller.PickPixel(overlay_id, 5, 5, rd.Subresource(0,0,0), rd.CompType.Float).floatValue
+                picked = self.pick_pixel(overlay_id, 5, 5, rd.Subresource(0,0,0), rd.CompType.Float).floatValue
 
                 if any([p != picked[0] for p in picked]):
                     raise rdtest.TestFailureException(f"Quad overdraw isn't correct: {picked}")

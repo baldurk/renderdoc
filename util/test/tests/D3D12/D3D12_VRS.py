@@ -19,10 +19,10 @@ class D3D12_VRS(rdtest.TestCase):
                 self.get_shading_rate_for_quad(tex, x + 74, y + 42))
 
     def get_shading_rate_for_quad(self, tex: rd.ResourceId, x: int, y: int):
-        picked = [self.controller.PickPixel(tex, x+0, y+0, rd.Subresource(), rd.CompType.Typeless),
-                  self.controller.PickPixel(tex, x+1, y+0, rd.Subresource(), rd.CompType.Typeless),
-                  self.controller.PickPixel(tex, x+0, y+1, rd.Subresource(), rd.CompType.Typeless),
-                  self.controller.PickPixel(tex, x+1, y+1, rd.Subresource(), rd.CompType.Typeless)]
+        picked = [self.pick_pixel(tex, x+0, y+0, rd.Subresource(), rd.CompType.Typeless),
+                  self.pick_pixel(tex, x+1, y+0, rd.Subresource(), rd.CompType.Typeless),
+                  self.pick_pixel(tex, x+0, y+1, rd.Subresource(), rd.CompType.Typeless),
+                  self.pick_pixel(tex, x+1, y+1, rd.Subresource(), rd.CompType.Typeless)]
 
         # all same - 2x2
         if all([p.floatValue == picked[0].floatValue for p in picked]):

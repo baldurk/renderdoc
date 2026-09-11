@@ -114,7 +114,7 @@ class VK_Descriptor_Buffer(rdtest.TestCase):
 
                     floats = struct.unpack_from("8f", data, 0)
 
-                    picked = self.controller.PickPixel(
+                    picked = self.pick_pixel(
                         out, x, y, rd.Subresource(), rd.CompType.Float
                     )
 

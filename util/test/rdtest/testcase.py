@@ -214,6 +214,16 @@ class HistoryContext(ScopedContext):
     def get_history(self):
         return self.test.controller.PixelHistory(self.tex, self.x, self.y, self.sub, self.cast)
 
+class PickContext(ScopedContext):
+    def __init__(self, test: TestCase, tex: rd.ResourceId, x: int, y: int, sub: rd.Subresource, cast: rd.CompType):
+        self.tex = tex
+        self.x = x
+        self.y = y
+        self.sub = sub
+        self.cast = cast
+
+        super().__init__(test)
+
 class TestCase:
     slow_test = False
     internal = False
@@ -347,6 +357,13 @@ class TestCase:
     def debug_thread(self, group: Tuple[int,int,int], thread: Tuple[int,int,int]):
         return ComputeDebugContext(self, group, thread)
 
+    def pick_pixel(self, textureId: rd.ResourceId, x: int, y: int, sub: rd.Subresource, typeCast: rd.CompType):
+        # just keep the last pick context. We can use this if we don't have anything better, since pixel picking
+        # isn't as easily 'scoped' as the others
+        self.contexts = list(filter(lambda x: not isinstance(x, PickContext), self.contexts))
+        self.contexts.append(PickContext(self, textureId, x, y, sub, typeCast))
+        return self.controller.PickPixel(textureId, x, y, sub, typeCast)
+
     def log_context(self):
         log.print(f"Current Event: {self.cur_event}")
         for c in self.contexts:
@@ -358,6 +375,10 @@ class TestCase:
                 log.print(f"Executed pixel debug on {c.x},{c.y}")
             if isinstance(c, ComputeDebugContext):
                 log.print(f"Executed compute debug on group {c.group} thread {c.thread}")
+
+        if len(self.contexts) == 1 and isinstance(self.contexts[0], PickContext):
+            c = self.contexts[0]
+            log.print(f"Last Pixel pick on {c.x},{c.y} in {c.tex}")
 
     def _find_action(self, name: str, start_event: int, action_list: List[rd.ActionDescription]) -> rd.ActionDescription | None:
         bestMatch = None
@@ -579,7 +600,7 @@ class TestCase:
 
         assert type(x) is int and type(y) is int
 
-        picked = self.controller.PickPixel(tex, x, y, sub, cast)
+        picked = self.pick_pixel(tex, x, y, sub, cast)
 
         picked_value = picked.floatValue
         if cast == rd.CompType.UInt:

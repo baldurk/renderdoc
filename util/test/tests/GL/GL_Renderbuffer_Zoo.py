@@ -42,8 +42,9 @@ class GL_Renderbuffer_Zoo(rdtest.TestCase):
             rdtest.log.success(f'Color Renderbuffer at action {action.eventId} is working as expected')
 
             if depth.resource != rd.ResourceId():
-                val = self.controller.PickPixel(depth.resource, x, y,
-                                                rd.Subresource(), rd.CompType.Typeless)
+                val = self.pick_pixel(
+                    depth.resource, x, y, rd.Subresource(), rd.CompType.Typeless
+                )
 
                 if not rdtest.value_compare(val.floatValue[0], 0.75):
                     raise rdtest.TestFailureException(

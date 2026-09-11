@@ -152,7 +152,7 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
                         x = 4 * test
                         y = 0
                         self.check_pixel_value(tex, x, y, debugged.value.f32v[0:4])
-                        picked = rd.PixelValue = self.controller.PickPixel(tex, x, y, rd.Subresource(0,0,0), rd.CompType.Typeless)
+                        picked = rd.PixelValue = self.pick_pixel(tex, x, y, rd.Subresource(0,0,0), rd.CompType.Typeless)
                         realTestResult = picked.floatValue
                         debugInfo = pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo
                         shaderSrcRaw = debugInfo.files[0].contents

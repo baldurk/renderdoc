@@ -36,7 +36,7 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
                 if overlay == rd.DebugOverlay.ClearBeforePass:
                     overlayTex = col_tex
 
-                picked = self.controller.PickPixel(overlayTex, x, y, rd.Subresource(), rd.CompType.UNorm)
+                picked = self.pick_pixel(overlayTex, x, y, rd.Subresource(), rd.CompType.UNorm)
                 emptyPixel = (0.0, 0.0, 0.0, 0.0)
                 if picked.floatValue == emptyPixel:
                     raise rdtest.TestFailureException(f"{overlay.name} overlay is empty")
@@ -251,7 +251,7 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
                     count = 0
                     draws: List[int] = []
                     for i, p in enumerate(drawPoints):
-                        picked = self.controller.PickPixel(out, p[0], p[1], rd.Subresource(), rd.CompType.UNorm)
+                        picked = self.pick_pixel(out, p[0], p[1], rd.Subresource(), rd.CompType.UNorm)
                         if rdtest.value_compare(picked.floatValue, [0.0, 1.0, 0.0, 1.0]):
                             count += 1
                             draws += [i]

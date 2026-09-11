@@ -44,7 +44,7 @@ class Texture_Zoo():
         if self.opengl_mode:
             y = max(1, self.textures[tex].height >> sub.mip) - 1 - y
 
-        return self.controller.PickPixel(tex, x, y, sub, typeCast)
+        return self.test.pick_pixel(tex, x, y, sub, typeCast)
 
     TEST_CAPTURE = 0
     TEST_DDS = 1
@@ -577,7 +577,7 @@ class Texture_Zoo():
                                 comp_type = rd.CompType.Typeless
 
                                 # test that pixel picking sees the right things
-                                picked = self.controller.PickPixel(tex_id, 15, 15, cur_sub, comp_type)
+                                picked = self.test.pick_pixel(tex_id, 15, 15, cur_sub, comp_type)
 
                                 if not rdtest.value_compare(picked.floatValue, expected):
                                     raise rdtest.TestFailureException(

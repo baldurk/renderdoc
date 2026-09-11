@@ -24,11 +24,11 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
 
                 x, y = self.get_view_centre()
 
-                picked = self.controller.PickPixel(tex, x+ 0, y+ 0, rd.Subresource(), rd.CompType.UNorm)
+                picked = self.pick_pixel(tex, x+ 0, y+ 0, rd.Subresource(), rd.CompType.UNorm)
                 pixels.append(picked.floatValue[0:4])
-                picked = self.controller.PickPixel(tex, x-20, y+20, rd.Subresource(), rd.CompType.UNorm)
+                picked = self.pick_pixel(tex, x-20, y+20, rd.Subresource(), rd.CompType.UNorm)
                 pixels.append(picked.floatValue[0:4])
-                picked = self.controller.PickPixel(tex, x+20, y+20, rd.Subresource(), rd.CompType.UNorm)
+                picked = self.pick_pixel(tex, x+20, y+20, rd.Subresource(), rd.CompType.UNorm)
                 pixels.append(picked.floatValue[0:4])
 
                 if (not (1.0, 0.0, 0.0, 1.0) in pixels) or (not (1.0, 0.0, 0.0, 1.0) in pixels) or (

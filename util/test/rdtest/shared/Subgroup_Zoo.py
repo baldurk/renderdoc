@@ -165,7 +165,7 @@ class Subgroup_Zoo(rdtest.TestCase):
                 for view in range(pipe.MultiviewBroadcastCount()):
                     x, y = pixel
 
-                    picked = self.controller.PickPixel(
+                    picked = self.pick_pixel(
                         target, x, y, rd.Subresource(0, 0, 0), rd.CompType.Float
                     )
 

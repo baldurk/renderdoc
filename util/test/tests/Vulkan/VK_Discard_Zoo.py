@@ -42,10 +42,10 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
 
                 # if we're in the rect, check for pattern colors
                 if 50 <= x < 125 and 50 <= y < 125:
-                    c = self.controller.PickPixel(
+                    c = self.pick_pixel(
                         rpcol.resourceId, x, y, rd.Subresource(), rd.CompType.Typeless
                     )
-                    d = self.controller.PickPixel(
+                    d = self.pick_pixel(
                         rpdepth.resourceId, x, y, rd.Subresource(), rd.CompType.Typeless
                     )
 
@@ -76,10 +76,10 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
 
                 # if we're in the rect, check for pattern colors
                 if 50 <= x < 125 and 50 <= y < 125:
-                    c = self.controller.PickPixel(
+                    c = self.pick_pixel(
                         rpcol.resourceId, x, y, rd.Subresource(), rd.CompType.Typeless
                     )
-                    d = self.controller.PickPixel(
+                    d = self.pick_pixel(
                         rpdepth.resourceId, x, y, rd.Subresource(), rd.CompType.Typeless
                     )
 
@@ -123,10 +123,10 @@ class VK_Discard_Zoo(rdtest.Discard_Zoo):
         # check that they are all undefined pattern - initial layout affects the whole resource
         for y in range(0, rpcol.height-1, 17):
             for x in range(0, rpcol.width - 1, 17):
-                c = self.controller.PickPixel(
+                c = self.pick_pixel(
                     rpcol.resourceId, x, y, rd.Subresource(), rd.CompType.Typeless
                 )
-                d = self.controller.PickPixel(
+                d = self.pick_pixel(
                     rpdepth.resourceId, x, y, rd.Subresource(), rd.CompType.Typeless
                 )
 

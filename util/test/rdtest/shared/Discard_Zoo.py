@@ -108,7 +108,7 @@ class Discard_Zoo(rdtest.TestCase):
                             if gl and h > 1:
                                 y = h - 1 - y
 
-                            picked = self.controller.PickPixel(id, x, y, sub, rd.CompType.Typeless)
+                            picked = self.pick_pixel(id, x, y, sub, rd.CompType.Typeless)
 
                             if self.check_val(picked, minval, fmt) or self.check_val(picked, maxval, fmt):
                                 raise rdtest.TestFailureException(
@@ -130,7 +130,7 @@ class Discard_Zoo(rdtest.TestCase):
                             if gl and h > 1:
                                 y = h - 1 - y
 
-                            picked = self.controller.PickPixel(id, x, y, sub, rd.CompType.Typeless)
+                            picked = self.pick_pixel(id, x, y, sub, rd.CompType.Typeless)
 
                             is_min = self.check_val(picked, minval, fmt)
                             is_max = self.check_val(picked, maxval, fmt)
@@ -158,7 +158,7 @@ class Discard_Zoo(rdtest.TestCase):
                                 if gl and h > 1:
                                     y = h - 1 - y
 
-                                picked = self.controller.PickPixel(id, x, y, sub, rd.CompType.Typeless)
+                                picked = self.pick_pixel(id, x, y, sub, rd.CompType.Typeless)
 
                                 is_min = self.check_val(picked, minval, fmt)
                                 is_max = self.check_val(picked, maxval, fmt)

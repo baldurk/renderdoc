@@ -17,15 +17,15 @@ class D3D11_AMD_Shader_Extensions(rdtest.TestCase):
         # Without relying on barycentric order, ensure that the three pixels are red, green, and blue
         pixels: List[rdtest.VectorValue] = []
 
-        picked = self.controller.PickPixel(
+        picked = self.pick_pixel(
             action.copyDestination, 125, 215, rd.Subresource(), rd.CompType.UNorm
         )
         pixels.append(picked.floatValue[0:4])
-        picked = self.controller.PickPixel(
+        picked = self.pick_pixel(
             action.copyDestination, 200, 85, rd.Subresource(), rd.CompType.UNorm
         )
         pixels.append(picked.floatValue[0:4])
-        picked = self.controller.PickPixel(
+        picked = self.pick_pixel(
             action.copyDestination, 285, 215, rd.Subresource(), rd.CompType.UNorm
         )
         pixels.append(picked.floatValue[0:4])

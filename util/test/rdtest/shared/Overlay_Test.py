@@ -149,10 +149,10 @@ class Overlay_Test(rdtest.TestCase):
                         # Also to be safe we don't run this test on MSAA
                         if not is_msaa:
                             x = 142
-                            picked = self.controller.PickPixel(overlay_id, x, 150, rd.Subresource(), rd.CompType.Typeless)
+                            picked = self.pick_pixel(overlay_id, x, 150, rd.Subresource(), rd.CompType.Typeless)
                             if picked.floatValue[3] == 0.0:
                                 x = 141
-                            picked = self.controller.PickPixel(overlay_id, x, 150, rd.Subresource(), rd.CompType.Typeless)
+                            picked = self.pick_pixel(overlay_id, x, 150, rd.Subresource(), rd.CompType.Typeless)
 
                             self.check_pixel_value(overlay_id, x, 90, [200.0/255.0, 1.0, 0.0, 1.0], eps=eps)
                             self.check_pixel_value(overlay_id, x, 130, [200.0/255.0, 1.0, 0.0, 1.0], eps=eps)
@@ -165,7 +165,7 @@ class Overlay_Test(rdtest.TestCase):
                             self.check_pixel_value(overlay_id, 250, 250, [200.0/255.0, 1.0, 0.0, 0.0], eps=eps)
 
                             y = 149
-                            picked = self.controller.PickPixel(overlay_id, 325, y, rd.Subresource(), rd.CompType.Typeless)
+                            picked = self.pick_pixel(overlay_id, 325, y, rd.Subresource(), rd.CompType.Typeless)
                             if picked.floatValue[3] == 0.0:
                                 y = 150
 
