@@ -7,7 +7,7 @@ import mimetypes
 import threading
 import difflib
 import shutil
-from typing import Any, List, Type
+from typing import IO, Any, List, Type
 from . import util
 
 
@@ -29,7 +29,7 @@ class TestLogger:
     def __init__(self):
         self.indentation = 0
         self.test_name = ''
-        self.outputs = [sys.stdout]
+        self.outputs: List[IO[str]] = [sys.stdout]
         self.failed = False
         self.section_failed = False
         self.logged_exception = False
@@ -63,9 +63,12 @@ class TestLogger:
 
             o.flush()
 
-    def add_output(self, o: str, header='', footer=''):
-        os.makedirs(os.path.dirname(o), exist_ok=True)
-        self.outputs.append(open(o, "a"))
+    def add_output(self, o: str | IO[str], header='', footer=''):
+        if isinstance(o, str):
+            os.makedirs(os.path.dirname(o), exist_ok=True)
+            self.outputs.append(open(o, "a"))
+        else:
+            self.outputs.append(o)
 
     def print(self, line: str, with_stdout=True):
         self.rawprint('.. ' + line, with_stdout)
