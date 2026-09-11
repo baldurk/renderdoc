@@ -166,6 +166,10 @@ popd
 
 # extract the msi files
 
+# WSL needs the path to exist to convert it in native_path
+mkdir -p "${REPO_ROOT}"/dist/msi32
+mkdir -p "${REPO_ROOT}"/dist/msi64
+
 msiexec.exe -a $(native_path "${REPO_ROOT}"/dist/Installer32.msi) -qn TARGETDIR=$(native_path "${REPO_ROOT}"/dist/msi32)
 msiexec.exe -a $(native_path "${REPO_ROOT}"/dist/Installer64.msi) -qn TARGETDIR=$(native_path "${REPO_ROOT}"/dist/msi64)
 
