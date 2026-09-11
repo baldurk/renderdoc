@@ -281,6 +281,17 @@ struct ShaderDebugData
   {
     MAX_QUEUED_OPS = 128
   };
+
+  // the sampling shader writes its result in the texture's native type, so we need one attachment
+  // format (and matching view/renderpass/framebuffer) per base type. They all alias the same image.
+  enum
+  {
+    SampleFormat_Float = 0,
+    SampleFormat_UInt,
+    SampleFormat_SInt,
+    SampleFormat_Count
+  };
+
   void Init(WrappedVulkan *driver, VkDescriptorPool descriptorPool);
   void Destroy(WrappedVulkan *driver);
 
@@ -292,10 +303,10 @@ struct ShaderDebugData
   VkPipeline MathPipe[3] = {};
 
   VkImage Image = VK_NULL_HANDLE;
-  VkImageView ImageView = VK_NULL_HANDLE;
   VkDeviceMemory ImageMemory = VK_NULL_HANDLE;
-  VkFramebuffer Framebuffer = VK_NULL_HANDLE;
-  VkRenderPass RenderPass = VK_NULL_HANDLE;
+  VkImageView ImageView[SampleFormat_Count] = {};
+  VkFramebuffer Framebuffer[SampleFormat_Count] = {};
+  VkRenderPass RenderPass[SampleFormat_Count] = {};
 
   VkDescriptorImageInfo DummyImageInfos[4][6] = {};
   VkWriteDescriptorSet DummyWrites[4][7] = {};

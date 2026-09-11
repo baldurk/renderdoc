@@ -5642,12 +5642,21 @@ void ShaderDebugData::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPoo
   for(uint32_t i = 0; i < MAX_QUEUED_OPS; ++i)
     CREATE_OBJECT(DescSets[i], DescPool, DescSetLayout);
 
+  // the sampling shader writes its result in the texture's native type, so the attachment format
+  // has to match. All three formats are in the same 128-bit compatibility class, so a single
+  // mutable-format image can be viewed as any of them.
+  const VkFormat sampleFormats[SampleFormat_Count] = {
+      VK_FORMAT_R32G32B32A32_SFLOAT,
+      VK_FORMAT_R32G32B32A32_UINT,
+      VK_FORMAT_R32G32B32A32_SINT,
+  };
+
   VkImageCreateInfo imInfo = {
       VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
       NULL,
-      0,
+      VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT,
       VK_IMAGE_TYPE_2D,
-      VK_FORMAT_R32G32B32A32_SFLOAT,
+      sampleFormats[SampleFormat_Float],
       {1, 1, 1},
       1,
       1,
@@ -5689,7 +5698,7 @@ void ShaderDebugData::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPoo
       0,
       Image,
       VK_IMAGE_VIEW_TYPE_2D,
-      VK_FORMAT_R32G32B32A32_SFLOAT,
+      VK_FORMAT_UNDEFINED,
       {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
        VK_COMPONENT_SWIZZLE_IDENTITY},
       {
@@ -5701,14 +5710,9 @@ void ShaderDebugData::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPoo
       },
   };
 
-  vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL, &ImageView);
-  CHECK_VKR(driver, vkr);
-
-  NameVulkanObject(ImageView, "ShaderDebugData.ImageView");
-
   VkAttachmentDescription attDesc = {
       0,
-      VK_FORMAT_R32G32B32A32_SFLOAT,
+      VK_FORMAT_UNDEFINED,
       VK_SAMPLE_COUNT_1_BIT,
       VK_ATTACHMENT_LOAD_OP_CLEAR,
       VK_ATTACHMENT_STORE_OP_STORE,
@@ -5749,17 +5753,38 @@ void ShaderDebugData::Init(WrappedVulkan *driver, VkDescriptorPool descriptorPoo
       VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, NULL, 0, 1, &attDesc, 1, &sub, 2, deps,
   };
 
-  vkr = driver->vkCreateRenderPass(driver->GetDev(), &rpinfo, NULL, &RenderPass);
-  if(vkr != VK_SUCCESS)
-    RDCERR("Failed to create shader debug render pass: %s", ToStr(vkr).c_str());
-
   // create framebuffer
   VkFramebufferCreateInfo fbinfo = {
-      VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL, 0, RenderPass, 1, &ImageView, 1, 1, 1,
+      VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL, 0, VK_NULL_HANDLE, 1, NULL, 1, 1, 1,
   };
 
-  vkr = driver->vkCreateFramebuffer(driver->GetDev(), &fbinfo, NULL, &Framebuffer);
-  CHECK_VKR(driver, vkr);
+  const char *viewNames[SampleFormat_Count] = {
+      "ShaderDebugData.ImageView[float]",
+      "ShaderDebugData.ImageView[uint]",
+      "ShaderDebugData.ImageView[sint]",
+  };
+
+  for(size_t i = 0; i < SampleFormat_Count; i++)
+  {
+    viewInfo.format = sampleFormats[i];
+
+    vkr = driver->vkCreateImageView(driver->GetDev(), &viewInfo, NULL, &ImageView[i]);
+    CHECK_VKR(driver, vkr);
+
+    NameVulkanObject(ImageView[i], viewNames[i]);
+
+    attDesc.format = sampleFormats[i];
+
+    vkr = driver->vkCreateRenderPass(driver->GetDev(), &rpinfo, NULL, &RenderPass[i]);
+    if(vkr != VK_SUCCESS)
+      RDCERR("Failed to create shader debug render pass: %s", ToStr(vkr).c_str());
+
+    fbinfo.renderPass = RenderPass[i];
+    fbinfo.pAttachments = &ImageView[i];
+
+    vkr = driver->vkCreateFramebuffer(driver->GetDev(), &fbinfo, NULL, &Framebuffer[i]);
+    CHECK_VKR(driver, vkr);
+  }
 
   VkDeviceSize resultMaxElementSize = sizeof(Vec4f) * 4;
   MathResult.Create(driver, driver->GetDev(), resultMaxElementSize, 1,
@@ -5789,9 +5814,13 @@ void ShaderDebugData::Destroy(WrappedVulkan *driver)
 
   driver->vkDestroyImage(driver->GetDev(), Image, NULL);
   driver->vkFreeMemory(driver->GetDev(), ImageMemory, NULL);
-  driver->vkDestroyImageView(driver->GetDev(), ImageView, NULL);
-  driver->vkDestroyFramebuffer(driver->GetDev(), Framebuffer, NULL);
-  driver->vkDestroyRenderPass(driver->GetDev(), RenderPass, NULL);
+
+  for(size_t i = 0; i < SampleFormat_Count; i++)
+  {
+    driver->vkDestroyImageView(driver->GetDev(), ImageView[i], NULL);
+    driver->vkDestroyFramebuffer(driver->GetDev(), Framebuffer[i], NULL);
+    driver->vkDestroyRenderPass(driver->GetDev(), RenderPass[i], NULL);
+  }
 
   // one module each for float, uint, sint.
   for(size_t i = 0; i < ARRAY_COUNT(Module); i++)
