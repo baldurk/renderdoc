@@ -91,8 +91,8 @@ class D3D12_Shader_Editing(rdtest.TestCase):
         nochangeVS = newShader[0]
 
         # Edit both Pixel shaders
-        self.controller.ReplaceResource(psrefl1.resourceId, ps1)
-        self.controller.ReplaceResource(psrefl2.resourceId, ps2)
+        self.replace_resource(psrefl1.resourceId, ps1)
+        self.replace_resource(psrefl2.resourceId, ps2)
 
         # Refresh the replay if it didn't happen already
         self.set_event(eid, True)
@@ -104,7 +104,7 @@ class D3D12_Shader_Editing(rdtest.TestCase):
         rdtest.log.success("Values are as expected after Pixel editing")
 
         # Now "edit" the VS but don't change it. We should still get the same values
-        self.controller.ReplaceResource(vsrefl.resourceId, nochangeVS)
+        self.replace_resource(vsrefl.resourceId, nochangeVS)
         self.set_event(eid, True)
 
         # Triangles have green and blue channel
@@ -114,7 +114,7 @@ class D3D12_Shader_Editing(rdtest.TestCase):
         rdtest.log.success("Values are as expected after no-op vertex editing")
 
         # Change the VS to one that has ofpset the triangles off-centre
-        self.controller.ReplaceResource(vsrefl.resourceId, offsetVS)
+        self.replace_resource(vsrefl.resourceId, offsetVS)
         self.set_event(eid, True)
 
         # Original sample positions are now the clear color
@@ -128,7 +128,7 @@ class D3D12_Shader_Editing(rdtest.TestCase):
         rdtest.log.success("Values are as expected after ofpset vertex editing")
 
         # Now undo the first ps edit
-        self.controller.RemoveReplacement(psrefl1.resourceId)
+        self.remove_replacement(psrefl1.resourceId)
         self.set_event(eid, True)
 
         # Original sample positions are still the clear color
@@ -142,7 +142,7 @@ class D3D12_Shader_Editing(rdtest.TestCase):
         rdtest.log.success("Values are as expected after removing first Pixel edit")
 
         # Now undo the first VS edit
-        self.controller.RemoveReplacement(vsrefl.resourceId)
+        self.remove_replacement(vsrefl.resourceId)
         self.set_event(eid, True)
 
         # The right triangle is the edited colour, but they are back in the original positions
@@ -152,7 +152,7 @@ class D3D12_Shader_Editing(rdtest.TestCase):
         rdtest.log.success("Values are as expected after removing vertex edit")
 
         # finally undo the second ps edit
-        self.controller.RemoveReplacement(psrefl2.resourceId)
+        self.remove_replacement(psrefl2.resourceId)
         self.set_event(eid, True)
 
         # We should be back to where we started

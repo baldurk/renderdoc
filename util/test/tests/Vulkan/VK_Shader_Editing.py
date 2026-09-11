@@ -96,8 +96,8 @@ class VK_Shader_Editing(rdtest.TestCase):
         nochangeVS = newShader[0]
 
         # Edit both fragment shaders
-        self.controller.ReplaceResource(fsrefl1.resourceId, FS1)
-        self.controller.ReplaceResource(fsrefl2.resourceId, FS2)
+        self.replace_resource(fsrefl1.resourceId, FS1)
+        self.replace_resource(fsrefl2.resourceId, FS2)
 
         # Refresh the replay if it didn't happen already
         self.set_event(eid, True)
@@ -109,7 +109,7 @@ class VK_Shader_Editing(rdtest.TestCase):
         rdtest.log.success("Values are as expected after fragment editing")
 
         # Now "edit" the VS but don't change it. We should still get the same values
-        self.controller.ReplaceResource(vsrefl.resourceId, nochangeVS)
+        self.replace_resource(vsrefl.resourceId, nochangeVS)
         self.set_event(eid, True)
 
         # Triangles have green and blue channel
@@ -119,7 +119,7 @@ class VK_Shader_Editing(rdtest.TestCase):
         rdtest.log.success("Values are as expected after no-op vertex editing")
 
         # Change the VS to one that has offset the triangles off-centre
-        self.controller.ReplaceResource(vsrefl.resourceId, offsetVS)
+        self.replace_resource(vsrefl.resourceId, offsetVS)
         self.set_event(eid, True)
 
         # Original sample positions are now the clear color
@@ -133,7 +133,7 @@ class VK_Shader_Editing(rdtest.TestCase):
         rdtest.log.success("Values are as expected after offset vertex editing")
 
         # Now undo the first FS edit
-        self.controller.RemoveReplacement(fsrefl1.resourceId)
+        self.remove_replacement(fsrefl1.resourceId)
         self.set_event(eid, True)
 
         # Original sample positions are still the clear color
@@ -147,7 +147,7 @@ class VK_Shader_Editing(rdtest.TestCase):
         rdtest.log.success("Values are as expected after removing first fragment edit")
 
         # Now undo the first VS edit
-        self.controller.RemoveReplacement(vsrefl.resourceId)
+        self.remove_replacement(vsrefl.resourceId)
         self.set_event(eid, True)
 
         # The right triangle is the edited colour, but they are back in the original positions
@@ -157,7 +157,7 @@ class VK_Shader_Editing(rdtest.TestCase):
         rdtest.log.success("Values are as expected after removing vertex edit")
 
         # finally undo the second FS edit
-        self.controller.RemoveReplacement(fsrefl2.resourceId)
+        self.remove_replacement(fsrefl2.resourceId)
         self.set_event(eid, True)
 
         # We should be back to where we started
@@ -209,7 +209,7 @@ class VK_Shader_Editing(rdtest.TestCase):
             raise rdtest.TestFailureException(f"Failed to compile edited compute shader: {newShader[1]}")
 
         nochangeCS = newShader[0]
-        self.controller.ReplaceResource(csrefl.resourceId, nochangeCS)
+        self.replace_resource(csrefl.resourceId, nochangeCS)
         self.set_event(eid, False)
         uints = struct.unpack_from('=4L', self.controller.GetBufferData(bufout, 0, 0), 0)
         if not rdtest.value_compare(uints, [777, 888, 999, 1110]):
@@ -255,7 +255,7 @@ void main()
             raise rdtest.TestFailureException(f"Failed to compile edited compute shader: {newShader[1]}")
 
         CS1 = newShader[0]
-        self.controller.ReplaceResource(csrefl.resourceId, CS1)
+        self.replace_resource(csrefl.resourceId, CS1)
         self.set_event(eid, False)
         uints = struct.unpack_from('=4L', self.controller.GetBufferData(bufout, 0, 0), 0)
         if not rdtest.value_compare(uints, [1110, 999, 888, 777]):

@@ -131,8 +131,8 @@ class GL_Shader_Editing(rdtest.TestCase):
         sepFS = newShader[0]
 
         # Edit both fragment shaders
-        self.controller.ReplaceResource(fixedrefl.resourceId, fixedFS)
-        self.controller.ReplaceResource(dynamicrefl.resourceId, dynamicFS)
+        self.replace_resource(fixedrefl.resourceId, fixedFS)
+        self.replace_resource(dynamicrefl.resourceId, dynamicFS)
 
         # Refresh the replay if it didn't happen already
         self.set_event(self.get_last_action().eventId, True)
@@ -145,7 +145,7 @@ class GL_Shader_Editing(rdtest.TestCase):
         rdtest.log.success("Values are as expected after fragment editing")
 
         # Now "edit" the VS but don't change it. We should still get the same values
-        self.controller.ReplaceResource(vsrefl.resourceId, nochangeVS)
+        self.replace_resource(vsrefl.resourceId, nochangeVS)
         self.set_event(self.get_last_action().eventId, True)
 
         # Triangles have green propagated across to the blue channel
@@ -156,7 +156,7 @@ class GL_Shader_Editing(rdtest.TestCase):
         rdtest.log.success("Values are as expected after no-op vertex editing")
 
         # Change the VS to one that has offset the triangles off-centre
-        self.controller.ReplaceResource(vsrefl.resourceId, offsetVS)
+        self.replace_resource(vsrefl.resourceId, offsetVS)
         self.set_event(self.get_last_action().eventId, True)
 
         # Original sample positions are now the clear color
@@ -172,7 +172,7 @@ class GL_Shader_Editing(rdtest.TestCase):
         rdtest.log.success("Values are as expected after offset vertex editing")
 
         # Now undo the first FS edit
-        self.controller.RemoveReplacement(fixedrefl.resourceId)
+        self.remove_replacement(fixedrefl.resourceId)
         self.set_event(self.get_last_action().eventId, True)
 
         # Original sample positions are still the clear color
@@ -188,7 +188,7 @@ class GL_Shader_Editing(rdtest.TestCase):
         rdtest.log.success("Values are as expected after removing first fragment edit")
 
         # Now undo the first VS edit
-        self.controller.RemoveReplacement(vsrefl.resourceId)
+        self.remove_replacement(vsrefl.resourceId)
         self.set_event(self.get_last_action().eventId, True)
 
         # Only the lower triangle is the edited colour, but they are back in the original positions
@@ -199,7 +199,7 @@ class GL_Shader_Editing(rdtest.TestCase):
         rdtest.log.success("Values are as expected after removing vertex edit")
 
         # finally undo the second FS edit
-        self.controller.RemoveReplacement(dynamicrefl.resourceId)
+        self.remove_replacement(dynamicrefl.resourceId)
         self.set_event(self.get_last_action().eventId, True)
 
         # We should be back to where we started
@@ -216,27 +216,27 @@ class GL_Shader_Editing(rdtest.TestCase):
         # Only looking at bottom left triangle, it should be green
         self.check_pixel_value(tex, 0.75, 0.75, [0.0, 1.0, 0.0, 1.0])
 
-        self.controller.ReplaceResource(fsseprefl.resourceId, sepFS)
+        self.replace_resource(fsseprefl.resourceId, sepFS)
         self.set_event(self.get_last_action().eventId, True)
 
         # Now it should be green-blue
         self.check_pixel_value(tex, 0.75, 0.75, [0.0, 1.0, 1.0, 1.0])
 
-        self.controller.ReplaceResource(vsseprefl.resourceId, sepVS)
+        self.replace_resource(vsseprefl.resourceId, sepVS)
         self.set_event(self.get_last_action().eventId, True)
 
         # Now it should be green-blue and offset
         self.check_pixel_value(tex, 0.75, 0.75, [0.2, 0.2, 0.2, 1.0])
         self.check_pixel_value(tex, 0.95, 0.55, [0.0, 1.0, 1.0, 1.0])
 
-        self.controller.RemoveReplacement(fsseprefl.resourceId)
+        self.remove_replacement(fsseprefl.resourceId)
         self.set_event(self.get_last_action().eventId, True)
 
         # Now it should be back to green and offset
         self.check_pixel_value(tex, 0.75, 0.75, [0.2, 0.2, 0.2, 1.0])
         self.check_pixel_value(tex, 0.95, 0.55, [0.0, 1.0, 0.0, 1.0])
 
-        self.controller.RemoveReplacement(vsseprefl.resourceId)
+        self.remove_replacement(vsseprefl.resourceId)
         self.set_event(self.get_last_action().eventId, True)
 
         # We should be back to where we started

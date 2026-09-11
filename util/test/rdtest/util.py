@@ -89,6 +89,21 @@ def set_demos_binary(path: str):
     else:
         _demos_bin = os.path.abspath(path)
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import qrenderdoc
+
+def set_capture_context(ctx: qrenderdoc.CaptureContext):
+    global _capture_context
+    _capture_context = ctx
+
+
+_capture_context: qrenderdoc.CaptureContext | None = None
+
+def get_capture_context() -> qrenderdoc.CaptureContext | None:
+    return _capture_context
+
 
 def set_remote_server(server: RemoteServer | None):
     global _remote_server

@@ -323,6 +323,18 @@ class TestCase:
         self.cur_event = eid
         self.controller.SetFrameEvent(eid, force)
 
+    def replace_resource(self, original: rd.ResourceId, replacement: rd.ResourceId):
+        self.controller.ReplaceResource(original, replacement)
+        ctx = util.get_capture_context()
+        if ctx is not None:
+            ctx.RegisterReplacement(original, replacement)
+
+    def remove_replacement(self, id: rd.ResourceId):
+        self.controller.RemoveReplacement(id)
+        ctx = util.get_capture_context()
+        if ctx is not None:
+            ctx.UnregisterReplacement(id)
+
     def pixel_history(self, tex: rd.ResourceId, x: int, y: int, sub: rd.Subresource, cast: rd.CompType):
         return HistoryContext(self, tex, x, y, sub, cast)
 

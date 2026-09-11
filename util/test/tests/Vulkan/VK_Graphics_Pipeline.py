@@ -139,7 +139,7 @@ class VK_Graphics_Pipeline(rdtest.TestCase):
         if len(newShader[1]) != 0:
             raise rdtest.TestFailureException(f"Failed to compile edited shader: {newShader[1]}")
 
-        self.controller.ReplaceResource(vsrefl.resourceId, newShader[0])
+        self.replace_resource(vsrefl.resourceId, newShader[0])
 
         # Refresh the replay if it didn't happen already
         self.set_event(last_action.eventId, True)
@@ -149,5 +149,5 @@ class VK_Graphics_Pipeline(rdtest.TestCase):
 
         rdtest.log.success("Edited shader had the right triangle output")
 
-        self.controller.RemoveReplacement(vsrefl.resourceId)
+        self.remove_replacement(vsrefl.resourceId)
         self.controller.FreeTargetResource(newShader[0])
