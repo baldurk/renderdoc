@@ -1512,11 +1512,13 @@ public:
 
     VkClearValue clear = {};
 
+    const uint32_t sampleFormat = SampleFormatIndex(uintTex, sintTex);
+
     VkRenderPassBeginInfo rpbegin = {
         VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
         NULL,
-        Unwrap(m_DebugData.RenderPass),
-        Unwrap(m_DebugData.Framebuffer),
+        Unwrap(m_DebugData.RenderPass[sampleFormat]),
+        Unwrap(m_DebugData.Framebuffer[sampleFormat]),
         {{0, 0}, {1, 1}},
         1,
         &clear,
@@ -2334,6 +2336,16 @@ private:
     return NULL;
   }
 
+  static uint32_t SampleFormatIndex(bool uintTex, bool sintTex)
+  {
+    if(uintTex)
+      return ShaderDebugData::SampleFormat_UInt;
+    else if(sintTex)
+      return ShaderDebugData::SampleFormat_SInt;
+
+    return ShaderDebugData::SampleFormat_Float;
+  }
+
   VkPipeline MakePipe(const ShaderConstParameters &params, uint32_t floatBitSize, bool depthTex,
                       bool uintTex, bool sintTex)
   {
@@ -2441,6 +2453,8 @@ private:
       return pipe;
     }
 
+    const uint32_t sampleFormat = SampleFormatIndex(uintTex, sintTex);
+
     const VkPipelineShaderStageCreateInfo shaderStages[2] = {
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_VERTEX_BIT,
          m_pDriver->GetShaderCache()->GetBuiltinModule(BuiltinShader::ShaderDebugSampleVS), "main",
@@ -2522,7 +2536,7 @@ private:
         &colorBlend,
         &dynamicState,
         m_DebugData.PipeLayout,
-        m_DebugData.RenderPass,
+        m_DebugData.RenderPass[sampleFormat],
         0,                 // sub pass
         VK_NULL_HANDLE,    // base pipeline handle
         -1,                // base pipeline index
