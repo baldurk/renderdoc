@@ -2997,48 +2997,6 @@ void CaptureContext::AddDockWindow(QWidget *newWindow, DockReference ref, QWidge
     return;
   }
 
-  if(!refWindow)
-  {
-    // expect a reference window for all other docking types
-    // try to decay down to the main window so that we place the window somewhere
-    qCritical() << "Unexpected NULL refWindow in AddDockWindow";
-
-    // AddTo doesn't have any fallback - put it in the main area.
-    if(ref == DockReference::AddTo)
-    {
-      m_MainWindow->mainToolManager()->addToolWindow(newWindow, m_MainWindow->mainToolArea());
-      return;
-    }
-
-    // if this was meant to be relative to a panel instead put it relative to the whole window
-    if(ref == DockReference::LeftOf)
-      ref = DockReference::LeftWindowSide;
-    if(ref == DockReference::RightOf)
-      ref = DockReference::RightWindowSide;
-    if(ref == DockReference::TopOf)
-      ref = DockReference::TopWindowSide;
-    if(ref == DockReference::BottomOf)
-      ref = DockReference::BottomWindowSide;
-  }
-
-  if(refWindow == m_MainWindow)
-    refWindow = NULL;
-
-  if(!refWindow)
-  {
-    // we're now placing only relative to a whole window so the particular widget we pick doesn't
-    // matter. pick something
-    if(!m_MainWindow->mainToolManager()->toolWindows().isEmpty())
-    {
-      refWindow = m_MainWindow->mainToolManager()->toolWindows()[0];
-    }
-    else
-    {
-      // if there are no tool windows at all we're panicking! just put it in empty space
-      ref = DockReference::EmptySpace;
-    }
-  }
-
   if(ref == DockReference::TransientPopupArea)
   {
     BufferViewer *buf = qobject_cast<BufferViewer *>(newWindow);
@@ -3084,7 +3042,60 @@ void CaptureContext::AddDockWindow(QWidget *newWindow, DockReference ref, QWidge
       }
     }
 
-    ref = DockReference::RightOf;
+    ToolWindowManager *manager = m_MainWindow->mainToolManager();
+    ToolWindowManager::AreaReference main = m_MainWindow->mainToolArea();
+
+    if(main.type() == ToolWindowManager::AddTo)
+    {
+      ToolWindowManager::AreaReference areaRef(ToolWindowManager::RightOf, main.area(), percentage);
+      manager->addToolWindow(newWindow, areaRef);
+      return;
+    }
+
+    manager->addToolWindow(newWindow, main);
+    return;
+  }
+
+  if(!refWindow)
+  {
+    // expect a reference window for all other docking types
+    // try to decay down to the main window so that we place the window somewhere
+    qCritical() << "Unexpected NULL refWindow in AddDockWindow";
+
+    // AddTo doesn't have any fallback - put it in the main area.
+    if(ref == DockReference::AddTo)
+    {
+      m_MainWindow->mainToolManager()->addToolWindow(newWindow, m_MainWindow->mainToolArea());
+      return;
+    }
+
+    // if this was meant to be relative to a panel instead put it relative to the whole window
+    if(ref == DockReference::LeftOf)
+      ref = DockReference::LeftWindowSide;
+    if(ref == DockReference::RightOf)
+      ref = DockReference::RightWindowSide;
+    if(ref == DockReference::TopOf)
+      ref = DockReference::TopWindowSide;
+    if(ref == DockReference::BottomOf)
+      ref = DockReference::BottomWindowSide;
+  }
+
+  if(refWindow == m_MainWindow)
+    refWindow = NULL;
+
+  if(!refWindow)
+  {
+    // we're now placing only relative to a whole window so the particular widget we pick doesn't
+    // matter. pick something
+    if(!m_MainWindow->mainToolManager()->toolWindows().isEmpty())
+    {
+      refWindow = m_MainWindow->mainToolManager()->toolWindows()[0];
+    }
+    else
+    {
+      // if there are no tool windows at all we're panicking! just put it in empty space
+      ref = DockReference::EmptySpace;
+    }
   }
 
   ToolWindowManager *manager = ToolWindowManager::managerOf(refWindow);
