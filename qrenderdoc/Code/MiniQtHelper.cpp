@@ -445,6 +445,11 @@ rdcstr MiniQtHelper::GetWidgetText(QWidget *widget)
   }
 
   {
+    QComboBox *w = qobject_cast<QComboBox *>(widget);
+    if(w)
+      return w->currentText();
+  }
+  {
     QGroupBox *w = qobject_cast<QGroupBox *>(widget);
     if(w)
       return w->title();
