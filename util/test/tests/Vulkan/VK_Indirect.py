@@ -67,10 +67,10 @@ class VK_Indirect(rdtest.TestCase):
         rt = pipe.GetOutputTargets()[0]
         tex = rt.resource
         sub = rd.Subresource()
-        modifs = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
-        if len(modifs) < 2:
-            raise rdtest.TestFailureException(f"EID: {eid} No pixel history found at ({x}, {y})")
-        rdtest.log.success(f"EID: {eid} Pixel History {x}, {y} Worked")
+        with self.pixel_history(tex, x, y, sub, rt.format.compType) as history:
+            if len(history.modifs) < 2:
+                raise rdtest.TestFailureException(f"No pixel history found at ({x}, {y})")
+            rdtest.log.success(f"Pixel History {x}, {y} Worked")
 
     def check_overlay(self, pass_samples: List[Tuple[int,int]], *, no_overlay = False):
         pipe = self.controller.GetPipelineState()

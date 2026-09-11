@@ -40,42 +40,47 @@ class VK_Multi_Entry(rdtest.TestCase):
 
         self.check_vertex_debug(0, 0, 0, postvs, single_postvs=True)
 
-        history = self.controller.PixelHistory(pipe.GetOutputTargets()[0].resource, 200, 150, rd.Subresource(0, 0, 0),
-                                               rd.CompType.Typeless)
+        with self.pixel_history(
+            pipe.GetOutputTargets()[0].resource,
+            200,
+            150,
+            rd.Subresource(0, 0, 0),
+            rd.CompType.Typeless,
+        ) as history:
+            modifs = history.modifs
+            # should be a clear then a draw
+            assert len(modifs) == 2
 
-        # should be a clear then a draw
-        assert len(history) == 2
+            assert self.find_action('', modifs[0].eventId).flags & rd.ActionFlags.Clear
 
-        assert self.find_action('', history[0].eventId).flags & rd.ActionFlags.Clear
+            assert self.find_action('', modifs[1].eventId).eventId == action.eventId
+            assert modifs[1].Passed()
 
-        assert self.find_action('', history[1].eventId).eventId == action.eventId
-        assert history[1].Passed()
+            if not rdtest.value_compare(modifs[1].shaderOut.col.floatValue, (0.0, 1.0, 0.0, 1.0)):
+                raise rdtest.TestFailureException(f"History for drawcall output is wrong: {modifs[1].shaderOut.col.floatValue}")
 
-        if not rdtest.value_compare(history[1].shaderOut.col.floatValue, (0.0, 1.0, 0.0, 1.0)):
-            raise rdtest.TestFailureException(f"History for drawcall output is wrong: {history[1].shaderOut.col.floatValue}")
+            refl = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
 
-        refl = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
+            assert len(refl.readOnlyResources) == 1
 
-        assert len(refl.readOnlyResources) == 1
+            inputs = rd.DebugPixelInputs()
+            inputs.sample = 0
+            inputs.primitive = 0
+            with self.debug_pixel(200, 150, inputs) as debug:
+                cycles, variables = self.process_trace(debug.trace)
 
-        inputs = rd.DebugPixelInputs()
-        inputs.sample = 0
-        inputs.primitive = 0
-        with self.debug_pixel(200, 150, inputs) as debug:
-            cycles, variables = self.process_trace(debug.trace)
+                output_sourcevar = self.find_output_source_var(debug.trace, rd.ShaderBuiltin.ColorOutput, 0)
 
-            output_sourcevar = self.find_output_source_var(debug.trace, rd.ShaderBuiltin.ColorOutput, 0)
+                debugged = self.evaluate_source_var(output_sourcevar, variables)
 
-            debugged = self.evaluate_source_var(output_sourcevar, variables)
+                debuggedValue = list(debugged.value.f32v[0:4])
 
-            debuggedValue = list(debugged.value.f32v[0:4])
+                is_eq, diff_amt = rdtest.value_compare_diff(modifs[1].shaderOut.col.floatValue, debuggedValue, eps=5.0E-06)
+                if not is_eq:
+                    rdtest.log.error(
+                        f"Debugged pixel value {debugged.name}: {diff_amt} difference. {debuggedValue} doesn't exactly match history shader output {modifs[1].shaderOut.col.floatValue}")
 
-            is_eq, diff_amt = rdtest.value_compare_diff(history[1].shaderOut.col.floatValue, debuggedValue, eps=5.0E-06)
-            if not is_eq:
-                rdtest.log.error(
-                    f"Debugged pixel value {debugged.name}: {diff_amt} difference. {debuggedValue} doesn't exactly match history shader output {history[1].shaderOut.col.floatValue}")
-
-            rdtest.log.success(f'Successfully debugged pixel in {cycles} cycles, result matches')
+                rdtest.log.success(f'Successfully debugged pixel in {cycles} cycles, result matches')
 
         out = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
 

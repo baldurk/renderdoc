@@ -46,23 +46,24 @@ class VK_Custom_Resolve(rdtest.TestCase):
         sub = rd.Subresource()
         x = 200
         y = 150
-        modifs = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
-        if len(modifs) != len(passed):
-            raise rdtest.TestFailureException(f"Pixel history incorrect modifications count expected:{len(passed)} actual:{len(modifs)}")
-        for i, m in enumerate(modifs):
-            if m.Passed() != passed[i]:
-                raise rdtest.TestFailureException(f"EID:{m.eventId} Pixel history incorrect passed expected:{passed[i]} actual:{m.Passed()}")
-            if m.preMod.IsValid() != preModValid[i]:
-                raise rdtest.TestFailureException(f"EID:{m.eventId} Pixel history incorrect pre mod valid expected:{preModValid[i]} actual:{m.preMod.IsValid()}")
-            if m.preMod.IsValid():
-                if not rdtest.util.value_compare(m.preMod.col.floatValue, preMod[i], eps=1.0/255.0):
-                    raise rdtest.TestFailureException(f"EID:{m.eventId} Pixel history incorrect pre mod expected:{preMod[i]} actual:{m.preMod.col.floatValue}")
-            if m.postMod.IsValid() != postModValid[i]:
-                raise rdtest.TestFailureException(f"EID:{m.eventId} Pixel history incorrect post mod valid expected:{postModValid[i]} actual:{m.postMod.IsValid()}")
-            if m.postMod.IsValid():
-                if not rdtest.util.value_compare(m.postMod.col.floatValue, postMod[i], eps=1.0/255.0):
-                    raise rdtest.TestFailureException(f"EID:{m.eventId} Pixel history incorrect post mod expected:{postMod[i]} actual:{m.postMod.col.floatValue}")
-        rdtest.log.success(f"Pixel History Worked {len(modifs)} modifications found")
+        with self.pixel_history(tex, x, y, sub, rt.format.compType) as history:
+            modifs = history.modifs
+            if len(modifs) != len(passed):
+                raise rdtest.TestFailureException(f"Pixel history incorrect modifications count expected:{len(passed)} actual:{len(modifs)}")
+            for i, m in enumerate(modifs):
+                if m.Passed() != passed[i]:
+                    raise rdtest.TestFailureException(f"EID:{m.eventId} Pixel history incorrect passed expected:{passed[i]} actual:{m.Passed()}")
+                if m.preMod.IsValid() != preModValid[i]:
+                    raise rdtest.TestFailureException(f"EID:{m.eventId} Pixel history incorrect pre mod valid expected:{preModValid[i]} actual:{m.preMod.IsValid()}")
+                if m.preMod.IsValid():
+                    if not rdtest.util.value_compare(m.preMod.col.floatValue, preMod[i], eps=1.0/255.0):
+                        raise rdtest.TestFailureException(f"EID:{m.eventId} Pixel history incorrect pre mod expected:{preMod[i]} actual:{m.preMod.col.floatValue}")
+                if m.postMod.IsValid() != postModValid[i]:
+                    raise rdtest.TestFailureException(f"EID:{m.eventId} Pixel history incorrect post mod valid expected:{postModValid[i]} actual:{m.postMod.IsValid()}")
+                if m.postMod.IsValid():
+                    if not rdtest.util.value_compare(m.postMod.col.floatValue, postMod[i], eps=1.0/255.0):
+                        raise rdtest.TestFailureException(f"EID:{m.eventId} Pixel history incorrect post mod expected:{postMod[i]} actual:{m.postMod.col.floatValue}")
+            rdtest.log.success(f"Pixel History Worked {len(modifs)} modifications found")
 
     def check_capture(self):
         markers = ["MSAA Draw", "MSAA Resolve"]

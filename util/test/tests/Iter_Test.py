@@ -202,128 +202,129 @@ class Iter_Test(rdtest.TestCase):
 
         rdtest.log.print("Fetching history for %d,%d on target %s" % (x, y, str(target)))
 
-        history = self.controller.PixelHistory(target, x, y, rd.Subresource(0, 0, 0), rd.CompType.Typeless)
+        with self.pixel_history(target, x, y, rd.Subresource(0, 0, 0), rd.CompType.Typeless) as history:
+            modifs = history.modifs
 
-        rdtest.log.success("Pixel %d,%d has %d history events" % (x, y, len(history)))
+            rdtest.log.success("Pixel %d,%d has %d history events" % (x, y, len(modifs)))
 
-        lastmod = None
+            lastmod = None
 
-        for i in reversed(range(len(history))):
-            mod = history[i]
-            next_action = self.find_action('', mod.eventId)
+            for i in reversed(range(len(modifs))):
+                mod = modifs[i]
+                next_action = self.find_action('', mod.eventId)
 
-            if next_action is None:
-                continue
-
-            action = next_action
-
-            if not(action.flags & rd.ActionFlags.Drawcall):
-                if action.drawIndex == 0:
-                    continue
-                if not(action.flags & rd.ActionFlags.Clear):
-                    continue
-                if not(action.flags & rd.ActionFlags.Copy):
-                    continue
-                if not(action.flags & rd.ActionFlags.Resolve):
+                if next_action is None:
                     continue
 
-            rdtest.log.print("  hit %d at %d (%s)" % (i, mod.eventId, str(action.flags)))
+                action = next_action
 
-            lastmod = history[i]
+                if not(action.flags & rd.ActionFlags.Drawcall):
+                    if action.drawIndex == 0:
+                        continue
+                    if not(action.flags & rd.ActionFlags.Clear):
+                        continue
+                    if not(action.flags & rd.ActionFlags.Copy):
+                        continue
+                    if not(action.flags & rd.ActionFlags.Resolve):
+                        continue
 
-            rdtest.log.print("Got a hit on a action at event %d" % lastmod.eventId)
+                rdtest.log.print("  hit %d at %d (%s)" % (i, mod.eventId, str(action.flags)))
 
-            if mod.sampleMasked or mod.backfaceCulled or mod.depthClipped or mod.viewClipped or mod.scissorClipped or mod.shaderDiscarded or mod.depthTestFailed or mod.stencilTestFailed:
-                rdtest.log.print("This hit failed, looking for one that passed....")
-                lastmod = None
-                continue
+                lastmod = modifs[i]
 
-            if not mod.shaderOut.IsValid():
-                rdtest.log.print("This hit's shader out is not valid, looking for one that valid....")
-                lastmod = None
-                continue
+                rdtest.log.print("Got a hit on a action at event %d" % lastmod.eventId)
 
-            if mod.primitiveID == 0xffffffff:
-                rdtest.log.print("This hit's primitive ID is invalid, looking for one that is valid....")
-                lastmod = None
-                continue
+                if mod.sampleMasked or mod.backfaceCulled or mod.depthClipped or mod.viewClipped or mod.scissorClipped or mod.shaderDiscarded or mod.depthTestFailed or mod.stencilTestFailed:
+                    rdtest.log.print("This hit failed, looking for one that passed....")
+                    lastmod = None
+                    continue
 
-            break
+                if not mod.shaderOut.IsValid():
+                    rdtest.log.print("This hit's shader out is not valid, looking for one that valid....")
+                    lastmod = None
+                    continue
 
-        if target == pipe.GetDepthTarget().resource:
-            rdtest.log.print("Not doing pixel debug for depth output")
-            return
+                if mod.primitiveID == 0xffffffff:
+                    rdtest.log.print("This hit's primitive ID is invalid, looking for one that is valid....")
+                    lastmod = None
+                    continue
 
-        if lastmod is not None:
-            rdtest.log.print(f"Debugging pixel {x},{y} @ {lastmod.eventId}, primitive {lastmod.primitiveID}")
-            self.set_event(lastmod.eventId, True)
+                break
 
-            pipe = self.controller.GetPipelineState()
-
-            refl = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
-            if refl is None:
-                rdtest.log.print(f"Nothing to debug. No pixel shader bound at {action.eventId}")
+            if target == pipe.GetDepthTarget().resource:
+                rdtest.log.print("Not doing pixel debug for depth output")
                 return
 
-            if not refl.debugInfo.debuggable:
-                rdtest.log.print(f"Pixel shader is not debuggable at {action.eventId}")
-                return
+            if lastmod is not None:
+                rdtest.log.print(f"Debugging pixel {x},{y} @ {lastmod.eventId}, primitive {lastmod.primitiveID}")
+                self.set_event(lastmod.eventId, True)
 
-            inputs = rd.DebugPixelInputs()
-            inputs.sample = 0
-            inputs.primitive = lastmod.primitiveID;
-            with self.debug_pixel(x, y, inputs) as debug:
-                try:
-                    cycles, variables = self.process_trace(debug.trace)
-                except rdtest.TestFailureException as err:
-                    rdtest.log.error(f"Error debugging: {err.message}")
+                pipe = self.controller.GetPipelineState()
+
+                refl = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
+                if refl is None:
+                    rdtest.log.print(f"Nothing to debug. No pixel shader bound at {action.eventId}")
                     return
 
-                output_index = [o.resource for o in pipe.GetOutputTargets()].index(target)
+                if not refl.debugInfo.debuggable:
+                    rdtest.log.print(f"Pixel shader is not debuggable at {action.eventId}")
+                    return
 
-                if action.outputs[0] == rd.ResourceId.Null():
-                    rdtest.log.success(f'Successfully debugged pixel in {cycles} cycles, skipping result check due to no output')
-                elif (action.flags & rd.ActionFlags.Instanced) and action.numInstances > 1:
-                    rdtest.log.success(f'Successfully debugged pixel in {cycles} cycles, skipping result check due to instancing')
-                elif pipe.GetColorBlends()[output_index].writeMask == 0:
-                    rdtest.log.success(f'Successfully debugged pixel in {cycles} cycles, skipping result check due to write mask')
-                else:
-                    rdtest.log.print(f"At event {lastmod.eventId} the target is index {output_index}")
-
+                inputs = rd.DebugPixelInputs()
+                inputs.sample = 0
+                inputs.primitive = lastmod.primitiveID;
+                with self.debug_pixel(x, y, inputs) as debug:
                     try:
-                        output_sourcevar = self.find_output_source_var(debug.trace, rd.ShaderBuiltin.ColorOutput, output_index)
+                        cycles, variables = self.process_trace(debug.trace)
+                    except rdtest.TestFailureException as err:
+                        rdtest.log.error(f"Error debugging: {err.message}")
+                        return
 
-                        debugged = self.evaluate_source_var(output_sourcevar, variables)
+                    output_index = [o.resource for o in pipe.GetOutputTargets()].index(target)
 
-                        debuggedValue = list(debugged.value.f32v[0:4])
+                    if action.outputs[0] == rd.ResourceId.Null():
+                        rdtest.log.success(f'Successfully debugged pixel in {cycles} cycles, skipping result check due to no output')
+                    elif (action.flags & rd.ActionFlags.Instanced) and action.numInstances > 1:
+                        rdtest.log.success(f'Successfully debugged pixel in {cycles} cycles, skipping result check due to instancing')
+                    elif pipe.GetColorBlends()[output_index].writeMask == 0:
+                        rdtest.log.success(f'Successfully debugged pixel in {cycles} cycles, skipping result check due to write mask')
+                    else:
+                        rdtest.log.print(f"At event {lastmod.eventId} the target is index {output_index}")
 
-                        # For now, ignore debugged values that are uninitialised. This is an application bug but it causes
-                        # false reports of problems
-                        for idx in range(4):
-                            if debugged.value.u32v[idx] == 0xcccccccc:
-                                debuggedValue[idx] = lastmod.shaderOut.col.floatValue[idx]
+                        try:
+                            output_sourcevar = self.find_output_source_var(debug.trace, rd.ShaderBuiltin.ColorOutput, output_index)
 
-                        historyValue = list(lastmod.shaderOut.col.floatValue)
+                            debugged = self.evaluate_source_var(output_sourcevar, variables)
 
-                        tex = self.get_texture(target)
+                            debuggedValue = list(debugged.value.f32v[0:4])
 
-                        historyValue = historyValue[0:tex.format.compCount]
-                        debuggedValue = debuggedValue[0:tex.format.compCount]
+                            # For now, ignore debugged values that are uninitialised. This is an application bug but it causes
+                            # false reports of problems
+                            for idx in range(4):
+                                if debugged.value.u32v[idx] == 0xcccccccc:
+                                    debuggedValue[idx] = lastmod.shaderOut.col.floatValue[idx]
 
-                        # Unfortunately we can't ever trust that we should get back a matching results, because some shaders
-                        # rely on undefined/inaccurate maths that we don't emulate.
-                        # So the best we can do is log an error for manual verification
-                        is_eq, diff_amt = rdtest.value_compare_diff(historyValue, debuggedValue, eps=5.0E-06)
-                        if not is_eq:
-                            rdtest.log.error(
-                                f"Debugged value {debugged.name} at EID {lastmod.eventId} {x},{y}: {diff_amt} difference. {debuggedValue} doesn't exactly match history shader output {historyValue}")
+                            historyValue = list(lastmod.shaderOut.col.floatValue)
 
-                        rdtest.log.success(f'Successfully debugged pixel in {cycles} cycles, result matches')
-                    except rdtest.TestFailureException:
-                        # This could be an application error - undefined but seen in the wild
-                        rdtest.log.error(f"At EID {lastmod.eventId} No output variable declared for index {output_index}")
+                            tex = self.get_texture(target)
 
-            self.set_event(action.eventId, True)
+                            historyValue = historyValue[0:tex.format.compCount]
+                            debuggedValue = debuggedValue[0:tex.format.compCount]
+
+                            # Unfortunately we can't ever trust that we should get back a matching results, because some shaders
+                            # rely on undefined/inaccurate maths that we don't emulate.
+                            # So the best we can do is log an error for manual verification
+                            is_eq, diff_amt = rdtest.value_compare_diff(historyValue, debuggedValue, eps=5.0E-06)
+                            if not is_eq:
+                                rdtest.log.error(
+                                    f"Debugged value {debugged.name} at EID {lastmod.eventId} {x},{y}: {diff_amt} difference. {debuggedValue} doesn't exactly match history shader output {historyValue}")
+
+                            rdtest.log.success(f'Successfully debugged pixel in {cycles} cycles, result matches')
+                        except rdtest.TestFailureException:
+                            # This could be an application error - undefined but seen in the wild
+                            rdtest.log.error(f"At EID {lastmod.eventId} No output variable declared for index {output_index}")
+
+                self.set_event(action.eventId, True)
 
     def mesh_output(self, action: rd.ActionDescription):
         self.controller.GetPostVSData(0, 0, rd.MeshDataStage.VSOut)

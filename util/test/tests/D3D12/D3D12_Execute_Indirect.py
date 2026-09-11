@@ -47,10 +47,10 @@ class D3D12_Execute_Indirect(rdtest.TestCase):
         rt = pipe.GetOutputTargets()[0]
         tex = rt.resource
         sub = rd.Subresource()
-        modifs = self.controller.PixelHistory(tex, x, y, sub, rt.format.compType)
-        if len(modifs) < 2:
-            raise rdtest.TestFailureException(f"No pixel history found at ({x}, {y})")
-        rdtest.log.success(f"Pixel History {x}, {y} Worked")
+        with self.pixel_history(tex, x, y, sub, rt.format.compType) as history:
+            if len(history.modifs) < 2:
+                raise rdtest.TestFailureException(f"No pixel history found at ({x}, {y})")
+            rdtest.log.success(f"Pixel History {x}, {y} Worked")
 
     def check_root_consts(self, expected: List[float]):
         pipe = self.controller.GetPipelineState()
