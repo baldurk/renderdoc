@@ -137,6 +137,82 @@ class ConstantBufferChecker:
         if len(self._variables) != 0:
             raise TestFailureException(f"Not all variables checked, {len(self._variables)} still remain")
 
+# a context for use in with: that adds/removes from the list.
+# so if an exception is raised we know what debugging we were doing
+class ScopedContext:
+    def __init__(self, test: TestCase):
+        self.test = test
+
+    def __enter__(self):
+        self.test.contexts.append(self)
+        return self
+
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
+        # only remove the context if no error happened
+        if exc_value is None:
+            self.test.contexts.remove(self)
+
+# a slight extension to ScopedContext that also frees a debug trace
+class ScopedDebugContext(ScopedContext):
+    def __init__(self, test: TestCase, trace: rd.ShaderDebugTrace):
+        self.trace = trace
+        super().__init__(test)
+
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
+        self.test.controller.FreeTrace(self.trace)
+
+        super().__exit__(exc_type, exc_value, traceback)
+
+class VertexDebugContext(ScopedDebugContext):
+    def __init__(self, test: TestCase, vtx: int, inst: int, idx: int, view: int):
+        self.test = test
+        self.vtx = vtx
+        self.inst = inst
+        self.idx = idx
+        self.view = view
+
+        super().__init__(test, self.get_trace())
+
+    def get_trace(self):
+        return self.test.controller.DebugVertex(self.vtx, self.inst, self.idx, self.view)
+
+class PixelDebugContext(ScopedDebugContext):
+    def __init__(self, test: TestCase, x: int, y: int, inputs: rd.DebugPixelInputs):
+        self.test = test
+        self.x = x
+        self.y = y
+        # duplicate the object so it doesn't get changed after
+        self.inputs = rd.DebugPixelInputs(inputs)
+
+        super().__init__(test, self.get_trace())
+
+    def get_trace(self):
+        return self.test.controller.DebugPixel(self.x, self.y, self.inputs)
+       
+class ComputeDebugContext(ScopedDebugContext):
+    def __init__(self, test: TestCase, group: Tuple[int,int,int], thread: Tuple[int,int,int]):
+        self.test = test
+        self.group = group
+        self.thread = thread
+
+        super().__init__(test, self.get_trace())
+
+    def get_trace(self):
+        return self.test.controller.DebugThread(self.group, self.thread)
+ 
+class HistoryContext(ScopedContext):
+    def __init__(self, test: TestCase, tex: rd.ResourceId, x: int, y: int, sub: rd.Subresource, cast: rd.CompType):
+        self.tex = tex
+        self.x = x
+        self.y = y
+        self.sub = sub
+        self.cast = cast
+
+        super().__init__(test)
+        self.modifs = self.get_history()
+
+    def get_history(self):
+        return self.test.controller.PixelHistory(self.tex, self.x, self.y, self.sub, self.cast)
 
 class TestCase:
     slow_test = False
@@ -166,6 +242,7 @@ class TestCase:
         self.worker_thread = 0
         self.controller: rd.ReplayController | None = None
         self.sdfile: rd.SDFile | None = None
+        self.contexts: List[ScopedContext] = []
         self.cur_event = 0
         self._variables = []
 
@@ -246,8 +323,29 @@ class TestCase:
         self.cur_event = eid
         self.controller.SetFrameEvent(eid, force)
 
+    def pixel_history(self, tex: rd.ResourceId, x: int, y: int, sub: rd.Subresource, cast: rd.CompType):
+        return HistoryContext(self, tex, x, y, sub, cast)
+
+    def debug_vertex(self, vtx: int, inst: int, idx: int, view: int):
+        return VertexDebugContext(self, vtx, inst, idx, view)
+
+    def debug_pixel(self, x: int, y: int, inputs: rd.DebugPixelInputs):
+        return PixelDebugContext(self, x, y, inputs)
+
+    def debug_thread(self, group: Tuple[int,int,int], thread: Tuple[int,int,int]):
+        return ComputeDebugContext(self, group, thread)
+
     def log_context(self):
         log.print(f"Current Event: {self.cur_event}")
+        for c in self.contexts:
+            if isinstance(c, HistoryContext):
+                log.print(f"Executed pixel history on {c.x},{c.y} in {c.tex}")
+            if isinstance(c, VertexDebugContext):
+                log.print(f"Executed vertex debug on vtx {c.vtx} inst {c.inst} view {c.view}")
+            if isinstance(c, PixelDebugContext):
+                log.print(f"Executed pixel debug on {c.x},{c.y}")
+            if isinstance(c, ComputeDebugContext):
+                log.print(f"Executed compute debug on group {c.group} thread {c.thread}")
 
     def _find_action(self, name: str, start_event: int, action_list: List[rd.ActionDescription]) -> rd.ActionDescription | None:
         bestMatch = None
