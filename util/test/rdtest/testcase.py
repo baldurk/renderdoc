@@ -979,19 +979,30 @@ class TestCase:
 
         return vars[0]
 
+    def has_input_source_var(self, trace: rd.ShaderDebugTrace, builtin: rd.ShaderBuiltin, reg_index: int = -1):
+        refl = self.controller.GetPipelineState().GetShaderReflection(trace.stage)
+        sig_index = self.get_sig_index(refl.inputSignature, builtin, reg_index)
+        return self.find_source_var(trace.sourceVars, sig_index, rd.DebugVariableType.Input) is not None
+
     def find_input_source_var(self, trace: rd.ShaderDebugTrace, builtin: rd.ShaderBuiltin, reg_index: int = -1):
         refl = self.controller.GetPipelineState().GetShaderReflection(trace.stage)
 
         sig_index = self.get_sig_index(refl.inputSignature, builtin, reg_index)
 
-        return self.find_source_var(trace.sourceVars, sig_index, rd.DebugVariableType.Input)
+        ret = self.find_source_var(trace.sourceVars, sig_index, rd.DebugVariableType.Input)
+        if ret is None:
+            raise TestFailureException(f"Couldn't find input source var {builtin!s} / {reg_index}")
+        return ret
 
     def find_output_source_var(self, trace: rd.ShaderDebugTrace, builtin: rd.ShaderBuiltin, reg_index: int = -1):
         refl = self.controller.GetPipelineState().GetShaderReflection(trace.stage)
 
         sig_index = self.get_sig_index(refl.outputSignature, builtin, reg_index)
 
-        return self.find_source_var(trace.sourceVars, sig_index, rd.DebugVariableType.Variable)
+        ret = self.find_source_var(trace.sourceVars, sig_index, rd.DebugVariableType.Variable)
+        if ret is None:
+            raise TestFailureException(f"Couldn't find input source var {builtin!s} / {reg_index}")
+        return ret
 
     def get_debug_var(self, debugVars: Dict[str, rd.ShaderVariable], path: str) -> rd.ShaderVariable:
         # first look for exact match
@@ -1164,8 +1175,6 @@ class TestCase:
 
         _, variables = self.process_trace(trace)
         output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
-        if output is None:
-            raise TestFailureException(f"Couldn't find colour output source variable")
         debugged = self.evaluate_source_var(output, variables)
         self.controller.FreeTrace(trace)
 

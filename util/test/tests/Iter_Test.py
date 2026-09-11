@@ -297,9 +297,9 @@ class Iter_Test(rdtest.TestCase):
             else:
                 rdtest.log.print(f"At event {lastmod.eventId} the target is index {output_index}")
 
-                output_sourcevar = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, output_index)
+                try:
+                    output_sourcevar = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, output_index)
 
-                if output_sourcevar is not None:
                     debugged = self.evaluate_source_var(output_sourcevar, variables)
 
                     self.controller.FreeTrace(trace)
@@ -328,7 +328,7 @@ class Iter_Test(rdtest.TestCase):
                             f"Debugged value {debugged.name} at EID {lastmod.eventId} {x},{y}: {diff_amt} difference. {debuggedValue} doesn't exactly match history shader output {historyValue}")
 
                     rdtest.log.success(f'Successfully debugged pixel in {cycles} cycles, result matches')
-                else:
+                except rdtest.TestFailureException:
                     # This could be an application error - undefined but seen in the wild
                     rdtest.log.error(f"At EID {lastmod.eventId} No output variable declared for index {output_index}")
 

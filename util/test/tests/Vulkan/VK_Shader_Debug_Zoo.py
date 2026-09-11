@@ -29,8 +29,6 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
                     _, variables = self.process_trace(trace)
 
                     output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
-                    
-                    assert output is not None
 
                     debugged = self.evaluate_source_var(output, variables)
 

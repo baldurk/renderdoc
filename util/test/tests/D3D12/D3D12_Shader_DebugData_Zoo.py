@@ -67,7 +67,7 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
                 for row in range(rows):
                     var = (f"{name}.row{row}", f"{type}3", value)
                     varsToCheck.append(var)
-        
+
         if not foundStart or not foundEnd:
             raise rdtest.TestFailureException("Couldn't find TEST_DEBUG_VAR_START and TEST_DEBUG_VAR_END")
 
@@ -98,7 +98,7 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
             with self.debug_vertex(0, instId, 0, 0) as debug:
                 cycles, variables = self.process_trace(debug.trace)
                 output = self.find_output_source_var(debug.trace, rd.ShaderBuiltin.Undefined, 1)
-                assert output is not None
+
                 debugged = self.evaluate_source_var(output, variables)
                 actual = debugged.value.u32v[0]
                 expected = instId
@@ -143,7 +143,7 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
                 trace = self.controller.DebugPixel(4 * test, 0, rd.DebugPixelInputs())
                 cycles, variables = self.process_trace(trace)
                 output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
-                assert output is not None
+
                 debugged = self.evaluate_source_var(output, variables)
 
                 try:
@@ -201,7 +201,7 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
                                     matched = False
                                     failed = True
                                 break
-                        
+
                         if debuggedValue is None:
                             raise rdtest.TestFailureException(f"Couldn't find source variable {name} type:{varType}")
                         if not rdtest.value_compare(expectedValue, debuggedValue):
@@ -220,7 +220,7 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
                     self.controller.FreeTrace(trace)
 
                 rdtest.log.success(f"Test {test} matched as expected")
-                
+
             rdtest.log.end_section(shaderModels[sm] + " tests")
 
         csShaderModels = ["cs_6_0"]

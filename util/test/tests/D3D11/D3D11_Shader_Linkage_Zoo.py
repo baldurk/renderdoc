@@ -24,8 +24,6 @@ class D3D11_Shader_Linkage_Zoo(rdtest.TestCase):
 
             output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
 
-            assert output is not None
-
             debugged = self.evaluate_source_var(output, variables)
 
             try:

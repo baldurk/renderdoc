@@ -204,8 +204,6 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
         output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
 
-        assert output is not None
-
         debugged = self.evaluate_source_var(output, variables)
 
         if not rdtest.util.value_compare(debugged.value.f32v[0:4], [543.1, 546.0, 545.0, 546.0]):

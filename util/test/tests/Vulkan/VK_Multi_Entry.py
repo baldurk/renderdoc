@@ -67,9 +67,6 @@ class VK_Multi_Entry(rdtest.TestCase):
 
         output_sourcevar = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
 
-        if output_sourcevar is None:
-            raise rdtest.TestFailureException("Couldn't get colour output value")
-
         debugged = self.evaluate_source_var(output_sourcevar, variables)
 
         self.controller.FreeTrace(trace)

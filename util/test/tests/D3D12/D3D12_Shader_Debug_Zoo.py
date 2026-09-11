@@ -149,8 +149,6 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
 
                         output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
 
-                        assert output is not None
-
                         debugged = self.evaluate_source_var(output, variables)
                         self.controller.FreeTrace(trace)
 
@@ -200,8 +198,6 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
 
                     output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
 
-                    assert output is not None
-
                     debugged = self.evaluate_source_var(output, variables)
                     self.controller.FreeTrace(trace)
 
@@ -244,7 +240,7 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
             trace = self.controller.DebugPixel(51, 51, inputs)
             cycles, variables = self.process_trace(trace)
             output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
-            assert output is not None
+
             debugged = self.evaluate_source_var(output, variables)
             self.controller.FreeTrace(trace)
 
@@ -276,7 +272,6 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
         cycles, variables = self.process_trace(trace)
 
         output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
-        assert output is not None
 
         debugged = self.evaluate_source_var(output, variables)
         self.controller.FreeTrace(trace)

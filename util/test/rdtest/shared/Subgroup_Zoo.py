@@ -188,11 +188,6 @@ class Subgroup_Zoo(rdtest.TestCase):
                     output_sourcevar = self.find_output_source_var(
                         trace, rd.ShaderBuiltin.ColorOutput, 0)
 
-                    if output_sourcevar is None:
-                        rdtest.log.error("No output variable found")
-                        failed = True
-                        continue
-
                     debugged = self.evaluate_source_var(
                         output_sourcevar, variables)
 

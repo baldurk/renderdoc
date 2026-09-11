@@ -21,7 +21,7 @@ class VK_KHR_Buffer_Address(rdtest.TestCase):
 
             cycles, variables = self.process_trace(trace)
             output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
-            assert output is not None
+
             debugged = self.evaluate_source_var(output, variables)
             self.check_pixel_value(pipe.GetOutputTargets()[0].resource, x, y, debugged.value.f32v[0:4])
             self.controller.FreeTrace(trace)
