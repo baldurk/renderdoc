@@ -32,6 +32,7 @@ class TestLogger:
         self.ctx_callback: Callable[[], None] | None = None
         self.outputs: List[IO[str]] = [sys.stdout]
         self.failed = False
+        self.fast_fail = False
         self.section_failed = False
         self.logged_exception = False
         self.mutex = threading.Lock()
@@ -157,6 +158,9 @@ class TestLogger:
         self.failed = self.section_failed = True
 
         self.rawprint("!! " + message)
+
+        if self.fast_fail:
+            raise TestFailureException("Forcing failure")
 
     def failure(self, ex: Exception):
         if self.logged_exception:
