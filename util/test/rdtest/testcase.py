@@ -646,74 +646,70 @@ class TestCase:
         ignore_uninit=False,
         name_retry: Callable[[str], str] | None = None
     ) -> Tuple[bool, str]:
-        trace = None
         try:
-            trace = self.controller.DebugVertex(vtx, inst, idx, max(0, view))
+            with self.debug_vertex(vtx, inst, idx, max(0, view)) as debug:
+                ctx = f"vertex {vtx} (idx {idx}) instance {inst}"
+                if view >= 0:
+                    ctx += f" view {view}"
 
-            ctx = f"vertex {vtx} (idx {idx}) instance {inst}"
-            if view >= 0:
-                ctx += f" view {view}"
+                if debug.trace.debugger is None:
+                    raise TestFailureException(f"Couldn't debug {ctx}")
 
-            if trace.debugger is None:
-                raise TestFailureException(f"Couldn't debug {ctx}")
+                cycles, variables = self.process_trace(debug.trace)
 
-            cycles, variables = self.process_trace(trace)
+                postvs_vtx = vtx
+                if single_postvs:
+                    postvs_vtx = 0
 
-            postvs_vtx = vtx
-            if single_postvs:
-                postvs_vtx = 0
+                for var in debug.trace.sourceVars:
+                    if var.variables[0].type == rd.DebugVariableType.Variable and var.signatureIndex >= 0:
+                        name = var.name
 
-            for var in trace.sourceVars:
-                if var.variables[0].type == rd.DebugVariableType.Variable and var.signatureIndex >= 0:
-                    name = var.name
+                        if name not in postvs[postvs_vtx].keys() and name_retry is not None:
+                            name = name_retry(name)
 
-                    if name not in postvs[postvs_vtx].keys() and name_retry is not None:
-                        name = name_retry(name)
+                        if name not in postvs[postvs_vtx].keys():
+                            raise TestFailureException(f"Don't have expected output for {name}")
 
-                    if name not in postvs[postvs_vtx].keys():
-                        raise TestFailureException(f"Don't have expected output for {name}")
+                        expect = postvs[postvs_vtx][name]
+                        assert expect is not None
+                        value = self.evaluate_source_var(var, variables)
 
-                    expect = postvs[postvs_vtx][name]
-                    assert expect is not None
-                    value = self.evaluate_source_var(var, variables)
+                        expect_cols = 1
+                        if util.is_vector(expect):
+                            expect_cols = len(expect)
+                        if expect_cols != value.columns:
+                            raise TestFailureException(
+                                f"Output {name} at {ctx} has different size ({value.columns} values) to expectation ({expect_cols} values)")
 
-                    expect_cols = 1
-                    if util.is_vector(expect):
-                        expect_cols = len(expect)
-                    if expect_cols != value.columns:
-                        raise TestFailureException(
-                            f"Output {name} at {ctx} has different size ({value.columns} values) to expectation ({expect_cols} values)")
+                        compType = rd.VarTypeCompType(value.type)
+                        debugged: util.VectorValue = []
+                        if compType == rd.CompType.UInt:
+                            debugged = list(value.value.u32v[0:value.columns])
+                        elif compType == rd.CompType.SInt:
+                            debugged = list(value.value.s32v[0:value.columns])
+                        else:
+                            debugged = list(value.value.f32v[0:value.columns])
 
-                    compType = rd.VarTypeCompType(value.type)
-                    debugged: util.VectorValue = []
-                    if compType == rd.CompType.UInt:
-                        debugged = list(value.value.u32v[0:value.columns])
-                    elif compType == rd.CompType.SInt:
-                        debugged = list(value.value.s32v[0:value.columns])
-                    else:
-                        debugged = list(value.value.f32v[0:value.columns])
+                        # For now, ignore debugged values that are uninitialised. This is an application bug but it causes false
+                        # reports of problems
+                        if ignore_uninit and value.columns > 1:
+                            assert util.is_vector(expect)
+                            for comp in range(4):
+                                if value.value.u32v[comp] == 0xcccccccc:
+                                    debugged[comp] = expect[comp]
 
-                    # For now, ignore debugged values that are uninitialised. This is an application bug but it causes false
-                    # reports of problems
-                    if ignore_uninit and value.columns > 1:
-                        assert util.is_vector(expect)
-                        for comp in range(4):
-                            if value.value.u32v[comp] == 0xcccccccc:
-                                debugged[comp] = expect[comp]
+                        is_eq, diff_amt = util.value_compare_diff(expect, debugged, eps=5.0E-06)
+                        if not is_eq:
+                            raise TestFailureException(
+                                f"Debugged value {name} at {ctx}: {debugged} doesn't exactly match postvs output {expect}. {diff_amt} difference")
 
-                    is_eq, diff_amt = util.value_compare_diff(expect, debugged, eps=5.0E-06)
-                    if not is_eq:
-                        raise TestFailureException(
-                            f"Debugged value {name} at {ctx}: {debugged} doesn't exactly match postvs output {expect}. {diff_amt} difference")
-
-            log.success(f'Successfully debugged vertex {ctx} in {cycles} cycles')
+                log.success(f'Successfully debugged vertex {ctx} in {cycles} cycles')
         except TestFailureException as ex:
             if not fatal:
                 return False, ex.message
             raise ex
-        finally:
-            if trace is not None:
-                self.controller.FreeTrace(trace)
+
         return True, ""
 
     def run(self):
