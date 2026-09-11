@@ -154,65 +154,60 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
         rdtest.log.success("Array cbuffer variables are as expected")
 
-        trace = self.controller.DebugPixel(
-            int(pipe.GetViewport(0).width / 2.0),
-            int(pipe.GetViewport(0).height / 2.0),
-            rd.DebugPixelInputs(),
-        )
+        x, y = self.get_view_centre()
 
-        debugVars: Dict[str, rd.ShaderVariable] = dict()
+        with self.debug_pixel(x, y, rd.DebugPixelInputs()) as debug:
+            debugVars: Dict[str, rd.ShaderVariable] = dict()
 
-        for base in trace.constantBlocks:
-            for var in base.members:
-                debugVars[base.name + var.name] = var
+            for base in debug.trace.constantBlocks:
+                for var in base.members:
+                    debugVars[base.name + var.name] = var
 
-        cbufferVars: List[rd.ShaderVariable] = []
+            cbufferVars: List[rd.ShaderVariable] = []
 
-        for sourceVar in trace.sourceVars:
-            if sourceVar.variables[0].name not in debugVars.keys():
-                continue
+            for sourceVar in debug.trace.sourceVars:
+                if sourceVar.variables[0].name not in debugVars.keys():
+                    continue
 
-            eval = self.evaluate_source_var(sourceVar, debugVars)
-            cbufferVars.append(eval)
+                eval = self.evaluate_source_var(sourceVar, debugVars)
+                cbufferVars.append(eval)
 
-        cbufferVars = self.combine_source_vars(cbufferVars)
+            cbufferVars = self.combine_source_vars(cbufferVars)
 
-        assert len(cbufferVars) == 5
-        assert cbufferVars[0].name == 'consts'
-        assert cbufferVars[1].name == 'rootconsts'
-        assert cbufferVars[2].name == 'packed_consts'
-        assert cbufferVars[3].name == 'array_consts'
-        assert cbufferVars[4].name == 'hugespace'
+            assert len(cbufferVars) == 5
+            assert cbufferVars[0].name == 'consts'
+            assert cbufferVars[1].name == 'rootconsts'
+            assert cbufferVars[2].name == 'packed_consts'
+            assert cbufferVars[3].name == 'array_consts'
+            assert cbufferVars[4].name == 'hugespace'
 
-        var_check = rdtest.ConstantBufferChecker(cbufferVars[0].members)
-        root_check = rdtest.ConstantBufferChecker(cbufferVars[1].members)
-        packed_check = rdtest.ConstantBufferChecker(cbufferVars[2].members)
-        arrays_check = rdtest.ConstantBufferChecker(cbufferVars[3].members)
-        huge_check = rdtest.ConstantBufferChecker(cbufferVars[4].members)
+            var_check = rdtest.ConstantBufferChecker(cbufferVars[0].members)
+            root_check = rdtest.ConstantBufferChecker(cbufferVars[1].members)
+            packed_check = rdtest.ConstantBufferChecker(cbufferVars[2].members)
+            arrays_check = rdtest.ConstantBufferChecker(cbufferVars[3].members)
+            huge_check = rdtest.ConstantBufferChecker(cbufferVars[4].members)
 
-        self.check_cbuffers(var_check, root_check, huge_check, packed_check)
-        rdtest.log.success("Debugged CBuffer variables are as expected")
+            self.check_cbuffers(var_check, root_check, huge_check, packed_check)
+            rdtest.log.success("Debugged CBuffer variables are as expected")
 
-        arrays_check.check('[0]').rows(0).cols(0).members({
-            'a' : lambda y : y.rows(1).cols(4).value([0.0, 1.0, 0.5, 0.5])})
-        arrays_check.check('[1]').rows(0).cols(0).members({
-            'a' : lambda y : y.rows(1).cols(4).value([1.0, 2.0, 0.5, 0.5])})
-        arrays_check.done()
-        rdtest.log.success("Array cbuffer variables are as expected")
+            arrays_check.check('[0]').rows(0).cols(0).members({
+                'a' : lambda y : y.rows(1).cols(4).value([0.0, 1.0, 0.5, 0.5])})
+            arrays_check.check('[1]').rows(0).cols(0).members({
+                'a' : lambda y : y.rows(1).cols(4).value([1.0, 2.0, 0.5, 0.5])})
+            arrays_check.done()
+            rdtest.log.success("Array cbuffer variables are as expected")
 
-        cycles, variables = self.process_trace(trace)
+            cycles, variables = self.process_trace(debug.trace)
 
-        output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+            output = self.find_output_source_var(debug.trace, rd.ShaderBuiltin.ColorOutput, 0)
 
-        debugged = self.evaluate_source_var(output, variables)
+            debugged = self.evaluate_source_var(output, variables)
 
-        if not rdtest.util.value_compare(debugged.value.f32v[0:4], [543.1, 546.0, 545.0, 546.0]):
-            raise rdtest.TestFailureException(
-                f"Debugged output {debugged.value.f32v[0:4]} did not match expected {[543.1, 546.0, 545.0, 546.0]}")
+            if not rdtest.util.value_compare(debugged.value.f32v[0:4], [543.1, 546.0, 545.0, 546.0]):
+                raise rdtest.TestFailureException(
+                    f"Debugged output {debugged.value.f32v[0:4]} did not match expected {[543.1, 546.0, 545.0, 546.0]}")
 
-        rdtest.log.success("Debugged output matched as expected")
-
-        self.controller.FreeTrace(trace)
+            rdtest.log.success("Debugged output matched as expected")
 
         self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0.5, 0.5, [543.1, 546.0, 545.0, 546.0])
 

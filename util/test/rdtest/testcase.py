@@ -188,7 +188,7 @@ class PixelDebugContext(ScopedDebugContext):
 
     def get_trace(self):
         return self.test.controller.DebugPixel(self.x, self.y, self.inputs)
-       
+
 class ComputeDebugContext(ScopedDebugContext):
     def __init__(self, test: TestCase, group: Tuple[int,int,int], thread: Tuple[int,int,int]):
         self.test = test
@@ -199,7 +199,7 @@ class ComputeDebugContext(ScopedDebugContext):
 
     def get_trace(self):
         return self.test.controller.DebugThread(self.group, self.thread)
- 
+
 class HistoryContext(ScopedContext):
     def __init__(self, test: TestCase, tex: rd.ResourceId, x: int, y: int, sub: rd.Subresource, cast: rd.CompType):
         self.tex = tex
@@ -787,6 +787,13 @@ class TestCase:
 
         return last_action
 
+    def get_view_centre(self):
+        pipe = self.controller.GetPipelineState()
+
+        vp = pipe.GetViewport(0)
+
+        return (int(vp.x + vp.width * 0.5), int(vp.y + vp.height * 0.5))
+
     def check_final_backbuffer(self):
         img_path = util.get_tmp_path('backbuffer.png')
         ref_path = self.get_ref_path('backbuffer.png')
@@ -1172,23 +1179,24 @@ class TestCase:
 
         log.success("Recompressed and re-imported capture files are identical")
 
-    def check_debug_pixel(self, x: int, y: int):
+    def check_debug_pixel(self, x = -1, y = -1):
         pipe = self.controller.GetPipelineState()
 
+        if x < 0 or y < 0:
+            x, y = self.get_view_centre()
+
         # Debug the shader
-        trace = self.controller.DebugPixel(x, y, rd.DebugPixelInputs())
+        with self.debug_pixel(x, y, rd.DebugPixelInputs()) as debug:
+            _, variables = self.process_trace(debug.trace)
+            output = self.find_output_source_var(debug.trace, rd.ShaderBuiltin.ColorOutput, 0)
+            debugged = self.evaluate_source_var(output, variables)
 
-        _, variables = self.process_trace(trace)
-        output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
-        debugged = self.evaluate_source_var(output, variables)
-        self.controller.FreeTrace(trace)
+            try:
+                self.check_pixel_value(pipe.GetOutputTargets()[0].resource, x, y, debugged.value.f32v[0:4])
+            except TestFailureException as ex:
+                raise TestFailureException(f"Pixel shader did not debug correctly at {x},{y}. {ex}")
 
-        try:
-            self.check_pixel_value(pipe.GetOutputTargets()[0].resource, x, y, debugged.value.f32v[0:4])
-        except TestFailureException as ex:
-            raise TestFailureException(f"Pixel shader did not debug correctly at {x},{y}. {ex}")
-
-        log.success(f"Pixel shader debugging at {x},{y} was successful")
+            log.success(f"Pixel shader debugging at {x},{y} was successful")
 
     def decode_task_payload(self, controller: rd.ReplayController, mesh: rd.MeshFormat, payload: rd.ConstantBlock, task: int = 0):
         begin = mesh.vertexByteOffset + mesh.vertexByteStride * task

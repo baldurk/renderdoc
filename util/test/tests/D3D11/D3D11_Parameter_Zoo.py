@@ -16,8 +16,6 @@ class D3D11_Parameter_Zoo(rdtest.TestCase):
 
         pipe = self.controller.GetPipelineState()
 
-        v = pipe.GetViewport(0)
-
         stage = rd.ShaderStage.Pixel
         cbuf = pipe.GetConstantBlock(stage, 0, 0).descriptor
 
@@ -25,7 +23,7 @@ class D3D11_Parameter_Zoo(rdtest.TestCase):
 
         self.check_triangle()
 
-        self.check_debug_pixel(int(0.5 * v.width), int(0.5 * v.height))
+        self.check_debug_pixel()
 
         var_check = rdtest.ConstantBufferChecker(
             self.controller.GetCBufferVariableContents(pipe.GetGraphicsPipelineObject(),
@@ -49,8 +47,9 @@ class D3D11_Parameter_Zoo(rdtest.TestCase):
 
         overlay_id = out.GetDebugOverlayTexID()
 
-        self.check_pixel_value(overlay_id, int(0.5 * v.width), int(0.5 * v.height), [0.8, 0.1, 0.8, 1.0],
-                               eps=1.0 / 256.0)
+        x, y = self.get_view_centre()
+
+        self.check_pixel_value(overlay_id, x, y, [0.8, 0.1, 0.8, 1.0], eps=1.0 / 256.0)
 
         expected_markers = [
             "Features1: D3D11_TILED_RESOURCES_NOT_SUPPORTED",

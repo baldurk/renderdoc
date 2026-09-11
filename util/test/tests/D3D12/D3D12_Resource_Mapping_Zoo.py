@@ -9,24 +9,21 @@ class D3D12_Resource_Mapping_Zoo(rdtest.TestCase):
         pipe = self.controller.GetPipelineState()
 
         # Debug the shader
-        trace = self.controller.DebugPixel(x, y, rd.DebugPixelInputs())
+        with self.debug_pixel(x, y, rd.DebugPixelInputs()) as debug:
+            cycles, variables = self.process_trace(debug.trace)
 
-        cycles, variables = self.process_trace(trace)
+            output = self.find_output_source_var(debug.trace, rd.ShaderBuiltin.ColorOutput, 0)
 
-        output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+            debugged = self.evaluate_source_var(output, variables)
 
-        debugged = self.evaluate_source_var(output, variables)
+            try:
+                self.check_pixel_value(pipe.GetOutputTargets()[0].resource, x, y, debugged.value.f32v[0:4])
+            except rdtest.TestFailureException as ex:
+                rdtest.log.error(f"Test {test_name} did not match. {ex!s}")
+                return False
 
-        try:
-            self.check_pixel_value(pipe.GetOutputTargets()[0].resource, x, y, debugged.value.f32v[0:4])
-        except rdtest.TestFailureException as ex:
-            rdtest.log.error(f"Test {test_name} did not match. {ex!s}")
-            return False
-        finally:
-            self.controller.FreeTrace(trace)
-
-        rdtest.log.success(f"Test {test_name} matched as expected")
-        return True
+            rdtest.log.success(f"Test {test_name} matched as expected")
+            return True
 
     def check_capture(self):
         if not self.check_capture_internal():

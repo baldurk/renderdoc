@@ -366,12 +366,12 @@ class Texture_Zoo():
 
             # in the test captures pick the output texture, it should be identical to the
             # (0,0) pixel in slice 0, mip 0, sample 0
-            view = pipe.GetViewport(0)
+            x, y = self.test.get_view_centre()
 
             val = self.pick(
                 pipe.GetOutputTargets()[0].resource,
-                int(view.x + view.width / 2),
-                int(view.y + view.height / 2),
+                x,
+                y,
                 rd.Subresource(),
                 rd.CompType.Typeless,
             )

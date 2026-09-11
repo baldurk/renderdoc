@@ -20,50 +20,47 @@ class D3D12_PrimitiveID(rdtest.TestCase):
 
         pixel_inputs = rd.DebugPixelInputs()
         pixel_inputs.primitive = prim
-        trace = self.controller.DebugPixel(x, y, pixel_inputs)
+        with self.debug_pixel(x, y, pixel_inputs) as debug:
+            cycles, variables = self.process_trace(debug.trace)
 
-        cycles, variables = self.process_trace(trace)
-
-        # Find the SV_PrimitiveID variable, optionally
-        if not self.has_input_source_var(trace, rd.ShaderBuiltin.PrimitiveIndex):
-            # If we didn't find it, then we should be expecting a 0
-            if len(expected_prim) != 1 or expected_prim[0] != 0:
-                rdtest.log.error(f"Expected prim {expected_prim!s} at {x},{y} did not match actual prim {prim}.")
-                return False
-        else:
-            primInput = self.find_input_source_var(trace, rd.ShaderBuiltin.PrimitiveIndex)
-
-            # Look up the matching register in the inputs, and see if the expected value matches
-            inputs = list(trace.inputs)
-            primInputName = primInput.variables[0].name
-            if inputs[0].name.startswith('_IN') and primInputName.startswith('_IN.'):
-                # Walk the DXIL input structure
-                inputVars = inputs[0].members
-                # Remove the input name prefix
-                primInputName = primInputName[4:]
+            # Find the SV_PrimitiveID variable, optionally
+            if not self.has_input_source_var(debug.trace, rd.ShaderBuiltin.PrimitiveIndex):
+                # If we didn't find it, then we should be expecting a 0
+                if len(expected_prim) != 1 or expected_prim[0] != 0:
+                    rdtest.log.error(f"Expected prim {expected_prim!s} at {x},{y} did not match actual prim {prim}.")
+                    return False
             else:
-                inputVars = inputs
+                primInput = self.find_input_source_var(debug.trace, rd.ShaderBuiltin.PrimitiveIndex)
 
-            primVars = [var for var in inputVars if var.name == primInputName]
+                # Look up the matching register in the inputs, and see if the expected value matches
+                inputs = list(debug.trace.inputs)
+                primInputName = primInput.variables[0].name
+                if inputs[0].name.startswith('_IN') and primInputName.startswith('_IN.'):
+                    # Walk the DXIL input structure
+                    inputVars = inputs[0].members
+                    # Remove the input name prefix
+                    primInputName = primInputName[4:]
+                else:
+                    inputVars = inputs
 
-            primValue = primVars[0]
-            if primValue.value.u32v[0] not in expected_prim:
-                rdtest.log.error(f"Expected prim {expected_prim!s} at {x},{y} did not match actual prim {primValue.value.u32v[0]}.")
-                return False
+                primVars = [var for var in inputVars if var.name == primInputName]
 
-        # Compare shader debug output against an expected value instead of the RT's output,
-        # since we're testing overlapping primitives in a single action
-        if expected_output is not None:
-            output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+                primValue = primVars[0]
+                if primValue.value.u32v[0] not in expected_prim:
+                    rdtest.log.error(f"Expected prim {expected_prim!s} at {x},{y} did not match actual prim {primValue.value.u32v[0]}.")
+                    return False
 
-            debugged = self.evaluate_source_var(output, variables)
-            if list(debugged.value.f32v[0:4]) != expected_output:
-                rdtest.log.error(f"Expected value {expected_output} at {x},{y} did not match actual {debugged.value.f32v[0:4]}.")
-                return False
+            # Compare shader debug output against an expected value instead of the RT's output,
+            # since we're testing overlapping primitives in a single action
+            if expected_output is not None:
+                output = self.find_output_source_var(debug.trace, rd.ShaderBuiltin.ColorOutput, 0)
 
-        self.controller.FreeTrace(trace)
+                debugged = self.evaluate_source_var(output, variables)
+                if list(debugged.value.f32v[0:4]) != expected_output:
+                    rdtest.log.error(f"Expected value {expected_output} at {x},{y} did not match actual {debugged.value.f32v[0:4]}.")
+                    return False
 
-        rdtest.log.success(f"Test at {x},{y} matched as expected")
+            rdtest.log.success(f"Test at {x},{y} matched as expected")
         return True
 
     def check_capture(self):

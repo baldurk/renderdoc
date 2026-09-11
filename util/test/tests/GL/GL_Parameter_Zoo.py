@@ -130,10 +130,9 @@ class GL_Parameter_Zoo(rdtest.TestCase):
 
         overlay_id = out.GetDebugOverlayTexID()
 
-        v = pipe.GetViewport(0)
+        x, y = self.get_view_centre()
 
-        self.check_pixel_value(overlay_id, int(0.5 * v.width), int(0.5 * v.height), [0.8, 0.1, 0.8, 1.0],
-                               eps=1.0 / 256.0)
+        self.check_pixel_value(overlay_id, x, y, [0.8, 0.1, 0.8, 1.0], eps=1.0 / 256.0)
 
         out.Shutdown()
 

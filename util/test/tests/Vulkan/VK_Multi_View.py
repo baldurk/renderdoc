@@ -23,23 +23,21 @@ class VK_Multi_View(rdtest.TestCase):
                 # Debug the pixel shader
                 inputs = rd.DebugPixelInputs()
                 inputs.view = view
-                trace = self.controller.DebugPixel(x, y, inputs)
+                with self.debug_pixel(x, y, inputs) as debug:
+                    cycles, variables = self.process_trace(debug.trace)
+                    output = self.find_output_source_var(debug.trace, rd.ShaderBuiltin.ColorOutput, 0)
 
-                cycles, variables = self.process_trace(trace)
-                output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+                    debugged = self.evaluate_source_var(output, variables)
+                    slice = view + 1
+                    sub = rd.Subresource(0, slice, 0)
+                    self.check_pixel_value(pipe.GetOutputTargets()[0].resource, x, y, debugged.value.f32v[0:4], sub=sub)
 
-                debugged = self.evaluate_source_var(output, variables)
-                slice = view + 1
-                sub = rd.Subresource(0, slice, 0)
-                self.check_pixel_value(pipe.GetOutputTargets()[0].resource, x, y, debugged.value.f32v[0:4], sub=sub)
-                self.controller.FreeTrace(trace)
-
-                inst = 0
-                postvs = self.get_postvs(action, rd.MeshDataStage.VSOut, instance=inst, view=view)
-                for vtx in range(action.numIndices):
-                    idx = vtx
-                    self.check_vertex_debug(vtx, idx, inst, postvs, view=view)
-                rdtest.log.print(f"View {view} Slice {slice} passed")
+                    inst = 0
+                    postvs = self.get_postvs(action, rd.MeshDataStage.VSOut, instance=inst, view=view)
+                    for vtx in range(action.numIndices):
+                        idx = vtx
+                        self.check_vertex_debug(vtx, idx, inst, postvs, view=view)
+                    rdtest.log.success(f"View {view} Slice {slice} passed")
 
         for test_name in ["viewportIndex choice"]:
             rdtest.log.print(f"Test {test_name}")
@@ -61,23 +59,21 @@ class VK_Multi_View(rdtest.TestCase):
                 # Debug the pixel shader
                 inputs = rd.DebugPixelInputs()
                 inputs.view = view
-                trace = self.controller.DebugPixel(x, y, inputs)
+                with self.debug_pixel(x, y, inputs) as debug:
+                    cycles, variables = self.process_trace(debug.trace)
+                    output = self.find_output_source_var(debug.trace, rd.ShaderBuiltin.ColorOutput, 0)
 
-                cycles, variables = self.process_trace(trace)
-                output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+                    debugged = self.evaluate_source_var(output, variables)
+                    slice = view + 1
+                    sub = rd.Subresource(0, slice, 0)
+                    self.check_pixel_value(pipe.GetOutputTargets()[0].resource, x, y, debugged.value.f32v[0:4], sub=sub)
 
-                debugged = self.evaluate_source_var(output, variables)
-                slice = view + 1
-                sub = rd.Subresource(0, slice, 0)
-                self.check_pixel_value(pipe.GetOutputTargets()[0].resource, x, y, debugged.value.f32v[0:4], sub=sub)
-                self.controller.FreeTrace(trace)
-
-                inst = 0
-                postvs = self.get_postvs(action, rd.MeshDataStage.VSOut, instance=inst, view=view)
-                for vtx in range(action.numIndices):
-                    idx = vtx
-                    self.check_vertex_debug(vtx, idx, inst, postvs, view=view)
-                rdtest.log.print(f"View {view} Slice {slice} passed")
+                    inst = 0
+                    postvs = self.get_postvs(action, rd.MeshDataStage.VSOut, instance=inst, view=view)
+                    for vtx in range(action.numIndices):
+                        idx = vtx
+                        self.check_vertex_debug(vtx, idx, inst, postvs, view=view)
+                    rdtest.log.print(f"View {view} Slice {slice} passed")
 
         rdtest.log.success("All tests matched")
 

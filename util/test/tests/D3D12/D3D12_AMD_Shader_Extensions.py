@@ -17,14 +17,12 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
 
                 pipe = self.controller.GetPipelineState()
                 tex = pipe.GetOutputTargets()[0].resource
-                vp = pipe.GetViewport(0)
 
                 # Should have barycentrics showing the closest vertex for each pixel in the triangle
                 # Without relying on barycentric order, ensure that the three pixels are red, green, and blue
                 pixels: List[rdtest.VectorValue] = []
 
-                x = int(vp.x + vp.width * 0.5)
-                y = int(vp.y + vp.height * 0.5)
+                x, y = self.get_view_centre()
 
                 picked = self.controller.PickPixel(tex, x+ 0, y+ 0, rd.Subresource(), rd.CompType.UNorm)
                 pixels.append(picked.floatValue[0:4])

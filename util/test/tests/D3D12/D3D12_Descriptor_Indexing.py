@@ -150,10 +150,7 @@ class D3D12_Descriptor_Indexing(rdtest.TestCase):
 
             rdtest.log.success(f"Dynamic usage is as expected for {sm}")
 
-            v = pipe.GetViewport(0)
-            x = int(v.x) + int(v.width / 2)
-            y = int(v.y) + int(v.height // 2)
-            self.check_debug_pixel(x, y)
+            self.check_debug_pixel()
 
         for sm in ["sm_6_6_heap"]:
             base = self.find_action("Tests " + sm)
@@ -250,7 +247,5 @@ class D3D12_Descriptor_Indexing(rdtest.TestCase):
                         f"Bind {loc.logicalBindName} not expected for descriptor access SamplerDescriptorHeap[{a.access.byteOffset}]")
 
             rdtest.log.success(f"Dynamic usage is as expected for {sm}")
-            v = pipe.GetViewport(0)
-            x = int(v.x) + int(v.width / 2)
-            y = int(v.y) + int(v.height // 2)
-            self.check_debug_pixel(x, y)
+
+            self.check_debug_pixel()

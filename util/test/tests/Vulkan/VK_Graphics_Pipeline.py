@@ -97,24 +97,21 @@ class VK_Graphics_Pipeline(rdtest.TestCase):
         inputs = rd.DebugPixelInputs()
         inputs.sample = 0
         inputs.primitive = 0
-        trace = self.controller.DebugPixel(200, 150, inputs)
+        with self.debug_pixel(200, 150, inputs) as debug:
+            cycles, variables = self.process_trace(debug.trace)
 
-        cycles, variables = self.process_trace(trace)
+            output_sourcevar = self.find_output_source_var(debug.trace, rd.ShaderBuiltin.ColorOutput, 0)
 
-        output_sourcevar = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+            debugged = self.evaluate_source_var(output_sourcevar, variables)
 
-        debugged = self.evaluate_source_var(output_sourcevar, variables)
+            debuggedValue = list(debugged.value.f32v[0:4])
 
-        self.controller.FreeTrace(trace)
+            is_eq, diff_amt = rdtest.value_compare_diff(history[1].shaderOut.col.floatValue, debuggedValue, eps=5.0E-06)
+            if not is_eq:
+                raise rdtest.TestFailureException(
+                    f"Debugged pixel value {debugged.name}: {diff_amt} difference. {debuggedValue} doesn't exactly match history shader output {history[1].shaderOut.col.floatValue}")
 
-        debuggedValue = list(debugged.value.f32v[0:4])
-
-        is_eq, diff_amt = rdtest.value_compare_diff(history[1].shaderOut.col.floatValue, debuggedValue, eps=5.0E-06)
-        if not is_eq:
-            raise rdtest.TestFailureException(
-                f"Debugged pixel value {debugged.name}: {diff_amt} difference. {debuggedValue} doesn't exactly match history shader output {history[1].shaderOut.col.floatValue}")
-
-        rdtest.log.success(f'Successfully debugged pixel in {cycles} cycles, result matches')
+            rdtest.log.success(f'Successfully debugged pixel in {cycles} cycles, result matches')
 
         out = self.controller.CreateOutput(rd.CreateHeadlessWindowingData(100, 100), rd.ReplayOutputType.Texture)
 

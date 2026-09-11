@@ -46,20 +46,17 @@ class D3D12_Vertex_UAV(rdtest.TestCase):
                 rdtest.log.success(f"Quad overdraw is good on {name}")
 
                 # Debug the shader
-                trace = self.controller.DebugPixel(50, 50, rd.DebugPixelInputs())
+                with self.debug_pixel(50, 50, rd.DebugPixelInputs()) as debug:
+                    cycles, variables = self.process_trace(debug.trace)
 
-                cycles, variables = self.process_trace(trace)
+                    output = self.find_output_source_var(debug.trace, rd.ShaderBuiltin.ColorOutput, 0)
 
-                output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+                    debugged = self.evaluate_source_var(output, variables)
 
-                debugged = self.evaluate_source_var(output, variables)
+                    if not rdtest.value_compare(debugged.value.f32v[0:4], [1.0, 1.0, 0.0, 1.0]):
+                        raise rdtest.TestFailureException(f"Pixel shader at {name} did not debug correctly.")
 
-                self.controller.FreeTrace(trace)
-
-                if not rdtest.value_compare(debugged.value.f32v[0:4], [1.0, 1.0, 0.0, 1.0]):
-                    raise rdtest.TestFailureException(f"Pixel shader at {name} did not debug correctly.")
-
-                rdtest.log.success(f"Shader debugging at {name} was successful")
+                    rdtest.log.success(f"Shader debugging at {name} was successful")
 
         quad_seen = sorted(quad_seen)
         if quad_seen != [float(a) for a in range(1, len(quad_seen) + 1)]:

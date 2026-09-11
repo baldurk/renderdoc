@@ -24,30 +24,27 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
                     y = 4 * child + 1
 
                     # Debug the shader
-                    trace = self.controller.DebugPixel(x, y, rd.DebugPixelInputs())
+                    with self.debug_pixel(x, y, rd.DebugPixelInputs()) as debug:
+                        _, variables = self.process_trace(debug.trace)
 
-                    _, variables = self.process_trace(trace)
+                        output = self.find_output_source_var(debug.trace, rd.ShaderBuiltin.ColorOutput, 0)
 
-                    output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+                        debugged = self.evaluate_source_var(output, variables)
 
-                    debugged = self.evaluate_source_var(output, variables)
+                        try:
+                                
+                            valscale = min(debugged.value.f32v[0:4])
+                            eps = rdtest.FLT_EPSILON
+                            if valscale > 1.0:
+                                eps = 5.0e-05
 
-                    try:
-                            
-                        valscale = min(debugged.value.f32v[0:4])
-                        eps = rdtest.FLT_EPSILON
-                        if valscale > 1.0:
-                            eps = 5.0e-05
+                            self.check_pixel_value(pipe.GetOutputTargets()[0].resource, x, y, debugged.value.f32v[0:4], eps=eps)
+                        except rdtest.TestFailureException as ex:
+                            failed = True
+                            rdtest.log.error(f"Test {test} in sub-section {child} did not match. {ex!s}")
+                            continue
 
-                        self.check_pixel_value(pipe.GetOutputTargets()[0].resource, x, y, debugged.value.f32v[0:4], eps=eps)
-                    except rdtest.TestFailureException as ex:
-                        failed = True
-                        rdtest.log.error(f"Test {test} in sub-section {child} did not match. {ex!s}")
-                        continue
-                    finally:
-                        self.controller.FreeTrace(trace)
-
-                    rdtest.log.success(f"Test {test} in sub-section {child} matched as expected")
+                        rdtest.log.success(f"Test {test} in sub-section {child} matched as expected")
             rdtest.log.end_section(test_name)
 
             test_name = "Disassembly Tests"

@@ -179,24 +179,20 @@ class Subgroup_Zoo(rdtest.TestCase):
                     inputs.sample = 0
                     inputs.primitive = rd.ReplayController.NoPreference
                     inputs.view = view
-                    trace = self.controller.DebugPixel(x, y, inputs)
+                    with self.debug_pixel(x, y, inputs) as debug:
+                        _, variables = self.process_trace(debug.trace)
 
-                    _, variables = self.process_trace(trace)
+                        output_sourcevar = self.find_output_source_var(
+                            debug.trace, rd.ShaderBuiltin.ColorOutput, 0)
 
-                    output_sourcevar = self.find_output_source_var(
-                        trace, rd.ShaderBuiltin.ColorOutput, 0)
+                        debugged = self.evaluate_source_var(output_sourcevar, variables)
 
-                    debugged = self.evaluate_source_var(
-                        output_sourcevar, variables)
+                        debuggedValue = list(debugged.value.f32v[0:4])
 
-                    self.controller.FreeTrace(trace)
-
-                    debuggedValue = list(debugged.value.f32v[0:4])
-
-                    if not rdtest.value_compare(real, debuggedValue, eps=5.0E-06):
-                        rdtest.log.error(
-                            f"Test {idx} at {action.eventId} debugged pixel value {debuggedValue} at {x},{y} in {view} does not match output {real}")
-                        failed = True
+                        if not rdtest.value_compare(real, debuggedValue, eps=5.0E-06):
+                            rdtest.log.error(
+                                f"Test {idx} at {action.eventId} debugged pixel value {debuggedValue} at {x},{y} in {view} does not match output {real}")
+                            failed = True
 
             overallFailed |= failed
             if not failed:

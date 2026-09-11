@@ -18,24 +18,21 @@ class D3D12_Shader_Linkage_Zoo(rdtest.TestCase):
             pipe = self.controller.GetPipelineState()
 
             # Debug the shader
-            trace = self.controller.DebugPixel(200, 150, rd.DebugPixelInputs())
+            with self.debug_pixel(200, 150, rd.DebugPixelInputs()) as debug:
+                cycles, variables = self.process_trace(debug.trace)
 
-            cycles, variables = self.process_trace(trace)
+                output = self.find_output_source_var(debug.trace, rd.ShaderBuiltin.ColorOutput, 0)
+                
+                debugged = self.evaluate_source_var(output, variables)
 
-            output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
-            
-            debugged = self.evaluate_source_var(output, variables)
+                try:
+                    self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 200, 150, debugged.value.f32v[0:4])
+                except rdtest.TestFailureException as ex:
+                    failed = True
+                    rdtest.log.error(f"Test {event_name} did not match. {ex!s}")
+                    continue
 
-            try:
-                self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 200, 150, debugged.value.f32v[0:4])
-            except rdtest.TestFailureException as ex:
-                failed = True
-                rdtest.log.error(f"Test {event_name} did not match. {ex!s}")
-                continue
-            finally:
-                self.controller.FreeTrace(trace)
-
-            rdtest.log.success(f"Test {event_name} matched as expected")
+                rdtest.log.success(f"Test {event_name} matched as expected")
 
         if failed:
             raise rdtest.TestFailureException("Some tests were not as expected")

@@ -17,7 +17,8 @@ class GL_Renderbuffer_Zoo(rdtest.TestCase):
 
             pipe = self.controller.GetPipelineState()
             depth = pipe.GetDepthTarget()
-            vp = pipe.GetViewport(0)
+
+            x, y = self.get_view_centre()
 
             id = pipe.GetOutputTargets()[0].resource
 
@@ -41,7 +42,7 @@ class GL_Renderbuffer_Zoo(rdtest.TestCase):
             rdtest.log.success(f'Color Renderbuffer at action {action.eventId} is working as expected')
 
             if depth.resource != rd.ResourceId():
-                val = self.controller.PickPixel(depth.resource, int(0.5 * vp.width), int(0.5 * vp.height),
+                val = self.controller.PickPixel(depth.resource, x, y,
                                                 rd.Subresource(), rd.CompType.Typeless)
 
                 if not rdtest.value_compare(val.floatValue[0], 0.75):
