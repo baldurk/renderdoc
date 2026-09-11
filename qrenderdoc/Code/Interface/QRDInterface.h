@@ -1848,10 +1848,21 @@ An interface implemented by any object wanting to be notified of capture events.
 )");
 struct ICaptureViewer
 {
-  DOCUMENT("Called whenever a capture is opened.");
+  DOCUMENT(R"(Called immediately after a capture is opened, while the capture is open.
+
+Although this allows access to capture information, this callback will be called while the UI is also
+populating as well (the order for capture viewers including UI panels is undefined) so it is recommended
+not to do much in this callback beyond any initialisation and access to underlying capture information.
+)");
   virtual void OnCaptureLoaded() = 0;
 
-  DOCUMENT("Called whenever a capture is closed.");
+  DOCUMENT(R"(Called immediately before a capture is closed, while the capture is open.
+
+As with :meth:`OnCaptureLoaded` this will be called while the UI is closing down so it is strongly
+recommended that you do no work apart from releasing resources and clearing any caches in this function.
+If you want to run code after the capture has closed you can issue a delayed callback, which will be
+guaranteed not to be called until after the capture is completely closed.
+)");
   virtual void OnCaptureClosed() = 0;
 
   DOCUMENT(R"(Called whenever the current selected event changes. This is distinct from the actual

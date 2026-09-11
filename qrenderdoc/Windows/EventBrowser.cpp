@@ -225,7 +225,7 @@ struct EventItemModel : public QAbstractItemModel
                          .arg(paramcol.blue(), 2, 16, QLatin1Char('0'));
   }
 
-  void ResetModel()
+  void ResetModel(bool closing)
   {
     emit beginResetModel();
     emit endResetModel();
@@ -238,7 +238,7 @@ struct EventItemModel : public QAbstractItemModel
     m_Chunks.clear();
     m_Times.clear();
 
-    if(!m_Ctx.CurRootActions().empty())
+    if(!closing && !m_Ctx.CurRootActions().empty())
       m_Nodes[0] = CreateActionNode(NULL);
 
     m_CurrentEID = createIndex(0, 0, TagCaptureStart);
@@ -250,7 +250,8 @@ struct EventItemModel : public QAbstractItemModel
     m_FindString.clear();
     m_FindEIDSearch = false;
 
-    RefreshCache();
+    if(!closing)
+      RefreshCache();
   }
 
   void RefreshCache()
@@ -4058,7 +4059,7 @@ void EventBrowser::OnCaptureLoaded()
   // older Qt versions lose all the sections when a model resets even if the sections don't change.
   // Manually save/restore them
   QVariant p = persistData();
-  m_Model->ResetModel();
+  m_Model->ResetModel(false);
   setPersistData(p);
 
   // expand the root frame node
@@ -4101,7 +4102,7 @@ void EventBrowser::OnCaptureClosed()
   // older Qt versions lose all the sections when a model resets even if the sections don't change.
   // Manually save/restore them
   QVariant p = persistData();
-  m_Model->ResetModel();
+  m_Model->ResetModel(true);
   setPersistData(p);
 
   ui->find->setEnabled(false);
