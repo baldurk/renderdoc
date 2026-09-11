@@ -82,11 +82,10 @@ class D3D11_AMD_Shader_Extensions(rdtest.TestCase):
 
         self.set_event(self.find_action("Dispatch").eventId, False)
 
-        trace = self.controller.DebugThread((0, 0, 0), (0, 0, 0))
+        with self.debug_thread((0, 0, 0), (0, 0, 0)) as debug:
+            cycles, variables = self.process_trace(debug.trace)
 
-        cycles, variables = self.process_trace(trace)
-
-        if cycles < 3:
-            raise rdtest.TestFailureException(f"Compute shader has too few cycles {cycles}")
+            if cycles < 3:
+                raise rdtest.TestFailureException(f"Compute shader has too few cycles {cycles}")
 
         rdtest.log.success("compute shader debugged successfully")

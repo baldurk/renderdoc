@@ -8,34 +8,34 @@ class Groupshared(rdtest.TestCase):
     demos_test_name = None
 
     def check_compute_thread_result(self, test: int, action: rd.ActionDescription, x: int, y: int, z: int, expected: rdtest.VectorValue):
-        workgroup = (0, 0, 0)
-        trace = self.controller.DebugThread(workgroup, (x, y, z))
         try:
-            _, variables = self.process_trace(trace)
+            with self.debug_thread((0, 0, 0), (x, y, z)) as debug:
+                _, variables = self.process_trace(debug.trace)
 
-            # Find the source variable 'outval' at the highest instruction index
-            name = 'outval'
-            debugged = None
-            countInst = len(trace.instInfo)
-            for inst in range(countInst):
-                sourceVars = trace.instInfo[countInst-1-inst].sourceVars
-                try:
-                    dataVars = [v for v in sourceVars if v.name == name]
-                    if len(dataVars) == 0:
+
+                # Find the source variable 'outval' at the highest instruction index
+                name = 'outval'
+                debugged = None
+                countInst = len(debug.trace.instInfo)
+                for inst in range(countInst):
+                    sourceVars = debug.trace.instInfo[countInst-1-inst].sourceVars
+                    try:
+                        dataVars = [v for v in sourceVars if v.name == name]
+                        if len(dataVars) == 0:
+                            continue
+                        debugged = self.evaluate_source_var(dataVars[0], variables)
+                    except KeyError as ex:
                         continue
-                    debugged = self.evaluate_source_var(dataVars[0], variables)
-                except KeyError as ex:
-                    continue
-                except rdtest.TestFailureException as ex:
-                    continue
-                break
-            if debugged is None:
-                raise rdtest.TestFailureException(f"Couldn't find source variable {name} at {x},{y},{z}")
+                    except rdtest.TestFailureException as ex:
+                        continue
+                    break
+                if debugged is None:
+                    raise rdtest.TestFailureException(f"Couldn't find source variable {name} at {x},{y},{z}")
 
-            debuggedValue = list(debugged.value.f32v[0:4])
+                debuggedValue = list(debugged.value.f32v[0:4])
 
-            if not rdtest.value_compare(expected, debuggedValue, eps=5.0E-06):
-                raise rdtest.TestFailureException(f"EID:{action.eventId} TID:{x},{y},{z} debugged thread value {debuggedValue} does not match output {expected}")
+                if not rdtest.value_compare(expected, debuggedValue, eps=5.0E-06):
+                    raise rdtest.TestFailureException(f"EID:{action.eventId} TID:{x},{y},{z} debugged thread value {debuggedValue} does not match output {expected}")
 
         except rdtest.TestFailureException as ex:
             rdtest.log.error(f"Test {test} failed {ex}")
@@ -43,8 +43,6 @@ class Groupshared(rdtest.TestCase):
         except Exception as ex:
             rdtest.log.error(f"Test {test} exception {ex}")
             return False
-        finally:
-            self.controller.FreeTrace(trace)
 
         return True
 

@@ -85,17 +85,14 @@ class Iter_Test(rdtest.TestCase):
         threadid = (threadid[0], threadid[1], threadid[2])
 
         rdtest.log.print(f"Debug Thread Workgroup:{wgSize} groupid:{groupid} threadid:{threadid}")
-        trace = self.controller.DebugThread(groupid, threadid)
+        with self.debug_thread(groupid, threadid) as debug:
+            try:
+                cycles, variables = self.process_trace(debug.trace)
+            except rdtest.TestFailureException as err:
+                rdtest.log.error(f"Error debugging: {err.message}")
+                return
 
-        try:
-            cycles, variables = self.process_trace(trace)
-        except rdtest.TestFailureException as err:
-            rdtest.log.error(f"Error debugging: {err.message}")
-            return
-
-        rdtest.log.success(f'Successfully debugged compute shader in {cycles} cycles {len(refl.outputSignature)}')
-
-        self.controller.FreeTrace(trace)
+            rdtest.log.success(f'Successfully debugged compute shader in {cycles} cycles {len(refl.outputSignature)}')
 
     def vert_debug(self, action: rd.ActionDescription):
         assert self.controller is not None

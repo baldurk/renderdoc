@@ -140,86 +140,85 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
             # Loop over every test
             for test in range(action.numInstances):
                 # Debug the shader
-                trace = self.controller.DebugPixel(4 * test, 0, rd.DebugPixelInputs())
-                cycles, variables = self.process_trace(trace)
-                output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+                with self.debug_pixel(4 * test, 0, rd.DebugPixelInputs()) as debug:
+                    trace = debug.trace
+                    cycles, variables = self.process_trace(debug.trace)
+                    output = self.find_output_source_var(debug.trace, rd.ShaderBuiltin.ColorOutput, 0)
 
-                debugged = self.evaluate_source_var(output, variables)
+                    debugged = self.evaluate_source_var(output, variables)
 
-                try:
-                    tex = pipe.GetOutputTargets()[0].resource
-                    x = 4 * test
-                    y = 0
-                    self.check_pixel_value(tex, x, y, debugged.value.f32v[0:4])
-                    picked = rd.PixelValue = self.controller.PickPixel(tex, x, y, rd.Subresource(0,0,0), rd.CompType.Typeless)
-                    realTestResult = picked.floatValue
-                    debugInfo = pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo
-                    shaderSrcRaw = debugInfo.files[0].contents
-                    varsToCheck = self.parse_shader_source(shaderSrcRaw, realTestResult, test)
-                    for name, varType, expectedValue in varsToCheck:
-                        debuggedValue = None
-                        countInst = len(trace.instInfo)
-                        for inst in range(countInst):
-                            sourceVars = trace.instInfo[countInst-1-inst].sourceVars
-                            try:
-                                debuggedValue = self.get_source_shader_var_value(sourceVars, name, varType, variables)
-                            except KeyError as ex:
-                                continue
-                            except rdtest.TestFailureException as ex:
-                                continue
-                            break
-                        if debuggedValue is None:
-                            raise rdtest.TestFailureException(f"Couldn't find source variable {name} type:{varType}")
-                        if not rdtest.value_compare(expectedValue, debuggedValue):
-                            raise rdtest.TestFailureException(f"'{name}' {varType} debugger {debuggedValue} doesn't match expected {expectedValue}")
-
-                    rdtest.log.success(f"{len(varsToCheck)} source variables matched as expected")
-
-                    # Look for _IN.MAT0 variable in the trace input variables
-                    name = "_IN"
-                    inVar = [v for v in trace.inputs if v.name == name]
-                    if len(inVar) != 1:
-                        raise rdtest.TestFailureException(f"Couldn't find source input variable {name}")
-                    name = "MAT0"
-                    inVar = [v for v in inVar[0].members if v.name == name]
-                    if len(inVar) != 1:
-                        raise rdtest.TestFailureException(f"Couldn't find source input member {name}")
-
-                    matched = True
-                    varsToCheck = []
-                    varsToCheck.append((f"[0]", "float4", [1.0, 2.0, 3.0, 4.0]))
-                    varsToCheck.append((f"[1]", "float4", [5.0, 6.0, 7.0, 8.0]))
-                    varsToCheck.append((f"[2]", "float4", [9.0, 10.0, 11.0, 12.0]))
-                    for name, varType, expectedValue in varsToCheck:
-                        assert isinstance(expectedValue, list)
-                        debuggedValue = None
-                        for v in inVar[0].members:
-                            if v.name == name:
+                    try:
+                        tex = pipe.GetOutputTargets()[0].resource
+                        x = 4 * test
+                        y = 0
+                        self.check_pixel_value(tex, x, y, debugged.value.f32v[0:4])
+                        picked = rd.PixelValue = self.controller.PickPixel(tex, x, y, rd.Subresource(0,0,0), rd.CompType.Typeless)
+                        realTestResult = picked.floatValue
+                        debugInfo = pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo
+                        shaderSrcRaw = debugInfo.files[0].contents
+                        varsToCheck = self.parse_shader_source(shaderSrcRaw, realTestResult, test)
+                        for name, varType, expectedValue in varsToCheck:
+                            debuggedValue = None
+                            countInst = len(debug.trace.instInfo)
+                            for inst in range(countInst):
+                                sourceVars = debug.trace.instInfo[countInst-1-inst].sourceVars
                                 try:
-                                    debuggedValue = v.value.f32v[0:len(expectedValue)]
+                                    debuggedValue = self.get_source_shader_var_value(sourceVars, name, varType, variables)
+                                except KeyError as ex:
+                                    continue
                                 except rdtest.TestFailureException as ex:
-                                    matched = False
-                                    failed = True
+                                    continue
                                 break
+                            if debuggedValue is None:
+                                raise rdtest.TestFailureException(f"Couldn't find source variable {name} type:{varType}")
+                            if not rdtest.value_compare(expectedValue, debuggedValue):
+                                raise rdtest.TestFailureException(f"'{name}' {varType} debugger {debuggedValue} doesn't match expected {expectedValue}")
 
-                        if debuggedValue is None:
-                            raise rdtest.TestFailureException(f"Couldn't find source variable {name} type:{varType}")
-                        if not rdtest.value_compare(expectedValue, debuggedValue):
-                            matched = False
-                            failed = True
-                            rdtest.log.error(f"'{name}' {varType} debugger {debuggedValue} doesn't match expected {expectedValue}")
+                        rdtest.log.success(f"{len(varsToCheck)} source variables matched as expected")
 
-                    if matched:
-                        rdtest.log.success("PS MAT0 input source variable matched as expected")
+                        # Look for _IN.MAT0 variable in the trace input variables
+                        name = "_IN"
+                        inVar = [v for v in debug.trace.inputs if v.name == name]
+                        if len(inVar) != 1:
+                            raise rdtest.TestFailureException(f"Couldn't find source input variable {name}")
+                        name = "MAT0"
+                        inVar = [v for v in inVar[0].members if v.name == name]
+                        if len(inVar) != 1:
+                            raise rdtest.TestFailureException(f"Couldn't find source input member {name}")
 
-                except rdtest.TestFailureException as ex:
-                    rdtest.log.error(f"Test {test} failed {ex}")
-                    failed = True
-                    continue
-                finally:
-                    self.controller.FreeTrace(trace)
+                        matched = True
+                        varsToCheck = []
+                        varsToCheck.append((f"[0]", "float4", [1.0, 2.0, 3.0, 4.0]))
+                        varsToCheck.append((f"[1]", "float4", [5.0, 6.0, 7.0, 8.0]))
+                        varsToCheck.append((f"[2]", "float4", [9.0, 10.0, 11.0, 12.0]))
+                        for name, varType, expectedValue in varsToCheck:
+                            assert isinstance(expectedValue, list)
+                            debuggedValue = None
+                            for v in inVar[0].members:
+                                if v.name == name:
+                                    try:
+                                        debuggedValue = v.value.f32v[0:len(expectedValue)]
+                                    except rdtest.TestFailureException as ex:
+                                        matched = False
+                                        failed = True
+                                    break
+                        
+                            if debuggedValue is None:
+                                raise rdtest.TestFailureException(f"Couldn't find source variable {name} type:{varType}")
+                            if not rdtest.value_compare(expectedValue, debuggedValue):
+                                matched = False
+                                failed = True
+                                rdtest.log.error(f"'{name}' {varType} debugger {debuggedValue} doesn't match expected {expectedValue}")
 
-                rdtest.log.success(f"Test {test} matched as expected")
+                        if matched:
+                            rdtest.log.success("PS MAT0 input source variable matched as expected")
+
+                    except rdtest.TestFailureException as ex:
+                        rdtest.log.error(f"Test {test} failed {ex}")
+                        failed = True
+                        continue
+
+                    rdtest.log.success(f"Test {test} matched as expected")
 
             rdtest.log.end_section(shaderModels[sm] + " tests")
 
@@ -244,43 +243,41 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
                 # Debug the shader
                 groupid = (test,0,0)
                 threadid = (0,0,0)
-                trace = self.controller.DebugThread(groupid, threadid)
-                cycles, variables = self.process_trace(trace)
+                with self.debug_thread(groupid, threadid) as debug:
+                    cycles, variables = self.process_trace(debug.trace)
 
-                # Result is stored in RWStructuredBuffer<float4> bufOut : register(u0);
-                bufOut = pipe.GetReadWriteResources(rd.ShaderStage.Compute)[0].descriptor.resource
-                bufdata = self.controller.GetBufferData(bufOut, test*16, 16)
-                realTestResult = struct.unpack_from("4f", bufdata, 0)
-                debugInfo = pipe.GetShaderReflection(rd.ShaderStage.Compute).debugInfo
-                shaderSrcRaw = debugInfo.files[0].contents
-                varsToCheck = self.parse_shader_source(shaderSrcRaw, realTestResult, test)
-                try:
-                    for name, varType, expectedValue in varsToCheck:
-                        debuggedValue = None
-                        countInst = len(trace.instInfo)
-                        for inst in range(countInst):
-                            sourceVars = trace.instInfo[countInst-1-inst].sourceVars
-                            try:
-                                debuggedValue = self.get_source_shader_var_value(sourceVars, name, varType, variables)
-                            except KeyError as ex:
-                                continue
-                            except rdtest.TestFailureException as ex:
-                                continue
-                            break
-                        if debuggedValue is None:
-                            raise rdtest.TestFailureException(f"Couldn't find source variable {name} type:{varType}")
-                        if not rdtest.value_compare(expectedValue, debuggedValue):
-                            raise rdtest.TestFailureException(f"'{name}' {varType} debugger {debuggedValue} doesn't match expected {expectedValue}")
-                    rdtest.log.success(f"{len(varsToCheck)} source variables matched as expected")
+                    # Result is stored in RWStructuredBuffer<float4> bufOut : register(u0);
+                    bufOut = pipe.GetReadWriteResources(rd.ShaderStage.Compute)[0].descriptor.resource
+                    bufdata = self.controller.GetBufferData(bufOut, test*16, 16)
+                    realTestResult = struct.unpack_from("4f", bufdata, 0)
+                    debugInfo = pipe.GetShaderReflection(rd.ShaderStage.Compute).debugInfo
+                    shaderSrcRaw = debugInfo.files[0].contents
+                    varsToCheck = self.parse_shader_source(shaderSrcRaw, realTestResult, test)
+                    try:
+                        for name, varType, expectedValue in varsToCheck:
+                            debuggedValue = None
+                            countInst = len(debug.trace.instInfo)
+                            for inst in range(countInst):
+                                sourceVars = debug.trace.instInfo[countInst-1-inst].sourceVars
+                                try:
+                                    debuggedValue = self.get_source_shader_var_value(sourceVars, name, varType, variables)
+                                except KeyError as ex:
+                                    continue
+                                except rdtest.TestFailureException as ex:
+                                    continue
+                                break
+                            if debuggedValue is None:
+                                raise rdtest.TestFailureException(f"Couldn't find source variable {name} type:{varType}")
+                            if not rdtest.value_compare(expectedValue, debuggedValue):
+                                raise rdtest.TestFailureException(f"'{name}' {varType} debugger {debuggedValue} doesn't match expected {expectedValue}")
+                        rdtest.log.success(f"{len(varsToCheck)} source variables matched as expected")
 
-                except rdtest.TestFailureException as ex:
-                    rdtest.log.error(f"Test {test} failed {ex}")
-                    failed = True
-                    continue
-                finally:
-                    self.controller.FreeTrace(trace)
+                    except rdtest.TestFailureException as ex:
+                        rdtest.log.error(f"Test {test} failed {ex}")
+                        failed = True
+                        continue
 
-                rdtest.log.success(f"Test {test} matched as expected")
+                    rdtest.log.success(f"Test {test} matched as expected")
 
             rdtest.log.end_section(section)
 

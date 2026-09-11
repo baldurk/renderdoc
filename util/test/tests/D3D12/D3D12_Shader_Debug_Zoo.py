@@ -57,37 +57,35 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                         continue
 
                     # Debug the shader
-                    trace = self.controller.DebugThread(groupid, tid)
-                    cycles, variables = self.process_trace(trace)
+                    with self.debug_thread(groupid, tid) as debug:
+                        cycles, variables = self.process_trace(debug.trace)
 
-                    # Find the source variable 'testResult' at the highest instruction index
-                    name = 'testResult'
-                    debugged = None
-                    countInst = len(trace.instInfo)
-                    for inst in range(countInst):
-                        sourceVars = trace.instInfo[countInst-1-inst].sourceVars
-                        try:
-                            dataVars = [v for v in sourceVars if v.name == name]
-                            if len(dataVars) == 0:
+                        # Find the source variable 'testResult' at the highest instruction index
+                        name = 'testResult'
+                        debugged = None
+                        countInst = len(debug.trace.instInfo)
+                        for inst in range(countInst):
+                            sourceVars = debug.trace.instInfo[countInst-1-inst].sourceVars
+                            try:
+                                dataVars = [v for v in sourceVars if v.name == name]
+                                if len(dataVars) == 0:
+                                    continue
+                                debugged = self.evaluate_source_var(dataVars[0], variables)
+                            except KeyError as ex:
                                 continue
-                            debugged = self.evaluate_source_var(dataVars[0], variables)
-                        except KeyError as ex:
-                            continue
-                        except rdtest.TestFailureException as ex:
-                            continue
-                        break
-                    if debugged is None:
-                        raise rdtest.TestFailureException(f"Couldn't find source variable {name} at {test}")
-                    debuggedValue = list(debugged.value.f32v[0:4])
+                            except rdtest.TestFailureException as ex:
+                                continue
+                            break
+                        if debugged is None:
+                            raise rdtest.TestFailureException(f"Couldn't find source variable {name} at {test}")
+                        debuggedValue = list(debugged.value.f32v[0:4])
 
-                    if not rdtest.value_compare(expectedValue, debuggedValue, eps=5.0E-06):
-                        rdtest.log.error(f"Test {test} Group:{groupid} Thread:{tid} EID:{action.eventId} failed {name} debugger {debuggedValue} doesn't match expected {expectedValue}")
-                        self.controller.FreeTrace(trace)
-                        failed = True
-                        continue
+                        if not rdtest.value_compare(expectedValue, debuggedValue, eps=5.0E-06):
+                            rdtest.log.error(f"Test {test} Group:{groupid} Thread:{tid} EID:{action.eventId} failed {name} debugger {debuggedValue} doesn't match expected {expectedValue}")
+                            failed = True
+                            continue
 
-                    self.controller.FreeTrace(trace)
-                    rdtest.log.success(f"Test {test} Group:{groupid} Thread:{tid} as expected")
+                        rdtest.log.success(f"Test {test} Group:{groupid} Thread:{tid} as expected")
 
             rdtest.log.end_section(section)
         return failed
@@ -300,29 +298,27 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                 groupid = (groupX, 1, 0)
                 threadid = (0, 0, 0)
                 testIndex = groupX
-                trace = self.controller.DebugThread(groupid, threadid)
-                cycles, variables = self.process_trace(trace)
+                with self.debug_thread(groupid, threadid) as debug:
+                    cycles, variables = self.process_trace(debug.trace)
 
-                # Result is stored in RWStructuredBuffer<uint4> bufOut : register(u1);
-                bufOut = pipe.GetReadWriteResources(rd.ShaderStage.Compute)[1].descriptor.resource
-                bufdata = self.controller.GetBufferData(bufOut, testIndex*16, 16)
-                expectedValue = struct.unpack_from("4i", bufdata, 0)
-                # Test result is in variable called "int4 testResult"
-                name = 'testResult'
-                varType = 'int4'
-                try:
-                    debuggedValue = self.get_source_shader_var_value(trace.instInfo[-1].sourceVars, name, varType, variables)
-                    if not rdtest.value_compare(expectedValue, debuggedValue):
-                        raise rdtest.TestFailureException(f"'{name}' debugger {debuggedValue} doesn't match expected {expectedValue}")
+                    # Result is stored in RWStructuredBuffer<uint4> bufOut : register(u1);
+                    bufOut = pipe.GetReadWriteResources(rd.ShaderStage.Compute)[1].descriptor.resource
+                    bufdata = self.controller.GetBufferData(bufOut, testIndex*16, 16)
+                    expectedValue = struct.unpack_from("4i", bufdata, 0)
+                    # Test result is in variable called "int4 testResult"
+                    name = 'testResult'
+                    varType = 'int4'
+                    try:
+                        debuggedValue = self.get_source_shader_var_value(debug.trace.instInfo[-1].sourceVars, name, varType, variables)
+                        if not rdtest.value_compare(expectedValue, debuggedValue):
+                            raise rdtest.TestFailureException(f"'{name}' debugger {debuggedValue} doesn't match expected {expectedValue}")
 
-                except rdtest.TestFailureException as ex:
-                    rdtest.log.error(f"Test {test} Group:{groupid} Thread:{threadid} Index:{testIndex} failed {ex}")
-                    failed = True
-                    continue
-                finally:
-                    self.controller.FreeTrace(trace)
+                    except rdtest.TestFailureException as ex:
+                        rdtest.log.error(f"Test {test} Group:{groupid} Thread:{threadid} Index:{testIndex} failed {ex}")
+                        failed = True
+                        continue
 
-                rdtest.log.success(f"Test {test} Group:{groupid} Thread:{threadid} as expected")
+                    rdtest.log.success(f"Test {test} Group:{groupid} Thread:{threadid} as expected")
             rdtest.log.end_section(section)
 
         if self.check_compute_derivative_tests():
