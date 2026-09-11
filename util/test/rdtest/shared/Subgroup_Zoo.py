@@ -154,48 +154,14 @@ class Subgroup_Zoo(rdtest.TestCase):
                 for view in range(pipe.MultiviewBroadcastCount()):
 
                     postvs = self.get_postvs(
-                        action, rd.MeshDataStage.VSOut, first_index=0, num_indices=action.numIndices, instance=inst)
+                        action, rd.MeshDataStage.VSOut, first_index=0, num_indices=action.numIndices, instance=inst, view = view)
 
                     for vtx in range(action.numIndices):
-                        trace = self.controller.DebugVertex(vtx, inst, vtx, view)
-
-                        if trace.debugger is None:
-                            self.controller.FreeTrace(trace)
-
-                            rdtest.log.error(
-                                f"Test {idx} at {action.eventId} got no debug result at {vtx} inst {inst} view {view}")
+                        success, err = self.check_vertex_debug(vtx, idx, inst, postvs, fatal=False)
+                        if not success:
                             failed = True
+                            rdtest.log.error(f"Test {idx} at {action.eventId}: {err}")
                             continue
-
-                        _, variables = self.process_trace(trace)
-
-                        for var in trace.sourceVars:
-                            if var.name == 'vertdata':
-                                name = var.name
-
-                                if var.name not in postvs[vtx].keys():
-                                    rdtest.log.error(
-                                        f"Don't have expected output for {var.name}")
-                                    failed = True
-                                    continue
-
-                                real = postvs[vtx][name]
-                                assert rdtest.is_vector(real)
-                                debugged = self.evaluate_source_var(
-                                    var, variables)
-
-                                if debugged.columns != 4 or len(real) != 4:
-                                    rdtest.log.error(
-                                        f"Vertex output is not the right size ({len(real)} vs {debugged.columns})")
-                                    failed = True
-                                    continue
-
-                                if not rdtest.value_compare(real, debugged.value.f32v[0:4], eps=5.0E-06):
-                                    rdtest.log.error(
-                                        f"Test {idx} at {action.eventId} debugged vertex value {debugged.value.f32v[0:4]} at {vtx} instance {inst} view {view} does not match output {real}")
-                                    failed = True
-
-                        self.controller.FreeTrace(trace)
 
             # check some assorted pixel outputs
             target = pipe.GetOutputTargets()[0].resource

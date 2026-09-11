@@ -157,10 +157,9 @@ class Iter_Test(rdtest.TestCase):
 
         postvs = self.get_postvs(action, rd.MeshDataStage.VSOut, first_index=vtx, num_indices=1, instance=inst)
 
-        try:
-            self.check_vertex_debug(vtx, idx, inst, postvs, eps=5.0E-06, single_postvs=True, ignore_uninit=True)
-        except rdtest.TestFailureException as err:
-            rdtest.log.error(f"Error debugging at EID {action.eventId}: {err.message}")
+        success, err = self.check_vertex_debug(vtx, idx, inst, postvs, fatal=False, eps=5.0E-06, single_postvs=True, ignore_uninit=True)
+        if not success:
+            rdtest.log.error(f"Error debugging at EID {action.eventId}: {err}")
             return
 
     def pixel_debug(self, action: rd.ActionDescription):

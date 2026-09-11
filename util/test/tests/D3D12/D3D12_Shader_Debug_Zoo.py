@@ -133,25 +133,20 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                         rdtest.log.print(f"Skipping Graphics tests for {sectionName}")
                         continue
                     action = test_marker.nextAction
+                    assert action is not None
                     self.controller.SetFrameEvent(action.eventId, False)
 
                     pipe = self.controller.GetPipelineState()
 
                     if pipe.GetShaderReflection(rd.ShaderStage.Vertex).debugInfo.debuggable:
-                        # Debug the vertex shader
-                        trace = self.controller.DebugVertex(0, instId, 0, 0)
-                        cycles, variables = self.process_trace(trace)
-                        output = self.find_output_source_var(trace, rd.ShaderBuiltin.Undefined, 4)
-                        assert output is not None
-                        debugged = self.evaluate_source_var(output, variables)
-                        self.controller.FreeTrace(trace)
-                        actual = debugged.value.u32v[0]
-                        expected = instId
-                        if not rdtest.value_compare(actual, expected):
+                        postvs = self.get_postvs(action, rd.MeshDataStage.VSOut, instance=instId)
+
+                        success, err = self.check_vertex_debug(0, 0, instId, postvs, fatal=False)
+                        if not success:
                             failed = True
-                            rdtest.log.error(
-                                f"Vertex shader TRIANGLE output did not match expectation {actual} != {expected}")
-                        if not failed:
+                            rdtest.log.error(f"Basic VS debugging didn't match: {err}")
+                            continue
+                        else:
                             rdtest.log.success("Basic VS debugging was successful")
                     else:
                         rdtest.log.print(f"Ignoring undebuggable Vertex shader at {action.eventId} for {shaderModels[sm]}.")
@@ -244,26 +239,19 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                 rdtest.log.print(f"Skipping Vertex Sample tests for {shaderModels[sm]}")
                 continue
             action = test_marker.nextAction
+            assert action is not None
             self.controller.SetFrameEvent(action.eventId, False)
             pipe = self.controller.GetPipelineState()
 
             if pipe.GetShaderReflection(rd.ShaderStage.Vertex).debugInfo.debuggable:
                 # Debug the vertex shader
-                trace = self.controller.DebugVertex(0, 0, 0, 0)
-                cycles, variables = self.process_trace(trace)
-                output = self.find_output_source_var(trace, rd.ShaderBuiltin.Undefined, 1)
-                assert output is not None
-                debugged = self.evaluate_source_var(output, variables)
-                self.controller.FreeTrace(trace)
-
-                actual = debugged.value.f32v[0:4]
-                expected = [0.3, 0.5, 0.8, 1.0]
-                if not rdtest.value_compare(actual, expected):
+                success, err = self.check_vertex_debug(0, 0, 0, self.get_postvs(action, rd.MeshDataStage.VSOut), fatal=False)
+                if not success:
                     failed = True
                     rdtest.log.error(
-                        f"{shaderModels[sm]} Vertex shader color output did not match expectation {actual} != {expected}")
-
-                if not failed:
+                        f"{shaderModels[sm]} Vertex shader failed: {err}")
+                    continue
+                else:
                     rdtest.log.success(shaderModels[sm] + " VertexSample VS was debugged correctly")
             else:
                 rdtest.log.print(f"Skipping undebuggable Vertex shader at {action.eventId} for {shaderModels[sm]}.")
@@ -294,30 +282,12 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
 
         test_marker = self.find_action("Banned")
         action = test_marker.nextAction
+        assert action is not None
         self.controller.SetFrameEvent(action.eventId, False)
         pipe = self.controller.GetPipelineState()
 
-        # Debug the vertex shader
-        trace = self.controller.DebugVertex(0, 0, 0, 0)
-
-        cycles, variables = self.process_trace(trace)
-
-        output = self.find_output_source_var(trace, rd.ShaderBuiltin.Position, 0)
-
-        assert output is not None
-
-        debugged = self.evaluate_source_var(output, variables)
-
-        self.controller.FreeTrace(trace)
-
-        actual = debugged.value.f32v[0:4]
-        expected = [-0.5, -0.5, 0.0, 1.0]
-        if not rdtest.value_compare(actual, expected):
-            failed = True
-            rdtest.log.error(f"Banned signature vertex shader position did not match expectation {actual} != {expected}")
-
-        if not failed:
-            rdtest.log.success("Banned signature VS was debugged correctly")
+        # Debug the banned vertex shader
+        self.check_vertex_debug(0, 0, 0, self.get_postvs(action, rd.MeshDataStage.VSOut), fatal=False)
 
         # Debug the pixel shader
         inputs = rd.DebugPixelInputs()

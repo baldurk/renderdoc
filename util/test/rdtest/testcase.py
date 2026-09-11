@@ -535,22 +535,22 @@ class TestCase:
         *,
         view=-1,
         eps=util.FLT_EPSILON,
+        fatal=True,
         single_postvs=False,
         ignore_uninit=False,
         name_retry: Callable[[str], str] | None = None
-    ):
-        trace = self.controller.DebugVertex(vtx, inst, idx, max(0, view))
-
-        ctx = f"vertex {vtx} (idx {idx}) instance {inst}"
-        if view >= 0:
-            ctx += f" view {view}"
-
-        if trace.debugger is None:
-            self.controller.FreeTrace(trace)
-
-            raise TestFailureException(f"Couldn't debug {ctx}")
-
+    ) -> Tuple[bool, str]:
+        trace = None
         try:
+            trace = self.controller.DebugVertex(vtx, inst, idx, max(0, view))
+
+            ctx = f"vertex {vtx} (idx {idx}) instance {inst}"
+            if view >= 0:
+                ctx += f" view {view}"
+
+            if trace.debugger is None:
+                raise TestFailureException(f"Couldn't debug {ctx}")
+
             cycles, variables = self.process_trace(trace)
 
             postvs_vtx = vtx
@@ -601,8 +601,14 @@ class TestCase:
                             f"Debugged value {name} at {ctx}: {debugged} doesn't exactly match postvs output {expect}. {diff_amt} difference")
 
             log.success(f'Successfully debugged vertex {ctx} in {cycles} cycles')
+        except TestFailureException as ex:
+            if not fatal:
+                return False, ex.message
+            raise ex
         finally:
-            self.controller.FreeTrace(trace)
+            if trace is not None:
+                self.controller.FreeTrace(trace)
+        return True, ""
 
     def run(self):
         self.capture_filename = self.get_capture()

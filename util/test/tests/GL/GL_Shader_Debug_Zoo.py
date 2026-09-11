@@ -102,11 +102,10 @@ class GL_Shader_Debug_Zoo(rdtest.TestCase):
 
                 postvs = self.get_postvs(action, rd.MeshDataStage.VSOut, first_index=vtx, num_indices=1, instance=inst)
 
-                try:
-                    self.check_vertex_debug(vtx, idx, inst, postvs, single_postvs=True, name_retry = lambda x: x.replace(".", "Block."))
-                except rdtest.TestFailureException as err:
+                success, err = self.check_vertex_debug(vtx, idx, inst, postvs, fatal=False, single_postvs=True, name_retry = lambda x: x.replace(".", "Block."))
+                if not success:
                     failed = True
-                    rdtest.log.error(f"Error debugging vertex at test {test} in sub-section {child}: {err.message}")
+                    rdtest.log.error(f"Error debugging vertex at test {test} in sub-section {child}: {err}")
                     continue
 
                 rdtest.log.success(f"Test {test} vertex in sub-section {child} matched as expected")
