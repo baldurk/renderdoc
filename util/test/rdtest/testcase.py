@@ -652,9 +652,6 @@ class TestCase:
                 if view >= 0:
                     ctx += f" view {view}"
 
-                if debug.trace.debugger is None:
-                    raise TestFailureException(f"Couldn't debug {ctx}")
-
                 cycles, variables = self.process_trace(debug.trace)
 
                 postvs_vtx = vtx
@@ -918,7 +915,8 @@ class TestCase:
         return ret
 
     def generate_full_trace(self, trace: rd.ShaderDebugTrace) -> List[rd.ShaderDebugState]:
-        assert trace.debugger is not None
+        if trace.debugger is None:
+            raise TestFailureException("Couldn't debug shader at all")
 
         allStates: List[rd.ShaderDebugState] = []
         allChanges: List[List[rd.ShaderVariableChange]] = []
@@ -933,7 +931,8 @@ class TestCase:
         return allStates
 
     def process_trace(self, trace: rd.ShaderDebugTrace, validate: bool = True):
-        assert trace.debugger is not None
+        if trace.debugger is None:
+            raise TestFailureException("Couldn't debug shader at all")
 
         variables: Dict[str, rd.ShaderVariable] = {}
         cycles = 0
@@ -1165,9 +1164,6 @@ class TestCase:
 
         # Debug the shader
         trace = self.controller.DebugPixel(x, y, rd.DebugPixelInputs())
-        if trace.debugger is None:
-            self.controller.FreeTrace(trace)
-            raise TestFailureException(f"Pixel shader could not be debugged at {x},{y}.")
 
         _, variables = self.process_trace(trace)
         output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)

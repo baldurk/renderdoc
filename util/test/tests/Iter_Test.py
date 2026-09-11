@@ -83,11 +83,6 @@ class Iter_Test(rdtest.TestCase):
         rdtest.log.print(f"Debug Thread Workgroup:{wgSize} groupid:{groupid} threadid:{threadid}")
         trace = self.controller.DebugThread(groupid, threadid)
 
-        if trace.debugger is None:
-            self.controller.FreeTrace(trace)
-            rdtest.log.print("No debug result")
-            return
-
         try:
             cycles, variables = self.process_trace(trace)
         except rdtest.TestFailureException as err:
@@ -268,12 +263,6 @@ class Iter_Test(rdtest.TestCase):
             inputs.sample = 0
             inputs.primitive = lastmod.primitiveID;
             trace = self.controller.DebugPixel(x, y, inputs)
-
-            if trace.debugger is None:
-                self.controller.FreeTrace(trace)
-
-                rdtest.log.print("No debug result")
-                return
 
             try:
                 cycles, variables = self.process_trace(trace)

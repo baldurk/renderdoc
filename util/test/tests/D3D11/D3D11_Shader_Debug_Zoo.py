@@ -27,11 +27,6 @@ class D3D11_Shader_Debug_Zoo(rdtest.TestCase):
                 # Debug the shader
                 trace = self.controller.DebugPixel(4 * test, 4 * idx, rd.DebugPixelInputs())
 
-                if trace.debugger is None:
-                    rdtest.log.error(f"Test {test} failed to debug.")
-                    self.controller.FreeTrace(trace)
-                    continue
-
                 cycles, variables = self.process_trace(trace)
 
                 output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)

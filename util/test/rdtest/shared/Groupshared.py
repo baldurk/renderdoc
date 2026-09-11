@@ -13,9 +13,6 @@ class Groupshared(rdtest.TestCase):
         try:
             _, variables = self.process_trace(trace)
 
-            if trace.debugger is None:
-                raise rdtest.TestFailureException(f"Test {test} at {action.eventId} got no debug result at {x},{y},{z}")
-
             # Find the source variable 'outval' at the highest instruction index
             name = 'outval'
             debugged = None

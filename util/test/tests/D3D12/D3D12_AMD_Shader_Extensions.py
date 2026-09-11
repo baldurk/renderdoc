@@ -114,11 +114,6 @@ class D3D12_AMD_Shader_Extensions(rdtest.TestCase):
 
                 trace = self.controller.DebugThread((0, 0, 0), (0, 0, 0))
 
-                if trace.debugger is None:
-                    self.controller.FreeTrace(trace)
-
-                    raise rdtest.TestFailureException("Couldn't debug compute shader")
-
                 cycles, variables = self.process_trace(trace)
 
                 if cycles < 3:

@@ -23,9 +23,6 @@ class Subgroup_Zoo(rdtest.TestCase):
         try:
             _, variables = self.process_trace(trace)
 
-            if trace.debugger is None:
-                raise rdtest.TestFailureException(f"Test {test} at {action.eventId} got no debug result at {x},{y},{z}")
-
             # Find the source variable 'testResult' at the highest instruction index
             name = 'testResult'
             debugged = None
@@ -185,13 +182,6 @@ class Subgroup_Zoo(rdtest.TestCase):
                     inputs.primitive = rd.ReplayController.NoPreference
                     inputs.view = view
                     trace = self.controller.DebugPixel(x, y, inputs)
-
-                    if trace.debugger is None:
-                        self.controller.FreeTrace(trace)
-                        rdtest.log.error(
-                            f"Test {idx} at {action.eventId} got no debug result at {x},{y}")
-                        failed = True
-                        continue
 
                     _, variables = self.process_trace(trace)
 

@@ -52,12 +52,6 @@ class GL_Shader_Debug_Zoo(rdtest.TestCase):
 
                 rdtest.log.print(f"debugging {x},{y}")
 
-                if trace.debugger is None:
-                    failed = True
-                    rdtest.log.error(f"Test {test} in sub-section {child} did not debug pixel")
-                    self.controller.FreeTrace(trace)
-                    continue
-
                 _, variables = self.process_trace(trace)
 
                 output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)

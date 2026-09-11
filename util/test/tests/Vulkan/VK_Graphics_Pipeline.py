@@ -99,9 +99,6 @@ class VK_Graphics_Pipeline(rdtest.TestCase):
         inputs.primitive = 0
         trace = self.controller.DebugPixel(200, 150, inputs)
 
-        if trace.debugger is None:
-            raise rdtest.TestFailureException("No pixel debug result")
-
         cycles, variables = self.process_trace(trace)
 
         output_sourcevar = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)

@@ -63,9 +63,6 @@ class VK_Multi_Entry(rdtest.TestCase):
 
         assert len(refl.readOnlyResources) == 1
 
-        if trace.debugger is None:
-            raise rdtest.TestFailureException("No pixel debug result")
-
         cycles, variables = self.process_trace(trace)
 
         output_sourcevar = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)

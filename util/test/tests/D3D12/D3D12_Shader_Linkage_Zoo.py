@@ -27,10 +27,6 @@ class D3D12_Shader_Linkage_Zoo(rdtest.TestCase):
 
             # Debug the shader
             trace = self.controller.DebugPixel(200, 150, rd.DebugPixelInputs())
-            if trace.debugger is None:
-                failed = True
-                rdtest.log.error(f"Test {event_name} could not be debugged.")
-                continue
 
             cycles, variables = self.process_trace(trace)
 

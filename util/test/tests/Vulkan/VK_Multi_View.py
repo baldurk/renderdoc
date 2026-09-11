@@ -30,9 +30,6 @@ class VK_Multi_View(rdtest.TestCase):
                 inputs = rd.DebugPixelInputs()
                 inputs.view = view
                 trace = self.controller.DebugPixel(x, y, inputs)
-                if trace.debugger is None:
-                    self.controller.FreeTrace(trace)
-                    raise rdtest.TestFailureException(f"Test {test_name} view {view} did not debug at all")
 
                 cycles, variables = self.process_trace(trace)
                 output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
@@ -73,9 +70,6 @@ class VK_Multi_View(rdtest.TestCase):
                 inputs = rd.DebugPixelInputs()
                 inputs.view = view
                 trace = self.controller.DebugPixel(x, y, inputs)
-                if trace.debugger is None:
-                    self.controller.FreeTrace(trace)
-                    raise rdtest.TestFailureException(f"Test {test_name} view {view} did not debug at all")
 
                 cycles, variables = self.process_trace(trace)
                 output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)

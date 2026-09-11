@@ -51,9 +51,6 @@ class D3D12_Vertex_UAV(rdtest.TestCase):
 
                 # Debug the shader
                 trace = self.controller.DebugPixel(50, 50, rd.DebugPixelInputs())
-                if trace.debugger is None:
-                    raise rdtest.TestFailureException(f"Pixel shader at {name} could not be debugged.")
-                    self.controller.FreeTrace(trace)
 
                 cycles, variables = self.process_trace(trace)
 
