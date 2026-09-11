@@ -954,6 +954,11 @@ class TestCase:
         if validate:
             self.validate_trace(allChanges)
 
+        # Check for non-zero cycles, this is never expected - calling code should verify that
+        # debugging is supported etc
+        if cycles == 0:
+            raise TestFailureException("Shader debug cycle count was zero")
+
         return cycles, variables
 
     def get_sig_index(self, signature: List[rd.SigParameter], builtin: rd.ShaderBuiltin, reg_index: int = -1):

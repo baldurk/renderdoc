@@ -246,12 +246,6 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
                 threadid = (0,0,0)
                 trace = self.controller.DebugThread(groupid, threadid)
                 cycles, variables = self.process_trace(trace)
-                # Check for non-zero cycles
-                if cycles == 0:
-                    rdtest.log.error("Shader debug cycle count was zero")
-                    failed = True
-                    self.controller.FreeTrace(trace)
-                    continue
 
                 # Result is stored in RWStructuredBuffer<float4> bufOut : register(u0);
                 bufOut = pipe.GetReadWriteResources(rd.ShaderStage.Compute)[0].descriptor.resource
