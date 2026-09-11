@@ -64,6 +64,10 @@ class Iter_Test(rdtest.TestCase):
             rdtest.log.print(f"{action.eventId} is not a debuggable action")
             return
 
+        if not refl.debugInfo.debuggable:
+            rdtest.log.print(f"Compute shader is not debuggable at {action.eventId}")
+            return
+
         wgSize = action.dispatchDimension
         if any(dim == 0 for dim in wgSize):
             rdtest.log.print(f"Empty dispatch ({wgSize[0]}x{wgSize[1]}x{wgSize[2]}), skipping")
@@ -101,6 +105,10 @@ class Iter_Test(rdtest.TestCase):
 
         if pipe.GetShader(rd.ShaderStage.Vertex) == rd.ResourceId.Null():
             rdtest.log.print(f"No vertex shader bound at {action.eventId}")
+            return
+
+        if not refl.debugInfo.debuggable:
+            rdtest.log.print(f"Vertex shader is not debuggable at {action.eventId}")
             return
 
         if not (action.flags & rd.ActionFlags.Drawcall) and action.drawIndex == 0:
@@ -255,8 +263,13 @@ class Iter_Test(rdtest.TestCase):
 
             pipe = self.controller.GetPipelineState()
 
-            if pipe.GetShader(rd.ShaderStage.Pixel) == rd.ResourceId.Null():
+            refl = pipe.GetShaderReflection(rd.ShaderStage.Pixel)
+            if refl is None:
                 rdtest.log.print(f"Nothing to debug. No pixel shader bound at {action.eventId}")
+                return
+
+            if not refl.debugInfo.debuggable:
+                rdtest.log.print(f"Pixel shader is not debuggable at {action.eventId}")
                 return
 
             inputs = rd.DebugPixelInputs()

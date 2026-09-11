@@ -9,10 +9,6 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
     slow_test = True
 
     def check_capture(self):
-        if not self.controller.GetAPIProperties().shaderDebugging:
-            rdtest.log.success("Shader debugging not enabled, skipping test")
-            return
-
         failed = False
 
         for test_name in ["GLSL1 tests", "GLSL2 tests", "ASM tests"]:
@@ -22,10 +18,6 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
                 section = action.children[child]
                 self.set_event(section.eventId, False)
                 pipe = self.controller.GetPipelineState()
-
-                if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
-                    rdtest.log.print(f"Skipping undebuggable shader at {child} in {test_name}.")
-                    return
 
                 for test in range(section.numInstances):
                     x = 4 * test + 1
@@ -107,10 +99,6 @@ class VK_Shader_Debug_Zoo(rdtest.TestCase):
                 self.set_event(action.eventId, False)
                 pipe = self.controller.GetPipelineState()
                 csrefl = pipe.GetShaderReflection(rd.ShaderStage.Compute)
-                if not csrefl.debugInfo.debuggable:
-                    rdtest.log.print(f"Compute shader is undebuggable at {action.eventId} for {test}.")
-                    failed = True
-                    continue
 
                 rw = pipe.GetReadWriteResources(rd.ShaderStage.Compute)
                 if len(rw) != 1:

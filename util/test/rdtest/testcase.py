@@ -1158,9 +1158,6 @@ class TestCase:
 
     def check_debug_pixel(self, x: int, y: int):
         pipe = self.controller.GetPipelineState()
-        if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
-            log.print("Skipping undebuggable shader.")
-            return 
 
         # Debug the shader
         trace = self.controller.DebugPixel(x, y, rd.DebugPixelInputs())

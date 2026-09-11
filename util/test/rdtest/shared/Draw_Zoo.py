@@ -131,18 +131,15 @@ class Draw_Zoo(rdtest.TestCase):
 
             rdtest.log.success(f"Checked vertex out data in instance {inst}")
 
-            if self.props.shaderDebugging and refl.debugInfo.debuggable:
-                for vtx in range(num_verts):
-                    if vtx in restarts:
-                        continue
+            for vtx in range(num_verts):
+                if vtx in restarts:
+                    continue
 
-                    idx = vsout_ref[vtx]['idx']
+                idx = vsout_ref[vtx]['idx']
 
-                    assert isinstance(idx, int)
+                assert isinstance(idx, int)
 
-                    self.check_vertex_debug(vtx, idx, inst, postvs)
-            else:
-                rdtest.log.print('Not checking shader debugging, unsupported')
+                self.check_vertex_debug(vtx, idx, inst, postvs)
 
             for vert, coord in enumerate(ref_data.pixels[inst]):
                 if coord[0] == 0 and coord[1] == 0:

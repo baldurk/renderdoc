@@ -120,40 +120,38 @@ class Buffer_Truncation(rdtest.TestCase):
         if not rdtest.value_compare(outcol.value.f32v[0:4], [0.0, 0.0, 0.0, 0.0]):
             raise rdtest.TestFailureException(f"expected outcol to be 0s, but got {outcol.value.f32v[0:4]}")
 
-        if self.controller.GetAPIProperties().shaderDebugging and pipe.GetShaderReflection(
-                rd.ShaderStage.Pixel).debugInfo.debuggable:
-            # Debug the shader
-            trace = self.controller.DebugPixel(
-                int(pipe.GetViewport(0).width / 2),
-                int(pipe.GetViewport(0).height / 2),
-                rd.DebugPixelInputs(),
-            )
+        # Debug the shader
+        trace = self.controller.DebugPixel(
+            int(pipe.GetViewport(0).width / 2),
+            int(pipe.GetViewport(0).height / 2),
+            rd.DebugPixelInputs(),
+        )
 
-            cycles, variables = self.process_trace(trace)
+        cycles, variables = self.process_trace(trace)
 
-            cbuf_sourceVars = [s for s in trace.sourceVars if s.variables[0].type == rd.DebugVariableType.Constant and s.rows > 0]
+        cbuf_sourceVars = [s for s in trace.sourceVars if s.variables[0].type == rd.DebugVariableType.Constant and s.rows > 0]
 
-            # Vulkan style, one source var for the cbuffer
-            if len(cbuf_sourceVars) == 1:
-                debugged_cb = trace.constantBlocks[0]
+        # Vulkan style, one source var for the cbuffer
+        if len(cbuf_sourceVars) == 1:
+            debugged_cb = trace.constantBlocks[0]
 
-                assert debugged_cb.members[0].name == 'padding'
-                assert debugged_cb.members[1].name == 'outcol'
+            assert debugged_cb.members[0].name == 'padding'
+            assert debugged_cb.members[1].name == 'outcol'
 
-                if not rdtest.value_compare(debugged_cb.members[1].value.f32v[0:4], [0.0, 0.0, 0.0, 0.0]):
-                    raise rdtest.TestFailureException(f"expected outcol to be 0s, but got {debugged_cb.members[1].value.f32v[0:4]}")
-            # D3D style, one source var for each member mapping to a register
-            elif len(cbuf_sourceVars) == 17:
-                debugged_cb = trace.constantBlocks[0].members[16]
+            if not rdtest.value_compare(debugged_cb.members[1].value.f32v[0:4], [0.0, 0.0, 0.0, 0.0]):
+                raise rdtest.TestFailureException(f"expected outcol to be 0s, but got {debugged_cb.members[1].value.f32v[0:4]}")
+        # D3D style, one source var for each member mapping to a register
+        elif len(cbuf_sourceVars) == 17:
+            debugged_cb = trace.constantBlocks[0].members[16]
 
-                assert all(['consts.padding[' in c.name for c in cbuf_sourceVars[0:16]])
-                assert cbuf_sourceVars[16].name == 'consts.outcol'
+            assert all(['consts.padding[' in c.name for c in cbuf_sourceVars[0:16]])
+            assert cbuf_sourceVars[16].name == 'consts.outcol'
 
-                assert cbuf_sourceVars[16].variables[0].name == 'cb0[16]' or cbuf_sourceVars[16].variables[0].name == 'consts[16]'
+            assert cbuf_sourceVars[16].variables[0].name == 'cb0[16]' or cbuf_sourceVars[16].variables[0].name == 'consts[16]'
 
-                if not rdtest.value_compare(debugged_cb.value.f32v[0:4], [0.0, 0.0, 0.0, 0.0]):
-                    raise rdtest.TestFailureException(f"expected outcol to be 0s, but got {debugged_cb.members[1].value.f32v[0:4]}")
-            else:
-                raise rdtest.TestFailureException(f"Unexpected number of constant buffer source vars {len(cbuf_sourceVars)}")
+            if not rdtest.value_compare(debugged_cb.value.f32v[0:4], [0.0, 0.0, 0.0, 0.0]):
+                raise rdtest.TestFailureException(f"expected outcol to be 0s, but got {debugged_cb.members[1].value.f32v[0:4]}")
+        else:
+            raise rdtest.TestFailureException(f"Unexpected number of constant buffer source vars {len(cbuf_sourceVars)}")
 
         rdtest.log.success("CBuffer value was truncated as expected")

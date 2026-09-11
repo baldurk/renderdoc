@@ -31,10 +31,6 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
                 self.set_event(action.eventId, False)
                 pipe = self.controller.GetPipelineState()
                 csrefl = pipe.GetShaderReflection(rd.ShaderStage.Compute)
-                if not csrefl.debugInfo.debuggable:
-                    rdtest.log.print(f"Compute shader is undebuggable at {action.eventId} for {test}.")
-                    failed = True
-                    continue
 
                 rw = pipe.GetReadWriteResources(rd.ShaderStage.Compute)
                 if len(rw) != 1:
@@ -103,10 +99,6 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
         return failed
 
     def check_capture(self):
-        if not self.controller.GetAPIProperties().shaderDebugging:
-            rdtest.log.success("Shader debugging not enabled, skipping test")
-            return
-
         undefined_tests = [int(test) for test in self.find_action("Undefined tests: ").customName.split(" ")[2:]]
 
         failed = False
@@ -138,22 +130,15 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
 
                     pipe = self.controller.GetPipelineState()
 
-                    if pipe.GetShaderReflection(rd.ShaderStage.Vertex).debugInfo.debuggable:
-                        postvs = self.get_postvs(action, rd.MeshDataStage.VSOut, instance=instId)
+                    postvs = self.get_postvs(action, rd.MeshDataStage.VSOut, instance=instId)
 
-                        success, err = self.check_vertex_debug(0, 0, instId, postvs, fatal=False)
-                        if not success:
-                            failed = True
-                            rdtest.log.error(f"Basic VS debugging didn't match: {err}")
-                            continue
-                        else:
-                            rdtest.log.success("Basic VS debugging was successful")
-                    else:
-                        rdtest.log.print(f"Ignoring undebuggable Vertex shader at {action.eventId} for {shaderModels[sm]}.")
-
-                    if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
-                        rdtest.log.print(f"Skipping undebuggable Pixel shader at {action.eventId} for {shaderModels[sm]}.")
+                    success, err = self.check_vertex_debug(0, 0, instId, postvs, fatal=False)
+                    if not success:
+                        failed = True
+                        rdtest.log.error(f"Basic VS debugging didn't match: {err}")
                         continue
+                    else:
+                        rdtest.log.success("Basic VS debugging was successful")
 
                     # Loop over every test
                     for test in range(action.numInstances):
@@ -243,40 +228,34 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
             self.set_event(action.eventId, False)
             pipe = self.controller.GetPipelineState()
 
-            if pipe.GetShaderReflection(rd.ShaderStage.Vertex).debugInfo.debuggable:
-                # Debug the vertex shader
-                success, err = self.check_vertex_debug(0, 0, 0, self.get_postvs(action, rd.MeshDataStage.VSOut), fatal=False)
-                if not success:
-                    failed = True
-                    rdtest.log.error(
-                        f"{shaderModels[sm]} Vertex shader failed: {err}")
-                    continue
-                else:
-                    rdtest.log.success(shaderModels[sm] + " VertexSample VS was debugged correctly")
+            # Debug the vertex shader
+            success, err = self.check_vertex_debug(0, 0, 0, self.get_postvs(action, rd.MeshDataStage.VSOut), fatal=False)
+            if not success:
+                failed = True
+                rdtest.log.error(
+                    f"{shaderModels[sm]} Vertex shader failed: {err}")
+                continue
             else:
-                rdtest.log.print(f"Skipping undebuggable Vertex shader at {action.eventId} for {shaderModels[sm]}.")
+                rdtest.log.success(shaderModels[sm] + " VertexSample VS was debugged correctly")
 
-            if pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
-                # Debug the pixel shader
-                inputs = rd.DebugPixelInputs()
-                inputs.sample = 0
-                trace = self.controller.DebugPixel(51, 51, inputs)
-                cycles, variables = self.process_trace(trace)
-                output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
-                assert output is not None
-                debugged = self.evaluate_source_var(output, variables)
-                self.controller.FreeTrace(trace)
+            # Debug the pixel shader
+            inputs = rd.DebugPixelInputs()
+            inputs.sample = 0
+            trace = self.controller.DebugPixel(51, 51, inputs)
+            cycles, variables = self.process_trace(trace)
+            output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+            assert output is not None
+            debugged = self.evaluate_source_var(output, variables)
+            self.controller.FreeTrace(trace)
 
-                # Validate the debug output result
-                try:
-                    self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 51, 51, debugged.value.f32v[0:4])
-                except rdtest.TestFailureException as ex:
-                    failed = True
-                    rdtest.log.error(f"Vertex sample pixel shader output did not match. {ex!s}")
+            # Validate the debug output result
+            try:
+                self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 51, 51, debugged.value.f32v[0:4])
+            except rdtest.TestFailureException as ex:
+                failed = True
+                rdtest.log.error(f"Vertex sample pixel shader output did not match. {ex!s}")
 
-                rdtest.log.success("VertexSample PS was debugged correctly")
-            else:
-                rdtest.log.print(f"Skipping undebuggable Pixel shader at {action.eventId} for {shaderModels[sm]}.")
+            rdtest.log.success("VertexSample PS was debugged correctly")
 
         rdtest.log.end_section("VertexSample tests")
 
@@ -326,10 +305,6 @@ class D3D12_Shader_Debug_Zoo(rdtest.TestCase):
             action = test_marker.nextAction
             self.set_event(action.eventId, False)
             pipe = self.controller.GetPipelineState()
-            if not pipe.GetShaderReflection(rd.ShaderStage.Compute).debugInfo.debuggable:
-                rdtest.log.print(f"Skipping undebuggable Compute shader at {action.eventId} for {csShaderModels[sm]}.")
-                rdtest.log.end_section(section)
-                continue
 
             # Debug the shader
             for groupX in range(action.dispatchDimension[0]):

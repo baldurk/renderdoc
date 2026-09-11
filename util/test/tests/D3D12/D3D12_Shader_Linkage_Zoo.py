@@ -6,10 +6,6 @@ class D3D12_Shader_Linkage_Zoo(rdtest.TestCase):
     demos_test_name = 'D3D12_Shader_Linkage_Zoo'
 
     def check_capture(self):
-        if not self.controller.GetAPIProperties().shaderDebugging:
-            rdtest.log.success("Shader debugging not enabled, skipping test")
-            return
-
         failed = False
 
         test_marker = self.find_action("draw")
@@ -20,10 +16,6 @@ class D3D12_Shader_Linkage_Zoo(rdtest.TestCase):
 
             self.set_event(action.eventId, False)
             pipe = self.controller.GetPipelineState()
-
-            if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
-                rdtest.log.print(f"Skipping undebuggable shader at {event_name}.")
-                continue
 
             # Debug the shader
             trace = self.controller.DebugPixel(200, 150, rd.DebugPixelInputs())

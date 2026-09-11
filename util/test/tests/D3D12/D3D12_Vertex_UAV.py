@@ -45,10 +45,6 @@ class D3D12_Vertex_UAV(rdtest.TestCase):
 
                 rdtest.log.success(f"Quad overdraw is good on {name}")
 
-                if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
-                    rdtest.log.print("Skipping undebuggable shader.")
-                    continue
-
                 # Debug the shader
                 trace = self.controller.DebugPixel(50, 50, rd.DebugPixelInputs())
 

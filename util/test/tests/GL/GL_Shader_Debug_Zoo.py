@@ -8,9 +8,6 @@ class GL_Shader_Debug_Zoo(rdtest.TestCase):
 
     def check_capture(self):
         assert self.controller is not None
-        if not self.controller.GetAPIProperties().shaderDebugging:
-            rdtest.log.success("Shader debugging not enabled, skipping test")
-            return
 
         failed = False
 
@@ -28,14 +25,6 @@ class GL_Shader_Debug_Zoo(rdtest.TestCase):
 
                 self.set_event(action.eventId, False)
                 pipe = self.controller.GetPipelineState()
-
-                if not pipe.GetShaderReflection(rd.ShaderStage.Vertex).debugInfo.debuggable:
-                    rdtest.log.print(f"Skipping undebuggable shader at {test} in {child}.")
-                    return
-
-                if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
-                    rdtest.log.print(f"Skipping undebuggable shader at {test} in {child}.")
-                    return
 
                 y = 1
 

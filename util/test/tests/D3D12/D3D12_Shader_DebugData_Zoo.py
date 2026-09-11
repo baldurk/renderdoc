@@ -74,10 +74,6 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
         return varsToCheck
 
     def check_capture(self):
-        if not self.controller.GetAPIProperties().shaderDebugging:
-            rdtest.log.success("Shader debugging not enabled, skipping test")
-            return
-
         failed = False
 
         shaderModels = [
@@ -97,58 +93,49 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
 
             pipe = self.controller.GetPipelineState()
 
-            if pipe.GetShaderReflection(rd.ShaderStage.Vertex).debugInfo.debuggable:
-                # Debug the vertex shader
-                instId = 1
-                with self.debug_vertex(0, instId, 0, 0) as debug:
-                    cycles, variables = self.process_trace(debug.trace)
-                    output = self.find_output_source_var(debug.trace, rd.ShaderBuiltin.Undefined, 1)
-                    assert output is not None
-                    debugged = self.evaluate_source_var(output, variables)
-                    actual = debugged.value.u32v[0]
-                    expected = instId
-                    if not rdtest.value_compare(actual, expected):
+            # Debug the vertex shader
+            instId = 1
+            with self.debug_vertex(0, instId, 0, 0) as debug:
+                cycles, variables = self.process_trace(debug.trace)
+                output = self.find_output_source_var(debug.trace, rd.ShaderBuiltin.Undefined, 1)
+                assert output is not None
+                debugged = self.evaluate_source_var(output, variables)
+                actual = debugged.value.u32v[0]
+                expected = instId
+                if not rdtest.value_compare(actual, expected):
+                    failed = True
+                    rdtest.log.error(
+                        f"Vertex shader TRIANGLE output did not match expectation {actual} != {expected}")
+
+                if not failed:
+                    rdtest.log.success("Basic VS debugging was successful")
+
+                # Look for MAT0 variable in the trace initial source variables
+                matched = True
+                varsToCheck: List[Tuple[str, str, rdtest.ScalarOrVectorValue]] = []
+                varsToCheck.append((f"MAT0[0]", "float4", [1.0, 2.0, 3.0, 4.0]))
+                varsToCheck.append((f"MAT0[1]", "float4", [5.0, 6.0, 7.0, 8.0]))
+                varsToCheck.append((f"MAT0[2]", "float4", [9.0, 10.0, 11.0, 12.0]))
+                for name, varType, expectedValue in varsToCheck:
+                    debuggedValue = None
+                    try:
+                        debuggedValue = self.get_source_shader_var_value(debug.trace.sourceVars, name, varType, variables)
+                    except KeyError as ex:
+                        matched = False
                         failed = True
-                        rdtest.log.error(
-                            f"Vertex shader TRIANGLE output did not match expectation {actual} != {expected}")
+                    except rdtest.TestFailureException as ex:
+                        matched = False
+                        failed = True
 
-                    if not failed:
-                        rdtest.log.success("Basic VS debugging was successful")
+                    if debuggedValue is None:
+                        raise rdtest.TestFailureException(f"Couldn't find source variable {name} type:{varType}")
+                    if not rdtest.value_compare(expectedValue, debuggedValue):
+                        matched = False
+                        failed = True
+                        rdtest.log.error(f"'{name}' {varType} debugger {debuggedValue} doesn't match expected {expectedValue}")
 
-                    # Look for MAT0 variable in the trace initial source variables
-                    matched = True
-                    varsToCheck: List[Tuple[str, str, rdtest.ScalarOrVectorValue]] = []
-                    varsToCheck.append((f"MAT0[0]", "float4", [1.0, 2.0, 3.0, 4.0]))
-                    varsToCheck.append((f"MAT0[1]", "float4", [5.0, 6.0, 7.0, 8.0]))
-                    varsToCheck.append((f"MAT0[2]", "float4", [9.0, 10.0, 11.0, 12.0]))
-                    for name, varType, expectedValue in varsToCheck:
-                        debuggedValue = None
-                        try:
-                            debuggedValue = self.get_source_shader_var_value(debug.trace.sourceVars, name, varType, variables)
-                        except KeyError as ex:
-                            matched = False
-                            failed = True
-                        except rdtest.TestFailureException as ex:
-                            matched = False
-                            failed = True
-
-                        if debuggedValue is None:
-                            raise rdtest.TestFailureException(f"Couldn't find source variable {name} type:{varType}")
-                        if not rdtest.value_compare(expectedValue, debuggedValue):
-                            matched = False
-                            failed = True
-                            rdtest.log.error(f"'{name}' {varType} debugger {debuggedValue} doesn't match expected {expectedValue}")
-
-                    if matched:
-                        rdtest.log.success("VS MAT0 output source variable matched as expected")
-
-            else:
-                rdtest.log.print(f"Ignoring undebuggable Vertex shader at {action.eventId} for {shaderModels[sm]}.")
-
-            if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
-                rdtest.log.print(f"Skipping undebuggable Pixel shader at {action.eventId} for {shaderModels[sm]}.")
-                rdtest.log.end_section(shaderModels[sm] + " tests")
-                continue
+                if matched:
+                    rdtest.log.success("VS MAT0 output source variable matched as expected")
 
             # Loop over every test
             for test in range(action.numInstances):
@@ -251,10 +238,6 @@ class D3D12_Shader_DebugData_Zoo(rdtest.TestCase):
             action = test_marker.nextAction
             self.set_event(action.eventId, False)
             pipe = self.controller.GetPipelineState()
-            if not pipe.GetShaderReflection(rd.ShaderStage.Compute).debugInfo.debuggable:
-                rdtest.log.print(f"Skipping undebuggable Compute shader at {action.eventId} for {csShaderModels[sm]}.")
-                rdtest.log.end_section(section)
-                continue
 
             # Loop over every test
             for test in range(action.dispatchDimension[0]):

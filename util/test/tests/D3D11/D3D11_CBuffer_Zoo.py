@@ -34,55 +34,53 @@ class D3D11_CBuffer_Zoo(rdtest.TestCase):
 
         rdtest.log.success("CBuffer variables are as expected")
 
-        if self.controller.GetAPIProperties().shaderDebugging and pipe.GetShaderReflection(
-                rd.ShaderStage.Pixel).debugInfo.debuggable:
-            trace = self.controller.DebugPixel(
-                int(pipe.GetViewport(0).width / 2.0),
-                int(pipe.GetViewport(0).height / 2.0),
-                rd.DebugPixelInputs(),
-            )
+        trace = self.controller.DebugPixel(
+            int(pipe.GetViewport(0).width / 2.0),
+            int(pipe.GetViewport(0).height / 2.0),
+            rd.DebugPixelInputs(),
+        )
 
-            debugVars: Dict[str, rd.ShaderVariable] = dict()
+        debugVars: Dict[str, rd.ShaderVariable] = dict()
 
-            for base in trace.constantBlocks:
-                for var in base.members:
-                    debugVars[base.name + var.name] = var
+        for base in trace.constantBlocks:
+            for var in base.members:
+                debugVars[base.name + var.name] = var
 
-            cbufferVars: List[rd.ShaderVariable] = []
+        cbufferVars: List[rd.ShaderVariable] = []
 
-            for sourceVar in trace.sourceVars:
-                if sourceVar.variables[0].name not in debugVars.keys():
-                    continue
+        for sourceVar in trace.sourceVars:
+            if sourceVar.variables[0].name not in debugVars.keys():
+                continue
 
-                eval = self.evaluate_source_var(sourceVar, debugVars)
-                cbufferVars.append(eval)
+            eval = self.evaluate_source_var(sourceVar, debugVars)
+            cbufferVars.append(eval)
 
-            cbufferVars = self.combine_source_vars(cbufferVars)
+        cbufferVars = self.combine_source_vars(cbufferVars)
 
-            assert len(cbufferVars) == 2
-            assert cbufferVars[0].name == 'consts'
-            assert cbufferVars[1].name == 'packed_consts'
-            var_check = rdtest.ConstantBufferChecker(cbufferVars[0].members)
-            packed_check = rdtest.ConstantBufferChecker(cbufferVars[1].members)
-            self.check_cbuffer(var_check, packed_check)
+        assert len(cbufferVars) == 2
+        assert cbufferVars[0].name == 'consts'
+        assert cbufferVars[1].name == 'packed_consts'
+        var_check = rdtest.ConstantBufferChecker(cbufferVars[0].members)
+        packed_check = rdtest.ConstantBufferChecker(cbufferVars[1].members)
+        self.check_cbuffer(var_check, packed_check)
 
-            rdtest.log.success("Debugged CBuffer variables are as expected")
+        rdtest.log.success("Debugged CBuffer variables are as expected")
 
-            cycles, variables = self.process_trace(trace)
+        cycles, variables = self.process_trace(trace)
 
-            output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
+        output = self.find_output_source_var(trace, rd.ShaderBuiltin.ColorOutput, 0)
 
-            assert output is not None
+        assert output is not None
 
-            debugged = self.evaluate_source_var(output, variables)
+        debugged = self.evaluate_source_var(output, variables)
 
-            if not rdtest.util.value_compare(debugged.value.f32v[0:4], [542.1, 543.0, 544.0, 545.0]):
-                raise rdtest.TestFailureException(
-                    f"Debugged output {debugged.value.f32v[0:4]} did not match expected {[542.1, 543.0, 544.0, 545.0]}")
+        if not rdtest.util.value_compare(debugged.value.f32v[0:4], [542.1, 543.0, 544.0, 545.0]):
+            raise rdtest.TestFailureException(
+                f"Debugged output {debugged.value.f32v[0:4]} did not match expected {[542.1, 543.0, 544.0, 545.0]}")
 
-            rdtest.log.success("Debugged output matched as expected")
+        rdtest.log.success("Debugged output matched as expected")
 
-            self.controller.FreeTrace(trace)
+        self.controller.FreeTrace(trace)
 
         self.check_pixel_value(pipe.GetOutputTargets()[0].resource, 0.5, 0.5, [542.1, 543.0, 544.0, 545.0])
 

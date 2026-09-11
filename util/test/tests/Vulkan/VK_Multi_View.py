@@ -5,10 +5,6 @@ class VK_Multi_View(rdtest.TestCase):
     demos_test_name = 'VK_Multi_View'
 
     def check_capture(self):
-        if not self.controller.GetAPIProperties().shaderDebugging:
-            rdtest.log.success("Shader debugging not enabled, skipping test")
-            return
-
         x = 200
         y = 150
 
@@ -22,8 +18,6 @@ class VK_Multi_View(rdtest.TestCase):
             self.set_event(action.eventId, True)
 
             pipe = self.controller.GetPipelineState()
-            if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
-                raise rdtest.TestFailureException(f"Test {test_name} shader can not be debugged")
 
             for view in range(2):
                 # Debug the pixel shader
@@ -57,8 +51,6 @@ class VK_Multi_View(rdtest.TestCase):
             self.set_event(action.eventId, True)
 
             pipe = self.controller.GetPipelineState()
-            if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
-                raise rdtest.TestFailureException(f"Test {test_name} shader can not be debugged")
 
             for view in range(2):
                 if view == 0:

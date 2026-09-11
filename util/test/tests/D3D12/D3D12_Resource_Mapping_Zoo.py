@@ -8,10 +8,6 @@ class D3D12_Resource_Mapping_Zoo(rdtest.TestCase):
     def test_debug_pixel(self, x: int, y: int, test_name: str):
         pipe = self.controller.GetPipelineState()
 
-        if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
-            rdtest.log.print(f"Skipping undebuggable shader at {test_name}.")
-            return True
-
         # Debug the shader
         trace = self.controller.DebugPixel(x, y, rd.DebugPixelInputs())
 
@@ -35,9 +31,6 @@ class D3D12_Resource_Mapping_Zoo(rdtest.TestCase):
         return True
 
     def check_capture(self):
-        if not self.controller.GetAPIProperties().shaderDebugging:
-            rdtest.log.success("Shader debugging not enabled, skipping test")
-            return
         if not self.check_capture_internal():
             raise rdtest.TestFailureException("Some tests were not as expected")
 

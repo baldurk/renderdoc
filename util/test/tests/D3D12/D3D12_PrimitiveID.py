@@ -18,10 +18,6 @@ class D3D12_PrimitiveID(rdtest.TestCase):
         self.set_event(action.eventId, True)
         pipe = self.controller.GetPipelineState()
 
-        if not pipe.GetShaderReflection(rd.ShaderStage.Pixel).debugInfo.debuggable:
-            rdtest.log.print(f"Skipping undebuggable shader at {action.eventId}.")
-            return True
-
         pixel_inputs = rd.DebugPixelInputs()
         pixel_inputs.primitive = prim
         trace = self.controller.DebugPixel(x, y, pixel_inputs)
@@ -70,10 +66,6 @@ class D3D12_PrimitiveID(rdtest.TestCase):
         return True
 
     def check_capture(self):
-        if not self.controller.GetAPIProperties().shaderDebugging:
-            rdtest.log.success("Shader debugging not enabled, skipping test")
-            return
-
         success = True
 
         markers = ["SM5.0", "SM6.0"]

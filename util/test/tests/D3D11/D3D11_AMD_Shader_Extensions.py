@@ -80,17 +80,13 @@ class D3D11_AMD_Shader_Extensions(rdtest.TestCase):
 
         rdtest.log.success("compute shader disassembly is as expected")
 
-        if refl.debugInfo.debuggable:
-            self.set_event(self.find_action("Dispatch").eventId, False)
+        self.set_event(self.find_action("Dispatch").eventId, False)
 
-            trace = self.controller.DebugThread((0, 0, 0), (0, 0, 0))
+        trace = self.controller.DebugThread((0, 0, 0), (0, 0, 0))
 
-            cycles, variables = self.process_trace(trace)
+        cycles, variables = self.process_trace(trace)
 
-            if cycles < 3:
-                raise rdtest.TestFailureException(f"Compute shader has too few cycles {cycles}")
-        else:
-            raise rdtest.TestFailureException(
-                f"Compute shader is listed as non-debuggable: {refl.debugInfo.debugStatus}")
+        if cycles < 3:
+            raise rdtest.TestFailureException(f"Compute shader has too few cycles {cycles}")
 
         rdtest.log.success("compute shader debugged successfully")
