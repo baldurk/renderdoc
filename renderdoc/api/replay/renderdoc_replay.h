@@ -2042,8 +2042,8 @@ This function will block until a remote connection tells the server to shut down
   Callback function signature must match :func:`PreviewWindowCallback`.
 )");
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(
-    const rdcstr &listenhost, uint16_t port, RENDERDOC_KillCallback killReplay,
-    RENDERDOC_PreviewWindowCallback previewWindow);
+    const rdcstr &listenhost, uint16_t port, RENDERDOC_KillCallback killReplay = NULL,
+    RENDERDOC_PreviewWindowCallback previewWindow = NULL);
 
 //////////////////////////////////////////////////////////////////////////
 // Injection/execution capture functions.

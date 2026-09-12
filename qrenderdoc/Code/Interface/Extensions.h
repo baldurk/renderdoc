@@ -682,7 +682,7 @@ added anywhere.
 :param QWidget layout: The layout widget.
 :param int spacing: The spacing in pixels to use between items
 )");
-  virtual void SetLayoutSpacing(QWidget *layout, int spacing) = 0;
+  virtual void SetLayoutSpacing(QWidget *layout, int32_t spacing) = 0;
 
   DOCUMENT(R"(Set the external margins on the outside of all of the items in the layout. If
 the widget is not a layout (either grid or horizontal/vertical) this call will have no effect.
@@ -691,7 +691,7 @@ the widget is not a layout (either grid or horizontal/vertical) this call will h
 :param int horizontal: The horizontal margins on the left and right.
 :param int vertical: The vertical margins on the top and bottom.
 )");
-  virtual void SetLayoutMargins(QWidget *layout, int horizontal, int vertical) = 0;
+  virtual void SetLayoutMargins(QWidget *layout, int32_t horizontal, int32_t vertical) = 0;
 
   // widget manipulation
 
