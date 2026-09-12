@@ -108,6 +108,12 @@ def process_annotation(context: Any, deps: Optional[List[str]], annot: str) -> s
 
     callable = annot.startswith("Callable") or annot.startswith("typing.Callable")
 
+    eval_annot = annot
+    if callable:
+        eval_annot = eval_annot.replace("NoneType", "None")
+        # TypeVars will get printed as ~Type
+        eval_annot = eval_annot.replace("~", "")
+
     # use non-eval path if possible, only available on python 3.14 though :(
     # we make a locals set from the module, and add top-level imported modules
     # so that e.g. datetime.datetime can be found
@@ -118,7 +124,7 @@ def process_annotation(context: Any, deps: Optional[List[str]], annot: str) -> s
             from typing import ForwardRef, evaluate_forward_ref  # type: ignore
 
             dep_type = evaluate_forward_ref(
-                ForwardRef(annot), globals=globals(), locals=locals
+                ForwardRef(eval_annot), globals=globals(), locals=locals
             )
             break
         # if we hit a NameError this is a type that is otherwise unknown,
@@ -131,11 +137,6 @@ def process_annotation(context: Any, deps: Optional[List[str]], annot: str) -> s
         # if the import failed, we have to use eval()
         except ImportError:
             try:
-                eval_annot = annot
-                if callable:
-                    eval_annot = eval_annot.replace("NoneType", "None")
-                    # TypeVars will get printed as ~Type
-                    eval_annot = eval_annot.replace("~", "")
                 dep_type = eval(eval_annot, globals(), locals)
                 break
             except NameError as n:
