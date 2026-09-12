@@ -381,12 +381,12 @@ def run_tests(test_include: str, test_exclude: str, debugger: bool, parallel: in
         runcases.append((testclass, name, instance))
 
     def test_runner(thread: int):
-        if parallel:
-            tests_to_run = [runcases[i] for i in range(thread, len(runcases), parallel)]
-        else:
-            tests_to_run = runcases
+        while True:
+            try:
+                testclass, name, instance = runcases.pop()
+            except IndexError:
+                break
 
-        for testclass, name, instance in tests_to_run:
             output_buf: List[str] | None = []
 
             # Print header (and footer) outside the exec so we know they will always be printed successfully
