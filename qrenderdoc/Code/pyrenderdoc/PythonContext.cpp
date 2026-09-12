@@ -405,7 +405,10 @@ void PythonContext::GenerateStubs(const rdcarray<rdcstr> &extraPaths)
     PyObject *retval = PyObject_CallObject(gen, args);
 
     if(!retval)
+    {
       qCritical() << "Didn't generate renderdoc stubs";
+      HandleException(NULL);
+    }
 
     Py_XDECREF(retval);
     Py_XDECREF(args);
@@ -415,7 +418,10 @@ void PythonContext::GenerateStubs(const rdcarray<rdcstr> &extraPaths)
     retval = PyObject_CallObject(gen, args);
 
     if(!retval)
+    {
       qCritical() << "Didn't generate qrenderdoc stubs";
+      HandleException(NULL);
+    }
 
     Py_XDECREF(retval);
     Py_XDECREF(args);
