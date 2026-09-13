@@ -92,18 +92,16 @@ struct AllocatedImage
   void free();
 };
 
-#define CHECK_VKR(cmd)                                                               \
-  do                                                                                 \
-  {                                                                                  \
-    VkResult _vkr = cmd;                                                             \
-    if(_vkr != VK_SUCCESS)                                                           \
-    {                                                                                \
-      fprintf(stdout, "%s:%d Vulkan Error: %s executing:\n%s\n", __FILE__, __LINE__, \
-              vkh::result_str(_vkr), #cmd);                                          \
-      fflush(stdout);                                                                \
-      DEBUG_BREAK();                                                                 \
-      exit(1);                                                                       \
-    }                                                                                \
+#define CHECK_VKR(cmd)                                                          \
+  do                                                                            \
+  {                                                                             \
+    VkResult _vkr = cmd;                                                        \
+    if(_vkr != VK_SUCCESS)                                                      \
+    {                                                                           \
+      TEST_ERROR("%s:%d Vulkan Error: %s executing:\n%s\n", __FILE__, __LINE__, \
+                 vkh::result_str(_vkr), #cmd);                                  \
+      exit(1);                                                                  \
+    }                                                                           \
   } while(0);
 
 struct VulkanGraphicsTest;
