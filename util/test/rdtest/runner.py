@@ -429,6 +429,8 @@ def run_tests(test_include: str, test_exclude: str, debugger: bool, parallel: in
             if not parallel:
                 log.end_test(name)
 
+    total = len(runcases)
+
     if not parallel:
         test_runner(-1)
     else:
@@ -457,7 +459,7 @@ def run_tests(test_include: str, test_exclude: str, debugger: bool, parallel: in
         log.inline_file(f"{'Host' if server is not None else ''} RenderDoc log", logfile)
 
     log.comment(f"total={len(testcases)} fail={len(failedcases)} skip={len(skippedcases)} time={int(duration.total_seconds())}")
-    log.header(f"Tests complete summary: {len(runcases) - len(failedcases)} passed out of {len(runcases)} run from {len(testcases)} total in {duration}")
+    log.header(f"Tests complete summary: {total - len(failedcases)} passed out of {total} run from {len(testcases)} total in {duration}")
     if len(failedcases) > 0:
         log.print("Failed tests:")
     for testclass in failedcases:
