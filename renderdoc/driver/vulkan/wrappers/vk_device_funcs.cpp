@@ -46,7 +46,7 @@ RDOC_CONFIG(bool, Vulkan_Debug_EnableGPUVA, false,
 // capture and replay, and the safer default is not to replay as if we were the original app but
 // with a slightly different workload. So instead we trample what the app reported and put in our
 // own info.
-static VkApplicationInfo renderdocAppInfo = {
+const static VkApplicationInfo renderdocAppInfo = {
     VK_STRUCTURE_TYPE_APPLICATION_INFO,
     NULL,
     "RenderDoc Capturing App",
@@ -439,30 +439,33 @@ RDResult WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVersion
   for(size_t i = 0; i < params.Extensions.size(); i++)
     extscstr[i] = params.Extensions[i].c_str();
 
+  VkApplicationInfo appinfo = renderdocAppInfo;
+
   VkInstanceCreateInfo instinfo = {
       VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
       instNext,
       0,
-      &renderdocAppInfo,
+      &appinfo,
       (uint32_t)params.Layers.size(),
       layerscstr,
       (uint32_t)params.Extensions.size(),
       extscstr,
   };
 
-  if(params.APIVersion >= VK_API_VERSION_1_0)
-    renderdocAppInfo.apiVersion = params.APIVersion;
+  // Always overwrite the apiVersion with the one from the capture
+  if(params.APIVersion > VK_API_VERSION_1_0)
+    appinfo.apiVersion = params.APIVersion;
 
-  m_EnabledExtensions.vulkanVersion = renderdocAppInfo.apiVersion;
+  m_EnabledExtensions.vulkanVersion = appinfo.apiVersion;
 
   if(!Vulkan_Debug_ReplaceAppInfo())
   {
-    // if we're not replacing the app info, set renderdocAppInfo's parameters to the ones from the
-    // capture
-    renderdocAppInfo.pEngineName = params.EngineName.c_str();
-    renderdocAppInfo.engineVersion = params.EngineVersion;
-    renderdocAppInfo.pApplicationName = params.AppName.c_str();
-    renderdocAppInfo.applicationVersion = params.AppVersion;
+    // if we're not replacing the app info, set the parameters to the ones from
+    // the capture
+    appinfo.pEngineName = params.EngineName.c_str();
+    appinfo.engineVersion = params.EngineVersion;
+    appinfo.pApplicationName = params.AppName.c_str();
+    appinfo.applicationVersion = params.AppVersion;
   }
 
   m_Instance = VK_NULL_HANDLE;
@@ -470,10 +473,11 @@ RDResult WrappedVulkan::Initialise(VkInitParams &params, uint64_t sectionVersion
   VkResult ret = GetInstanceDispatchTable(NULL)->CreateInstance(&instinfo, NULL, &m_Instance);
 
 #undef CheckExt
-#define CheckExt(name, ver)                                                                           \
-  if(!strcmp(instinfo.ppEnabledExtensionNames[i], "VK_" #name) || renderdocAppInfo.apiVersion >= ver) \
-  {                                                                                                   \
-    m_EnabledExtensions.ext_##name = true;                                                            \
+#define CheckExt(name, ver)                                       \
+  if(!strcmp(instinfo.ppEnabledExtensionNames[i], "VK_" #name) || \
+     m_EnabledExtensions.vulkanVersion >= ver)                    \
+  {                                                               \
+    m_EnabledExtensions.ext_##name = true;                        \
   }
 
   for(uint32_t i = 0; i < instinfo.enabledExtensionCount; i++)
@@ -800,19 +804,19 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
   bool brokenGetDeviceProcAddr = false;
 
   // override applicationInfo with RenderDoc's, but preserve apiVersion
+  VkApplicationInfo modifiedAppInfo = renderdocAppInfo;
+
   if(modifiedCreateInfo.pApplicationInfo)
   {
     if(modifiedCreateInfo.pApplicationInfo->pEngineName &&
        strlower(modifiedCreateInfo.pApplicationInfo->pEngineName) == "idtech")
       brokenGetDeviceProcAddr = true;
 
-    if(modifiedCreateInfo.pApplicationInfo->apiVersion >= VK_API_VERSION_1_0)
-      renderdocAppInfo.apiVersion = modifiedCreateInfo.pApplicationInfo->apiVersion;
+    if(modifiedCreateInfo.pApplicationInfo->apiVersion > VK_API_VERSION_1_0)
+      modifiedAppInfo.apiVersion = modifiedCreateInfo.pApplicationInfo->apiVersion;
 
     if(Vulkan_Debug_ReplaceAppInfo())
-    {
-      modifiedCreateInfo.pApplicationInfo = &renderdocAppInfo;
-    }
+      modifiedCreateInfo.pApplicationInfo = &modifiedAppInfo;
   }
 
   for(uint32_t i = 0; i < modifiedCreateInfo.enabledLayerCount; i++)
@@ -848,11 +852,9 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
 
   record->instDevInfo->brokenGetDeviceProcAddr = brokenGetDeviceProcAddr;
 
-  record->instDevInfo->vulkanVersion = VK_API_VERSION_1_0;
-
-  // whether or not we're using it, we updated the apiVersion in renderdocAppInfo
-  if(renderdocAppInfo.apiVersion > VK_API_VERSION_1_0)
-    record->instDevInfo->vulkanVersion = renderdocAppInfo.apiVersion;
+  // whether or not we're using it, we updated the apiVersion in modifiedAppInfo
+  if(modifiedAppInfo.apiVersion > VK_API_VERSION_1_0)
+    record->instDevInfo->vulkanVersion = modifiedAppInfo.apiVersion;
 
   std::set<rdcstr> availablePhysDeviceFunctions;
 
