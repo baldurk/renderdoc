@@ -148,6 +148,8 @@ RD_TEST(VK_Multi_Present, VulkanGraphicsTest)
         win->Submit(0, 1, {cmd}, {}, queue);
       }
 
+      vkDeviceWaitIdle(device);
+
       VulkanWindow::MultiPresent(queue, presentWindows);
 
       for(size_t i = 0; i < windows.size(); i++)

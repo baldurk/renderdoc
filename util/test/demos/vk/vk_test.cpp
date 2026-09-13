@@ -1758,8 +1758,8 @@ void VulkanWindow::Acquire()
   semIdx = (semIdx + 1) % renderStartSemaphore.size();
 
   // acquire next image stupidly does not properly block, do a manual block
-  vkWaitForFences(m_Test->device, 1, &imageFences[semIdx], VK_FALSE, UINT64_MAX);
-  vkResetFences(m_Test->device, 1, &imageFences[semIdx]);
+  CHECK_VKR(vkWaitForFences(m_Test->device, 1, &imageFences[semIdx], VK_FALSE, UINT64_MAX));
+  CHECK_VKR(vkResetFences(m_Test->device, 1, &imageFences[semIdx]));
 
   VkResult vkr = vkAcquireNextImageKHR(m_Test->device, swap, UINT64_MAX,
                                        renderStartSemaphore[semIdx], imageFences[semIdx], &imgIndex);
@@ -1832,6 +1832,8 @@ void VulkanWindow::Present(VkQueue queue)
 {
   if(swap == VK_NULL_HANDLE)
     return;
+
+  vkDeviceWaitIdle(device);
 
   VkResult vkr =
       vkQueuePresentKHR(queue, vkh::PresentInfoKHR(swap, imgIndex, &renderEndSemaphore[semIdx]));
