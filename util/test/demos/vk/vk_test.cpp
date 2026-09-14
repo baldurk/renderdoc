@@ -1833,7 +1833,7 @@ void VulkanWindow::Present(VkQueue queue)
   if(swap == VK_NULL_HANDLE)
     return;
 
-  vkDeviceWaitIdle(device);
+  vkDeviceWaitIdle(m_Test->device);
 
   VkResult vkr =
       vkQueuePresentKHR(queue, vkh::PresentInfoKHR(swap, imgIndex, &renderEndSemaphore[semIdx]));
