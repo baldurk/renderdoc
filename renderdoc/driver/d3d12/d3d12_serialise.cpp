@@ -909,6 +909,10 @@ void DoSerialise(SerialiserType &ser, D3D12_INDIRECT_ARGUMENT_DESC &el)
     case D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW:
       SERIALISE_MEMBER(UnorderedAccessView.RootParameterIndex);
       break;
+    case D3D12_INDIRECT_ARGUMENT_TYPE_INCREMENTING_CONSTANT:
+      SERIALISE_MEMBER(IncrementingConstant.RootParameterIndex);
+      SERIALISE_MEMBER(IncrementingConstant.DestOffsetIn32BitValues);
+      break;
     default: RDCERR("Unexpected indirect argument type: %u", el.Type); break;
   }
 }
