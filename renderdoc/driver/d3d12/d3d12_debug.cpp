@@ -1291,6 +1291,8 @@ rdcpair<ID3D12Resource *, UINT64> D3D12DebugManager::PatchExecuteIndirect(
         offset += sizeof(D3D12_GPU_VIRTUAL_ADDRESS);
         break;
       }
+      case D3D12_INDIRECT_ARGUMENT_TYPE_INCREMENTING_CONSTANT:
+        break;
       default: RDCERR("Unexpected argument type! %d", arg.Type); break;
     }
   }
