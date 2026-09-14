@@ -248,6 +248,43 @@ jobs:
         cd docs
         make html SPHINXOPTS=-W
         python3 verify-docstrings.py
+  stubs:
+    name: Python stubs check
+    needs: [commit-msg, clang-format]
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [ Python 3.8, Python 3.10, Python 3.12, Python 3.14 ]
+        include:
+          - name: Python 3.8
+            pyminorver: 8
+          - name: Python 3.10
+            pyminorver: 10
+          - name: Python 3.12
+            pyminorver: 12
+          - name: Python 3.14
+            pyminorver: 14
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 5
+    - name: Install compilation dependencies
+      run: |
+        sudo add-apt-repository ppa:deadsnakes/ppa
+        sudo apt-get update
+        sudo apt-get install -y libx11-dev mesa-common-dev libgl1-mesa-dev libxcb-keysyms1-dev python3.${{ matrix.pyminorver }}-dev
+    - name: Build cut-down renderdoc for python modules
+      run: |
+        mkdir build
+        pushd build
+        cmake -DCMAKE_BUILD_TYPE=Debug -DFORCE_PY_VERSION=3.${{ matrix.pyminorver }} -DENABLE_GL=OFF -DENABLE_GLES=OFF -DENABLE_VULKAN=OFF -DENABLE_RENDERDOCCMD=OFF -DENABLE_QRENDERDOC=OFF ..
+        make -j4
+        popd
+    - name: Run stubs check script
+      run: |
+        cd docs
+        python3.${{ matrix.pyminorver }} check_stubs.py /tmp/pystubs
   linux:
     name: Linux
     needs: [commit-msg, clang-format]
