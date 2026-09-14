@@ -17,6 +17,15 @@ if sys.platform == "msys":
     nl = "\r\n"
 
 
+verbose_prints = False
+
+
+def log(s: str):
+    global verbose_prints
+    if verbose_prints:
+        print(s)
+
+
 # RenderDoc/swig specific filtering
 def shouldskip(name) -> bool:
     if name.startswith("Swig") or name.startswith("SWIG"):
@@ -355,12 +364,8 @@ def gen_function(file: Stream, class_parent: Any, func: Callable):
     file.indent()
     file.println('"""')
     docstring = func.__doc__.strip()
-    i = 0
+    # trim any auto-generated function signatures
     while docstring.startswith(f"{func.__name__}("):
-        i += 1
-        if i > 100:
-            print(docstring)
-        # trim any auto-generated function signatures
         try:
             docstring = docstring[docstring.index("\n") :].strip()
         except ValueError:
@@ -622,8 +627,10 @@ def gen_class(file: Stream, class_obj: Type):
     dependencies[class_obj.__name__] = deps
 
 
-def gen(module: types.ModuleType, destpath: str):
-    global dependencies, dummy_types, fwd_ref
+def gen(module: types.ModuleType, destpath: str, verbose=False):
+    global dependencies, dummy_types, fwd_ref, verbose_prints
+
+    verbose_prints = verbose
 
     begin = time.time()
 
@@ -633,11 +640,11 @@ def gen(module: types.ModuleType, destpath: str):
 
     output_basepath = os.path.join(destpath, module.__name__)
     if __file__ in dir(module):
-        print(
+        log(
             f"Generating stubs for {module.__name__} from {module.__file__}, writing to {output_basepath}"
         )
     else:
-        print(f"Generating stubs for {module.__name__}, writing to {output_basepath}")
+        log(f"Generating stubs for {module.__name__}, writing to {output_basepath}")
 
     shutil.rmtree(output_basepath, ignore_errors=True)
     os.makedirs(output_basepath, exist_ok=True)
@@ -763,7 +770,7 @@ def gen(module: types.ModuleType, destpath: str):
         if len(group) > 1:
             group.sort()
             group_list = ", ".join(group)
-            print(f"Circular dependency detected: {group_list}")
+            log(f"Circular dependency detected: {group_list}")
 
             filename = f"{module.__name__}_circular{circular}"
             circular += 1
@@ -802,10 +809,8 @@ def gen(module: types.ModuleType, destpath: str):
                 dummy_types.append(local)
 
     if len(dummy_types) > 0:
-        print(
-            f"WARNING: Some types could not be found, and were mapped to dummy types:"
-        )
-        print("    " + ", ".join(list(dummy_types)))
+        log(f"WARNING: Some types could not be found, and were mapped to dummy types:")
+        log("    " + ", ".join(list(dummy_types)))
 
     for dummy in dummy_types:
         dependencies[dummy] = set()
@@ -937,5 +942,5 @@ def gen(module: types.ModuleType, destpath: str):
             init.merge(stream)
 
     end = time.time()
-    print(f"Generated in {int((end-begin)*1000)} ms")
-    print("")
+    log(f"Generated in {int((end-begin)*1000)} ms")
+    log("")
