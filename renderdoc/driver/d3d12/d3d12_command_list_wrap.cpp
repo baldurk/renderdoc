@@ -4193,6 +4193,13 @@ void WrappedID3D12GraphicsCommandList::FinaliseExecuteIndirectEvents(BakedCmdLis
             structuriser.Serialise("ArgumentData"_lit, buf).Important();
             break;
           }
+          case D3D12_INDIRECT_ARGUMENT_TYPE_INCREMENTING_CONSTANT:
+          {
+            // The value is derived from the command index, so there is no argument data to patch
+            // or serialise, so just label the chunk.
+            fakeChunk->name = StringFormat::Fmt("[%u] arg%u: IndirectSetRoot32BitConstants", i, a);
+            break;
+          }
           default: RDCERR("Unexpected argument type! %d", arg.Type); break;
         }
       }
@@ -4605,6 +4612,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
             case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW:
             case D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW:
             case D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW:
+            case D3D12_INDIRECT_ARGUMENT_TYPE_INCREMENTING_CONSTANT:
               // add dummy event
               m_Cmd->AddEvent();
               break;

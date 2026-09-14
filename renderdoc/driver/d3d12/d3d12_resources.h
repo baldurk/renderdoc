@@ -461,6 +461,7 @@ public:
           sig.PackedByteSize += sizeof(D3D12_GPU_VIRTUAL_ADDRESS);
           break;
         }
+        case D3D12_INDIRECT_ARGUMENT_TYPE_INCREMENTING_CONSTANT: break;
         default: RDCERR("Unexpected argument type! %d", Descriptor.pArgumentDescs[i].Type); break;
       }
     }

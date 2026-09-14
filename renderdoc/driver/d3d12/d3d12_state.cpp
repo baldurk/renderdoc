@@ -198,6 +198,7 @@ void D3D12RenderState::ResolvePendingIndirectState(WrappedID3D12Device *device)
 
           break;
         }
+        case D3D12_INDIRECT_ARGUMENT_TYPE_INCREMENTING_CONSTANT: break;
         default: RDCERR("Unexpected argument type! %d", arg.Type); break;
       }
     }
