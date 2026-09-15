@@ -2036,6 +2036,7 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
         // ensure the render state sets any dynamic state the pipeline needs
         pipestate.SetDynamicStatesFromPipeline(m_pDriver);
       }
+      VkMarkerRegion::Set("Count no-discard fragments", cmd);
       ReplayDraw(cmd, eid, true);
 
       VkCopyPixelParams params = {};
@@ -2060,6 +2061,7 @@ struct VulkanColorAndStencilCallback : public VulkanPixelHistoryCallback
         // ensure the render state sets any dynamic state the pipeline needs
         pipestate.SetDynamicStatesFromPipeline(m_pDriver);
       }
+      VkMarkerRegion::Set("Count with-discard fragments", cmd);
       ReplayDraw(cmd, eid, true);
 
       CopyImagePixel(cmd, params, storeOffset + offsetof(struct EventInfo, dsWithShaderDiscard));
@@ -3631,12 +3633,11 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     m_DynamicStates.removeOne(VK_DYNAMIC_STATE_STENCIL_OP);
     m_DynamicStates.removeOne(VK_DYNAMIC_STATE_COLOR_WRITE_ENABLE_EXT);
     m_DynamicStates.removeOne(VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT);
-    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT);
-    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT);
-    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE);
-    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_COMPARE_OP);
 
     ApplyDynamicStates(pipeCreateInfo);
+
+    RemoveNextStruct(pipeCreateInfo.pRasterizationState,
+                     VK_STRUCTURE_TYPE_PIPELINE_COLOR_WRITE_CREATE_INFO_EXT);
 
     // if RP is null we need to patch the pipeline rendering info
     if(rp == VK_NULL_HANDLE)
@@ -3706,6 +3707,11 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
     {
       ds->depthTestEnable = VK_FALSE;
       ds->depthBoundsTestEnable = VK_FALSE;
+
+      m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE);
+      m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE);
+
+      ApplyDynamicStates(pipeCreateInfo);
     }
 
     // the postmod pipe is used with the renderpass with added depth/stencil
@@ -3762,6 +3768,13 @@ struct VulkanPixelHistoryPerFragmentCallback : VulkanPixelHistoryCallback
       ds->depthWriteEnable = VK_TRUE;
       ds->depthCompareOp = VK_COMPARE_OP_ALWAYS;
     }
+
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE);
+    m_DynamicStates.removeOne(VK_DYNAMIC_STATE_DEPTH_COMPARE_OP);
+
+    ApplyDynamicStates(pipeCreateInfo);
 
     vkr = m_pDriver->vkCreateGraphicsPipelines(m_pDriver->GetDev(), VK_NULL_HANDLE, 1,
                                                &pipeCreateInfo, NULL, &pipes.shaderOutPipe);
@@ -4849,10 +4862,12 @@ rdcarray<PixelModification> VulkanReplay::PixelHistory(rdcarray<EventUsage> even
     for(int32_t f = 0; f < frags; f++)
       history[h + f].fragIndex = f;
     h += RDCMAX(1, frags);
-    RDCDEBUG(
-        "PixelHistory event id: %u, fixed shader stencilValue = %u, original shader stencilValue = "
-        "%u",
+
+    rdcstr info = StringFormat::Fmt(
+        "PixelHistory event id: %u, no discard stencilValue = %u, with discard stencilValue = %u",
         eid, ei.dsWithoutShaderDiscard[4], ei.dsWithShaderDiscard[4]);
+    VkMarkerRegion::Set(info);
+    RDCDEBUG("%s", info.c_str());
   }
   m_pDriver->vkUnmapMemory(dev, resources.bufferMemory);
 
