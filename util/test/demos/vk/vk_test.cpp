@@ -744,7 +744,7 @@ bool VulkanGraphicsTest::Init()
 
   if(!headless)
   {
-    mainWindow = MakeWindow(screenWidth, screenHeight, "Autotesting");
+    mainWindow = MakeWindow(screenWidth, screenHeight, screenTitle);
 
     if(!mainWindow->Initialised())
     {
