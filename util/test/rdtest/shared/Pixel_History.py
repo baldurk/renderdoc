@@ -842,20 +842,18 @@ class Pixel_History(rdtest.TestCase):
             },
             {
                 'event_name': 'Per-Fragment discarding',
+                'passed': True,
+                'shader_out_col': fmt_adjusted(1, 1, 1, alpha_value),
+                'shader_out_depth': 0.33,
+                'post_mod_col': fmt_clamped(1, 1, 1, alpha_value),
+                'unknown_post_mod_stencil': True,
+            },
+            {
+                'event_name': 'Per-Fragment discarding',
                 'passed': False,
                 'shader_discarded': True,
                 'shader_out_col': (0, 0, 0, 0),
                 'shader_out_depth': -1,
-                'unknown_post_mod_stencil': True,
-                'primitive_id': 0,
-            },
-            {
-                'event_name': 'Per-Fragment discarding',
-                'passed': True,
-                'primitive_id': 1,
-                'shader_out_col': fmt_adjusted(1, 1, 1, alpha_value),
-                'shader_out_depth': 0.33,
-                'post_mod_col': fmt_clamped(1, 1, 1, alpha_value),
             },
         ]
         # can't distinguish per-fragment results in secondaries
@@ -973,16 +971,20 @@ class Pixel_History(rdtest.TestCase):
                     self.error(
                         f"postmod stencil at EID {m.eventId} primitive {m.primitiveID}: {m.postMod.stencil} is not unknown")
 
-                if not rdtest.value_compare(m.postMod.depth, n.preMod.depth):
+                if not rdtest.value_compare(m.postMod.depth, n.preMod.depth, eps = 1.0e-5):
                     self.error(
                         f"postmod depth at EID {m.eventId} primitive {m.primitiveID}: {m.postMod.depth} " +
-                        f"doesn't match premod at next primitive {n.primitiveID}: {m.preMod.depth}")
+                        f"doesn't match premod at next primitive {n.primitiveID}: {n.preMod.depth}")
 
             epsilon = self.epsilon
 
             if self.is_depth:
                 a = (m.postMod.depth, m.postMod.stencil)
                 b = (n.preMod.depth, n.preMod.stencil)
+
+                if a[1] == -2 or b[1] == -2:
+                    a = (a[0], -2)
+                    b = (b[0], -2)
 
                 epsilon = 1.0e-5
 

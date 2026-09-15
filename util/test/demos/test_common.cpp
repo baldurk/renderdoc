@@ -913,15 +913,16 @@ void init()
       {Vec3f(-0.4f, 0.8f, 0.33f), Vec4f(0.0f, 0.0f, -1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
   });
 
-  // scissor does clip some but passes where above fails
+  // multiple fragments overlapping the same pixel where only one discards
   PerFragDiscard = makeDraw({
-      {Vec3f(-0.7f, -0.2f, 0.33f), Vec4f(-1.0f, -1.0f, -1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
-      {Vec3f(-0.8f, 0.0f, 0.33f), Vec4f(-1.0f, -1.0f, -1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
-      {Vec3f(-0.6f, 0.0f, 0.33f), Vec4f(-1.0f, -1.0f, -1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
-
+      // for now we discard the first one, because Vulkan/D3D12 can't determine ordering
       {Vec3f(-0.7f, -0.2f, 0.33f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
       {Vec3f(-0.8f, 0.0f, 0.33f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
       {Vec3f(-0.6f, 0.0f, 0.33f), Vec4f(1.0f, 1.0f, 1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
+
+      {Vec3f(-0.7f, -0.2f, 0.33f), Vec4f(-1.0f, -1.0f, -1.0f, 1.0f), Vec2f(0.0f, 1.0f)},
+      {Vec3f(-0.8f, 0.0f, 0.33f), Vec4f(-1.0f, -1.0f, -1.0f, 1.0f), Vec2f(1.0f, 0.0f)},
+      {Vec3f(-0.6f, 0.0f, 0.33f), Vec4f(-1.0f, -1.0f, -1.0f, 1.0f), Vec2f(0.0f, 0.0f)},
   });
 };
 

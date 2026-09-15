@@ -3297,8 +3297,10 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
 
     int32_t frags = int32_t(ei.dsWithoutShaderDiscard[0]);
     int32_t fragsClipped = int32_t(ei.dsWithShaderDiscard[0]);
-    bool someFragsClipped = (fragsClipped < frags);
-    mod.primitiveID = someFragsClipped;
+    if(fragsClipped < frags)
+      mod.primitiveID = fragsClipped;
+    else
+      mod.primitiveID = 0;
 
     if(frags > 0)
     {
@@ -3344,6 +3346,7 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
     // Retrieve primitive ID values where fragment shader discarded some fragments. For these
     // primitives we are going to perform an occlusion query to see if a primitive was discarded.
     std::map<uint32_t, rdcarray<int32_t>> discardedPrimsEvents;
+    std::map<uint32_t, uint32_t> fragsClipped;
     uint32_t primitivesToCheck = 0;
     for(size_t h = 0; h < history.size(); h++)
     {
@@ -3353,11 +3356,23 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
       if(perFragmentCB.ContainsEvent(eid))
       {
         uint32_t f = history[h].fragIndex;
-        bool someFragsClipped = (history[h].primitiveID == 1);
+        fragsClipped[eid] = history[h].primitiveID;
+        bool someFragsClipped = (history[h].primitiveID >= 1);
         int32_t primId = fragInfo[perFragmentCB.GetEventOffset(eid) + f].primitiveID;
         history[h].primitiveID = primId;
         if(someFragsClipped)
         {
+          // in scenarios with multiple fragments with some discarding, both the primitive IDs for
+          // all fragments (discarding and non-discarding) as well as shader outs are all fetched at
+          // once. Because we use stencil counting to fetch (potentially discarded) shader outs we
+          // will just get all the non-discarded shader outs in the first N fragments without
+          // knowing which is which.
+          //
+          // we could leave the primitive IDs and then below in DiscardedFragmentsCallback try to
+          // reorder once we know which primitives discarded and which didn't, and assign the first
+          // N successful fragments, but for now we drop the primitive ID information
+          history[h].primitiveID = ~0U;
+
           discardedPrimsEvents[eid].push_back(primId);
           primitivesToCheck++;
         }
@@ -3394,6 +3409,25 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
 
       for(size_t h = 0; h < history.size(); h++)
       {
+        // if we dropped the primitive IDs we don't know which individual fragments discarded.
+        // We've already removed any primitive ID information so to stay consistent since we know
+        // how many total fragments discarded and how many didn't, we keep the shader out & tex
+        // after for the first N successful fragments, and explicily mark the last M as discarded.
+        // This loses ordering information but maintains accuracy about relative numbers.
+        if(history[h].primitiveID == ~0U)
+        {
+          const uint32_t eid = history[h].eventId;
+          if(eventsWithFrags.find(eid) != eventsWithFrags.end() &&
+             history[h].fragIndex >= fragsClipped[eid])
+          {
+            if(history[h].Passed())
+            {
+              history[h].shaderDiscarded = true;
+            }
+          }
+          continue;
+        }
+
         history[h].shaderDiscarded =
             discardedCb.PrimitiveDiscarded(history[h].eventId, history[h].primitiveID);
       }
@@ -3423,6 +3457,7 @@ rdcarray<PixelModification> D3D12Replay::PixelHistory(rdcarray<EventUsage> event
           // Copy previous post-mod value if its not the first event
           if(h > 0)
           {
+            history[h].preMod = history[h - 1].postMod;
             history[h].postMod.col = history[h - 1].postMod.col;
             history[h].postMod.depth = history[h - 1].postMod.depth;
             if(!hasDepth)
