@@ -1712,13 +1712,20 @@ void D3D12DebugManager::FillWithDiscardPattern(ID3D12GraphicsCommandListX *cmd,
     b.Transition.pResource = res;
     b.Transition.Subresource = sub;
 
-    // TODO can we do better than an educated guess as to what the previous state was?
-    if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
-      b.Transition.StateBefore = D3D12_RESOURCE_STATE_DEPTH_WRITE;
-    else if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
-      b.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    if(cmd->GetType() == D3D12_COMMAND_LIST_TYPE_COMPUTE)
+    {
+      b.Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    }
     else
-      b.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
+    {
+      // TODO can we do better than an educated guess as to what the previous state was?
+      if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+        b.Transition.StateBefore = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+      else if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+        b.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+      else
+        b.Transition.StateBefore = D3D12_RESOURCE_STATE_COMMON;
+    }
 
     b.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
 
