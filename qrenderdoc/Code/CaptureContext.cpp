@@ -577,7 +577,8 @@ rdcstr CaptureContext::LoadExtension(rdcstr name)
     else
     {
       m_ExtensionObjects.remove(name);
-      m_FailedExtensions.push_back(name);
+      if(!m_FailedExtensions.contains(name))
+        m_FailedExtensions.push_back(name);
 
       for(QObject *o : m_PendingExtensionObjects)
         delete o;
@@ -590,6 +591,8 @@ rdcstr CaptureContext::LoadExtension(rdcstr name)
     CleanMenu(a);
 
   m_RegisteredMenuItems.removeAll(NULL);
+
+  emit PythonContext::GetExtensionContext()->extensionsUpdated();
 
   return ret;
 }
@@ -2949,6 +2952,8 @@ void CaptureContext::ExtensionTouched(const QString &extensionPath)
       m_DirtyExtensions.push_back(m.package);
     }
   }
+
+  emit PythonContext::GetExtensionContext()->extensionsUpdated();
 }
 
 void CaptureContext::RaiseDockWindow(QWidget *dockWindow)

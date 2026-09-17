@@ -146,6 +146,7 @@ signals:
   void textOutput(const QString &extension, bool isStdError, const QString &output);
 
   void extensionLoaded(const QString &extension);
+  void extensionsUpdated();
 
 public slots:
   void executeString(const QString &source);

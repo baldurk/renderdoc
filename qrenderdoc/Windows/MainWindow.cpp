@@ -252,10 +252,21 @@ MainWindow::MainWindow(ICaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Mai
         m_Ctx.Extensions().LoadExtension(m.package);
   });
   QObject::connect(PythonContext::GetExtensionContext(), &PythonContext::extensionLoaded, this,
-                   &MainWindow::PythonStatusUpdate);
+                   &MainWindow::PythonStatusBarUpdate);
+  QObject::connect(PythonContext::GetExtensionContext(), &PythonContext::extensionsUpdated, this,
+                   &MainWindow::PythonStatusBarUpdate);
 
   QTimer *pyStatusTimer = new QTimer(this);
-  QObject::connect(pyStatusTimer, &QTimer::timeout, this, &MainWindow::PythonStatusUpdate);
+  QObject::connect(pyStatusTimer, &QTimer::timeout, [this]() {
+    // regularly check if a python debugger has connected or disconnected,
+    // and update the status bar
+    bool pyDebug = PythonContext::IsDebuggerConnected();
+    if(pyDebug != m_CurPyDebug)
+    {
+      PythonStatusBarUpdate();
+      m_CurPyDebug = pyDebug;
+    }
+  });
 
   pyStatusTimer->setSingleShot(false);
   pyStatusTimer->setInterval(500);
@@ -1337,7 +1348,7 @@ void MainWindow::ClearRecentCaptureSettings()
   PopulateRecentCaptureSettings();
 }
 
-void MainWindow::PythonStatusUpdate()
+void MainWindow::PythonStatusBarUpdate()
 {
   int num = m_Ctx.Extensions().GetLoadedExtensions().count();
 
@@ -1348,8 +1359,10 @@ void MainWindow::PythonStatusUpdate()
 
     QString text = tr("%n extension(s) active", NULL, num);
 
+    rdcarray<ExtensionMetadata> exts = m_Ctx.Extensions().GetInstalledExtensions();
+
     bool reloadVisible = false;
-    for(const ExtensionMetadata &m : m_Ctx.Extensions().GetInstalledExtensions())
+    for(const ExtensionMetadata &m : exts)
     {
       if(m.hasChanges)
       {
@@ -1358,7 +1371,7 @@ void MainWindow::PythonStatusUpdate()
         break;
       }
     }
-    for(const ExtensionMetadata &m : m_Ctx.Extensions().GetInstalledExtensions())
+    for(const ExtensionMetadata &m : exts)
     {
       if(m.failedLoad)
       {
