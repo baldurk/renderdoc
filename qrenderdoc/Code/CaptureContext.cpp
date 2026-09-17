@@ -517,8 +517,12 @@ rdcarray<ExtensionMetadata> CaptureContext::GetInstalledExtensions()
 
             if(badversion)
             {
-              qInfo() << "Extension" << QString(ext.name) << "declares minimum_renderdoc" << minVer
-                      << "so skipping";
+              if(!m_BadVerExtensions.contains(rdcstr(package)))
+              {
+                qInfo() << "Extension" << QString(ext.name) << "declares minimum_renderdoc"
+                        << minVer << "so skipping";
+                m_BadVerExtensions.push_back(rdcstr(package));
+              }
               continue;
             }
           }
