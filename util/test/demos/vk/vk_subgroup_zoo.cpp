@@ -121,19 +121,23 @@ void main()
   }
   else if(IsTest(5))
   {
+#if FEAT_QUAD
     // subgroupQuadBroadcast : unit tests
     fragdata.x = float(subgroupQuadBroadcast(subgroupId, 0));
     fragdata.y = float(subgroupQuadBroadcast(subgroupId, 1));
     fragdata.z = float(subgroupQuadBroadcast(subgroupId, 2));
     fragdata.w = float(subgroupQuadBroadcast(subgroupId, 3));
+#endif
   }
   else if(IsTest(6))
   {
+#if FEAT_QUAD
     // subgroupQuadSwapDiagonal, subgroupQuadSwapHorizontal, subgroupQuadSwapVertical : unit tests
     fragdata.x = float(subgroupQuadSwapDiagonal(subgroupId));
     fragdata.y = float(subgroupQuadSwapHorizontal(subgroupId));
     fragdata.z = float(subgroupQuadSwapVertical(subgroupId));
     fragdata.w = subgroupQuadBroadcast(fragdata.x, 2);
+#endif
   }
 
   Color = vertdata + fragdata;
@@ -172,6 +176,7 @@ void main()
     testResult.x = float(gl_SubgroupSize);
     testResult.y = float(gl_SubgroupInvocationID);
     testResult.z = float(subgroupElect());
+    testResult.w = float(gl_NumSubgroups);
   }
   else if(IsTest(1))
   {
@@ -193,13 +198,14 @@ void main()
   }
   else if(IsTest(2))
   {
+    uvec4 bits20 = subgroupBallot(id > 20);
     // Broadcast functions : unit tests
     if (id >= 2 && id <= 20)
     {
       testResult.x = subgroupBroadcastFirst(id);
       testResult.y = subgroupBroadcast(id, 5);
-      testResult.z = subgroupShuffle(id, id);
-      testResult.w = subgroupShuffle(testResult.x, 2+id%3);
+      testResult.z = float(subgroupInverseBallot(bits20));
+      testResult.w = float(subgroupBallotBitCount(bits20));
     }
   }
   else if(IsTest(3))
@@ -211,14 +217,14 @@ void main()
     // Scan and Prefix functions : unit tests
     if (id >= 2 && id <= 20)
     {
-      testResult.x = subgroupBallotExclusiveBitCount(bits4);
+      testResult.x = subgroupBallotInclusiveBitCount(bits4);
       testResult.y = subgroupBallotExclusiveBitCount(bits10);
       testResult.z = subgroupExclusiveAdd(testResult.x);
       testResult.w = subgroupExclusiveMul(1 + testResult.y);
     }
     else
     {
-      testResult.x = subgroupBallotExclusiveBitCount(bits23);
+      testResult.x = subgroupBallotInclusiveBitCount(bits23);
       testResult.y = subgroupBallotExclusiveBitCount(bits1);
       testResult.z = subgroupExclusiveAdd(testResult.x);
       testResult.w = subgroupExclusiveAdd(testResult.y);
@@ -237,14 +243,13 @@ void main()
   }
   else if(IsTest(5))
   {
-    uvec4 bits20 = subgroupBallot(id > 20);
     // Reduction functions : unit tests
     if (id >= 2 && id <= 20)
     {
-      testResult.x = float(subgroupBallotBitCount(bits20));
-      testResult.y = float(subgroupAnd(id));
-      testResult.z = float(subgroupOr(id));
-      testResult.w = float(subgroupXor(id));
+      testResult.x = float(subgroupAnd(id));
+      testResult.y = float(subgroupOr(id));
+      testResult.z = float(subgroupXor(id));
+      testResult.w = float(subgroupInclusiveAdd(id));
     }
   }
   else if(IsTest(6))
@@ -260,26 +265,32 @@ void main()
   }
   else if(IsTest(7))
   {
+#if FEAT_QUAD
     // subgroupQuadBroadcast : unit tests
     testResult.x = float(subgroupQuadBroadcast(id, 0));
     testResult.y = float(subgroupQuadBroadcast(id, 1));
     testResult.z = float(subgroupQuadBroadcast(id, 2));
     testResult.w = float(subgroupQuadBroadcast(id, 3));
+#endif
   }
   else if(IsTest(8))
   {
+#if FEAT_QUAD
     // subgroupQuadSwapDiagonal, subgroupQuadSwapHorizontal, subgroupQuadSwapVertical : unit tests
     testResult.x = float(subgroupQuadSwapDiagonal(id));
     testResult.y = float(subgroupQuadSwapHorizontal(id));
     testResult.z = float(subgroupQuadSwapVertical(id));
     testResult.w = subgroupQuadBroadcast(testResult.x, 2);
+#endif
   }
   else if(IsTest(9))
   {
+#if FEAT_QUAD
     testResult.x = float(subgroupQuadAny(id*2 > id+10));
     testResult.y = float(subgroupQuadAll(id < gl_SubgroupSize));
     testResult.z = subgroupQuadBroadcast(testResult.x, 2);
     testResult.w = subgroupQuadBroadcast(testResult.y, 2);
+#endif
   }
   else if(IsTest(10))
   {
@@ -292,6 +303,102 @@ void main()
       testResult.z = float(subgroupBallotFindLSB(bits10));
       testResult.w = float(subgroupBallotFindMSB(bits10));
     }
+  }
+  else if(IsTest(11))
+  {
+    // Query functions : unit tests
+    testResult.x = float(gl_SubgroupID);
+    // Query functions : subgroup masks
+    testResult.y = float(gl_SubgroupEqMask);
+    testResult.z = float(gl_SubgroupGeMask);
+    testResult.w = float(gl_SubgroupGtMask);
+  }
+  else if(IsTest(12))
+  {
+    // Query functions : subgroup masks
+    testResult.x = float(gl_SubgroupLeMask);
+    testResult.y = float(gl_SubgroupLtMask);
+    testResult.z = float(subgroupInclusiveMul(id));
+#if FEAT_SHUFFLE
+    if (id >= 2 && id <= 20)
+      testResult.w = subgroupShuffle(testResult.x, 2+id%3);
+#endif
+  }
+  else if(IsTest(13))
+  {
+#if FEAT_SHUFFLE
+    testResult.x = subgroupShuffle(id, id);
+    testResult.y = subgroupShuffleXor(id, id);
+#endif
+    if (id >= 2 && id <= 20)
+    {
+      uint deltaUp = (id > 4) ? 2 : 0;
+      uint deltaDown = (id < 15) ? 4 : 0;
+#if FEAT_SHUFFLE_RELATIVE
+      testResult.z = float(subgroupShuffleUp(id, deltaUp));
+      testResult.w = float(subgroupShuffleDown(id, deltaDown));
+#endif
+    }
+  }
+  else if(IsTest(14))
+  {
+    if (id >= 2 && id <= 20)
+    {
+      testResult.x = float(subgroupInclusiveMin(id));
+      testResult.y = float(subgroupInclusiveMax(id));
+      testResult.z = float(subgroupInclusiveAnd(id));
+      testResult.w = float(subgroupInclusiveOr(id));
+    }
+  }
+  else if(IsTest(15))
+  {
+    if (id >= 2 && id <= 20)
+    {
+      testResult.x = float(subgroupInclusiveXor(id));
+      testResult.y = float(subgroupExclusiveAdd(id));
+      testResult.z = float(subgroupExclusiveMul(id));
+      testResult.w = float(subgroupExclusiveMin(id));
+    }
+  }
+  else if(IsTest(16))
+  {
+    if (id >= 2 && id <= 20)
+    {
+      testResult.x = float(subgroupExclusiveMax(id));
+      testResult.y = float(subgroupExclusiveAnd(id));
+      testResult.z = float(subgroupExclusiveOr(id));
+      testResult.w = float(subgroupExclusiveXor(id));
+    }
+  }
+  else if(IsTest(17))
+  {
+#if FEAT_CLUSTERED
+    testResult.x = float(subgroupClusteredAdd(id, 2));
+    testResult.y = float(subgroupClusteredMul(id, 4));
+    testResult.z = float(subgroupClusteredMin(id, 8));
+    testResult.w = float(subgroupClusteredMax(id, 1));
+#endif
+  }
+  else if(IsTest(18))
+  {
+#if FEAT_CLUSTERED
+    testResult.x = float(subgroupClusteredAnd(id, 2));
+    testResult.y = float(subgroupClusteredOr(id, 4));
+    testResult.z = float(subgroupClusteredXor(id, 8));
+    testResult.w = float(subgroupClusteredAdd(id, 16));
+#endif
+  }
+  else if(IsTest(19))
+  {
+#if FEAT_ROTATE
+    uint delta = gl_SubgroupSize;
+    testResult.x = float(subgroupRotate(id, delta));
+#endif
+#if FEAT_ROTATE_CLUSTERED
+    testResult.y = float(subgroupClusteredRotate(id, delta, 1));
+    testResult.z = float(subgroupClusteredRotate(id, delta, 2));
+    testResult.w = float(subgroupClusteredRotate(id, delta, 4));
+#endif
   }
   SetOutput(testResult);
 }
@@ -342,6 +449,12 @@ void main()
     if((subProps.supportedStages & VK_SHADER_STAGE_COMPUTE_BIT) == 0)
       Avail = "Missing compute subgroup support";
 
+    static VkPhysicalDeviceShaderSubgroupRotateFeaturesKHR subgroupRotateFeats = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SUBGROUP_ROTATE_FEATURES_KHR,
+    };
+    getPhysFeatures2(&subgroupRotateFeats);
+    devInfoNext = &subgroupRotateFeats;
+
     static VkPhysicalDeviceShaderQuadControlFeaturesKHR quadControlFeats = {
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_QUAD_CONTROL_FEATURES_KHR,
     };
@@ -350,6 +463,7 @@ void main()
     if(quadControlFeats.shaderQuadControl == VK_FALSE)
       Avail = "Missing compute quad support";
 
+    quadControlFeats.pNext = (void *)devInfoNext;
     devInfoNext = &quadControlFeats;
   }
 
