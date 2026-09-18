@@ -3329,7 +3329,7 @@ void ThreadState::StepNext(bool useDebugState, const uint32_t steps,
     {
       ShaderVariable var;
 
-      uint32_t clusterMask = 0;
+      uint32_t clusterSize = debugger.GetSubgroupSize();
       GroupOperation groupOp = GroupOperation::Reduce;
 
       Id valueId;
@@ -3366,7 +3366,7 @@ void ThreadState::StepNext(bool useDebugState, const uint32_t steps,
           RDCASSERT(uintComp(GetSrc(group.execution), 0) == (uint32_t)Scope::Subgroup);
 
           if(group.HasClusterSize())
-            clusterMask = (1U << uintComp(GetSrc(group.clusterSize), 0)) - 1;
+            clusterSize = uintComp(GetSrc(group.clusterSize), 0);
           break;
         }
         case Op::GroupNonUniformAny:
@@ -3467,15 +3467,26 @@ void ThreadState::StepNext(bool useDebugState, const uint32_t steps,
       // determine active lane indices in our subgroup or cluster
       rdcarray<uint32_t> activeLanes;
 
+      // IDs: 0,1,2,3,4,5,6,7
+      // ClusterSize 1
+      // | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+      // ClusterSize 2
+      // | 0,1 | 2,3 | 4,5 | 6,7 |
+      // ClusterSize 4
+      // | 0,1,2,3 | 4,5,6,7 |
+      // ClusterSize 8
+      // | 0,1,2,3,4,5,6,7 |
+
       const uint32_t firstLaneInSub = workgroupIndex - subgroupId;
+      const uint32_t myCluster = subgroupId / clusterSize;
       for(uint32_t lane = firstLaneInSub; lane < firstLaneInSub + debugger.GetSubgroupSize(); lane++)
       {
         RDCASSERT(lane < activeMask.size(), lane, activeMask.size());
         if(activeMask[lane])
         {
+          const uint32_t laneCluster = (lane - firstLaneInSub) / clusterSize;
           // if this is in our cluster (or we're not clustering)
-          if(groupOp != GroupOperation::ClusteredReduce ||
-             ((lane & clusterMask) == (subgroupId & clusterMask)))
+          if(groupOp != GroupOperation::ClusteredReduce || (laneCluster == myCluster))
             activeLanes.push_back(lane);
         }
       }
@@ -3640,7 +3651,7 @@ void ThreadState::StepNext(bool useDebugState, const uint32_t steps,
             default: break;
           }
 
-          // stop after processing our lane if we're inclusive scane
+          // stop after processing our lane if we're inclusive scan
           if(groupOp == GroupOperation::InclusiveScan && lane == workgroupIndex)
           {
             SetDst(opdata.result, var);
