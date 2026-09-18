@@ -5428,6 +5428,62 @@ VkDescriptorSetLayoutBinding MakeNewBinding(VkShaderStageFlagBits stage)
   };
 }
 
+static void ComputeSubgroupMasks(VulkanAPIWrapper *apiWrapper, uint32_t numThreads)
+{
+  rdcarray<std::unordered_map<ShaderBuiltin, ShaderVariable>> &allthread_builtins =
+      apiWrapper->GetThreadBuiltins();
+
+  uint32_t subgroupSize = apiWrapper->GetGlobalBuiltins()[ShaderBuiltin::SubgroupSize].value.u32v[0];
+
+  // Create the subgroup mask builtins (uvec4's)
+  for(uint32_t t = 0; t < numThreads; ++t)
+  {
+    if(apiWrapper->thread_props[t][(size_t)rdcspv::ThreadProperty::Active] == 0)
+      continue;
+
+    std::unordered_map<ShaderBuiltin, ShaderVariable> &thread_builtins = allthread_builtins[t];
+
+    uint32_t id = thread_builtins[ShaderBuiltin::IndexInSubgroup].value.u32v[0];
+
+    ShaderVariable &varEQ = thread_builtins[ShaderBuiltin::SubgroupEqualMask];
+    varEQ.rows = 1;
+    varEQ.columns = 4;
+    varEQ.type = VarType::UInt;
+    ShaderVariable &varGE = thread_builtins[ShaderBuiltin::SubgroupGreaterEqualMask];
+    varGE.rows = 1;
+    varGE.columns = 4;
+    varGE.type = VarType::UInt;
+    ShaderVariable &varGT = thread_builtins[ShaderBuiltin::SubgroupGreaterMask];
+    varGT.rows = 1;
+    varGT.columns = 4;
+    varGT.type = VarType::UInt;
+    ShaderVariable &varLE = thread_builtins[ShaderBuiltin::SubgroupLessEqualMask];
+    varLE.rows = 1;
+    varLE.columns = 4;
+    varLE.type = VarType::UInt;
+    ShaderVariable &varLT = thread_builtins[ShaderBuiltin::SubgroupLessMask];
+    varLT.rows = 1;
+    varLT.columns = 4;
+    varLT.type = VarType::UInt;
+
+    for(uint32_t i = 0; i < subgroupSize; ++i)
+    {
+      uint32_t idx = i / 32;
+      uint32_t mask = 1U << (i % 32);
+      if(i == id)
+        varEQ.value.u32v[idx] |= mask;
+      if(i >= id)
+        varGE.value.u32v[idx] |= mask;
+      if(i > id)
+        varGT.value.u32v[idx] |= mask;
+      if(i <= id)
+        varLE.value.u32v[idx] |= mask;
+      if(i < id)
+        varLT.value.u32v[idx] |= mask;
+    }
+  }
+}
+
 void VulkanReplay::CalculateSubgroupProperties(uint32_t &maxSubgroupSize,
                                                SubgroupCapability &subgroupCapability)
 {
@@ -7136,6 +7192,8 @@ ShaderDebugTrace *VulkanReplay::DebugComputeCommon(ShaderStage stage, uint32_t e
     }
     global_builtins[ShaderBuiltin::SubgroupSize] = ShaderVariable(rdcstr(), subgroupSize, 0U, 0U, 0U);
 
+    ComputeSubgroupMasks(apiWrapper, numThreads);
+
     apiWrapper->SetInputVarsToReadOnly();
     ShaderDebugTrace *ret =
         debugger->BeginDebug(apiWrapper, stage, entryPoint, spec, shadRefl.instructionLines,
@@ -7253,6 +7311,8 @@ ShaderDebugTrace *VulkanReplay::DebugComputeCommon(ShaderStage stage, uint32_t e
     debugger->Parse(shader.spirv.GetSPIRV());
 
     global_builtins[ShaderBuiltin::SubgroupSize] = ShaderVariable(rdcstr(), 1U, 0U, 0U, 0U);
+
+    ComputeSubgroupMasks(apiWrapper, numThreads);
 
     apiWrapper->SetInputVarsToReadOnly();
     ShaderDebugTrace *ret =
