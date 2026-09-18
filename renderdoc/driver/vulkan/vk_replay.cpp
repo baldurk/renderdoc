@@ -5193,8 +5193,8 @@ ResourceId VulkanReplay::ApplyCustomShader(TextureDisplay &display)
   disp.linearDisplayAsGamma = false;
   disp.subresource = display.subresource;
   disp.overlay = DebugOverlay::NoOverlay;
-  disp.rangeMin = 0.0f;
-  disp.rangeMax = 1.0f;
+  disp.rangeMin = display.rangeMin;
+  disp.rangeMax = display.rangeMax;
   disp.rawOutput = false;
   disp.scale = 1.0f;
 
