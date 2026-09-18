@@ -161,14 +161,37 @@ float4 RENDERDOC_TexDisplayPS(v2f IN) : SV_Target0
       col = float4(col.rgb * col.a * WireframeColour.x, 1.0f);
   }
 
-  if(uintTex)
-    col = (float4)(ucol);
-  else if(sintTex)
-    col = (float4)(scol);
-
   float4 pre_range_col = col;
 
-  col = ((col - RangeMinimum) * InverseRangeSize);
+  if(uintTex)
+  {
+    uint range_min = (uint)RangeMinimum.x;
+
+    if(ucol.x > range_min)
+      col.x = (float(ucol.x - range_min) * InverseRangeSize);
+    else
+      col.x = 0;
+    if(ucol.y > range_min)
+      col.y = (float(ucol.y - range_min) * InverseRangeSize);
+    else
+      col.y = 0;
+    if(ucol.z > range_min)
+      col.z = (float(ucol.z - range_min) * InverseRangeSize);
+    else
+      col.z = 0;
+    if(ucol.w > range_min)
+      col.w = (float(ucol.w - range_min) * InverseRangeSize);
+    else
+      col.w = 0;
+  }
+  else if(sintTex)
+  {
+    col = (float4(scol - (int4)RangeMinimum.xxxx) * InverseRangeSize);
+  }
+  else
+  {
+    col = ((col - RangeMinimum) * InverseRangeSize);
+  }
 
   // workaround for D3DCompiler bug. For some reason it assumes texture samples can
   // never come back as NaN, so involving a cbuffer value like this here ensures
