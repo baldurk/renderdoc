@@ -175,20 +175,20 @@ void main()
   }
   else if(IsTest(1))
   {
+    uvec4 ballot4 = subgroupBallot(id > 4);
+    uvec4 ballot20 = subgroupBallot(id > 20);
     // Vote functions : unit tests
     testResult.x = float(subgroupAny(id*2 > id+10));
     testResult.y = float(subgroupAll(id < gl_SubgroupSize));
     if (id > 10)
     {
       testResult.z = float(subgroupAll(id > 10));
-      uvec4 ballot = subgroupBallot(id > 20);
-      testResult.w = bitCount(ballot.x) + bitCount(ballot.y) + bitCount(ballot.z) + bitCount(ballot.w);
+      testResult.w = bitCount(ballot20.x) + bitCount(ballot20.y) + bitCount(ballot20.z) + bitCount(ballot20.w);
     }
     else
     {
       testResult.z = float(subgroupAll(id > 3));
-      uvec4 ballot = subgroupBallot(id > 4);
-      testResult.w = bitCount(ballot.x) + bitCount(ballot.y) + bitCount(ballot.z) + bitCount(ballot.w);
+      testResult.w = bitCount(ballot4.x) + bitCount(ballot4.y) + bitCount(ballot4.z) + bitCount(ballot4.w);
     }
   }
   else if(IsTest(2))
@@ -204,22 +204,22 @@ void main()
   }
   else if(IsTest(3))
   {
+    uvec4 bits1 = subgroupBallot(id < 1);
+    uvec4 bits4 = subgroupBallot(id > 4);
+    uvec4 bits10 = subgroupBallot(id > 10);
+    uvec4 bits23 = subgroupBallot(id > 23);
     // Scan and Prefix functions : unit tests
     if (id >= 2 && id <= 20)
     {
-      uvec4 bits = subgroupBallot(id > 4);
-      testResult.x = subgroupBallotExclusiveBitCount(bits);
-      bits = subgroupBallot(id > 10);
-      testResult.y = subgroupBallotExclusiveBitCount(bits);
+      testResult.x = subgroupBallotExclusiveBitCount(bits4);
+      testResult.y = subgroupBallotExclusiveBitCount(bits10);
       testResult.z = subgroupExclusiveAdd(testResult.x);
       testResult.w = subgroupExclusiveMul(1 + testResult.y);
     }
     else
     {
-      uvec4 bits = subgroupBallot(id > 23);
-      testResult.x = subgroupBallotExclusiveBitCount(bits);
-      bits = subgroupBallot(id < 1);
-      testResult.y = subgroupBallotExclusiveBitCount(bits);
+      testResult.x = subgroupBallotExclusiveBitCount(bits23);
+      testResult.y = subgroupBallotExclusiveBitCount(bits1);
       testResult.z = subgroupExclusiveAdd(testResult.x);
       testResult.w = subgroupExclusiveAdd(testResult.y);
     }
@@ -237,11 +237,11 @@ void main()
   }
   else if(IsTest(5))
   {
+    uvec4 bits20 = subgroupBallot(id > 20);
     // Reduction functions : unit tests
     if (id >= 2 && id <= 20)
     {
-      uvec4 bits = subgroupBallot(id > 23);
-      testResult.x = float(subgroupBallotBitCount(bits));
+      testResult.x = float(subgroupBallotBitCount(bits20));
       testResult.y = float(subgroupAnd(id));
       testResult.z = float(subgroupOr(id));
       testResult.w = float(subgroupXor(id));
@@ -280,6 +280,18 @@ void main()
     testResult.y = float(subgroupQuadAll(id < gl_SubgroupSize));
     testResult.z = subgroupQuadBroadcast(testResult.x, 2);
     testResult.w = subgroupQuadBroadcast(testResult.y, 2);
+  }
+  else if(IsTest(10))
+  {
+    uvec4 bits10 = subgroupBallot(id > 10);
+    // Reduction functions : unit tests
+    if (subgroupElect())
+    {
+      testResult.x = float(subgroupBallotBitExtract(bits10, 10));
+      testResult.y = float(subgroupBallotBitExtract(bits10, 20));
+      testResult.z = float(subgroupBallotFindLSB(bits10));
+      testResult.w = float(subgroupBallotFindMSB(bits10));
+    }
   }
   SetOutput(testResult);
 }
