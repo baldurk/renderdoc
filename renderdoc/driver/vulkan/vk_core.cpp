@@ -46,6 +46,10 @@ RDOC_DEBUG_CONFIG(bool, Vulkan_Debug_SingleSubmitFlushing, false,
                   "Every command buffer is submitted and fully flushed to the GPU, to narrow down "
                   "the source of problems.");
 
+RDOC_CONFIG(bool, Vulkan_Capture_AllWindows, false,
+            "Capture frames from all windows/swapchains instead of only the active window. "
+            "Useful for applications that create and present to multiple surfaces.");
+
 static rdcarray<int> ShaderStagesForAction(const ActionFlags flags)
 {
   if(flags & ActionFlags::Dispatch)
@@ -3569,7 +3573,7 @@ void WrappedVulkan::Present(DeviceOwnedWindow devWnd)
 
   RenderDoc::Inst().AddActiveDriver(RDCDriver::Vulkan, true);
 
-  if(!activeWindow)
+  if(!activeWindow && !Vulkan_Capture_AllWindows())
   {
     // first present to *any* window, even inactive, terminates frame 0
     if(m_FirstFrameCapture && IsActiveCapturing(m_State))
