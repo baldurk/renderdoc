@@ -253,6 +253,17 @@ void main()
     testResult.x = float(gl_SubgroupSize);
     testResult.y = float(gl_SubgroupInvocationID);
     testResult.z = float(subgroupElect());
+    testResult.w = float(gl_SubgroupEqMask);
+
+    barrier();
+  }
+  else if(IsTest(10))
+  {
+    // Query functions : unit tests
+    testResult.x = float(gl_SubgroupGeMask);
+    testResult.y = float(gl_SubgroupGtMask);
+    testResult.z = float(gl_SubgroupLeMask);
+    testResult.w = float(gl_SubgroupLtMask);
 
     barrier();
   }
