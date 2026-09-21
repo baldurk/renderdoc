@@ -411,6 +411,7 @@ std::vector<uint32_t> CompileShaderToSpv(const char *demo_name, const std::strin
   std::string path = GetExecutableName();
   path.erase(path.find_last_of("/\\"));
   path += "/tmp/";
+  MakeDir(path.c_str());
   path += demo_name;
 
   MakeDir(path.c_str());
