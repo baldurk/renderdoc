@@ -320,13 +320,17 @@ void main(uint3 gid : SV_GroupID)
     ID3D12ResourcePtr srv = MakeBuffer().Data(checkdata);
     ID3D12ResourcePtr uav = MakeBuffer().UAV().Data(checkdata);
 
-    ID3D12RootSignaturePtr patchsig = MakeSig(
-        {cbvParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 0),
-         srvParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 0),
-         uavParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 0),
-         constParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 1, 4),
-         constParam(D3D12_SHADER_VISIBILITY_VERTEX, 1, 1, 1),
-         tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, 2, 0)});
+    // RWStructuredBuffer<float> uavarray[2] : register(u1);
+    MakeUAV(uav).StructureStride(4).CreateGPU(0);
+
+    ID3D12RootSignaturePtr patchsig = MakeSig({
+        cbvParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 0), srvParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 0),
+        uavParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 0),    // uavtest:u0
+        constParam(D3D12_SHADER_VISIBILITY_VERTEX, 0, 1, 4),
+        constParam(D3D12_SHADER_VISIBILITY_VERTEX, 1, 1, 1),
+        tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, 2,
+                   0)    // uvarray[2]:u1
+    });
 
     ID3D12CommandSignaturePtr patchArgSig =
         MakeCommandSig(patchsig, {vbArg(0), cbvArg(0), srvArg(1), uavArg(2), constArg(3, 0, 1),
@@ -453,19 +457,21 @@ void main(uint3 gid : SV_GroupID)
 
     ID3D12ResourcePtr compuav = MakeBuffer().UAV().Size(1024 * 1024 * 4);
 
+    // RWStructuredBuffer<flot4> bufout : register(u0);
+    MakeUAV(compuav).StructureStride(16).NumElements(4096).CreateGPU(100);
+
+    // RWByteAddressBuffer customvbargs : register(u1);
     MakeUAV(compuav)
         .Format(DXGI_FORMAT_R32G32B32A32_UINT)
         .FirstElement(4096)
         .NumElements(256000)
-        .CreateGPU(1);
-
-    MakeUAV(compuav).Format(DXGI_FORMAT_R32_FLOAT).FirstElement(0).NumElements(1024).CreateGPU(2);
-
-    MakeUAV(compuav).Format(DXGI_FORMAT_R32_FLOAT).FirstElement(1024).NumElements(1024).CreateGPU(3);
+        .CreateGPU(128);
 
     ID3D12RootSignaturePtr compsig = MakeSig({
-        tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 0, 1, 0),
-        tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, 1, 1),
+        tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 0, 1,
+                   100),    // bufout:u0
+        tableParam(D3D12_SHADER_VISIBILITY_ALL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, 1,
+                   128),    // customvbargs:u1
     });
 
     ID3DBlobPtr csblob = Compile(comp, "main", "cs_5_0");
@@ -534,9 +540,9 @@ void main(uint3 gid : SV_GroupID)
 
       uint32_t zero[4] = {};
       cmd->ClearUnorderedAccessViewUint(
-          MakeUAV(compuav).Format(DXGI_FORMAT_R32G32B32A32_UINT).CreateGPU(0),
-          MakeUAV(compuav).Format(DXGI_FORMAT_R32G32B32A32_UINT).CreateClearCPU(0), compuav, zero,
-          0, NULL);
+          MakeUAV(compuav).Format(DXGI_FORMAT_R32G32B32A32_UINT).CreateGPU(1024),
+          MakeUAV(compuav).Format(DXGI_FORMAT_R32G32B32A32_UINT).CreateClearCPU(1024), compuav,
+          zero, 0, NULL);
 
       ID3D12ResourcePtr bb = StartUsingBackbuffer(cmd, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
