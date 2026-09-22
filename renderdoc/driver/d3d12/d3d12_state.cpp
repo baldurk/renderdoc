@@ -309,6 +309,13 @@ void D3D12RenderState::ApplyState(WrappedID3D12Device *dev, ID3D12GraphicsComman
 
       cmd->IASetIndexBuffer(&ib);
     }
+    else
+    {
+      D3D12_INDEX_BUFFER_VIEW nullIB;
+      nullIB.BufferLocation = 0;
+      nullIB.SizeInBytes = 0;
+      cmd->IASetIndexBuffer(&nullIB);
+    }
 
     for(size_t i = 0; i < vbuffers.size(); i++)
     {
@@ -320,12 +327,15 @@ void D3D12RenderState::ApplyState(WrappedID3D12Device *dev, ID3D12GraphicsComman
         ID3D12Resource *res = GetResourceManager()->GetResAs<ID3D12Resource>(vbuffers[i].buf);
         if(res)
           vb.BufferLocation = res->GetGPUVirtualAddress() + vbuffers[i].offs;
-        else
-          vb.BufferLocation = 0;
 
         vb.StrideInBytes = vbuffers[i].stride;
         vb.SizeInBytes = vbuffers[i].size;
 
+        cmd->IASetVertexBuffers((UINT)i, 1, &vb);
+      }
+      else
+      {
+        vb.SizeInBytes = 0;
         cmd->IASetVertexBuffers((UINT)i, 1, &vb);
       }
     }
