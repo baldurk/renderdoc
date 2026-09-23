@@ -4101,12 +4101,14 @@ void WrappedID3D12GraphicsCommandList::FinaliseExecuteIndirectEvents(BakedCmdLis
 
             ResourceId id;
             uint64_t offs = 0;
-            m_pDevice->GetResIDFromOrigAddr(vb->BufferLocation, id, offs);
-
-            ID3D12Resource *res = GetResourceManager()->GetResAs<ID3D12Resource>(id);
-            RDCASSERT(res);
-            if(res)
-              vb->BufferLocation = res->GetGPUVirtualAddress() + offs;
+            ID3D12Resource *res = NULL;
+            if(vb->BufferLocation != 0 && vb->SizeInBytes != 0)
+            {
+              m_pDevice->GetResIDFromOrigAddr(vb->BufferLocation, id, offs);
+              res = GetResourceManager()->GetResAs<ID3D12Resource>(id);
+              RDCASSERT(res);
+            }
+            vb->BufferLocation = res ? res->GetGPUVirtualAddress() + offs : 0;
 
             if(arg.VertexBuffer.Slot >= state.vbuffers.size())
               state.vbuffers.resize(arg.VertexBuffer.Slot + 1);
@@ -4129,12 +4131,14 @@ void WrappedID3D12GraphicsCommandList::FinaliseExecuteIndirectEvents(BakedCmdLis
 
             ResourceId id;
             uint64_t offs = 0;
-            m_pDevice->GetResIDFromOrigAddr(ib->BufferLocation, id, offs);
-
-            ID3D12Resource *res = GetResourceManager()->GetResAs<ID3D12Resource>(id);
-            RDCASSERT(res);
-            if(res)
-              ib->BufferLocation = res->GetGPUVirtualAddress() + offs;
+            ID3D12Resource *res = NULL;
+            if(ib->BufferLocation != 0 && ib->SizeInBytes != 0)
+            {
+              m_pDevice->GetResIDFromOrigAddr(ib->BufferLocation, id, offs);
+              res = GetResourceManager()->GetResAs<ID3D12Resource>(id);
+              RDCASSERT(res);
+            }
+            ib->BufferLocation = res ? res->GetGPUVirtualAddress() + offs : 0;
 
             state.ibuffer.buf = id;
             state.ibuffer.offs = offs;
