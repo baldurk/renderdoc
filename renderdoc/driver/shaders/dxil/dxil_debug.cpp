@@ -7979,10 +7979,11 @@ ScopedDebugData *Debugger::FindScopedDebugData(const DXIL::Metadata *md) const
 
 const DXIL::Metadata *Debugger::GetMDScope(const DXIL::Metadata *scopeMD) const
 {
-  // Iterate upwards to find DIFile, DISubprogram or DILexicalBlock scope
+  // Iterate upwards to find DIFile, DISubprogram, DILexicalBlock or DILexicalBlockFile scope
   while(scopeMD && (scopeMD->dwarf->type != DIBase::File) &&
         (scopeMD->dwarf->type != DIBase::Subprogram) &&
-        (scopeMD->dwarf->type != DIBase::LexicalBlock))
+        (scopeMD->dwarf->type != DIBase::LexicalBlock) &&
+        (scopeMD->dwarf->type != DIBase::LexicalBlockFile))
     scopeMD = m_Program->GetDebugScopeParent(scopeMD->dwarf);
 
   return scopeMD;
@@ -9737,6 +9738,10 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, uint32_t eve
               else if(dwarf->type == DIBase::LexicalBlock)
               {
                 scopeMD = dwarf->As<DILexicalBlock>()->scope;
+              }
+              else if(dwarf->type == DIBase::LexicalBlockFile)
+              {
+                scopeMD = dwarf->As<DILexicalBlockFile>()->scope;
               }
               else if(dwarf->type == DIBase::File)
               {
