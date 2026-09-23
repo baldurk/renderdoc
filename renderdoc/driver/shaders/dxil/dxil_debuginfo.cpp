@@ -274,6 +274,15 @@ bool Program::ParseDebugMetaRecord(MetadataList &metadata, const LLVMBC::BlockOr
 
     meta.dwarf = expr;
   }
+  else if(id == LLVMBC::MetaDataRecord::LEXICAL_BLOCK_FILE)
+  {
+    meta.isDistinct = (metaRecord.ops[0] & 0x1);
+
+    meta.dwarf = new DILexicalBlockFile(metadata.getOrNULL(metaRecord.ops[1]),
+                                        metadata.getOrNULL(metaRecord.ops[2]), metaRecord.ops[3]);
+
+    meta.children = {metadata.getOrNULL(metaRecord.ops[1]), metadata.getOrNULL(metaRecord.ops[2])};
+  }
   else
   {
     return false;
@@ -728,6 +737,20 @@ rdcstr DILexicalBlock::toString(bool dxcStyleFormatting) const
     ret += StringFormat::Fmt(", line: %llu", line);
   if(column)
     ret += StringFormat::Fmt(", column: %llu", column);
+  ret += ")";
+  return ret;
+}
+
+rdcstr DILexicalBlockFile::toString(bool dxcStyleFormatting) const
+{
+  rdcstr ret = "!DILexicalBlockFile(";
+  if(scope)
+    ret += StringFormat::Fmt("scope: %s", scope->refString(dxcStyleFormatting).c_str());
+  else
+    ret += "scope: null";
+  if(file)
+    ret += StringFormat::Fmt(", file: %s", file->refString(dxcStyleFormatting).c_str());
+  ret += StringFormat::Fmt(", discriminator: %llu", discriminator);
   ret += ")";
   return ret;
 }

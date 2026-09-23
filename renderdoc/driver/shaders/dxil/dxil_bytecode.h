@@ -1236,6 +1236,7 @@ struct DIBase
     LocalVariable,
     Expression,
     LexicalBlock,
+    LexicalBlockFile,
     Subrange,
     Namespace,
     ImportedEntity,

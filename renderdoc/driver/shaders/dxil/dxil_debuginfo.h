@@ -710,6 +710,21 @@ struct DILexicalBlock : public DIBase
   virtual rdcstr toString(bool dxcStyleFormatting) const;
 };
 
+struct DILexicalBlockFile : public DIBase
+{
+  static const DIBase::Type DIType = DIBase::LexicalBlockFile;
+  DILexicalBlockFile(const Metadata *scope, const Metadata *file, uint64_t discriminator)
+      : DIBase(DIType), scope(scope), file(file), discriminator(discriminator)
+  {
+  }
+
+  const Metadata *scope;
+  const Metadata *file;
+  uint64_t discriminator;
+
+  virtual rdcstr toString(bool dxcStyleFormatting) const;
+};
+
 struct DISubrange : public DIBase
 {
   static const DIBase::Type DIType = DIBase::Subrange;
