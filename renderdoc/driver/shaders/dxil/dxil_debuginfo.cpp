@@ -297,6 +297,8 @@ const Metadata *Program::GetDebugScopeParent(const DIBase *d) const
     return d->As<DISubprogram>()->scope;
   else if(d->type == DIBase::LexicalBlock)
     return d->As<DILexicalBlock>()->scope;
+  else if(d->type == DIBase::LexicalBlockFile)
+    return d->As<DILexicalBlockFile>()->scope;
   else if(d->type == DIBase::CompositeType)
     return d->As<DICompositeType>()->file;
   else if(d->type == DIBase::Namespace)
@@ -311,6 +313,8 @@ uint64_t Program::GetDebugScopeLine(const DIBase *d) const
     return d->As<DISubprogram>()->line;
   else if(d->type == DIBase::LexicalBlock)
     return d->As<DILexicalBlock>()->line;
+  else if(d->type == DIBase::LexicalBlockFile)
+    return 0;
   else if(d->type == DIBase::File)
     return 0;
 
@@ -352,6 +356,10 @@ rdcstr Program::GetDebugScopeFilePath(const DIBase *d) const
       case DIBase::LexicalBlock:
         scope = dwarf->As<DILexicalBlock>()->scope;
         newFileMD = dwarf->As<DILexicalBlock>()->file;
+        break;
+      case DIBase::LexicalBlockFile:
+        scope = dwarf->As<DILexicalBlockFile>()->scope;
+        newFileMD = dwarf->As<DILexicalBlockFile>()->file;
         break;
       case DIBase::Namespace:
         scope = dwarf->As<DINamespace>()->scope;
@@ -439,6 +447,8 @@ rdcstr Program::GetFunctionScopeName(const DIBase *d) const
     scope = d->As<DIGlobalVariable>()->scope;
   else if(d->type == DIBase::LexicalBlock)
     scope = d->As<DILexicalBlock>()->scope;
+  else if(d->type == DIBase::LexicalBlockFile)
+    scope = d->As<DILexicalBlockFile>()->scope;
 
   while(scope && scope->dwarf)
   {
@@ -450,6 +460,11 @@ rdcstr Program::GetFunctionScopeName(const DIBase *d) const
     else if(scope->dwarf->type == DIBase::LexicalBlock)
     {
       scope = scope->dwarf->As<DILexicalBlock>()->scope;
+      continue;
+    }
+    else if(scope->dwarf->type == DIBase::LexicalBlockFile)
+    {
+      scope = scope->dwarf->As<DILexicalBlockFile>()->scope;
       continue;
     }
 
