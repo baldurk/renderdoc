@@ -955,6 +955,7 @@ private:
   ResourceId GetPartialCommandBuffer();
 
   void UpdateRenderStateForSecondaries(BakedCmdBufferInfo &ancestorCB, BakedCmdBufferInfo &currentCB);
+  void ResetRenderStateForParent(BakedCmdBufferInfo &ancestorCB);
 
   // this info is stored in the record on capture, but we
   // need it on replay too

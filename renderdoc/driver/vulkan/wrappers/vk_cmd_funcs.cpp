@@ -5403,6 +5403,35 @@ void WrappedVulkan::UpdateRenderStateForSecondaries(BakedCmdBufferInfo &ancestor
     UpdateRenderStateForSecondaries(ancestorCB, m_BakedCmdBufferInfo[childCB]);
 }
 
+void WrappedVulkan::ResetRenderStateForParent(BakedCmdBufferInfo &ancestorCB)
+{
+  // All state of the primary command buffer is undefined after executing a secondary command buffer
+  VulkanRenderState &state = ancestorCB.state;
+
+  // Except: If the primary command buffer is inside a render pass instance, then the
+  // render pass and subpass state is not disturbed by executing secondary command buffers.
+  ResourceId rp = state.GetRenderPass();
+  uint32_t subpass = state.subpass;
+  VkSubpassContents subpassContents = state.subpassContents;
+  ResourceId fb = state.GetFramebuffer();
+  VkRect2D renderArea = state.renderArea;
+  rdcarray<ResourceId> fbAtts = state.GetFramebufferAttachments();
+
+  state = VulkanRenderState();
+
+  state.SetRenderPass(rp);
+  state.subpass = subpass;
+  state.subpassContents = subpassContents;
+  state.renderArea = renderArea;
+  state.SetFramebuffer(fb, fbAtts);
+
+  // Not Implemented
+  // Except: If the primary command buffer has a descriptor heap bound, and the address of that
+  // descriptor heap is specified in VkCommandBufferInheritanceDescriptorHeapInfoEXT for
+  // every secondary command buffer, that heap binding is not disturbed by executing
+  // secondary command buffers.
+}
+
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkCommandBuffer commandBuffer,
                                                    uint32_t commandBufferCount,
@@ -5530,6 +5559,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
       // because we don't have the extra popmarker event to 'absorb' the outer loop's
       // increment, and it incremented once too many for the last vkEndCommandBuffer
       // setmarker event in the loop over all commands
+      ResetRenderStateForParent(parentCmdBufInfo);
     }
     else
     {
@@ -5698,6 +5728,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(SerialiserType &ser, VkComman
                   ->CmdExecuteCommands(Unwrap(commandBuffer), (uint32_t)rerecordedCmds.size(),
                                        rerecordedCmds.data());
             }
+            ResetRenderStateForParent(parentCmdBufInfo);
           }
         }
       }
