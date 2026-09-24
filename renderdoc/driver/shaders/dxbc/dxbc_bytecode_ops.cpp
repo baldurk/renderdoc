@@ -1278,6 +1278,10 @@ bool Program::DecodeOperand(uint32_t *&tokenStream, ToString flags, Operand &ret
       if(ExtendedOperand::NonUniform.Get(OperandTokenN))
         retOper.flags = Operand::Flags(retOper.flags | Operand::FLAG_NONUNIFORM);
     }
+    else if(type == EXTENDED_OPERAND_EMPTY)
+    {
+      // do nothing? degenerate case
+    }
     else
     {
       RDCERR("Unexpected extended operand modifier");
