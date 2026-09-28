@@ -3760,6 +3760,10 @@ DeviceOpResult Debugger::ReadFromPointer(const ShaderVariable &ptr, ShaderVariab
           if(it != idToPointerType.end())
           {
             var.SetTypedPointer(var.value.u64v[0], this->apiWrapper->GetShaderID(), it->second);
+            if(dec.flags & Decorations::HasMatrixStride)
+              setMatrixStride(var, dec.matrixStride);
+            if(dec.flags & Decorations::HasArrayStride)
+              setArrayStride(var, dec.arrayStride);
           }
           else
           {
@@ -3767,6 +3771,8 @@ DeviceOpResult Debugger::ReadFromPointer(const ShaderVariable &ptr, ShaderVariab
             enablePointerFlags(var, PointerFlags::DereferencedPhysical);
             setMatrixStride(var, matrixStride);
             setBufferTypeId(var, type.InnerType());
+            if(dec.flags & Decorations::HasArrayStride)
+              setArrayStride(var, dec.arrayStride);
           }
         }
       }
