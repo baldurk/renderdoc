@@ -51,6 +51,7 @@ RD_TEST(VK_Shader_Debug_Zoo, VulkanGraphicsTest)
   struct BDA_Data
   {
     float f32[8];
+    uint64_t bda_ptr;
   };
 
   std::string v2f =
@@ -3275,6 +3276,20 @@ OpBranch %_bottomlabel
 %_ptr_f32 = OpPtrAccessChain %ptr_PhysicalStorageBuffer_f32 %_ptr_bda_data_struct %int_dyn_1
 %_out_float = OpLoad %float %_ptr_f32 Aligned 16
 )EOTEST",
+          // Load through a bda ptr array which is a member of a structure pointed to by a uint2 address
+          R"EOTEST(
+; OuterStruct { float4 a; float4 b; InnerStruct* pInner; }
+; InnerStruct { float x; float y; float z; }
+; Code Access is OuterStruct->pInner[1].x
+%_ptr_addr_bda_data_struct = OpAccessChain %ptr_PushConstant_uint2 %push_data %int_1
+%_addr_bda_data_struct = OpLoad %uint2 %_ptr_addr_bda_data_struct
+%_ptr_bda_data_struct = OpBitcast %ptr_PhysicalStorageBuffer_bda_data_struct %_addr_bda_data_struct
+%_addr_ptr_bda_nested_struct_array = OpAccessChain %ptr_PhysicalStorageBuffer_bda_inner_struct_array %_ptr_bda_data_struct %int_2
+%_ptr_bda_inner_struct_array = OpLoad %ptr_PhysicalStorageBuffer_bda_inner_struct %_addr_ptr_bda_nested_struct_array Aligned 8
+%_ptr_bda_inner_struct_one = OpPtrAccessChain %ptr_PhysicalStorageBuffer_bda_inner_struct %_ptr_bda_inner_struct_array %int_dyn_1
+%_ptr_bda_inner_struct_one_member_zero = OpAccessChain %ptr_PhysicalStorageBuffer_f32 %_ptr_bda_inner_struct_one %int_0
+%_out_float = OpLoad %float %_ptr_bda_inner_struct_one_member_zero Aligned 4
+)EOTEST",
       });
       if(features.shaderInt64)
       {
@@ -4035,7 +4050,13 @@ OpBranch %_bottomlabel
       if(features.shaderInt64)
         typesConstants += "%ptr_PushConstant_u64 = OpTypePointer PushConstant %u64\n";
 
-      typesConstants += "%bda_data_struct = OpTypeStruct %float4 %float4";
+      typesConstants += R"EOSHADER(
+%bda_inner_struct = OpTypeStruct %float %float %float 
+%ptr_PhysicalStorageBuffer_bda_inner_struct = OpTypePointer PhysicalStorageBuffer %bda_inner_struct
+%ptr_PhysicalStorageBuffer_bda_inner_struct_array = OpTypePointer PhysicalStorageBuffer %ptr_PhysicalStorageBuffer_bda_inner_struct
+
+%bda_data_struct = OpTypeStruct %float4 %float4 %ptr_PhysicalStorageBuffer_bda_inner_struct 
+ )EOSHADER";
 
       typesConstants += R"EOSHADER(
 %ptr_PhysicalStorageBuffer_bda_data_struct = OpTypePointer PhysicalStorageBuffer %bda_data_struct
@@ -4050,6 +4071,11 @@ OpBranch %_bottomlabel
 OpDecorate %ptr_PhysicalStorageBuffer_bda_data_struct_f32_4 ArrayStride 4
 OpDecorate %ptr_PhysicalStorageBuffer_bda_data_struct_f32_8 ArrayStride 8
 OpDecorate %ptr_PhysicalStorageBuffer_bda_data_struct_f32_12 ArrayStride 12
+; 8-bytes pointer stride
+OpDecorate %ptr_PhysicalStorageBuffer_bda_inner_struct_array ArrayStride 8
+; 12-bytes element stride
+OpDecorate %ptr_PhysicalStorageBuffer_bda_inner_struct ArrayStride 12
+
 OpDecorate %pushdata_struct Block
 OpMemberDecorate %pushdata_struct 0 Offset 16       ; int4 data
 OpMemberDecorate %pushdata_struct 1 Offset 32       ; uint2 bda_uvec2 
@@ -4060,6 +4086,12 @@ OpMemberDecorate %pushdata_struct 4 Offset 48       ; uint64_t bda_u64
 OpDecorate %bda_data_struct Block
 OpMemberDecorate %bda_data_struct 0 Offset 0        ; float f32[0..3]
 OpMemberDecorate %bda_data_struct 1 Offset 16       ; float f32[4..7]
+OpMemberDecorate %bda_data_struct 2 Offset 32       ; bda_ptr to bda_inner_struct[2]
+
+OpDecorate %bda_inner_struct Block
+OpMemberDecorate %bda_inner_struct 0 Offset 0        ; float
+OpMemberDecorate %bda_inner_struct 1 Offset 4        ; float
+OpMemberDecorate %bda_inner_struct 2 Offset 8        ; float
 )EOSHADER";
     }
 
@@ -5417,10 +5449,11 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
       bda_data_cpu->f32[1] = 0.2f;
       bda_data_cpu->f32[2] = 0.3f;
       bda_data_cpu->f32[3] = 0.8f;
-      bda_data_cpu->f32[4] = 0.3f;
-      bda_data_cpu->f32[5] = 0.2f;
-      bda_data_cpu->f32[6] = 0.1f;
+      bda_data_cpu->f32[4] = 0.4f;
+      bda_data_cpu->f32[5] = 0.5f;
+      bda_data_cpu->f32[6] = 0.6f;
       bda_data_cpu->f32[7] = 0.9f;
+      bda_data_cpu->bda_ptr = *(uint64_t *)(&bda_base_gpuptr);
     }
 
     AllocatedImage store_image(
