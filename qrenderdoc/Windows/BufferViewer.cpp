@@ -3666,6 +3666,10 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
       if(m_ByteSize == UINT64_MAX)
         repeatedRangeEnd = UINT64_MAX;
 
+      // if the fixed length is out of the range given, clamp it
+      if(repeatedRangeStart > repeatedRangeEnd)
+        repeatedRangeStart = repeatedRangeEnd;
+
       // get the underlying buffer length
       uint64_t bufferLength = 0;
 
@@ -3697,14 +3701,16 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
         {
           buf->storage.clear();
         }
-        else if(repeatedRangeStart > fixedLength)
+        else if(repeatedRangeStart > m_ByteOffset + fixedLength)
         {
           // if the repeated range subsection we're fetching is paged further in, we still need to
           // fetch the fixed data from the 'start'
           if(fixedLength > 0)
             buf->storage = r->GetBufferData(m_BufferID, m_ByteOffset, fixedLength);
           // then append the data from where we're paged to
-          buf->storage.append(r->GetBufferData(m_BufferID, repeatedRangeStart, clampedRepeatedLength));
+          if(clampedRepeatedLength > 0)
+            buf->storage.append(
+                r->GetBufferData(m_BufferID, repeatedRangeStart, clampedRepeatedLength));
         }
         else
         {
