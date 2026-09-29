@@ -415,6 +415,15 @@ static void TestBasic()
   CHECK(test.size() == 7);
   CHECK(x == 10);
   CHECK(test[2] == 6);
+
+  rdcarray<inner> other = {1, 2, 3};
+
+  test.append(other);
+
+  CHECK(test.size() == 10);
+  CHECK(test[7] == 1);
+  CHECK(test[8] == 2);
+  CHECK(test[9] == 3);
 }
 
 static int32_t constructor = 0;
@@ -1307,6 +1316,32 @@ TEST_CASE("Test array type", "[basictypes]")
     CHECK(movedDestructor == 17);
     CHECK(copyAssignment == 0);
     CHECK(moveAssignment == 0);
+
+    // move append
+    rdcarray<ConstructorCounter> other = {1, 2, 3};
+
+    CHECK(valueConstructor == 8);
+    CHECK(copyConstructor == 5);
+    CHECK(moveConstructor == 21);
+    CHECK(destructor == 21);
+    CHECK(movedDestructor == 17);
+    CHECK(copyAssignment == 0);
+    CHECK(moveAssignment == 0);
+
+    test.append(std::move(other));
+
+    CHECK(valueConstructor == 8);
+    CHECK(copyConstructor == 5);
+    CHECK(moveConstructor == 24);
+    CHECK(destructor == 24);
+    CHECK(movedDestructor == 20);
+    CHECK(copyAssignment == 0);
+    CHECK(moveAssignment == 0);
+
+    CHECK(test.size() == 13);
+    CHECK(test[10].value == 1);
+    CHECK(test[11].value == 2);
+    CHECK(test[12].value == 3);
   };
 };
 

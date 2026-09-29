@@ -568,8 +568,8 @@ public:
   inline void append(rdcarray<T> &&in)
   {
     reserve(size() + in.size());
-    for(size_t i = 0; i < in.size(); i++)
-      push_back(std::move(in[i]));
+    ItemCopyHelper<T>::moveRange(data() + size(), in.data(), in.size());
+    setUsedCount(usedCount + in.size());
     // don't have to clear here, since moved object can be left in any indeterminate but valid state
     // (an all the members are in that state, while the array is fully valid), but this gives fewer
     // surprises.
