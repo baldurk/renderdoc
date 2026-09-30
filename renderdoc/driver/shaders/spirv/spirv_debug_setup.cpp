@@ -990,6 +990,11 @@ void Reflector::CheckDebuggable(bool &debuggable, rdcstr &debugStatus) const
       {
         if(innertype->length == Id())
         {
+          // unbounded SSBO is supported
+          const DataType *elementType = &dataTypes[innertype->InnerType()];
+          if(decorations[elementType->id].flags & Decorations::BufferBlock)
+            continue;
+
           debuggable = false;
           rdcstr name = strings[v.id];
           if(name.empty())
