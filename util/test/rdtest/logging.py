@@ -179,6 +179,9 @@ class TestLogger:
             else:
                 assert_msg = "Unknown Assertion"
 
+            if len(ex.args) > 0:
+                assert_msg += f": {ex.args[0]}"
+
             self.rawprint(f"!+ ASSERT FAILURE in {self.test_name}: {assert_msg}")
         elif isinstance(ex, TestFailureException):
             self.rawprint(f"!+ FAILURE in {self.test_name}: {ex!s}")
