@@ -20,6 +20,20 @@ def _is_generic(generic, obj):
     return False
 
 
+def _unwrap_optional(outertype):
+    if _is_generic(Optional, outertype):
+        return getattr(outertype, '__args__')[0]
+
+    if _is_generic(Union, outertype):
+        non_none = [
+            a
+            for a in getattr(outertype, '__args__')
+            if a is not None and a is not type(None)
+        ]
+        if len(non_none) == 1:
+            return getattr(outertype, '__args__')[0]
+    return outertype
+
 # return true for AST nodes that need their own scope - this is module level, then
 # classes and functions which may be nested inside each other
 def _is_scope_node(node):
@@ -888,6 +902,8 @@ class PyReflector:
                         f"Unexpected None in base {parsed.value} for access {parsed.attr}"
                     )
                 return Any
+
+            base = _unwrap_optional(base)
 
             if not hasattr(base, parsed.attr):
                 # if the base is a typevar, it's a user defined type let's
@@ -1911,6 +1927,7 @@ class PyReflector:
             and not _is_generic(Dict, loctype)
             and not _is_generic(Set, loctype)
             and not _is_generic(Optional, loctype)
+            and not _is_generic(Union, loctype)
         ):
             return self._make_func_tooltip(loctype)
 
@@ -1928,6 +1945,7 @@ class PyReflector:
 
             try:
                 parent_type = self._get_type(self.scopes[line], expr.value)
+                parent_type = _unwrap_optional(parent_type)
                 ret = f"{self.get_name(parent_type)}.{expr.attr}: "
 
                 if isinstance(parent_type, UserClass):
@@ -2168,6 +2186,8 @@ class PyReflector:
                 if base_type is Any or base_type is None:
                     return [], 0, []
 
+                base_type = _unwrap_optional(base_type)
+
                 # if this is a user type, look up its identifiers from our list
                 if isinstance(base_type, UserClass):
                     base_ident = base_type.ident
@@ -2312,14 +2332,8 @@ class PyReflector:
             return f"Callable[[{args}], {ret_type}]"
 
         # identify Optional[] looking like Union[x, None]
-        if _is_generic(Union, obj):
-            if len(obj.__args__) == 2:
-                non_none = [
-                    self.get_name(a)
-                    for a in obj.__args__
-                    if a is not None and a is not type(None)
-                ]
-                return f"Optional[{non_none[0]}]"
+        if obj != _unwrap_optional(obj):
+            return f"Optional[{_unwrap_optional(obj)}]"
 
         if hasattr(obj, "__objclass__"):
             cl = obj.__objclass__
@@ -3293,6 +3307,8 @@ if __name__ == "impossible":
 
     foo = FooClass()
 
+    optfoo: Optional[FooClass]
+
     # ENTRY: randint(
     # CALLTYPE: randint
     # PARAM: a
@@ -3359,6 +3375,16 @@ if __name__ == "impossible":
     # AUTOCOMPLETE TEST
 
     # ENTRY: foo.
+    # RESULT: member#docs of member
+    # RESULT: method#docs of method
+    # RESULT: method#arg1: int
+    # RESULT: method#arg2: float
+    # RESULT: method#arg3: str
+    # RESULT: method#-> bool
+    # PREFIX: 0
+    # AUTOCOMPLETE TEST
+
+    # ENTRY: optfoo.
     # RESULT: member#docs of member
     # RESULT: method#docs of method
     # RESULT: method#arg1: int
