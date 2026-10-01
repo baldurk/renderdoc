@@ -763,8 +763,6 @@ class PyReflector:
         return extras
 
     def _handle_aliases(self, in_type: Any) -> Any:
-        out_type = in_type
-
         # see if this type looks like it's in one of the modules we're aliasing from
         # and look up the desired type. This is generally expected to have better
         # type annotations
@@ -795,9 +793,21 @@ class PyReflector:
                 if len(names) == 1:
                     cl_name = names[0]
 
-                    return getattr(PyReflector.alias_modules[mod], cl_name)
+                    makelist = False
+                    if cl_name.startswith('rdcarray_of_'):
+                        makelist = True
+                        cl_name = cl_name.replace('rdcarray_of_', '')
 
-        return out_type
+                    try:
+                        ret = getattr(PyReflector.alias_modules[mod], cl_name)
+                    except AttributeError:
+                        return in_type
+
+                    if makelist:
+                        return List[ret]
+                    return ret
+
+        return in_type
 
     def _get_type(
         self,
