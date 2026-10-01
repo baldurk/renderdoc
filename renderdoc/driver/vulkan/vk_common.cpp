@@ -1448,6 +1448,7 @@ VkDriverInfo::VkDriverInfo(const VkPhysicalDeviceProperties &physProps,
     // not fixed yet that I know of, or unknown driver with fixes
     qualcommDrefNon2DCompileCrash = true;
     qualcommLineWidthCrash = true;
+    qualcommBrokenOpaqueCaptureAddress = true;
 
     // KHR_buffer_device_address has been tested on 622 (Quest2)
     // UBO dynamic offset leak has been fixed in early 2020, 622 tested.

@@ -445,6 +445,10 @@ public:
   // hit the case where it's necessary (doing 'whole pass' partial replay of a subsection of a
   // command buffer where we need to apply dynamic state from earlier in the command buffer).
   bool QualcommLineWidthDynamicStateCrash() const { return qualcommLineWidthCrash; }
+  // On some Qualcomm drivers vkAllocateMemory ignores the requested opaque capture address when
+  // the allocation flags structure does not precede it in the pNext chain, returning an unrelated
+  // address instead. We re-order the chain so the flags come first.
+  bool QualcommBrokenOpaqueCaptureAddress() const { return qualcommBrokenOpaqueCaptureAddress; }
   // on Intel, occlusion queries are broken unless the shader has some effects. When we don't want
   // it to have visible effects during pixel history we have to insert some manual side-effects
   bool IntelBrokenOcclusionQueries() const { return intelBrokenOcclusionQueries; }
@@ -480,6 +484,7 @@ private:
   bool qualcommLeakingUBOOffsets = false;
   bool qualcommDrefNon2DCompileCrash = false;
   bool qualcommLineWidthCrash = false;
+  bool qualcommBrokenOpaqueCaptureAddress = false;
   bool intelBrokenOcclusionQueries = false;
   bool nvidiaStaticPipelineRebindStates = false;
   bool maliBrokenASDeviceSerialisation = false;
