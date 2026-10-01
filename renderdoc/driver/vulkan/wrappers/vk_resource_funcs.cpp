@@ -354,6 +354,27 @@ bool WrappedVulkan::Serialise_vkAllocateMemory(SerialiserType &ser, VkDevice dev
       patched.allocationSize = AlignUp(patched.allocationSize, VkDeviceSize(64 * 1024));
     }
 
+    // Some Qualcomm drivers ignore the opaque capture address when the allocation flags structure
+    // does not precede it in the pNext chain, returning an unrelated address instead. Chain order
+    // is not supposed to matter, so this is a driver bug. Move the existing flags node to the
+    // head of the chain; the captured address, flags, and all other chain nodes are left intact.
+    if(GetDriverInfo().QualcommBrokenOpaqueCaptureAddress())
+    {
+      VkMemoryAllocateFlagsInfo *memFlags = (VkMemoryAllocateFlagsInfo *)FindNextStruct(
+          &patched, VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO);
+      const VkMemoryOpaqueCaptureAddressAllocateInfo *opaque =
+          (const VkMemoryOpaqueCaptureAddressAllocateInfo *)FindNextStruct(
+              &patched, VK_STRUCTURE_TYPE_MEMORY_OPAQUE_CAPTURE_ADDRESS_ALLOCATE_INFO);
+
+      if(memFlags && opaque && opaque->opaqueCaptureAddress && patched.pNext != memFlags)
+      {
+        RemoveNextStruct(&patched, VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO);
+        memFlags->pNext = patched.pNext;
+        patched.pNext = memFlags;
+        RDCDEBUG("Re-ordered memory allocation chain for Qualcomm: flags before opaque address");
+      }
+    }
+
     VkResult ret = ObjDisp(device)->AllocateMemory(Unwrap(device), &patched, NULL, &mem);
 
     if(ret != VK_SUCCESS)
