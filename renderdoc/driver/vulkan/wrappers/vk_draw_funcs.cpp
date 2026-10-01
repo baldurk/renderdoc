@@ -5304,6 +5304,179 @@ void WrappedVulkan::vkCmdTraceRaysIndirect2KHR(VkCommandBuffer commandBuffer,
   }
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdCopyImageToMemoryKHR(
+    SerialiserType &ser, VkCommandBuffer commandBuffer,
+    const VkCopyDeviceMemoryImageInfoKHR *pCopyMemoryInfo)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdCopyImageToMemoryKHR(VkCommandBuffer commandBuffer,
+                                              const VkCopyDeviceMemoryImageInfoKHR *pCopyMemoryInfo)
+{
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdCopyMemoryKHR(SerialiserType &ser, VkCommandBuffer commandBuffer,
+                                                 const VkCopyDeviceMemoryInfoKHR *pCopyMemoryInfo)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdCopyMemoryKHR(VkCommandBuffer commandBuffer,
+                                       const VkCopyDeviceMemoryInfoKHR *pCopyMemoryInfo)
+{
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdFillMemoryKHR(SerialiserType &ser, VkCommandBuffer commandBuffer,
+                                                 const VkDeviceAddressRangeKHR *pDstRange,
+                                                 VkAddressCommandFlagsKHR dstFlags, uint32_t data)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdFillMemoryKHR(VkCommandBuffer commandBuffer,
+                                       const VkDeviceAddressRangeKHR *pDstRange,
+                                       VkAddressCommandFlagsKHR dstFlags, uint32_t data)
+{
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdUpdateMemoryKHR(SerialiserType &ser, VkCommandBuffer commandBuffer,
+                                                   const VkDeviceAddressRangeKHR *pDstRange,
+                                                   VkAddressCommandFlagsKHR dstFlags,
+                                                   VkDeviceSize dataSize, const void *pData)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdUpdateMemoryKHR(VkCommandBuffer commandBuffer,
+                                         const VkDeviceAddressRangeKHR *pDstRange,
+                                         VkAddressCommandFlagsKHR dstFlags, VkDeviceSize dataSize,
+                                         const void *pData)
+{
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdCopyMemoryToImageKHR(
+    SerialiserType &ser, VkCommandBuffer commandBuffer,
+    const VkCopyDeviceMemoryImageInfoKHR *pCopyMemoryInfo)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdCopyMemoryToImageKHR(VkCommandBuffer commandBuffer,
+                                              const VkCopyDeviceMemoryImageInfoKHR *pCopyMemoryInfo)
+{
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdDispatchIndirect2KHR(SerialiserType &ser,
+                                                        VkCommandBuffer commandBuffer,
+                                                        const VkDispatchIndirect2InfoKHR *pInfo)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdDispatchIndirect2KHR(VkCommandBuffer commandBuffer,
+                                              const VkDispatchIndirect2InfoKHR *pInfo)
+{
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect2KHR(SerialiserType &ser,
+                                                           VkCommandBuffer commandBuffer,
+                                                           const VkDrawIndirect2InfoKHR *pInfo)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdDrawIndexedIndirect2KHR(VkCommandBuffer commandBuffer,
+                                                 const VkDrawIndirect2InfoKHR *pInfo)
+{
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdDrawIndirect2KHR(SerialiserType &ser,
+                                                    VkCommandBuffer commandBuffer,
+                                                    const VkDrawIndirect2InfoKHR *pInfo)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdDrawIndirect2KHR(VkCommandBuffer commandBuffer,
+                                          const VkDrawIndirect2InfoKHR *pInfo)
+{
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdDrawMeshTasksIndirectCount2EXT(
+    SerialiserType &ser, VkCommandBuffer commandBuffer, const VkDrawIndirectCount2InfoKHR *pInfo)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdDrawMeshTasksIndirectCount2EXT(VkCommandBuffer commandBuffer,
+                                                        const VkDrawIndirectCount2InfoKHR *pInfo)
+{
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdDrawMeshTasksIndirect2EXT(SerialiserType &ser,
+                                                             VkCommandBuffer commandBuffer,
+                                                             const VkDrawIndirect2InfoKHR *pInfo)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdDrawMeshTasksIndirect2EXT(VkCommandBuffer commandBuffer,
+                                                   const VkDrawIndirect2InfoKHR *pInfo)
+{
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdDrawIndirectByteCount2EXT(
+    SerialiserType &ser, VkCommandBuffer commandBuffer, uint32_t instanceCount,
+    uint32_t firstInstance, const VkBindTransformFeedbackBuffer2InfoEXT *pCounterInfo,
+    uint32_t counterOffset, uint32_t vertexStride)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdDrawIndirectByteCount2EXT(
+    VkCommandBuffer commandBuffer, uint32_t instanceCount, uint32_t firstInstance,
+    const VkBindTransformFeedbackBuffer2InfoEXT *pCounterInfo, uint32_t counterOffset,
+    uint32_t vertexStride)
+{
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirectCount2KHR(
+    SerialiserType &ser, VkCommandBuffer commandBuffer, const VkDrawIndirectCount2InfoKHR *pInfo)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdDrawIndexedIndirectCount2KHR(VkCommandBuffer commandBuffer,
+                                                      const VkDrawIndirectCount2InfoKHR *pInfo)
+{
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdDrawIndirectCount2KHR(SerialiserType &ser,
+                                                         VkCommandBuffer commandBuffer,
+                                                         const VkDrawIndirectCount2InfoKHR *pInfo)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdDrawIndirectCount2KHR(VkCommandBuffer commandBuffer,
+                                               const VkDrawIndirectCount2InfoKHR *pInfo)
+{
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDraw, VkCommandBuffer commandBuffer, uint32_t vertexCount,
                                 uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
 
@@ -5427,3 +5600,37 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdTraceRaysIndirectKHR, VkCommandBuffer
                                 VkDeviceAddress indirectDeviceAddress);
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdTraceRaysIndirect2KHR, VkCommandBuffer commandBuffer,
                                 VkDeviceAddress indirectDeviceAddress);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdCopyImageToMemoryKHR, VkCommandBuffer commandBuffer,
+                                const VkCopyDeviceMemoryImageInfoKHR *pCopyMemoryInfo);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdCopyMemoryKHR, VkCommandBuffer commandBuffer,
+                                const VkCopyDeviceMemoryInfoKHR *pCopyMemoryInfo);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdCopyMemoryToImageKHR, VkCommandBuffer commandBuffer,
+                                const VkCopyDeviceMemoryImageInfoKHR *pCopyMemoryInfo);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdFillMemoryKHR, VkCommandBuffer commandBuffer,
+                                const VkDeviceAddressRangeKHR *pDstRange,
+                                VkAddressCommandFlagsKHR dstFlags, uint32_t data);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdUpdateMemoryKHR, VkCommandBuffer commandBuffer,
+                                const VkDeviceAddressRangeKHR *pDstRange,
+                                VkAddressCommandFlagsKHR dstFlags, VkDeviceSize dataSize,
+                                const void *pData);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDispatchIndirect2KHR, VkCommandBuffer commandBuffer,
+                                const VkDispatchIndirect2InfoKHR *pInfo);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDrawIndexedIndirect2KHR, VkCommandBuffer commandBuffer,
+                                const VkDrawIndirect2InfoKHR *pInfo);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDrawIndirect2KHR, VkCommandBuffer commandBuffer,
+                                const VkDrawIndirect2InfoKHR *pInfo);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDrawMeshTasksIndirectCount2EXT,
+                                VkCommandBuffer commandBuffer,
+                                const VkDrawIndirectCount2InfoKHR *pInfo);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDrawMeshTasksIndirect2EXT, VkCommandBuffer commandBuffer,
+                                const VkDrawIndirect2InfoKHR *pInfo);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDrawIndirectByteCount2EXT, VkCommandBuffer commandBuffer,
+                                uint32_t instanceCount, uint32_t firstInstance,
+                                const VkBindTransformFeedbackBuffer2InfoEXT *pCounterInfo,
+                                uint32_t counterOffset, uint32_t vertexStride);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDrawIndexedIndirectCount2KHR,
+                                VkCommandBuffer commandBuffer,
+                                const VkDrawIndirectCount2InfoKHR *pInfo);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdDrawIndirectCount2KHR, VkCommandBuffer commandBuffer,
+                                const VkDrawIndirectCount2InfoKHR *pInfo);

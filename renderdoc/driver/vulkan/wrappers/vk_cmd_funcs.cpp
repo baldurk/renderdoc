@@ -10467,6 +10467,118 @@ void WrappedVulkan::vkCmdSetCheckpointNV(VkCommandBuffer commandBuffer, const vo
   }
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer3KHR(SerialiserType &ser,
+                                                       VkCommandBuffer commandBuffer,
+                                                       const VkBindIndexBuffer3InfoKHR *pInfo)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdBindIndexBuffer3KHR(VkCommandBuffer commandBuffer,
+                                             const VkBindIndexBuffer3InfoKHR *pInfo)
+{
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers3KHR(
+    SerialiserType &ser, VkCommandBuffer commandBuffer, uint32_t firstBinding,
+    uint32_t bindingCount, const VkBindVertexBuffer3InfoKHR *pBindingInfos)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdBindVertexBuffers3KHR(VkCommandBuffer commandBuffer, uint32_t firstBinding,
+                                               uint32_t bindingCount,
+                                               const VkBindVertexBuffer3InfoKHR *pBindingInfos)
+{
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdCopyQueryPoolResultsToMemoryKHR(
+    SerialiserType &ser, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery,
+    uint32_t queryCount, const VkStridedDeviceAddressRangeKHR *pDstRange,
+    VkAddressCommandFlagsKHR dstFlags, VkQueryResultFlags queryResultFlags)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdCopyQueryPoolResultsToMemoryKHR(
+    VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount,
+    const VkStridedDeviceAddressRangeKHR *pDstRange, VkAddressCommandFlagsKHR dstFlags,
+    VkQueryResultFlags queryResultFlags)
+{
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdWriteMarkerToMemoryAMD(SerialiserType &ser,
+                                                          VkCommandBuffer commandBuffer,
+                                                          const VkMemoryMarkerInfoAMD *pInfo)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdWriteMarkerToMemoryAMD(VkCommandBuffer commandBuffer,
+                                                const VkMemoryMarkerInfoAMD *pInfo)
+{
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdBeginConditionalRendering2EXT(
+    SerialiserType &ser, VkCommandBuffer commandBuffer,
+    const VkConditionalRenderingBeginInfo2EXT *pConditionalRenderingBegin)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdBeginConditionalRendering2EXT(
+    VkCommandBuffer commandBuffer,
+    const VkConditionalRenderingBeginInfo2EXT *pConditionalRenderingBegin)
+{
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdBeginTransformFeedback2EXT(
+    SerialiserType &ser, VkCommandBuffer commandBuffer, uint32_t firstCounterRange,
+    uint32_t counterRangeCount, const VkBindTransformFeedbackBuffer2InfoEXT *pCounterInfos)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdBeginTransformFeedback2EXT(
+    VkCommandBuffer commandBuffer, uint32_t firstCounterRange, uint32_t counterRangeCount,
+    const VkBindTransformFeedbackBuffer2InfoEXT *pCounterInfos)
+{
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdBindTransformFeedbackBuffers2EXT(
+    SerialiserType &ser, VkCommandBuffer commandBuffer, uint32_t firstBinding,
+    uint32_t bindingCount, const VkBindTransformFeedbackBuffer2InfoEXT *pBindingInfos)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdBindTransformFeedbackBuffers2EXT(
+    VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount,
+    const VkBindTransformFeedbackBuffer2InfoEXT *pBindingInfos)
+{
+}
+
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCmdEndTransformFeedback2EXT(
+    SerialiserType &ser, VkCommandBuffer commandBuffer, uint32_t firstCounterRange,
+    uint32_t counterRangeCount, const VkBindTransformFeedbackBuffer2InfoEXT *pCounterInfos)
+{
+  return true;
+}
+
+void WrappedVulkan::vkCmdEndTransformFeedback2EXT(
+    VkCommandBuffer commandBuffer, uint32_t firstCounterRange, uint32_t counterRangeCount,
+    const VkBindTransformFeedbackBuffer2InfoEXT *pCounterInfos)
+{
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateCommandPool, VkDevice device,
                                 const VkCommandPoolCreateInfo *pCreateInfo,
                                 const VkAllocationCallbacks *, VkCommandPool *pCommandPool);
@@ -10700,3 +10812,30 @@ INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBeginCustomResolveEXT, VkCommandBuffe
 
 INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdSetCheckpointNV, VkCommandBuffer commandBuffer,
                                 const void *pCheckpointMarker);
+
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBindIndexBuffer3KHR, VkCommandBuffer commandBuffer,
+                                const VkBindIndexBuffer3InfoKHR *pInfo);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBindVertexBuffers3KHR, VkCommandBuffer commandBuffer,
+                                uint32_t firstBinding, uint32_t bindingCount,
+                                const VkBindVertexBuffer3InfoKHR *pBindingInfos);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdCopyQueryPoolResultsToMemoryKHR,
+                                VkCommandBuffer commandBuffer, VkQueryPool queryPool,
+                                uint32_t firstQuery, uint32_t queryCount,
+                                const VkStridedDeviceAddressRangeKHR *pDstRange,
+                                VkAddressCommandFlagsKHR dstFlags,
+                                VkQueryResultFlags queryResultFlags);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdWriteMarkerToMemoryAMD, VkCommandBuffer commandBuffer,
+                                const VkMemoryMarkerInfoAMD *pInfo);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBeginConditionalRendering2EXT,
+                                VkCommandBuffer commandBuffer,
+                                const VkConditionalRenderingBeginInfo2EXT *pConditionalRenderingBegin);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBeginTransformFeedback2EXT, VkCommandBuffer commandBuffer,
+                                uint32_t firstCounterRange, uint32_t counterRangeCount,
+                                const VkBindTransformFeedbackBuffer2InfoEXT *pCounterInfos);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdBindTransformFeedbackBuffers2EXT,
+                                VkCommandBuffer commandBuffer, uint32_t firstBinding,
+                                uint32_t bindingCount,
+                                const VkBindTransformFeedbackBuffer2InfoEXT *pBindingInfos);
+INSTANTIATE_FUNCTION_SERIALISED(void, vkCmdEndTransformFeedback2EXT, VkCommandBuffer commandBuffer,
+                                uint32_t firstCounterRange, uint32_t counterRangeCount,
+                                const VkBindTransformFeedbackBuffer2InfoEXT *pCounterInfos);
