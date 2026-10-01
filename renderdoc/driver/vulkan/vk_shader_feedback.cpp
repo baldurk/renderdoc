@@ -1518,8 +1518,9 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
   result.compute = bool(action->flags & ActionFlags::Dispatch);
 
   const VulkanStatePipeline &pipe = result.compute ? state.compute : state.graphics;
+  const bool shaderObject = pipe.shaderObject;
 
-  if(pipe.pipeline == ResourceId())
+  if(pipe.pipeline == ResourceId() && !shaderObject)
   {
     result.valid = true;
     return false;
@@ -1527,24 +1528,40 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
   const VulkanCreationInfo::Pipeline &pipeInfo = creationInfo.m_Pipeline[pipe.pipeline];
 
+  const VulkanCreationInfo::ShaderEntry *shaderEntries[NumShaderStages] = {};
+
+  for(uint32_t i = 0; i < NumShaderStages; i++)
+  {
+    if(result.compute && (ShaderStage)i != ShaderStage::Compute)
+      continue;
+    if(!result.compute && (ShaderStage)i == ShaderStage::Compute)
+      continue;
+    if(shaderObject && state.shaderObjects[i] == ResourceId())
+      continue;
+    if(!shaderObject && pipeInfo.shaders[i].stage == ShaderStage::Count)
+      continue;
+
+    shaderEntries[i] = shaderObject ? &creationInfo.m_ShaderObject[state.shaderObjects[i]].shad
+                                    : &pipeInfo.shaders[i];
+  }
+
   bool usesPrintf = false;
 
   for(uint32_t i = 0; i < NumShaderStages; i++)
   {
-    if(pipeInfo.shaders[i].stage == ShaderStage::Count)
-      continue;
-
-    usesPrintf |= pipeInfo.shaders[i].patchData->usesPrintf;
+    if(shaderEntries[i])
+      usesPrintf |= shaderEntries[i]->patchData->usesPrintf;
   }
 
-  const bool hasGeomOrMesh = pipeInfo.shaders[(size_t)ShaderStage::Geometry].module != ResourceId() ||
-                             pipeInfo.shaders[(size_t)ShaderStage::Mesh].module != ResourceId();
+  const bool hasGeomOrMesh =
+      shaderEntries[(size_t)ShaderStage::Geometry] || shaderEntries[(size_t)ShaderStage::Mesh];
 
   const bool usePrimitiveID =
       !hasGeomOrMesh && m_pDriver->GetDeviceEnabledFeatures().geometryShader != VK_FALSE;
 
   const bool usesMultiview =
-      state.GetRenderPass() != ResourceId()
+      shaderObject ? state.dynamicRendering.viewMask != 0
+      : state.GetRenderPass() != ResourceId()
           ? creationInfo.m_RenderPass[state.GetRenderPass()].subpasses[state.subpass].multiviews.size() >
                 1
           : pipeInfo.viewMask != 0;
@@ -1558,23 +1575,46 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
     feedbackData.feedbackStorageSize += 16 + Vulkan_Debug_PrintfBufferSize() + 1024;
   }
 
-  const ShaderReflection *stageRefls[NumShaderStages] = {};
-
   {
     const rdcarray<VulkanRenderState::DescriptorBuffer> &descBufs = state.descBufs;
     const rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descSets =
         (result.compute ? state.compute.descSets : state.graphics.descSets);
 
     rdcarray<const DescSetLayout *> descLayouts;
-    for(size_t set = 0; set < pipeInfo.descSetLayouts.size(); set++)
-      descLayouts.push_back(&creationInfo.m_DescSetLayout[pipeInfo.descSetLayouts[set]]);
+    rdcarray<const DescSetLayout *> stageDescLayouts[NumShaderStages];
 
-    auto processBinding = [this, &descLayouts, &descBufs, &descSets, &feedbackData](
+    if(shaderObject)
+    {
+      for(uint32_t stage = 0; stage < NumShaderStages; stage++)
+      {
+        if(!shaderEntries[stage])
+          continue;
+
+        for(ResourceId layoutid :
+            creationInfo.m_ShaderObject[state.shaderObjects[stage]].descSetLayouts)
+        {
+          stageDescLayouts[stage].push_back(&creationInfo.m_DescSetLayout[layoutid]);
+        }
+      }
+    }
+    else
+    {
+      for(size_t set = 0; set < pipeInfo.descSetLayouts.size(); set++)
+      {
+        descLayouts.push_back(&creationInfo.m_DescSetLayout[pipeInfo.descSetLayouts[set]]);
+      }
+    }
+
+    auto processBinding = [this, &shaderObject, &descLayouts, &stageDescLayouts, &descBufs,
+                           &descSets, &feedbackData](
                               ShaderStage stage, DescriptorType type, bool inputAttachment,
                               uint16_t index, uint32_t bindset, uint32_t bind, uint32_t arraySize) {
       // only process array bindings
       if(arraySize <= 1)
         return;
+
+      rdcarray<const DescSetLayout *> &descSetLayouts =
+          shaderObject ? stageDescLayouts[(uint32_t)stage] : descLayouts;
 
       BindKey key;
       key.stage = stage;
@@ -1582,8 +1622,8 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
       key.index.index = index;
       key.index.arrayElement = 0;
 
-      if(bindset >= descLayouts.size() || !descLayouts[bindset] || bindset >= descSets.size() ||
-         !descSets[bindset].IsBound())
+      if(bindset >= descSetLayouts.size() || !descSetLayouts[bindset] ||
+         bindset >= descSets.size() || !descSets[bindset].IsBound())
       {
         RDCERR("Invalid set %u referenced by %s shader", bindset, ToStr(key.stage).c_str());
         return;
@@ -1592,13 +1632,13 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
       // declared resources may not exist in the descriptor set layout, if they do not then we
       // assume they are not statically used ("A reference in the entry point's interface list does
       // not constitute a static use")
-      if(bind >= descLayouts[bindset]->bindings.size())
+      if(bind >= descSetLayouts[bindset]->bindings.size())
       {
         return;
       }
 
       // VkShaderStageFlagBits and ShaderStageMask are identical bit-for-bit.
-      if((descLayouts[bindset]->bindings[bind].stageFlags &
+      if((descSetLayouts[bindset]->bindings[bind].stageFlags &
           (VkShaderStageFlags)MaskForStage(key.stage)) == 0)
       {
         // this might be deliberate if the binding is never actually used dynamically, only
@@ -1618,12 +1658,12 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
         m_pDriver->GetResIDFromAddr(descBufs[descSets[bindset].descBufferIdx].address, id, offs);
         access.descriptorStore = id;
         access.byteOffset += uint32_t(offs + descSets[bindset].descBufferOffset) +
-                             descLayouts[bindset]->bindings[bind].elemOffset;
-        access.byteSize =
-            GetDescriptorSizeOfBind(m_pDriver->GetResourceManager(), descLayouts[bindset]->bindings,
-                                    descLayouts[bindset]->mutableBitmasks, bind);
+                             descSetLayouts[bindset]->bindings[bind].elemOffset;
+        access.byteSize = GetDescriptorSizeOfBind(m_pDriver->GetResourceManager(),
+                                                  descSetLayouts[bindset]->bindings,
+                                                  descSetLayouts[bindset]->mutableBitmasks, bind);
 
-        if(descLayouts[bindset]->bindings[bind].variableSize || arraySize == ~0U)
+        if(descSetLayouts[bindset]->bindings[bind].variableSize || arraySize == ~0U)
         {
           arraySize = uint32_t((m_pDriver->m_CreationInfo.m_Buffer[id].size - access.byteOffset) /
                                access.byteSize);
@@ -1633,14 +1673,14 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
       {
         ResourceId descSet = descSets[bindset].descSet;
 
-        if(bind >= descLayouts[bindset]->bindings.size())
+        if(bind >= descSetLayouts[bindset]->bindings.size())
         {
           RDCERR("Invalid binding %u in set %u referenced by %s shader", bind, bindset,
                  ToStr(key.stage).c_str());
           return;
         }
 
-        if(descLayouts[bindset]->bindings[bind].variableSize)
+        if(descSetLayouts[bindset]->bindings[bind].variableSize)
         {
           auto it = m_pDriver->m_DescriptorSetState.find(descSet);
           if(it != m_pDriver->m_DescriptorSetState.end())
@@ -1649,12 +1689,12 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
         else if(arraySize == ~0U)
         {
           // if the array was unbounded, clamp it to the size of the descriptor set
-          arraySize = descLayouts[bindset]->bindings[bind].descriptorCount;
+          arraySize = descSetLayouts[bindset]->bindings[bind].descriptorCount;
         }
 
         access.descriptorStore = descSet;
-        access.byteOffset =
-            descLayouts[bindset]->bindings[bind].elemOffset + descLayouts[bindset]->inlineByteSize;
+        access.byteOffset = descSetLayouts[bindset]->bindings[bind].elemOffset +
+                            descSetLayouts[bindset]->inlineByteSize;
         access.byteSize = 1;
       }
 
@@ -1663,36 +1703,39 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
       feedbackData.feedbackStorageSize += arraySize * sizeof(uint32_t);
     };
 
-    for(const VulkanCreationInfo::ShaderEntry &sh : pipeInfo.shaders)
+    for(const VulkanCreationInfo::ShaderEntry *entry : shaderEntries)
     {
-      if(!sh.refl)
+      if(!entry)
+        continue;
+      if(result.compute && entry->stage != ShaderStage::Compute)
+        continue;
+      if(!result.compute && entry->stage == ShaderStage::Compute)
         continue;
 
-      stageRefls[(uint32_t)sh.refl->stage] = sh.refl;
+      for(uint32_t i = 0; i < entry->refl->constantBlocks.size(); i++)
+        processBinding(entry->refl->stage, DescriptorType::ConstantBuffer, false, i & 0xffff,
+                       entry->refl->constantBlocks[i].fixedBindSetOrSpace,
+                       entry->refl->constantBlocks[i].fixedBindNumber,
+                       entry->refl->constantBlocks[i].bindArraySize);
 
-      for(uint32_t i = 0; i < sh.refl->constantBlocks.size(); i++)
-        processBinding(sh.refl->stage, DescriptorType::ConstantBuffer, false, i & 0xffff,
-                       sh.refl->constantBlocks[i].fixedBindSetOrSpace,
-                       sh.refl->constantBlocks[i].fixedBindNumber,
-                       sh.refl->constantBlocks[i].bindArraySize);
+      for(uint32_t i = 0; i < entry->refl->samplers.size(); i++)
+        processBinding(entry->refl->stage, DescriptorType::Sampler, false, i & 0xffff,
+                       entry->refl->samplers[i].fixedBindSetOrSpace,
+                       entry->refl->samplers[i].fixedBindNumber,
+                       entry->refl->samplers[i].bindArraySize);
 
-      for(uint32_t i = 0; i < sh.refl->samplers.size(); i++)
-        processBinding(sh.refl->stage, DescriptorType::Sampler, false, i & 0xffff,
-                       sh.refl->samplers[i].fixedBindSetOrSpace,
-                       sh.refl->samplers[i].fixedBindNumber, sh.refl->samplers[i].bindArraySize);
+      for(uint32_t i = 0; i < entry->refl->readOnlyResources.size(); i++)
+        processBinding(entry->refl->stage, entry->refl->readOnlyResources[i].descriptorType,
+                       entry->refl->readOnlyResources[i].isInputAttachment, i & 0xffff,
+                       entry->refl->readOnlyResources[i].fixedBindSetOrSpace,
+                       entry->refl->readOnlyResources[i].fixedBindNumber,
+                       entry->refl->readOnlyResources[i].bindArraySize);
 
-      for(uint32_t i = 0; i < sh.refl->readOnlyResources.size(); i++)
-        processBinding(sh.refl->stage, sh.refl->readOnlyResources[i].descriptorType,
-                       sh.refl->readOnlyResources[i].isInputAttachment, i & 0xffff,
-                       sh.refl->readOnlyResources[i].fixedBindSetOrSpace,
-                       sh.refl->readOnlyResources[i].fixedBindNumber,
-                       sh.refl->readOnlyResources[i].bindArraySize);
-
-      for(uint32_t i = 0; i < sh.refl->readWriteResources.size(); i++)
-        processBinding(sh.refl->stage, sh.refl->readWriteResources[i].descriptorType, false,
-                       i & 0xffff, sh.refl->readWriteResources[i].fixedBindSetOrSpace,
-                       sh.refl->readWriteResources[i].fixedBindNumber,
-                       sh.refl->readWriteResources[i].bindArraySize);
+      for(uint32_t i = 0; i < entry->refl->readWriteResources.size(); i++)
+        processBinding(entry->refl->stage, entry->refl->readWriteResources[i].descriptorType, false,
+                       i & 0xffff, entry->refl->readWriteResources[i].fixedBindSetOrSpace,
+                       entry->refl->readWriteResources[i].fixedBindNumber,
+                       entry->refl->readWriteResources[i].bindArraySize);
     }
   }
 
@@ -1757,7 +1800,7 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
   std::map<uint32_t, PrintfData> printfData[NumShaderStages];
 
-  auto patchCallback = [this, &printfData, &feedbackData, pipeInfo, maxSlot, usePrimitiveID,
+  auto patchCallback = [this, &printfData, &feedbackData, &shaderEntries, maxSlot, usePrimitiveID,
                         usesMultiview](
                            const AddedDescriptorData &patchedBufferdata, VkShaderStageFlagBits stage,
                            const char *entryName, const rdcarray<uint32_t> &origSpirv,
@@ -1791,14 +1834,14 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
     if(m_pDriver->GetDeviceEnabledFeatures().shaderInt64)
     {
-      AnnotateShader<uint64_t>(*pipeInfo.shaders[idx].refl, *pipeInfo.shaders[idx].patchData,
+      AnnotateShader<uint64_t>(*shaderEntries[idx]->refl, *shaderEntries[idx]->patchData,
                                ShaderStage(idx), entryName, feedbackData.offsetMap, maxSlot,
                                usePrimitiveID, m_PatchedShaderFeedback.FeedbackBuffer.Address(),
                                m_StorageMode, usesMultiview, modSpirv, printfData[idx]);
     }
     else
     {
-      AnnotateShader<uint32_t>(*pipeInfo.shaders[idx].refl, *pipeInfo.shaders[idx].patchData,
+      AnnotateShader<uint32_t>(*shaderEntries[idx]->refl, *shaderEntries[idx]->patchData,
                                ShaderStage(idx), entryName, feedbackData.offsetMap, maxSlot,
                                usePrimitiveID, m_PatchedShaderFeedback.FeedbackBuffer.Address(),
                                m_StorageMode, usesMultiview, modSpirv, printfData[idx]);
@@ -1888,7 +1931,7 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
 
         msg.stage = stage;
 
-        const VulkanCreationInfo::ShaderEntry &sh = pipeInfo.shaders[(uint32_t)stage];
+        const VulkanCreationInfo::ShaderEntry &sh = *shaderEntries[(uint32_t)stage];
 
         {
           VulkanCreationInfo::ShaderModule &mod = creationInfo.m_ShaderModule[sh.module];
@@ -1954,8 +1997,7 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
           msg.location.mesh.thread[2] = meshThread / (sh.refl->dispatchThreadsDimension[0] *
                                                       sh.refl->dispatchThreadsDimension[1]);
 
-          const VulkanCreationInfo::ShaderEntry &tasksh =
-              pipeInfo.shaders[(uint32_t)ShaderStage::Task];
+          const VulkanCreationInfo::ShaderEntry &tasksh = *shaderEntries[(uint32_t)ShaderStage::Task];
 
           if(tasksh.module == ResourceId())
           {

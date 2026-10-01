@@ -555,7 +555,7 @@ private:
                                        const rdcfixedarray<uint32_t, 3> &groupid,
                                        const rdcfixedarray<uint32_t, 3> &threadid);
 
-  void AllocAndAddReservedDescriptors(const VulkanStatePipeline &pipe,
+  void AllocAndAddReservedDescriptors(const VulkanRenderState &state, const VulkanStatePipeline &pipe,
                                       AddedDescriptorData &patchedBufferData,
                                       bool vertexPatchedToCompute,
                                       const rdcarray<VkDescriptorSetLayoutBinding> &newBindings);
