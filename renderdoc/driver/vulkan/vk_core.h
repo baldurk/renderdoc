@@ -3348,4 +3348,69 @@ public:
                                              uint64_t *pSwapchainTimingPropertiesCounter);
   VkResult vkSetSwapchainPresentTimingQueueSizeEXT(VkDevice device, VkSwapchainKHR swapchain,
                                                    uint32_t size);
+
+  // VK_KHR_device_address_commands
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindIndexBuffer3KHR, VkCommandBuffer commandBuffer,
+                                const VkBindIndexBuffer3InfoKHR *pInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindVertexBuffers3KHR, VkCommandBuffer commandBuffer,
+                                uint32_t firstBinding, uint32_t bindingCount,
+                                const VkBindVertexBuffer3InfoKHR *pBindingInfos);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyMemoryKHR, VkCommandBuffer commandBuffer,
+                                const VkCopyDeviceMemoryInfoKHR *pCopyMemoryInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyImageToMemoryKHR, VkCommandBuffer commandBuffer,
+                                const VkCopyDeviceMemoryImageInfoKHR *pCopyMemoryInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyMemoryToImageKHR, VkCommandBuffer commandBuffer,
+                                const VkCopyDeviceMemoryImageInfoKHR *pCopyMemoryInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyQueryPoolResultsToMemoryKHR,
+                                VkCommandBuffer commandBuffer, VkQueryPool queryPool,
+                                uint32_t firstQuery, uint32_t queryCount,
+                                const VkStridedDeviceAddressRangeKHR *pDstRange,
+                                VkAddressCommandFlagsKHR dstFlags,
+                                VkQueryResultFlags queryResultFlags);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDispatchIndirect2KHR, VkCommandBuffer commandBuffer,
+                                const VkDispatchIndirect2InfoKHR *pInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawIndexedIndirect2KHR, VkCommandBuffer commandBuffer,
+                                const VkDrawIndirect2InfoKHR *pInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawIndirect2KHR, VkCommandBuffer commandBuffer,
+                                const VkDrawIndirect2InfoKHR *pInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdFillMemoryKHR, VkCommandBuffer commandBuffer,
+                                const VkDeviceAddressRangeKHR *pDstRange,
+                                VkAddressCommandFlagsKHR dstFlags, uint32_t data);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdUpdateMemoryKHR, VkCommandBuffer commandBuffer,
+                                const VkDeviceAddressRangeKHR *pDstRange,
+                                VkAddressCommandFlagsKHR dstFlags, VkDeviceSize dataSize,
+                                const void *pData);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawMeshTasksIndirectCount2EXT,
+                                VkCommandBuffer commandBuffer,
+                                const VkDrawIndirectCount2InfoKHR *pInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdWriteMarkerToMemoryAMD, VkCommandBuffer commandBuffer,
+                                const VkMemoryMarkerInfoAMD *pInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBeginConditionalRendering2EXT,
+                                VkCommandBuffer commandBuffer,
+                                const VkConditionalRenderingBeginInfo2EXT *pConditionalRenderingBegin);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawMeshTasksIndirect2EXT, VkCommandBuffer commandBuffer,
+                                const VkDrawIndirect2InfoKHR *pInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBeginTransformFeedback2EXT, VkCommandBuffer commandBuffer,
+                                uint32_t firstCounterRange, uint32_t counterRangeCount,
+                                const VkBindTransformFeedbackBuffer2InfoEXT *pCounterInfos);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindTransformFeedbackBuffers2EXT,
+                                VkCommandBuffer commandBuffer, uint32_t firstBinding,
+                                uint32_t bindingCount,
+                                const VkBindTransformFeedbackBuffer2InfoEXT *pBindingInfos);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawIndirectByteCount2EXT, VkCommandBuffer commandBuffer,
+                                uint32_t instanceCount, uint32_t firstInstance,
+                                const VkBindTransformFeedbackBuffer2InfoEXT *pCounterInfo,
+                                uint32_t counterOffset, uint32_t vertexStride);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndTransformFeedback2EXT, VkCommandBuffer commandBuffer,
+                                uint32_t firstCounterRange, uint32_t counterRangeCount,
+                                const VkBindTransformFeedbackBuffer2InfoEXT *pCounterInfos);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawIndexedIndirectCount2KHR,
+                                VkCommandBuffer commandBuffer,
+                                const VkDrawIndirectCount2InfoKHR *pInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDrawIndirectCount2KHR, VkCommandBuffer commandBuffer,
+                                const VkDrawIndirectCount2InfoKHR *pInfo);
+  IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateAccelerationStructure2KHR, VkDevice device,
+                                const VkAccelerationStructureCreateInfo2KHR *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator,
+                                VkAccelerationStructureKHR *pAccelerationStructure);
 };

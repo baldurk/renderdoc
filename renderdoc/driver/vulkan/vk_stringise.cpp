@@ -28,7 +28,7 @@
 template <>
 rdcstr DoStringise(const VulkanChunk &el)
 {
-  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1239, "Chunks changed without updating names");
+  RDCCOMPILE_ASSERT((uint32_t)VulkanChunk::Max == 1261, "Chunks changed without updating names");
 
   BEGIN_ENUM_STRINGISE(VulkanChunk)
   {
@@ -271,6 +271,28 @@ rdcstr DoStringise(const VulkanChunk &el)
     STRINGISE_ENUM_CLASS(vkCmdBeginCustomResolveEXT)
     STRINGISE_ENUM_CLASS(vkCmdSetCheckpointNV)
     STRINGISE_ENUM_CLASS(vkCmdSetDepthBias2EXT)
+    STRINGISE_ENUM_CLASS(vkCmdBindIndexBuffer3KHR)
+    STRINGISE_ENUM_CLASS(vkCmdBindVertexBuffers3KHR)
+    STRINGISE_ENUM_CLASS(vkCmdCopyImageToMemoryKHR)
+    STRINGISE_ENUM_CLASS(vkCmdCopyMemoryKHR)
+    STRINGISE_ENUM_CLASS(vkCmdCopyMemoryToImageKHR)
+    STRINGISE_ENUM_CLASS(vkCmdCopyQueryPoolResultsToMemoryKHR)
+    STRINGISE_ENUM_CLASS(vkCmdDispatchIndirect2KHR)
+    STRINGISE_ENUM_CLASS(vkCmdDrawIndexedIndirect2KHR)
+    STRINGISE_ENUM_CLASS(vkCmdDrawIndirect2KHR)
+    STRINGISE_ENUM_CLASS(vkCmdFillMemoryKHR)
+    STRINGISE_ENUM_CLASS(vkCmdUpdateMemoryKHR)
+    STRINGISE_ENUM_CLASS(vkCmdDrawMeshTasksIndirectCount2EXT)
+    STRINGISE_ENUM_CLASS(vkCmdWriteMarkerToMemoryAMD)
+    STRINGISE_ENUM_CLASS(vkCmdBeginConditionalRendering2EXT)
+    STRINGISE_ENUM_CLASS(vkCmdDrawMeshTasksIndirect2EXT)
+    STRINGISE_ENUM_CLASS(vkCmdBeginTransformFeedback2EXT)
+    STRINGISE_ENUM_CLASS(vkCmdBindTransformFeedbackBuffers2EXT)
+    STRINGISE_ENUM_CLASS(vkCmdDrawIndirectByteCount2EXT)
+    STRINGISE_ENUM_CLASS(vkCmdEndTransformFeedback2EXT)
+    STRINGISE_ENUM_CLASS(vkCreateAccelerationStructure2KHR)
+    STRINGISE_ENUM_CLASS(vkCmdDrawIndexedIndirectCount2KHR)
+    STRINGISE_ENUM_CLASS(vkCmdDrawIndirectCount2KHR)
     STRINGISE_ENUM_CLASS_NAMED(Max, "Max Chunk");
   }
   END_ENUM_STRINGISE()
@@ -5048,6 +5070,21 @@ rdcstr DoStringise(const VkPresentTimingInfoFlagBitsEXT &el)
   {
     STRINGISE_BITFIELD_BIT(VK_PRESENT_TIMING_INFO_PRESENT_AT_RELATIVE_TIME_BIT_EXT);
     STRINGISE_BITFIELD_BIT(VK_PRESENT_TIMING_INFO_PRESENT_AT_NEAREST_REFRESH_CYCLE_BIT_EXT);
+  }
+  END_BITFIELD_STRINGISE();
+}
+
+template <>
+rdcstr DoStringise(const VkAddressCommandFlagBitsKHR &el)
+{
+  BEGIN_BITFIELD_STRINGISE(VkAddressCommandFlagBitsKHR);
+  {
+    STRINGISE_BITFIELD_BIT(VK_ADDRESS_COMMAND_PROTECTED_BIT_KHR);
+    STRINGISE_BITFIELD_BIT(VK_ADDRESS_COMMAND_FULLY_BOUND_BIT_KHR);
+    STRINGISE_BITFIELD_BIT(VK_ADDRESS_COMMAND_STORAGE_BUFFER_USAGE_BIT_KHR);
+    STRINGISE_BITFIELD_BIT(VK_ADDRESS_COMMAND_UNKNOWN_STORAGE_BUFFER_USAGE_BIT_KHR);
+    STRINGISE_BITFIELD_BIT(VK_ADDRESS_COMMAND_TRANSFORM_FEEDBACK_BUFFER_USAGE_BIT_KHR);
+    STRINGISE_BITFIELD_BIT(VK_ADDRESS_COMMAND_UNKNOWN_TRANSFORM_FEEDBACK_BUFFER_USAGE_BIT_KHR);
   }
   END_BITFIELD_STRINGISE();
 }

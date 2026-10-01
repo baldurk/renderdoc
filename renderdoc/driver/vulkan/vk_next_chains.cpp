@@ -875,6 +875,25 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   COPY_STRUCT(VK_STRUCTURE_TYPE_SUBRESOURCE_HOST_MEMCPY_SIZE, VkSubresourceHostMemcpySize);           \
   COPY_STRUCT(VK_STRUCTURE_TYPE_IMAGE_TO_MEMORY_COPY, VkImageToMemoryCopy);                           \
   COPY_STRUCT(VK_STRUCTURE_TYPE_MEMORY_TO_IMAGE_COPY, VkMemoryToImageCopy);                           \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_BIND_INDEX_BUFFER_3_INFO_KHR, VkBindIndexBuffer3InfoKHR);             \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_BIND_VERTEX_BUFFER_3_INFO_KHR, VkBindVertexBuffer3InfoKHR);           \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_COPY_DEVICE_MEMORY_INFO_KHR, VkCopyDeviceMemoryInfoKHR);              \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_DEVICE_MEMORY_COPY_KHR, VkDeviceMemoryCopyKHR);                       \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_DEVICE_MEMORY_IMAGE_COPY_KHR, VkDeviceMemoryImageCopyKHR);            \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_DISPATCH_INDIRECT_2_INFO_KHR, VkDispatchIndirect2InfoKHR);            \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_DRAW_INDIRECT_2_INFO_KHR, VkDrawIndirect2InfoKHR);                    \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_DRAW_INDIRECT_COUNT_2_INFO_KHR, VkDrawIndirectCount2InfoKHR);         \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_MEMORY_RANGE_BARRIER_KHR, VkMemoryRangeBarrierKHR);                   \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_MEMORY_RANGE_BARRIERS_INFO_KHR, VkMemoryRangeBarriersInfoKHR);        \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEVICE_ADDRESS_COMMANDS_FEATURES_KHR,                 \
+              VkPhysicalDeviceDeviceAddressCommandsFeaturesKHR);                                      \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_MEMORY_MARKER_INFO_AMD, VkMemoryMarkerInfoAMD);                       \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_CONDITIONAL_RENDERING_BEGIN_INFO_2_EXT,                               \
+              VkConditionalRenderingBeginInfo2EXT);                                                   \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_BIND_TRANSFORM_FEEDBACK_BUFFER_2_INFO_EXT,                            \
+              VkBindTransformFeedbackBuffer2InfoEXT);                                                 \
+  COPY_STRUCT(VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_2_KHR,                             \
+              VkAccelerationStructureCreateInfo2KHR);                                                 \
   COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT,                          \
                            VkLayerSettingsCreateInfoEXT);                                             \
   COPY_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO,                             \
@@ -1029,6 +1048,8 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
                 UnwrapInPlace(out->srcImage));                                                        \
   UNWRAP_STRUCT(VK_STRUCTURE_TYPE_COPY_MEMORY_TO_IMAGE_INFO, VkCopyMemoryToImageInfo,                 \
                 UnwrapInPlace(out->dstImage));                                                        \
+  UNWRAP_STRUCT(VK_STRUCTURE_TYPE_COPY_DEVICE_MEMORY_IMAGE_INFO_KHR,                                  \
+                VkCopyDeviceMemoryImageInfoKHR, UnwrapInPlace(out->image));                           \
   UNWRAP_STRUCT_CAPTURE_ONLY(VK_STRUCTURE_TYPE_ACQUIRE_NEXT_IMAGE_INFO_KHR,                           \
                              VkAcquireNextImageInfoKHR, UnwrapInPlace(out->swapchain),                \
                              UnwrapInPlace(out->semaphore), UnwrapInPlace(out->fence));               \
@@ -1073,7 +1094,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR:                                           \
   /* Output structure containing objects. Must be *wrapped* not unwrapped. */                    \
   /* So we treat this as unhandled in generic code and require specific handling. */             \
-  case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_2_KHR:                               \
   case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_NV:                                  \
   case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_LINEAR_SWEPT_SPHERES_DATA_NV:           \
   case VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_MICROMAP_DATA_KHR:                      \
@@ -1092,10 +1112,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV:                             \
   case VK_STRUCTURE_TYPE_BIND_DATA_GRAPH_PIPELINE_SESSION_MEMORY_INFO_ARM:                       \
   case VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT:                                                     \
-  case VK_STRUCTURE_TYPE_BIND_INDEX_BUFFER_3_INFO_KHR:                                           \
   case VK_STRUCTURE_TYPE_BIND_TENSOR_MEMORY_INFO_ARM:                                            \
-  case VK_STRUCTURE_TYPE_BIND_TRANSFORM_FEEDBACK_BUFFER_2_INFO_EXT:                              \
-  case VK_STRUCTURE_TYPE_BIND_VERTEX_BUFFER_3_INFO_KHR:                                          \
   case VK_STRUCTURE_TYPE_BIND_VIDEO_SESSION_MEMORY_INFO_KHR:                                     \
   case VK_STRUCTURE_TYPE_BLIT_IMAGE_CUBIC_WEIGHTS_INFO_QCOM:                                     \
   case VK_STRUCTURE_TYPE_BUFFER_COLLECTION_BUFFER_CREATE_INFO_FUCHSIA:                           \
@@ -1115,15 +1132,12 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_VIEWPORT_SCISSOR_INFO_NV:                    \
   case VK_STRUCTURE_TYPE_COMPUTE_OCCUPANCY_PRIORITY_PARAMETERS_NV:                               \
   case VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_INDIRECT_BUFFER_INFO_NV:                               \
-  case VK_STRUCTURE_TYPE_CONDITIONAL_RENDERING_BEGIN_INFO_2_EXT:                                 \
   case VK_STRUCTURE_TYPE_CONVERT_COOPERATIVE_VECTOR_MATRIX_INFO_NV:                              \
   case VK_STRUCTURE_TYPE_COOPERATIVE_MATRIX_FLEXIBLE_DIMENSIONS_PROPERTIES_NV:                   \
   case VK_STRUCTURE_TYPE_COOPERATIVE_MATRIX_PROPERTIES_KHR:                                      \
   case VK_STRUCTURE_TYPE_COOPERATIVE_MATRIX_PROPERTIES_NV:                                       \
   case VK_STRUCTURE_TYPE_COOPERATIVE_VECTOR_PROPERTIES_NV:                                       \
   case VK_STRUCTURE_TYPE_COPY_COMMAND_TRANSFORM_INFO_QCOM:                                       \
-  case VK_STRUCTURE_TYPE_COPY_DEVICE_MEMORY_IMAGE_INFO_KHR:                                      \
-  case VK_STRUCTURE_TYPE_COPY_DEVICE_MEMORY_INFO_KHR:                                            \
   case VK_STRUCTURE_TYPE_COPY_MEMORY_INDIRECT_INFO_KHR:                                          \
   case VK_STRUCTURE_TYPE_COPY_MEMORY_TO_IMAGE_INDIRECT_INFO_KHR:                                 \
   case VK_STRUCTURE_TYPE_COPY_MEMORY_TO_MICROMAP_INFO_EXT:                                       \
@@ -1171,21 +1185,16 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_DEVICE_FAULT_INFO_EXT:                                                  \
   case VK_STRUCTURE_TYPE_DEVICE_FAULT_INFO_KHR:                                                  \
   case VK_STRUCTURE_TYPE_DEVICE_FAULT_SHADER_ABORT_MESSAGE_INFO_KHR:                             \
-  case VK_STRUCTURE_TYPE_DEVICE_MEMORY_COPY_KHR:                                                 \
-  case VK_STRUCTURE_TYPE_DEVICE_MEMORY_IMAGE_COPY_KHR:                                           \
   case VK_STRUCTURE_TYPE_DEVICE_MEMORY_REPORT_CALLBACK_DATA_EXT:                                 \
   case VK_STRUCTURE_TYPE_DEVICE_PIPELINE_BINARY_INTERNAL_CACHE_CONTROL_KHR:                      \
   case VK_STRUCTURE_TYPE_DEVICE_QUEUE_SHADER_CORE_CONTROL_CREATE_INFO_ARM:                       \
   case VK_STRUCTURE_TYPE_DEVICE_TENSOR_MEMORY_REQUIREMENTS_ARM:                                  \
   case VK_STRUCTURE_TYPE_DIRECT_DRIVER_LOADING_INFO_LUNARG:                                      \
   case VK_STRUCTURE_TYPE_DIRECT_DRIVER_LOADING_LIST_LUNARG:                                      \
-  case VK_STRUCTURE_TYPE_DISPATCH_INDIRECT_2_INFO_KHR:                                           \
   case VK_STRUCTURE_TYPE_DISPATCH_PARAMETERS_ARM:                                                \
   case VK_STRUCTURE_TYPE_DISPATCH_TILE_INFO_QCOM:                                                \
   case VK_STRUCTURE_TYPE_DISPLAY_MODE_STEREO_PROPERTIES_NV:                                      \
   case VK_STRUCTURE_TYPE_DISPLAY_SURFACE_STEREO_CREATE_INFO_NV:                                  \
-  case VK_STRUCTURE_TYPE_DRAW_INDIRECT_2_INFO_KHR:                                               \
-  case VK_STRUCTURE_TYPE_DRAW_INDIRECT_COUNT_2_INFO_KHR:                                         \
   case VK_STRUCTURE_TYPE_EXPORT_METAL_BUFFER_INFO_EXT:                                           \
   case VK_STRUCTURE_TYPE_EXPORT_METAL_COMMAND_QUEUE_INFO_EXT:                                    \
   case VK_STRUCTURE_TYPE_EXPORT_METAL_DEVICE_INFO_EXT:                                           \
@@ -1263,10 +1272,7 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_MEMORY_GET_ZIRCON_HANDLE_INFO_FUCHSIA:                                  \
   case VK_STRUCTURE_TYPE_MEMORY_HOST_POINTER_PROPERTIES_EXT:                                     \
   case VK_STRUCTURE_TYPE_MEMORY_MAP_PLACED_INFO_EXT:                                             \
-  case VK_STRUCTURE_TYPE_MEMORY_MARKER_INFO_AMD:                                                 \
   case VK_STRUCTURE_TYPE_MEMORY_METAL_HANDLE_PROPERTIES_EXT:                                     \
-  case VK_STRUCTURE_TYPE_MEMORY_RANGE_BARRIER_KHR:                                               \
-  case VK_STRUCTURE_TYPE_MEMORY_RANGE_BARRIERS_INFO_KHR:                                         \
   case VK_STRUCTURE_TYPE_MEMORY_ZIRCON_HANDLE_PROPERTIES_FUCHSIA:                                \
   case VK_STRUCTURE_TYPE_MICROMAP_BUILD_INFO_EXT:                                                \
   case VK_STRUCTURE_TYPE_MICROMAP_BUILD_SIZES_INFO_EXT:                                          \
@@ -1336,7 +1342,6 @@ static void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_TENSOR_PROPERTIES_ARM:                  \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_POOL_OVERALLOCATION_FEATURES_NV:             \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_SET_HOST_MAPPING_FEATURES_VALVE:             \
-  case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEVICE_ADDRESS_COMMANDS_FEATURES_KHR:                   \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEVICE_GENERATED_COMMANDS_COMPUTE_FEATURES_NV:          \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEVICE_GENERATED_COMMANDS_FEATURES_EXT:                 \
   case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEVICE_GENERATED_COMMANDS_FEATURES_NV:                  \
