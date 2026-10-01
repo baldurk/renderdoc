@@ -4163,6 +4163,21 @@ VkResult WrappedVulkan::vkCreateAccelerationStructureKHR(
   return ret;
 }
 
+template <typename SerialiserType>
+bool WrappedVulkan::Serialise_vkCreateAccelerationStructure2KHR(
+    SerialiserType &ser, VkDevice device, const VkAccelerationStructureCreateInfo2KHR *pCreateInfo,
+    const VkAllocationCallbacks *pAllocator, VkAccelerationStructureKHR *pAccelerationStructure)
+{
+  return true;
+}
+
+VkResult WrappedVulkan::vkCreateAccelerationStructure2KHR(
+    VkDevice device, const VkAccelerationStructureCreateInfo2KHR *pCreateInfo,
+    const VkAllocationCallbacks *pAllocator, VkAccelerationStructureKHR *pAccelerationStructure)
+{
+  return VK_ERROR_UNKNOWN;
+}
+
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkAllocateMemory, VkDevice device,
                                 const VkMemoryAllocateInfo *pAllocateInfo,
                                 const VkAllocationCallbacks *, VkDeviceMemory *pMemory);
@@ -4210,3 +4225,8 @@ INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateAccelerationStructureKHR, VkDe
 
 INSTANTIATE_FUNCTION_SERIALISED(void, vkUnmapMemory2, VkDevice device,
                                 const VkMemoryUnmapInfo *pMemoryUnmapInfo);
+
+INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkCreateAccelerationStructure2KHR, VkDevice device,
+                                const VkAccelerationStructureCreateInfo2KHR *pCreateInfo,
+                                const VkAllocationCallbacks *pAllocator,
+                                VkAccelerationStructureKHR *pAccelerationStructure);
