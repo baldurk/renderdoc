@@ -1495,6 +1495,28 @@ enum class VulkanChunk : uint32_t
   vkCmdBeginCustomResolveEXT,
   vkCmdSetCheckpointNV,
   vkCmdSetDepthBias2EXT,
+  vkCmdBindIndexBuffer3KHR,
+  vkCmdBindVertexBuffers3KHR,
+  vkCmdCopyImageToMemoryKHR,
+  vkCmdCopyMemoryKHR,
+  vkCmdCopyMemoryToImageKHR,
+  vkCmdCopyQueryPoolResultsToMemoryKHR,
+  vkCmdDispatchIndirect2KHR,
+  vkCmdDrawIndexedIndirect2KHR,
+  vkCmdDrawIndirect2KHR,
+  vkCmdFillMemoryKHR,
+  vkCmdUpdateMemoryKHR,
+  vkCmdDrawMeshTasksIndirectCount2EXT,
+  vkCmdWriteMarkerToMemoryAMD,
+  vkCmdBeginConditionalRendering2EXT,
+  vkCmdDrawMeshTasksIndirect2EXT,
+  vkCmdBeginTransformFeedback2EXT,
+  vkCmdBindTransformFeedbackBuffers2EXT,
+  vkCmdDrawIndirectByteCount2EXT,
+  vkCmdEndTransformFeedback2EXT,
+  vkCreateAccelerationStructure2KHR,
+  vkCmdDrawIndexedIndirectCount2KHR,
+  vkCmdDrawIndirectCount2KHR,
   Max,
 };
 
@@ -1548,6 +1570,7 @@ DECLARE_REFLECTION_STRUCT(VkAccelerationStructureBuildGeometryInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkAccelerationStructureBuildSizesInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkAccelerationStructureCaptureDescriptorDataInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkAccelerationStructureCreateInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkAccelerationStructureCreateInfo2KHR);
 DECLARE_REFLECTION_STRUCT(VkAccelerationStructureDeviceAddressInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkAccelerationStructureGeometryAabbsDataKHR);
 DECLARE_REFLECTION_STRUCT(VkAccelerationStructureGeometryInstancesDataKHR);
@@ -1572,8 +1595,11 @@ DECLARE_REFLECTION_STRUCT(VkBindImageMemoryDeviceGroupInfo);
 DECLARE_REFLECTION_STRUCT(VkBindImageMemoryInfo);
 DECLARE_REFLECTION_STRUCT(VkBindImageMemorySwapchainInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkBindImagePlaneMemoryInfo);
+DECLARE_REFLECTION_STRUCT(VkBindIndexBuffer3InfoKHR);
 DECLARE_REFLECTION_STRUCT(VkBindMemoryStatus)
 DECLARE_REFLECTION_STRUCT(VkBindSparseInfo);
+DECLARE_REFLECTION_STRUCT(VkBindTransformFeedbackBuffer2InfoEXT);
+DECLARE_REFLECTION_STRUCT(VkBindVertexBuffer3InfoKHR);
 DECLARE_REFLECTION_STRUCT(VkBlitImageInfo2);
 DECLARE_REFLECTION_STRUCT(VkBufferCaptureDescriptorDataInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkBufferCopy2);
@@ -1599,11 +1625,14 @@ DECLARE_REFLECTION_STRUCT(VkCommandBufferSubmitInfo);
 DECLARE_REFLECTION_STRUCT(VkCommandPoolCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkComputePipelineCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkConditionalRenderingBeginInfoEXT);
+DECLARE_REFLECTION_STRUCT(VkConditionalRenderingBeginInfo2EXT);
 DECLARE_REFLECTION_STRUCT(VkCopyAccelerationStructureInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkCopyAccelerationStructureToMemoryInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkCopyBufferInfo2);
 DECLARE_REFLECTION_STRUCT(VkCopyBufferToImageInfo2);
 DECLARE_REFLECTION_STRUCT(VkCopyDescriptorSet);
+DECLARE_REFLECTION_STRUCT(VkCopyDeviceMemoryImageInfoKHR);
+DECLARE_REFLECTION_STRUCT(VkCopyDeviceMemoryInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkCopyImageInfo2);
 DECLARE_REFLECTION_STRUCT(VkCopyImageToBufferInfo2);
 DECLARE_REFLECTION_STRUCT(VkCopyImageToImageInfo);
@@ -1653,12 +1682,15 @@ DECLARE_REFLECTION_STRUCT(VkDeviceGroupSubmitInfo);
 DECLARE_REFLECTION_STRUCT(VkDeviceGroupSwapchainCreateInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkDeviceImageMemoryRequirements);
 DECLARE_REFLECTION_STRUCT(VkDeviceImageSubresourceInfo);
+DECLARE_REFLECTION_STRUCT(VkDeviceMemoryCopyKHR);
+DECLARE_REFLECTION_STRUCT(VkDeviceMemoryImageCopyKHR);
 DECLARE_REFLECTION_STRUCT(VkDeviceMemoryOpaqueCaptureAddressInfo);
 DECLARE_REFLECTION_STRUCT(VkDeviceMemoryOverallocationCreateInfoAMD);
 DECLARE_REFLECTION_STRUCT(VkDevicePrivateDataCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkDeviceQueueCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkDeviceQueueGlobalPriorityCreateInfo);
 DECLARE_REFLECTION_STRUCT(VkDeviceQueueInfo2);
+DECLARE_REFLECTION_STRUCT(VkDispatchIndirect2InfoKHR);
 DECLARE_REFLECTION_STRUCT(VkDisplayEventInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkDisplayModeProperties2KHR);
 DECLARE_REFLECTION_STRUCT(VkDisplayNativeHdrSurfaceCapabilitiesAMD);
@@ -1668,6 +1700,8 @@ DECLARE_REFLECTION_STRUCT(VkDisplayPlaneProperties2KHR);
 DECLARE_REFLECTION_STRUCT(VkDisplayPowerInfoEXT);
 DECLARE_REFLECTION_STRUCT(VkDisplayPresentInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkDisplayProperties2KHR);
+DECLARE_REFLECTION_STRUCT(VkDrawIndirect2InfoKHR);
+DECLARE_REFLECTION_STRUCT(VkDrawIndirectCount2InfoKHR);
 DECLARE_REFLECTION_STRUCT(VkDrmFormatModifierPropertiesList2EXT);
 DECLARE_REFLECTION_STRUCT(VkDrmFormatModifierPropertiesListEXT);
 DECLARE_REFLECTION_STRUCT(VkEventCreateInfo);
@@ -1746,8 +1780,11 @@ DECLARE_REFLECTION_STRUCT(VkMemoryDedicatedRequirements);
 DECLARE_REFLECTION_STRUCT(VkMemoryFdPropertiesKHR);
 DECLARE_REFLECTION_STRUCT(VkMemoryGetFdInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkMemoryMapInfo);
+DECLARE_REFLECTION_STRUCT(VkMemoryMarkerInfoAMD);
 DECLARE_REFLECTION_STRUCT(VkMemoryOpaqueCaptureAddressAllocateInfo);
 DECLARE_REFLECTION_STRUCT(VkMemoryPriorityAllocateInfoEXT);
+DECLARE_REFLECTION_STRUCT(VkMemoryRangeBarrierKHR);
+DECLARE_REFLECTION_STRUCT(VkMemoryRangeBarriersInfoKHR);
 DECLARE_REFLECTION_STRUCT(VkMemoryRequirements2);
 DECLARE_REFLECTION_STRUCT(VkMemoryToImageCopy);
 DECLARE_REFLECTION_STRUCT(VkMemoryUnmapInfo);
@@ -1792,6 +1829,7 @@ DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDescriptorBufferFeaturesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDescriptorBufferPropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDescriptorIndexingFeatures)
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDescriptorIndexingProperties)
+DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDeviceAddressCommandsFeaturesKHR);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDiagnosticsConfigFeaturesNV);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDiscardRectanglePropertiesEXT);
 DECLARE_REFLECTION_STRUCT(VkPhysicalDeviceDriverProperties);
@@ -2139,6 +2177,7 @@ DECLARE_DESERIALISE_TYPE(VkAccelerationStructureBuildGeometryInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkAccelerationStructureBuildSizesInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkAccelerationStructureCaptureDescriptorDataInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkAccelerationStructureCreateInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkAccelerationStructureCreateInfo2KHR);
 DECLARE_DESERIALISE_TYPE(VkAccelerationStructureDeviceAddressInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkAccelerationStructureGeometryAabbsDataKHR);
 DECLARE_DESERIALISE_TYPE(VkAccelerationStructureGeometryInstancesDataKHR);
@@ -2163,8 +2202,11 @@ DECLARE_DESERIALISE_TYPE(VkBindImageMemoryDeviceGroupInfo);
 DECLARE_DESERIALISE_TYPE(VkBindImageMemoryInfo);
 DECLARE_DESERIALISE_TYPE(VkBindImageMemorySwapchainInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkBindImagePlaneMemoryInfo);
+DECLARE_DESERIALISE_TYPE(VkBindIndexBuffer3InfoKHR);
 DECLARE_DESERIALISE_TYPE(VkBindMemoryStatus)
 DECLARE_DESERIALISE_TYPE(VkBindSparseInfo);
+DECLARE_DESERIALISE_TYPE(VkBindTransformFeedbackBuffer2InfoEXT);
+DECLARE_DESERIALISE_TYPE(VkBindVertexBuffer3InfoKHR);
 DECLARE_DESERIALISE_TYPE(VkBlitImageInfo2);
 DECLARE_DESERIALISE_TYPE(VkBufferCaptureDescriptorDataInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkBufferCopy2);
@@ -2188,10 +2230,14 @@ DECLARE_DESERIALISE_TYPE(VkCommandBufferSubmitInfo);
 DECLARE_DESERIALISE_TYPE(VkCommandPoolCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkComputePipelineCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkConditionalRenderingBeginInfoEXT);
+DECLARE_DESERIALISE_TYPE(VkConditionalRenderingBeginInfo2EXT);
 DECLARE_DESERIALISE_TYPE(VkCopyAccelerationStructureInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkCopyAccelerationStructureToMemoryInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkCopyBufferInfo2);
 DECLARE_DESERIALISE_TYPE(VkCopyBufferToImageInfo2);
+DECLARE_DESERIALISE_TYPE(VkCopyDescriptorSet);
+DECLARE_DESERIALISE_TYPE(VkCopyDeviceMemoryImageInfoKHR);
+DECLARE_DESERIALISE_TYPE(VkCopyDeviceMemoryInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkCopyDescriptorSet);
 DECLARE_DESERIALISE_TYPE(VkCopyImageInfo2);
 DECLARE_DESERIALISE_TYPE(VkCopyImageToBufferInfo2);
@@ -2241,12 +2287,15 @@ DECLARE_DESERIALISE_TYPE(VkDeviceGroupSubmitInfo);
 DECLARE_DESERIALISE_TYPE(VkDeviceGroupSwapchainCreateInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkDeviceImageMemoryRequirements);
 DECLARE_DESERIALISE_TYPE(VkDeviceImageSubresourceInfo);
+DECLARE_DESERIALISE_TYPE(VkDeviceMemoryCopyKHR);
+DECLARE_DESERIALISE_TYPE(VkDeviceMemoryImageCopyKHR);
 DECLARE_DESERIALISE_TYPE(VkDeviceMemoryOpaqueCaptureAddressInfo);
 DECLARE_DESERIALISE_TYPE(VkDeviceMemoryOverallocationCreateInfoAMD);
 DECLARE_DESERIALISE_TYPE(VkDevicePrivateDataCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkDeviceQueueCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkDeviceQueueGlobalPriorityCreateInfo);
 DECLARE_DESERIALISE_TYPE(VkDeviceQueueInfo2);
+DECLARE_DESERIALISE_TYPE(VkDispatchIndirect2InfoKHR);
 DECLARE_DESERIALISE_TYPE(VkDisplayEventInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkDisplayModeProperties2KHR);
 DECLARE_DESERIALISE_TYPE(VkDisplayNativeHdrSurfaceCapabilitiesAMD);
@@ -2256,6 +2305,8 @@ DECLARE_DESERIALISE_TYPE(VkDisplayPlaneProperties2KHR);
 DECLARE_DESERIALISE_TYPE(VkDisplayPowerInfoEXT);
 DECLARE_DESERIALISE_TYPE(VkDisplayPresentInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkDisplayProperties2KHR);
+DECLARE_DESERIALISE_TYPE(VkDrawIndirect2InfoKHR);
+DECLARE_DESERIALISE_TYPE(VkDrawIndirectCount2InfoKHR);
 DECLARE_DESERIALISE_TYPE(VkDrmFormatModifierProperties2EXT);
 DECLARE_DESERIALISE_TYPE(VkDrmFormatModifierPropertiesList2EXT);
 DECLARE_DESERIALISE_TYPE(VkEventCreateInfo);
@@ -2333,8 +2384,11 @@ DECLARE_DESERIALISE_TYPE(VkMemoryDedicatedRequirements);
 DECLARE_DESERIALISE_TYPE(VkMemoryFdPropertiesKHR);
 DECLARE_DESERIALISE_TYPE(VkMemoryGetFdInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkMemoryMapInfo);
+DECLARE_DESERIALISE_TYPE(VkMemoryMarkerInfoAMD);
 DECLARE_DESERIALISE_TYPE(VkMemoryOpaqueCaptureAddressAllocateInfo);
 DECLARE_DESERIALISE_TYPE(VkMemoryPriorityAllocateInfoEXT);
+DECLARE_DESERIALISE_TYPE(VkMemoryRangeBarrierKHR);
+DECLARE_DESERIALISE_TYPE(VkMemoryRangeBarriersInfoKHR);
 DECLARE_DESERIALISE_TYPE(VkMemoryRequirements2);
 DECLARE_DESERIALISE_TYPE(VkMemoryToImageCopy);
 DECLARE_DESERIALISE_TYPE(VkMemoryUnmapInfo);
@@ -2376,6 +2430,7 @@ DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDescriptorBufferFeaturesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDescriptorBufferPropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDescriptorIndexingFeatures)
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDescriptorIndexingProperties)
+DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDeviceAddressCommandsFeaturesKHR);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDiagnosticsConfigFeaturesNV);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDiscardRectanglePropertiesEXT);
 DECLARE_DESERIALISE_TYPE(VkPhysicalDeviceDriverProperties);
@@ -2741,6 +2796,7 @@ DECLARE_REFLECTION_STRUCT(VkDescriptorImageInfo);
 DECLARE_REFLECTION_STRUCT(VkDescriptorPoolSize);
 DECLARE_REFLECTION_STRUCT(VkDescriptorSetLayoutBinding);
 DECLARE_REFLECTION_STRUCT(VkDescriptorUpdateTemplateEntry);
+DECLARE_REFLECTION_STRUCT(VkDeviceAddressRangeKHR);
 DECLARE_REFLECTION_STRUCT(VkDeviceOrHostAddressConstKHR);
 DECLARE_REFLECTION_STRUCT(VkDeviceOrHostAddressKHR);
 DECLARE_REFLECTION_STRUCT(VkDispatchIndirectCommand);
@@ -2797,6 +2853,7 @@ DECLARE_REFLECTION_STRUCT(VkSparseMemoryBind);
 DECLARE_REFLECTION_STRUCT(VkSpecializationInfo);
 DECLARE_REFLECTION_STRUCT(VkSpecializationMapEntry);
 DECLARE_REFLECTION_STRUCT(VkStencilOpState);
+DECLARE_REFLECTION_STRUCT(VkStridedDeviceAddressRangeKHR);
 DECLARE_REFLECTION_STRUCT(VkStridedDeviceAddressRegionKHR);
 DECLARE_REFLECTION_STRUCT(VkSubpassDependency);
 DECLARE_REFLECTION_STRUCT(VkSubpassDescription);
@@ -2933,6 +2990,7 @@ DECLARE_REFLECTION_ENUM(VkAccessFlagBits);
 DECLARE_REFLECTION_ENUM(VkAccessFlagBits2);
 DECLARE_REFLECTION_ENUM(VkAccessFlagBits3KHR);
 DECLARE_REFLECTION_ENUM(VkAcquireProfilingLockFlagBitsKHR);
+DECLARE_REFLECTION_ENUM(VkAddressCommandFlagBitsKHR);
 DECLARE_REFLECTION_ENUM(VkAttachmentDescriptionFlagBits);
 DECLARE_REFLECTION_ENUM(VkAttachmentLoadOp);
 DECLARE_REFLECTION_ENUM(VkAttachmentStoreOp);

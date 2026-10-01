@@ -5076,6 +5076,52 @@ bool WrappedVulkan::ProcessChunk(ReadSerialiser &ser, VulkanChunk chunk)
     case VulkanChunk::vkCmdSetDepthBias2EXT:
       return Serialise_vkCmdSetDepthBias2EXT(ser, VK_NULL_HANDLE, NULL);
 
+    case VulkanChunk::vkCmdBindIndexBuffer3KHR:
+      return Serialise_vkCmdBindIndexBuffer3KHR(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdBindVertexBuffers3KHR:
+      return Serialise_vkCmdBindVertexBuffers3KHR(ser, VK_NULL_HANDLE, 0, 0, NULL);
+    case VulkanChunk::vkCmdCopyImageToMemoryKHR:
+      return Serialise_vkCmdCopyImageToMemoryKHR(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdCopyMemoryKHR:
+      return Serialise_vkCmdCopyMemoryKHR(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdCopyMemoryToImageKHR:
+      return Serialise_vkCmdCopyMemoryToImageKHR(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdCopyQueryPoolResultsToMemoryKHR:
+      return Serialise_vkCmdCopyQueryPoolResultsToMemoryKHR(ser, VK_NULL_HANDLE, VK_NULL_HANDLE, 0,
+                                                            0, NULL, 0, 0);
+    case VulkanChunk::vkCmdDispatchIndirect2KHR:
+      return Serialise_vkCmdDispatchIndirect2KHR(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdDrawIndexedIndirect2KHR:
+      return Serialise_vkCmdDrawIndexedIndirect2KHR(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdDrawIndirect2KHR:
+      return Serialise_vkCmdDrawIndirect2KHR(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdFillMemoryKHR:
+      return Serialise_vkCmdFillMemoryKHR(ser, VK_NULL_HANDLE, NULL, 0, 0);
+    case VulkanChunk::vkCmdUpdateMemoryKHR:
+      return Serialise_vkCmdUpdateMemoryKHR(ser, VK_NULL_HANDLE, NULL, 0, 0, NULL);
+    case VulkanChunk::vkCmdDrawMeshTasksIndirectCount2EXT:
+      return Serialise_vkCmdDrawMeshTasksIndirectCount2EXT(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdWriteMarkerToMemoryAMD:
+      return Serialise_vkCmdWriteMarkerToMemoryAMD(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdBeginConditionalRendering2EXT:
+      return Serialise_vkCmdBeginConditionalRendering2EXT(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdDrawMeshTasksIndirect2EXT:
+      return Serialise_vkCmdDrawMeshTasksIndirect2EXT(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdBeginTransformFeedback2EXT:
+      return Serialise_vkCmdBeginTransformFeedback2EXT(ser, VK_NULL_HANDLE, 0, 0, NULL);
+    case VulkanChunk::vkCmdBindTransformFeedbackBuffers2EXT:
+      return Serialise_vkCmdBindTransformFeedbackBuffers2EXT(ser, VK_NULL_HANDLE, 0, 0, NULL);
+    case VulkanChunk::vkCmdDrawIndirectByteCount2EXT:
+      return Serialise_vkCmdDrawIndirectByteCount2EXT(ser, VK_NULL_HANDLE, 0, 0, NULL, 0, 0);
+    case VulkanChunk::vkCmdEndTransformFeedback2EXT:
+      return Serialise_vkCmdEndTransformFeedback2EXT(ser, VK_NULL_HANDLE, 0, 0, NULL);
+    case VulkanChunk::vkCreateAccelerationStructure2KHR:
+      return Serialise_vkCreateAccelerationStructure2KHR(ser, VK_NULL_HANDLE, NULL, NULL, NULL);
+    case VulkanChunk::vkCmdDrawIndexedIndirectCount2KHR:
+      return Serialise_vkCmdDrawIndexedIndirectCount2KHR(ser, VK_NULL_HANDLE, NULL);
+    case VulkanChunk::vkCmdDrawIndirectCount2KHR:
+      return Serialise_vkCmdDrawIndirectCount2KHR(ser, VK_NULL_HANDLE, NULL);
+
     // chunks that are reserved but not yet serialised
     case VulkanChunk::vkResetCommandPool:
     case VulkanChunk::vkCreateDepthTargetView:

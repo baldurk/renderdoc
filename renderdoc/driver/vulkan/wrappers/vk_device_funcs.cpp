@@ -3812,6 +3812,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(SerialiserType &ser, VkPhysicalDevi
         CHECK_PHYS_EXT_FEATURE(extendedFlags);
       }
       END_PHYS_EXT_CHECK();
+
+      BEGIN_PHYS_EXT_CHECK(VkPhysicalDeviceDeviceAddressCommandsFeaturesKHR,
+                           VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEVICE_ADDRESS_COMMANDS_FEATURES_KHR);
+      {
+        CHECK_PHYS_EXT_FEATURE(deviceAddressCommands);
+      }
+      END_PHYS_EXT_CHECK();
     }
 
     if(availFeatures.depthClamp)
