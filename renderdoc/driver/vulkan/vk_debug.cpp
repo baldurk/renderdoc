@@ -2742,8 +2742,9 @@ void VulkanDebugManager::UnlockReadbackBuffer()
 }
 
 void VulkanReplay::AllocAndAddReservedDescriptors(
-    const VulkanStatePipeline &pipe, AddedDescriptorData &patchedBufferData,
-    bool vertexPatchedToCompute, const rdcarray<VkDescriptorSetLayoutBinding> &newBindings)
+    const VulkanRenderState &state, const VulkanStatePipeline &pipe,
+    AddedDescriptorData &patchedBufferData, bool vertexPatchedToCompute,
+    const rdcarray<VkDescriptorSetLayoutBinding> &newBindings)
 {
   VkDevice dev = m_Device;
   VulkanCreationInfo &creationInfo = m_pDriver->m_CreationInfo;
@@ -2802,11 +2803,33 @@ void VulkanReplay::AllocAndAddReservedDescriptors(
   // bitmask's type list is.
   rdcarray<rdcpair<size_t, uint32_t>> mutableBitmaskArrayRange;
 
-  // populate mutable bitmasks. This loop is the same as the one below which is more commented
-  for(size_t i = 0; i < setLayouts.size(); i++)
+  const bool compute = pipe.bindPoint == VK_PIPELINE_BIND_POINT_COMPUTE;
+
+  size_t descSetLayoutsSize = 0;
+
+  if(pipe.shaderObject)
   {
-    if(i < pipeInfo.descSetLayouts.size() && i < pipe.descSets.size() &&
-       pipe.descSets[i].pipeLayout != ResourceId())
+    for(uint32_t stage = 0; stage < NumShaderStages; stage++)
+    {
+      if(compute && (ShaderStage)stage != ShaderStage::Compute)
+        continue;
+      if(!compute && (ShaderStage)stage == ShaderStage::Compute)
+        continue;
+
+      descSetLayoutsSize =
+          RDCMAX(descSetLayoutsSize,
+                 creationInfo.m_ShaderObject[state.shaderObjects[stage]].descSetLayouts.size());
+    }
+  }
+  else
+  {
+    descSetLayoutsSize = pipeInfo.descSetLayouts.size();
+  }
+
+  // populate mutable bitmasks. This loop is the same as the one below which is more commented
+  for(size_t i = 0; i < RDCMIN(descSetLayoutsSize, pipe.descSets.size()); i++)
+  {
+    if(pipe.descSets[i].pipeLayout != ResourceId())
     {
       const VulkanCreationInfo::PipelineLayout &pipelineLayoutInfo =
           creationInfo.m_PipelineLayout[pipe.descSets[i].pipeLayout];
@@ -2819,6 +2842,9 @@ void VulkanReplay::AllocAndAddReservedDescriptors(
 
       for(size_t b = 0; b < origLayout.bindings.size(); b++)
       {
+        if(origLayout.bindings[b].layoutDescType != VK_DESCRIPTOR_TYPE_MUTABLE_EXT)
+          continue;
+
         uint64_t mutableBitmask = origLayout.mutableBitmasks[b];
 
         int bitmaskIdx = mutablePoolsizeBitmask.indexOf(mutableBitmask);
@@ -2873,7 +2899,7 @@ void VulkanReplay::AllocAndAddReservedDescriptors(
   // if there are fewer sets bound than were declared in the pipeline layout, only process the
   // bound sets (as otherwise we'd fail to copy from them). Assume the application knew what it
   // was doing and the other sets are statically unused.
-  setLayouts.resize(RDCMIN(pipe.descSets.size(), pipeInfo.descSetLayouts.size()));
+  setLayouts.resize(RDCMIN(pipe.descSets.size(), descSetLayoutsSize));
 
   size_t boundDescs = setLayouts.size();
 
@@ -3037,7 +3063,7 @@ void VulkanReplay::AllocAndAddReservedDescriptors(
 
     // if the shader had no descriptor sets at all, i will be invalid, so just skip and add a set
     // with only our own bindings.
-    if(i < pipeInfo.descSetLayouts.size() && i < pipe.descSets.size() &&
+    if(i < descSetLayoutsSize && i < pipe.descSets.size() &&
        pipe.descSets[i].pipeLayout != ResourceId())
     {
       const VulkanCreationInfo::PipelineLayout &pipelineLayoutInfo =
@@ -3423,7 +3449,7 @@ VulkanReplay::AddedDescriptorData VulkanReplay::PrepareExtraBufferDescriptor(
   {
     // create a duplicate set of descriptor sets, all visible to compute, with bindings shifted to
     // account for new ones we need. This also copies the existing bindings into the new sets
-    AllocAndAddReservedDescriptors(srcPipeState, ret, vertexPatchedToCompute, newBindings);
+    AllocAndAddReservedDescriptors(state, srcPipeState, ret, vertexPatchedToCompute, newBindings);
 
     // if the pool failed due to limits, it will be NULL so bail now
     if(ret.descpool == VK_NULL_HANDLE)
@@ -3550,6 +3576,13 @@ VulkanReplay::AddedDescriptorData VulkanReplay::PrepareExtraBufferDescriptor(
       dstPipeState.descSets[i].pipeLayout = GetResID(ret.pipeLayout);
       dstPipeState.descSets[i].descSet = GetResID(ret.descSets[i]);
     }
+
+    // when no pipeline is bound, we rely on the pipeline layout used by last bound descriptor set
+    // to reconstruct correct descriptor set bindings (see BindDescriptorSetsWithoutPipeline and
+    // BindDescriptorSetsForShaders). Here our descriptor sets have been patched and all bound sets
+    // share a pipeline layout.
+    if(dstPipeState.shaderObject && !vertexPatchedToCompute)
+      dstPipeState.lastBoundDescSet = 0;
   }
   else if(ret.pipeLayout != VK_NULL_HANDLE)
   {
@@ -3597,6 +3630,7 @@ void VulkanReplay::PrepareStateForPatchedShader(
   }
 
   VkPipeline pipe = VK_NULL_HANDLE;
+  rdcarray<VkShaderEXT> shaderObjs = {};
   if(pipelineId != ResourceId() && compute)
   {
     const rdcarray<uint32_t> &origSpirv =
@@ -3700,64 +3734,71 @@ void VulkanReplay::PrepareStateForPatchedShader(
 
     modifiedstate.graphics.pipeline = GetResID(pipe);
   }
-
-  rdcarray<VkShaderEXT> shaderObjs;
-
-  for(uint32_t i = 0; i < NumShaderStages; i++)
+  else
   {
-    ResourceId shadId = modifiedstate.shaderObjects[i];
-    if(shadId == ResourceId())
-      continue;
-
-    const rdcarray<uint32_t> &origSpirv = c.m_ShaderModule[shadId].spirv.GetSPIRV();
-    rdcarray<uint32_t> modSpirv;
-
-    VkShaderEXT shad = VK_NULL_HANDLE;
-    VkShaderCreateInfoEXT shadCreateinfo = {};
-    m_pDriver->GetShaderCache()->MakeShaderObjectInfo(shadCreateinfo, shadId);
-
-    bool patched = stagePatchCallback(patchedBufferdata, shadCreateinfo.stage, shadCreateinfo.pName,
-                                      origSpirv, modSpirv, shadCreateinfo.pSpecializationInfo);
-
-    if(patched)
+    for(uint32_t i = 0; i < NumShaderStages; i++)
     {
-      shadCreateinfo.pCode = modSpirv.data();
-      shadCreateinfo.codeSize = modSpirv.size() * sizeof(uint32_t);
+      if(compute && (ShaderStage)i != ShaderStage::Compute)
+        continue;
+      else if(!compute && (ShaderStage)i == ShaderStage::Compute)
+        continue;
+
+      ResourceId shadId = modifiedstate.shaderObjects[i];
+      if(shadId == ResourceId())
+        continue;
+
+      const rdcarray<uint32_t> &origSpirv = c.m_ShaderModule[shadId].spirv.GetSPIRV();
+      rdcarray<uint32_t> modSpirv;
+
+      VkShaderEXT shad = VK_NULL_HANDLE;
+      VkShaderCreateInfoEXT shadCreateinfo = {};
+      m_pDriver->GetShaderCache()->MakeShaderObjectInfo(shadCreateinfo, shadId);
+
+      bool patched = stagePatchCallback(patchedBufferdata, shadCreateinfo.stage, shadCreateinfo.pName,
+                                        origSpirv, modSpirv, shadCreateinfo.pSpecializationInfo);
+
+      if(patched)
+      {
+        shadCreateinfo.pCode = modSpirv.data();
+        shadCreateinfo.codeSize = modSpirv.size() * sizeof(uint32_t);
+      }
+      else if(IsBinding(m_StorageMode))
+      {
+        modSpirv = origSpirv;
+
+        // if we're stealing a binding point, we need to patch all other shaders
+        {
+          rdcspv::Editor editor(modSpirv);
+
+          editor.Prepare();
+          editor.SetBufferStorageMode(m_StorageMode);
+
+          editor.OffsetBindingsToMatchReservation(patchedBufferdata.numNewBindings);
+        }
+
+        shadCreateinfo.pCode = modSpirv.data();
+        shadCreateinfo.codeSize = modSpirv.size() * sizeof(uint32_t);
+      }
+      else
+      {
+        shadCreateinfo.pCode = origSpirv.data();
+        shadCreateinfo.codeSize = origSpirv.size() * sizeof(uint32_t);
+      }
+
+      // if we're stealing a binding point, all shaders need updated descriptor sets
+      if(IsBinding(m_StorageMode))
+      {
+        shadCreateinfo.setLayoutCount = (uint32_t)patchedBufferdata.setLayouts.size();
+        shadCreateinfo.pSetLayouts = patchedBufferdata.setLayouts.data();
+      }
+
+      vkr = m_pDriver->vkCreateShadersEXT(dev, 1, &shadCreateinfo, NULL, &shad);
+      CHECK_VKR(m_pDriver, vkr);
+
+      shaderObjs.push_back(shad);
+
+      modifiedstate.shaderObjects[i] = GetResID(shad);
     }
-    else if(IsBinding(m_StorageMode))
-    {
-      modSpirv = origSpirv;
-
-      // if we're stealing a binding point, we need to patch all other shaders
-      rdcspv::Editor editor(modSpirv);
-
-      editor.Prepare();
-      editor.SetBufferStorageMode(m_StorageMode);
-
-      editor.OffsetBindingsToMatchReservation(patchedBufferdata.numNewBindings);
-
-      shadCreateinfo.pCode = modSpirv.data();
-      shadCreateinfo.codeSize = modSpirv.size() * sizeof(uint32_t);
-    }
-    else
-    {
-      shadCreateinfo.pCode = origSpirv.data();
-      shadCreateinfo.codeSize = origSpirv.size() * sizeof(uint32_t);
-    }
-
-    // if we're stealing a binding point, all shaders need updated descriptor sets
-    if(IsBinding(m_StorageMode))
-    {
-      shadCreateinfo.setLayoutCount = (uint32_t)patchedBufferdata.setLayouts.size();
-      shadCreateinfo.pSetLayouts = patchedBufferdata.setLayouts.data();
-    }
-
-    vkr = m_pDriver->vkCreateShadersEXT(dev, 1, &shadCreateinfo, NULL, &shad);
-    CHECK_VKR(m_pDriver, vkr);
-
-    shaderObjs.push_back(shad);
-
-    modifiedstate.shaderObjects[i] = GetResID(shad);
   }
 
   modifiedstate.subpassContents = VK_SUBPASS_CONTENTS_INLINE;
@@ -3813,7 +3854,10 @@ bool VulkanReplay::RunFeedbackAction(VkDeviceSize bufferSize, const ActionDescri
 
   if(action->flags & ActionFlags::Dispatch)
   {
-    modifiedstate.BindPipeline(m_pDriver, cmd, VulkanRenderState::BindCompute, true);
+    if(modifiedstate.compute.shaderObject)
+      modifiedstate.BindShaderObjects(m_pDriver, cmd, VulkanRenderState::BindCompute);
+    else
+      modifiedstate.BindPipeline(m_pDriver, cmd, VulkanRenderState::BindCompute, true);
 
     ObjDisp(cmd)->CmdDispatch(Unwrap(cmd), action->dispatchDimension[0],
                               action->dispatchDimension[1], action->dispatchDimension[2]);
