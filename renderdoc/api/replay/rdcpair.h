@@ -86,7 +86,7 @@ struct rdcpair
   bool operator==(const rdcpair<A, B> &o) const { return first == o.first && second == o.second; }
   bool operator<(const rdcpair<A, B> &o) const
   {
-    if(first != o.first)
+    if(!(first == o.first))
       return first < o.first;
     return second < o.second;
   }
