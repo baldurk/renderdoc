@@ -1647,6 +1647,10 @@ static const VkExtensionProperties supportedExtensions[] = {
         VK_KHR_DESCRIPTOR_UPDATE_TEMPLATE_SPEC_VERSION,
     },
     {
+        VK_KHR_DEVICE_ADDRESS_COMMANDS_EXTENSION_NAME,
+        VK_KHR_DEVICE_ADDRESS_COMMANDS_SPEC_VERSION,
+    },
+    {
         VK_KHR_DEVICE_GROUP_EXTENSION_NAME,
         VK_KHR_DEVICE_GROUP_SPEC_VERSION,
     },

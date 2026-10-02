@@ -333,6 +333,7 @@
     <ClCompile Include="vk\vk_descriptor_buffer_analyse.cpp" />
     <ClCompile Include="vk\vk_descriptor_reuse.cpp" />
     <ClCompile Include="vk\vk_descriptor_variable_count.cpp" />
+    <ClCompile Include="vk\vk_device_address_commands.cpp" />
     <ClCompile Include="vk\vk_discard_zoo.cpp" />
     <ClCompile Include="vk\vk_dynamic_rendering.cpp" />
     <ClCompile Include="vk\vk_empty_capture.cpp" />
