@@ -400,7 +400,7 @@ jobs:
   macOS:
     name: Mac
     needs: [commit-msg, clang-format]
-    runs-on: macos-14
+    runs-on: macos-15
     strategy:
       fail-fast: false
       matrix:
