@@ -238,8 +238,9 @@ static uint64_t get_nanotime()
 
 #elif defined(__loongarch64)
 #define INST_PTR_REG csr_era
-// ebreak
-#define BREAK_INST 0x150000ULL
+// break instruction
+// ref: loongarch reference manual vol.1 chapter 2.2.10.2 & appendix b
+#define BREAK_INST 0x002a0000ULL
 #define BREAK_INST_BYTES_SIZE 4
 #define BREAK_INST_INST_PTR_ADJUST 4
 
