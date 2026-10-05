@@ -192,6 +192,13 @@
   return self.real.currentAllocatedSize;
 }
 
+- (id<MTLLogState>)newLogStateWithDescriptor:(MTLLogStateDescriptor *_Nonnull)descriptor
+                                       error:(NSError **)error API_AVAILABLE(macos(15.0), ios(18.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newLogStateWithDescriptor:descriptor error:error];
+}
+
 - (nullable id<MTLCommandQueue>)newCommandQueue
 {
   return id<MTLCommandQueue>(GetWrapped(self)->newCommandQueue());
@@ -201,6 +208,13 @@
 {
   METAL_NOT_HOOKED();
   return [self.real newCommandQueueWithMaxCommandBufferCount:maxCommandBufferCount];
+}
+
+- (id<MTLCommandQueue>)newCommandQueueWithDescriptor:(MTLCommandQueueDescriptor *)descriptor
+    API_AVAILABLE(macos(15.0), ios(18.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newCommandQueueWithDescriptor:descriptor];
 }
 
 - (MTLSizeAndAlign)heapTextureSizeAndAlignWithDescriptor:(MTLTextureDescriptor *)desc
@@ -940,5 +954,13 @@
   return GetWrapped(self)->maximumConcurrentCompilationTaskCount();
 }
 #endif
+
+- (id<MTLResidencySet>)newResidencySetWithDescriptor:(MTLResidencySetDescriptor *)desc
+                                               error:(NSError *__nullable *)error
+    API_AVAILABLE(macos(15.0), ios(18.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newResidencySetWithDescriptor:desc error:error];
+}
 
 @end

@@ -183,4 +183,10 @@
                                                                   error:error];
 }
 
+- (MTLShaderValidation)shaderValidation API_AVAILABLE(macos(15.0), ios(18.0))
+{
+  METAL_NOT_HOOKED();
+  return self.real.shaderValidation;
+}
+
 @end

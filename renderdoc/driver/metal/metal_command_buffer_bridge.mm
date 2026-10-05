@@ -286,4 +286,17 @@
   return [self.real popDebugGroup];
 }
 
+- (void)useResidencySet:(id<MTLResidencySet>)residencySet API_AVAILABLE(macos(15.0), ios(18.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real useResidencySet:residencySet];
+}
+
+- (void)useResidencySets:(const id<MTLResidencySet> _Nonnull[_Nonnull])residencySets
+                   count:(NSUInteger)count API_AVAILABLE(macos(15.0), ios(18.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real useResidencySets:residencySets count:count];
+}
+
 @end
