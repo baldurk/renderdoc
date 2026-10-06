@@ -2354,7 +2354,10 @@ void VulkanPipelineStateViewer::setState()
                   return aBind.second < bBind.second;
 
                 // for non-sets, sort by interface index
-                return a.access.index < b.access.index;
+                if(a.access.index != b.access.index)
+                  return a.access.index < b.access.index;
+
+                return a.access.arrayElement < b.access.arrayElement;
               });
 
     for(const UsedDescriptor &used : descriptors)
