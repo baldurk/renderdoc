@@ -175,7 +175,7 @@ else()
         # using an URL to a zip directly so we don't clone the history etc
         URL ${RENDERDOC_PCRE_PACKAGE}
         BUILD_IN_SOURCE 1
-        CONFIGURE_COMMAND autoreconf -f -v > /dev/null 2>&1
+        CONFIGURE_COMMAND ${SET_SYSTEM_PATH_COMMAND} autoreconf -f -v > /dev/null 2>&1
         COMMAND CC=${SWIG_CONFIGURE_CC} CXX=${SWIG_CONFIGURE_CXX} CFLAGS=-fPIC CXXFLAGS=-fPIC ${SET_SYSTEM_PATH_COMMAND} ./configure --prefix=${CMAKE_BINARY_DIR} --disable-shared > /dev/null
         BUILD_COMMAND ${GENERATOR_MAKE} ${GENERATOR_MAKE_PARAMS} > /dev/null 2>&1
         INSTALL_COMMAND ${GENERATOR_MAKE} install > /dev/null 2>&1)
