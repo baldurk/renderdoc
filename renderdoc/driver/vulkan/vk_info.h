@@ -852,11 +852,14 @@ struct VulkanCreationInfo
   {
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
               const VkAccelerationStructureCreateInfoKHR *pCreateInfo);
+    void Init(VulkanResourceManager *resourceMan, WrappedVulkan *vk, VulkanCreationInfo &info,
+              const VkAccelerationStructureCreateInfo2KHR *pCreateInfo);
 
     ResourceId buffer;
     uint64_t offset;
     uint64_t size;
     VkAccelerationStructureTypeKHR type;
+    VkDeviceAddress address;
   };
   std::unordered_map<ResourceId, AccelerationStructure> m_AccelerationStructure;
 

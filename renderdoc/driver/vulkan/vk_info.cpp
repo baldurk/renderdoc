@@ -3193,6 +3193,17 @@ void VulkanCreationInfo::AccelerationStructure::Init(
   offset = pCreateInfo->offset;
   size = pCreateInfo->size;
   type = pCreateInfo->type;
+  address = 0;
+}
+
+void VulkanCreationInfo::AccelerationStructure::Init(
+    VulkanResourceManager *resourceMan, WrappedVulkan *vk, VulkanCreationInfo &info,
+    const VkAccelerationStructureCreateInfo2KHR *pCreateInfo)
+{
+  vk->GetResIDFromAddr(pCreateInfo->addressRange.address, buffer, offset);
+  size = pCreateInfo->addressRange.size;
+  type = pCreateInfo->type;
+  address = pCreateInfo->addressRange.address;
 }
 
 const VulkanCreationInfo::PipelineLayout &VulkanCreationInfo::GetPipelineLayoutInfo(ResourceId rp) const

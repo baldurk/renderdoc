@@ -122,6 +122,15 @@ void WrappedVulkan::UntrackBufferAddress(VkDevice device, VkBuffer buffer)
   m_AddressTracker.RemoveFrom(rng.start, rng.id);
 }
 
+ResourceId WrappedVulkan::GetResIDFromAddr(GPUAddressRange::Address addr)
+{
+  ResourceId id;
+  uint64_t offs;
+  m_AddressTracker.GetResIDFromAddr(addr, id, offs);
+
+  return id;
+}
+
 void WrappedVulkan::GetResIDFromAddr(GPUAddressRange::Address addr, ResourceId &id, uint64_t &offs)
 {
   m_AddressTracker.GetResIDFromAddr(addr, id, offs);

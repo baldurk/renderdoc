@@ -4117,8 +4117,6 @@ VkResult WrappedVulkan::vkCreateAccelerationStructureKHR(
       // store the base resource
       record->baseResource = bufferRecord->GetResourceID();
       record->baseResourceMem = bufferRecord->baseResource;
-      record->dedicated = bufferRecord->dedicated;
-      record->storable = bufferRecord->storable;
       record->memOffset = bufferRecord->memOffset + pCreateInfo->offset;
       record->memSize = pCreateInfo->size;
 
@@ -4168,6 +4166,52 @@ bool WrappedVulkan::Serialise_vkCreateAccelerationStructure2KHR(
     SerialiserType &ser, VkDevice device, const VkAccelerationStructureCreateInfo2KHR *pCreateInfo,
     const VkAllocationCallbacks *pAllocator, VkAccelerationStructureKHR *pAccelerationStructure)
 {
+  SERIALISE_ELEMENT(device);
+  SERIALISE_ELEMENT_LOCAL(CreateInfo, *pCreateInfo).Hidden();
+  SERIALISE_ELEMENT_OPT(pAllocator).Hidden();
+  SERIALISE_ELEMENT_LOCAL(AccelerationStructure, GetResID(*pAccelerationStructure))
+      .TypedAs("VkAccelerationStructureKHR"_lit);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    VkAccelerationStructureCreateInfo2KHR unwrappedInfo = CreateInfo;
+
+    if(m_DescriptorBuffers)
+      unwrappedInfo.createFlags |=
+          VK_ACCELERATION_STRUCTURE_CREATE_DESCRIPTOR_BUFFER_CAPTURE_REPLAY_BIT_EXT;
+
+    VkAccelerationStructureKHR acc = VK_NULL_HANDLE;
+    VkResult ret =
+        ObjDisp(device)->CreateAccelerationStructure2KHR(Unwrap(device), &unwrappedInfo, NULL, &acc);
+
+    if(ret != VK_SUCCESS)
+    {
+      SET_ERROR_RESULT(m_FailedReplayResult, ResultCode::APIReplayFailed,
+                       "Error creating acceleration structure, VkResult: %s", ToStr(ret).c_str());
+      return false;
+    }
+    else
+    {
+      ResourceId live;
+
+      GetResourceManager()->OverrideWrapper(ToTypedHandle(acc));
+
+      {
+        live = GetResourceManager()->WrapResource(AccelerationStructure, Unwrap(device), acc);
+
+        m_CreationInfo.m_AccelerationStructure[live].Init(GetResourceManager(), this,
+                                                          m_CreationInfo, &CreateInfo);
+
+        m_ASLookupByAddr[CreateInfo.addressRange.address] = live;
+      }
+    }
+
+    AddResource(AccelerationStructure, ResourceType::AccelerationStructure, "AccelerationStructure");
+    DerivedResource(device, AccelerationStructure);
+  }
+
   return true;
 }
 
@@ -4175,7 +4219,109 @@ VkResult WrappedVulkan::vkCreateAccelerationStructure2KHR(
     VkDevice device, const VkAccelerationStructureCreateInfo2KHR *pCreateInfo,
     const VkAllocationCallbacks *pAllocator, VkAccelerationStructureKHR *pAccelerationStructure)
 {
-  return VK_ERROR_UNKNOWN;
+  VkAccelerationStructureCreateInfo2KHR unwrappedInfo = *pCreateInfo;
+
+  // Ensure we force on capture replay bit. We ensured the physical device can support this feature
+  // before whitelisting the extension.
+  if(IsCaptureMode(m_State))
+    unwrappedInfo.createFlags |=
+        VK_ACCELERATION_STRUCTURE_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_KHR;
+
+  if(m_DescriptorBuffers)
+    unwrappedInfo.createFlags |=
+        VK_ACCELERATION_STRUCTURE_CREATE_DESCRIPTOR_BUFFER_CAPTURE_REPLAY_BIT_EXT;
+
+  VkResult ret;
+  SERIALISE_TIME_CALL(ret = ObjDisp(device)->CreateAccelerationStructure2KHR(
+                          Unwrap(device), &unwrappedInfo, NULL, pAccelerationStructure));
+
+  if(ret == VK_SUCCESS)
+  {
+    ResourceId id =
+        GetResourceManager()->WrapResource(ResourceId(), Unwrap(device), *pAccelerationStructure);
+
+    if(IsCaptureMode(m_State))
+    {
+      // We're capturing, so get the device address of the created AS
+      VkAccelerationStructureCreateInfo2KHR serialisedCreateInfo = *pCreateInfo;
+      serialisedCreateInfo.createFlags |=
+          VK_ACCELERATION_STRUCTURE_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT_KHR;
+
+      OpaqueDataForSerialising opaqueData;
+
+      if(DescriptorBuffers())
+      {
+        opaqueData.fill(device, *pAccelerationStructure, m_DescriptorBufferProperties);
+        opaqueData.addForSerialising((VkBaseInStructure *)&serialisedCreateInfo);
+      }
+
+      Chunk *chunk = NULL;
+
+      {
+        CACHE_THREAD_SERIALISER();
+
+        SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCreateAccelerationStructure2KHR);
+        Serialise_vkCreateAccelerationStructure2KHR(ser, device, &serialisedCreateInfo, NULL,
+                                                    pAccelerationStructure);
+
+        chunk = scope.Get();
+      }
+
+      ResourceId bufferId;
+      uint64_t offs;
+      GetResIDFromAddr(pCreateInfo->addressRange.address, bufferId, offs);
+      VkResourceRecord *bufferRecord = GetResourceManager()->GetResourceRecord(bufferId);
+
+      VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pAccelerationStructure);
+      record->AddChunk(chunk);
+
+      record->accelerationStructureInfo = new VkAccelerationStructureInfo();
+      record->accelerationStructureInfo->address = pCreateInfo->addressRange.address;
+
+      // store the base resource
+      record->baseResourceMem = bufferRecord->baseResource;
+      record->memOffset = bufferRecord->memOffset + offs;
+      record->memSize = pCreateInfo->addressRange.size;
+
+      GetResourceManager()->MarkDirtyResource(id);
+      if(pCreateInfo->type == VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR ||
+         pCreateInfo->type == VK_ACCELERATION_STRUCTURE_TYPE_GENERIC_KHR || DescriptorBuffers())
+      {
+        // We force reference BLASs as it is not feasible to track at the API level which TLASs
+        // reference them.  We force ref generics too as they could bottom or top level so we
+        // conservatively assume they are bottom
+        // when descriptor buffers are enabled, we must force reference all ASs
+        AddForcedReference(record);
+
+        // in case we're currently capturing, immediately consider the AS as referenced
+        GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+      }
+
+      if(m_DescriptorBuffers)
+      {
+        {
+          SCOPED_LOCK(m_ASLookupByAddrLock);
+          m_ASLookupByAddr[pCreateInfo->addressRange.address] = id;
+        }
+
+        VkDescriptorGetInfoEXT getDesc = {
+            VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT,
+        };
+        byte dummy[256];
+        getDesc.type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+        getDesc.data.accelerationStructure = pCreateInfo->addressRange.address;
+        vkGetDescriptorEXT(device, &getDesc,
+                           m_DescriptorBufferProperties.accelerationStructureDescriptorSize, dummy);
+      }
+    }
+    else
+    {
+      m_CreationInfo.m_AccelerationStructure[id].Init(GetResourceManager(), this, m_CreationInfo,
+                                                      pCreateInfo);
+    }
+  }
+
+  return ret;
 }
 
 INSTANTIATE_FUNCTION_SERIALISED(VkResult, vkAllocateMemory, VkDevice device,

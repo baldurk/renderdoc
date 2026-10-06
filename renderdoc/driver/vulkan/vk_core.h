@@ -1421,6 +1421,8 @@ public:
                                 VkDeviceSize memoryOffset);
   void UntrackBufferAddress(VkDevice device, VkBuffer buffer);
   void GetResIDFromAddr(GPUAddressRange::Address addr, ResourceId &id, uint64_t &offs);
+  // overload to just return the id in case the offset isn't needed
+  ResourceId GetResIDFromAddr(GPUAddressRange::Address addr);
 
   ResourceId GetASFromAddr(VkDeviceAddress addr);
 
