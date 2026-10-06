@@ -53,7 +53,7 @@
 
 bool ValidationShaderVariable(const ShaderVariable &var)
 {
-  // A Stuct or array
+  // A Struct or array
   if(var.members.size() != 0)
   {
     if(var.type != VarType::Struct && var.type != VarType::Unknown &&
@@ -2726,10 +2726,10 @@ void ShaderViewer::applyBackwardsChange()
       if(c.after.name.empty())
       {
         if((c.before.type == VarType::ReadOnlyResource) ||
-           (c.before.type == VarType::ReadWriteResource))
+           (c.before.type == VarType::ReadWriteResource) || (c.before.type == VarType::ConstantBlock))
           check = false;
         if((c.after.type == VarType::ReadOnlyResource) ||
-           (c.after.type == VarType::ReadWriteResource))
+           (c.after.type == VarType::ReadWriteResource) || (c.after.type == VarType::ConstantBlock))
           check = false;
       }
       if(check)
@@ -2829,10 +2829,10 @@ void ShaderViewer::applyForwardsChange()
       if(c.before.name.empty())
       {
         if((c.before.type == VarType::ReadOnlyResource) ||
-           (c.before.type == VarType::ReadWriteResource))
+           (c.before.type == VarType::ReadWriteResource) || (c.before.type == VarType::ConstantBlock))
           check = false;
         if((c.after.type == VarType::ReadOnlyResource) ||
-           (c.after.type == VarType::ReadWriteResource))
+           (c.after.type == VarType::ReadWriteResource) || (c.after.type == VarType::ConstantBlock))
           check = false;
       }
 

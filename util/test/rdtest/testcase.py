@@ -1326,9 +1326,13 @@ class TestCase:
         for i in range(len(allChanges)):
             for c in allChanges[i]:
                 if len(c.after.name) == 0 and len(c.before.name) == 0:
-                    if c.before.type == rd.VarType.ReadOnlyResource or c.before.type == rd.VarType.ReadWriteResource:
+                    if (c.before.type == rd.VarType.ReadOnlyResource or 
+                        c.before.type == rd.VarType.ReadWriteResource or 
+                        c.before.type == rd.VarType.ConstantBlock):
                         continue
-                    if c.after.type == rd.VarType.ReadOnlyResource or c.after.type == rd.VarType.ReadWriteResource:
+                    if (c.after.type == rd.VarType.ReadOnlyResource or 
+                        c.after.type == rd.VarType.ReadWriteResource or 
+                        c.after.type == rd.VarType.ConstantBlock):
                         continue
 
                 if len(c.after.name) == 0:
@@ -1359,9 +1363,13 @@ class TestCase:
         for i in reversed(range(len(allChanges))):
             for c in allChanges[i]:
                 if len(c.after.name) == 0 and len(c.before.name) == 0:
-                    if c.before.type == rd.VarType.ReadOnlyResource or c.before.type == rd.VarType.ReadWriteResource:
+                    if (c.before.type == rd.VarType.ReadOnlyResource or 
+                        c.before.type == rd.VarType.ReadWriteResource or 
+                        c.before.type == rd.VarType.ConstantBlock):
                         continue
-                    if c.after.type == rd.VarType.ReadOnlyResource or c.after.type == rd.VarType.ReadWriteResource:
+                    if (c.after.type == rd.VarType.ReadOnlyResource or 
+                        c.after.type == rd.VarType.ReadWriteResource or 
+                        c.after.type == rd.VarType.ConstantBlock):
                         continue
 
                 if len(c.before.name) == 0:
