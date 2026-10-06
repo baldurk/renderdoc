@@ -1027,7 +1027,12 @@ void TextureViewer::UI_UpdateStatusText()
   QString pickedText;
   QString pickedTooltip;
 
-  if(m_PickedPoint.x() >= 0)
+  if(tex.format.type == ResourceFormatType::Regular && tex.format.compByteWidth == 8 &&
+     (tex.format.compType == CompType::UInt || tex.format.compType == CompType::SInt))
+  {
+    pickedText = tr("64-bit int textures can't be displayed");
+  }
+  else if(m_PickedPoint.x() >= 0)
   {
     x = MipCoordFromBase(m_PickedPoint.x(), tex.width);
     y = MipCoordFromBase(m_PickedPoint.y(), tex.height);

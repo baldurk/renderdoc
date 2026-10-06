@@ -192,6 +192,13 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, const ImageState &i
   TextureDisplayViews &texviews = m_TexRender.TextureViews[cfg.resourceId];
   VkImage liveIm = m_pDriver->GetResourceManager()->GetHandle<VkImage>(cfg.resourceId);
 
+  if(Is64BitFormat(imageInfo.format) &&
+     (IsUIntFormat(imageInfo.format) || IsSIntFormat(imageInfo.format)))
+  {
+    // 64-bit integer images can't be sampled or accurately displayed.
+    return true;
+  }
+
   CreateTexImageView(liveIm, iminfo, cfg.typeCast, texviews);
 
   int displayformat = 0;
