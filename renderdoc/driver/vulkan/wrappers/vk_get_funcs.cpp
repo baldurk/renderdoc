@@ -132,7 +132,19 @@ void WrappedVulkan::PatchImageCreateInfo(VkImageCreateInfo *info, VkFormat *newV
 
   if(IsCaptureMode(m_State))
   {
-    usage |= VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    if(Is64BitFormat(info->format) && (IsUIntFormat(info->format) || IsSIntFormat(info->format)))
+    {
+      // 64-bit integer images are required to be supported for atomics even though applications
+      // will normally use R32G32 (D3D12 has no 64-bit type) and unfortunately these formats are not
+      // typically sample supported.
+      // Don't add the sampled usage, we will not sample these images
+    }
+    else
+    {
+      usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+    }
+
+    usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     usage &= ~VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
   }
 
@@ -231,6 +243,15 @@ void WrappedVulkan::vkGetPhysicalDeviceFormatProperties(VkPhysicalDevice physica
   // format that only includes a subset.
   uint32_t minRequiredMask = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
 
+  if(Is64BitFormat(format) && (IsUIntFormat(format) || IsSIntFormat(format)))
+  {
+    // 64-bit integer images are required to be supported for atomics even though applications will
+    // normally use R32G32 (D3D12 has no 64-bit type) and unfortunately these formats are not
+    // typically sample supported.
+    // To allow this we don't add the required sampled bit and will disable use of sampling for texture display/read
+    minRequiredMask = 0;
+  }
+
   const InstanceDeviceInfo &exts = GetExtensions(GetRecord(physicalDevice));
 
   // transfer src/dst bits were added in KHR_maintenance1. Before then we assume that if
@@ -261,6 +282,15 @@ void WrappedVulkan::vkGetPhysicalDeviceFormatProperties2(VkPhysicalDevice physic
   // optimalTiledFeatures must contain all these and more, so we can safely remove support for any
   // format that only includes a subset.
   uint32_t minRequiredMask = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+
+  if(Is64BitFormat(format) && (IsUIntFormat(format) || IsSIntFormat(format)))
+  {
+    // 64-bit integer images are required to be supported for atomics even though applications will
+    // normally use R32G32 (D3D12 has no 64-bit type) and unfortunately these formats are not
+    // typically sample supported.
+    // To allow this we don't add the required sampled bit and will disable use of sampling for texture display/read
+    minRequiredMask = 0;
+  }
 
   const InstanceDeviceInfo &exts = GetExtensions(GetRecord(physicalDevice));
 
@@ -307,11 +337,24 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceImageFormatProperties(
     VkImageFormatProperties *pImageFormatProperties)
 {
   // we're going to add these usage bits implicitly on image create, so ensure we get an accurate
-  // response by adding them here. It's OK to add these, since these can't make a required format
-  // suddenly report as unsupported (all required formats must support these usages), so it can only
-  // make an optional format unsupported which is what we want.
-  usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-           VK_IMAGE_USAGE_SAMPLED_BIT;
+  // response by adding them here. We can't do without these so regardless of anything else
+  // we simply require them even if the spec isn't currently clear on whether they're required -
+  // we assume any sensible implementation will support them.
+  usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+  if(Is64BitFormat(format) && (IsUIntFormat(format) || IsSIntFormat(format)))
+  {
+    // 64-bit integer images are required to be supported for atomics even though applications will
+    // normally use R32G32 (D3D12 has no 64-bit type) and unfortunately these formats are not
+    // typically sample supported.
+    // To allow this we don't add the required sampled bit and will disable use of sampling for texture display/read
+  }
+  else
+  {
+    // otherwise, images that are supported at all will support sampled, and any images which can't
+    // be sampled will not be required otherwise.
+    usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+  }
 
   VkResult vkr =
       ObjDisp(physicalDevice)
@@ -338,15 +381,30 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceImageFormatProperties2(
     VkPhysicalDevice physicalDevice, const VkPhysicalDeviceImageFormatInfo2 *pImageFormatInfo,
     VkImageFormatProperties2 *pImageFormatProperties)
 {
-  // we're going to add these usage bits implicitly on image create, so ensure we get an accurate
-  // response by adding them here. It's OK to add these, since these can't make a required format
-  // suddenly report as unsupported (all required formats must support these usages), so it can only
-  // make an optional format unsupported which is what we want.
   VkPhysicalDeviceImageFormatInfo2 info = *pImageFormatInfo;
 
   VkImageUsageFlags2KHR usage = GetImageUsageFlags(&info);
-  usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-           VK_IMAGE_USAGE_SAMPLED_BIT;
+
+  // we're going to add these usage bits implicitly on image create, so ensure we get an accurate
+  // response by adding them here. We can't do without these so regardless of anything else
+  // we simply require them even if the spec isn't currently clear on whether they're required -
+  // we assume any sensible implementation will support them.
+  usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+  if(Is64BitFormat(info.format) && (IsUIntFormat(info.format) || IsSIntFormat(info.format)))
+  {
+    // 64-bit integer images are required to be supported for atomics even though applications will
+    // normally use R32G32 (D3D12 has no 64-bit type) and unfortunately these formats are not
+    // typically sample supported.
+    // To allow this we don't add the required sampled bit and will disable use of sampling for texture display/read
+  }
+  else
+  {
+    // otherwise, images that are supported at all will support sampled, and any images which can't
+    // be sampled will not be required otherwise.
+    usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+  }
+
   SetImageUsageFlags(&info, usage);
 
   VkResult vkr = ObjDisp(physicalDevice)
