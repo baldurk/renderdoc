@@ -63,7 +63,7 @@
 }
 
 // MTLResource : based on the protocol defined in
-// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLResource.h
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLResource.h
 
 - (nullable NSString *)label
 {
@@ -142,7 +142,7 @@
 #endif
 
 // MTLBuffer : based on the protocol defined in
-// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLBuffer.h
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLBuffer.h
 
 - (NSUInteger)length
 {
@@ -168,6 +168,17 @@
   METAL_NOT_HOOKED();
   return [self.real newTextureWithDescriptor:descriptor offset:offset bytesPerRow:bytesPerRow];
 }
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (nullable id<MTLTensor>)newTensorWithDescriptor:(MTLTensorDescriptor *)descriptor
+                                           offset:(NSUInteger)offset
+                                            error:(__autoreleasing NSError *_Nullable *_Nullable)error
+    API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newTensorWithDescriptor:descriptor offset:offset error:error];
+}
+#endif
 
 - (void)addDebugMarker:(NSString *)marker
                  range:(NSRange)range API_AVAILABLE(macos(10.12), ios(10.0))
@@ -196,9 +207,20 @@
 }
 
 #if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_0
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (MTLGPUAddress)gpuAddress API_AVAILABLE(macos(13.0), ios(16.0))
+#else
 - (uint64_t)gpuAddress API_AVAILABLE(macos(13.0), ios(16.0))
+#endif
 {
   return self.real.gpuAddress;
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (MTLBufferSparseTier)sparseBufferTier API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  return self.real.sparseBufferTier;
 }
 #endif
 

@@ -75,3 +75,11 @@ inline WrappedMTLResource *GetWrapped(id<MTLResource> objC)
 #ifndef __MAC_14_4
 #define __MAC_14_4 140400
 #endif
+
+#ifndef __MAC_26_0
+#define __MAC_26_0 260000
+#endif
+
+#ifndef __MAC_27_0
+#define __MAC_27_0 270000
+#endif

@@ -62,8 +62,19 @@
     [super forwardInvocation:invocation];
 }
 
+// MTLAllocation : based on the protocol defined in
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLAllocation
+// .h
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (NSUInteger)allocatedSize API_AVAILABLE(macos(15.0), ios(18.0))
+{
+  return self.real.allocatedSize;
+}
+#endif
+
 // MTLRenderPipelineState : based on the protocol defined in
-// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLRenderPipeline.h
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLRenderPipeline.h
 
 - (nullable NSString *)label
 {
@@ -74,6 +85,55 @@
 {
   return id<MTLDevice>(GetWrapped(self)->GetDevice());
 }
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (MTLRenderPipelineReflection *)reflection API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return self.real.reflection;
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (id<MTLFunctionHandle>)functionHandleWithName:(NSString *)name
+                                          stage:(MTLRenderStages)stage
+    API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real functionHandleWithName:name stage:stage];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (id<MTLFunctionHandle>)functionHandleWithBinaryFunction:(id<MTL4BinaryFunction>)function
+                                                    stage:(MTLRenderStages)stage
+    API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real functionHandleWithBinaryFunction:function stage:stage];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (id<MTLRenderPipelineState>)newRenderPipelineStateWithBinaryFunctions:
+                                  (MTL4RenderPipelineBinaryFunctionsDescriptor *)binaryFunctionsDescriptor
+                                                                  error:(NSError **)error
+    API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newRenderPipelineStateWithBinaryFunctions:binaryFunctionsDescriptor
+                                                        error:error];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (MTL4PipelineDescriptor *)newRenderPipelineDescriptorForSpecialization API_AVAILABLE(macos(26.0),
+                                                                                       ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newRenderPipelineDescriptorForSpecialization];
+}
+#endif
 
 - (NSUInteger)maxTotalThreadsPerThreadgroup API_AVAILABLE(macos(11.0), macCatalyst(14.0), ios(11.0),
                                                           tvos(14.5))
@@ -188,5 +248,26 @@
   METAL_NOT_HOOKED();
   return self.real.shaderValidation;
 }
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (MTLSize)requiredThreadsPerTileThreadgroup API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  return self.real.requiredThreadsPerTileThreadgroup;
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (MTLSize)requiredThreadsPerObjectThreadgroup API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  return self.real.requiredThreadsPerObjectThreadgroup;
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (MTLSize)requiredThreadsPerMeshThreadgroup API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  return self.real.requiredThreadsPerMeshThreadgroup;
+}
+#endif
 
 @end

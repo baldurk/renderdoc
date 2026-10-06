@@ -63,7 +63,7 @@
 }
 
 // MTLCommandEncoder : based on the protocol defined in
-// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLCommandEncoder.h
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLCommandEncoder.h
 
 - (id<MTLDevice>)device
 {
@@ -85,6 +85,15 @@
   GetWrapped(self)->endEncoding();
 }
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (void)barrierAfterQueueStages:(MTLStages)afterQueueStages
+                   beforeStages:(MTLStages)beforeStages API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real barrierAfterQueueStages:afterQueueStages beforeStages:beforeStages];
+}
+#endif
+
 - (void)insertDebugSignpost:(NSString *)string
 {
   GetWrapped(self)->insertDebugSignpost((NS::String *)string);
@@ -101,7 +110,7 @@
 }
 
 // MTLBlitCommandEncoder : based on the protocol defined in
-// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLBlitCommandEncoder.h
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLBlitCommandEncoder.h
 
 - (void)synchronizeResource:(id<MTLResource>)resource API_AVAILABLE(macos(10.11), macCatalyst(13.0))
                                 API_UNAVAILABLE(ios)
@@ -334,5 +343,46 @@
   GetWrapped(self)->resolveCounters(GetWrapped(sampleBuffer), (NS::Range &)range,
                                     GetWrapped(destinationBuffer), destinationOffset);
 }
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (void)copyFromTensor:(id<MTLTensor>)sourceTensor
+             sourceOrigin:(MTLTensorExtents *)sourceOrigin
+         sourceDimensions:(MTLTensorExtents *)sourceDimensions
+                 toTensor:(id<MTLTensor>)destinationTensor
+        destinationOrigin:(MTLTensorExtents *)destinationOrigin
+    destinationDimensions:(MTLTensorExtents *)destinationDimensions
+    API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  [self.real copyFromTensor:sourceTensor
+               sourceOrigin:sourceOrigin
+           sourceDimensions:sourceDimensions
+                   toTensor:destinationTensor
+          destinationOrigin:destinationOrigin
+      destinationDimensions:destinationDimensions];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_27_0
+- (void)copyFromTensor:(id<MTLTensor>)sourceTensor
+             sourceOrigin:(MTLTensorExtents *)sourceOrigin
+         sourceDimensions:(MTLTensorExtents *)sourceDimensions
+              sourcePlane:(MTLTensorPlaneType)sourcePlane
+                 toTensor:(id<MTLTensor>)destinationTensor
+        destinationOrigin:(MTLTensorExtents *)destinationOrigin
+    destinationDimensions:(MTLTensorExtents *)destinationDimensions
+         destinationPlane:(MTLTensorPlaneType)destinationPlane API_AVAILABLE(macos(27.0), ios(27.0))
+{
+  METAL_NOT_HOOKED();
+  [self.real copyFromTensor:sourceTensor
+               sourceOrigin:sourceOrigin
+           sourceDimensions:sourceDimensions
+                sourcePlane:sourcePlane
+                   toTensor:destinationTensor
+          destinationOrigin:destinationOrigin
+      destinationDimensions:destinationDimensions
+           destinationPlane:destinationPlane];
+}
+#endif
 
 @end

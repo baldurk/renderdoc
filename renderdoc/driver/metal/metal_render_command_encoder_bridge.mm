@@ -63,7 +63,7 @@
 }
 
 // MTLCommandEncoder : based on the protocol defined in
-// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLCommandEncoder.h
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLCommandEncoder.h
 
 - (id<MTLDevice>)device
 {
@@ -85,6 +85,15 @@
   GetWrapped(self)->endEncoding();
 }
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (void)barrierAfterQueueStages:(MTLStages)afterQueueStages
+                   beforeStages:(MTLStages)beforeStages API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real barrierAfterQueueStages:afterQueueStages beforeStages:beforeStages];
+}
+#endif
+
 - (void)insertDebugSignpost:(NSString *)string
 {
   METAL_NOT_HOOKED();
@@ -104,7 +113,7 @@
 }
 
 // MTLRenderCommandEncoder : based on the protocol defined in
-// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.0.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLRenderCommandEncoder.h
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLRenderCommandEncoder.h
 
 - (void)setRenderPipelineState:(id<MTLRenderPipelineState>)pipelineState
 {
@@ -321,6 +330,15 @@
   METAL_NOT_HOOKED();
   return [self.real setDepthBias:depthBias slopeScale:slopeScale clamp:clamp];
 }
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (void)setDepthTestMinBound:(float)minBound
+                    maxBound:(float)maxBound API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real setDepthTestMinBound:minBound maxBound:maxBound];
+}
+#endif
 
 - (void)setScissorRect:(MTLScissorRect)rect
 {
@@ -1275,5 +1293,14 @@
                              atSampleIndex:sampleIndex
                                withBarrier:barrier];
 }
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (void)setColorAttachmentMap:(nullable MTLLogicalToPhysicalColorAttachmentMap *)mapping
+    API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real setColorAttachmentMap:mapping];
+}
+#endif
 
 @end

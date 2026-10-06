@@ -63,7 +63,7 @@
 }
 
 // MTLLibrary : based on the protocol defined in
-// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLLibrrary.h
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLLibrrary.h
 
 - (NSString *)label
 {
@@ -105,6 +105,15 @@
                          constantValues:constantValues
                       completionHandler:completionHandler];
 }
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (MTLFunctionReflection *)reflectionForFunctionWithName:(NSString *)functionName
+    API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real reflectionForFunctionWithName:functionName];
+}
+#endif
 
 - (void)newFunctionWithDescriptor:(nonnull MTLFunctionDescriptor *)descriptor
                 completionHandler:(void (^)(id<MTLFunction> __nullable function,

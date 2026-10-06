@@ -63,7 +63,7 @@
 }
 
 // MTLResource : based on the protocol defined in
-// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.4.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLResource.h
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLResource.h
 
 - (nullable NSString *)label
 {
@@ -142,7 +142,7 @@
 #endif
 
 // MTLTexture : based on the protocol defined in
-// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX12.1.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLTexture.h
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLTexture.h
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-implementations"
@@ -358,6 +358,15 @@
   return [self.real newSharedTextureHandle];
 }
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (nullable id<MTLTexture>)newTextureViewWithDescriptor:(MTLTextureViewDescriptor *)descriptor
+    API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newTextureViewWithDescriptor:descriptor];
+}
+#endif
+
 - (id<MTLTexture>)remoteStorageTexture API_AVAILABLE(macos(10.15))API_UNAVAILABLE(ios)
 {
   METAL_NOT_HOOKED();
@@ -390,5 +399,19 @@
                                            slices:sliceRange
                                           swizzle:swizzle];
 }
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (MTLTextureSparseTier)sparseTextureTier API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  return self.real.sparseTextureTier;
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_27_0
+- (float)minLOD API_AVAILABLE(macos(27.0), ios(27.0))
+{
+  return self.real.minLOD;
+}
+#endif
 
 @end

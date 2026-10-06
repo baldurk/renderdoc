@@ -66,7 +66,7 @@
 }
 
 // MTLDevice : based on the protocol defined in
-// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.0.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLDevice.h
+// Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/Metal.framework/Headers/MTLDevice.h
 
 - (NSString *)name
 {
@@ -873,6 +873,14 @@
   return GetWrapped(self)->supportsRaytracing();
 }
 
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_27_0
+- (BOOL)supportsPlacementSparse API_AVAILABLE(macos(26.4), ios(26.4))
+{
+  METAL_NOT_HOOKED();
+  return [self.real supportsPlacementSparse];
+}
+#endif
+
 - (MTLAccelerationStructureSizes)accelerationStructureSizesWithDescriptor:
     (MTLAccelerationStructureDescriptor *)descriptor API_AVAILABLE(macos(11.0), ios(14.0))
 {
@@ -940,8 +948,7 @@
 #endif
 
 #if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_3
-- (void)setShouldMaximizeConcurrentCompilation:(BOOL)value API_AVAILABLE(macos(13.3))
-                                                   API_UNAVAILABLE(ios)
+- (void)setShouldMaximizeConcurrentCompilation:(BOOL)value API_AVAILABLE(macos(13.3), ios(26.0))
 {
   METAL_NOT_HOOKED();
   return [self.real setShouldMaximizeConcurrentCompilation:value];
@@ -949,7 +956,7 @@
 #endif
 
 #if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_13_3
-- (NSUInteger)maximumConcurrentCompilationTaskCount API_AVAILABLE(macos(13.3))API_UNAVAILABLE(ios)
+- (NSUInteger)maximumConcurrentCompilationTaskCount API_AVAILABLE(macos(13.3), ios(26.0))
 {
   return GetWrapped(self)->maximumConcurrentCompilationTaskCount();
 }
@@ -962,5 +969,181 @@
   METAL_NOT_HOOKED();
   return [self.real newResidencySetWithDescriptor:desc error:error];
 }
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (MTLSizeAndAlign)tensorSizeAndAlignWithDescriptor:(MTLTensorDescriptor *)descriptor
+    API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real tensorSizeAndAlignWithDescriptor:descriptor];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (id<MTLTensor>)newTensorWithDescriptor:(MTLTensorDescriptor *)descriptor
+                                   error:(__autoreleasing NSError *_Nullable *_Nullable)error
+    API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newTensorWithDescriptor:descriptor error:error];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_27_0
+- (nullable id<MTLTensor>)newTensorWithDescriptor:(MTLTensorDescriptor *)descriptor
+                                      attachments:(MTLTensorBufferAttachments *)attachments
+                                            error:(NSError **)error
+    API_AVAILABLE(macos(27.0), ios(27.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newTensorWithDescriptor:descriptor attachments:attachments error:error];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (id<MTLFunctionHandle>)functionHandleWithFunction:(id<MTLFunction>)function
+    API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real functionHandleWithFunction:function];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (id<MTL4CommandAllocator>)newCommandAllocator API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newCommandAllocator];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (id<MTL4CommandAllocator>)newCommandAllocatorWithDescriptor:(MTL4CommandAllocatorDescriptor *)descriptor
+                                                        error:(NSError **)error
+    API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newCommandAllocatorWithDescriptor:descriptor error:error];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (id<MTL4CommandQueue>)newMTL4CommandQueue API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newMTL4CommandQueue];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (id<MTL4CommandQueue>)
+    newMTL4CommandQueueWithDescriptor:(MTL4CommandQueueDescriptor *)descriptor
+                                error:(__autoreleasing NSError *_Nullable *_Nullable)error
+    API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newMTL4CommandQueueWithDescriptor:descriptor error:error];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (id<MTL4CommandBuffer>)newCommandBuffer API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newCommandBuffer];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (id<MTL4ArgumentTable>)newArgumentTableWithDescriptor:(MTL4ArgumentTableDescriptor *)descriptor
+                                                  error:(NSError *_Nullable *)error
+    API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newArgumentTableWithDescriptor:descriptor error:error];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (id<MTLTextureViewPool>)newTextureViewPoolWithDescriptor:(MTLResourceViewPoolDescriptor *)descriptor
+                                                     error:(NSError *_Nullable *)error
+    API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newTextureViewPoolWithDescriptor:descriptor error:error];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (id<MTL4Compiler>)newCompilerWithDescriptor:(MTL4CompilerDescriptor *)descriptor
+                                        error:(NSError **)error API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newCompilerWithDescriptor:descriptor error:error];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (id<MTL4Archive>)newArchiveWithURL:(NSURL *)url
+                               error:(NSError **)error API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newArchiveWithURL:url error:error];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (id<MTL4PipelineDataSetSerializer>)newPipelineDataSetSerializerWithDescriptor:
+    (MTL4PipelineDataSetSerializerDescriptor *)descriptor API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newPipelineDataSetSerializerWithDescriptor:descriptor];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (id<MTLBuffer>)newBufferWithLength:(NSUInteger)length
+                             options:(MTLResourceOptions)options
+             placementSparsePageSize:(MTLSparsePageSize)placementSparsePageSize
+    API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newBufferWithLength:length
+                                options:options
+                placementSparsePageSize:placementSparsePageSize];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (id<MTL4CounterHeap>)newCounterHeapWithDescriptor:(MTL4CounterHeapDescriptor *)descriptor
+                                              error:(NSError *__nullable *)error
+    API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+  return [self.real newCounterHeapWithDescriptor:descriptor error:error];
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (NSUInteger)sizeOfCounterHeapEntry:(MTL4CounterHeapType)type API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (uint64_t)queryTimestampFrequency API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+}
+#endif
+
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= __MAC_26_0
+- (id<MTLFunctionHandle>)functionHandleWithBinaryFunction:(id<MTL4BinaryFunction>)function
+    API_AVAILABLE(macos(26.0), ios(26.0))
+{
+  METAL_NOT_HOOKED();
+}
+#endif
 
 @end
