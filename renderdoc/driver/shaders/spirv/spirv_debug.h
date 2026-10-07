@@ -736,7 +736,7 @@ public:
   bool ArePointersAndEqual(const ShaderVariable &a, const ShaderVariable &b) const;
   DeviceOpResult WriteThroughPointer(ShaderVariable &ptr, const ShaderVariable &val) const;
   ShaderVariable MakeCompositePointer(const ShaderVariable &base, Id id,
-                                      rdcarray<uint32_t> &indices) const;
+                                      const rdcarray<uint32_t> &indices) const;
 
   DebugAPIWrapper *GetAPIWrapper() const;
   uint32_t GetNumInstructions() const { return (uint32_t)instructionOffsets.size(); }

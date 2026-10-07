@@ -3318,7 +3318,7 @@ ShaderVariable Debugger::MakePointerVariable(Id id, const ShaderVariable *v, uin
 }
 
 ShaderVariable Debugger::MakeCompositePointer(const ShaderVariable &base, Id id,
-                                              rdcarray<uint32_t> &indices) const
+                                              const rdcarray<uint32_t> &indices) const
 {
   const ShaderVariable *leaf = &base;
 
