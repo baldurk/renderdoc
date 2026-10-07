@@ -227,15 +227,27 @@ layout(binding = 0, std140) uniform ubo_test
   vec4 data;
 } ubo;
 
+layout(binding = 1, std140) uniform uboArray_test
+{
+  vec4 data1;
+  vec4 data2;
+} ubos[5];
+
 layout(binding = 0, std430) buffer ssbo_test
 {
   vec4 data;
 } ssbo;
 
+layout(binding = 1, std430) buffer ssboArray_test
+{
+  vec4 data1;
+  vec4 data2;
+} ssbos[7];
+
 layout(binding = 0) uniform sampler2D tex2d_test;
 layout(binding = 1) uniform samplerBuffer texBuf_test;
 layout(binding = 2) uniform sampler2D bias_test;
-layout(binding = 3) uniform sampler2D resArray_test[2];
+layout(binding = 3) uniform sampler2D resArray_test[5];
 
 layout(location = 1) in vec4 v2fColor;
 layout(location = 2) in vec2 v2fUV;
@@ -258,8 +270,12 @@ void main()
   col += texture(tex2d_test, v2fUV);
   col += texelFetch(texBuf_test, int(v2fUV.x*10));
   col += texture(bias_test, v2fUV, -0.8f);
-  col += texture(resArray_test[0], v2fUV);
   col += texture(resArray_test[1], v2fUV);
+  col += texture(resArray_test[3], v2fUV);
+  col += ubos[1].data1;
+  col += ubos[2].data2;
+  col += ssbos[3].data1;
+  col += ssbos[4].data2;
   outColor = col;
 }
 
@@ -557,12 +573,20 @@ void main()
     glBufferStorage(GL_UNIFORM_BUFFER, sizeof(cbufferdata), cbufferdata, GL_MAP_WRITE_BIT);
 
     glBindBufferRange(GL_UNIFORM_BUFFER, 0, cb, bindOffset * sizeof(Vec4f), 16 * sizeof(Vec4f));
+    // ubos[1], ubos[2]
+    glBindBufferRange(GL_UNIFORM_BUFFER, 2, cb, 2 * bindOffset * sizeof(Vec4f), 16 * sizeof(Vec4f));
+    glBindBufferRange(GL_UNIFORM_BUFFER, 3, cb, 3 * bindOffset * sizeof(Vec4f), 16 * sizeof(Vec4f));
 
     GLuint ssbo = MakeBuffer();
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
     glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(cbufferdata), cbufferdata, GL_MAP_WRITE_BIT);
 
-    glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, ssbo, bindOffset * sizeof(Vec4f) * 2,
+    glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, ssbo, 2 * bindOffset * sizeof(Vec4f),
+                      16 * sizeof(Vec4f));
+    // ssbos[3], ssbos[4]
+    glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 4, ssbo, 5 * bindOffset * sizeof(Vec4f),
+                      16 * sizeof(Vec4f));
+    glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 5, ssbo, 6 * bindOffset * sizeof(Vec4f),
                       16 * sizeof(Vec4f));
 
     GLuint tbuf_store = MakeBuffer();
@@ -622,9 +646,9 @@ void main()
         pixels.push_back(rgba8.data[srcIdx]);
         --srcIdx;
       }
-      GLuint resArray_tex0 = MakeTexture();
-      glActiveTexture(GL_TEXTURE3);
-      glBindTexture(GL_TEXTURE_2D, resArray_tex0);
+      GLuint resArray_tex1 = MakeTexture();
+      glActiveTexture(GL_TEXTURE4);
+      glBindTexture(GL_TEXTURE_2D, resArray_tex1);
       glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, rgba8.width, rgba8.height);
       glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, rgba8.width, rgba8.height, GL_RGBA, GL_UNSIGNED_BYTE,
                       pixels.data());
@@ -638,9 +662,9 @@ void main()
         pixels.push_back(rgba8.data[srcIdx % countPixels]);
         srcIdx -= 2;
       }
-      GLuint resArray_tex1 = MakeTexture();
-      glActiveTexture(GL_TEXTURE4);
-      glBindTexture(GL_TEXTURE_2D, resArray_tex1);
+      GLuint resArray_tex3 = MakeTexture();
+      glActiveTexture(GL_TEXTURE6);
+      glBindTexture(GL_TEXTURE_2D, resArray_tex3);
       glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, rgba8.width, rgba8.height);
       glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, rgba8.width, rgba8.height, GL_RGBA, GL_UNSIGNED_BYTE,
                       pixels.data());
