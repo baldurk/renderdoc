@@ -2015,23 +2015,45 @@ void MakeShaderReflection(GLenum shadType, GLuint sepProg, ShaderReflection &ref
   {
     for(int i = 0; i < numUBOs; i++)
     {
-      if(!ubos[i].empty())
+      int idx = i;
+      int arrOffs = uboNames[i].indexOf('[');
+      // For arrayed UBOs:
+      // - uboNames will have the array index baked into its name
+      // - ubos will have just the member type of the base array
+      // - use the array basename (from uboNames) to find the matching type in ubos
+      if(ubos[i].empty() && arrOffs > 0)
+      {
+        rdcstr basename = uboNames[i];
+        basename.erase(arrOffs, basename.size());
+
+        for(int j = 0; j < numUBOs; ++j)
+        {
+          if(!ubos[j].empty())
+          {
+            if(ubos[j][0].name == basename)
+            {
+              idx = j;
+              break;
+            }
+          }
+        }
+      }
+      if(!ubos[idx].empty())
       {
         ConstantBlock cblock;
         cblock.name = uboNames[i];
         cblock.bufferBacked = true;
+        cblock.variables = ubos[idx];
 
         GLenum bufSize = eGL_BUFFER_DATA_SIZE;
         GL.glGetProgramResourceiv(sepProg, eGL_UNIFORM_BLOCK, i, 1, &bufSize, 1, NULL,
                                   (GLint *)&cblock.byteSize);
 
-        sort(ubos[i]);
+        sort(cblock.variables);
 
         // can't make perfect guesses of struct alignment but assume std140 for ubos
-        for(ShaderConstant &member : ubos[i])
+        for(ShaderConstant &member : cblock.variables)
           FixupStructOffsetsAndSize(true, member);
-
-        std::swap(cblock.variables, ubos[i]);
 
         refl.constantBlocks.push_back(cblock);
       }
