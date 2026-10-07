@@ -381,10 +381,16 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
           for(size_t i = 0; i < reflection->constantBlocks.size(); i++)
           {
             rdcstr name = reflection->constantBlocks[i].name;
+            // Only match on base name remove any array indexes
+            int arrOffs = name.indexOf('[');
+            if(arrOffs > 0)
+              name.erase(arrOffs, name.size());
+
             bool found = false;
             for(size_t j = 0; j < spvReflection.constantBlocks.size(); j++)
             {
-              if(name == spvReflection.constantBlocks[j].name)
+              const rdcstr &matchName = spvReflection.constantBlocks[j].name;
+              if(name == matchName)
               {
                 convertedPatchData.cblockInterface.resize_for_index(i);
                 convertedPatchData.cblockInterface[i] = spvPatchData.cblockInterface[j];
@@ -404,11 +410,17 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
                 const rdcspv::DataType &outerType =
                     spirv.GetDataType(spirv.GetIDType(spvPatchData.cblockInterface[j]));
 
-                rdcstr typeName = outerType.name;
+                rdcstr matchName = outerType.name;
                 if(outerType.type == rdcspv::DataType::PointerType)
-                  typeName = spirv.GetDataType(outerType.InnerType()).name;
+                {
+                  const rdcspv::DataType &innerType = spirv.GetDataType(outerType.InnerType());
+                  if(innerType.type == rdcspv::DataType::ArrayType)
+                    matchName = spirv.GetDataType(innerType.InnerType()).name;
+                  else
+                    matchName = innerType.name;
+                }
 
-                if(name == typeName)
+                if(name == matchName)
                 {
                   convertedPatchData.cblockInterface.resize_for_index(i);
                   convertedPatchData.cblockInterface[i] = spvPatchData.cblockInterface[j];
@@ -426,7 +438,8 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
               name += "_var";
               for(size_t j = 0; j < spvReflection.constantBlocks.size(); j++)
               {
-                if(name == spvReflection.constantBlocks[j].name)
+                const rdcstr &matchName = spvReflection.constantBlocks[j].name;
+                if(name == matchName)
                 {
                   convertedPatchData.cblockInterface.resize_for_index(i);
                   convertedPatchData.cblockInterface[i] = spvPatchData.cblockInterface[j];
@@ -456,32 +469,23 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
 
           for(size_t i = 0; i < reflection->readOnlyResources.size(); i++)
           {
+            rdcstr name = reflection->readOnlyResources[i].name;
+            // Only match on base name remove any array indexes
+            int arrOffs = name.indexOf('[');
+            if(arrOffs > 0)
+              name.erase(arrOffs, name.size());
+
             bool found = false;
             for(size_t j = 0; j < spvReflection.readOnlyResources.size(); j++)
             {
-              if(reflection->readOnlyResources[i].name == spvReflection.readOnlyResources[j].name)
-              {
-                found = true;
-              }
-              else if((spvReflection.readOnlyResources[j].bindArraySize > 1))
-              {
-                rdcstr &baseName = spvReflection.readOnlyResources[j].name;
-                for(uint32_t idx = 0; idx < spvReflection.readOnlyResources[j].bindArraySize; idx++)
-                {
-                  rdcstr resName = StringFormat::Fmt("%s[%u]", baseName.c_str(), idx);
-                  if(reflection->readOnlyResources[i].name == resName)
-                  {
-                    found = true;
-                    break;
-                  }
-                }
-              }
-              if(found)
+              const rdcstr &matchName = spvReflection.readOnlyResources[j].name;
+              if(name == matchName)
               {
                 convertedPatchData.roInterface.resize_for_index(i);
                 convertedPatchData.roInterface[i] = spvPatchData.roInterface[j];
                 convertedRefl.readOnlyResources.resize_for_index(i);
                 convertedRefl.readOnlyResources[i] = spvReflection.readOnlyResources[j];
+                found = true;
                 break;
               }
             }
@@ -500,32 +504,22 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
           for(size_t i = 0; i < reflection->readWriteResources.size(); i++)
           {
             rdcstr name = reflection->readWriteResources[i].name;
+            // Only match on base name remove any array indexes
+            int arrOffs = name.indexOf('[');
+            if(arrOffs > 0)
+              name.erase(arrOffs, name.size());
+
             bool found = false;
             for(size_t j = 0; j < spvReflection.readWriteResources.size(); j++)
             {
-              if(reflection->readWriteResources[i].name == spvReflection.readWriteResources[j].name)
-              {
-                found = true;
-              }
-              else if((spvReflection.readWriteResources[j].bindArraySize > 1))
-              {
-                rdcstr &baseName = spvReflection.readWriteResources[j].name;
-                for(uint32_t idx = 0; idx < spvReflection.readWriteResources[j].bindArraySize; idx++)
-                {
-                  rdcstr resName = StringFormat::Fmt("%s[%u]", baseName.c_str(), idx);
-                  if(reflection->readWriteResources[i].name == resName)
-                  {
-                    found = true;
-                    break;
-                  }
-                }
-              }
-              if(found)
+              const rdcstr &matchName = spvReflection.readWriteResources[j].name;
+              if(name == matchName)
               {
                 convertedPatchData.rwInterface.resize_for_index(i);
                 convertedPatchData.rwInterface[i] = spvPatchData.rwInterface[j];
                 convertedRefl.readWriteResources.resize_for_index(i);
                 convertedRefl.readWriteResources[i] = spvReflection.readWriteResources[j];
+                found = true;
                 break;
               }
             }
@@ -539,11 +533,17 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
                 const rdcspv::DataType &outerType =
                     spirv.GetDataType(spirv.GetIDType(spvPatchData.rwInterface[j]));
 
-                rdcstr typeName = outerType.name;
+                rdcstr matchName = outerType.name;
                 if(outerType.type == rdcspv::DataType::PointerType)
-                  typeName = spirv.GetDataType(outerType.InnerType()).name;
+                {
+                  const rdcspv::DataType &innerType = spirv.GetDataType(outerType.InnerType());
+                  if(innerType.type == rdcspv::DataType::ArrayType)
+                    matchName = spirv.GetDataType(innerType.InnerType()).name;
+                  else
+                    matchName = innerType.name;
+                }
 
-                if(name == typeName)
+                if(name == matchName)
                 {
                   convertedPatchData.rwInterface.resize_for_index(i);
                   convertedPatchData.rwInterface[i] = spvPatchData.rwInterface[j];
@@ -561,7 +561,8 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
               name += "_var";
               for(size_t j = 0; j < spvReflection.readWriteResources.size(); j++)
               {
-                if(name == spvReflection.readWriteResources[j].name)
+                const rdcstr &matchName = spvReflection.readWriteResources[j].name;
+                if(name == matchName)
                 {
                   convertedPatchData.rwInterface.resize_for_index(i);
                   convertedPatchData.rwInterface[i] = spvPatchData.rwInterface[j];
@@ -586,32 +587,23 @@ void WrappedOpenGL::ShaderData::ProcessCompilation(WrappedOpenGL &drv, ResourceI
 
           for(size_t i = 0; i < reflection->samplers.size(); i++)
           {
+            rdcstr name = spvReflection.samplers[i].name;
+            // Only match on base name remove any array indexes
+            int arrOffs = name.indexOf('[');
+            if(arrOffs > 0)
+              name.erase(arrOffs, name.size());
+
             bool found = false;
             for(size_t j = 0; j < spvReflection.samplers.size(); j++)
             {
-              if(reflection->samplers[i].name == spvReflection.samplers[j].name)
-              {
-                found = true;
-              }
-              else if((spvReflection.samplers[j].bindArraySize > 1))
-              {
-                rdcstr &baseName = spvReflection.samplers[j].name;
-                for(uint32_t idx = 0; idx < spvReflection.samplers[j].bindArraySize; idx++)
-                {
-                  rdcstr resName = StringFormat::Fmt("%s[%u]", baseName.c_str(), idx);
-                  if(reflection->samplers[i].name == resName)
-                  {
-                    found = true;
-                    break;
-                  }
-                }
-              }
-              if(found)
+              const rdcstr &matchName = spvReflection.samplers[j].name;
+              if(name == matchName)
               {
                 convertedPatchData.samplerInterface.resize_for_index(i);
                 convertedPatchData.samplerInterface[i] = spvPatchData.samplerInterface[j];
                 convertedRefl.samplers.resize_for_index(i);
                 convertedRefl.samplers[i] = spvReflection.samplers[j];
+                found = true;
                 break;
               }
             }
