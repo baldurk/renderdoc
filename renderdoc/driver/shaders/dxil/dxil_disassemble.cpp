@@ -1129,7 +1129,7 @@ static rdcstr GetResourceShapeName(DXIL::ResourceKind shape, bool uav)
     case DXIL::ResourceKind::Texture2DArray: return prefix + "Texture2DArray";
     case DXIL::ResourceKind::Texture2DMSArray: return prefix + "Texture2DMSArray";
     case DXIL::ResourceKind::TextureCubeArray: return prefix + "TextureCubeArray";
-    case DXIL::ResourceKind::TypedBuffer: return prefix + "TypedBuffer";
+    case DXIL::ResourceKind::TypedBuffer: return prefix + "Buffer";
     case DXIL::ResourceKind::RawBuffer: return prefix + "ByteAddressBuffer";
     case DXIL::ResourceKind::StructuredBuffer: return prefix + "StructuredBuffer";
     case DXIL::ResourceKind::CBuffer: return "CBuffer";
@@ -3771,7 +3771,7 @@ void Program::MakeRDDisassemblyString(const DXBC::Reflection *reflection)
                             case ResourceKind::TextureCubeArray:
                               typeStr += "TextureCubeArray";
                               break;
-                            case ResourceKind::TypedBuffer: typeStr += "TypedBuffer"; break;
+                            case ResourceKind::TypedBuffer: typeStr += "Buffer"; break;
                             default: break;
                           }
                           break;
