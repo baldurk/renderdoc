@@ -58,7 +58,10 @@ void FillSpecConstantVariables(ResourceId shader, const SPIRVPatchData &patchDat
   RDCASSERTEQUAL(invars.size(), outvars.size());
 
   for(size_t v = 0; v < invars.size() && v < outvars.size(); v++)
+  {
+    outvars[v].flags &= ~ShaderVariableFlags::Truncated;
     outvars[v].value.u64v[0] = invars[v].defaultValue;
+  }
 
   // find any actual values specified
   for(size_t i = 0; i < specInfo.size(); i++)
