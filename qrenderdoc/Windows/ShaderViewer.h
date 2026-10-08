@@ -327,6 +327,7 @@ private:
   rdcarray<UsedDescriptor> m_ReadOnlyResources;
   rdcarray<UsedDescriptor> m_ReadWriteResources;
   rdcarray<UsedDescriptor> m_Samplers;
+  rdcarray<UsedDescriptor> m_Constants;
   QSet<QPair<int, uint32_t>> m_Breakpoints;
   bool m_TempBreakpoint = false;
 
