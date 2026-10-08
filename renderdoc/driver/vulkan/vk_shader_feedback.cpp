@@ -1589,6 +1589,14 @@ bool VulkanReplay::FetchShaderFeedback(uint32_t eventId)
         return;
       }
 
+      // declared resources may not exist in the descriptor set layout, if they do not then we
+      // assume they are not statically used ("A reference in the entry point's interface list does
+      // not constitute a static use")
+      if(bind >= descLayouts[bindset]->bindings.size())
+      {
+        return;
+      }
+
       // VkShaderStageFlagBits and ShaderStageMask are identical bit-for-bit.
       if((descLayouts[bindset]->bindings[bind].stageFlags &
           (VkShaderStageFlags)MaskForStage(key.stage)) == 0)
