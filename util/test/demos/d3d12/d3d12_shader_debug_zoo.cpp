@@ -199,6 +199,18 @@ v2f main(consts IN, uint tri : SV_InstanceID)
 // we want to do this on purpose
 #pragma warning( disable : 3556 )
 
+#if (SM_5_1 || SM_6_0 || SM_6_2 || SM_6_6)
+#define ARRAYED_RESOURCES 1
+#else
+#define ARRAYED_RESOURCES 0
+#endif
+
+#if (SM_6_0 || SM_6_2 || SM_6_6)
+#define UNBOUND_CBVS 1
+#else
+#define UNBOUND_CBVS 0
+#endif
+
 struct InnerStruct
 {
   float a;
@@ -257,6 +269,24 @@ StructuredBuffer<int16_t> int16srv : register(t42);
 Buffer<int> int16srv : register(t43);
 #endif
 
+#if ARRAYED_RESOURCES
+Texture2D<float4> tex2ds[14] : register(t0, space1);
+SamplerState samplers[14] : register(s0, space1);
+RWStructuredBuffer<MyStruct> buffers[14] : register(u0, space1);
+struct Data
+{
+  float4 zeroes;
+  uint4 index;
+  float4 padding[14];
+};
+ConstantBuffer<Data> cbuffers[14] : register(b0, space1);
+
+Texture2D<float4> unbounded_tex2ds[] : register(t0, space2);
+SamplerState unbounded_samplers[] : register(s0, space2);
+RWStructuredBuffer<MyStruct> unbounded_buffers[] : register(u0, space2);
+ConstantBuffer<Data> unbounded_cbuffers[] : register(b0, space2);
+#endif
+
 static const int gConstInt = 10;
 static const int gConstIntArray[6] = { 1, 2, 3, 4, 5, 6 };
 static int gInt = 3;
@@ -274,6 +304,7 @@ float4 main(v2f IN) : SV_Target0
   float tiny = IN.tinyVal;
 
   int intval = IN.intval;
+  uint zerou = uint(zero);
 
   if(IN.tri == 0)
     return float4(log(negone), log(zero), log(posone), 1.0f);
@@ -1162,6 +1193,104 @@ float4 main(v2f IN) : SV_Target0
     byterwtest2.GetDimensions(c);
     return float4(float(a), float(b), float(c), 0.0f);
   }
+#if ARRAYED_RESOURCES
+  if(IN.tri == 114)
+  {
+    float2 uv = posone * float2(0.55f, 0.48f);
+    return tex2ds[zerou+9].Sample(linearclamp, uv, int2(4, 3));
+  }
+  if(IN.tri == 115)
+  {
+    float2 uv = posone * float2(1.55f, 1.48f);
+    return smiley.Sample(samplers[zerou+2], uv, int2(4, 3));
+  }
+  if(IN.tri == 116)
+  {
+    uint z = intval - IN.tri - 7;
+
+    MyStruct write = (MyStruct)0;
+
+    write.a = zero+1.0f;
+    write.c = zero+2.0f;
+    write.e = zero+3.0f;
+    write.b = float4(zero+4.0f, zero+5.0f, zero+6.0f, zero+7.0f);
+    write.d.a = zero+8.0f;
+    write.d.b[0] = zero+9.0f;
+    write.d.b[1] = zero+10.0f;
+    write.d.c = zero+11.0f;
+
+    buffers[zerou+3][z+2] = write;
+    MyStruct read = buffers[z+3][zerou+2];
+    return float4(read.b.xyz, read.c);
+  }
+  if(IN.tri == 117)
+  {
+    float4 Color = float4(0,0,0,0);
+    Color.x = float(cbuffers[zerou+1].index.x);
+    Color.y = float(cbuffers[zerou+2].index.y);
+    Color.z = float(cbuffers[zerou+3].index.z);
+    Color.w = float(cbuffers[zerou+4].index.w);
+    return Color;
+  }
+  if(IN.tri == 118)
+  {
+    float2 uv = posone * float2(0.55f, 0.48f);
+#if UNBOUND_CBVS
+    uint index = unbounded_cbuffers[zerou+11].index.y;
+#else
+    uint index = zerou+4;
+#endif
+    index = index % 14;
+    return unbounded_tex2ds[index].Sample(linearclamp, uv, int2(4, 3));
+  }
+  if(IN.tri == 119)
+  {
+    float2 uv = posone * float2(1.55f, 1.48f);
+#if UNBOUND_CBVS
+    uint index = unbounded_cbuffers[zerou+3].index.w;
+#else
+    uint index = zerou+2;
+#endif
+    index = index % 14;
+    return smiley.Sample(unbounded_samplers[index], uv, int2(4, 3));
+  }
+  if(IN.tri == 120)
+  {
+    uint z = intval - IN.tri - 7;
+
+    MyStruct write = (MyStruct)0;
+
+    write.a = zero+1.0f;
+    write.c = zero+2.0f;
+    write.e = zero+3.0f;
+    write.b = float4(zero+4.0f, zero+5.0f, zero+6.0f, zero+7.0f);
+    write.d.a = zero+8.0f;
+    write.d.b[0] = zero+9.0f;
+    write.d.b[1] = zero+10.0f;
+    write.d.c = zero+11.0f;
+
+#if UNBOUND_CBVS
+    uint index = unbounded_cbuffers[zerou+9].index.z;
+#else
+    uint index = zerou+11;
+#endif
+    index = index % 14;
+    unbounded_buffers[index+z][z+2] = write;
+    MyStruct read = unbounded_buffers[index+zerou][zerou+2];
+    return float4(read.b.xyz, read.c);
+  }
+#if UNBOUND_CBVS
+  if(IN.tri == 121)
+  {
+    float4 Color = float4(0,0,0,0);
+    Color.x = float(unbounded_cbuffers[zerou+5].index.x);
+    Color.y = float(unbounded_cbuffers[zerou+6].index.y);
+    Color.z = float(unbounded_cbuffers[zerou+7].index.z);
+    Color.w = float(unbounded_cbuffers[zerou+8].index.w);
+    return Color;
+  }
+#endif // #if UNBOUND_CBVS
+#endif
   return float4(0.4f, 0.4f, 0.4f, 0.4f);
 }
 )EOSHADER";
@@ -2103,7 +2232,7 @@ void main(uint3 inDTID : SV_DispatchThreadID, uint3 inGID : SV_GroupThreadID, ui
     multiRangeParam.DescriptorTable.NumDescriptorRanges = ARRAY_COUNT(multiRanges);
     multiRangeParam.DescriptorTable.pDescriptorRanges = multiRanges;
 
-    ID3D12RootSignaturePtr sig = MakeSig(
+    ID3D12RootSignaturePtr sig_5_0 = MakeSig(
         {
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 8, 0),
             tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, 3, 10),
@@ -2117,13 +2246,44 @@ void main(uint3 inDTID : SV_DispatchThreadID, uint3 inGID : SV_GroupThreadID, ui
         },
         D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 1, &staticSamp);
 
+    ID3D12RootSignaturePtr sig = MakeSig(
+        {
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 0, 8, 0),
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 1, 3, 10),
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0, 100, 5, 20),
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 4, 5, 30),
+            multiRangeParam,
+            uavParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 21),
+            srvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 20),
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0, 9, 3, 100),
+            srvParam(D3D12_SHADER_VISIBILITY_PIXEL, 0, 21),
+            // Texture2D<float4> tex2ds[14] : register(t0, space1);
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 14, 150),
+            // SamplerState samplers[14] : register(s0, space1);
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0, 14, 0),
+            // RWStructuredBuffer<MyStruct> buffers[14] : register(u0, space1);
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0, 14, 250),
+            // ConstantBuffer<Data> cbuffers[14] : register(b0, space1);
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 14, 300),
+            // Texture2D<float4> unbounded_tex2ds[] : register(t0, space2);
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0, 14, 350),
+            // SamplerState unbounded_samplers[] : register(s0, space2);
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 2, 0, 14,
+                       16),
+            // RWStructuredBuffer<MyStruct> unbounded_buffers[] : register(u0, space2);
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 2, 0, 14, 400),
+            // ConstantBuffer<Data> unbounded_cbuffers[] : register(b0, space2);
+            tableParam(D3D12_SHADER_VISIBILITY_PIXEL, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 2, 0, 14, 450),
+        },
+        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT, 1, &staticSamp);
+
     const int numShaderModels = 5;    // 5.0, 5.1, 6.0, 6.2, 6.6
     ID3D12PipelineStatePtr psos[numShaderModels * 2] = {};
 
     ID3DBlobPtr vs5blob = Compile(common + vertex, "main", "vs_5_0");
 
     psos[0] = MakePSO()
-                  .RootSig(sig)
+                  .RootSig(sig_5_0)
                   .InputLayout(inputLayout)
                   .VS(vs5blob)
                   .PS(Compile(common + shaderDefines + pixel, "main", "ps_5_0",
@@ -2132,7 +2292,7 @@ void main(uint3 inDTID : SV_DispatchThreadID, uint3 inGID : SV_GroupThreadID, ui
     psos[0]->SetName(L"ps_5_0");
     psos[1] =
         MakePSO()
-            .RootSig(sig)
+            .RootSig(sig_5_0)
             .InputLayout(inputLayout)
             .VS(vs5blob)
             .PS(Compile(common + shaderDefines + pixel, "main", "ps_5_0", CompileOptionFlags::None))
@@ -2224,7 +2384,7 @@ void main(uint3 inDTID : SV_DispatchThreadID, uint3 inGID : SV_GroupThreadID, ui
 
     ID3D12PipelineStatePtr noResPSOs[numShaderModels * 2] = {};
     noResPSOs[0] = MakePSO()
-                       .RootSig(sig)
+                       .RootSig(sig_5_0)
                        .InputLayout(inputLayout)
                        .VS(vs5blob)
                        .PS(Compile(common + noResourcesPixel, "main", "ps_5_0",
@@ -2233,7 +2393,7 @@ void main(uint3 inDTID : SV_DispatchThreadID, uint3 inGID : SV_GroupThreadID, ui
     noResPSOs[0]->SetName(L"ps_5_0");
     noResPSOs[1] =
         MakePSO()
-            .RootSig(sig)
+            .RootSig(sig_5_0)
             .InputLayout(inputLayout)
             .VS(vs5blob)
             .PS(Compile(common + noResourcesPixel, "main", "ps_5_0", CompileOptionFlags::None))
@@ -2565,18 +2725,73 @@ void main(uint3 inDTID : SV_DispatchThreadID, uint3 inGID : SV_GroupThreadID, ui
 
     ID3D12ResourcePtr structBuf2 = MakeBuffer().Size(880).UAV();
     structBuf2->SetName(L"structBuf2");
-    D3D12ViewCreator uavView2 = MakeUAV(structBuf2)
-                                    .Format(DXGI_FORMAT_UNKNOWN)
-                                    .FirstElement(3)
-                                    .NumElements(6)
-                                    .StructureStride(11 * sizeof(float));
-    D3D12_CPU_DESCRIPTOR_HANDLE uav2cpu = uavView2.CreateClearCPU(11);
-    D3D12_GPU_DESCRIPTOR_HANDLE uav2gpu = uavView2.CreateGPU(11);
+    D3D12ViewCreator structBuf2View = MakeUAV(structBuf2)
+                                          .Format(DXGI_FORMAT_UNKNOWN)
+                                          .FirstElement(3)
+                                          .NumElements(6)
+                                          .StructureStride(11 * sizeof(float));
+    D3D12_CPU_DESCRIPTOR_HANDLE uav2cpu = structBuf2View.CreateClearCPU(11);
+    D3D12_GPU_DESCRIPTOR_HANDLE uav2gpu = structBuf2View.CreateGPU(11);
 
     // need to create non-structured version for clearing
-    uavView2 = MakeUAV(structBuf2).Format(DXGI_FORMAT_R32_UINT);
-    uav2cpu = uavView2.CreateClearCPU(9);
-    uav2gpu = uavView2.CreateGPU(9);
+    D3D12ViewCreator clearView = MakeUAV(structBuf2).Format(DXGI_FORMAT_R32_UINT);
+    uav2cpu = clearView.CreateClearCPU(9);
+    uav2gpu = clearView.CreateGPU(9);
+
+    // tex2ds[14] GPU Base = 150 Used Indices: 9
+    MakeSRV(smiley).Format(DXGI_FORMAT_R8G8B8A8_UNORM).CreateGPU(150 + 9);
+
+    // samplers[14] GPU Base = 0 Used Indices: 2
+    D3D12_SAMPLER_DESC pointSamplerDesc = {};
+    pointSamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+    pointSamplerDesc.AddressU = pointSamplerDesc.AddressV = pointSamplerDesc.AddressW =
+        D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+    UINT increment = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+    D3D12_CPU_DESCRIPTOR_HANDLE samplerStart = m_Sampler->GetCPUDescriptorHandleForHeapStart();
+    dev->CreateSampler(&pointSamplerDesc, {samplerStart.ptr + increment * 2});
+
+    // buffers[14] GPU Base = 250 Used Indices: 3
+    structBuf2View.CreateGPU(250 + 3);
+    // cbuffers[14] GPU Base = 300 Used Indices: 1, 2, 3, 4
+    struct Data
+    {
+      Vec4f zeroes;
+      Vec4u index;
+      Vec4f padding[14];
+    };
+    Data data;
+    data.zeroes = Vec4f(0.0f, 0.0f, 0.0f, 0.0f);
+    for(size_t j = 0; j < 14; ++j)
+      data.padding[j] = data.zeroes;
+
+    std::vector<ID3D12ResourcePtr> cbuffers;
+
+    for(uint32_t idx : {1, 2, 3, 4})
+    {
+      data.index = Vec4u(idx * 4 + 1, idx * 4 + 2, idx * 4 + 3, idx * 4 + 4);
+      ID3D12ResourcePtr cbuf = MakeBuffer().Size(16 * sizeof(Data)).Data(&data).Upload();
+      cbuf->SetName((L"cbuffers_" + std::to_wstring(idx)).c_str());
+      MakeCBV(cbuf).SizeBytes(sizeof(Data)).CreateGPU(300 + idx);
+      cbuffers.push_back(cbuf);
+    }
+
+    // unbounded_tex2ds[14] GPU Base = 350 Used Indices: 4
+    MakeSRV(smiley).Format(DXGI_FORMAT_R8G8B8A8_UNORM).CreateGPU(350 + 4);
+
+    // unbounded_samplers[14] GPU Base = 16 Used Indices: 2
+    dev->CreateSampler(&pointSamplerDesc, {samplerStart.ptr + increment * (16 + 2)});
+
+    // unbounded_buffers[14] GPU Base = 400 Used Indices: 11
+    structBuf2View.CreateGPU(400 + 11);
+    // unbounded_cbuffers[14] GPU Base = 450 Used Indices: 3, 5, 6, 7, 8, 9, 11
+    for(uint32_t idx : {3, 5, 6, 7, 8, 9, 11})
+    {
+      data.index = Vec4u(idx * 4 + 1, idx * 4 + 2, idx * 4 + 3, idx * 4 + 4);
+      ID3D12ResourcePtr cbuf = MakeBuffer().Size(16 * sizeof(Data)).Data(&data).Upload();
+      cbuf->SetName((L"unbounded_cbuffers_" + std::to_wstring(idx)).c_str());
+      MakeCBV(cbuf).SizeBytes(sizeof(Data)).CreateGPU(450 + idx);
+      cbuffers.push_back(cbuf);
+    }
 
     // Create resources for MSAA draw
     ID3DBlobPtr vsmsaablob = Compile(D3DDefaultVertex, "main", "vs_5_0");
@@ -2922,8 +3137,13 @@ void main(uint3 inDTID : SV_DispatchThreadID, uint3 inGID : SV_GroupThreadID, ui
           IASetVertexBuffer(cmd, vb, sizeof(ConstsA2V), 0);
           cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-          cmd->SetGraphicsRootSignature(sig);
-          cmd->SetDescriptorHeaps(1, &m_CBVUAVSRV.GetInterfacePtr());
+          if(i < 2)
+            cmd->SetGraphicsRootSignature(sig_5_0);
+          else
+            cmd->SetGraphicsRootSignature(sig);
+          ID3D12DescriptorHeap *heaps[] = {m_CBVUAVSRV.GetInterfacePtr(),
+                                           m_Sampler.GetInterfacePtr()};
+          cmd->SetDescriptorHeaps(2, heaps);
           cmd->SetGraphicsRootDescriptorTable(0, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
           cmd->SetGraphicsRootDescriptorTable(1, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
           cmd->SetGraphicsRootDescriptorTable(2, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
@@ -2935,6 +3155,22 @@ void main(uint3 inDTID : SV_DispatchThreadID, uint3 inGID : SV_GroupThreadID, ui
           cmd->SetGraphicsRootDescriptorTable(7, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
           cmd->SetGraphicsRootShaderResourceView(
               8, rootbytesrv->GetGPUVirtualAddress() + renderDataSize);
+          if(i >= 2)
+          {
+            cmd->SetGraphicsRootDescriptorTable(9, m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+            cmd->SetGraphicsRootDescriptorTable(10, m_Sampler->GetGPUDescriptorHandleForHeapStart());
+            cmd->SetGraphicsRootDescriptorTable(11,
+                                                m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+            cmd->SetGraphicsRootDescriptorTable(12,
+                                                m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+            cmd->SetGraphicsRootDescriptorTable(13,
+                                                m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+            cmd->SetGraphicsRootDescriptorTable(14, m_Sampler->GetGPUDescriptorHandleForHeapStart());
+            cmd->SetGraphicsRootDescriptorTable(15,
+                                                m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+            cmd->SetGraphicsRootDescriptorTable(16,
+                                                m_CBVUAVSRV->GetGPUDescriptorHandleForHeapStart());
+          }
 
           // Add a marker so we can easily locate this draw
           std::string markerName = markers[i];
