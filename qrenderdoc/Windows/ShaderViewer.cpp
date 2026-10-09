@@ -5139,26 +5139,23 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
         const rdcarray<UsedDescriptor> &samplers = m_Samplers;
 
         ShaderBindIndex bind = reg->GetBindIndex();
-        int32_t bindIdx = samplers.indexOf(bind);
 
-        if(bindIdx < 0)
+        rdcarray<UsedDescriptor> descriptors;
+        for(const UsedDescriptor &a : samplers)
+          if(CategoryForDescriptorType(a.access.type) == bind.category && a.access.index == bind.index)
+            descriptors.push_back(a);
+
+        if(descriptors.empty())
         {
           value = ToQStr(ResourceId());
         }
         else
         {
-          Descriptor desc = samplers[bindIdx].descriptor;
-          rdcarray<UsedDescriptor> descriptors;
-          for(const UsedDescriptor &a : samplers)
-            if(CategoryForDescriptorType(a.access.type) == bind.category &&
-               a.access.index == bind.index)
-              descriptors.push_back(a);
-
           const ShaderSampler &samp = m_ShaderDetails->samplers[bind.index];
 
           if(samp.bindArraySize == 1)
           {
-            value = samplerRep(samp, ~0U, desc.resource);
+            value = samplerRep(samp, ~0U, descriptors[0].descriptor.resource);
           }
           else
           {
@@ -5183,7 +5180,7 @@ RDTreeWidgetItem *ShaderViewer::makeSourceVariableNode(const SourceVariableMappi
                   childName,
                   QString(),
                   childTypeName,
-                  samplerRep(samp, arrayIndex, desc.resource),
+                  samplerRep(samp, arrayIndex, descriptors[a].descriptor.resource),
               });
               child->setTag(QVariant::fromValue(arrayIndex));
               children.push_back(child);
