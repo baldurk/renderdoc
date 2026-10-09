@@ -253,8 +253,6 @@ struct varfunc
 
     PyObject *result = DoFunctionCall(func, args);
 
-    Py_CLEAR(args);
-
     if(result == NULL)
     {
       HandleCallbackFailure(global_handle, exHandle);
