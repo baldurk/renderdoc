@@ -2090,34 +2090,6 @@ rdcstr Program::GetDebugStatus()
     }
   }
 
-  // Check the reflection for unbounded CBV resources
-  DXMeta dx(m_NamedMeta);
-  if(dx.resources)
-  {
-    RDCASSERTEQUAL(dx.resources->children.size(), 1);
-
-    const Metadata *resList = dx.resources->children[0];
-    RDCASSERTEQUAL(resList->children.size(), 4);
-
-    const Metadata *CBVs = resList->children[2];
-    if(CBVs)
-    {
-      for(const Metadata *r : CBVs->children)
-      {
-        uint32_t bindCount = getival<uint32_t>(r->children[(size_t)ResField::RegCount]);
-        if(bindCount == UINT32_MAX)
-        {
-          const rdcstr &name = r->children[(size_t)ResField::Name]->str;
-          uint32_t space = getival<uint32_t>(r->children[(size_t)ResField::Space]);
-          uint32_t regBase = getival<uint32_t>(r->children[(size_t)ResField::RegBase]);
-          return StringFormat::Fmt(
-              "Unsupported unbounded ConstantBuffer array '%s' Space:%d Register:%d", name.c_str(),
-              space, regBase);
-        }
-      }
-    }
-  }
-
   // no unsupported instructions used
   return rdcstr();
 }

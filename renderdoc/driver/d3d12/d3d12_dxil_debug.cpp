@@ -583,13 +583,19 @@ D3D12APIWrapper::D3D12APIWrapper(WrappedID3D12Device *device, const DXIL::Progra
   m_ConstantBlocks.resize(count);
   for(uint32_t i = 0; i < count; i++)
   {
-    m_ConstantBlocks[i].type = VarType::ConstantBlock;
+    ShaderVariable &var = m_ConstantBlocks[i];
+    var.type = VarType::ConstantBlock;
     const ConstantBlock &cb = m_Reflection.constantBlocks[i];
     uint32_t bindCount = cb.bindArraySize;
+    // Special case variable for cbuffer arrays
     if(bindCount > 1)
     {
-      // Create nested structure for constant buffer array
-      m_ConstantBlocks[i].members.resize(bindCount);
+      var.rows = 1;
+      var.columns = 1;
+      ShaderBindIndex binding;
+      binding.category = DescriptorCategory::ConstantBlock;
+      binding.index = i;
+      var.SetBindIndex(binding);
     }
   }
 
@@ -989,43 +995,38 @@ void D3D12APIWrapper::AddCBufferToGlobalState(const BindingSlot &slot, bytebuf &
     {
       uint32_t arrayIndex = slot.shaderRegister - cb.fixedBindNumber;
 
-      rdcarray<ShaderVariable> &targetVars = cb.bindArraySize > 1
-                                                 ? m_ConstantBlocks[i].members[arrayIndex].members
-                                                 : m_ConstantBlocks[i].members;
-      RDCASSERTMSG("Reassigning previously filled cbuffer", targetVars.empty());
-
       ConstantBlockReference constantBlockRef = {i, arrayIndex};
       m_ConstantBlocksDatas[constantBlockRef] = {cbufData, cb.byteSize};
+
+      // Only add the cbuffer array to the source variables
+      if((cb.bindArraySize > 1) && (slot.shaderRegister > cb.fixedBindNumber))
+        continue;
+
       rdcstr resName = Debugger::GetResourceReferenceName(m_Program, ResourceClass::CBuffer, slot);
       m_ConstantBlocks[i].name = resName;
 
       SourceVariableMapping cbSourceMapping;
       cbSourceMapping.name = m_Reflection.constantBlocks[i].name;
+      if(cb.bindArraySize > 1)
+      {
+        cbSourceMapping.type = VarType::ConstantBlock;
+        cbSourceMapping.rows = 1;
+        cbSourceMapping.columns = 1;
+      }
       cbSourceMapping.variables.push_back(
           DebugVariableReference(DebugVariableType::Constant, m_ConstantBlocks[i].name));
       m_SourceVars.push_back(cbSourceMapping);
 
+      // Don't walk the cbuffer array variables
+      if(cb.bindArraySize > 1)
+        continue;
+
+      rdcarray<ShaderVariable> &targetVars = m_ConstantBlocks[i].members;
+      RDCASSERTMSG("Reassigning previously filled cbuffer", targetVars.empty());
+
       rdcstr identifierPrefix = m_ConstantBlocks[i].name;
       rdcstr variablePrefix = m_Reflection.constantBlocks[i].name;
-      if(cb.bindArraySize > 1)
-      {
-        identifierPrefix = StringFormat::Fmt("%s[%u]", m_ConstantBlocks[i].name.c_str(), arrayIndex);
-        variablePrefix =
-            StringFormat::Fmt("%s[%u]", m_Reflection.constantBlocks[i].name.c_str(), arrayIndex);
-
-        // The above sourceVar is for the logical identifier, and FlattenVariables adds the
-        // individual elements of the constant buffer. For CB arrays, add an extra source
-        // var for the CB array index
-        SourceVariableMapping cbArrayMapping;
-        m_ConstantBlocks[i].members[arrayIndex].name = StringFormat::Fmt("[%u]", arrayIndex);
-        cbArrayMapping.name = variablePrefix;
-        cbArrayMapping.variables.push_back(
-            DebugVariableReference(DebugVariableType::Constant, identifierPrefix));
-        m_SourceVars.push_back(cbArrayMapping);
-      }
-      const rdcarray<ShaderConstant> &constants =
-          (cb.bindArraySize > 1) ? m_Reflection.constantBlocks[i].variables[0].type.members
-                                 : m_Reflection.constantBlocks[i].variables;
+      const rdcarray<ShaderConstant> &constants = m_Reflection.constantBlocks[i].variables;
 
       rdcarray<ShaderVariable> vars;
       StandardFillCBufferVariables(m_Reflection.resourceId, constants, vars, cbufData);

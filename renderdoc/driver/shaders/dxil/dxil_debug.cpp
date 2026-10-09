@@ -2511,7 +2511,7 @@ bool ThreadState::ExecuteInstruction(const rdcarray<ThreadState> &workgroup)
             if(resRef)
             {
               const rdcarray<ShaderVariable> *list = NULL;
-              // a static known handle which should be in the global resources container
+              // try to find a static known handle which should be in the global resources container
               switch(resRef->resourceBase.resClass)
               {
                 case ResourceClass::CBuffer: list = &m_GlobalState.constantBlocks; break;
@@ -2538,6 +2538,11 @@ bool ThreadState::ExecuteInstruction(const rdcarray<ThreadState> &workgroup)
                   break;
                 }
               }
+              // arrayed SRV/UAV/Sampler resource : force dynamic lookup
+              if((resRef->resourceBase.resClass != ResourceClass::CBuffer) &&
+                 (resRef->resourceBase.regCount > 1))
+                result.name.clear();
+
               if(result.name.isEmpty())
               {
                 if((resRef->resourceBase.resClass == ResourceClass::SRV) ||
@@ -2553,11 +2558,23 @@ bool ThreadState::ExecuteInstruction(const rdcarray<ThreadState> &workgroup)
                     uint32_t arrayIndex = arg.value.u32v[0];
                     RDCASSERT(arrayIndex >= resRef->resourceBase.regBase);
                     arrayIndex -= resRef->resourceBase.regBase;
-                    bool isSRV = (resRef->resourceBase.resClass == ResourceClass::SRV);
-                    DescriptorCategory category = isSRV ? DescriptorCategory::ReadOnlyResource
-                                                        : DescriptorCategory::ReadWriteResource;
+                    DescriptorCategory category = DescriptorCategory::Unknown;
+                    if(resRef->resourceBase.resClass == ResourceClass::SRV)
+                    {
+                      category = DescriptorCategory::ReadOnlyResource;
+                      result.type = VarType::ReadOnlyResource;
+                    }
+                    else if(resRef->resourceBase.resClass == ResourceClass::UAV)
+                    {
+                      category = DescriptorCategory::ReadWriteResource;
+                      result.type = VarType::ReadWriteResource;
+                    }
+                    else if(resRef->resourceBase.resClass == ResourceClass::Sampler)
+                    {
+                      category = DescriptorCategory::Sampler;
+                      result.type = VarType::Sampler;
+                    }
                     result.SetBindIndex(ShaderBindIndex(category, resRef->resourceIndex, arrayIndex));
-                    result.type = isSRV ? VarType::ReadOnlyResource : VarType::ReadWriteResource;
                     // Default to unannotated handle
                     ClearAnnotatedHandle(result);
                   }
@@ -2587,14 +2604,7 @@ bool ThreadState::ExecuteInstruction(const rdcarray<ThreadState> &workgroup)
                       RDCASSERT(GetShaderVariable(inst.args[resIndexArgId], opCode, dxOpCode, arg));
                       arrayIndex = arg.value.u32v[0];
                       RDCASSERT(arrayIndex >= resRef->resourceBase.regBase);
-                      if(arrayIndex >= resRef->resourceBase.regBase)
-                      {
-                        arrayIndex -= resRef->resourceBase.regBase;
-                        RDCASSERT(arrayIndex < result.members.size(), arrayIndex,
-                                  result.members.size());
-                        if(arrayIndex < result.members.size())
-                          RDCASSERT(!result.members[arrayIndex].members.empty());
-                      }
+                      arrayIndex -= resRef->resourceBase.regBase;
                     }
                     else
                     {
@@ -2646,12 +2656,12 @@ bool ThreadState::ExecuteInstruction(const rdcarray<ThreadState> &workgroup)
                     }
                     else
                     {
-                      RDCERR("No data for constant block %s", result.name.c_str());
+                      RDCERR("No data for constant block %s", resultSSAName.c_str());
                     }
                   }
                   else
                   {
-                    RDCERR("Can't find the data for constant block %s", result.name.c_str());
+                    RDCERR("Can't find the data for constant block %s", resultSSAName.c_str());
                   }
                   result = cbufferVar;
                 }
@@ -9316,9 +9326,6 @@ ShaderDebugTrace *Debugger::BeginDebug(DebugAPIWrapper *apiWrapper, uint32_t eve
     for(uint32_t i = 0; i < list.resources.size(); i++)
     {
       const ShaderResource &res = list.resources[i];
-      // Ignore arrays the debugger execution will mark specific array elements used
-      if(res.bindArraySize > 1)
-        continue;
 
       // Fetch the resource name
       BindingSlot slot(res.fixedBindNumber, res.fixedBindSetOrSpace);
