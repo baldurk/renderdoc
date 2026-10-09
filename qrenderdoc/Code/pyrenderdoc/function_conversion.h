@@ -184,6 +184,10 @@ struct PyObjectRefCounter
   PyObjectRefCounter(const PyObjectRefCounter &o) { obj = Py_NewRef(o.obj); }
   ~PyObjectRefCounter()
   {
+    // Qt can release pending callbacks after Python has shut down.
+    if(!Py_IsInitialized())
+      return;
+
     // it may not be safe at the point this is destroyed to decref the object. For example if a
     // python lambda is passed into a C++ invoke function, we will be holding the only reference to
     // that lambda here when the async invoke completes and destroyed the std::function wrapping it.
@@ -249,7 +253,7 @@ struct varfunc
 
     PyObject *result = DoFunctionCall(func, args);
 
-    Py_DECREF(args);
+    Py_CLEAR(args);
 
     if(result == NULL)
     {
