@@ -224,6 +224,12 @@ private:
   void MarkResourceAccess(ShaderDebugState *state, DXBCBytecode::OperandType type,
                           const BindingSlot &slot);
 
+  BindingSlot GetBindingSlotFromDeclaration(const DXBCBytecode::Declaration &decl,
+                                            const DXBCBytecode::Operand &oper,
+                                            const DXBCBytecode::Operation &op) const;
+  BindingSlot GetBindingSlotForIdentifier(const DXBCBytecode::Operand &oper,
+                                          const DXBCBytecode::Operation &op) const;
+
   // retrieves the value of the operand, by looking up
   // in the register file and performing any swizzling and
   // negation/abs functions

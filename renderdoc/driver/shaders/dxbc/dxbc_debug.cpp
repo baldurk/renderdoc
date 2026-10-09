@@ -421,38 +421,6 @@ bool OperationFlushing(const DXBCBytecode::OpcodeType &op)
   return false;
 }
 
-bool OperandSwizzle(const Operation &op, const Operand &oper)
-{
-  switch(op.operation)
-  {
-    case OPCODE_SAMPLE:
-    case OPCODE_SAMPLE_L:
-    case OPCODE_SAMPLE_B:
-    case OPCODE_SAMPLE_D:
-    case OPCODE_SAMPLE_C:
-    case OPCODE_SAMPLE_C_LZ:
-    case OPCODE_LD:
-    case OPCODE_LD_MS:
-    case OPCODE_GATHER4:
-    case OPCODE_GATHER4_C:
-    case OPCODE_GATHER4_PO:
-    case OPCODE_GATHER4_PO_C:
-    case OPCODE_LOD:
-    {
-      // Per HLSL docs, "the swizzle on srcResource determines how to swizzle the 4-component result
-      // coming back from the texture sample/filter". That swizzle should not be handled when
-      // fetching the src operand
-      if(oper.type == TYPE_RESOURCE)
-        return false;
-    }
-    break;
-
-    default: break;
-  }
-
-  return true;
-}
-
 void DoubleSet(ShaderVariable &var, const double in[2])
 {
   var.value.f64v[0] = in[0];
@@ -1687,26 +1655,26 @@ ShaderVariable ThreadState::GetSrc(const Operand &oper, const Operation &op, boo
     }
   }
 
-  if(OperandSwizzle(op, oper))
-  {
-    ShaderValue s = v.value;
-
-    // perform swizzling
-    v.value.u32v[0] = s.u32v[oper.comps[0] == 0xff ? 0 : oper.comps[0]];
-    v.value.u32v[1] = s.u32v[oper.comps[1] == 0xff ? 1 : oper.comps[1]];
-    v.value.u32v[2] = s.u32v[oper.comps[2] == 0xff ? 2 : oper.comps[2]];
-    v.value.u32v[3] = s.u32v[oper.comps[3] == 0xff ? 3 : oper.comps[3]];
-
-    if(oper.comps[0] != 0xff && oper.comps[1] == 0xff && oper.comps[2] == 0xff &&
-       oper.comps[3] == 0xff)
-      v.columns = 1;
-    else
-      v.columns = 4;
-  }
-  else
+  // Resource accces does not need to apply swizzle, abs, neg, flushing
+  if((oper.type == TYPE_RESOURCE) || (oper.type == TYPE_SAMPLER) ||
+     (oper.type == TYPE_UNORDERED_ACCESS_VIEW))
   {
     v.columns = 4;
+    return v;
   }
+
+  ShaderValue s = v.value;
+
+  // perform swizzling
+  v.value.u32v[0] = s.u32v[oper.comps[0] == 0xff ? 0 : oper.comps[0]];
+  v.value.u32v[1] = s.u32v[oper.comps[1] == 0xff ? 1 : oper.comps[1]];
+  v.value.u32v[2] = s.u32v[oper.comps[2] == 0xff ? 2 : oper.comps[2]];
+  v.value.u32v[3] = s.u32v[oper.comps[3] == 0xff ? 3 : oper.comps[3]];
+
+  if(oper.comps[0] != 0xff && oper.comps[1] == 0xff && oper.comps[2] == 0xff && oper.comps[3] == 0xff)
+    v.columns = 1;
+  else
+    v.columns = 4;
 
   if(oper.flags & Operand::FLAG_ABS)
   {
@@ -1725,6 +1693,58 @@ ShaderVariable ThreadState::GetSrc(const Operand &oper, const Operation &op, boo
   }
 
   return v;
+}
+
+BindingSlot ThreadState::GetBindingSlotFromDeclaration(const Declaration &decl, const Operand &oper,
+                                                       const Operation &op) const
+{
+  BindingSlot slot = GetBindingSlotForDeclaration(*program, decl);
+
+  // With SM5.1, resource arrays need to offset the shader register by the array index
+  if(program->IsShaderModel51())
+  {
+    ShaderVariable v = GetSrc(oper, op, false);
+    slot.shaderRegister = v.value.u32v[1];
+  }
+  return slot;
+}
+
+// A note on matching declarations: with SM 5.0 or lower, the declaration will have a single
+// operand index, which corresponds to the bound slot (e.g., t0 for a SRV). With SM 5.1, the
+// declaration has three operand indices: the logical binding slot, the start register, and
+// the end register. In addition, the register space is specified.
+
+// In order to match a declaration, we use the logical binding slot. This is identical for
+// all cases - with SM 5.1 the compiler translates each binding from shader register(s) &
+// register space into a unique identifier that is used to reference it in other instructions.
+// For example, an SRV specified with (t0, space2) could be given T1 as its identifier.
+
+// When matching declarations, use operand index 0 to match with the instruction operand.
+// When fetching data for a resource, with SM 5.0 or lower, use operand 0 as the shader
+// register, and decl.space (which will always be 0) for the register space. With SM 5.1,
+// use operand index 1 and 2 to get the shader register and use decl.space for the
+// register space (which can be any value, as specified in HLSL and the root signature).
+
+BindingSlot ThreadState::GetBindingSlotForIdentifier(const DXBCBytecode::Operand &oper,
+                                                     const DXBCBytecode::Operation &op) const
+{
+  const uint32_t resIndex = oper.indices[0].index & 0xffffffff;
+  BindingSlot slot;
+  RDCASSERT(oper.indices[0].absolute);
+  if(program->IsShaderModel51())
+  {
+    const Declaration *pDecl = program->FindDeclaration(oper.type, resIndex);
+    if(pDecl)
+      return GetBindingSlotFromDeclaration(*pDecl, oper, op);
+
+    RDCERR("Unable to find matching declaration for identifier %u", resIndex);
+  }
+  else
+  {
+    slot = BindingSlot(resIndex, 0);
+  }
+
+  return slot;
 }
 
 void FlattenSingleVariable(const rdcstr &cbufferName, uint32_t byteOffset, const rdcstr &basename,
@@ -2998,8 +3018,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
 
     case OPCODE_IMM_ATOMIC_ALLOC:
     {
-      BindingSlot slot = GetBindingSlotForIdentifier(*program, TYPE_UNORDERED_ACCESS_VIEW,
-                                                     srcOpers[0].value.u32v[0]);
+      BindingSlot slot = GetBindingSlotForIdentifier(op.operands[0], op);
       GlobalState::UAVIterator uav = global.uavs.find(slot);
       if(uav == global.uavs.end())
       {
@@ -3018,8 +3037,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
 
     case OPCODE_IMM_ATOMIC_CONSUME:
     {
-      BindingSlot slot = GetBindingSlotForIdentifier(*program, TYPE_UNORDERED_ACCESS_VIEW,
-                                                     srcOpers[0].value.u32v[0]);
+      BindingSlot slot = GetBindingSlotForIdentifier(op.operands[0], op);
       GlobalState::UAVIterator uav = global.uavs.find(slot);
       if(uav == global.uavs.end())
       {
@@ -3084,12 +3102,11 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
     case OPCODE_IMM_ATOMIC_UMAX:
     case OPCODE_IMM_ATOMIC_UMIN:
     {
+      Operand resourceOperand;
       Operand beforeResult;
-      uint32_t resIndex = 0;
       ShaderVariable *dstAddress = NULL;
       ShaderVariable *src0 = NULL;
       ShaderVariable *src1 = NULL;
-      bool gsm = false;
 
       if(op.operation == OPCODE_IMM_ATOMIC_IADD || op.operation == OPCODE_IMM_ATOMIC_IMAX ||
          op.operation == OPCODE_IMM_ATOMIC_IMIN || op.operation == OPCODE_IMM_ATOMIC_AND ||
@@ -3098,8 +3115,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
          op.operation == OPCODE_IMM_ATOMIC_UMAX || op.operation == OPCODE_IMM_ATOMIC_UMIN)
       {
         beforeResult = op.operands[0];
-        resIndex = (uint32_t)op.operands[1].indices[0].index;
-        gsm = (op.operands[1].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+        resourceOperand = op.operands[1];
         dstAddress = &srcOpers[1];
         src0 = &srcOpers[2];
         if(srcOpers.size() > 3)
@@ -3108,13 +3124,14 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       else
       {
         beforeResult.type = TYPE_NULL;
-        resIndex = (uint32_t)op.operands[0].indices[0].index;
-        gsm = (op.operands[0].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+        resourceOperand = op.operands[0];
         dstAddress = &srcOpers[0];
         src0 = &srcOpers[1];
         if(srcOpers.size() > 2)
           src1 = &srcOpers[2];
       }
+      uint32_t resIndex = (resourceOperand.indices[0].index & 0xffffffff);
+      bool gsm = (resourceOperand.type == TYPE_THREAD_GROUP_SHARED_MEMORY);
 
       uint32_t stride = 4;
       uint32_t offset = 0;
@@ -3143,8 +3160,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       }
       else
       {
-        BindingSlot slot =
-            GetBindingSlotForIdentifier(*program, TYPE_UNORDERED_ACCESS_VIEW, resIndex);
+        BindingSlot slot = GetBindingSlotForIdentifier(resourceOperand, op);
         GlobalState::UAVIterator uav = global.uavs.find(slot);
         if(uav == global.uavs.end())
         {
@@ -3264,6 +3280,8 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
     case OPCODE_LD_UAV_TYPED:
     case OPCODE_LD_STRUCTURED:
     {
+      Operand resourceOperand;
+      BindingSlot slot;
       uint32_t resIndex = 0;
       uint32_t structOffset = 0;
       uint32_t elemIdx = 0;
@@ -3292,18 +3310,20 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       {
         if(load)
         {
-          resIndex = (uint32_t)op.operands[3].indices[0].index;
-          srv = (op.operands[3].type == TYPE_RESOURCE);
-          gsm = (op.operands[3].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
-          memcpy(resComps, op.operands[3].comps, sizeof(resComps));
+          resourceOperand = op.operands[3];
+          resIndex = (uint32_t)resourceOperand.indices[0].index;
+          srv = (resourceOperand.type == TYPE_RESOURCE);
+          gsm = (resourceOperand.type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+          memcpy(resComps, resourceOperand.comps, sizeof(resComps));
 
           stride = op.stride;
         }
         else
         {
-          resIndex = (uint32_t)op.operands[0].indices[0].index;
+          resourceOperand = op.operands[0];
+          resIndex = (uint32_t)resourceOperand.indices[0].index;
           srv = false;
-          gsm = (op.operands[0].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+          gsm = (resourceOperand.type == TYPE_THREAD_GROUP_SHARED_MEMORY);
         }
 
         if(stride == 0)
@@ -3330,14 +3350,17 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       {
         if(load)
         {
-          resIndex = (uint32_t)op.operands[2].indices[0].index;
-          gsm = (op.operands[2].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
-          memcpy(resComps, op.operands[2].comps, sizeof(resComps));
+          resourceOperand = op.operands[2];
+          resIndex = (uint32_t)resourceOperand.indices[0].index;
+          slot = GetBindingSlotForIdentifier(resourceOperand, op);
+          gsm = (resourceOperand.type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+          memcpy(resComps, resourceOperand.comps, sizeof(resComps));
         }
         else
         {
-          resIndex = (uint32_t)op.operands[0].indices[0].index;
-          gsm = (op.operands[0].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+          resourceOperand = op.operands[0];
+          resIndex = (uint32_t)resourceOperand.indices[0].index;
+          gsm = (resourceOperand.type == TYPE_THREAD_GROUP_SHARED_MEMORY);
         }
 
         elemIdx = srcOpers[0].value.u32v[0];
@@ -3354,16 +3377,18 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       {
         if(load)
         {
-          resIndex = (uint32_t)op.operands[2].indices[0].index;
-          srv = (op.operands[2].type == TYPE_RESOURCE);
-          gsm = (op.operands[2].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
-          memcpy(resComps, op.operands[2].comps, sizeof(resComps));
+          resourceOperand = op.operands[2];
+          resIndex = (uint32_t)resourceOperand.indices[0].index;
+          srv = (resourceOperand.type == TYPE_RESOURCE);
+          gsm = (resourceOperand.type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+          memcpy(resComps, resourceOperand.comps, sizeof(resComps));
         }
         else
         {
-          resIndex = (uint32_t)op.operands[0].indices[0].index;
+          resourceOperand = op.operands[0];
+          resIndex = (uint32_t)resourceOperand.indices[0].index;
           srv = false;
-          gsm = (op.operands[0].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+          gsm = (resourceOperand.type == TYPE_THREAD_GROUP_SHARED_MEMORY);
         }
 
         // the index is supposed to be a multiple of 4 but the behaviour seems to be to round down
@@ -3411,8 +3436,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       }
       else
       {
-        BindingSlot slot = GetBindingSlotForIdentifier(
-            *program, srv ? TYPE_RESOURCE : TYPE_UNORDERED_ACCESS_VIEW, resIndex);
+        slot = GetBindingSlotForIdentifier(resourceOperand, op);
 
         if(srv)
         {
@@ -3736,9 +3760,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       BindingSlot slot;
       if(op.operands[1].type != TYPE_RASTERIZER)
       {
-        UINT identifier = (UINT)(op.operands[1].indices[0].index & 0xffffffff);
-        slot = GetBindingSlotForIdentifier(*program, op.operands[1].type, identifier);
-
+        slot = GetBindingSlotForIdentifier(op.operands[1], op);
         MarkResourceAccess(state, op.operands[1].type, slot);
       }
       ShaderVariable result =
@@ -3815,8 +3837,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       if(op.operands[1].indices.size() == numIndices && op.operands[1].indices[0].absolute &&
          !op.operands[1].indices[0].relative)
       {
-        UINT identifier = (UINT)(op.operands[1].indices[0].index & 0xffffffff);
-        BindingSlot slot = GetBindingSlotForIdentifier(*program, op.operands[1].type, identifier);
+        BindingSlot slot = GetBindingSlotForIdentifier(op.operands[1], op);
         ShaderVariable result = apiWrapper->GetBufferInfo(op.operands[1].type, slot, op.str.c_str());
 
         MarkResourceAccess(state, op.operands[1].type, slot);
@@ -3863,8 +3884,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
          !op.operands[2].indices[0].relative)
       {
         int dim = 0;
-        UINT identifier = (UINT)(op.operands[2].indices[0].index & 0xffffffff);
-        BindingSlot slot = GetBindingSlotForIdentifier(*program, op.operands[2].type, identifier);
+        BindingSlot slot = GetBindingSlotForIdentifier(op.operands[2], op);
         ShaderVariable result = apiWrapper->GetResourceInfo(op.operands[2].type, slot, mipLevel, dim);
 
         MarkResourceAccess(state, op.operands[2].type, slot);
@@ -4007,7 +4027,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         if(decl.declaration == OPCODE_DCL_SAMPLER && decl.operand.sameResource(samplerOperand))
         {
           samplerMode = decl.samplerMode;
-          samplerBinding = GetBindingSlotForDeclaration(*program, decl);
+          samplerBinding = GetBindingSlotFromDeclaration(decl, samplerOperand, op);
         }
         if(op.operation == OPCODE_LD && decl.declaration == OPCODE_DCL_RESOURCE &&
            decl.resource.dim == RESOURCE_DIMENSION_BUFFER &&
@@ -4015,7 +4035,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         {
           resourceDim = decl.resource.dim;
 
-          resourceBinding = GetBindingSlotForDeclaration(*program, decl);
+          resourceBinding = GetBindingSlotFromDeclaration(decl, resourceOperand, op);
           GlobalState::SRVIterator srv = global.srvs.find(resourceBinding);
           if(srv == global.srvs.end())
           {
@@ -4071,11 +4091,8 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
           resourceRetType = decl.resource.resType[0];
           sampleCount = decl.resource.sampleCount;
 
-          resourceBinding = GetBindingSlotForDeclaration(*program, decl);
-
-          // With SM5.1, resource arrays need to offset the shader register by the array index
-          if(program->IsShaderModel51())
-            resourceBinding.shaderRegister = srcOpers[1].value.u32v[1];
+          resourceBinding = GetBindingSlotFromDeclaration(decl, resourceOperand, op);
+          // resourceBinding.shaderRegister = srcOpers[1].value.u32v[1];
 
           // doesn't seem like these are ever less than four components, even if the texture is
           // declared <float3> for example.
@@ -4451,7 +4468,6 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
     {
       VendorAtomicOp atomicOp = (VendorAtomicOp)op.preciseValues;
 
-      uint32_t resIndex = (uint32_t)op.operands[2].indices[0].index;
       ShaderVariable dstAddress, compare, value;
 
       int param = 2;
@@ -4508,7 +4524,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         break;
       }
 
-      BindingSlot slot = GetBindingSlotForIdentifier(*program, TYPE_UNORDERED_ACCESS_VIEW, resIndex);
+      BindingSlot slot = GetBindingSlotForIdentifier(op.operands[2], op);
       GlobalState::UAVIterator uav = global.uavs.find(slot);
       if(uav == global.uavs.end())
       {
@@ -4587,40 +4603,6 @@ BindingSlot GetBindingSlotForDeclaration(const Program &program, const DXBCBytec
                                                     : (uint32_t)decl.operand.indices[0].index;
 
   return BindingSlot(baseRegister, decl.space);
-}
-
-BindingSlot GetBindingSlotForIdentifier(const Program &program, OperandType declType,
-                                        uint32_t identifier)
-{
-  // A note on matching declarations: with SM 5.0 or lower, the declaration will have a single
-  // operand index, which corresponds to the bound slot (e.g., t0 for a SRV). With SM 5.1, the
-  // declaration has three operand indices: the logical binding slot, the start register, and
-  // the end register. In addition, the register space is specified.
-
-  // In order to match a declaration, we use the logical binding slot. This is identical for
-  // all cases - with SM 5.1 the compiler translates each binding from shader register(s) &
-  // register space into a unique identifier that is used to reference it in other instructions.
-  // For example, an SRV specified with (t0, space2) could be given T1 as its identifier.
-
-  // When matching declarations, use operand index 0 to match with the instruction operand.
-  // When fetching data for a resource, with SM 5.0 or lower, use operand 0 as the shader
-  // register, and decl.space (which will always be 0) for the register space. With SM 5.1,
-  // use operand index 1 and 2 to get the shader register and use decl.space for the
-  // register space (which can be any value, as specified in HLSL and the root signature).
-
-  // TODO: Need to test resource arrays to ensure correct behavior with SM 5.1 here
-  // TODO: writes to GSM could update local GSM and then the global cache (currently the other way around)
-
-  if(program.IsShaderModel51())
-  {
-    const Declaration *pDecl = program.FindDeclaration(declType, identifier);
-    if(pDecl)
-      return GetBindingSlotForDeclaration(program, *pDecl);
-
-    RDCERR("Unable to find matching declaration for identifier %u", identifier);
-  }
-
-  return BindingSlot(identifier, 0);
 }
 
 void GlobalState::PopulateGroupshared(const DXBCBytecode::Program *pBytecode)
