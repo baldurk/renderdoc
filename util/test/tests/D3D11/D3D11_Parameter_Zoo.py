@@ -31,7 +31,7 @@ class D3D11_Parameter_Zoo(rdtest.TestCase):
                                                        pipe.GetShaderEntryPoint(stage), 0,
                                                        cbuf.resource, cbuf.byteOffset, cbuf.byteSize))
 
-        var_check.check('cbuf_zero').rows(1).cols(4).value([0.0, 0.0, 0.0, 0.0])
+        var_check.check('cbuf_zero').rows(1).cols(4).truncated()
 
         tex = rd.TextureDisplay()
         tex.overlay = rd.DebugOverlay.Drawcall

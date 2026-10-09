@@ -89,7 +89,7 @@ class VK_Robustness2(rdtest.TestCase):
                                                            cbuf.resource, cbuf.byteOffset, cbuf.byteSize))
 
             if cb.bufferBacked:
-                var_check.check('data').type(rd.VarType.Float).rows(1).cols(4).value([0.0, 0.0, 0.0, 0.0])
+                var_check.check('data').type(rd.VarType.Float).rows(1).cols(4).truncated()
             else:
                 val = [0, 0, 0, 0]
                 if self.find_action('robustBufferAccess2') is not None:

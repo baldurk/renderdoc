@@ -35,8 +35,20 @@ class ShaderVariableCheck:
 
         return self
 
+    def truncated(self):
+        if not (self.var.flags & rd.ShaderVariableFlags.Truncated):
+            raise TestFailureException(f"Variable {self.var.name} is not truncated")
+
+        count = self.var.columns
+        if list(self.var.value.u32v[0:count]) != [0] * count:
+                raise TestFailureException(f"Truncated variable {self.var.name} doesn't have 0 values")
+
     def value(self, value_: List[float] | List[int]):
         count = len(value_)
+
+        if self.var.flags & rd.ShaderVariableFlags.Truncated:
+            raise TestFailureException(f"Variable {self.var.name} is truncated but we're checking its value")
+
         if isinstance(value_[0], float):
             vals = []
             if self.var.type == rd.VarType.Float:
