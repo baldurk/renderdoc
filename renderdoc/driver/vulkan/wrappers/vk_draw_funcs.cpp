@@ -5309,24 +5309,202 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToMemoryKHR(
     SerialiserType &ser, VkCommandBuffer commandBuffer,
     const VkCopyDeviceMemoryImageInfoKHR *pCopyMemoryInfo)
 {
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT_LOCAL(CopyInfo, *pCopyMemoryInfo).Important();
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    VkCopyDeviceMemoryImageInfoKHR unwrappedInfo = CopyInfo;
+    unwrappedInfo.image = Unwrap(unwrappedInfo.image);
+
+    byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext));
+
+    UnwrapNextChain(m_State, "VkCopyDeviceMemoryImageInfoKHR", tempMem,
+                    (VkBaseInStructure *)&unwrappedInfo);
+
+    m_LastCmdBufferID = GetResID(commandBuffer);
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Copy);
+
+        ObjDisp(commandBuffer)->CmdCopyImageToMemoryKHR(Unwrap(commandBuffer), &unwrappedInfo);
+
+        if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::Copy, commandBuffer))
+        {
+          ObjDisp(commandBuffer)->CmdCopyImageToMemoryKHR(Unwrap(commandBuffer), &unwrappedInfo);
+
+          m_ActionCallback->PostRemisc(eventId, ActionFlags::Copy, commandBuffer);
+        }
+      }
+    }
+    else
+    {
+      ObjDisp(commandBuffer)->CmdCopyImageToMemoryKHR(Unwrap(commandBuffer), &unwrappedInfo);
+
+      {
+        AddEvent();
+
+        ResourceId imgid = GetResID(CopyInfo.image);
+
+        ActionDescription action;
+        action.flags |= ActionFlags::Copy;
+
+        action.copySource = imgid;
+        action.copySourceSubresource = Subresource();
+        action.copyDestination = ResourceId();
+        action.copyDestinationSubresource = Subresource();
+        if(CopyInfo.regionCount > 0)
+        {
+          action.copyDestination = GetResIDFromAddr(CopyInfo.pRegions[0].addressRange.address);
+          action.copySourceSubresource =
+              Subresource(CopyInfo.pRegions[0].imageSubresource.mipLevel,
+                          CopyInfo.pRegions[0].imageSubresource.baseArrayLayer);
+        }
+
+        AddAction(action);
+
+        VulkanEventNode &eventNode = GetLastEventNode();
+        eventNode.resourceUsage.push_back(make_rdcpair(imgid, ResourceUsage::CopySrc));
+      }
+    }
+  }
+
   return true;
 }
 
 void WrappedVulkan::vkCmdCopyImageToMemoryKHR(VkCommandBuffer commandBuffer,
                                               const VkCopyDeviceMemoryImageInfoKHR *pCopyMemoryInfo)
 {
+  SCOPED_DBG_SINK();
+
+  VkCopyDeviceMemoryImageInfoKHR unwrappedInfo = *pCopyMemoryInfo;
+  unwrappedInfo.image = Unwrap(unwrappedInfo.image);
+
+  byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext));
+
+  UnwrapNextChain(m_State, "VkCopyDeviceMemoryImageInfoKHR", tempMem,
+                  (VkBaseInStructure *)&unwrappedInfo);
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdCopyImageToMemoryKHR(Unwrap(commandBuffer), &unwrappedInfo));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    ser.SetActionChunk();
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdCopyImageToMemoryKHR);
+    Serialise_vkCmdCopyImageToMemoryKHR(ser, commandBuffer, pCopyMemoryInfo);
+
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
+
+    // all buffers referenced are BDA so they are already forcibly and pessimistically referenced,
+    // so we only need to worry about referencing the image regions here
+    for(uint32_t i = 0; i < pCopyMemoryInfo->regionCount; i++)
+    {
+      ImageRange range(pCopyMemoryInfo->pRegions[i].imageSubresource);
+      range.offset = pCopyMemoryInfo->pRegions[i].imageOffset;
+      range.extent = pCopyMemoryInfo->pRegions[i].imageExtent;
+
+      record->MarkImageFrameReferenced(GetRecord(pCopyMemoryInfo->image), range, eFrameRef_Read);
+    }
+  }
 }
 
 template <typename SerialiserType>
 bool WrappedVulkan::Serialise_vkCmdCopyMemoryKHR(SerialiserType &ser, VkCommandBuffer commandBuffer,
                                                  const VkCopyDeviceMemoryInfoKHR *pCopyMemoryInfo)
 {
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT_LOCAL(CopyInfo, *pCopyMemoryInfo).Important();
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResID(commandBuffer);
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Copy);
+
+        ObjDisp(commandBuffer)->CmdCopyMemoryKHR(Unwrap(commandBuffer), &CopyInfo);
+
+        if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::Copy, commandBuffer))
+        {
+          ObjDisp(commandBuffer)->CmdCopyMemoryKHR(Unwrap(commandBuffer), &CopyInfo);
+
+          m_ActionCallback->PostRemisc(eventId, ActionFlags::Copy, commandBuffer);
+        }
+      }
+    }
+    else
+    {
+      ObjDisp(commandBuffer)->CmdCopyMemoryKHR(Unwrap(commandBuffer), &CopyInfo);
+
+      {
+        AddEvent();
+
+        ActionDescription action;
+        action.flags |= ActionFlags::Copy;
+
+        action.copySource = ResourceId();
+        action.copySourceSubresource = Subresource();
+        action.copyDestination = ResourceId();
+        action.copyDestinationSubresource = Subresource();
+        if(CopyInfo.regionCount > 0)
+        {
+          action.copySource = GetResIDFromAddr(CopyInfo.pRegions[0].srcRange.address);
+          action.copyDestination = GetResIDFromAddr(CopyInfo.pRegions[0].dstRange.address);
+        }
+
+        AddAction(action);
+      }
+    }
+  }
+
   return true;
 }
 
 void WrappedVulkan::vkCmdCopyMemoryKHR(VkCommandBuffer commandBuffer,
                                        const VkCopyDeviceMemoryInfoKHR *pCopyMemoryInfo)
 {
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdCopyMemoryKHR(Unwrap(commandBuffer), pCopyMemoryInfo));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    ser.SetActionChunk();
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdCopyMemoryKHR);
+    Serialise_vkCmdCopyMemoryKHR(ser, commandBuffer, pCopyMemoryInfo);
+
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
+
+    // all buffers referenced are BDA so they are already forcibly and pessimistically referenced
+  }
 }
 
 template <typename SerialiserType>
@@ -5334,6 +5512,55 @@ bool WrappedVulkan::Serialise_vkCmdFillMemoryKHR(SerialiserType &ser, VkCommandB
                                                  const VkDeviceAddressRangeKHR *pDstRange,
                                                  VkAddressCommandFlagsKHR dstFlags, uint32_t data)
 {
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT_LOCAL(DstRange, *pDstRange).Important();
+  SERIALISE_ELEMENT_TYPED(VkAddressCommandFlagBitsKHR, dstFlags)
+      .TypedAs("VkAddressCommandFlagsKHR"_lit);
+  SERIALISE_ELEMENT(data).Important();
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResID(commandBuffer);
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Clear);
+
+        ObjDisp(commandBuffer)->CmdFillMemoryKHR(Unwrap(commandBuffer), &DstRange, dstFlags, data);
+
+        if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::Clear, commandBuffer))
+        {
+          ObjDisp(commandBuffer)->CmdFillMemoryKHR(Unwrap(commandBuffer), &DstRange, dstFlags, data);
+
+          m_ActionCallback->PostRemisc(eventId, ActionFlags::Clear, commandBuffer);
+        }
+      }
+    }
+    else
+    {
+      ObjDisp(commandBuffer)->CmdFillMemoryKHR(Unwrap(commandBuffer), &DstRange, dstFlags, data);
+
+      {
+        AddEvent();
+
+        ActionDescription action;
+        action.flags = ActionFlags::Clear;
+        action.copyDestination = GetResIDFromAddr(DstRange.address);
+        action.copyDestinationSubresource = Subresource();
+
+        AddAction(action);
+      }
+    }
+  }
+
   return true;
 }
 
@@ -5341,6 +5568,25 @@ void WrappedVulkan::vkCmdFillMemoryKHR(VkCommandBuffer commandBuffer,
                                        const VkDeviceAddressRangeKHR *pDstRange,
                                        VkAddressCommandFlagsKHR dstFlags, uint32_t data)
 {
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdFillMemoryKHR(Unwrap(commandBuffer), pDstRange, dstFlags, data));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    ser.SetActionChunk();
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdFillMemoryKHR);
+    Serialise_vkCmdFillMemoryKHR(ser, commandBuffer, pDstRange, dstFlags, data);
+
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
+
+    // all buffers referenced are BDA so they are already forcibly and pessimistically referenced
+  }
 }
 
 template <typename SerialiserType>
@@ -5349,6 +5595,62 @@ bool WrappedVulkan::Serialise_vkCmdUpdateMemoryKHR(SerialiserType &ser, VkComman
                                                    VkAddressCommandFlagsKHR dstFlags,
                                                    VkDeviceSize dataSize, const void *pData)
 {
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT_LOCAL(DstRange, *pDstRange).Important();
+  SERIALISE_ELEMENT_TYPED(VkAddressCommandFlagBitsKHR, dstFlags)
+      .TypedAs("VkAddressCommandFlagsKHR"_lit);
+  SERIALISE_ELEMENT(dataSize).OffsetOrSize();
+
+  // serialise as void* so it goes through as a buffer, not an actual array of integers.
+  const void *Data = (const void *)pData;
+  SERIALISE_ELEMENT_ARRAY(Data, dataSize).Important();
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    m_LastCmdBufferID = GetResID(commandBuffer);
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Copy);
+
+        ObjDisp(commandBuffer)
+            ->CmdUpdateMemoryKHR(Unwrap(commandBuffer), &DstRange, dstFlags, dataSize, Data);
+
+        if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::Copy, commandBuffer))
+        {
+          ObjDisp(commandBuffer)
+              ->CmdUpdateMemoryKHR(Unwrap(commandBuffer), &DstRange, dstFlags, dataSize, Data);
+
+          m_ActionCallback->PostRemisc(eventId, ActionFlags::Copy, commandBuffer);
+        }
+      }
+    }
+    else
+    {
+      ObjDisp(commandBuffer)
+          ->CmdUpdateMemoryKHR(Unwrap(commandBuffer), &DstRange, dstFlags, dataSize, Data);
+
+      {
+        AddEvent();
+
+        ActionDescription action;
+        action.flags = ActionFlags::Copy;
+        action.copyDestination = GetResIDFromAddr(DstRange.address);
+        action.copyDestinationSubresource = Subresource();
+
+        AddAction(action);
+      }
+    }
+  }
+
   return true;
 }
 
@@ -5357,6 +5659,26 @@ void WrappedVulkan::vkCmdUpdateMemoryKHR(VkCommandBuffer commandBuffer,
                                          VkAddressCommandFlagsKHR dstFlags, VkDeviceSize dataSize,
                                          const void *pData)
 {
+  SCOPED_DBG_SINK();
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)
+          ->CmdUpdateMemoryKHR(Unwrap(commandBuffer), pDstRange, dstFlags, dataSize, pData));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    ser.SetActionChunk();
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdUpdateMemoryKHR);
+    Serialise_vkCmdUpdateMemoryKHR(ser, commandBuffer, pDstRange, dstFlags, dataSize, pData);
+
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
+
+    // all buffers referenced are BDA so they are already forcibly and pessimistically referenced
+  }
 }
 
 template <typename SerialiserType>
@@ -5364,12 +5686,118 @@ bool WrappedVulkan::Serialise_vkCmdCopyMemoryToImageKHR(
     SerialiserType &ser, VkCommandBuffer commandBuffer,
     const VkCopyDeviceMemoryImageInfoKHR *pCopyMemoryInfo)
 {
+  SERIALISE_ELEMENT(commandBuffer);
+  SERIALISE_ELEMENT_LOCAL(CopyInfo, *pCopyMemoryInfo);
+
+  Serialise_DebugMessages(ser);
+
+  SERIALISE_CHECK_READ_ERRORS();
+
+  if(IsReplayingAndReading())
+  {
+    VkCopyDeviceMemoryImageInfoKHR unwrappedInfo = CopyInfo;
+    unwrappedInfo.image = Unwrap(unwrappedInfo.image);
+
+    byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext));
+
+    UnwrapNextChain(m_State, "VkCopyDeviceMemoryImageInfoKHR", tempMem,
+                    (VkBaseInStructure *)&unwrappedInfo);
+
+    m_LastCmdBufferID = GetResID(commandBuffer);
+
+    if(IsActiveReplaying(m_State))
+    {
+      if(InRerecordRange(m_LastCmdBufferID))
+      {
+        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+
+        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Copy);
+
+        ObjDisp(commandBuffer)->CmdCopyMemoryToImageKHR(Unwrap(commandBuffer), &unwrappedInfo);
+
+        if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::Copy, commandBuffer))
+        {
+          ObjDisp(commandBuffer)->CmdCopyMemoryToImageKHR(Unwrap(commandBuffer), &unwrappedInfo);
+
+          m_ActionCallback->PostRemisc(eventId, ActionFlags::Copy, commandBuffer);
+        }
+      }
+    }
+    else
+    {
+      ObjDisp(commandBuffer)->CmdCopyMemoryToImageKHR(Unwrap(commandBuffer), &unwrappedInfo);
+
+      {
+        AddEvent();
+
+        ResourceId imgid = GetResID(CopyInfo.image);
+
+        ActionDescription action;
+        action.flags |= ActionFlags::Copy;
+
+        action.copySource = ResourceId();
+        action.copySourceSubresource = Subresource();
+        action.copyDestination = imgid;
+        action.copyDestinationSubresource = Subresource();
+        if(CopyInfo.regionCount > 0)
+        {
+          action.copySource = GetResIDFromAddr(CopyInfo.pRegions[0].addressRange.address);
+          action.copyDestinationSubresource =
+              Subresource(CopyInfo.pRegions[0].imageSubresource.mipLevel,
+                          CopyInfo.pRegions[0].imageSubresource.baseArrayLayer);
+        }
+
+        AddAction(action);
+
+        VulkanEventNode &eventNode = GetLastEventNode();
+        eventNode.resourceUsage.push_back(make_rdcpair(imgid, ResourceUsage::CopyDst));
+      }
+    }
+  }
+
   return true;
 }
 
 void WrappedVulkan::vkCmdCopyMemoryToImageKHR(VkCommandBuffer commandBuffer,
                                               const VkCopyDeviceMemoryImageInfoKHR *pCopyMemoryInfo)
 {
+  SCOPED_DBG_SINK();
+
+  VkCopyDeviceMemoryImageInfoKHR unwrappedInfo = *pCopyMemoryInfo;
+  unwrappedInfo.image = Unwrap(unwrappedInfo.image);
+
+  byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext));
+
+  UnwrapNextChain(m_State, "VkCopyDeviceMemoryImageInfoKHR", tempMem,
+                  (VkBaseInStructure *)&unwrappedInfo);
+
+  SERIALISE_TIME_CALL(
+      ObjDisp(commandBuffer)->CmdCopyMemoryToImageKHR(Unwrap(commandBuffer), &unwrappedInfo));
+
+  if(IsCaptureMode(m_State))
+  {
+    VkResourceRecord *record = GetRecord(commandBuffer);
+
+    CACHE_THREAD_SERIALISER();
+
+    ser.SetActionChunk();
+    SCOPED_SERIALISE_CHUNK(VulkanChunk::vkCmdCopyMemoryToImageKHR);
+    Serialise_vkCmdCopyMemoryToImageKHR(ser, commandBuffer, pCopyMemoryInfo);
+
+    record->AddChunk(scope.Get(&record->cmdInfo->alloc));
+
+    // all buffers referenced are BDA so they are already forcibly and pessimistically referenced,
+    // so we only need to worry about referencing the image regions here
+    for(uint32_t i = 0; i < pCopyMemoryInfo->regionCount; i++)
+    {
+      ImageRange range(pCopyMemoryInfo->pRegions[i].imageSubresource);
+      range.offset = pCopyMemoryInfo->pRegions[i].imageOffset;
+      range.extent = pCopyMemoryInfo->pRegions[i].imageExtent;
+
+      record->MarkImageFrameReferenced(GetRecord(pCopyMemoryInfo->image), range,
+                                       eFrameRef_CompleteWrite);
+    }
+  }
 }
 
 template <typename SerialiserType>
