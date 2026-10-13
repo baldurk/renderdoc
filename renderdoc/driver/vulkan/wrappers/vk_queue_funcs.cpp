@@ -564,10 +564,12 @@ bool WrappedVulkan::PatchIndirectDraw(size_t drawIndex, uint32_t paramStride,
     if(drawIdx)
       drawIdx->data.basic.u = drawIndex;
 
-    SDObject *offset = chunk->FindChild("offset");
+    SDObject *offsetOrAddress = chunk->FindChild("offset");
+    if(!offsetOrAddress)
+      offsetOrAddress = chunk->FindChild("address");
 
-    if(offset)
-      offset->data.basic.u += drawIndex * paramStride;
+    if(offsetOrAddress)
+      offsetOrAddress->data.basic.u += drawIndex * paramStride;
 
     SDObject *command = chunk->FindChild("command");
 
@@ -639,8 +641,10 @@ SDObject *WrappedVulkan::InsertEventNodes(BakedCmdBufferInfo &cmdBufInfo)
         args = &unknown;
       }
 
+      rdcstr name = GetStructuredFile()->chunks[n.event.chunkIndex]->name;
+
       n.action.customName =
-          StringFormat::Fmt("vkCmdDispatchIndirect(<%u, %u, %u>)", args->x, args->y, args->z);
+          StringFormat::Fmt("%s(<%u, %u, %u>)", name.c_str(), args->x, args->y, args->z);
       n.action.dispatchDimension[0] = args->x;
       n.action.dispatchDimension[1] = args->y;
       n.action.dispatchDimension[2] = args->z;
