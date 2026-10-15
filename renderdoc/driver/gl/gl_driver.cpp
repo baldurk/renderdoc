@@ -1136,7 +1136,7 @@ void WrappedOpenGL::DeleteContext(void *contextHandle)
 
   GLWindowingData savedContext;
 
-  if(existing.ctx == NULL)
+  if(existing.ctx == NULL && m_Platform.CanFreshBindOnDeletion())
   {
     if(m_Platform.PushChildContext(existing, ctxdata.shareGroup->m_BackDoor, &savedContext))
     {

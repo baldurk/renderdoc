@@ -60,6 +60,8 @@ class EGLPlatform : public GLPlatform
   RDCDriver m_API = RDCDriver::OpenGLES;
   bool m_Debug = false;
 
+  bool CanFreshBindOnDeletion() { return false; }
+
   bool MakeContextCurrent(GLWindowingData data)
   {
     if(EGL.MakeCurrent)

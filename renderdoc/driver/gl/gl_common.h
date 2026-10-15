@@ -304,6 +304,8 @@ struct GLPlatform
   virtual GLWindowingData MakeOutputWindow(WindowingData window, bool depth,
                                            GLWindowingData share_context) = 0;
 
+  virtual bool CanFreshBindOnDeletion() { return true; }
+
   // for pushing and popping a child context. The default implementation just does
   // MakeContextCurrent but platforms can override this if they need more complex state handling
   virtual bool PushChildContext(GLWindowingData existing, GLWindowingData newChild,
