@@ -2918,12 +2918,14 @@ QString ShaderViewer::stringRep(const ShaderVariable &var, uint32_t row)
   if(type == VarType::ReadOnlyResource || type == VarType::ReadWriteResource ||
      type == VarType::Sampler)
   {
-    rdcarray<UsedDescriptor> &resList = m_Samplers;
+    const rdcarray<UsedDescriptor> *pResList = &m_Samplers;
 
     if(type == VarType::ReadOnlyResource)
-      resList = m_ReadOnlyResources;
+      pResList = &m_ReadOnlyResources;
     else if(type == VarType::ReadWriteResource)
-      resList = m_ReadWriteResources;
+      pResList = &m_ReadWriteResources;
+
+    const rdcarray<UsedDescriptor> &resList = *pResList;
 
     ShaderBindIndex varBind;
     int32_t bindIdx = -1;
