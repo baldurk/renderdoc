@@ -2917,14 +2917,34 @@ void VulkanReplay::FetchMeshOut(uint32_t eventId, VulkanRenderState &state)
     const SDFile *file = GetStructuredFile();
 
     // it doesn't matter if this is an indirect sub command or an inlined 1-draw non-indirect count,
-    // either way the 'offset' is valid - either from the start, or updated for this particular draw
-    // when we originally patched (and fortunately that part doesn't change).
+    // either way the offset/address is valid - either from the start, or updated for this
+    // particular draw when we originally patched (and fortunately that part doesn't change).
     if(chunkIdx < file->chunks.size())
     {
       const SDChunk *chunk = file->chunks[chunkIdx];
 
-      ResourceId buf = chunk->FindChild("buffer")->AsResourceId();
-      uint64_t offs = chunk->FindChild("offset")->AsUInt64();
+      ResourceId buf;
+      uint64_t offs = 0;
+
+      // For the DrawMeshTasks2 variants, the structured data layout differs between fake indirect
+      // sub commands and the real serialised command chunk. The real commands store the address
+      // inside an "Info" struct, but fake sub command chunks just store the address directly since
+      // the rest of the information is redundant.
+      if(chunk->FindChild("buffer") && chunk->FindChild("offset"))
+      {
+        buf = chunk->FindChild("buffer")->AsResourceId();
+        offs = chunk->FindChild("offset")->AsUInt64();
+      }
+      else if(chunk->FindChild("Info"))
+      {
+        m_pDriver->GetResIDFromAddr(
+            chunk->FindChild("Info")->FindChild("addressRange")->FindChild("address")->AsUInt64(),
+            buf, offs);
+      }
+      else if(chunk->FindChild("address"))
+      {
+        m_pDriver->GetResIDFromAddr(chunk->FindChild("address")->AsUInt64(), buf, offs);
+      }
 
       bytebuf dispatchArgs;
       GetBufferData(buf, offs, sizeof(VkDrawMeshTasksIndirectCommandEXT), dispatchArgs);
