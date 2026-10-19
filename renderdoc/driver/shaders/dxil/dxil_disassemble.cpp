@@ -1245,7 +1245,9 @@ void Program::Parse(const DXBC::Reflection *reflection)
 
   m_EntryPointInterfaces.clear();
   FillEntryPointInterfaces();
+#if DISABLED(DXC_COMPATIBLE_DISASM)
   ParseReferences(reflection);
+#endif
 
   if(m_Type == DXBC::ShaderType::Compute || m_Type == DXBC::ShaderType::Amplification ||
      m_Type == DXBC::ShaderType::Mesh)
@@ -1370,35 +1372,25 @@ void Program::SettleIDs()
   for(size_t i = 0; i < m_Functions.size(); i++)
   {
     // Generating the global SSA Id must be done before calling processFunction
-#if ENABLED(DXC_COMPATIBLE_DISASM)
-    uint32_t slot = 0;
-#endif
     size_t curBlock = 0;
     Function &func = *m_Functions[i];
+#if DISABLED(DXC_COMPATIBLE_DISASM)
     for(Instruction *arg : func.args)
     {
       RDCASSERT(curBlock < func.blocks.size());
-#if DISABLED(DXC_COMPATIBLE_DISASM)
       if(arg->slot == ~0U)
         arg->slot = m_NextSSAId++;
-#else
-      if(arg->getName().isEmpty())
-        arg->slot = slot++;
-#endif
       rdcstr n = GetInstResultName(arg);
       SetSSAName(arg->slot, n);
     }
+#endif
+#if DISABLED(DXC_COMPATIBLE_DISASM)
     for(Instruction *inst : func.instructions)
     {
       if(!inst->type->isVoid())
       {
-#if DISABLED(DXC_COMPATIBLE_DISASM)
         if(inst->slot == ~0U)
           inst->slot = m_NextSSAId++;
-#else
-        if(inst->getName().isEmpty())
-          inst->slot = slot++;
-#endif
         rdcstr n = GetInstResultName(inst);
         SetSSAName(inst->slot, n);
       }
@@ -1463,6 +1455,7 @@ void Program::SettleIDs()
         }
       }
     }
+#endif
 
     m_Accum.processFunction(m_Functions[i]);
 
@@ -1936,7 +1929,8 @@ rdcstr Program::DisassembleGlobalVars(int &instructionLine) const
     if(g.section >= 0)
       ret += StringFormat::Fmt(", section %s", escapeString(m_Sections[g.section]).c_str());
 
-    ret += " // " + escapeString(g.name);
+    if(!dxcStyleFormatting)
+      ret += " // " + escapeString(g.name);
     ret += "\n";
     instructionLine++;
   }
@@ -2041,11 +2035,15 @@ const rdcstr &Program::GetDisassembly(bool dxcStyle, const DXBC::Reflection *ref
 {
   if(m_Disassembly.empty() || (dxcStyle != m_DXCStyle))
   {
+#if DISABLED(DXC_COMPATIBLE_DISASM)
     m_DXCStyle = dxcStyle;
+#else
+    m_DXCStyle = true;
+#endif
 
     Parse(reflection);
 
-    if(dxcStyle)
+    if(m_DXCStyle)
       MakeDXCDisassemblyString();
     else
       MakeRDDisassemblyString(reflection);

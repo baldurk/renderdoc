@@ -2231,11 +2231,11 @@ void Program::SetValueSymtabString(Value *v, const rdcstr &s)
   }
   else if(Instruction *i = cast<Instruction>(v))
   {
+    rdcstr &str = i->extra(alloc).name;
+    str = s;
 #if DISABLED(DXC_COMPATIBLE_DISASM)
     // For instruction names convert "." -> "_" to allow the name to be used as debugger variable name
     // "." is treated as a field separator by the debugger
-    rdcstr &str = i->extra(alloc).name;
-    str = s;
     for(size_t j = 0; j < str.size(); ++j)
     {
       if(str[j] == '.')

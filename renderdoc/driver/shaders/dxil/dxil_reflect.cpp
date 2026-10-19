@@ -2090,8 +2090,12 @@ rdcstr Program::GetDebugStatus()
     }
   }
 
+  rdcstr ret;
+#if ENABLED(DXC_COMPATIBLE_DISASM)
+  ret = "DXIL debugging disabled when DXC_COMPATIBLE_DISASM is enabled";
+#endif
   // no unsupported instructions used
-  return rdcstr();
+  return ret;
 }
 
 void Program::GetLineInfo(size_t instruction, uintptr_t offset, LineColumnInfo &lineInfo) const
