@@ -312,8 +312,6 @@ public:
                                    uint64_t dataOffset) const = 0;
   virtual bool TypedUAVStore(const BindingSlot &slot, const DXILDebug::ViewFmt &fmt,
                              uint64_t dataOffset, const ShaderValue &value) = 0;
-  virtual bool TypedSRVStore(const BindingSlot &slot, const DXILDebug::ViewFmt &fmt,
-                             uint64_t dataOffset, const ShaderValue &value) = 0;
 
   // These will fetch the data on demand.
   virtual void GetCBV(const BindingSlot &slot) = 0;

@@ -10568,11 +10568,6 @@ bool Debugger::TypedResourceStore(DXIL::ResourceClass resClass, const BindingSlo
     DXIL_DEBUG_RDCASSERT(m_ApiWrapper->IsUAVCached(slot));
     return m_ApiWrapper->TypedUAVStore(slot, fmt, dataOffset, value);
   }
-  else if(resClass == DXIL::ResourceClass::SRV)
-  {
-    DXIL_DEBUG_RDCASSERT(m_ApiWrapper->IsSRVCached(slot));
-    return m_ApiWrapper->TypedSRVStore(slot, fmt, dataOffset, value);
-  }
   RDCERR("Unexpected resource class %s", ToStr(resClass).c_str());
   return false;
 }

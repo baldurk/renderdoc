@@ -50,8 +50,6 @@ public:
                            uint64_t dataOffset) const override;
   bool TypedUAVStore(const BindingSlot &slot, const DXILDebug::ViewFmt &fmt, uint64_t dataOffset,
                      const ShaderValue &value) override;
-  bool TypedSRVStore(const BindingSlot &slot, const DXILDebug::ViewFmt &fmt, uint64_t dataOffset,
-                     const ShaderValue &value) override;
   void GetCBV(const BindingSlot &slot) override;
   UAVInfo GetUAV(const BindingSlot &slot) override;
   SRVInfo GetSRV(const BindingSlot &slot) override;

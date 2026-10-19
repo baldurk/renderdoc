@@ -1056,24 +1056,6 @@ ShaderValue D3D12APIWrapper::TypedSRVLoad(const BindingSlot &slot, const DXILDeb
   return DXILDebug::TypedUAVLoad(fmt, data.data(), dataOffset);
 }
 
-// Called from any thread
-// Resource must be cached
-bool D3D12APIWrapper::TypedSRVStore(const BindingSlot &slot, const DXILDebug::ViewFmt &fmt,
-                                    uint64_t dataOffset, const ShaderValue &value)
-{
-  SCOPED_READLOCK(m_SRVsLock);
-  auto it = m_SRVBuffers.find(slot);
-  if(it == m_SRVBuffers.end())
-  {
-    RDCERR("Store SRV slot %u space %u desc Index %u no cached data", slot.shaderRegister,
-           slot.registerSpace, slot.descriptorIndex);
-    return false;
-  }
-  bytebuf &data = it->second;
-  DXILDebug::TypedUAVStore(fmt, data.data(), dataOffset, value);
-  return true;
-}
-
 // Must be called from the replay manager thread (the debugger thread)
 SRVInfo D3D12APIWrapper::FetchSRV(const D3D12Descriptor *resDescriptor, const BindingSlot &slot)
 {
