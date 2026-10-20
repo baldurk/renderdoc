@@ -1680,8 +1680,6 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
     logicOp = pCreateInfo->pColorBlendState->logicOp;
     memcpy(blendConst, pCreateInfo->pColorBlendState->blendConstants, sizeof(blendConst));
 
-    attachments.resize(pCreateInfo->pColorBlendState->attachmentCount);
-
     // It is ignored if the pipeline is created with VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT,
     // VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT, and VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT dynamic
     // states set, and either VK_DYNAMIC_STATE_COLOR_BLEND_ADVANCED_EXT set or the
@@ -1690,26 +1688,31 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
                                    dynamicStates[VkDynamicColorBlendEnableEXT] &&
                                    dynamicStates[VkDynamicColorWriteMaskEXT];
 
-    for(uint32_t i = 0; !fullyDynamicBlend && i < pCreateInfo->pColorBlendState->attachmentCount; i++)
+    if(!fullyDynamicBlend)
     {
-      attachments[i].blendEnable =
-          pCreateInfo->pColorBlendState->pAttachments[i].blendEnable ? true : false;
+      attachments.resize(pCreateInfo->pColorBlendState->attachmentCount);
 
-      attachments[i].blend.Source =
-          pCreateInfo->pColorBlendState->pAttachments[i].srcColorBlendFactor;
-      attachments[i].blend.Destination =
-          pCreateInfo->pColorBlendState->pAttachments[i].dstColorBlendFactor;
-      attachments[i].blend.Operation = pCreateInfo->pColorBlendState->pAttachments[i].colorBlendOp;
+      for(uint32_t i = 0; i < pCreateInfo->pColorBlendState->attachmentCount; i++)
+      {
+        attachments[i].blendEnable =
+            pCreateInfo->pColorBlendState->pAttachments[i].blendEnable ? true : false;
 
-      attachments[i].alphaBlend.Source =
-          pCreateInfo->pColorBlendState->pAttachments[i].srcAlphaBlendFactor;
-      attachments[i].alphaBlend.Destination =
-          pCreateInfo->pColorBlendState->pAttachments[i].dstAlphaBlendFactor;
-      attachments[i].alphaBlend.Operation =
-          pCreateInfo->pColorBlendState->pAttachments[i].alphaBlendOp;
+        attachments[i].blend.Source =
+            pCreateInfo->pColorBlendState->pAttachments[i].srcColorBlendFactor;
+        attachments[i].blend.Destination =
+            pCreateInfo->pColorBlendState->pAttachments[i].dstColorBlendFactor;
+        attachments[i].blend.Operation = pCreateInfo->pColorBlendState->pAttachments[i].colorBlendOp;
 
-      attachments[i].channelWriteMask =
-          (uint8_t)pCreateInfo->pColorBlendState->pAttachments[i].colorWriteMask;
+        attachments[i].alphaBlend.Source =
+            pCreateInfo->pColorBlendState->pAttachments[i].srcAlphaBlendFactor;
+        attachments[i].alphaBlend.Destination =
+            pCreateInfo->pColorBlendState->pAttachments[i].dstAlphaBlendFactor;
+        attachments[i].alphaBlend.Operation =
+            pCreateInfo->pColorBlendState->pAttachments[i].alphaBlendOp;
+
+        attachments[i].channelWriteMask =
+            (uint8_t)pCreateInfo->pColorBlendState->pAttachments[i].colorWriteMask;
+      }
     }
   }
   else
