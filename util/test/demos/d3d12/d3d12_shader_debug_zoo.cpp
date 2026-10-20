@@ -1005,6 +1005,8 @@ float4 main(v2f IN) : SV_Target0
     oneintbufrwtest[z] = 10;
     return oneintbufrwtest[z2];
   }
+)EOSHADER"
+                                    R"EOSHADER(
   // test UAV loads and stores only write the data they should
   if(IN.tri == 100)
   {
