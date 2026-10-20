@@ -1682,7 +1682,15 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
 
     attachments.resize(pCreateInfo->pColorBlendState->attachmentCount);
 
-    for(uint32_t i = 0; i < pCreateInfo->pColorBlendState->attachmentCount; i++)
+    // It is ignored if the pipeline is created with VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT,
+    // VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT, and VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT dynamic
+    // states set, and either VK_DYNAMIC_STATE_COLOR_BLEND_ADVANCED_EXT set or the
+    // advancedBlendCoherentOperations feature is not enabled.
+    const bool fullyDynamicBlend = dynamicStates[VkDynamicColorBlendEquationEXT] &&
+                                   dynamicStates[VkDynamicColorBlendEnableEXT] &&
+                                   dynamicStates[VkDynamicColorWriteMaskEXT];
+
+    for(uint32_t i = 0; !fullyDynamicBlend && i < pCreateInfo->pColorBlendState->attachmentCount; i++)
     {
       attachments[i].blendEnable =
           pCreateInfo->pColorBlendState->pAttachments[i].blendEnable ? true : false;
