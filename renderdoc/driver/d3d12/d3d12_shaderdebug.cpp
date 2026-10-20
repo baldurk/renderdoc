@@ -2072,6 +2072,9 @@ ShaderDebugTrace *D3D12Replay::DebugVertex(uint32_t eventId, uint32_t vertid, ui
     return new ShaderDebugTrace;
   }
 
+  if(dxbc->GetDXILByteCode())
+    vs->GetWriteableDXBC()->GetDXILByteCode()->ProcessDXIL(dxbc->GetReflection());
+
   vs->GetWriteableDXBC()->GetDisassembly(false);
 
   const ActionDescription *action = m_pDevice->GetAction(eventId);
@@ -2992,6 +2995,9 @@ ShaderDebugTrace *D3D12Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t
     return new ShaderDebugTrace;
   }
 
+  if(dxbc->GetDXILByteCode())
+    ps->GetWriteableDXBC()->GetDXILByteCode()->ProcessDXIL(dxbc->GetReflection());
+
   ps->GetWriteableDXBC()->GetDisassembly(false);
 
   ShaderDebugTrace *ret = NULL;
@@ -3583,6 +3589,9 @@ ShaderDebugTrace *D3D12Replay::DebugThread(uint32_t eventId,
     RDCERR("Compute shader is not debuggable");
     return new ShaderDebugTrace;
   }
+
+  if(dxbc->GetDXILByteCode())
+    cs->GetWriteableDXBC()->GetDXILByteCode()->ProcessDXIL(dxbc->GetReflection());
 
   cs->GetWriteableDXBC()->GetDisassembly(false);
 

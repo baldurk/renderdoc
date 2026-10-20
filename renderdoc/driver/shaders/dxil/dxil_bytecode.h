@@ -1713,6 +1713,7 @@ public:
   uint32_t GetMinorVersion() const { return m_Minor; }
   D3D_PRIMITIVE_TOPOLOGY GetOutputTopology();
   const rdcstr &GetDisassembly(bool dxcStyle, const DXBC::Reflection *reflection);
+  void ProcessDXIL(const DXBC::Reflection *reflection);
 
   // IDebugInfo interface
   rdcstr GetCompilerSig() const override { return m_CompilerSig; }
@@ -1736,7 +1737,6 @@ public:
 
   static char GetDXILIdentifier(const bool dxcStyle) { return dxcStyle ? '%' : '_'; }
 protected:
-  void Parse(const DXBC::Reflection *reflection);
   void SettleIDs();
   void ParseReferences(const DXBC::Reflection *reflection);
   void MakeDXCDisassemblyString();

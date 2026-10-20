@@ -1236,7 +1236,7 @@ static rdcstr GetResourceTypeName(const Type *type)
   return "UNHANDLED RESOURCE TYPE";
 };
 
-void Program::Parse(const DXBC::Reflection *reflection)
+void Program::ProcessDXIL(const DXBC::Reflection *reflection)
 {
   if(m_Parsed)
     return;
@@ -2041,7 +2041,7 @@ const rdcstr &Program::GetDisassembly(bool dxcStyle, const DXBC::Reflection *ref
     m_DXCStyle = true;
 #endif
 
-    Parse(reflection);
+    ProcessDXIL(reflection);
 
     if(m_DXCStyle)
       MakeDXCDisassemblyString();
