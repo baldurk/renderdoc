@@ -5,6 +5,8 @@ change:
 
 https://github.com/baldurk/renderdoc/blob/v1.x/docs/CONTRIBUTING.md
 
+Use of LLMs in any way other than machine translation of language is strictly prohibited, including generating any text.
+
 For small changes you don't have to read the document end to end, but should at
 least look at the sections on how to ensure your code and commits are formatted
 according to the style requirements.

@@ -14,6 +14,8 @@ It is *expressly* forbidden to ask for help with capturing copyrighted programs 
 
 For example this includes capturing commercial games that you did not create, or capturing Google Maps or Google Earth.
 
+Use of LLMs in any way other than machine translation of language is strictly prohibited, including generating any text.
+
 I'm happy to help, but you have to ensure I fully understand what you want and have the information I need. If you're unsure, please read the guide above for full information on what is expected for filing issues.
 -->
 
