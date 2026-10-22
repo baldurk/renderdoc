@@ -43,6 +43,8 @@ cbuffer rootconsts : register(b0)
 groupshared float gsmData[MAX_THREADS];
 groupshared int gsmIntData[MAX_THREADS];
 groupshared int gInt;
+groupshared float gsmSmallArray[MAX_THREADS];
+groupshared float3 gsmSmall2DArray[3][MAX_THREADS];
 
 #define IsTest(x) (root_test == x)
 
@@ -274,6 +276,31 @@ void main(uint3 gid : SV_GroupThreadID)
     InterlockedAdd(gInt,1);
     GroupMemoryBarrierWithGroupSync();
     outval.w = gInt;
+  }
+  else if (IsTest(13))
+  {
+    // Out of bounds GSM access should not crash
+    uint idx = gid.x;
+    uint oneu = (idx+1)/(idx+1);
+    uint zerou = oneu - 1;
+    uint idxOOB = idx * 2 + MAX_THREADS * oneu;
+
+    gsmSmallArray[idx] = (float)gid.x;
+    gsmSmall2DArray[zerou][idx].x = (float)gid.x;
+    gsmSmall2DArray[zerou][idx].y = (float)gid.x + 1.0;
+    gsmSmall2DArray[oneu][idx].x = (float)gid.x;
+    gsmSmall2DArray[oneu][idx].y = (float)gid.x + 1.0;
+    gsmSmall2DArray[oneu+oneu][idx].x = (float)gid.x;
+    gsmSmall2DArray[oneu+oneu][idx].y = (float)gid.x + 1.0;
+
+    gsmSmallArray[idxOOB] += (float)zerou;
+    gsmSmall2DArray[oneu][idxOOB].x += (float)zerou;
+    gsmSmall2DArray[oneu][idxOOB].y += (float)zerou;
+
+    outval.x = gsmSmallArray[idx + zerou];
+    outval.y = gsmSmallArray[idx + zerou];
+    outval.z = gsmSmall2DArray[oneu][idx + zerou].x;
+    outval.w = gsmSmall2DArray[oneu][idx + zerou].y;
   }
 
   outdata[gid.x] = outval;
