@@ -4164,12 +4164,10 @@ OpMemberDecorate %pushdata_struct 2 Offset 40       ; uint bda_hi
 OpMemberDecorate %pushdata_struct 3 Offset 44       ; uint bda_lo
 OpMemberDecorate %pushdata_struct 4 Offset 48       ; uint64_t bda_u64
 
-OpDecorate %bda_data_struct Block
 OpMemberDecorate %bda_data_struct 0 Offset 0        ; float f32[0..3]
 OpMemberDecorate %bda_data_struct 1 Offset 16       ; float f32[4..7]
 OpMemberDecorate %bda_data_struct 2 Offset 32       ; bda_ptr to bda_inner_struct[2]
 
-OpDecorate %bda_inner_struct Block
 OpMemberDecorate %bda_inner_struct 0 Offset 0        ; float
 OpMemberDecorate %bda_inner_struct 1 Offset 4        ; float
 OpMemberDecorate %bda_inner_struct 2 Offset 8        ; float
