@@ -287,7 +287,7 @@ def filter_updated(selector: qrd.QWidget, filter: qrd.QWidget):
 
     cur = mqt.GetWidgetText(selector)
 
-    tests = [x for x in test_names if re.search(filter_text, x) is not None]
+    tests = [x for x in test_names if re.search(filter_text.lower(), x.lower()) is not None]
 
     mqt.SetComboOptions(selector, tests)
 
