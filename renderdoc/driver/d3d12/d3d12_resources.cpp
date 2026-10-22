@@ -650,9 +650,15 @@ void WrappedID3D12PipelineState::ShaderEntry::ReloadShaderDebugInformation()
 
 void WrappedID3D12PipelineState::ShaderEntry::Reload()
 {
+  bool wasBuilt = m_Built;
   m_Built = false;
   *m_Details = ShaderReflection();
   SAFE_DELETE(m_DXBCFile);
+  if(wasBuilt && (GetDXBC() != NULL))
+  {
+    BuildReflection();
+    m_Built = true;
+  }
 }
 
 rdcpair<uint32_t, uint32_t> FindMatchingRootParameter(const D3D12RootSignature &sig,

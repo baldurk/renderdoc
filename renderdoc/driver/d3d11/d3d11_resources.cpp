@@ -159,6 +159,7 @@ void WrappedShader::ReloadShaderDebugInformation()
 
 void WrappedShader::ShaderEntry::Reload()
 {
+  bool wasBuilt = m_Built;
   m_Built = false;
   *m_Details = ShaderReflection();
   m_Access.clear();
@@ -169,6 +170,11 @@ void WrappedShader::ShaderEntry::Reload()
       m_Bytecode = m_DXBCFile->GetShaderBlob();
   }
   SAFE_DELETE(m_DXBCFile);
+  if(wasBuilt && (GetDXBC() != NULL))
+  {
+    BuildReflection();
+    m_Built = true;
+  }
 }
 
 UINT GetSubresourceCount(ID3D11Resource *res)
