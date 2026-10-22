@@ -25,7 +25,7 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
         assert 'ps_5_1' in disasm
 
-        self.check_event()
+        self.check_event(False)
 
         rdtest.log.success("DXBC action is as expected")
         rdtest.log.end_section("DXBC Draw")
@@ -47,7 +47,7 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
         disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, '')
 
         assert 'SM6.0' in disasm
-        self.check_event()
+        self.check_event(True)
         rdtest.log.success("SM 6.0 action is as expected")
         rdtest.log.end_section("SM6.0 Draw")
 
@@ -68,11 +68,11 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
         disasm = self.controller.DisassembleShader(pipe.GetGraphicsPipelineObject(), refl, '')
 
         assert 'SM6.6' in disasm
-        self.check_event()
+        self.check_event(True)
         rdtest.log.success("SM 6.6 action is as expected")
         rdtest.log.end_section("SM6.6 Draw")
 
-    def check_event(self):
+    def check_event(self, sm6: bool):
         pipe = self.controller.GetPipelineState()
 
         stage = rd.ShaderStage.Pixel
@@ -174,28 +174,32 @@ class D3D12_CBuffer_Zoo(rdtest.TestCase):
 
             cbufferVars = self.combine_source_vars(cbufferVars)
 
-            assert len(cbufferVars) == 5
+            expectedCountCBs =  4 if sm6 else 5
+            assert len(cbufferVars) == expectedCountCBs
             assert cbufferVars[0].name == 'consts'
             assert cbufferVars[1].name == 'rootconsts'
             assert cbufferVars[2].name == 'packed_consts'
-            assert cbufferVars[3].name == 'array_consts'
-            assert cbufferVars[4].name == 'hugespace'
+            if not sm6:
+                assert cbufferVars[3].name == 'array_consts'
+            assert cbufferVars[expectedCountCBs - 1].name == 'hugespace'
 
             var_check = rdtest.ConstantBufferChecker(cbufferVars[0].members)
             root_check = rdtest.ConstantBufferChecker(cbufferVars[1].members)
             packed_check = rdtest.ConstantBufferChecker(cbufferVars[2].members)
-            arrays_check = rdtest.ConstantBufferChecker(cbufferVars[3].members)
-            huge_check = rdtest.ConstantBufferChecker(cbufferVars[4].members)
+            if not sm6:
+                arrays_check = rdtest.ConstantBufferChecker(cbufferVars[3].members)
+            huge_check = rdtest.ConstantBufferChecker(cbufferVars[expectedCountCBs - 1].members)
 
             self.check_cbuffers(var_check, root_check, huge_check, packed_check)
             rdtest.log.success("Debugged CBuffer variables are as expected")
 
-            arrays_check.check('[0]').rows(0).cols(0).members({
-                'a' : lambda y : y.rows(1).cols(4).value([0.0, 1.0, 0.5, 0.5])})
-            arrays_check.check('[1]').rows(0).cols(0).members({
-                'a' : lambda y : y.rows(1).cols(4).value([1.0, 2.0, 0.5, 0.5])})
-            arrays_check.done()
-            rdtest.log.success("Array cbuffer variables are as expected")
+            if not sm6:
+                arrays_check.check('[0]').rows(0).cols(0).members({
+                    'a' : lambda y : y.rows(1).cols(4).value([0.0, 1.0, 0.5, 0.5])})
+                arrays_check.check('[1]').rows(0).cols(0).members({
+                    'a' : lambda y : y.rows(1).cols(4).value([1.0, 2.0, 0.5, 0.5])})
+                arrays_check.done()
+                rdtest.log.success("Array cbuffer variables are as expected")
 
             cycles, variables = self.process_trace(debug.trace)
 
