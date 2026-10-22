@@ -1223,19 +1223,38 @@ void ThreadState::GetGroupsharedSrc(uint32_t gsmIndex, const uint32_t byteOffset
   uint32_t idx = program->GetRegisterIndex(TYPE_THREAD_GROUP_SHARED_MEMORY, gsmIndex);
   if(idx < variables.size())
   {
+    if(regIndex >= variables[idx].members.size())
+    {
+      RDCERR("Out of bounds GSM read from %u:%u", gsmIndex, regIndex);
+      data[0] = 0U;
+      data[1] = 0U;
+      data[2] = 0U;
+      data[3] = 0U;
+      return;
+    }
     const ShaderVariable &var = variables[idx].members[regIndex];
+    const uint32_t countComps = countBytes / sizeof(uint32_t);
     if(gsmStride <= 16)
     {
-      RDCASSERT((component + countBytes / sizeof(uint32_t)) <= 4, component, countBytes);
+      RDCASSERT((component + countComps) <= 4, component, countBytes, countComps);
       // if the stride is less than a float4, the groupshared storage is a simple array of N
       // float4 registers so we can just assign
-      for(uint32_t i = 0; i < countBytes / sizeof(uint32_t); i++)
+      for(uint32_t i = 0; i < countComps; i++)
         data[i] = var.value.u32v[component + i];
     }
     else
     {
+      if(component + countComps > var.members.size())
+      {
+        RDCERR("Out of bounds GSM read from %u:%u:%u", gsmIndex, regIndex, component);
+        data[0] = 0U;
+        data[1] = 0U;
+        data[2] = 0U;
+        data[3] = 0U;
+        return;
+      }
       // otherwise each entry in the groupshared storage array is a series of N component-sized registers
-      for(uint32_t i = 0; i < countBytes / sizeof(uint32_t); i++)
+      for(uint32_t i = 0; i < countComps; i++)
         data[i] = var.members[component + i].value.u32v[0];
     }
   }
@@ -1272,6 +1291,12 @@ void ThreadState::SetGroupsharedDst(ShaderDebugState *state, uint32_t gsmIndex,
   {
     ShaderVariable *changeVar = v;
 
+    if(regIndex >= v->members.size())
+    {
+      RDCERR("Out of bounds GSM write to %u:%u", gsmIndex, regIndex);
+      return;
+    }
+
     v = &v->members[regIndex];
 
     ShaderVariableChange change = {*changeVar};
@@ -1285,6 +1310,11 @@ void ThreadState::SetGroupsharedDst(ShaderDebugState *state, uint32_t gsmIndex,
     }
     else
     {
+      if(component + val.columns > v->members.size())
+      {
+        RDCERR("Out of bounds GSM write to %u:%u:%u", gsmIndex, regIndex, component);
+        return;
+      }
       // otherwise each entry in the groupshared storage array is a series of N
       // component-sized registers so unroll that here and assign to the first component
       RDCASSERT(component + val.columns <= v->members.size(), component + val.columns,
@@ -3504,7 +3534,8 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
         dataOffset += structOffset;
       }
 
-      if(!data || (!texData && elemIdx >= numElems) || (texData && dataOffset >= dataSize))
+      if(!data || (!texData && elemIdx >= numElems) || (texData && dataOffset >= dataSize) ||
+         (gsm && dataOffset >= dataSize))
       {
         if(load)
           SetDst(state, op.operands[0], op, ShaderVariable(rdcstr(), 0U, 0U, 0U, 0U));
