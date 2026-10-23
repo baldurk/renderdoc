@@ -2586,8 +2586,11 @@ bool ThreadState::ExecuteInstruction(const rdcarray<ThreadState> &workgroup)
                 }
                 else
                 {
-                  RDCERR("Unknown resource handle %s class %s", resName.c_str(),
-                         ToStr(resRef->resourceBase.resClass).c_str());
+                  m_Debugger.AddDebugMessage(
+                      MessageCategory::Execution, MessageSeverity::High,
+                      MessageSource::RuntimeWarning,
+                      StringFormat::Fmt("Unknown resource handle %s class %s", resName.c_str(),
+                                        ToStr(resRef->resourceBase.resClass).c_str()));
                 }
               }
               else
@@ -2656,12 +2659,19 @@ bool ThreadState::ExecuteInstruction(const rdcarray<ThreadState> &workgroup)
                     }
                     else
                     {
-                      RDCERR("No data for constant block %s", resultSSAName.c_str());
+                      m_Debugger.AddDebugMessage(
+                          MessageCategory::Execution, MessageSeverity::High,
+                          MessageSource::RuntimeWarning,
+                          StringFormat::Fmt("cbuffer data is empty %s", resultSSAName.c_str()));
                     }
                   }
                   else
                   {
-                    RDCERR("Can't find the data for constant block %s", resultSSAName.c_str());
+                    m_Debugger.AddDebugMessage(
+                        MessageCategory::Execution, MessageSeverity::High,
+                        MessageSource::RuntimeWarning,
+                        StringFormat::Fmt("Failed to find data for cbuffer %s",
+                                          resultSSAName.c_str()));
                   }
                   result = cbufferVar;
                 }
@@ -2669,7 +2679,9 @@ bool ThreadState::ExecuteInstruction(const rdcarray<ThreadState> &workgroup)
             }
             else
             {
-              RDCERR("Unknown Base Resource for %s", resultSSAName.c_str());
+              m_Debugger.AddDebugMessage(
+                  MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
+                  StringFormat::Fmt("Unknown Resource %s", resultSSAName.c_str()));
             }
             result.name = resultSSAName;
             break;
@@ -2742,13 +2754,17 @@ bool ThreadState::ExecuteInstruction(const rdcarray<ThreadState> &workgroup)
                 }
                 else
                 {
-                  RDCERR("Failed to find data for constant block data for %s",
-                         handleVar.name.c_str());
+                  m_Debugger.AddDebugMessage(MessageCategory::Execution, MessageSeverity::High,
+                                             MessageSource::RuntimeWarning,
+                                             StringFormat::Fmt("Failed to find data for cbuffer %s",
+                                                               handleVar.name.c_str()));
                 }
               }
               else
               {
-                RDCERR("Failed to find data for cbuffer %s", handleVar.name.c_str());
+                m_Debugger.AddDebugMessage(
+                    MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
+                    StringFormat::Fmt("Failed to find cbuffer %s", handleVar.name.c_str()));
               }
             }
 
@@ -5423,7 +5439,6 @@ bool ThreadState::ExecuteInstruction(const rdcarray<ThreadState> &workgroup)
       result.type = baseType;
       result.rows = (uint8_t)countElems;
 
-      RDCASSERT(offset + size <= allocation.size);
       if(offset + size <= allocation.size)
       {
         memory += offset;
@@ -5437,7 +5452,10 @@ bool ThreadState::ExecuteInstruction(const rdcarray<ThreadState> &workgroup)
       }
       else
       {
-        RDCERR("Invalid GEP offset %u size %u for allocation size %u", offset, size, allocation.size);
+        m_Debugger.AddDebugMessage(
+            MessageCategory::Execution, MessageSeverity::High, MessageSource::RuntimeWarning,
+            StringFormat::Fmt("Pointer %s invalid offset %u size %u for allocation size %u GSM %d",
+                              result.name.c_str(), offset, size, allocation.size, allocation.gsm));
       }
       break;
     }
@@ -10367,6 +10385,7 @@ rdcarray<ShaderDebugState> Debugger::ContinueDebug()
 
     do
     {
+      ProcessQueuedDebugMessages();
       ProcessQueuedDeviceThreadSteps();
       // Convert the simulation threads queued operations into pending operations i.e. GPU commands
       ProcessQueuedOps();
@@ -10988,6 +11007,25 @@ void Debugger::SimulationJobHelper()
       }
     }
   };
+}
+
+// Must be called from the replay manager thread (the debugger thread)
+void Debugger::ProcessQueuedDebugMessages()
+{
+  rdcarray<DebugMessage> msgs;
+  {
+    SCOPED_LOCK(m_QueuedDebugMessagesLock);
+    m_QueuedDebugMessages.swap(msgs);
+  }
+  for(const DebugMessage &dbgMsg : msgs)
+    m_ApiWrapper->AddDebugMessage(dbgMsg.cat, dbgMsg.sev, dbgMsg.src, dbgMsg.desc);
+}
+
+// Called from any thread
+void Debugger::AddDebugMessage(MessageCategory c, MessageSeverity sv, MessageSource src, rdcstr d) const
+{
+  SCOPED_LOCK(m_QueuedDebugMessagesLock);
+  m_QueuedDebugMessages.push_back({c, sv, src, d});
 }
 
 };    // namespace DXILDebug

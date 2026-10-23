@@ -126,6 +126,8 @@ public:
   const rdcarray<ShaderVariable> &GetThreadsInputs() const override { return m_ThreadsInputs; }
   const rdcarray<SourceVariableMapping> &GetSourceVars() const override { return m_SourceVars; }
   const ShaderVariable &GetInputPlaceholder() const override { return m_InputPlaceholder; }
+  void AddDebugMessage(MessageCategory cat, MessageSeverity sev, MessageSource src,
+                       const rdcstr &desc) override;
 
 private:
   bool IsDeviceThread() const { return Threading::GetCurrentID() == m_DeviceThreadID; }

@@ -2265,4 +2265,12 @@ ShaderDirectAccess D3D12APIWrapper::FetchShaderDirectAccess(DescriptorType type,
       StringFormat::Fmt("Failed to find descriptor %u %u", (uint32_t)heapType, descriptorIndex));
   return ShaderDirectAccess();
 }
+
+// Must be called from the replay manager thread (the debugger thread)
+void D3D12APIWrapper::AddDebugMessage(MessageCategory cat, MessageSeverity sev, MessageSource src,
+                                      const rdcstr &desc)
+{
+  CHECK_DEVICE_THREAD();
+  m_Device->AddDebugMessage(cat, sev, src, desc);
+}
 };
