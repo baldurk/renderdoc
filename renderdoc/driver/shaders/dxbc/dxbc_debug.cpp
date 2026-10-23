@@ -2209,7 +2209,7 @@ void ThreadState::StepNext(ShaderDebugState *state, DebugAPIWrapper *apiWrapper,
       for(int i = 0; i < 4; i++)
         src[i] = (uint64_t)srcOpers[1].value.u32v[i];
       for(int i = 0; i < 4; i++)
-        src[i] = (uint64_t)srcOpers[2].value.u32v[i];
+        src[i] += (uint64_t)srcOpers[2].value.u32v[i];
 
       // set the rounded result
       uint32_t dst[4];
