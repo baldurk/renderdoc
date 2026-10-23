@@ -6314,6 +6314,7 @@ bool ThreadState::ExecuteInstruction(const rdcarray<ThreadState> &workgroup)
     }
     case Operation::CompareExchange:
     {
+      SCOPED_LOCK(m_Debugger.GetAtomicMemoryLock());
       OperationAtomic(inst, opCode, dxOpCode, resultId, result);
       break;
     }
