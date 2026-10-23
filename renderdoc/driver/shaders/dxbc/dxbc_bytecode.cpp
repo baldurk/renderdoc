@@ -617,21 +617,17 @@ DXBC::Reflection *Program::GuessReflection()
 
 rdcstr Program::GetDebugStatus()
 {
-  // if there are no vendor extensions this is always debuggable
+  if(m_Reflection)
+    for(const DXBC::CBuffer &c : m_Reflection->CBuffers)
+      if(c.bindCount == ~0U)
+        return "Unsupported unbounded ConstantBuffer array";
+
+  // if there are no vendor extensions this is always debuggable for <=SM5.0
   if(m_ShaderExt.second == ~0U)
     return rdcstr();
 
   // otherwise we need to check that no unsupported vendor extensions are used
   DecodeProgram();
-
-  for(const Declaration &decl : m_Declarations)
-  {
-    if(decl.operand.type == TYPE_CONSTANT_BUFFER && decl.operand.indices.size() == 3 &&
-       decl.operand.indices[2].index == 0xffffffff)
-    {
-      return "Unsupported unbounded ConstantBuffer array";
-    }
-  }
 
   for(const Operation &op : m_Instructions)
   {
