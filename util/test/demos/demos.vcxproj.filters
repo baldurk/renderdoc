@@ -816,9 +816,6 @@
     <Filter Include="3rdparty\nuklear">
       <UniqueIdentifier>{06e64450-43b4-42d5-bbf3-290c721ae555}</UniqueIdentifier>
     </Filter>
-    <Filter Include="3rdparty\shaderc">
-      <UniqueIdentifier>{e641fa6b-a639-49af-9bc3-387b87bdb066}</UniqueIdentifier>
-    </Filter>
     <Filter Include="3rdparty\glad">
       <UniqueIdentifier>{526cfb18-bd0f-41b7-ac73-30a2fc90f449}</UniqueIdentifier>
     </Filter>
@@ -971,9 +968,6 @@
     </ClInclude>
     <ClInclude Include="3rdparty\nuklear\nuklear_xlib.h">
       <Filter>3rdparty\nuklear</Filter>
-    </ClInclude>
-    <ClInclude Include="3rdparty\shaderc\shaderc.h">
-      <Filter>3rdparty\shaderc</Filter>
     </ClInclude>
     <ClInclude Include="3rdparty\glad\khrplatform.h">
       <Filter>3rdparty\glad</Filter>

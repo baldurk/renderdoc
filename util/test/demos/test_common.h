@@ -83,7 +83,6 @@ enum class ShaderStage
   task,
 };
 
-bool InternalSpvCompiler();
 bool SpvCompilationSupported();
 std::vector<uint32_t> CompileShaderToSpv(const char *demo_name, const std::string &source_text,
                                          SPIRVTarget target, ShaderLang lang, ShaderStage stage,

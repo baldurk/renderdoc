@@ -252,44 +252,10 @@ void LoadXPM(const char **XPM, Texture &tex)
   }
 }
 
-#ifndef HAVE_SHADERC
-#define HAVE_SHADERC 0
-#endif
-
-// this define toggles on/off using the linked shaderc. This can be useful for quick testing without
-// having to remove the built shaderc files
-#define USE_LINKED_SHADERC (1 && HAVE_SHADERC)
-
-#if !USE_LINKED_SHADERC && defined(ANDROID)
-#error "can't execute shaderc on android"
-#endif
-
-#if USE_LINKED_SHADERC
-#include <shaderc/shaderc.h>
-#else
-typedef void *shaderc_compiler_t;
-#endif
-
-static shaderc_compiler_t shaderc = NULL;
 static std::string externalCompiler;
-
-bool InternalSpvCompiler()
-{
-  return bool(USE_LINKED_SHADERC);
-}
 
 bool SpvCompilationSupported()
 {
-  if(shaderc)
-    return true;
-
-#if USE_LINKED_SHADERC
-  shaderc = shaderc_compiler_initialize();
-#endif
-
-  if(shaderc)
-    return true;
-
   for(std::string compiler : {"glslc", "glslangValidator"})
   {
     FILE *pipe = popen((compiler + EXECUTABLE_SUFFIX " --version 2>&1").c_str(), "r");
@@ -321,90 +287,6 @@ std::vector<uint32_t> CompileShaderToSpv(const char *demo_name, const std::strin
                                          const std::map<std::string, std::string> &macros)
 {
   std::vector<uint32_t> ret;
-
-  if(shaderc)
-  {
-#if USE_LINKED_SHADERC
-    static bool logged = false;
-
-    if(!logged)
-    {
-      logged = true;
-      TEST_LOG("Compiling using built-in shaderc");
-    }
-    shaderc_compile_options_t opts = shaderc_compile_options_initialize();
-
-    if(lang == ShaderLang::glsl)
-      shaderc_compile_options_set_source_language(opts, shaderc_source_language_glsl);
-    else if(lang == ShaderLang::hlsl)
-      shaderc_compile_options_set_source_language(opts, shaderc_source_language_hlsl);
-
-    shaderc_compile_options_set_generate_debug_info(opts);
-    shaderc_compile_options_set_optimization_level(opts, shaderc_optimization_level_zero);
-
-    shaderc_shader_kind shader_kind = shaderc_glsl_vertex_shader;
-
-    switch(stage)
-    {
-      case ShaderStage::vert: shader_kind = shaderc_vertex_shader; break;
-      case ShaderStage::frag: shader_kind = shaderc_fragment_shader; break;
-      case ShaderStage::tesscontrol: shader_kind = shaderc_tess_control_shader; break;
-      case ShaderStage::tesseval: shader_kind = shaderc_tess_evaluation_shader; break;
-      case ShaderStage::geom: shader_kind = shaderc_geometry_shader; break;
-      case ShaderStage::comp: shader_kind = shaderc_compute_shader; break;
-      case ShaderStage::mesh: shader_kind = shaderc_mesh_shader; break;
-      case ShaderStage::task: shader_kind = shaderc_task_shader; break;
-    }
-
-    if(target == SPIRVTarget::opengl)
-      shaderc_compile_options_set_target_env(opts, shaderc_target_env_opengl, 0);
-    else if(target == SPIRVTarget::vulkan11)
-      shaderc_compile_options_set_target_env(opts, shaderc_target_env_vulkan,
-                                             shaderc_env_version_vulkan_1_1);
-    else if(target == SPIRVTarget::vulkan12)
-      shaderc_compile_options_set_target_env(opts, shaderc_target_env_vulkan,
-                                             shaderc_env_version_vulkan_1_2);
-
-    for(auto it : macros)
-      shaderc_compile_options_add_macro_definition(opts, it.first.c_str(), it.first.length(),
-                                                   it.second.c_str(), it.second.length());
-
-    shaderc_compilation_result_t res;
-
-    if(lang == ShaderLang::spvasm)
-      res = shaderc_assemble_into_spv(shaderc, source_text.c_str(), source_text.size(), opts);
-    else
-      res = shaderc_compile_into_spv(shaderc, source_text.c_str(), source_text.size(), shader_kind,
-                                     "inshader", entry_point, opts);
-
-    shaderc_compilation_status status = shaderc_result_get_compilation_status(res);
-
-    if(status != shaderc_compilation_status_success)
-    {
-      TEST_ERROR("Couldn't compile shader with built-in shaderc: %s",
-                 shaderc_result_get_error_message(res));
-
-      if(res)
-        shaderc_result_release(res);
-
-      return ret;
-    }
-
-    size_t sz = shaderc_result_get_length(res);
-
-    TEST_ASSERT((sz % 4) == 0, "shaderc result isn't 4-byte aligned");
-
-    ret.resize(sz / 4);
-
-    memcpy(&ret[0], shaderc_result_get_bytes(res), sz);
-
-    shaderc_result_release(res);
-
-    shaderc_compile_options_release(opts);
-
-    return ret;
-#endif
-  }
 
   std::string command_line;
 
@@ -567,11 +449,7 @@ void GraphicsTest::Prepare(int argc, char **argv)
   if(prepared)
     return;
 
-#if USE_LINKED_SHADERC
-  TEST_LOG("Using linked shaderc");
-#else
   TEST_LOG("Requires glslc/shaderc for Vulkan tests");
-#endif
 
   prepared = true;
 

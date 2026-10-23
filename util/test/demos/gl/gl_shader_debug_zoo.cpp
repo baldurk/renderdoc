@@ -289,9 +289,9 @@ void main()
       return;
 
     if(!SpvCompilationSupported())
-      Avail = InternalSpvCompiler() ? "Internal SPIR-V compiler did not initialise"
-                                    : "Couldn't find 'glslc' or 'glslangValidator' in PATH - "
-                                      "required for SPIR-V compilation";
+      Avail =
+          "Couldn't find 'glslc' or 'glslangValidator' in PATH - "
+          "required for SPIR-V compilation";
   }
 
   int main()
