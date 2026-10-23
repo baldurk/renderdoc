@@ -452,7 +452,6 @@ struct ReplayControllerInvoker : IReplayController
 {
   ReplayControllerInvoker(ICaptureContext &ctx) : m_Ctx(ctx) {}
   virtual ~ReplayControllerInvoker() {}
-  PythonShell *m_Shell;
   ICaptureContext &m_Ctx;
 
   template <typename F, typename... paramTypes>
@@ -843,6 +842,191 @@ struct ReplayControllerInvoker : IReplayController
   {
     return InvokeRetFunction<bytebuf>(&IReplayController::GetTextureData, tex, sub);
   }
+};
+
+struct CaptureAccessInvoker : ICaptureAccess
+{
+  CaptureAccessInvoker(ICaptureContext &ctx) : m_Ctx(ctx), m_Replay(m_Ctx.Replay()) {}
+  virtual ~CaptureAccessInvoker() {}
+  ICaptureContext &m_Ctx;
+  IReplayManager &m_Replay;
+
+  template <typename R, typename F, typename... paramTypes>
+  R InvokeRetFunction(F ptr, paramTypes... params)
+  {
+    R ret = R();
+
+    if(!m_Replay.GetCaptureAccess())
+      return ret;
+
+    void *ctx = PythonContext::PausePythonThreading();
+
+    auto callback = [&ret, ptr, params...](ICaptureAccess *access) {
+      ret = (access->*ptr)(params...);
+    };
+
+    // ensure we either call on replay thread (if needed) or UI thread. Capture access isn't thread
+    // safe so we don't want it to race otherwise
+    if(m_Replay.CurrentRemote().IsConnected())
+      m_Replay.BlockInvoke(
+          [this, &callback](IReplayController *) { callback(m_Replay.GetCaptureAccess()); });
+    else
+      GUIInvoke::blockcall(m_Ctx.GetMainWindow()->Widget(),
+                           [this, callback]() { callback(m_Replay.GetCaptureAccess()); });
+
+    PythonContext::ResumePythonThreading(ctx);
+    return ret;
+  }
+
+  rdcarray<GPUDevice> GetAvailableGPUs()
+  {
+    return InvokeRetFunction<rdcarray<GPUDevice>>(&ICaptureAccess::GetAvailableGPUs);
+  }
+
+  int32_t GetSectionCount() { return InvokeRetFunction<int32_t>(&ICaptureAccess::GetSectionCount); }
+
+  int32_t FindSectionByName(const rdcstr &name)
+  {
+    return InvokeRetFunction<int32_t>(&ICaptureAccess::FindSectionByName, name);
+  }
+
+  int32_t FindSectionByType(SectionType type)
+  {
+    return InvokeRetFunction<int32_t>(&ICaptureAccess::FindSectionByType, type);
+  }
+
+  SectionProperties GetSectionProperties(int32_t index)
+  {
+    return InvokeRetFunction<SectionProperties>(&ICaptureAccess::GetSectionProperties, index);
+  }
+
+  bytebuf GetSectionContents(int32_t index)
+  {
+    return InvokeRetFunction<bytebuf>(&ICaptureAccess::GetSectionContents, index);
+  }
+
+  ResultDetails WriteSection(const SectionProperties &props, const bytebuf &contents)
+  {
+    return InvokeRetFunction<ResultDetails>(&ICaptureAccess::WriteSection, props, contents);
+  }
+
+  bool HasCallstacks() { return InvokeRetFunction<bool>(&ICaptureAccess::HasCallstacks); }
+
+  ResultDetails InitResolver(bool interactive, RENDERDOC_ProgressCallback progress = NULL)
+  {
+    return InvokeRetFunction<ResultDetails>(&ICaptureAccess::InitResolver, interactive, progress);
+  }
+
+  rdcarray<rdcstr> GetResolve(const rdcarray<uint64_t> &callstack)
+  {
+    return InvokeRetFunction<rdcarray<rdcstr>>(&ICaptureAccess::GetResolve, callstack);
+  }
+
+  rdcstr DriverName() { return InvokeRetFunction<rdcstr>(&ICaptureAccess::DriverName); }
+
+  ResultDetails EmbedDependenciesIntoCapture()
+  {
+    return InvokeRetFunction<ResultDetails>(&ICaptureAccess::EmbedDependenciesIntoCapture);
+  }
+
+  ResultDetails RemoveDependenciesFromCapture()
+  {
+    return InvokeRetFunction<ResultDetails>(&ICaptureAccess::RemoveDependenciesFromCapture);
+  }
+
+  bool HasEmbeddedDependencies()
+  {
+    return InvokeRetFunction<bool>(&ICaptureAccess::HasEmbeddedDependencies);
+  }
+
+  bool HasPendingDependencies()
+  {
+    return InvokeRetFunction<bool>(&ICaptureAccess::HasPendingDependencies);
+  }
+
+  rdcarray<rdcstr> GetPendingDependenciesNicknames()
+  {
+    return InvokeRetFunction<rdcarray<rdcstr>>(&ICaptureAccess::GetPendingDependenciesNicknames);
+  }
+};
+
+// annoyingly we only need this to be able to return the capture access invoker
+struct ReplayInvoker : IReplayManager
+{
+  CaptureAccessInvoker m_Access;
+
+  IReplayManager &m_Replay;
+
+  ReplayInvoker(ICaptureContext &ctx) : m_Access(ctx), m_Replay(ctx.Replay()) {}
+  virtual ~ReplayInvoker() {}
+
+  void DeleteCapture(const rdcstr &capturefile, bool local)
+  {
+    return m_Replay.DeleteCapture(capturefile, local);
+  }
+
+  ResultDetails ConnectToRemoteServer(RemoteHost host)
+  {
+    return m_Replay.ConnectToRemoteServer(host);
+  }
+
+  void DisconnectFromRemoteServer() { return m_Replay.DisconnectFromRemoteServer(); }
+
+  void ShutdownServer() { return m_Replay.ShutdownServer(); }
+
+  void PingRemote() { return m_Replay.PingRemote(); }
+
+  void CancelReplayLoop() { return m_Replay.CancelReplayLoop(); }
+
+  RemoteHost CurrentRemote() { return m_Replay.CurrentRemote(); }
+
+  ICaptureAccess *GetCaptureAccess()
+  {
+    if(m_Replay.GetCaptureAccess())
+      return &m_Access;
+
+    return NULL;
+  }
+
+  ICaptureFile *GetCaptureFile() { return m_Replay.GetCaptureFile(); }
+
+  ExecuteResult ExecuteAndInject(const rdcstr &exe, const rdcstr &workingDir, const rdcstr &cmdLine,
+                                 const rdcarray<EnvironmentModification> &env,
+                                 const rdcstr &capturefile, CaptureOptions opts)
+  {
+    return m_Replay.ExecuteAndInject(exe, workingDir, cmdLine, env, capturefile, opts);
+  }
+
+  rdcarray<rdcstr> GetRemoteSupport() { return m_Replay.GetRemoteSupport(); }
+
+  void GetHomeFolder(bool synchronous, DirectoryBrowseCallback callback)
+  {
+    return m_Replay.GetHomeFolder(synchronous, callback);
+  }
+
+  void ListFolder(const rdcstr &path, bool synchronous, DirectoryBrowseCallback callback)
+  {
+    return m_Replay.ListFolder(path, synchronous, callback);
+  }
+
+  rdcstr CopyCaptureToRemote(const rdcstr &localpath, QWidget *window)
+  {
+    return m_Replay.CopyCaptureToRemote(localpath, window);
+  }
+
+  void CopyCaptureFromRemote(const rdcstr &remotepath, const rdcstr &localpath, QWidget *window)
+  {
+    return m_Replay.CopyCaptureFromRemote(remotepath, localpath, window);
+  }
+
+  float GetCurrentProcessingTime() { return m_Replay.GetCurrentProcessingTime(); }
+
+  void AsyncInvoke(ReplayInvokeCallback method, rdcstr tag)
+  {
+    return m_Replay.AsyncInvoke(method, tag);
+  }
+
+  void BlockInvoke(ReplayInvokeCallback method) { return m_Replay.BlockInvoke(method); }
 };
 
 struct IMainWindowInvoker : UIThreadInvoker<IMainWindow>
@@ -1350,6 +1534,7 @@ struct CaptureContextInvoker : public UIThreadInvoker<ICaptureContext>
 {
   ExtensionInvoker *m_Ext;
   ReplayControllerInvoker m_ReplayController;
+  ReplayInvoker m_Replay;
 
 #define WINDOW_INVOKER(iface)                              \
   iface##Invoker *m_invoker##iface = NULL;                 \
@@ -1380,7 +1565,8 @@ struct CaptureContextInvoker : public UIThreadInvoker<ICaptureContext>
   WINDOW_INVOKER(IPythonShell);
   WINDOW_INVOKER(IResourceInspector);
 
-  CaptureContextInvoker(ICaptureContext &ctx) : UIThreadInvoker(ctx, ctx), m_ReplayController(ctx)
+  CaptureContextInvoker(ICaptureContext &ctx)
+      : UIThreadInvoker(ctx, ctx), m_ReplayController(ctx), m_Replay(ctx)
   {
     m_Ext = new ExtensionInvoker(ctx, ctx.Extensions());
   }
@@ -1399,7 +1585,7 @@ struct CaptureContextInvoker : public UIThreadInvoker<ICaptureContext>
     return m_Obj.TempCaptureFilename(appname);
   }
   virtual IExtensionManager &Extensions() override { return *m_Ext; }
-  virtual IReplayManager &Replay() override { return m_Obj.Replay(); }
+  virtual IReplayManager &Replay() override { return m_Replay; }
   virtual bool IsCaptureLoaded() override { return m_Obj.IsCaptureLoaded(); }
   virtual bool IsCaptureLocal() override { return m_Obj.IsCaptureLocal(); }
   virtual bool IsCaptureTemporary() override { return m_Obj.IsCaptureTemporary(); }

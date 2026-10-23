@@ -2098,6 +2098,44 @@ If no tag is present, the callback will be processed as normal.
 )");
   virtual void BlockInvoke(ReplayInvokeCallback method) = 0;
 
+#if !defined(SWIG) && !defined(SWIG_GENERATED)
+  // helper for ICaptureAccess - if we are replaying remotely we need to invoke onto the replay
+  // thread (and given the interface normally blocking) to use it, but if not it is safe to access
+  // directly on the UI thread so we can skip the invoke.
+  //
+  // returns false if no capture is open so the callback isn't invoked
+  //
+  // this is hidden from swig as for python the threading is less controlled there so we wrap the
+  // ICaptureAccess with a force-blocking invoker
+  bool AccessInvoke(std::function<void(ICaptureAccess *)> callback, bool blocking, rdcstr tag)
+  {
+    if(!GetCaptureAccess())
+      return false;
+
+    if(CurrentRemote().IsConnected())
+    {
+      if(blocking)
+        BlockInvoke([this, callback](IReplayController *) { callback(GetCaptureAccess()); });
+      else
+        AsyncInvoke([this, callback](IReplayController *) { callback(GetCaptureAccess()); }, tag);
+    }
+    else
+    {
+      callback(GetCaptureAccess());
+    }
+
+    return true;
+  }
+  bool BlockAccessInvoke(std::function<void(ICaptureAccess *)> callback)
+  {
+    return AccessInvoke(callback, true, "");
+  }
+  bool AsyncAccessInvoke(std::function<void(ICaptureAccess *)> callback)
+  {
+    return AccessInvoke(callback, false, "");
+  }
+#endif
+
 protected:
   IReplayManager() = default;
   ~IReplayManager() = default;

@@ -1228,29 +1228,32 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const Repla
             .arg(origFilename));
   }
 
-  ICaptureAccess *access = Replay().GetCaptureAccess();
-
-  if(access)
-  {
+  Replay().BlockAccessInvoke([this](ICaptureAccess *access) {
     int idx = access->FindSectionByType(SectionType::ResourceRenames);
     if(idx >= 0)
     {
       bytebuf buf = access->GetSectionContents(idx);
-      LoadRenames(QString::fromUtf8((const char *)buf.data(), buf.count()));
+      GUIInvoke::call(m_MainWindow, [this, buf]() {
+        LoadRenames(QString::fromUtf8((const char *)buf.data(), buf.count()));
+      });
     }
 
     idx = access->FindSectionByType(SectionType::Bookmarks);
     if(idx >= 0)
     {
       bytebuf buf = access->GetSectionContents(idx);
-      LoadBookmarks(QString::fromUtf8((const char *)buf.data(), buf.count()));
+      GUIInvoke::call(m_MainWindow, [this, buf]() {
+        LoadBookmarks(QString::fromUtf8((const char *)buf.data(), buf.count()));
+      });
     }
 
     idx = access->FindSectionByType(SectionType::Notes);
     if(idx >= 0)
     {
       bytebuf buf = access->GetSectionContents(idx);
-      LoadNotes(QString::fromUtf8((const char *)buf.data(), buf.count()));
+      GUIInvoke::call(m_MainWindow, [this, buf]() {
+        LoadNotes(QString::fromUtf8((const char *)buf.data(), buf.count()));
+      });
     }
 
     idx = access->FindSectionByType(SectionType::EditedShaders);
@@ -1271,7 +1274,7 @@ void CaptureContext::LoadCaptureThreaded(const QString &captureFile, const Repla
     {
       ANALYTIC_ADDUNIQ(APIs, driver);
     }
-  }
+  });
 
   m_LoadInProgress = false;
   m_CaptureLoaded = true;
@@ -3119,17 +3122,17 @@ void CaptureContext::AddDockWindow(QWidget *newWindow, DockReference ref, QWidge
 
 void CaptureContext::EmbedDependentFiles()
 {
-  if(!m_Replay.GetCaptureAccess())
-    return;
-
   // Always operate on the capture access (local or remote)
   QString tag = lit("replayEmbedDependenciesIntoCapture");
   bool done = false;
 
-  Replay().AsyncInvoke(tag, [this, &done](IReplayController *) {
-    m_Replay.GetCaptureAccess()->EmbedDependenciesIntoCapture();
-    done = true;
-  });
+  if(!Replay().AccessInvoke(
+         [this, &done](ICaptureAccess *access) {
+           access->EmbedDependenciesIntoCapture();
+           done = true;
+         },
+         false, tag))
+    return;
 
   // wait a short while before displaying the progress dialog
   for(int i = 0; !done && (i < 100 || m_Replay.GetCurrentProcessingTag().isEmpty() ||
@@ -3164,17 +3167,17 @@ void CaptureContext::EmbedDependentFiles()
 
 void CaptureContext::RemoveDependentFiles()
 {
-  if(!m_Replay.GetCaptureAccess())
-    return;
-
   // Always operate on the capture access (local or remote)
   QString tag = lit("replayRemoveDependenciesFromCapture");
   bool done = false;
 
-  Replay().AsyncInvoke(tag, [this, &done](IReplayController *) {
-    m_Replay.GetCaptureAccess()->RemoveDependenciesFromCapture();
-    done = true;
-  });
+  if(!Replay().AccessInvoke(
+         [this, &done](ICaptureAccess *access) {
+           access->RemoveDependenciesFromCapture();
+           done = true;
+         },
+         false, tag))
+    return;
 
   // wait a short while before displaying the progress dialog
   for(int i = 0; !done && (i < 100 || m_Replay.GetCurrentProcessingTag().isEmpty() ||

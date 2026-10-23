@@ -180,16 +180,11 @@ void APIInspector::on_apiEvents_itemSelectionChanged()
 
   if(chunk && !chunk->metadata.callstack.isEmpty())
   {
-    if(m_Ctx.Replay().GetCaptureAccess())
-    {
-      m_Ctx.Replay().AsyncInvoke([this, chunk](IReplayController *) {
-        rdcarray<rdcstr> stack =
-            m_Ctx.Replay().GetCaptureAccess()->GetResolve(chunk->metadata.callstack);
+    if(!m_Ctx.Replay().AsyncAccessInvoke([this, chunk](ICaptureAccess *access) {
+         rdcarray<rdcstr> stack = access->GetResolve(chunk->metadata.callstack);
 
-        GUIInvoke::call(this, [this, stack]() { addCallstack(stack); });
-      });
-    }
-    else
+         GUIInvoke::call(this, [this, stack]() { addCallstack(stack); });
+       }))
     {
       ui->callstack->setUpdatesEnabled(false);
       ui->callstack->clear();

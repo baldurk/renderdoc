@@ -43,16 +43,16 @@ ReplayOptionsSelector::ReplayOptionsSelector(ICaptureContext &ctx, bool actions,
 
   // try to use the remote capture access to enumerate remote GPUs, but if it's not available open a
   // local capture access
-  ICaptureFile *dummy = RENDERDOC_OpenCaptureFile();
-  ICaptureAccess *capture = m_Ctx.Replay().GetCaptureAccess();
+  if(!m_Ctx.Replay().BlockAccessInvoke(
+         [this](ICaptureAccess *capture) { m_GPUs = capture->GetAvailableGPUs(); }))
+  {
+    ICaptureFile *dummy = RENDERDOC_OpenCaptureFile();
 
-  if(!capture)
-    capture = dummy;
+    // fetch available GPUs
+    m_GPUs = dummy->GetAvailableGPUs();
 
-  // fetch available GPUs
-  m_GPUs = capture->GetAvailableGPUs();
-
-  dummy->Shutdown();
+    dummy->Shutdown();
+  }
 
   // this is always available
   ui->gpuOverride->addItem(tr("Default GPU selection"));
