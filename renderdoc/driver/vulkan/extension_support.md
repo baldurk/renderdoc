@@ -164,6 +164,7 @@ Maintainers can update this file by updating vk.xml in this folder and running `
 * `VK_KHR_depth_clamp_zero_one`
 * `VK_KHR_depth_stencil_resolve`
 * `VK_KHR_descriptor_update_template`
+* `VK_KHR_device_address_commands`
 * `VK_KHR_device_group_creation`
 * `VK_KHR_device_group`
 * `VK_KHR_display_swapchain`
@@ -302,7 +303,6 @@ KHR extensions will definitely be implemented at some point, though KHR extensio
 
 * `VK_KHR_cooperative_matrix`
 * `VK_KHR_copy_memory_indirect`
-* `VK_KHR_device_address_commands`
 * `VK_KHR_device_fault`
 * `VK_KHR_internally_synchronized_queues`
 * `VK_KHR_maintenance10`
