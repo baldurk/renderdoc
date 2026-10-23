@@ -1319,6 +1319,10 @@ void CaptureContext::RecompressCapture()
 
     destFilename = m_MainWindow->GetSavePath();
 
+    // the user can also cancel the save dialog after clicking yes
+    if(destFilename.isEmpty())
+      return;
+
     // if it's already local, we'll do the save as part of the recompression convert. If it's
     // remote, we need to copy it first, but we copy it to a temporary so we can do the conversion
     // to the target location
@@ -1352,6 +1356,11 @@ void CaptureContext::RecompressCapture()
   {
     // for local files we already have a handle. We'll reuse it, then re-open
     cap = m_Replay.GetCaptureFile();
+    if(!cap)
+    {
+      m_Replay.ReopenCaptureFile(m_CaptureFile);
+      cap = m_Replay.GetCaptureFile();
+    }
   }
   else
   {
