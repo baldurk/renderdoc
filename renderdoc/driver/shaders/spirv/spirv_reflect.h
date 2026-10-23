@@ -111,7 +111,8 @@ class Reflector : public Processor
 {
 public:
   Reflector();
-  virtual void Parse(const rdcarray<uint32_t> &spirvWords);
+
+  using Processor::Parse;
 
   rdcstr Disassemble(const rdcstr &entryPoint, const rdcarray<SpecConstant> &specInfo,
                      std::map<size_t, uint32_t> &instructionLines) const;

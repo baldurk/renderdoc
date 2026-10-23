@@ -699,7 +699,9 @@ class Debugger : public Processor, public ShaderDebugger
 public:
   Debugger();
   ~Debugger();
-  virtual void Parse(const rdcarray<uint32_t> &spirvWords);
+
+  using Processor::Parse;
+
   ShaderDebugTrace *BeginDebug(DebugAPIWrapper *apiWrapper, const ShaderStage stage,
                                const rdcstr &entryPoint, const rdcarray<SpecConstant> &specInfo,
                                const std::map<size_t, uint32_t> &instructionLines,

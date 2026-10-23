@@ -596,11 +596,6 @@ Reflector::Reflector()
 {
 }
 
-void Reflector::Parse(const rdcarray<uint32_t> &spirvWords)
-{
-  Processor::Parse(spirvWords);
-}
-
 void Reflector::PreParse(uint32_t maxId)
 {
   Processor::PreParse(maxId);
@@ -2619,7 +2614,7 @@ TEST_CASE("Validate SPIR-V reflection", "[spirv][reflection]")
     REQUIRE(!spirv.empty());
 
     rdcspv::Reflector spv;
-    spv.Parse(spirv);
+    spv.Parse(std::move(spirv));
 
     SPIRVPatchData patchData;
     spv.MakeReflection(type == ShaderType::Vulkan ? GraphicsAPI::Vulkan : GraphicsAPI::OpenGL,

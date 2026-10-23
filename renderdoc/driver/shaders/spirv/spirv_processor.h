@@ -591,7 +591,10 @@ public:
   const Decorations &GetDecorations(Id id) const { return decorations[id]; };
   const rdcarray<uint32_t> &GetSPIRV() const { return m_SPIRV; }
 protected:
-  virtual void Parse(const rdcarray<uint32_t> &spirvWords);
+  bool Parse(rdcarray<uint32_t> &&spirvWords);
+  bool Parse(const void *spirvWords, size_t byteSize);
+  bool Parse(const rdcarray<uint32_t> &spirvWords);
+  bool Parse();
 
   rdcarray<uint32_t> m_SPIRV;
 

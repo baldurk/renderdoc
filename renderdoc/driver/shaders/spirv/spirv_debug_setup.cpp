@@ -331,11 +331,6 @@ void Debugger::ClampScalars(const ShaderVariable &var, uint8_t &scalar0, uint8_t
   }
 }
 
-void Debugger::Parse(const rdcarray<uint32_t> &spirvWords)
-{
-  Processor::Parse(spirvWords);
-}
-
 ConstIter Debugger::GetIterForInstruction(uint32_t inst) const
 {
   return ConstIter(m_SPIRV, instructionOffsets[inst]);
