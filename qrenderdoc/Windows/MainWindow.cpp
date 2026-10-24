@@ -2873,7 +2873,7 @@ void MainWindow::on_action_Open_RGP_Profile_triggered()
     return;
 
   QString path;
-  m_Ctx.Replay().BlockAccessInvoke([this, &path](ICaptureAccess *access) {
+  m_Ctx.Replay().BlockAccessInvoke([&path](ICaptureAccess *access) {
     int idx = access->FindSectionByType(SectionType::AMDRGPProfile);
 
     if(idx < 0)

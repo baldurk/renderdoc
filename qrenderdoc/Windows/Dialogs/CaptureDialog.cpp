@@ -470,6 +470,8 @@ void CaptureDialog::vulkanLayerWarn_mouseClick()
         bool needReg = RENDERDOC_NeedVulkanLayerRegistration(NULL);
         ui->vulkanLayerWarn->setVisible(needReg);
 
+        (void)admin;
+
 #if !defined(Q_OS_LINUX) || defined(Q_OS_FREEBSD)
         // can't alert the user on linux because the command might still be running - there's
         // seemingly no portable way to wait for the command to finish.
