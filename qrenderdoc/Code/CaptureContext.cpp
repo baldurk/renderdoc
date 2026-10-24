@@ -3181,7 +3181,7 @@ void CaptureContext::RemoveDependentFiles()
   bool done = false;
 
   if(!Replay().AccessInvoke(
-         [this, &done](ICaptureAccess *access) {
+         [&done](ICaptureAccess *access) {
            access->RemoveDependenciesFromCapture();
            done = true;
          },
