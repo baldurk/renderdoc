@@ -3136,7 +3136,7 @@ void CaptureContext::EmbedDependentFiles()
   bool done = false;
 
   if(!Replay().AccessInvoke(
-         [this, &done](ICaptureAccess *access) {
+         [&done](ICaptureAccess *access) {
            access->EmbedDependenciesIntoCapture();
            done = true;
          },
