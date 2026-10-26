@@ -2745,7 +2745,7 @@ void MainWindow::on_action_Resolve_Symbols_triggered()
   float progress = 0.0f;
   bool finished = false;
 
-  if(!m_Ctx.Replay().AsyncAccessInvoke([this, &progress, &finished](ICaptureAccess *access) {
+  if(!m_Ctx.Replay().SlowAsyncAccessInvoke([this, &progress, &finished](ICaptureAccess *access) {
        ResultDetails success = access->InitResolver(true, [&progress](float p) { progress = p; });
 
        if(!success.OK())

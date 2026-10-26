@@ -3131,22 +3131,16 @@ void CaptureContext::AddDockWindow(QWidget *newWindow, DockReference ref, QWidge
 
 void CaptureContext::EmbedDependentFiles()
 {
-  // Always operate on the capture access (local or remote)
-  QString tag = lit("replayEmbedDependenciesIntoCapture");
   bool done = false;
 
-  if(!Replay().AccessInvoke(
-         [&done](ICaptureAccess *access) {
-           access->EmbedDependenciesIntoCapture();
-           done = true;
-         },
-         false, tag))
+  if(!Replay().SlowAsyncAccessInvoke([&done](ICaptureAccess *access) {
+       access->EmbedDependenciesIntoCapture();
+       done = true;
+     }))
     return;
 
   // wait a short while before displaying the progress dialog
-  for(int i = 0; !done && (i < 100 || m_Replay.GetCurrentProcessingTag().isEmpty() ||
-                           m_Replay.GetCurrentProcessingTag() == tag);
-      i++)
+  for(int i = 0; !done && i < 100; i++)
     QThread::msleep(5);
 
   ShowProgressDialog(m_MainWindow->Widget(), tr("Please wait, working..."),
@@ -3176,22 +3170,16 @@ void CaptureContext::EmbedDependentFiles()
 
 void CaptureContext::RemoveDependentFiles()
 {
-  // Always operate on the capture access (local or remote)
-  QString tag = lit("replayRemoveDependenciesFromCapture");
   bool done = false;
 
-  if(!Replay().AccessInvoke(
-         [&done](ICaptureAccess *access) {
-           access->RemoveDependenciesFromCapture();
-           done = true;
-         },
-         false, tag))
+  if(!Replay().SlowAsyncAccessInvoke([&done](ICaptureAccess *access) {
+       access->RemoveDependenciesFromCapture();
+       done = true;
+     }))
     return;
 
   // wait a short while before displaying the progress dialog
-  for(int i = 0; !done && (i < 100 || m_Replay.GetCurrentProcessingTag().isEmpty() ||
-                           m_Replay.GetCurrentProcessingTag() == tag);
-      i++)
+  for(int i = 0; !done && i < 100; i++)
     QThread::msleep(5);
 
   ShowProgressDialog(m_MainWindow->Widget(), tr("Please wait, working..."),

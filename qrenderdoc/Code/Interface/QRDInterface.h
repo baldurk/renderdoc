@@ -2107,12 +2107,15 @@ If no tag is present, the callback will be processed as normal.
   //
   // this is hidden from swig as for python the threading is less controlled there so we wrap the
   // ICaptureAccess with a force-blocking invoker
-  bool AccessInvoke(std::function<void(ICaptureAccess *)> callback, bool blocking, rdcstr tag)
+  bool AccessInvoke(std::function<void(ICaptureAccess *)> callback, bool blocking, bool forceReplay,
+                    rdcstr tag)
   {
     if(!GetCaptureAccess())
       return false;
 
-    if(CurrentRemote().IsConnected())
+    // some long running processes may be better to put on the replay thread even when local, so
+    // that we can keep the UI thread unblocked
+    if(CurrentRemote().IsConnected() || forceReplay)
     {
       if(blocking)
         BlockInvoke([this, callback](IReplayController *) { callback(GetCaptureAccess()); });
@@ -2126,13 +2129,21 @@ If no tag is present, the callback will be processed as normal.
 
     return true;
   }
+  // simple blocking access
   bool BlockAccessInvoke(std::function<void(ICaptureAccess *)> callback)
   {
-    return AccessInvoke(callback, true, "");
+    return AccessInvoke(callback, true, false, "");
   }
+  // async access (will still be on the UI thread locally)
   bool AsyncAccessInvoke(std::function<void(ICaptureAccess *)> callback)
   {
-    return AccessInvoke(callback, false, "");
+    return AccessInvoke(callback, false, false, "");
+  }
+  // async access, will always be on the replay thread even locally so the UI thread can e.g.
+  // display a progress spinner
+  bool SlowAsyncAccessInvoke(std::function<void(ICaptureAccess *)> callback)
+  {
+    return AccessInvoke(callback, false, true, "");
   }
 #endif
 
