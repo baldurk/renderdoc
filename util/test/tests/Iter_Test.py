@@ -436,7 +436,7 @@ class Iter_Test(rdtest.TestCase):
             rdtest.log.print(f"Opening '{file.name}'.")
 
             try:
-                self.controller = rdtest.open_capture(file.path)
+                self.cap, self.controller = rdtest.open_capture(file.path)
             except RuntimeError as err:
                 rdtest.log.print(f"Skipping. Can't open {file.path}: {err}")
                 continue
@@ -450,6 +450,8 @@ class Iter_Test(rdtest.TestCase):
             rdtest.log.end_section(section_name)
 
             self.controller.Shutdown()
+            if self.cap is not None:
+                self.cap.Shutdown()
 
         rdtest.log.success("Iterated all files")
 

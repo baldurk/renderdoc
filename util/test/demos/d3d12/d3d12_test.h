@@ -30,17 +30,6 @@
 #include "dx/official/dxgi.h"
 #include "d3d12_helpers.h"
 
-#include "dx/official/d3dcompiler.h"
-
-typedef HRESULT(WINAPI *pD3DStripShader)(_In_reads_bytes_(BytecodeLength) LPCVOID pShaderBytecode,
-                                         _In_ SIZE_T BytecodeLength, _In_ UINT uStripFlags,
-                                         _Out_ ID3DBlob **ppStrippedBlob);
-typedef HRESULT(WINAPI *pD3DSetBlobPart)(_In_reads_bytes_(SrcDataSize) LPCVOID pSrcData,
-                                         _In_ SIZE_T SrcDataSize, _In_ D3D_BLOB_PART Part,
-                                         _In_ UINT Flags, _In_reads_bytes_(PartSize) LPCVOID pPart,
-                                         _In_ SIZE_T PartSize, _Out_ ID3DBlob **ppNewShader);
-typedef HRESULT(WINAPI *pD3DCreateBlob)(SIZE_T Size, ID3DBlob **ppBlob);
-
 struct Win32Window;
 
 struct D3D12GraphicsTest : public GraphicsTest
@@ -83,6 +72,7 @@ struct D3D12GraphicsTest : public GraphicsTest
     SkipOptimise = 1 << 0,
     Enable16BitTypes = 1 << 1,
     SeparateDebug = 1 << 2,
+    ManualDebugName = 1 << 3,
   };
 
   ID3DBlobPtr Compile(std::string src, std::string entry, std::string profile,

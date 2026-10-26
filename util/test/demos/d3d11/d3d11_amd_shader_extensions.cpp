@@ -272,8 +272,9 @@ void main(uint3 threadID : SV_DispatchThreadID)
 
     ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_4_0");
     // can't skip optimising and still have the extensions work, sadly
-    ID3DBlobPtr psblob = Compile(ags_header + BaryCentricPixel, "main", "ps_5_0", false);
-    ID3DBlobPtr csblob = Compile(ags_header + MaxCompute, "main", "cs_5_0", false);
+    ID3DBlobPtr psblob =
+        Compile(ags_header + BaryCentricPixel, "main", "ps_5_0", CompileOptionFlags::None);
+    ID3DBlobPtr csblob = Compile(ags_header + MaxCompute, "main", "cs_5_0", CompileOptionFlags::None);
 
     CreateDefaultInputLayout(vsblob);
 

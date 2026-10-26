@@ -214,6 +214,7 @@
     <ClCompile Include="d3d12\d3d12_sharing.cpp" />
     <ClCompile Include="d3d12\d3d12_simple_dispatch.cpp" />
     <ClCompile Include="d3d12\d3d12_simple_triangle.cpp" />
+    <ClCompile Include="d3d12\d3d12_stripped_shaders.cpp" />
     <ClCompile Include="d3d12\d3d12_subgroup_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_swapchain_zoo.cpp" />
     <ClCompile Include="d3d12\d3d12_template.cpp" />
@@ -348,6 +349,7 @@
     <ClCompile Include="vk\vk_shader_printf.cpp" />
     <ClCompile Include="vk\vk_spec_constants.cpp" />
     <ClCompile Include="vk\vk_spirv_13_shaders.cpp" />
+    <ClCompile Include="vk\vk_stripped_shaders.cpp" />
     <ClCompile Include="vk\vk_subgroup_zoo.cpp" />
     <ClCompile Include="vk\vk_sync2.cpp" />
     <ClCompile Include="vk\vk_template.cpp" />

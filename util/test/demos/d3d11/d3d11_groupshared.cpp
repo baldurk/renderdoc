@@ -163,7 +163,7 @@ void main(uint3 gid : SV_GroupThreadID)
     ID3D11UnorderedAccessViewPtr inUAV = MakeUAV(inBuf);
     ID3D11UnorderedAccessViewPtr outUAV = MakeUAV(outBuf);
 
-    ID3D11ComputeShaderPtr shad = CreateCS(Compile(comp, "main", "cs_5_0", true));
+    ID3D11ComputeShaderPtr shad = CreateCS(Compile(comp, "main", "cs_5_0"));
 
     int cbufferdata[4];
     memset(cbufferdata, 0, sizeof(cbufferdata));

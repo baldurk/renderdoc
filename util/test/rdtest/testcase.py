@@ -263,6 +263,7 @@ class TestCase:
         self.capture_filename = ""
         self.worker_thread = 0
         self.controller: rd.ReplayController | None = None
+        self.cap: rd.CaptureFile | None = None
         self.sdfile: rd.SDFile | None = None
         self.contexts: List[ScopedContext] = []
         self.cur_event = 0
@@ -319,7 +320,7 @@ class TestCase:
             if timeout is None:
                 timeout = util.get_demos_timeout()
             return capture.run_and_capture(exe,
-                                           self.demos_test_name + " --log " + remote_logfile,
+                                           f"{self.demos_test_name} --log {remote_logfile} --tmp {util.get_tmp_dir()}",
                                            self.demos_frame_cap, frame_count=self.demos_frame_count,
                                            captures_expected=self.demos_captures_expected, logfile=logfile,
                                            opts=self.get_capture_options(), timeout=timeout)
@@ -761,7 +762,7 @@ class TestCase:
 
         log.print("Loading capture")
 
-        self.controller = analyse.open_capture(self.capture_filename, opts=self.get_replay_options())
+        self.cap, self.controller = analyse.open_capture(self.capture_filename, opts=self.get_replay_options())
         self.sdfile = self.controller.GetStructuredFile()
 
         if not self.validate_eventids(self.controller):
@@ -781,6 +782,9 @@ class TestCase:
                 util.get_remote_server().CloseCapture(self.controller)
             else:
                 self.controller.Shutdown()
+
+        if self.cap is not None:
+            self.cap.Shutdown()
 
     def invoketest(self, debugMode: bool):
         start_time = self.get_time()

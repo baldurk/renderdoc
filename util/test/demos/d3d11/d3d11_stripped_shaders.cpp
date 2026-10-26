@@ -35,23 +35,45 @@ RD_TEST(D3D11_Stripped_Shaders, D3D11GraphicsTest)
     if(!Init())
       return 3;
 
-    ID3DBlobPtr vsblob = Compile(D3DDefaultVertex, "main", "vs_5_0");
-    ID3DBlobPtr psblob = Compile(D3DDefaultPixel, "main", "ps_5_0");
+    MakeDir((GetCWD() + "/tmp/D3D11_Stripped_Shaders").c_str());
 
-    WriteBlob(GetCWD() + "tmp/D3D11_Stripped_Shaders/shader_debug.vs", vsblob, false);
-    WriteBlob(GetCWD() + "tmp/D3D11_Stripped_Shaders/shader_debug.ps", psblob, true);
+    // several variables:
+    //
+    // legacy whole unstripped blob, or dxc-style just pdb
+    // (for dxc-style) manual named or auto-named
+    // (for legacy-style) lz4 compressed or not
+    // (for legacy-style) PRIV pointed or SetPrivateData
+    // absolute or relative path
+    //
+    // we don't test all possible combinations but check at least one of each
 
-    Strip(vsblob);
-    Strip(psblob);
-
-    SetBlobPath(GetCWD() + "tmp/D3D11_Stripped_Shaders/shader_debug.vs", vsblob);
+    // PRIV will be set with absolute path
+    ID3DBlobPtr vsblob =
+        Compile(D3DDefaultVertex + "\n// shader source // vertex", "main", "vs_5_0",
+                CompileOptionFlags::SeparateDebugLegacy | CompileOptionFlags::SeparateDebugSetPRIV);
+    // we'll set relative SetPrivateData path below
+    ID3DBlobPtr psblob =
+        Compile(D3DDefaultPixel + "\n// shader source // pixel", "main", "ps_5_0",
+                CompileOptionFlags::SeparateDebugLegacy | CompileOptionFlags::ManualDebugName |
+                    CompileOptionFlags::LZ4Compress);
 
     CreateDefaultInputLayout(vsblob);
 
     ID3D11VertexShaderPtr vs = CreateVS(vsblob);
     ID3D11PixelShaderPtr ps = CreatePS(psblob);
 
-    SetBlobPath("lz4#tmp/D3D11_Stripped_Shaders/shader_debug.ps", ps);
+    SetBlobPath("lz4#shader_ps.dbg", ps);
+
+    // manual name will be set absolute in a manual ILDN
+    ID3DBlobPtr vsblob2 =
+        Compile(D3DDefaultVertex + "\n// shader source 2 // vertex", "main", "vs_5_0",
+                CompileOptionFlags::SeparateDebug | CompileOptionFlags::ManualDebugName);
+    // the fxc-generated ILDN will be relative
+    ID3DBlobPtr psblob2 = Compile(D3DDefaultPixel + "\n// shader source 2 // pixel", "main",
+                                  "ps_5_0", CompileOptionFlags::SeparateDebug);
+
+    ID3D11VertexShaderPtr vs2 = CreateVS(vsblob2);
+    ID3D11PixelShaderPtr ps2 = CreatePS(psblob2);
 
     ID3D11BufferPtr vb = MakeBuffer().Vertex().Data(DefaultTri);
 
@@ -70,6 +92,17 @@ RD_TEST(D3D11_Stripped_Shaders, D3D11GraphicsTest)
 
       ctx->OMSetRenderTargets(1, &bbRTV.GetInterfacePtr(), NULL);
 
+      setMarker("test: shader source");
+      setMarker("vertex auto absolute");
+      setMarker("pixel manual relative");
+      ctx->Draw(3, 0);
+
+      ctx->VSSetShader(vs2, NULL, 0);
+      ctx->PSSetShader(ps2, NULL, 0);
+
+      setMarker("test: shader source 2");
+      setMarker("vertex manual absolute");
+      setMarker("pixel auto relative");
       ctx->Draw(3, 0);
 
       Present();

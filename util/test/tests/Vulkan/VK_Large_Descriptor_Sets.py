@@ -15,7 +15,7 @@ class VK_Large_Descriptor_Sets(rdtest.TestCase):
         memory_before = rd.GetCurrentProcessMemoryUsage()
         start_time = self.get_time()
 
-        self.controller = rdtest.open_capture(self.capture_filename, opts=self.get_replay_options())
+        self.cap, self.controller = rdtest.open_capture(self.capture_filename, opts=self.get_replay_options())
 
         duration = self.get_time() - start_time
         memory_after = rd.GetCurrentProcessMemoryUsage()
@@ -37,3 +37,5 @@ class VK_Large_Descriptor_Sets(rdtest.TestCase):
             rdtest.log.print("Not checking time to load in non-release build")
 
         self.controller.Shutdown()
+        if self.cap is not None:
+            self.cap.Shutdown()

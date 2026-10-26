@@ -21,21 +21,13 @@ class GL_Callstacks(rdtest.TestCase):
         return ret
 
     def check_capture(self):
-        # Need capture access. Rather than trying to keep the original around, we just open a new one
-        cap = rd.OpenCaptureFile()
+        if self.cap is None:
+            raise rdtest.TestFailureException(f"Don't have open capture {self.capture_filename}")
 
-        # Open a particular file
-        result = cap.OpenFile(self.capture_filename, '', None)
-
-        # Make sure the file opened successfully
-        if not result:
-            cap.Shutdown()
-            raise rdtest.TestFailureException(f"Couldn't open capture {self.capture_filename} for access: {result!s}")
-
-        if not cap.HasCallstacks():
+        if not self.cap.HasCallstacks():
             raise rdtest.TestFailureException("Capture does not report having callstacks")
 
-        if not cap.InitResolver(False, resolve_progress):
+        if not self.cap.InitResolver(False, resolve_progress):
             raise rdtest.TestFailureException("Failed to initialise callstack resolver")
 
         action = self.find_action("Draw")
@@ -59,7 +51,7 @@ class GL_Callstacks(rdtest.TestCase):
 
         chunk = sdfile.chunks[event.chunkIndex]
 
-        callstack = cap.GetResolve(list(chunk.metadata.callstack))
+        callstack = self.cap.GetResolve(list(chunk.metadata.callstack))
 
         if len(callstack) < len(expected_funcs):
             raise rdtest.TestFailureException(f"Resolved callstack isn't long enough ({len(callstack)} stack frames), expected at least {len(expected_funcs)}")

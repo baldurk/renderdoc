@@ -29,16 +29,6 @@
 #include "dx/official/dxgi.h"
 #include "d3d11_helpers.h"
 
-#include "dx/official/d3dcompiler.h"
-
-typedef HRESULT(WINAPI *pD3DStripShader)(_In_reads_bytes_(BytecodeLength) LPCVOID pShaderBytecode,
-                                         _In_ SIZE_T BytecodeLength, _In_ UINT uStripFlags,
-                                         _Out_ ID3DBlob **ppStrippedBlob);
-typedef HRESULT(WINAPI *pD3DSetBlobPart)(_In_reads_bytes_(SrcDataSize) LPCVOID pSrcData,
-                                         _In_ SIZE_T SrcDataSize, _In_ D3D_BLOB_PART Part,
-                                         _In_ UINT Flags, _In_reads_bytes_(PartSize) LPCVOID pPart,
-                                         _In_ SIZE_T PartSize, _Out_ ID3DBlob **ppNewShader);
-
 struct Win32Window;
 
 struct D3D11GraphicsTest : public GraphicsTest
@@ -74,8 +64,25 @@ struct D3D11GraphicsTest : public GraphicsTest
     BufUAVType = 0xf00,
   };
 
+  enum CompileOptionFlags
+  {
+    None = 0,
+    SkipOptimise = 1 << 0,
+    // the legacy path, where we write the unstripped blob somewhere and set a path either via PRIV
+    // name or SetPrivateData
+    SeparateDebugLegacy = 1 << 1,
+    SeparateDebugSetPRIV = 1 << 2,
+    // the 'new' path which is still manual but matches dxc's behaviour, where we pull out the PDB and set an ILDN name
+    SeparateDebug = 1 << 3,
+    // don't use the auto-generated name for a debug file, name it custom shader_Xs.dbg (so only one
+    // per stage per demo allowed)
+    ManualDebugName = 1 << 4,
+    // only possible for SeparateDebugLegacy and ManualDebugName, lz4 compress the resulting blob
+    LZ4Compress = 1 << 5,
+  };
+
   ID3DBlobPtr Compile(std::string src, std::string entry, std::string profile,
-                      bool skipoptimise = true);
+                      uint32_t compileOptions = CompileOptionFlags::SkipOptimise);
   void Strip(ID3DBlobPtr &ptr);
   void WriteBlob(std::string name, ID3DBlobPtr blob, bool compress);
 

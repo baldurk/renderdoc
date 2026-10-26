@@ -1072,8 +1072,9 @@ float4 main(v2f IN, uint samp : SV_SampleIndex) : SV_Target0
                                     vsblob->GetBufferSize(), &layout));
 
     ID3D11VertexShaderPtr vs = CreateVS(vsblob);
-    ID3D11PixelShaderPtr ps = CreatePS(Compile(common + pixel, "main", "ps_5_0", true));
-    ID3D11PixelShaderPtr psopt = CreatePS(Compile(common + pixel, "main", "ps_5_0", false));
+    ID3D11PixelShaderPtr ps = CreatePS(Compile(common + pixel, "main", "ps_5_0"));
+    ID3D11PixelShaderPtr psopt =
+        CreatePS(Compile(common + pixel, "main", "ps_5_0", CompileOptionFlags::None));
     ID3D11PixelShaderPtr flowps = CreatePS(Compile(common + flowPixel, "main", "ps_5_0"));
 
     static const uint32_t texDim = AlignUp(numTests, 64U) * 4;

@@ -691,8 +691,8 @@ Usage: %s Test_Name [test_options]
     if(testchoice == name)
     {
       TEST_LOG("Running '%s'", test.Name);
-      test.test->Prepare(argc, argv);
       test.test->SetName(test.Name);
+      test.test->Prepare(argc, argv);
 
       if(!test.IsAvailable())
       {

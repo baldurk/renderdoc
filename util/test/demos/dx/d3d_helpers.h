@@ -29,9 +29,23 @@
 #include <vector>
 #include "dx/official/dxgi1_4.h"
 
+#include "dx/official/d3dcompiler.h"
+
 extern std::string D3DFullscreenQuadVertex;
 extern std::string D3DDefaultVertex;
 extern std::string D3DDefaultPixel;
+
+typedef HRESULT(WINAPI *pD3DStripShader)(_In_reads_bytes_(BytecodeLength) LPCVOID pShaderBytecode,
+                                         _In_ SIZE_T BytecodeLength, _In_ UINT uStripFlags,
+                                         _Out_ ID3DBlob **ppStrippedBlob);
+typedef HRESULT(WINAPI *pD3DSetBlobPart)(_In_reads_bytes_(SrcDataSize) LPCVOID pSrcData,
+                                         _In_ SIZE_T SrcDataSize, _In_ D3D_BLOB_PART Part,
+                                         _In_ UINT Flags, _In_reads_bytes_(PartSize) LPCVOID pPart,
+                                         _In_ SIZE_T PartSize, _Out_ ID3DBlob **ppNewShader);
+typedef HRESULT(WINAPI *pD3DGetBlobPart)(_In_reads_bytes_(SrcDataSize) LPCVOID pSrcData,
+                                         _In_ SIZE_T SrcDataSize, _In_ D3D_BLOB_PART Part,
+                                         _In_ UINT Flags, _Out_ ID3DBlob **ppPart);
+typedef HRESULT(WINAPI *pD3DCreateBlob)(SIZE_T Size, ID3DBlob **ppBlob);
 
 #define COM_SMARTPTR(classname) _COM_SMARTPTR_TYPEDEF(classname, __uuidof(classname))
 

@@ -198,8 +198,8 @@ void main(uint3 inGTid : SV_GroupThreadID)
                       compsizes[i].x, compsizes[i].y, compsizes[i].z);
       comppipe_name[i] = fmt::format("{}x{}x{}", compsizes[i].x, compsizes[i].y, compsizes[i].z);
 
-      testShaders[i] = CreateCS(Compile(defines + sizedefine + testShader, "main", "cs_5_0", true));
-      perfShaders[i] = CreateCS(Compile(defines + sizedefine + perfShader, "main", "cs_5_0", true));
+      testShaders[i] = CreateCS(Compile(defines + sizedefine + testShader, "main", "cs_5_0"));
+      perfShaders[i] = CreateCS(Compile(defines + sizedefine + perfShader, "main", "cs_5_0"));
     }
 
     while(Running())

@@ -30,19 +30,12 @@ class GL_Buffer_Updates(rdtest.TestCase):
 
         rdtest.log.success("Draws are all green")
 
-        # Open the capture and grab the thumbnail, check that it is all green too (dirty way of verifying we didn't
+        # grab the thumbnail, check that it is all green too (dirty way of verifying we didn't
         # break in-app updates but somehow end up with the right data)
-        cap = rd.OpenCaptureFile()
+        if self.cap is None:
+            raise rdtest.TestFailureException(f"Don't have open capture {self.capture_filename}")
 
-        # Open a particular file
-        result = cap.OpenFile(self.capture_filename, '', None)
-
-        # Make sure the file opened successfully
-        if not result:
-            cap.Shutdown()
-            raise rdtest.TestFailureException(f"Couldn't open '{self.capture_filename}': {result!s}")
-
-        thumb = cap.GetThumbnail(rd.FileType.PNG, 0)
+        thumb = self.cap.GetThumbnail(rd.FileType.PNG, 0)
 
         tmp_path = rdtest.get_tmp_path('thumbnail.png')
 

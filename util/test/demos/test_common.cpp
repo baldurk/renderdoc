@@ -284,7 +284,8 @@ bool SpvCompilationSupported()
 std::vector<uint32_t> CompileShaderToSpv(const char *demo_name, const std::string &source_text,
                                          SPIRVTarget target, ShaderLang lang, ShaderStage stage,
                                          const char *entry_point,
-                                         const std::map<std::string, std::string> &macros)
+                                         const std::map<std::string, std::string> &macros,
+                                         bool debug_info)
 {
   std::vector<uint32_t> ret;
 
@@ -303,7 +304,9 @@ std::vector<uint32_t> CompileShaderToSpv(const char *demo_name, const std::strin
 
   if(externalCompiler == "glslc")
   {
-    command_line = "glslc" EXECUTABLE_SUFFIX " -g -O0";
+    command_line = "glslc" EXECUTABLE_SUFFIX;
+    if(debug_info)
+      command_line += " -g -O0";
     command_line += " -fentry-point=";
     command_line += entry_point;
 
@@ -349,7 +352,9 @@ std::vector<uint32_t> CompileShaderToSpv(const char *demo_name, const std::strin
   }
   else if(externalCompiler == "glslangValidator")
   {
-    command_line = "glslangValidator" EXECUTABLE_SUFFIX " -g ";
+    command_line = "glslangValidator" EXECUTABLE_SUFFIX;
+    if(debug_info)
+      command_line += " -g ";
     command_line += " --entry-point ";
     command_line += entry_point;
 
@@ -458,6 +463,11 @@ void GraphicsTest::Prepare(int argc, char **argv)
   if(dataRoot.empty())
     dataRoot = GetCWD() + "/data/demos/";
 
+  tmpPath = GetExecutableName();
+  tmpPath.erase(tmpPath.find_last_of("/\\"));
+  tmpPath += "/tmp";
+  MakeDir(tmpPath.c_str());
+
   // parse parameters
   for(int i = 0; i < argc; i++)
   {
@@ -475,6 +485,11 @@ void GraphicsTest::Prepare(int argc, char **argv)
     if(i + 1 < argc && !strcmp(argv[i], "--log"))
     {
       logFile = fopen(argv[i + 1], "w");
+    }
+
+    if(i + 1 < argc && !strcmp(argv[i], "--tmp"))
+    {
+      tmpPath = argv[i + 1];
     }
 
     if(i + 1 < argc && (!strcmp(argv[i], "--width") || !strcmp(argv[i], "-w")))
@@ -505,6 +520,10 @@ void GraphicsTest::Prepare(int argc, char **argv)
       dataRoot += "/";
     }
   }
+
+  tmpPath += "/";
+  tmpPath += demoName;
+  MakeDir(tmpPath.c_str());
 
   pRENDERDOC_GetAPI RENDERDOC_GetAPI = NULL;
 
