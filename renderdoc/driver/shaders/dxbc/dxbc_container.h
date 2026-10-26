@@ -190,12 +190,18 @@ void EncodeDXCFlags(uint32_t flags, rdcarray<rdcwstr> &args);
 class DXBCContainer
 {
 public:
-  DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPath, GraphicsAPI api,
-                uint32_t shaderExtReg, uint32_t shaderExtSpace);
+  DXBCContainer(bytebuf &&ByteCode, const rdcstr &debugInfoPath = rdcstr());
+  DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPath = rdcstr())
+      : DXBCContainer(bytebuf(ByteCode), debugInfoPath)
+  {
+  }
+  DXBCContainer(DXBCContainer *oldToRecreate, const rdcstr &debugInfoPath);
   ~DXBCContainer();
   DXBCContainer(const DXBCContainer &o) = delete;
   DXBCContainer(DXBCContainer &&o) = delete;
   DXBCContainer &operator=(const DXBCContainer &o) = delete;
+
+  void SetShaderExts(GraphicsAPI api, uint32_t shaderExtReg, uint32_t shaderExtSpace);
 
   DXBC::ShaderType m_Type = DXBC::ShaderType::Max;
   struct
@@ -203,13 +209,14 @@ public:
     uint32_t Major = 0, Minor = 0;
   } m_Version;
 
-  const bytebuf &GetInitialShaderBlob() const { return m_InitialShaderBlob; }
   const bytebuf &GetShaderBlob() const { return m_ShaderBlob; }
   const IDebugInfo *GetDebugInfo() const { return m_DebugInfo; }
   const Reflection *GetReflection() const { return m_Reflection; }
   void CacheOutputTopology();
   D3D_PRIMITIVE_TOPOLOGY GetOutputTopology() const { return m_OutputTopology; }
   ThreadScope GetThreadScope() const { return m_Threadscope; }
+  bool LoadedDebugBlob() const { return !m_DebugShaderBlob.empty() || m_ReplacedBlob; }
+  bool HasDebugInfo() const { return m_HasDebugInfo; }
   const rdcstr &GetDebugInfoLoadingLog() const { return m_DebugInfoLoadingLog; }
 
   CBufferVariableType GetRayPayload(const ShaderEntryPoint &entry)
@@ -265,10 +272,8 @@ public:
   static bool UsesExtensionUAV(uint32_t slot, uint32_t space, const void *ByteCode,
                                size_t BytecodeLength);
 
-  static bool CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLength);
   static bool CheckForDXIL(const void *ByteCode, size_t ByteCodeLength);
   static bool CheckForRootSig(const void *ByteCode, size_t ByteCodeLength);
-  static rdcstr GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength);
   static D3D_PRIMITIVE_TOPOLOGY GetOutputTopology(const void *ByteCode, size_t ByteCodeLength);
 
   bool GetPipelineValidation(DXIL::PSVData &psv) const;
@@ -280,13 +285,19 @@ public:
   static void SetRuntimeData(bytebuf &ByteCode, const DXIL::RDATData &rdat);
 
 private:
-  void TryFetchSeparateDebugInfo(bytebuf &byteCode, const rdcstr &debugInfoPath);
+  static bool CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLength);
+  static rdcstr GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength);
+
+  void Init();
+
+  bool TryFetchSeparateDebugInfo(const rdcstr &debugInfoPath);
   void ProcessSourceInfo(const byte *chunkContents, uint32_t size);
 
   bytebuf m_DebugShaderBlob;
   bytebuf m_ShaderBlob;
-  // Only set when separate debug data is found
-  bytebuf m_InitialShaderBlob;
+
+  bool m_HasDebugInfo = false;
+  bool m_ReplacedBlob = false;
 
   rdcstr m_Disassembly;
   rdcstr m_DebugInfoLoadingLog;
@@ -315,7 +326,7 @@ private:
   rdcflatmap<ShaderEntryPoint, rdcpair<CBufferVariableType, CBufferVariableType>> m_RayPayloads;
 
   ThreadScope m_Threadscope = ThreadScope::Thread;
-  ShaderStatistics m_ShaderStats;
+  ShaderStatistics m_ShaderStats = {};
   DXBCBytecode::Program *m_DXBCByteCode = NULL;
   DXIL::Program *m_DXILByteCode = NULL;
   IDebugInfo *m_DebugInfo = NULL;

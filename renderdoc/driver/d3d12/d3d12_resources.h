@@ -987,8 +987,14 @@ public:
     D3D12_SHADER_BYTECODE GetDesc()
     {
       D3D12_SHADER_BYTECODE ret;
-      ret.BytecodeLength = m_Bytecode.size();
-      ret.pShaderBytecode = (const void *)&m_Bytecode[0];
+
+      // once we've processed into the DXBC file, it owns the blob
+      const bytebuf &bytecode =
+          m_Bytecode.empty() && m_DXBCFile ? m_DXBCFile->GetShaderBlob() : m_Bytecode;
+
+      ret.BytecodeLength = bytecode.size();
+      ret.pShaderBytecode = (const void *)&bytecode[0];
+
       return ret;
     }
 
@@ -997,8 +1003,9 @@ public:
     {
       if(m_DXBCFile == NULL && !m_Bytecode.empty())
       {
-        m_DXBCFile = new DXBC::DXBCContainer(m_Bytecode, rdcstr(), GraphicsAPI::D3D12,
-                                             m_ShaderExtSlot, m_ShaderExtSpace);
+        m_DXBCFile = new DXBC::DXBCContainer(std::move(m_Bytecode));
+        m_DXBCFile->SetShaderExts(GraphicsAPI::D3D12, m_ShaderExtSlot, m_ShaderExtSpace);
+        m_Bytecode.clear();
       }
       return m_DXBCFile;
     }

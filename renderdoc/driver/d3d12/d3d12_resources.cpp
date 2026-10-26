@@ -653,8 +653,15 @@ void WrappedID3D12PipelineState::ShaderEntry::Reload()
   bool wasBuilt = m_Built;
   m_Built = false;
   *m_Details = ShaderReflection();
-  SAFE_DELETE(m_DXBCFile);
-  if(wasBuilt && (GetDXBC() != NULL))
+
+  if(m_DXBCFile)
+  {
+    // recreate the DXBC file, this will pull any old debug info over
+    m_DXBCFile = new DXBC::DXBCContainer(m_DXBCFile, rdcstr());
+    m_DXBCFile->SetShaderExts(GraphicsAPI::D3D12, m_ShaderExtSlot, m_ShaderExtSpace);
+  }
+
+  if(wasBuilt)
   {
     BuildReflection();
     m_Built = true;
@@ -1000,8 +1007,7 @@ void D3D12ShaderExportDatabase::PopulateDatabase(size_t NumSubobjects,
           RDCERR("Falling back to expensive container-based enumeration of entry points");
 
           DXBC::DXBCContainer container(
-              bytebuf((byte *)dxil->DXILLibrary.pShaderBytecode, dxil->DXILLibrary.BytecodeLength),
-              rdcstr(), GraphicsAPI::D3D12, ~0U, ~0U);
+              bytebuf((byte *)dxil->DXILLibrary.pShaderBytecode, dxil->DXILLibrary.BytecodeLength));
 
           entries = container.GetEntryPoints();
         }

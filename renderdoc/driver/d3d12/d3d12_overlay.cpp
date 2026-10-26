@@ -401,7 +401,7 @@ void D3D12Replay::PatchQuadWritePS(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &pi
   bytebuf rastFeedingBytes((const byte *)rastFeeding->pShaderBytecode, rastFeeding->BytecodeLength);
 
   // get the DXBC for the previous stage
-  DXBC::DXBCContainer rastFeedingDXBC(rastFeedingBytes, rdcstr(), GraphicsAPI::D3D12, ~0U, ~0U);
+  DXBC::DXBCContainer rastFeedingDXBC(rastFeedingBytes);
 
   bytebuf patchedDXBC((const byte *)quadWriteBlob->GetBufferPointer(),
                       quadWriteBlob->GetBufferSize());
@@ -422,7 +422,7 @@ void D3D12Replay::PatchQuadWritePS(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &pi
   if(!D3D12_Debug_OverlayDumpDirPath().empty())
     FileIO::WriteAll(D3D12_Debug_OverlayDumpDirPath() + "/before_quadps.dxbc", patchedDXBC);
 
-  DXBC::DXBCContainer quadOverdrawDXBC(patchedDXBC, rdcstr(), GraphicsAPI::D3D12, ~0U, ~0U);
+  DXBC::DXBCContainer quadOverdrawDXBC(patchedDXBC);
 
   if(dxil)
   {

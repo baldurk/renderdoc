@@ -1479,282 +1479,289 @@ rdcstr DXBCContainer::GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLe
   return debugPath;
 }
 
-void DXBCContainer::TryFetchSeparateDebugInfo(bytebuf &byteCode, const rdcstr &debugInfoPath)
+bool DXBCContainer::TryFetchSeparateDebugInfo(const rdcstr &debugInfoPath)
 {
-  rdcstr loadingLog;
-  if(!CheckForDebugInfo((const void *)&byteCode[0], byteCode.size()))
+  rdcstr originalPath = debugInfoPath;
+  if(CheckForDebugInfo((const void *)&m_ShaderBlob[0], m_ShaderBlob.size()))
+    return true;
+
+  m_DebugInfoLoadingLog =
+      "Details\n"
+      "-------\n\n";
+
+  rdcfixedarray<uint32_t, 4> desiredHash;
+  GetHash(desiredHash, true, m_ShaderBlob.data(), m_ShaderBlob.size());
+
+  if(originalPath.empty())
+    originalPath = GetDebugBinaryPath((const void *)&m_ShaderBlob[0], m_ShaderBlob.size());
+
+  if(originalPath.empty() &&
+     (desiredHash[0] != 0 || desiredHash[1] != 0 || desiredHash[2] != 0 || desiredHash[3] != 0))
   {
-    rdcstr originalPath = debugInfoPath;
+    byte *h = (byte *)desiredHash.data();
+    for(uint32_t i = 0; i < desiredHash.byteSize(); i++)
+      originalPath += StringFormat::Fmt("%02x", h[i]);
+    originalPath += ".pdb";
+    m_DebugInfoLoadingLog += StringFormat::Fmt(
+        "No shader PDB filename specified. Using default '%s'\n\n", originalPath.c_str());
+    RDCDEBUG("No shader pdb filename specified - assuming default '%s'", originalPath.c_str());
+  }
 
-    rdcfixedarray<uint32_t, 4> desiredHash;
-    GetHash(desiredHash, true, byteCode.data(), byteCode.size());
+  if(originalPath.empty())
+    return false;
 
-    if(originalPath.empty())
-      originalPath = GetDebugBinaryPath((const void *)&byteCode[0], byteCode.size());
+  bool lz4 = false;
 
-    if(originalPath.empty() &&
-       (desiredHash[0] != 0 || desiredHash[1] != 0 || desiredHash[2] != 0 || desiredHash[3] != 0))
+  // RenderDoc extension to allow lz4 compression
+  if(!strncmp(originalPath.c_str(), "lz4#", 4))
+  {
+    originalPath = originalPath.substr(4);
+    lz4 = true;
+  }
+  // could support more if we're willing to compile in the decompressor
+
+  const rdcarray<rdcstr> &searchPaths = DXBC_Debug_SearchDirPaths();
+
+  size_t numSearchPaths = searchPaths.size();
+
+  const rdcarray<rdcstr> nonRecursiveSearchPaths = Replay_Shader_LimitedSearchDirPaths();
+  m_DebugInfoLoadingLog += StringFormat::Fmt("Shader filepath '%s'\n", originalPath.c_str());
+  if(searchPaths.size() > nonRecursiveSearchPaths.size())
+  {
+    m_DebugInfoLoadingLog += rdcstr("\nRecursive Search Path(s):\n");
+    for(const rdcstr &path : searchPaths)
     {
-      byte *h = (byte *)desiredHash.data();
-      for(uint32_t i = 0; i < desiredHash.byteSize(); i++)
-        originalPath += StringFormat::Fmt("%02x", h[i]);
-      originalPath += ".pdb";
-      loadingLog += StringFormat::Fmt("No shader PDB filename specified using default '%s'\n\n",
-                                      originalPath.c_str());
-      RDCDEBUG("No shader pdb filename specified - assuming default '%s'", originalPath.c_str());
-    }
-
-    if(!originalPath.empty())
-    {
-      bool lz4 = false;
-
-      // RenderDoc extension to allow lz4 compression
-      if(!strncmp(originalPath.c_str(), "lz4#", 4))
-      {
-        originalPath = originalPath.substr(4);
-        lz4 = true;
-      }
-      // could support more if we're willing to compile in the decompressor
-
-      const rdcarray<rdcstr> &searchPaths = DXBC_Debug_SearchDirPaths();
-
-      size_t numSearchPaths = searchPaths.size();
-
-      const rdcarray<rdcstr> nonRecursiveSearchPaths = Replay_Shader_LimitedSearchDirPaths();
-      loadingLog += StringFormat::Fmt("Shader filepath '%s'\n", originalPath.c_str());
-      if(searchPaths.size() > nonRecursiveSearchPaths.size())
-      {
-        loadingLog += rdcstr("\nRecursive Search Path(s):\n");
-        for(const rdcstr &path : searchPaths)
-        {
-          if(nonRecursiveSearchPaths.contains(path))
-            continue;
-          loadingLog += StringFormat::Fmt("'%s'\n", path.c_str());
-        }
-      }
-      else
-      {
-        loadingLog += rdcstr("\nNo Recursive Search Paths\n");
-      }
-      if(!nonRecursiveSearchPaths.empty())
-      {
-        loadingLog += rdcstr("\nNon-Recursive Search Path(s):\n");
-        for(const rdcstr &path : nonRecursiveSearchPaths)
-          loadingLog += StringFormat::Fmt("'%s'\n", path.c_str());
-      }
-      else
-      {
-        loadingLog += rdcstr("\nNo Non-Recursive Search Paths\n");
-      }
-
-      DebugFile found;
-
-      rdcstr nickname = originalPath;
-      // keep searching until we've exhausted all possible path options, or we've found a file that
-      // opens and (optionally if we have it matches the hash we're looking for)
-      rdcstr tempPath = originalPath;
-
-      // if the path specified does not end in a .pdb it seems like PIX appends that, so do this just
-      // to match. It's really fun matching behaviour in an application that is deliberately undocumented
-      bool hasSuffix = tempPath.endsWith(".pdb") || tempPath.endsWith(".PDB");
-
-      while(found.empty() && !tempPath.empty())
-      {
-        // while we haven't found a file, keep trying through the search paths. For i==0
-        // check the path on its own, in case it's an absolute path.
-        for(size_t i = 0; found.empty() && i <= numSearchPaths; i++)
-        {
-          if(i == 0)
-          {
-            loadingLog += rdcstr("\n");
-            if(FileIO::exists(tempPath))
-              found.path = tempPath;
-            else if(!hasSuffix && FileIO::exists(tempPath + ".pdb"))
-              found.path = tempPath + ".pdb";
-
-            if(!found.empty())
-            {
-              RDCDEBUG("Found %s (matched using leaf %s) when looking for %s", found.path.c_str(),
-                       tempPath.c_str(), originalPath.c_str());
-
-              // this may empty out found, if the hash doesn't match
-              found.ReadAndProcess(lz4, desiredHash, loadingLog);
-              loadingLog += StringFormat::Fmt("File found using filepath '%s'\n", found.path.c_str());
-            }
-            else
-            {
-              loadingLog +=
-                  StringFormat::Fmt("File not found using filepath '%s'\n", tempPath.c_str());
-              if(!hasSuffix)
-                loadingLog +=
-                    StringFormat::Fmt("File not found using filepath '%s.pdb'\n", tempPath.c_str());
-            }
-          }
-          else
-          {
-            const rdcstr &searchPath = searchPaths[i - 1];
-
-            rdcstr checkPath = searchPath + "/" + tempPath;
-
-            if(FileIO::exists(checkPath))
-              found.path = checkPath;
-            else if(!hasSuffix && FileIO::exists(checkPath + ".pdb"))
-              found.path = checkPath + ".pdb";
-
-            if(!found.empty())
-            {
-              RDCDEBUG("Found %s (matched using leaf %s) when looking for %s", found.path.c_str(),
-                       tempPath.c_str(), originalPath.c_str());
-
-              // this may empty out found, if the hash doesn't match
-              found.ReadAndProcess(lz4, desiredHash, loadingLog);
-              loadingLog += StringFormat::Fmt(
-                  "File found in search directory using filepath '%s'\n", found.path.c_str());
-            }
-            else
-            {
-              loadingLog += StringFormat::Fmt(
-                  "File not found in search directory using filepath '%s'\n", checkPath.c_str());
-              if(!hasSuffix)
-                loadingLog += StringFormat::Fmt(
-                    "File not found in search directory using filepath '%s.pdb'\n",
-                    checkPath.c_str());
-            }
-          }
-        }
-
-        if(found.empty())
-        {
-          // the "documented" behaviour for D3D debug info names is that when presented with a
-          // relative path containing subfolders like foo/bar/blah.pdb then we should first try to
-          // append it to all search paths as-is, then strip off the top-level subdirectory to get
-          // bar/blah.pdb and try that in all search directories, and keep going. So if we got here
-          // and didn't open a file, try to strip off the the top directory and continue.
-          int32_t offs = tempPath.find_first_of("\\/");
-
-          // if we couldn't find a directory separator there's nothing to do, stop looking
-          if(offs == -1)
-            break;
-
-          // otherwise strip up to there and keep going
-          tempPath.erase(0, offs + 1);
-        }
-      }
-
-      // the "undocumented" behaviour for PIX is to recursively search in search paths subfolders
-      // for the file. Since it's unclear exactly how this interacts with search priorities and
-      // subfolders, we only do this if the path is a single filename with no subfolders, and we
-      // assume the filename is unique so pick the first match. To reduce disk churn O(N^2) style we
-      // cache the recursive contents of the search folders. This will be cleared by the replay code
-      // on each replay.
-      if(found.empty() && !originalPath.contains('/') && !originalPath.contains('\\'))
-      {
-        loadingLog += rdcstr("\n");
-        CacheSearchDirDebugPaths();
-
-        auto it = cachedDebugFilesLookup.find(originalPath);
-        if(it == cachedDebugFilesLookup.end() && !hasSuffix)
-          it = cachedDebugFilesLookup.find(originalPath + ".pdb");
-        if(it != cachedDebugFilesLookup.end())
-        {
-          found.path = it->second;
-          RDCDEBUG("Found %s recursively as %s", originalPath.c_str(), found.path.c_str());
-
-          found.ReadAndProcess(lz4, desiredHash, loadingLog);
-          loadingLog += StringFormat::Fmt(
-              "File found in recursive directory search using filepath '%s'\n", found.path.c_str());
-        }
-        else
-        {
-          loadingLog += StringFormat::Fmt(
-              "File not found in recursive directory search using filepath '%s'\n",
-              originalPath.c_str());
-          if(!hasSuffix)
-            loadingLog += StringFormat::Fmt(
-                "File not found in recursive directory search using filepath '%s.pdb'\n",
-                originalPath.c_str());
-        }
-      }
-      else if(found.empty())
-      {
-        loadingLog += StringFormat::Fmt(
-            "\nNot performing a recursive directory search because filepath contains directory "
-            "information '%s'\n",
-            originalPath.c_str());
-      }
-
-      // Try to retrieve debug file from the externally referenced files in the capture
-      if(found.empty())
-      {
-        if(RenderDoc::Inst().GetTrackedFileData(nickname, found.contents))
-        {
-          loadingLog += StringFormat::Fmt(
-              "\nFound debug data from files embedded in the capture using nickname '%s'\n",
-              nickname.c_str());
-          found.path = nickname;
-          found.Process(lz4, desiredHash, loadingLog);
-        }
-        else
-        {
-          loadingLog += StringFormat::Fmt(
-              "\nFile not found in files embedded in the capture using nickname '%s'\n",
-              nickname.c_str());
-        }
-      }
-
-      if(found.empty())
-      {
-        RDCDEBUG("Couldn't find pdb for %s", originalPath.c_str());
-        m_DebugInfoLoadingLog =
-            StringFormat::Fmt("Did not find debug data for '%s'\n\n", originalPath.c_str());
-        if(!loadingLog.empty())
-        {
-          m_DebugInfoLoadingLog += StringFormat::Fmt("Details\n");
-          m_DebugInfoLoadingLog += StringFormat::Fmt("-------\n\n");
-          m_DebugInfoLoadingLog += loadingLog;
-        }
-        return;
-      }
-
-      RenderDoc::Inst().AddTrackedFileReference(nickname, found.path);
-
-      if(found.pdb)
-      {
-        m_DebugShaderBlob = found.contents;
-      }
-      else if(CheckForDebugInfo(found.contents.data(), found.contents.size()))
-      {
-        if(m_InitialShaderBlob.isEmpty())
-          m_InitialShaderBlob = byteCode;
-        byteCode.swap(found.contents);
-      }
-      m_DebugInfoLoadingLog =
-          StringFormat::Fmt("Found debug data using filepath '%s'\n\n", found.path.c_str());
+      if(nonRecursiveSearchPaths.contains(path))
+        continue;
+      m_DebugInfoLoadingLog += StringFormat::Fmt("'%s'\n", path.c_str());
     }
   }
   else
   {
-    m_DebugInfoLoadingLog =
-        StringFormat::Fmt("Found debug data in the shader\n\n", debugInfoPath.c_str());
+    m_DebugInfoLoadingLog += rdcstr("\nNo Recursive Search Paths\n");
   }
-  if(!loadingLog.empty())
+  if(!nonRecursiveSearchPaths.empty())
   {
-    m_DebugInfoLoadingLog += StringFormat::Fmt("Details\n");
-    m_DebugInfoLoadingLog += StringFormat::Fmt("-------\n\n");
-    m_DebugInfoLoadingLog += loadingLog;
+    m_DebugInfoLoadingLog += rdcstr("\nNon-Recursive Search Path(s):\n");
+    for(const rdcstr &path : nonRecursiveSearchPaths)
+      m_DebugInfoLoadingLog += StringFormat::Fmt("'%s'\n", path.c_str());
   }
+  else
+  {
+    m_DebugInfoLoadingLog += rdcstr("\nNo Non-Recursive Search Paths\n");
+  }
+
+  DebugFile found;
+
+  rdcstr nickname = originalPath;
+  // keep searching until we've exhausted all possible path options, or we've found a file that
+  // opens and (optionally if we have it matches the hash we're looking for)
+  rdcstr tempPath = originalPath;
+
+  // if the path specified does not end in a .pdb it seems like PIX appends that, so do this just
+  // to match. It's really fun matching behaviour in an application that is deliberately undocumented
+  bool hasSuffix = tempPath.endsWith(".pdb") || tempPath.endsWith(".PDB");
+
+  while(found.empty() && !tempPath.empty())
+  {
+    // while we haven't found a file, keep trying through the search paths. For i==0
+    // check the path on its own, in case it's an absolute path.
+    for(size_t i = 0; found.empty() && i <= numSearchPaths; i++)
+    {
+      if(i == 0)
+      {
+        m_DebugInfoLoadingLog += rdcstr("\n");
+        if(FileIO::exists(tempPath))
+          found.path = tempPath;
+        else if(!hasSuffix && FileIO::exists(tempPath + ".pdb"))
+          found.path = tempPath + ".pdb";
+
+        if(!found.empty())
+        {
+          RDCDEBUG("Found %s (matched using leaf %s) when looking for %s", found.path.c_str(),
+                   tempPath.c_str(), originalPath.c_str());
+
+          // this may empty out found, if the hash doesn't match
+          found.ReadAndProcess(lz4, desiredHash, m_DebugInfoLoadingLog);
+          m_DebugInfoLoadingLog +=
+              StringFormat::Fmt("File found using filepath '%s'\n", found.path.c_str());
+        }
+        else
+        {
+          m_DebugInfoLoadingLog +=
+              StringFormat::Fmt("File not found using filepath '%s'\n", tempPath.c_str());
+          if(!hasSuffix)
+            m_DebugInfoLoadingLog +=
+                StringFormat::Fmt("File not found using filepath '%s.pdb'\n", tempPath.c_str());
+        }
+      }
+      else
+      {
+        const rdcstr &searchPath = searchPaths[i - 1];
+
+        rdcstr checkPath = searchPath + "/" + tempPath;
+
+        if(FileIO::exists(checkPath))
+          found.path = checkPath;
+        else if(!hasSuffix && FileIO::exists(checkPath + ".pdb"))
+          found.path = checkPath + ".pdb";
+
+        if(!found.empty())
+        {
+          RDCDEBUG("Found %s (matched using leaf %s) when looking for %s", found.path.c_str(),
+                   tempPath.c_str(), originalPath.c_str());
+
+          // this may empty out found, if the hash doesn't match
+          found.ReadAndProcess(lz4, desiredHash, m_DebugInfoLoadingLog);
+          m_DebugInfoLoadingLog += StringFormat::Fmt(
+              "File found in search directory using filepath '%s'\n", found.path.c_str());
+        }
+        else
+        {
+          m_DebugInfoLoadingLog += StringFormat::Fmt(
+              "File not found in search directory using filepath '%s'\n", checkPath.c_str());
+          if(!hasSuffix)
+            m_DebugInfoLoadingLog += StringFormat::Fmt(
+                "File not found in search directory using filepath '%s.pdb'\n", checkPath.c_str());
+        }
+      }
+    }
+
+    if(found.empty())
+    {
+      // the "documented" behaviour for D3D debug info names is that when presented with a
+      // relative path containing subfolders like foo/bar/blah.pdb then we should first try to
+      // append it to all search paths as-is, then strip off the top-level subdirectory to get
+      // bar/blah.pdb and try that in all search directories, and keep going. So if we got here
+      // and didn't open a file, try to strip off the the top directory and continue.
+      int32_t offs = tempPath.find_first_of("\\/");
+
+      // if we couldn't find a directory separator there's nothing to do, stop looking
+      if(offs == -1)
+        break;
+
+      // otherwise strip up to there and keep going
+      tempPath.erase(0, offs + 1);
+    }
+  }
+
+  // the "undocumented" behaviour for PIX is to recursively search in search paths subfolders
+  // for the file. Since it's unclear exactly how this interacts with search priorities and
+  // subfolders, we only do this if the path is a single filename with no subfolders, and we
+  // assume the filename is unique so pick the first match. To reduce disk churn O(N^2) style we
+  // cache the recursive contents of the search folders. This will be cleared by the replay code
+  // on each replay.
+  if(found.empty() && !originalPath.contains('/') && !originalPath.contains('\\'))
+  {
+    m_DebugInfoLoadingLog += rdcstr("\n");
+    CacheSearchDirDebugPaths();
+
+    auto it = cachedDebugFilesLookup.find(originalPath);
+    if(it == cachedDebugFilesLookup.end() && !hasSuffix)
+      it = cachedDebugFilesLookup.find(originalPath + ".pdb");
+    if(it != cachedDebugFilesLookup.end())
+    {
+      found.path = it->second;
+      RDCDEBUG("Found %s recursively as %s", originalPath.c_str(), found.path.c_str());
+
+      found.ReadAndProcess(lz4, desiredHash, m_DebugInfoLoadingLog);
+      m_DebugInfoLoadingLog += StringFormat::Fmt(
+          "File found in recursive directory search using filepath '%s'\n", found.path.c_str());
+    }
+    else
+    {
+      m_DebugInfoLoadingLog += StringFormat::Fmt(
+          "File not found in recursive directory search using filepath '%s'\n", originalPath.c_str());
+      if(!hasSuffix)
+        m_DebugInfoLoadingLog += StringFormat::Fmt(
+            "File not found in recursive directory search using filepath '%s.pdb'\n",
+            originalPath.c_str());
+    }
+  }
+  else if(found.empty())
+  {
+    m_DebugInfoLoadingLog += StringFormat::Fmt(
+        "\nNot performing a recursive directory search because filepath contains directory "
+        "information '%s'\n",
+        originalPath.c_str());
+  }
+
+  // Try to retrieve debug file from the externally referenced files in the capture
+  if(found.empty())
+  {
+    if(RenderDoc::Inst().GetTrackedFileData(nickname, found.contents))
+    {
+      m_DebugInfoLoadingLog += StringFormat::Fmt(
+          "\nFound debug data from files embedded in the capture using nickname '%s'\n",
+          nickname.c_str());
+      found.path = nickname;
+      found.Process(lz4, desiredHash, m_DebugInfoLoadingLog);
+    }
+    else
+    {
+      m_DebugInfoLoadingLog += StringFormat::Fmt(
+          "\nFile not found in files embedded in the capture using nickname '%s'\n",
+          nickname.c_str());
+    }
+  }
+
+  if(found.empty())
+  {
+    RDCDEBUG("Couldn't find pdb for %s", originalPath.c_str());
+    return false;
+  }
+
+  RenderDoc::Inst().AddTrackedFileReference(nickname, found.path);
+
+  if(found.pdb)
+  {
+    m_DebugShaderBlob = found.contents;
+  }
+  else if(CheckForDebugInfo(found.contents.data(), found.contents.size()))
+  {
+    m_ShaderBlob.swap(found.contents);
+    m_ReplacedBlob = true;
+  }
+
+  m_DebugInfoLoadingLog += StringFormat::Fmt("Found debug data in '%s'\n\n", found.path.c_str());
+
+  return true;
 }
 
-DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPath, GraphicsAPI api,
-                             uint32_t shaderExtReg, uint32_t shaderExtSpace)
+DXBCContainer::DXBCContainer(bytebuf &&ByteCode, const rdcstr &debugInfoPath)
 {
-  RDCEraseEl(m_ShaderStats);
-
-  m_ShaderBlob = ByteCode;
+  m_ShaderBlob = std::move(ByteCode);
 
   if(RenderDoc::Inst().IsReplayApp())
-    TryFetchSeparateDebugInfo(m_ShaderBlob, debugInfoPath);
+    TryFetchSeparateDebugInfo(debugInfoPath);
 
+  Init();
+}
+
+DXBCContainer::DXBCContainer(DXBCContainer *oldToRecreate, const rdcstr &debugInfoPath)
+{
+  m_ShaderBlob = oldToRecreate->m_ShaderBlob;
+
+  // try as much as possible to search again from scratch - if we replaced the whole m_ShaderBlob
+  // before then we are searching based on new information but that's fine (and only happens in the
+  // super-legacy path with PRIV sections that is likely not used anywhere anymore)
+  if(!TryFetchSeparateDebugInfo(debugInfoPath))
+  {
+    // if we failed to get debug info but the old container has it, then steal it and its loading log
+    if(oldToRecreate->HasDebugInfo())
+    {
+      m_DebugShaderBlob.swap(oldToRecreate->m_DebugShaderBlob);
+      m_DebugInfoLoadingLog.swap(oldToRecreate->m_DebugInfoLoadingLog);
+    }
+  }
+
+  SAFE_DELETE(oldToRecreate);
+
+  Init();
+}
+
+void DXBCContainer::Init()
+{
   // just for convenience
   byte *data = (byte *)m_ShaderBlob.data();
   byte *debugData = (byte *)m_DebugShaderBlob.data();
@@ -2196,6 +2203,7 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
       if(*fourcc == FOURCC_ILDB)
       {
         dxilILDBProgram = new DXIL::Program((const byte *)chunkContents, *chunkSize);
+        m_HasDebugInfo = true;
       }
     }
 
@@ -2247,6 +2255,7 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
       SAFE_DELETE(dxilSTATProgram);
       SAFE_DELETE(dxilDXILProgram);
       dxilReflectProgram = m_DXILByteCode = dxilILDBProgram;
+      m_HasDebugInfo = true;
     }
     else if(dxilDXILProgram)
     {
@@ -2582,7 +2591,10 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
   if(m_DebugInfo)
   {
     if(m_DXBCByteCode)
+    {
       m_DXBCByteCode->SetDebugInfo(m_DebugInfo);
+      m_HasDebugInfo = true;
+    }
 
     PreprocessLineDirectives(m_DebugInfo->Files);
   }
@@ -2619,7 +2631,13 @@ DXBCContainer::DXBCContainer(const bytebuf &ByteCode, const rdcstr &debugInfoPat
   if(m_DXBCByteCode || m_DXILByteCode)
   {
     RDCASSERT(m_Reflection);
+  }
+}
 
+void DXBCContainer::SetShaderExts(GraphicsAPI api, uint32_t shaderExtReg, uint32_t shaderExtSpace)
+{
+  if(m_DXBCByteCode || m_DXILByteCode)
+  {
     if(shaderExtReg != ~0U)
     {
       bool found = false;
@@ -3152,7 +3170,7 @@ TEST_CASE("DO NOT COMMIT - convenience test", "[dxbc]")
   bytebuf buf;
   FileIO::ReadAll("/path/to/container_file.dxbc", buf);
 
-  DXBC::DXBCContainer container(buf, rdcstr(), GraphicsAPI::D3D11, ~0U, ~0U);
+  DXBC::DXBCContainer container(buf, rdcstr());
 
   // the only thing fetched lazily is the disassembly, so grab that here
 

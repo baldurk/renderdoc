@@ -482,7 +482,7 @@ const ShaderReflection *VulkanReplay::GetShader(ResourceId pipeline, ResourceId 
   // if this shader was never used in a pipeline the reflection won't be prepared. Do that now -
   // this will be ignored if it was already prepared.
   shad->second.GetReflection(entry.stage, entry.name, pipeline)
-      .Init(GetResourceManager(), m_pDriver->m_CreationInfo, shader, shad->second.spirv, entry.name,
+      .Init(GetResourceManager(), m_pDriver->m_CreationInfo, shader, entry.name,
             VkShaderStageFlagBits(1 << uint32_t(entry.stage)), {});
 
   return shad->second.GetReflection(entry.stage, entry.name, pipeline).refl;

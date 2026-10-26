@@ -2462,9 +2462,9 @@ bool RenderDoc::DoesTrackedFileExist(const rdcstr &nickname) const
 // return false if the nickname already exists
 bool RenderDoc::AddTrackedFileReference(const rdcstr &nickname, const rdcstr &filepath)
 {
-  if(DoesTrackedFileExist(nickname))
-    return false;
   SCOPED_WRITELOCK(m_TrackedFilesLock);
+  // do not allow duplicates, overwrite with latest if we add the same one
+  m_TrackedFiles.removeIf([nickname](const TrackedFile &f) { return f.nickname == nickname; });
   m_TrackedFiles.emplace_back(nickname, filepath);
   return true;
 }
