@@ -226,6 +226,12 @@ HOOK_EXPORT EGLDisplay EGLAPIENTRY eglGetPlatformDisplay_renderdoc_hooked(EGLenu
   return EGL.GetPlatformDisplay(platform, native_display, attrib_list);
 }
 
+HOOK_EXPORT EGLDisplay EGLAPIENTRY eglGetPlatformDisplayEXT_renderdoc_hooked(
+    EGLenum platform, void *native_display, const EGLAttrib *attrib_list)
+{
+  return eglGetPlatformDisplay_renderdoc_hooked(platform, native_display, attrib_list);
+}
+
 HOOK_EXPORT EGLBoolean EGLAPIENTRY eglBindAPI_renderdoc_hooked(EGLenum api)
 {
   if(RenderDoc::Inst().IsReplayApp())
@@ -459,6 +465,12 @@ HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurface_renderdoc_hook
   }
 
   return ret;
+}
+
+HOOK_EXPORT EGLDisplay EGLAPIENTRY eglCreatePlatformWindowSurfaceEXT_renderdoc_hooked(
+    EGLDisplay dpy, EGLConfig config, void *native_window, const EGLAttrib *attrib_list)
+{
+  return eglCreatePlatformWindowSurface_renderdoc_hooked(dpy, config, native_window, attrib_list);
 }
 
 HOOK_EXPORT EGLBoolean EGLAPIENTRY eglMakeCurrent_renderdoc_hooked(EGLDisplay display,
