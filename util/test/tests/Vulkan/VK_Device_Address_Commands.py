@@ -91,7 +91,7 @@ class VK_Device_Address_Commands(rdtest.TestCase):
 
         buffer = self.get_resource_by_name("Address Buffer").resourceId
 
-        if int.from_bytes(self.controller.GetBufferData(buffer, 9404, 4)) == 0:
+        if int.from_bytes(self.controller.GetBufferData(buffer, 9404, 4), byteorder='big') == 0:
             raise rdtest.TestFailureException("ImageToMemory copy failed")
         else:
             rdtest.log.success('ImageToMemory copy succeeded')
