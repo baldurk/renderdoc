@@ -68,6 +68,9 @@ public:
   using IReplayManager::AsyncInvoke;
   void BlockInvoke(ReplayInvokeCallback m);
 
+  bool AccessInvoke(std::function<void(ICaptureAccess *)> callback, bool blocking, bool forceReplay,
+                    rdcstr tag);
+
   void CancelReplayLoop();
 
   void CloseThread();

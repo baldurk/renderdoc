@@ -303,6 +303,37 @@ void ReplayManager::BlockInvoke(ReplayManager::ReplayInvokeCallback m)
   delete cmd;
 }
 
+bool ReplayManager::AccessInvoke(std::function<void(ICaptureAccess *)> callback, bool blocking,
+                                 bool forceReplay, rdcstr tag)
+{
+  if(!GetCaptureAccess())
+    return false;
+
+  // some long running processes may be better to put on the replay thread even when local, so
+  // that we can keep the UI thread unblocked
+  if(CurrentRemote().IsConnected() || forceReplay)
+  {
+    if(!IsRunning())
+    {
+      // if the replay thread isn't running, we won't be able to invoke so just treat this as-if
+      // it's a local capture and block
+      callback(GetCaptureAccess());
+      return true;
+    }
+
+    if(blocking)
+      BlockInvoke([this, callback](IReplayController *) { callback(GetCaptureAccess()); });
+    else
+      AsyncInvoke([this, callback](IReplayController *) { callback(GetCaptureAccess()); }, tag);
+  }
+  else
+  {
+    callback(GetCaptureAccess());
+  }
+
+  return true;
+}
+
 void ReplayManager::CancelReplayLoop()
 {
   m_Renderer->CancelReplayLoop();

@@ -1027,6 +1027,13 @@ struct ReplayInvoker : IReplayManager
   }
 
   void BlockInvoke(ReplayInvokeCallback method) { return m_Replay.BlockInvoke(method); }
+
+  // won't be available to python but we implement this for compile time matching
+  bool AccessInvoke(std::function<void(ICaptureAccess *)> callback, bool blocking, bool forceReplay,
+                    rdcstr tag)
+  {
+    return m_Replay.AccessInvoke(callback, blocking, forceReplay, tag);
+  }
 };
 
 struct IMainWindowInvoker : UIThreadInvoker<IMainWindow>
