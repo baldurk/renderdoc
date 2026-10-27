@@ -3742,7 +3742,6 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
 
       if(!me)
       {
-        delete buf;
         delete bufdata;
         return;
       }
