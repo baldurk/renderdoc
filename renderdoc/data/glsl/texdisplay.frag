@@ -244,19 +244,19 @@ void main(void)
     if(ucol.x > range_min)
       col.x = (float(ucol.x - range_min) * texdisplay.InverseRangeSize);
     else
-      col.x = 0;
+      col.x = 0.0;
     if(ucol.y > range_min)
       col.y = (float(ucol.y - range_min) * texdisplay.InverseRangeSize);
     else
-      col.y = 0;
+      col.y = 0.0;
     if(ucol.z > range_min)
       col.z = (float(ucol.z - range_min) * texdisplay.InverseRangeSize);
     else
-      col.z = 0;
+      col.z = 0.0;
     if(ucol.w > range_min)
       col.w = (float(ucol.w - range_min) * texdisplay.InverseRangeSize);
     else
-      col.w = 0;
+      col.w = 0.0;
   }
   else if(sintTex)
   {
