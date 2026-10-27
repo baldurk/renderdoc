@@ -3523,6 +3523,12 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
     ui->viewIndex->setValue(0);
   }
 
+  // no data to fetch if we don't have a buffer yet. This happens when BufferViewer() is created
+  // because the capture viewer being registered automatically calls OnEventChanged but we haven't
+  // had ViewBuffer() etc yet
+  if(!m_MeshView && m_BufferID == ResourceId())
+    return;
+
   QPointer<BufferViewer> me(this);
 
   m_Ctx.Replay().AsyncInvoke([this, me, bufdata](IReplayController *r) {
@@ -6291,14 +6297,22 @@ void BufferViewer::processFormat(const QString &format)
   {
     qulonglong stride = qMax(1U, parsed.repeating.type.arrayByteStride);
 
-    byteRangeStart->setSingleStep(stride);
-    byteRangeLength->setSingleStep(stride);
+    m_PagingByteOffset = 0;
 
-    byteRangeStart->setMaximum((qulonglong)m_ObjectByteSize);
-    byteRangeLength->setMaximum((qulonglong)m_ObjectByteSize);
+    // normally these would call into processFormat() again if the user updated them, we don't want to do that
+    {
+      QSignalBlocker block1(byteRangeStart);
+      QSignalBlocker block2(byteRangeLength);
 
-    byteRangeStart->setValue(m_ByteOffset);
-    byteRangeLength->setValue(m_ByteSize);
+      byteRangeStart->setSingleStep(stride);
+      byteRangeLength->setSingleStep(stride);
+
+      byteRangeStart->setMaximum((qulonglong)m_ObjectByteSize);
+      byteRangeLength->setMaximum((qulonglong)m_ObjectByteSize);
+
+      byteRangeStart->setValue(m_ByteOffset);
+      byteRangeLength->setValue(m_ByteSize);
+    }
 
     if(!m_IsBuffer)
     {
@@ -7312,6 +7326,9 @@ void BufferViewer::on_viewIndex_valueChanged(int value)
 
 void BufferViewer::SetMeshFilter(MeshFilter filter, uint32_t taskGroup, uint32_t meshGroup)
 {
+  if(!isMeshDraw() || m_CurMeshFilter == filter)
+    return;
+
   // calculate new scrolls manually to keep the same logical item selected
   m_Scrolls = new PopulateBufferData;
   FillScrolls(m_Scrolls);
