@@ -298,6 +298,7 @@ void main()
     optDevExts.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
     optDevExts.push_back(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
     optDevExts.push_back(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
+    optDevExts.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
 
     VulkanGraphicsTest::Prepare(argc, argv);
 
@@ -408,6 +409,32 @@ void main()
       inlineFeats.inlineUniformBlock = VK_TRUE;
       inlineFeats.pNext = (void *)devInfoNext;
       devInfoNext = &inlineFeats;
+    }
+
+    static VkPhysicalDeviceExtendedDynamicState3FeaturesEXT extFeatures3 = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT,
+    };
+
+    if(hasExt(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME))
+    {
+      getPhysFeatures2(&extFeatures3);
+
+      if(!extFeatures3.extendedDynamicState3ColorBlendEnable)
+        Avail = "feature 'extendedDynamicState3ColorBlendEnable' not available";
+      if(!extFeatures3.extendedDynamicState3ColorBlendEquation)
+        Avail = "feature 'extendedDynamicState3ColorBlendEquation' not available";
+      if(!extFeatures3.extendedDynamicState3ColorWriteMask)
+        Avail = "feature 'extendedDynamicState3ColorWriteMask' not available";
+
+      extFeatures3 = {
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT,
+      };
+      extFeatures3.extendedDynamicState3ColorBlendEnable = VK_TRUE;
+      extFeatures3.extendedDynamicState3ColorBlendEquation = VK_TRUE;
+      extFeatures3.extendedDynamicState3ColorWriteMask = VK_TRUE;
+
+      extFeatures3.pNext = (void *)devInfoNext;
+      devInfoNext = &extFeatures3;
     }
   }
 
@@ -726,7 +753,30 @@ void main()
         CompileShaderModule(VKDefaultPixel, ShaderLang::glsl, ShaderStage::frag, "main"),
     };
 
-    VkPipeline pipe = createGraphicsPipeline(pipeCreateInfo);
+    VkPipeline pipe;
+
+    if(hasExt(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME))
+    {
+      vkh::GraphicsPipelineCreateInfo dupe = pipeCreateInfo;
+
+      dupe.dynamicState.dynamicStates.push_back(VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT);
+      dupe.dynamicState.dynamicStates.push_back(VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT);
+      dupe.dynamicState.dynamicStates.push_back(VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT);
+
+      // force it to bake, _then_ invalidate attachments
+      VkGraphicsPipelineCreateInfo *info = dupe;
+
+      VkPipelineColorBlendStateCreateInfo col = *info->pColorBlendState;
+      col.attachmentCount = 999999;
+      col.pAttachments = NULL;
+      info->pColorBlendState = &col;
+
+      pipe = createGraphicsPipeline(info);
+    }
+    else
+    {
+      pipe = createGraphicsPipeline(pipeCreateInfo);
+    }
 
     pipeCreateInfo.layout = reflayout;
 
@@ -1966,6 +2016,26 @@ void main()
         vkCmdDraw(cmd, 4, 1, 0, 0);
 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipe);
+
+        if(hasExt(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME))
+        {
+          // need to set color blend state
+          VkBool32 no = VK_FALSE;
+          vkCmdSetColorBlendEnableEXT(cmd, 0, 1, &no);
+          VkColorComponentFlags all = 0xf;
+          vkCmdSetColorWriteMaskEXT(cmd, 0, 1, &all);
+          VkColorBlendEquationEXT eq = {
+              VK_BLEND_FACTOR_SRC_ALPHA,
+              VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+              VK_BLEND_OP_ADD,
+              // alpha*
+              VK_BLEND_FACTOR_SRC_ALPHA,
+              VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+              VK_BLEND_OP_ADD,
+          };
+          vkCmdSetColorBlendEquationEXT(cmd, 0, 1, &eq);
+        }
+
         vkCmdSetViewport(cmd, 0, 1, &mainWindow->viewport);
         vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
         vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, {descset},
