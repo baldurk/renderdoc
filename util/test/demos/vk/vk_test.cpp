@@ -1054,7 +1054,7 @@ VkPipelineShaderStageCreateInfo VulkanGraphicsTest::CompileShaderModule(
     path = std::string(demoName) + "/" + path;
   }
 
-  if(vkSetDebugUtilsObjectTagEXT)
+  if(vkSetDebugUtilsObjectTagEXT && !path.empty())
   {
     VkDebugUtilsObjectTagInfoEXT info = {};
     info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_TAG_INFO_EXT;
