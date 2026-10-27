@@ -149,9 +149,11 @@ flat in vec3 v2fFlatFloat;
 noperspective in vec3 v2fNoPerspFloat;
 #endif
 
+vec4 global_value = vec4(1.1f, 2.2f, 3.3f, 4.4f);
+
 void main()
 {
-	outColor = v2fColor + v2fUV.xyxy;
+	outColor = v2fColor + v2fUV.xyxy + global_value;
 
 #ifdef BLOCK
   outColor.r += v2f.a;
