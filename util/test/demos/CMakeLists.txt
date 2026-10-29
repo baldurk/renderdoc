@@ -216,6 +216,7 @@ set(OPENGL_SRC
         gl/gl_resource_lifetimes.cpp
         gl/gl_runtime_bind_prog_to_pipe.cpp
         gl/gl_separable_geometry_shader.cpp
+        gl/gl_shader_debug_zoo.cpp
         gl/gl_shader_editing.cpp
         gl/gl_shader_isa.cpp
         gl/gl_simple_triangle.cpp
