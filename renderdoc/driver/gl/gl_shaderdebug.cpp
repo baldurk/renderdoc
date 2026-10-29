@@ -1380,6 +1380,9 @@ public:
   {
     CHECK_DEVICE_THREAD();
 
+    GLuint oldbuf = 0;
+    GL.glGetIntegerv(eGL_COPY_READ_BUFFER_BINDING, (GLint *)&oldbuf);
+
     bytebuf gpuResults;
     gpuResults.resize(m_MathBufferSize + m_SampleBufferSize);
     if(m_MathBuffer)
@@ -1433,6 +1436,8 @@ public:
       }
       gpuSampleGatherOpResults += sampleGatherOpResultByteSize;
     }
+
+    GL.glBindBuffer(eGL_COPY_READ_BUFFER, oldbuf);
 
     return true;
   }
