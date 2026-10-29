@@ -1096,7 +1096,7 @@ void ShaderViewer::debugShader(const ShaderReflection *shader, ResourceId pipeli
 
         // we do updateDebugging() again because the first call finds the scintilla for the current
         // source file, the second time jumps to it.
-        if(preferSourceDebug)
+        if(preferSourceDebug && !m_States.empty())
         {
           // if we're not on a source line, move forward to the first source line
           while(!m_CurInstructionScintilla)
@@ -2503,7 +2503,7 @@ bool ShaderViewer::IsFirstState() const
 
 bool ShaderViewer::IsLastState() const
 {
-  return m_CurrentStateIdx == m_States.size() - 1;
+  return m_CurrentStateIdx == m_States.size() - 1 || m_States.empty();
 }
 
 const ShaderDebugState &ShaderViewer::GetPreviousState() const
