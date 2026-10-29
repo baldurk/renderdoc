@@ -236,6 +236,10 @@ set(SRC main.cpp
 
 project(demos)
 
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 19.1)
+    list(APPEND warning_flags -Wno-deprecated-literal-operator)
+endif()
+
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
     list(APPEND warning_flags -Werror -Wno-unused-result -Wno-nullability-completeness)
