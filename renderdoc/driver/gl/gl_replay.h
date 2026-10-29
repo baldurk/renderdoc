@@ -349,6 +349,7 @@ public:
   void SetReplayData(GLWindowingData data);
 
   void UseReplayContext() { MakeCurrentReplayContext(&m_ReplayCtx); }
+  void UseDebugContext() { MakeCurrentReplayContext(m_DebugCtx); }
   bool IsReplayContext(void *ctx) { return m_ReplayCtx.ctx == NULL || ctx == m_ReplayCtx.ctx; }
   bool HasDebugContext() { return m_DebugCtx != NULL; }
   void FillWithDiscardPattern(DiscardType type, GLuint framebuffer, GLsizei numAttachments,

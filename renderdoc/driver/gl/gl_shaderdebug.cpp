@@ -1154,6 +1154,8 @@ public:
         uniformParams.dynoffset.z = offset.value.s32v[2];
     }
 
+    m_pDriver->GetReplay()->UseReplayContext();
+
     GLuint prog = m_pDriver->GetReplay()->MakeShaderDebugSampleProg(config);
 
     if(prog == 0)
@@ -1163,8 +1165,6 @@ public:
                                  "Failed to compile graphics program for sampling operation");
       return false;
     }
-
-    m_pDriver->GetReplay()->UseReplayContext();
 
     GLMarkerRegion markerRegion("QueueSampleGather");
 
@@ -1288,7 +1288,7 @@ public:
 
     RDCASSERTEQUAL(params[0].type, VarType::Float);
 
-    m_pDriver->GetReplay()->UseReplayContext();
+    m_pDriver->GetReplay()->UseDebugContext();
 
     GLMarkerRegion markerRegion("QueueCalculateMathOp");
 
