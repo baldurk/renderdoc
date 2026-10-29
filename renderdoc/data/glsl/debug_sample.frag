@@ -105,7 +105,7 @@ uniform PRECISION sampler2DRectShadow tex2DRectShadow;
 
 #endif
 
-in vec4 input_uvwa;
+in vec4 v2f_uvwa;
 out RESULT Output;
 
 #ifdef GATHER_OFFSETS
@@ -204,12 +204,12 @@ RESULT DoFetch2DMSArray()
 
 RESULT DoSampleBias2D()
 {
-  return textureOffset(tex2D, input_uvwa.xy, fetch_offset.xy, debugsample.gles_bias);
+  return textureOffset(tex2D, v2f_uvwa.xy, fetch_offset.xy, debugsample.gles_bias);
 }
 
 RESULT DoSampleBias3D()
 {
-  return textureOffset(tex3D, input_uvwa.xyz, fetch_offset.xyz, debugsample.gles_bias);
+  return textureOffset(tex3D, v2f_uvwa.xyz, fetch_offset.xyz, debugsample.gles_bias);
 }
 
 RESULT DoSampleBiasCube()
@@ -217,7 +217,7 @@ RESULT DoSampleBiasCube()
 #if FLOAT_TEX
 
   // no offsets for cubes
-  return texture(texCube, input_uvwa.xyz, debugsample.gles_bias);
+  return texture(texCube, v2f_uvwa.xyz, debugsample.gles_bias);
 
 #else
   // cubes are only handled on float type
@@ -227,7 +227,7 @@ RESULT DoSampleBiasCube()
 
 RESULT DoSampleBias2DArray()
 {
-  return textureOffset(tex2DArray, input_uvwa.xyz, fetch_offset.xy, debugsample.gles_bias);
+  return textureOffset(tex2DArray, v2f_uvwa.xyz, fetch_offset.xy, debugsample.gles_bias);
 }
 
 #ifdef TEXSAMPLE_CUBE_ARRAY
@@ -236,7 +236,7 @@ RESULT DoSampleBiasCubeArray()
 #if FLOAT_TEX
 
   // no offsets for cubes
-  return texture(texCubeArray, input_uvwa.xyzw, debugsample.gles_bias);
+  return texture(texCubeArray, v2f_uvwa.xyzw, debugsample.gles_bias);
 
 #else
   // cubes are only handled on float type
@@ -249,7 +249,7 @@ RESULT DoSampleDrefBias2D()
 {
 #if FLOAT_TEX
 
-  return vec4(textureOffset(tex2DShadow, vec3(input_uvwa.xy, debugsample.compare), fetch_offset.xy,
+  return vec4(textureOffset(tex2DShadow, vec3(v2f_uvwa.xy, debugsample.compare), fetch_offset.xy,
                             debugsample.gles_bias),
               0, 0, 0);
 
@@ -265,23 +265,23 @@ RESULT DoSampleDrefBias2D()
 #ifdef OPENGL_CORE
 RESULT DoQueryLod1D()
 {
-  return RESULT(FLOAT_CONV(textureQueryLod(tex1D, input_uvwa.x)), 0, 0);
+  return RESULT(FLOAT_CONV(textureQueryLod(tex1D, v2f_uvwa.x)), 0, 0);
 }
 
 RESULT DoQueryLod2D()
 {
-  return RESULT(FLOAT_CONV(textureQueryLod(tex2D, input_uvwa.xy)), 0, 0);
+  return RESULT(FLOAT_CONV(textureQueryLod(tex2D, v2f_uvwa.xy)), 0, 0);
 }
 
 RESULT DoQueryLod3D()
 {
-  return RESULT(FLOAT_CONV(textureQueryLod(tex3D, input_uvwa.xyz)), 0, 0);
+  return RESULT(FLOAT_CONV(textureQueryLod(tex3D, v2f_uvwa.xyz)), 0, 0);
 }
 
 RESULT DoQueryLodCube()
 {
 #if FLOAT_TEX
-  return RESULT(FLOAT_CONV(textureQueryLod(texCube, input_uvwa.xyz)), 0, 0);
+  return RESULT(FLOAT_CONV(textureQueryLod(texCube, v2f_uvwa.xyz)), 0, 0);
 #else
   // cubes are only handled on float type
   return RESULT(0, 0, 0, 0);
@@ -290,19 +290,19 @@ RESULT DoQueryLodCube()
 
 RESULT DoQueryLod1DArray()
 {
-  return RESULT(FLOAT_CONV(textureQueryLod(tex1DArray, input_uvwa.x)), 0, 0);
+  return RESULT(FLOAT_CONV(textureQueryLod(tex1DArray, v2f_uvwa.x)), 0, 0);
 }
 
 RESULT DoQueryLod2DArray()
 {
-  return RESULT(FLOAT_CONV(textureQueryLod(tex2DArray, input_uvwa.xy)), 0, 0);
+  return RESULT(FLOAT_CONV(textureQueryLod(tex2DArray, v2f_uvwa.xy)), 0, 0);
 }
 
 #ifdef TEXSAMPLE_CUBE_ARRAY
 RESULT DoQueryLodCubeArray()
 {
 #if FLOAT_TEX
-  return RESULT(FLOAT_CONV(textureQueryLod(texCubeArray, input_uvwa.xyz)), 0, 0);
+  return RESULT(FLOAT_CONV(textureQueryLod(texCubeArray, v2f_uvwa.xyz)), 0, 0);
 #else
   // cubes are only handled on float type
   return RESULT(0, 0, 0, 0);
