@@ -2377,7 +2377,8 @@ rdcarray<SamplerDescriptor> GLReplay::GetSamplerDescriptors(ResourceId descripto
       // GL has separate sampler objects but they don't exist as separate sampler descriptors
       ret[dst].type = DescriptorType::ImageSampler;
 
-      if(target != eGL_TEXTURE_2D_MULTISAMPLE && target != eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
+      if(target != eGL_TEXTURE_2D_MULTISAMPLE && target != eGL_TEXTURE_2D_MULTISAMPLE_ARRAY &&
+         target != eGL_TEXTURE_BUFFER)
       {
         if(samp != 0)
           drv.glGetSamplerParameterfv(samp, eGL_TEXTURE_BORDER_COLOR,
