@@ -1494,8 +1494,14 @@ GLuint GLReplay::MakeShaderDebugSampleProg(const SamplingProgramConfig &config)
 
   dim = "tex" + dim;
 
+  GLuint prevProg = 0;
+  GL.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&prevProg);
+
   BindUBO(prog, "DebugSampleUBO", 0);
+  GL.glUseProgram(prog);
   GL.glUniform1i(GL.glGetUniformLocation(prog, dim.c_str()), 0);
+
+  GL.glUseProgram(prevProg);
 
   return m_ShaderDebugSampleProg[hash] = prog;
 }
