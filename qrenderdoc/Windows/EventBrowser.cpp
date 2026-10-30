@@ -5331,9 +5331,24 @@ void EventBrowser::on_stepNext_clicked()
   if(!m_Ctx.IsCaptureLoaded() || !ui->stepNext->isEnabled())
     return;
 
+  const ActionDescription *action = NULL;
+  uint32_t selectedEID = 0;
   QModelIndex idx = ui->events->currentIndex();
-  uint32_t selectedEID = GetSelectedEID(idx);
-  const ActionDescription *action = m_Ctx.GetAction(selectedEID);
+  if(idx.isValid())
+  {
+    selectedEID = GetSelectedEID(idx);
+    action = m_Ctx.GetAction(selectedEID);
+  }
+  else
+  {
+    // No selected action use the current action
+    if(!action)
+      action = m_Ctx.CurAction();
+  }
+
+  // special case for the first 'virtual' action at EID 0
+  if(m_Ctx.CurEvent() == 0)
+    action = m_Ctx.GetFirstAction();
 
   if(action)
   {
@@ -5343,8 +5358,7 @@ void EventBrowser::on_stepNext_clicked()
       action = action->nextAction;
   }
 
-  // special case for the first 'virtual' action at EID 0
-  if(m_Ctx.CurEvent() == 0)
+  if(selectedEID == 0)
     action = m_Ctx.GetFirstAction();
 
   while(action)
@@ -5357,8 +5371,6 @@ void EventBrowser::on_stepNext_clicked()
     // which isn't
     action = action->nextAction;
   }
-  // special case for the first 'virtual' action at EID 0
-  SelectEvent(0);
 }
 
 void EventBrowser::on_stepPrev_clicked()
@@ -5366,9 +5378,17 @@ void EventBrowser::on_stepPrev_clicked()
   if(!m_Ctx.IsCaptureLoaded() || !ui->stepPrev->isEnabled())
     return;
 
+  const ActionDescription *action = NULL;
   QModelIndex idx = ui->events->currentIndex();
-  uint32_t selectedEID = GetSelectedEID(idx);
-  const ActionDescription *action = m_Ctx.GetAction(selectedEID);
+  if(idx.isValid())
+  {
+    uint32_t selectedEID = GetSelectedEID(idx);
+    action = m_Ctx.GetAction(selectedEID);
+  }
+
+  // No selected action use the current action
+  if(!action)
+    action = m_Ctx.CurAction();
 
   if(action)
   {
