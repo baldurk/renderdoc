@@ -4085,6 +4085,8 @@ void EventBrowser::OnCaptureLoaded()
   ui->exportActions->setEnabled(true);
   ui->stepPrev->setEnabled(true);
   ui->stepNext->setEnabled(true);
+
+  updateStepNextPrevButtonState();
 }
 
 void EventBrowser::OnCaptureClosed()
@@ -4175,21 +4177,7 @@ void EventBrowser::events_currentChanged(const QModelIndex &current, const QMode
   m_Model->RefreshCache();
   m_Breadcrumbs->OnEventChanged(effectiveEID);
 
-  const ActionDescription *action = m_Ctx.GetAction(selectedEID);
-
-  if(action && action->IsFakeMarker())
-    action = &action->children.back();
-
-  ui->stepPrev->setEnabled(action && action->previousAction);
-  ui->stepNext->setEnabled(action && action->nextAction);
-
-  // special case for the first action in the frame
-  if(selectedEID == 0)
-    ui->stepNext->setEnabled(true);
-
-  // special case for the first 'virtual' action at EID 0
-  if(m_Ctx.GetFirstAction() && selectedEID == m_Ctx.GetFirstAction()->eventId)
-    ui->stepPrev->setEnabled(true);
+  updateStepNextPrevButtonState();
 
   highlightBookmarks();
 }
@@ -6060,6 +6048,24 @@ void EventBrowser::UpdateDurationColumn()
   m_TimeUnit = m_Ctx.Config().EventBrowser_TimeUnit;
 
   m_Model->UpdateDurationColumn();
+}
+
+void EventBrowser::updateStepNextPrevButtonState()
+{
+  QModelIndex current = ui->events->currentIndex();
+  if(current.isValid())
+  {
+    uint32_t selectedEID = GetSelectedEID(current);
+    const ActionDescription *action = m_Ctx.GetAction(selectedEID);
+    if(action && action->IsFakeMarker())
+      action = &action->children.back();
+
+    ui->stepPrev->setEnabled(action && action->previousAction);
+    ui->stepNext->setEnabled(action && action->nextAction);
+    // special case for the first action in the frame
+    if(selectedEID == 0)
+      ui->stepNext->setEnabled(true);
+  }
 }
 
 APIEvent EventBrowser::GetAPIEventForEID(uint32_t eid)

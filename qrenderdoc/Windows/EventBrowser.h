@@ -206,6 +206,7 @@ private:
   void jumpToBookmark(int idx);
   void repopulateBookmarks();
   void highlightBookmarks();
+  void updateStepNextPrevButtonState();
   void bookmarkContextMenu(QRClickToolButton *button, uint32_t EID);
 
   int FindEvent(QModelIndex parent, QString filter, uint32_t after, bool forward);
