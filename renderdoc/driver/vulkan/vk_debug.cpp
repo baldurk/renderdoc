@@ -3896,43 +3896,23 @@ void VulkanReplay::CreateResources()
 {
   m_Device = m_pDriver->GetDev();
 
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.0f);
-
   m_General.Init(m_pDriver, VK_NULL_HANDLE);
-
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.1f);
 
   m_TexRender.Init(m_pDriver, m_General.DescriptorPool);
 
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.3f);
-
   m_Overlay.Init(m_pDriver, m_General.DescriptorPool);
-
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.4f);
 
   m_MeshRender.Init(m_pDriver, m_General.DescriptorPool);
 
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.6f);
-
   m_VertexPick.Init(m_pDriver, m_General.DescriptorPool);
-
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.7f);
 
   m_PixelPick.Init(m_pDriver, m_General.DescriptorPool);
 
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.75f);
-
   m_PixelHistory.Init(m_pDriver, m_General.DescriptorPool);
-
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.8f);
 
   m_Histogram.Init(m_pDriver, m_General.DescriptorPool);
 
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 0.9f);
-
   m_ShaderDebugData.Init(m_pDriver, m_General.DescriptorPool);
-
-  RenderDoc::Inst().SetProgress(LoadProgress::DebugManagerInit, 1.0f);
 
   m_StorageMode = BufferStorageMode::Descriptor;
 

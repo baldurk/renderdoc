@@ -3798,13 +3798,8 @@ RDResult WrappedVulkan::ReadLogInitialisation(RDCFile *rdc, bool storeStructured
 
     uint64_t offsetEnd = reader->GetOffset();
 
-    // only set progress after we've initialised the debug manager, to prevent progress jumping
-    // backwards.
-    if(m_DebugManager || IsStructuredExporting(m_State))
-    {
-      RenderDoc::Inst().SetProgress(LoadProgress::FileInitialRead,
-                                    float(offsetEnd) / float(reader->GetSize()));
-    }
+    RenderDoc::Inst().SetProgress(LoadProgress::FileInitialRead,
+                                  float(offsetEnd) / float(reader->GetSize()));
 
     if((SystemChunk)context == SystemChunk::CaptureScope)
     {
