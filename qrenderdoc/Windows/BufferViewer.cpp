@@ -4352,7 +4352,7 @@ bool BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOff
   const bool showPadding = ui->showPadding->isChecked() && m_CurCBuffer.bytesBacked;
   const QString filterExpression = ignoreFilter ? QString() : ui->filterExpression->text();
   const QStringList filterWords =
-      filterExpression.split(QRegularExpression(lit("\\s+")), Qt::SkipEmptyParts);
+      filterExpression.split(QRegularExpression(lit("\\s+")), QString::SkipEmptyParts);
 
   if(consts.size() != vars.size())
     qCritical() << "Shader variable mismatch";
