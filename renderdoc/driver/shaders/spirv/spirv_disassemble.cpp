@@ -143,8 +143,7 @@ namespace rdcspv
 rdcstr Reflector::Disassemble(const rdcstr &entryPoint, const rdcarray<SpecConstant> &specInfo,
                               std::map<size_t, uint32_t> &instructionLines) const
 {
-  std::set<rdcstr> usedNames;
-  std::map<Id, rdcstr> dynamicNames;
+  SparseIdMap<rdcstr> dynamicNames;
 
   auto idName = [this, &dynamicNames, &specInfo](Id id) -> rdcstr {
     // see if we have a dynamic name assigned (to disambiguate), if so use that
@@ -182,7 +181,7 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint, const rdcarray<SpecConst
   auto constIntVal = [this, &specInfo](Id id) {
     return EvaluateConstant(id, specInfo).value.u32v[0];
   };
-  auto declName = [this, &idName, &usedNames, &dynamicNames](Id typeId, Id id) -> rdcstr {
+  auto declName = [this, &idName](Id typeId, Id id) -> rdcstr {
     if(typeId == Id())
       return idName(id);
 
@@ -195,23 +194,9 @@ rdcstr Reflector::Disassemble(const rdcstr &entryPoint, const rdcarray<SpecConst
 
     rdcstr basename = strings[id];
     if(basename.empty())
-    {
-      return ret + " " + StringFormat::Fmt("_%u", id.value());
-    }
+      basename = StringFormat::Fmt("_%u", id.value());
 
-    rdcstr name = basename;
-
-    int alias = 2;
-    while(usedNames.find(name) != usedNames.end())
-    {
-      name = basename + "@" + ToStr(alias);
-      alias++;
-    }
-
-    usedNames.insert(name);
-    dynamicNames[id] = name;
-
-    return ret + " " + name;
+    return ret + " " + basename;
   };
   auto getDecorationString = [&idName](const Decorations &dec) -> rdcstr {
     if(!dec.HasDecorations())

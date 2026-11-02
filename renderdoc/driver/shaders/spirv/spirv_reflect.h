@@ -156,6 +156,7 @@ private:
                              const rdcarray<SpecConstant> &specInfo) const;
 
   rdcstr cmdline;
+  std::set<rdcstr> usedNames;
   DenseIdMap<rdcstr> strings;
   SourceLanguage sourceLanguage = SourceLanguage::Unknown;
   rdcarray<SourceFile> sources;

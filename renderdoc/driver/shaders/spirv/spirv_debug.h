@@ -811,6 +811,7 @@ private:
     rdcstr name;
   };
 
+  std::set<rdcstr> usedNames;
   DenseIdMap<rdcstr> strings;
   rdcarray<MemberName> memberNames;
   std::map<ShaderEntryPoint, Id> entryLookup;
@@ -840,10 +841,6 @@ private:
   Function *curFunction = NULL;
 
   rdcarray<size_t> instructionOffsets;
-
-  mutable std::set<rdcstr> usedNames;
-  mutable Threading::RWLock dynamicNamesLock;
-  mutable std::map<Id, rdcstr> dynamicNames;
 
   struct
   {

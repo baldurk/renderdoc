@@ -2953,13 +2953,7 @@ void Debugger::FillDefaultSourceVars(rdcarray<InstructionSourceInfo> &instInfo) 
     // one exists.
     if(id != Id() && idLiveRange[id].first == offs)
     {
-      rdcstr name;
-
-      auto dyn = dynamicNames.find(id);
-      if(dyn != dynamicNames.end())
-        name = dyn->second;
-      else
-        name = strings[id];
+      rdcstr name = strings[id];
 
       if(!name.empty())
       {
@@ -4144,39 +4138,12 @@ DeviceOpResult Debugger::WriteThroughPointer(ShaderVariable &ptr, const ShaderVa
 
 rdcstr Debugger::GetHumanName(Id id) const
 {
-  {
-    SCOPED_READLOCK(dynamicNamesLock);
-    // see if we have a dynamic name assigned (to disambiguate), if so use that
-    auto it = dynamicNames.find(id);
-    if(it != dynamicNames.end())
-      return it->second;
-  }
-
   // otherwise try the string first
   rdcstr name = strings[id];
 
   // if we don't have a string name, we can be sure the id is unambiguous
   if(name.empty())
     return GetRawName(id);
-
-  rdcstr basename = name;
-
-  // otherwise check to see if it's been used before. If so give it a new name
-  {
-    SCOPED_READLOCK(dynamicNamesLock);
-    int alias = 2;
-    while(usedNames.find(name) != usedNames.end())
-    {
-      name = basename + "@" + ToStr(alias);
-      alias++;
-    }
-  }
-
-  {
-    SCOPED_WRITELOCK(dynamicNamesLock);
-    usedNames.insert(name);
-    dynamicNames[id] = name;
-  }
 
   return name;
 }
@@ -4995,8 +4962,21 @@ void Debugger::RegisterOp(Iter it)
     OpName name(it);
 
     // technically you could name a string - in that case we ignore the name
-    if(strings[name.target].empty())
-      strings[name.target] = name.name;
+    if(strings[name.target].empty() && !name.name.empty())
+    {
+      rdcstr nameStr = name.name;
+
+      int alias = 2;
+      while(usedNames.find(nameStr) != usedNames.end())
+      {
+        nameStr = name.name + "@" + ToStr(alias);
+        alias++;
+      }
+
+      usedNames.insert(nameStr);
+
+      strings[name.target] = nameStr;
+    }
   }
   else if(opdata.op == Op::MemberName)
   {

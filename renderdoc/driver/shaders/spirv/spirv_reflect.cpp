@@ -620,8 +620,21 @@ void Reflector::RegisterOp(Iter it)
     OpName name(it);
 
     // technically you could name a string - in that case we ignore the name
-    if(strings[name.target].empty())
-      strings[name.target] = name.name;
+    if(strings[name.target].empty() && !name.name.empty())
+    {
+      rdcstr nameStr = name.name;
+
+      int alias = 2;
+      while(usedNames.find(nameStr) != usedNames.end())
+      {
+        nameStr = name.name + "@" + ToStr(alias);
+        alias++;
+      }
+
+      usedNames.insert(nameStr);
+
+      strings[name.target] = nameStr;
+    }
   }
   else if(opdata.op == Op::MemberName)
   {
