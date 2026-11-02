@@ -3841,6 +3841,7 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
   ui->bookmarkStrip->hide();
 
   m_BookmarkStripLayout = new FlowLayout(ui->bookmarkStrip, 0, 3, 3);
+  m_BookmarkStripLayout->setContentsMargins(6, 0, 6, 2);
   m_BookmarkSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
   ui->bookmarkStrip->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
@@ -3849,9 +3850,9 @@ EventBrowser::EventBrowser(ICaptureContext &ctx, QWidget *parent)
 
   {
     QHBoxLayout *box = new QHBoxLayout(ui->breadcrumbStrip);
-    box->setContentsMargins(QMargins(0, 0, 0, 0));
     box->setMargin(0);
     box->setSpacing(0);
+    box->setContentsMargins(QMargins(0, 0, 6, 2));
     m_Breadcrumbs = new MarkerBreadcrumbs(m_Ctx, this, this);
     box->addWidget(m_Breadcrumbs);
 
