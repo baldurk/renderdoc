@@ -41,6 +41,7 @@
 #include "Widgets/CollapseGroupBox.h"
 #include "Widgets/ComputeDebugSelector.h"
 #include "Widgets/Extended/RDLabel.h"
+#include "Widgets/Extended/RDLineEdit.h"
 #include "Widgets/Extended/RDSplitter.h"
 #include "Windows/Dialogs/AxisMappingDialog.h"
 #include "Windows/Dialogs/CameraControlsDialog.h"
@@ -2629,6 +2630,33 @@ BufferViewer::BufferViewer(ICaptureContext &ctx, bool meshview, QWidget *parent)
 
   ui->setFormat->setVisible(false);
 
+  QObject::connect(ui->fixedVars, &RDTreeWidget::keyPress, [this](QKeyEvent *ev) {
+    if(!IsCBufferView())
+      return;
+
+    if((ev->modifiers() & Qt::ControlModifier) && ev->key() == Qt::Key_F)
+    {
+      ui->filterCBuffer->setChecked(true);
+    }
+  });
+
+  ui->filterStrip->setVisible(false);
+
+  QObject::connect(ui->filterExpression, &RDLineEdit::keyPress, [this](QKeyEvent *event) {
+    if(event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter)
+      OnEventChanged(m_Ctx.CurEvent());
+    if(event->key() == Qt::Key_Escape)
+      ui->filterCBuffer->setChecked(false);
+  });
+
+  m_FilterTimeout = new QTimer(this);
+  m_FilterTimeout->setInterval(600);
+  m_FilterTimeout->setSingleShot(true);
+  connect(m_FilterTimeout, &QTimer::timeout, [this]() { OnEventChanged(m_Ctx.CurEvent()); });
+
+  QObject::connect(ui->filterExpression, &RDLineEdit::textChanged,
+                   [this](const QString &) { m_FilterTimeout->start(); });
+
   ui->controlType->setCurrentIndex(0);
   on_controlType_currentIndexChanged(0);
 
@@ -2831,7 +2859,17 @@ void BufferViewer::SetupRawView()
   m_InnerSplitter->addWidget(m_FixedGroup);
   m_InnerSplitter->addWidget(m_RepeatedGroup);
 
-  m_VLayout->addWidget(ui->meshToolbar);
+  QFrame *meshToolbar = new QFrame(this);
+  meshToolbar->setFrameShape(QFrame::Panel);
+  meshToolbar->setFrameShadow(QFrame::Plain);
+
+  QVBoxLayout *meshToolbarLayout = new QVBoxLayout(meshToolbar);
+  meshToolbarLayout->setSpacing(2);
+  meshToolbarLayout->setContentsMargins(0, 0, 0, 0);
+  meshToolbarLayout->addWidget(ui->mainMeshToolbar);
+  meshToolbarLayout->addWidget(ui->filterStrip);
+
+  m_VLayout->addWidget(meshToolbar);
   // 0 will be variable, but set it to something here so QSplitter doesn't barf
   m_OuterSplitter->insertWidget(0, ui->inTable);
   m_OuterSplitter->insertWidget(1, ui->formatSpecifier);
@@ -2971,12 +3009,22 @@ void BufferViewer::SetupMeshView()
   QObject::connect(ui->out2Table->horizontalHeader(), &QHeaderView::customContextMenuRequested,
                    [this](const QPoint &pos) { meshHeaderMenu(MeshDataStage::GSOut, pos); });
 
+  QFrame *meshToolbar = new QFrame(this);
+  meshToolbar->setFrameShape(QFrame::Panel);
+  meshToolbar->setFrameShadow(QFrame::Plain);
+
+  QVBoxLayout *meshToolbarLayout = new QVBoxLayout(meshToolbar);
+  meshToolbarLayout->setSpacing(2);
+  meshToolbarLayout->setContentsMargins(0, 0, 0, 0);
+  meshToolbarLayout->addWidget(ui->mainMeshToolbar);
+  meshToolbarLayout->addWidget(ui->filterStrip);
+
   QVBoxLayout *vertical = new QVBoxLayout(this);
 
   vertical->setSpacing(3);
   vertical->setContentsMargins(3, 3, 3, 3);
 
-  vertical->addWidget(ui->meshToolbar);
+  vertical->addWidget(meshToolbar);
   vertical->addWidget(ui->dockarea);
 
   QTimer *renderTimer = new QTimer(this);
@@ -3977,6 +4025,8 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
           RDTreeViewExpansionState state;
           ui->fixedVars->saveExpansion(state, 0);
 
+          RDTreeViewSelectedItemState selItemState = ui->fixedVars->saveSelectedItemState();
+
           ui->fixedVars->beginUpdate();
 
           ui->fixedVars->clear();
@@ -3984,7 +4034,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
           if(!vars.isEmpty())
           {
             UI_AddFixedVariables(ui->fixedVars->invisibleRootItem(), 0,
-                                 bufdata->inConfig.fixedVars.type.members, vars);
+                                 bufdata->inConfig.fixedVars.type.members, vars, false);
 
             if(IsCBufferView() && !bufdata->cb.bytesBacked)
               UI_RemoveOffsets(ui->fixedVars->invisibleRootItem());
@@ -4009,6 +4059,8 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
                 ui->fixedVars->getInternalExpansion(qHash(ToQStr(m_CurCBuffer.shader))), 0);
           else
             ui->fixedVars->applyExpansion(state, 0);
+
+          ui->fixedVars->applySelectedItemState(selItemState);
         }
 
         on_rowOffset_valueChanged(ui->rowOffset->value());
@@ -4288,11 +4340,19 @@ void BufferViewer::UI_AddTaskPayloads(RDTreeWidgetItem *root, size_t baseOffset,
   }
 }
 
-void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOffset,
+bool BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOffset,
                                         const rdcarray<ShaderConstant> &consts,
-                                        const rdcarray<ShaderVariable> &vars)
+                                        const rdcarray<ShaderVariable> &vars, bool ignoreFilter)
 {
+  bool ret = false;
+
+  Qt::CaseSensitivity filterCase =
+      ui->filterCaseSensitive->isChecked() ? Qt::CaseSensitive : Qt::CaseInsensitive;
+
   const bool showPadding = ui->showPadding->isChecked() && m_CurCBuffer.bytesBacked;
+  const QString filterExpression = ignoreFilter ? QString() : ui->filterExpression->text();
+  const QStringList filterWords =
+      filterExpression.split(QRegularExpression(lit("\\s+")), Qt::SkipEmptyParts);
 
   if(consts.size() != vars.size())
     qCritical() << "Shader variable mismatch";
@@ -4304,7 +4364,7 @@ void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOff
     const ShaderConstant &c = consts[idx];
     const ShaderVariable &v = vars[idx];
 
-    if(showPadding && c.byteOffset > offset)
+    if(showPadding && c.byteOffset > offset && filterWords.isEmpty())
     {
       uint32_t size = c.byteOffset - offset;
 
@@ -4319,6 +4379,7 @@ void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOff
       pad->setTag(QVariant::fromValue(FixedVarTag(size)));
 
       root->addChild(pad);
+      ret = true;
 
       offset = c.byteOffset;
     }
@@ -4361,9 +4422,17 @@ void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOff
 
     n->setTag(QVariant::fromValue(FixedVarTag(v.name, baseOffset + c.byteOffset)));
 
-    root->addChild(n);
-
     UI_FixedAddMatrixRows(n, c, v);
+
+    bool anyPassFilter = filterWords.empty();
+    QString filterName = v.name;
+    for(QString filter : filterWords)
+    {
+      if(filterName.contains(filter, filterCase))
+        anyPassFilter = true;
+    }
+
+    const bool rootPassFilter = anyPassFilter;
 
     // if it's an array the value (v) will be expanded with one element in each of v.members, but
     // the constant (c) will just have the type with a number of elements
@@ -4393,7 +4462,9 @@ void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOff
         // because v.members[...].members will be the actual struct members because of the expansion
         if(c.type.baseType == VarType::Struct)
         {
-          UI_AddFixedVariables(el, elOffset, c.type.members, v.members[e].members);
+          if(UI_AddFixedVariables(el, elOffset, c.type.members, v.members[e].members,
+                                  rootPassFilter || ignoreFilter))
+            anyPassFilter = true;
         }
         else
         {
@@ -4409,7 +4480,7 @@ void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOff
         if(c.type.baseType == VarType::Struct && e + 1 == v.members.size())
           break;
 
-        if(showPadding && c.type.arrayByteStride > elSize)
+        if(showPadding && c.type.arrayByteStride > elSize && filterWords.isEmpty())
         {
           uint32_t size = c.type.arrayByteStride - elSize;
 
@@ -4430,12 +4501,23 @@ void BufferViewer::UI_AddFixedVariables(RDTreeWidgetItem *root, uint32_t baseOff
     // for single structs, recurse
     else if(v.type == VarType::Struct)
     {
-      UI_AddFixedVariables(n, c.byteOffset, c.type.members, v.members);
+      if(UI_AddFixedVariables(n, c.byteOffset, c.type.members, v.members,
+                              rootPassFilter || ignoreFilter))
+        anyPassFilter = true;
     }
+
+    ret = ret || anyPassFilter;
+
+    if(anyPassFilter)
+      root->addChild(n);
+    else
+      delete n;
 
     // advance by the tight scalar-packed advance, so we can detect padding
     offset += BufferFormatter::GetVarAdvance(PackingRules::Scalar(), c);
   }
+
+  return ret;
 }
 
 void BufferViewer::UI_RemoveOffsets(RDTreeWidgetItem *root)
@@ -5467,6 +5549,8 @@ void BufferViewer::updateLabelsAndLayout()
   {
     setWindowTitle(tr("Mesh Viewer"));
 
+    ui->filterCBuffer->setVisible(false);
+
     if(m_Ctx.IsCaptureLoaded())
     {
       GraphicsAPI pipeType = m_Ctx.APIProps().pipelineType;
@@ -5596,10 +5680,14 @@ void BufferViewer::updateLabelsAndLayout()
 
       title += QFormatStr(" - %1").arg(bufName);
 
+      ui->filterCBuffer->setVisible(true);
+
       setWindowTitle(title);
     }
     else
     {
+      ui->filterCBuffer->setVisible(false);
+
       setWindowTitle(m_Ctx.GetResourceName(m_BufferID) + lit(" - Contents"));
     }
   }
@@ -6165,6 +6253,30 @@ void BufferViewer::on_setFormat_toggled(bool checked)
         reflection->constantBlocks[m_CBufferSlot.slot].variables, 0));
 }
 
+void BufferViewer::on_filterCBuffer_toggled(bool checked)
+{
+  if(!checked)
+  {
+    ui->filterExpression->setText(QString());
+    ui->filterStrip->setVisible(false);
+  }
+  else
+  {
+    ui->filterStrip->setVisible(true);
+    ui->filterExpression->setFocus(Qt::OtherFocusReason);
+  }
+
+  if(m_FilterTimeout->isActive())
+    m_FilterTimeout->stop();
+
+  OnEventChanged(m_Ctx.CurEvent());
+}
+
+void BufferViewer::on_filterCaseSensitive_toggled(bool checked)
+{
+  OnEventChanged(m_Ctx.CurEvent());
+}
+
 void BufferViewer::on_resetMeshFilterButton_clicked()
 {
   SetMeshFilter(MeshFilter::None);
@@ -6254,9 +6366,9 @@ void BufferViewer::processFormat(const QString &format)
     ui->rowOffsetLabel->setVisible(true);
     ui->rowOffset->setVisible(true);
     // insert after the offsetLine
-    if(ui->rowOffset->parentWidget() != ui->meshToolbar)
+    if(ui->rowOffset->parentWidget() != ui->mainMeshToolbar)
     {
-      QHBoxLayout *hbox = qobject_cast<QHBoxLayout *>(ui->meshToolbar->layout());
+      QHBoxLayout *hbox = qobject_cast<QHBoxLayout *>(ui->mainMeshToolbar->layout());
 
       int i = 0;
       for(; i < hbox->count(); i++)

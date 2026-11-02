@@ -545,7 +545,7 @@
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>267</width>
+                <width>257</width>
                 <height>321</height>
                </rect>
               </property>
@@ -795,12 +795,87 @@
     <bool>false</bool>
    </attribute>
   </widget>
-  <widget class="QFrame" name="meshToolbar">
+  <widget class="QWidget" name="filterStrip" native="true">
+   <property name="geometry">
+    <rect>
+     <x>700</x>
+     <y>50</y>
+     <width>223</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <layout class="QHBoxLayout" name="filterStripLayout">
+    <property name="spacing">
+     <number>3</number>
+    </property>
+    <property name="leftMargin">
+     <number>6</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>6</number>
+    </property>
+    <property name="bottomMargin">
+     <number>2</number>
+    </property>
+    <item>
+     <widget class="QLabel" name="filterStripIcon">
+      <property name="text">
+       <string/>
+      </property>
+      <property name="pixmap">
+       <pixmap resource="../Resources/resources.qrc">:/filter.png</pixmap>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="filterStripLabel">
+      <property name="text">
+       <string>Filter</string>
+      </property>
+      <property name="textFormat">
+       <enum>Qt::PlainText</enum>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+      </property>
+      <property name="margin">
+       <number>0</number>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="RDLineEdit" name="filterExpression"/>
+    </item>
+    <item>
+     <widget class="QToolButton" name="filterCaseSensitive">
+      <property name="toolTip">
+       <string>Filter with case-sensitivity</string>
+      </property>
+      <property name="text">
+       <string>Aa</string>
+      </property>
+      <property name="checkable">
+       <bool>true</bool>
+      </property>
+      <property name="toolButtonStyle">
+       <enum>Qt::ToolButtonTextOnly</enum>
+      </property>
+      <property name="autoRaise">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QWidget" name="mainMeshToolbar" native="true">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>10</y>
-     <width>767</width>
+     <width>1137</width>
      <height>28</height>
     </rect>
    </property>
@@ -815,12 +890,6 @@
      <width>0</width>
      <height>28</height>
     </size>
-   </property>
-   <property name="frameShape">
-    <enum>QFrame::Panel</enum>
-   </property>
-   <property name="frameShadow">
-    <enum>QFrame::Raised</enum>
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout_9">
     <property name="spacing">
@@ -940,6 +1009,29 @@
       </property>
       <property name="toolButtonStyle">
        <enum>Qt::ToolButtonTextOnly</enum>
+      </property>
+      <property name="autoRaise">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QToolButton" name="filterCBuffer">
+      <property name="toolTip">
+       <string>Filter constants by name</string>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="icon">
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/filter.png</normaloff>:/filter.png</iconset>
+      </property>
+      <property name="checkable">
+       <bool>true</bool>
+      </property>
+      <property name="toolButtonStyle">
+       <enum>Qt::ToolButtonIconOnly</enum>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -1153,6 +1245,11 @@
    <extends>QWidget</extends>
    <header>Widgets/BufferFormatSpecifier.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>RDLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>Widgets/Extended/RDLineEdit.h</header>
   </customwidget>
  </customwidgets>
  <resources>

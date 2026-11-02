@@ -9,7 +9,7 @@ When opening a buffer for view, it can display both fixed non-repeating "struct-
 
 The format is defined initially by whatever reflection data is available. The format can be customised, as detailed in :doc:`../how/how_buffer_format`.
 
-Constant buffers are assumed to be AoS data in all cases. Other views of buffers via non-constant bindings such as UAVs and storage buffers, or views opened directly from a buffer from the resource inspector, will default towards SoA data unless the layout explicitly declares a fixed set of SoA data.
+Constant buffers are assumed to be SoA data in all cases. Other views of buffers via non-constant bindings such as UAVs and storage buffers, or views opened directly from a buffer from the resource inspector, will default towards AoS data unless the layout explicitly declares a fixed set of SoA data.
 
 .. figure:: ../imgs/Screenshots/AOSBuffer.png
 
@@ -27,6 +27,15 @@ The buffer viewer can specify the visible range to be interpreted, given a byte 
 The initial values of the offset and length will be taken from the relevant binding, or default to the entire buffer if no subset is referenced by the binding.
 
 In addition to this, you can specify a row offset which is useful in remaining at the same row while watching the change in a buffer between different events.
+
+Filtering in constant buffer view
+---------------------------------
+
+.. |filter| image:: ../imgs/icons/filter.png
+
+When viewing a constant buffer and it is known that the data is only a small set of fixed data, an additional |filter| option is available.
+
+This will add a filtering toolbar that allows a subset of the variables to be shown. The filter is a set of words, space separated, that by default match case insensitively against variables in the declared structure. Any variable that matches any of the words will be displayed. If the name of a structure is matched, all children of that structure will be displayed.
 
 Exporting and display
 ---------------------

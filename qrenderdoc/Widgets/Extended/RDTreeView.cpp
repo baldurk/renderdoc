@@ -454,6 +454,52 @@ void RDTreeView::applyExpansion(const RDTreeViewExpansionState &state, const Exp
     applyExpansionToRow(state, model()->index(i, 0), 0, keygen);
 }
 
+RDTreeViewSelectedItemState RDTreeView::saveSelectedItemState()
+{
+  RDTreeViewSelectedItemState ret;
+  QModelIndexList sel = selectionModel()->selectedIndexes();
+  if(!sel.empty())
+  {
+    QModelIndex i = sel[0].sibling(sel[0].row(), 0);
+    while(i.isValid())
+    {
+      ret.insert(0, qHash(i.data(Qt::DisplayRole).toString()));
+      i = i.parent();
+    }
+  }
+
+  return ret;
+}
+
+void RDTreeView::applySelectedItemState(RDTreeViewSelectedItemState state)
+{
+  QModelIndex cur;
+
+  for(int i = 0; i < state.count(); i++)
+  {
+    bool found = false;
+
+    for(int row = 0, count = model()->rowCount(cur); row < count; row++)
+    {
+      QModelIndex check = model()->index(row, 0, cur);
+      if(qHash(model()->data(check).toString()) == state[i])
+      {
+        found = true;
+        cur = check;
+        break;
+      }
+    }
+
+    if(!found)
+      return;
+  }
+
+  QItemSelection sel(cur, cur.sibling(cur.row(), model()->columnCount() - 1));
+
+  scrollTo(cur);
+  selectionModel()->select(sel, QItemSelectionModel::ClearAndSelect);
+}
+
 void RDTreeView::copySelection()
 {
   QModelIndexList sel = selectionModel()->selectedRows();
