@@ -1875,8 +1875,18 @@ static void ConfigureColumnsForVertexPipe(ICaptureContext &ctx, PopulateBufferDa
     // for a non-indexed draw, we take the largest vertex buffer
     rdcarray<BoundVBuffer> VBs = ctx.CurPipelineState().GetVBuffers();
 
-    for(const BoundVBuffer &vb : VBs)
+    rdcarray<int> usedVBs;
+
+    for(const VertexInputAttribute &attr : ctx.CurPipelineState().GetVertexInputs())
+      usedVBs.push_back(attr.vertexBuffer);
+
+    for(int i = 0; i < VBs.count(); i++)
     {
+      if(!usedVBs.contains(i))
+        continue;
+
+      const BoundVBuffer &vb = VBs[i];
+
       if(vb.byteStride == 0)
         continue;
 
