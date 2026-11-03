@@ -1884,6 +1884,14 @@ void GLReplay::SavePipelineState(uint32_t eventId)
       pipe.framebuffer.drawFBO.readBuffer = b - eGL_COLOR_ATTACHMENT0;
     else
       pipe.framebuffer.drawFBO.readBuffer = -1;
+
+    if(HasExt[ARB_framebuffer_no_attachments])
+    {
+      drv.glGetFramebufferParameteriv(eGL_READ_FRAMEBUFFER, eGL_FRAMEBUFFER_DEFAULT_SAMPLES,
+                                      (GLint *)&pipe.framebuffer.readFBO.defaultSampleCount);
+      drv.glGetFramebufferParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_FRAMEBUFFER_DEFAULT_SAMPLES,
+                                      (GLint *)&pipe.framebuffer.drawFBO.defaultSampleCount);
+    }
   }
 
   pipe.framebuffer.blendState.blendFactor = rs.BlendColor;

@@ -205,6 +205,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Widgets/Extended/RDDoubleSpinBox.cpp \
     Widgets/Extended/RDListView.cpp \
     Widgets/ComputeDebugSelector.cpp \
+    Widgets/PixelDebugSelector.cpp \
     Widgets/CustomPaintWidget.cpp \
     Widgets/ResourcePreview.cpp \
     Widgets/ThumbnailStrip.cpp \
@@ -296,6 +297,7 @@ HEADERS += Code/CaptureContext.h \
     Widgets/Extended/RDDoubleSpinBox.h \
     Widgets/Extended/RDListView.h \
     Widgets/ComputeDebugSelector.h \
+    Widgets/PixelDebugSelector.h \
     Widgets/CustomPaintWidget.h \
     Widgets/ResourcePreview.h \
     Widgets/ThumbnailStrip.h \
@@ -369,6 +371,7 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/PipelineState/GLPipelineStateViewer.ui \
     Widgets/BufferFormatSpecifier.ui \
     Widgets/ComputeDebugSelector.ui \
+    Widgets/PixelDebugSelector.ui \
     Windows/BufferViewer.ui \
     Windows/ShaderViewer.ui \
     Windows/ShaderMessageViewer.ui \

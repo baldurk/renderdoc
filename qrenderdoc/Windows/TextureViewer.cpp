@@ -402,18 +402,33 @@ void TextureViewer::UI_UpdateCachedTexture()
     return;
   }
 
+  bool debugOutput = false;
+
   ResourceId id = m_LockedId;
   if(id == ResourceId())
+  {
+    debugOutput = m_Following.Type == FollowType::OutputColor ||
+                  m_Following.Type == FollowType::OutputDepth ||
+                  m_Following.Type == FollowType::OutputDepthResolve;
     id = m_Following.GetResourceId(m_Ctx);
+  }
 
   if(id == ResourceId())
+  {
+    debugOutput = false;
     id = m_TexDisplay.resourceId;
+  }
 
   m_CachedTexture = m_Ctx.GetTexture(id);
 
   if(m_CachedTexture != NULL)
   {
-    if(m_Ctx.APIProps().shaderDebugging)
+    if(!debugOutput)
+    {
+      ui->debugPixelContext->setEnabled(false);
+      ui->debugPixelContext->setToolTip(tr("No output texture selected"));
+    }
+    else if(m_Ctx.APIProps().shaderDebugging)
     {
       const ShaderReflection *shaderDetails =
           m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel);

@@ -397,6 +397,31 @@ uint32_t PipeState::MultiviewBroadcastCount() const
   return 1;
 }
 
+uint32_t PipeState::GetOverrideSampleCount() const
+{
+  if(IsCaptureLoaded())
+  {
+    if(IsCaptureD3D11())
+    {
+      return m_D3D11->rasterizer.state.forcedSampleCount;
+    }
+    else if(IsCaptureD3D12())
+    {
+      return m_D3D11->rasterizer.state.forcedSampleCount;
+    }
+    else if(IsCaptureGL())
+    {
+      return m_GL->framebuffer.drawFBO.defaultSampleCount;
+    }
+    else if(IsCaptureVK())
+    {
+      return m_Vulkan->multisample.rasterSamples;
+    }
+  }
+
+  return 0;
+}
+
 rdcstr PipeState::GetShaderEntryPoint(ShaderStage stage) const
 {
   if(IsCaptureLoaded() && IsCaptureVK())

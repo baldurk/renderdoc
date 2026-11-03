@@ -3127,6 +3127,23 @@
            </widget>
           </item>
           <item>
+           <widget class="QToolButton" name="pixelDebugSelector">
+            <property name="text">
+             <string>Debug</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/wrench.png</normaloff>:/wrench.png</iconset>
+            </property>
+            <property name="toolButtonStyle">
+             <enum>Qt::ToolButtonTextBesideIcon</enum>
+            </property>
+            <property name="autoRaise">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
            <spacer name="psShaderSpacer">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>

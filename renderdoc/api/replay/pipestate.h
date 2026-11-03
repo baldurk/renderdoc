@@ -176,6 +176,12 @@ public:
 )");
   uint32_t MultiviewBroadcastCount() const;
 
+  DOCUMENT(R"(
+:return: The number of multisample samples to use when not implicit from output targets.
+:rtype: int
+)");
+  uint32_t GetOverrideSampleCount() const;
+
   DOCUMENT(R"(Determines whether or not the current capture supports binding arrays of resources.
 
 :return: A boolean indicating if binding arrays of resources is supported.

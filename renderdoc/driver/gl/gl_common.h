@@ -769,6 +769,7 @@ extern bool IsGLES;
   EXT_TO_CHECK(43, 31, ARB_program_interface_query)              \
   EXT_TO_CHECK(43, 31, ARB_shader_storage_buffer_object)         \
   EXT_TO_CHECK(43, 31, ARB_stencil_texturing)                    \
+  EXT_TO_CHECK(43, 31, ARB_framebuffer_no_attachments)           \
   /* See above with ARB_texture_multisample_no_array          */ \
   EXT_TO_CHECK(43, 32, ARB_texture_storage_multisample_no_array) \
   EXT_TO_CHECK(43, 99, ARB_texture_storage_multisample)          \

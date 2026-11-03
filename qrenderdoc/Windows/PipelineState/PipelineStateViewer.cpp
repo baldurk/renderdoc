@@ -33,8 +33,10 @@
 #include <QXmlStreamWriter>
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
+#include "Widgets/ComputeDebugSelector.h"
 #include "Widgets/Extended/RDLabel.h"
 #include "Widgets/Extended/RDTreeWidget.h"
+#include "Widgets/PixelDebugSelector.h"
 #include "toolwindowmanager/ToolWindowManager.h"
 #include "D3D11PipelineStateViewer.h"
 #include "D3D12PipelineStateViewer.h"
@@ -185,6 +187,15 @@ PipelineStateViewer::PipelineStateViewer(ICaptureContext &ctx, QWidget *parent)
 {
   ui->setupUi(this);
 
+  m_ComputeDebugSelector = new ComputeDebugSelector(this);
+  m_PixelDebugSelector = new PixelDebugSelector(m_Ctx, this);
+
+  QObject::connect(m_ComputeDebugSelector, &ComputeDebugSelector::beginDebug, this,
+                   &PipelineStateViewer::computeDebugSelector_beginDebug);
+
+  QObject::connect(m_PixelDebugSelector, &PixelDebugSelector::beginDebug, this,
+                   &PipelineStateViewer::pixelDebugSelector_beginDebug);
+
   ui->thumbnail->SetContext(m_Ctx);
   ui->layout->removeWidget(ui->thumbnail);
 
@@ -217,6 +228,9 @@ PipelineStateViewer::~PipelineStateViewer()
 
   m_Ctx.BuiltinWindowClosed(this);
   m_Ctx.RemoveCaptureViewer(this);
+
+  delete m_ComputeDebugSelector;
+  delete m_PixelDebugSelector;
 
   delete m_Tooltip;
 
@@ -946,6 +960,259 @@ void PipelineStateViewer::shaderEdit_clicked()
   QMenu *menu = sender->menu();
   if(menu && !menu->actions().isEmpty())
     menu->actions()[0]->trigger();
+}
+
+void PipelineStateViewer::SetupDebugSelectors(QToolButton *computeDebugSelector,
+                                              QToolButton *pixelDebugSelector)
+{
+  const ShaderReflection *csRefl = m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Compute);
+  const ShaderReflection *psRefl = m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel);
+  const ActionDescription *action = m_Ctx.CurAction();
+
+  // set up thread debugging inputs
+  bool enableComputeDebug = m_Ctx.APIProps().shaderDebugging && csRefl &&
+                            csRefl->debugInfo.debuggable && action &&
+                            (action->flags & ActionFlags::Dispatch);
+  if(enableComputeDebug)
+  {
+    // Validate dispatch/threadgroup dimensions
+    enableComputeDebug &= action->dispatchDimension[0] > 0;
+    enableComputeDebug &= action->dispatchDimension[1] > 0;
+    enableComputeDebug &= action->dispatchDimension[2] > 0;
+
+    const rdcfixedarray<uint32_t, 3> &threadDims = (action->dispatchThreadsDimension[0] == 0)
+                                                       ? csRefl->dispatchThreadsDimension
+                                                       : action->dispatchThreadsDimension;
+    enableComputeDebug &= threadDims[0] > 0;
+    enableComputeDebug &= threadDims[1] > 0;
+    enableComputeDebug &= threadDims[2] > 0;
+  }
+
+  if(enableComputeDebug)
+  {
+    computeDebugSelector->setEnabled(true);
+
+    // set maximums for CS debugging
+    m_ComputeDebugSelector->SetThreadBounds(action->dispatchDimension,
+                                            (action->dispatchThreadsDimension[0] == 0)
+                                                ? csRefl->dispatchThreadsDimension
+                                                : action->dispatchThreadsDimension);
+
+    computeDebugSelector->setToolTip(
+        tr("Debug this compute shader by specifying group/thread ID or dispatch ID"));
+  }
+  else
+  {
+    computeDebugSelector->setEnabled(false);
+
+    if(!m_Ctx.APIProps().shaderDebugging)
+      computeDebugSelector->setToolTip(tr("This API does not support shader debugging"));
+    else if(!action || !(action->flags & ActionFlags::Dispatch))
+      computeDebugSelector->setToolTip(tr("No dispatch selected"));
+    else if(!csRefl)
+      computeDebugSelector->setToolTip(tr("No compute shader bound"));
+    else if(!csRefl->debugInfo.debuggable)
+      computeDebugSelector->setToolTip(
+          tr("This shader doesn't support debugging: %1").arg(csRefl->debugInfo.debugStatus));
+    else
+      computeDebugSelector->setToolTip(tr("Invalid dispatch/threadgroup dimensions."));
+  }
+
+  // set up thread debugging inputs
+  bool enablePixelDebug = m_Ctx.APIProps().shaderDebugging && psRefl &&
+                          psRefl->debugInfo.debuggable && action &&
+                          (action->flags & ActionFlags::Drawcall);
+  if(enablePixelDebug)
+  {
+    pixelDebugSelector->setEnabled(true);
+
+    pixelDebugSelector->setToolTip(
+        tr("Debug this pixel shader by manually selecting a co-ordinate"));
+  }
+  else
+  {
+    pixelDebugSelector->setEnabled(false);
+
+    if(!m_Ctx.APIProps().shaderDebugging)
+      pixelDebugSelector->setToolTip(tr("This API does not support shader debugging"));
+    else if(!action || !(action->flags & ActionFlags::Drawcall))
+      pixelDebugSelector->setToolTip(tr("No draw selected"));
+    else if(!psRefl)
+      pixelDebugSelector->setToolTip(tr("No pixel shader bound"));
+    else if(!psRefl->debugInfo.debuggable)
+      pixelDebugSelector->setToolTip(
+          tr("This shader doesn't support debugging: %1").arg(psRefl->debugInfo.debugStatus));
+  }
+}
+
+void PipelineStateViewer::computeDebugSelector_clicked()
+{
+  // Check whether debugging is valid for this event before showing the dialog
+  if(!m_Ctx.APIProps().shaderDebugging)
+    return;
+
+  if(!m_Ctx.IsCaptureLoaded())
+    return;
+
+  const ActionDescription *action = m_Ctx.CurAction();
+
+  if(!action)
+    return;
+
+  const ShaderReflection *shaderDetails =
+      m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Compute);
+
+  if(!shaderDetails)
+    return;
+
+  RDDialog::show(m_ComputeDebugSelector);
+}
+
+void PipelineStateViewer::computeDebugSelector_beginDebug(const rdcfixedarray<uint32_t, 3> &group,
+                                                          const rdcfixedarray<uint32_t, 3> &thread)
+{
+  const ActionDescription *action = m_Ctx.CurAction();
+
+  if(!action)
+    return;
+
+  const ShaderReflection *shaderDetails =
+      m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Compute);
+
+  if(!shaderDetails)
+    return;
+
+  struct threadSelect
+  {
+    rdcfixedarray<uint32_t, 3> g;
+    rdcfixedarray<uint32_t, 3> t;
+  } debugThread = {
+      // g[]
+      {group[0], group[1], group[2]},
+      // t[]
+      {thread[0], thread[1], thread[2]},
+  };
+
+  bool done = false;
+  ShaderDebugTrace *trace = NULL;
+
+  m_Ctx.Replay().AsyncInvoke([&trace, &done, debugThread](IReplayController *r) {
+    trace = r->DebugThread(debugThread.g, debugThread.t);
+
+    if(trace->debugger == NULL)
+    {
+      r->FreeTrace(trace);
+      trace = NULL;
+    }
+
+    done = true;
+  });
+
+  QString debugContext = lit("Group [%1,%2,%3] Thread [%4,%5,%6]")
+                             .arg(group[0])
+                             .arg(group[1])
+                             .arg(group[2])
+                             .arg(thread[0])
+                             .arg(thread[1])
+                             .arg(thread[2]);
+
+  // wait a short while before displaying the progress dialog (which won't show if we're already
+  // done by the time we reach it)
+  for(int i = 0; !done && i < 100; i++)
+    QThread::msleep(5);
+
+  ShowProgressDialog(this, tr("Debugging %1").arg(debugContext), [&done]() { return done; });
+
+  if(!trace)
+  {
+    RDDialog::critical(
+        this, tr("Error debugging"),
+        tr("Error debugging thread - make sure a valid group and thread is selected"));
+    return;
+  }
+
+  // viewer takes ownership of the trace
+  IShaderViewer *s = m_Ctx.DebugShader(
+      shaderDetails, m_Ctx.CurPipelineState().GetComputePipelineObject(), trace, debugContext);
+
+  m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, this);
+}
+
+void PipelineStateViewer::pixelDebugSelector_clicked()
+{
+  // Check whether debugging is valid for this event before showing the dialog
+  if(!m_Ctx.APIProps().shaderDebugging)
+    return;
+
+  if(!m_Ctx.IsCaptureLoaded())
+    return;
+
+  const ActionDescription *action = m_Ctx.CurAction();
+
+  if(!action)
+    return;
+
+  const ShaderReflection *shaderDetails =
+      m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel);
+
+  if(!shaderDetails)
+    return;
+
+  m_PixelDebugSelector->UpdateTarget();
+
+  RDDialog::show(m_PixelDebugSelector);
+}
+
+void PipelineStateViewer::pixelDebugSelector_beginDebug(uint32_t x, uint32_t y,
+                                                        const DebugPixelInputs &inputs)
+{
+  const ActionDescription *action = m_Ctx.CurAction();
+
+  if(!action)
+    return;
+
+  const ShaderReflection *shaderDetails =
+      m_Ctx.CurPipelineState().GetShaderReflection(ShaderStage::Pixel);
+
+  if(!shaderDetails)
+    return;
+
+  bool done = false;
+  ShaderDebugTrace *trace = NULL;
+
+  m_Ctx.Replay().AsyncInvoke([&trace, &done, x, y, &inputs](IReplayController *r) {
+    trace = r->DebugPixel(x, y, inputs);
+
+    if(trace->debugger == NULL)
+    {
+      r->FreeTrace(trace);
+      trace = NULL;
+    }
+
+    done = true;
+  });
+
+  QString debugContext = QFormatStr("Pixel %1,%2 @ %3").arg(x).arg(y).arg(action->eventId);
+
+  // wait a short while before displaying the progress dialog (which won't show if we're already
+  // done by the time we reach it)
+  for(int i = 0; !done && i < 100; i++)
+    QThread::msleep(5);
+
+  ShowProgressDialog(this, tr("Debugging %1").arg(debugContext), [&done]() { return done; });
+
+  if(!trace)
+  {
+    RDDialog::critical(this, tr("Error debugging"),
+                       tr("Error debugging pixel - make sure a valid co-ordinate is selected."));
+    return;
+  }
+
+  // viewer takes ownership of the trace
+  IShaderViewer *s = m_Ctx.DebugShader(
+      shaderDetails, m_Ctx.CurPipelineState().GetGraphicsPipelineObject(), trace, debugContext);
+
+  m_Ctx.AddDockWindow(s->Widget(), DockReference::AddTo, this);
 }
 
 IShaderViewer *PipelineStateViewer::EditShader(ResourceId id, ShaderStage shaderType,

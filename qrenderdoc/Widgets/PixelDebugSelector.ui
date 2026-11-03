@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>PixelDebugSelector</class>
+ <widget class="QDialog" name="PixelDebugSelector">
+  <property name="windowModality">
+   <enum>Qt::ApplicationModal</enum>
+  </property>
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>176</width>
+    <height>274</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="windowTitle">
+   <string>Debug Pixel Shader</string>
+  </property>
+  <property name="sizeGripEnabled">
+   <bool>false</bool>
+  </property>
+  <property name="modal">
+   <bool>true</bool>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="sizeConstraint">
+    <enum>QLayout::SetFixedSize</enum>
+   </property>
+   <item>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string>Pixel co-ordinate</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_groupthread">
+      <property name="verticalSpacing">
+       <number>3</number>
+      </property>
+      <item row="0" column="0">
+       <widget class="QLabel" name="xLabel">
+        <property name="text">
+         <string>X:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QSpinBox" name="y">
+        <property name="maximum">
+         <number>16384</number>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLabel" name="yLabel">
+        <property name="text">
+         <string>Y:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QSpinBox" name="x">
+        <property name="maximum">
+         <number>16384</number>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0" colspan="2">
+       <widget class="QPushButton" name="selectedPixel">
+        <property name="text">
+         <string>Use Selected Pixel</string>
+        </property>
+        <property name="icon">
+         <iconset resource="../Resources/resources.qrc">
+          <normaloff>:/wand.png</normaloff>:/wand.png</iconset>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox1">
+     <property name="title">
+      <string>Disambiguation</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="0" column="0">
+       <widget class="QLabel" name="primLabel">
+        <property name="text">
+         <string>Primitive:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QSpinBox" name="sample"/>
+      </item>
+      <item row="2" column="1">
+       <widget class="QSpinBox" name="view"/>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="sampleLabel">
+        <property name="text">
+         <string>Sample:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="viewLabel">
+        <property name="text">
+         <string>Multiview:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="RDLineEdit" name="primitive">
+        <property name="placeholderText">
+         <string>Any</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_buttons">
+     <item>
+      <widget class="QPushButton" name="beginDebug">
+       <property name="text">
+        <string>Debug</string>
+       </property>
+       <property name="icon">
+        <iconset resource="../Resources/resources.qrc">
+         <normaloff>:/wrench.png</normaloff>:/wrench.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="cancelDebug">
+       <property name="text">
+        <string>Cancel</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>RDLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>Widgets/Extended/RDLineEdit.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources>
+  <include location="../Resources/resources.qrc"/>
+ </resources>
+ <connections/>
+</ui>

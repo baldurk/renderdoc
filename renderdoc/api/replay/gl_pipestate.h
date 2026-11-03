@@ -723,6 +723,12 @@ struct FBO
 :type: int
 )");
   int32_t readBuffer = 0;
+
+  DOCUMENT(R"(The default sample count to use if the framebuffer has no attachments
+
+:type: int
+)");
+  uint32_t defaultSampleCount = 0;
 };
 
 DOCUMENT(R"(

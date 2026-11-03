@@ -801,6 +801,12 @@
     <ClCompile Include="Code\Interface\Helpers.cpp">
       <Filter>Code\Interface</Filter>
     </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_PixelDebugSelector.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\PixelDebugSelector.cpp">
+      <Filter>Widgets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1189,6 +1195,9 @@
     </ClInclude>
     <ClInclude Include="Code\Interface\Helpers.h">
       <Filter>Code\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_PixelDebugSelector.h">
+      <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1633,6 +1642,12 @@
     </CustomBuild>
     <CustomBuild Include="Widgets\Extended\RDToolTip.h">
       <Filter>Widgets\Extended</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\PixelDebugSelector.ui">
+      <Filter>Widgets</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\PixelDebugSelector.h">
+      <Filter>Widgets</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>

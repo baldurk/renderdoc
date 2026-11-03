@@ -34,7 +34,6 @@ class GLPipelineStateViewer;
 
 class QXmlStreamWriter;
 
-class ComputeDebugSelector;
 class RDLabel;
 class RDTreeWidget;
 class RDTreeWidgetItem;
@@ -84,15 +83,10 @@ private slots:
   void ubo_itemActivated(RDTreeWidgetItem *item, int column);
   void vertex_leave(QEvent *e);
 
-  void on_computeDebugSelector_clicked();
-  void computeDebugSelector_beginDebug(const rdcfixedarray<uint32_t, 3> &group,
-                                       const rdcfixedarray<uint32_t, 3> &thread);
-
 private:
   Ui::GLPipelineStateViewer *ui;
   ICaptureContext &m_Ctx;
   PipelineStateViewer &m_Common;
-  ComputeDebugSelector *m_ComputeDebugSelector;
 
   QString MakeGenericValueString(uint32_t compCount, CompType compType,
                                  const GLPipe::VertexAttribute &val);
