@@ -218,7 +218,7 @@ struct GraphicsTest
 
   int curFrame = -1;
 
-  const char *demoName = "Unknown_Test";
+  const char *demoName = "";
   const char *screenTitle = "RenderDoc test program";
 
   bool headless = false;
