@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional
 
 import renderdoc as rd
 import rdtest
@@ -12,7 +12,7 @@ class VK_Annotations(rdtest.Annotations):
         super().check_resource_annotations()
         super().check_command_annotations(True)
 
-        annot: Callable[[str], rd.SDObject | None] = lambda x: annots.FindChildByKeyPath(x)
+        annot: Callable[[str], Optional[rd.SDObject]] = lambda x: annots.FindChildByKeyPath(x)
 
         # Check annotations attached to indirect draws
         draw_indirect_count = self.find_action("DrawIndirectCount")
