@@ -140,6 +140,9 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
   Used to simplify compatibility with a broad range of Python versions.
 
+* `fast-hash <https://github.com/ztanml/fast-hash>`_ - Copyright (C) 2012 Zilong Tan (eric.zltan@gmail.com). Distributed under the MIT License.
+
+  Used for hashing in internal caches.
 
 Thanks
 ------
