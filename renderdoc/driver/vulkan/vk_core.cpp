@@ -6030,6 +6030,10 @@ bool WrappedVulkan::IsPartialRenderPassActiveUnsuspended()
 
 bool WrappedVulkan::ShouldUpdateRenderpassActive(ResourceId cmdId, bool dynamicRendering)
 {
+  // loading will replay all events
+  if(IsLoading(m_State))
+    return false;
+
   if(m_OutsideCmdBuffer != VK_NULL_HANDLE)
     return true;
 
@@ -6043,6 +6047,10 @@ bool WrappedVulkan::ShouldUpdateRenderpassActive(ResourceId cmdId, bool dynamicR
 
 bool WrappedVulkan::InRerecordRange(ResourceId cmdid)
 {
+  // loading will replay all events
+  if(IsLoading(m_State))
+    return true;
+
   // if we have an outside command buffer, assume the range is valid and we're replaying all events
   // onto it.
   if(m_OutsideCmdBuffer != VK_NULL_HANDLE)
