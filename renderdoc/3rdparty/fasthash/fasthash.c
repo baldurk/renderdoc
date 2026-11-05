@@ -27,10 +27,13 @@
 
 // Compression function for Merkle-Damgard construction.
 // This function is generated using the framework provided.
-#define mix(h) ({					\
-			(h) ^= (h) >> 23;		\
-			(h) *= 0x2127599bf4325c37ULL;	\
-			(h) ^= (h) >> 47; })
+uint64_t mix(uint64_t h)
+{
+	(h) ^= (h) >> 23;
+	(h) *= 0x2127599bf4325c37ULL;
+	(h) ^= (h) >> 47;
+	return h;
+}
 
 uint64_t fasthash64(const void *buf, size_t len, uint64_t seed)
 {
@@ -71,5 +74,5 @@ uint32_t fasthash32(const void *buf, size_t len, uint32_t seed)
 	// residue, which shall retain information from both the higher
 	// and lower parts of hashcode.
         uint64_t h = fasthash64(buf, len, seed);
-	return h - (h >> 32);
+	return (h - (h >> 32)) & 0xffffffff;
 }
