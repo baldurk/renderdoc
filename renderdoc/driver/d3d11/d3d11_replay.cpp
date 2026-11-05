@@ -2751,8 +2751,8 @@ void D3D11Replay::BuildShader(ShaderEncoding sourceEncoding, const bytebuf &sour
 
     ID3DBlob *blob = NULL;
 
-    errors = m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), entry.c_str(), flags,
-                                                        includeDirs, profile.c_str(), &blob);
+    errors =
+        m_pDevice->GetShaderCache()->GetShaderBlob(hlsl, entry, flags, includeDirs, profile, &blob);
 
     if(blob == NULL)
     {

@@ -156,25 +156,23 @@ void D3D11DebugManager::InitCommonResources()
 
   if(m_pDevice->GetFeatureLevel() >= D3D_FEATURE_LEVEL_11_0)
   {
-    CopyMSToArrayPS =
-        shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_CopyMSToArray", "ps_5_0");
+    CopyMSToArrayPS = shaderCache->MakePShader(multisamplehlsl, "RENDERDOC_CopyMSToArray", "ps_5_0");
     InternalRef(CopyMSToArrayPS);
-    CopyArrayToMSPS =
-        shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_CopyArrayToMS", "ps_5_0");
+    CopyArrayToMSPS = shaderCache->MakePShader(multisamplehlsl, "RENDERDOC_CopyArrayToMS", "ps_5_0");
     InternalRef(CopyArrayToMSPS);
     FloatCopyMSToArrayPS =
-        shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyMSToArray", "ps_5_0");
+        shaderCache->MakePShader(multisamplehlsl, "RENDERDOC_FloatCopyMSToArray", "ps_5_0");
     InternalRef(FloatCopyMSToArrayPS);
     FloatCopyArrayToMSPS =
-        shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyArrayToMS", "ps_5_0");
+        shaderCache->MakePShader(multisamplehlsl, "RENDERDOC_FloatCopyArrayToMS", "ps_5_0");
     InternalRef(FloatCopyArrayToMSPS);
     DepthCopyMSToArrayPS =
-        shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyMSToArray", "ps_5_0");
+        shaderCache->MakePShader(multisamplehlsl, "RENDERDOC_DepthCopyMSToArray", "ps_5_0");
     InternalRef(DepthCopyMSToArrayPS);
     DepthCopyArrayToMSPS =
-        shaderCache->MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyArrayToMS", "ps_5_0");
+        shaderCache->MakePShader(multisamplehlsl, "RENDERDOC_DepthCopyArrayToMS", "ps_5_0");
     InternalRef(DepthCopyArrayToMSPS);
-    MSArrayCopyVS = shaderCache->MakeVShader(hlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
+    MSArrayCopyVS = shaderCache->MakeVShader(hlsl, "RENDERDOC_FullscreenVS", "vs_4_0");
     InternalRef(MSArrayCopyVS);
   }
   else
@@ -216,10 +214,8 @@ void D3D11DebugManager::InitReplayResources()
   {
     rdcstr hlsl = GetEmbeddedResource(pixelhistory_hlsl);
 
-    PixelHistoryUnusedCS =
-        shaderCache->MakeCShader(hlsl.c_str(), "RENDERDOC_PixelHistoryUnused", "cs_5_0");
-    PixelHistoryCopyCS =
-        shaderCache->MakeCShader(hlsl.c_str(), "RENDERDOC_PixelHistoryCopyPixel", "cs_5_0");
+    PixelHistoryUnusedCS = shaderCache->MakeCShader(hlsl, "RENDERDOC_PixelHistoryUnused", "cs_5_0");
+    PixelHistoryCopyCS = shaderCache->MakeCShader(hlsl, "RENDERDOC_PixelHistoryCopyPixel", "cs_5_0");
   }
 
   RDCCOMPILE_ASSERT(eTexType_1D == RESTYPE_TEX1D, "Tex type enum doesn't match shader defines");
@@ -286,9 +282,9 @@ void D3D11DebugManager::InitReplayResources()
   {
     rdcstr hlsl = GetEmbeddedResource(misc_hlsl);
 
-    m_DiscardVS = shaderCache->MakeVShader(hlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
-    m_DiscardFloatPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_DiscardFloatPS", "ps_4_0");
-    m_DiscardIntPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_DiscardIntPS", "ps_4_0");
+    m_DiscardVS = shaderCache->MakeVShader(hlsl, "RENDERDOC_FullscreenVS", "vs_4_0");
+    m_DiscardFloatPS = shaderCache->MakePShader(hlsl, "RENDERDOC_DiscardFloatPS", "ps_4_0");
+    m_DiscardIntPS = shaderCache->MakePShader(hlsl, "RENDERDOC_DiscardIntPS", "ps_4_0");
 
     ResourceFormat fmt;
     fmt.type = ResourceFormatType::Regular;
@@ -1023,10 +1019,10 @@ void D3D11Replay::GeneralMisc::Init(WrappedID3D11Device *device)
   {
     rdcstr hlsl = GetEmbeddedResource(misc_hlsl);
 
-    FullscreenVS = shaderCache->MakeVShader(hlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
+    FullscreenVS = shaderCache->MakeVShader(hlsl, "RENDERDOC_FullscreenVS", "vs_4_0");
 
-    FixedColPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_FixedColPS", "ps_4_0");
-    CheckerboardPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_CheckerboardPS", "ps_4_0");
+    FixedColPS = shaderCache->MakePShader(hlsl, "RENDERDOC_FixedColPS", "ps_4_0");
+    CheckerboardPS = shaderCache->MakePShader(hlsl, "RENDERDOC_CheckerboardPS", "ps_4_0");
   }
 }
 
@@ -1050,16 +1046,16 @@ void D3D11Replay::TextureRendering::Init(WrappedID3D11Device *device)
   {
     rdcstr hlsl = GetEmbeddedResource(texdisplay_hlsl);
 
-    TexDisplayVS = shaderCache->MakeVShader(hlsl.c_str(), "RENDERDOC_TexDisplayVS", "vs_4_0");
-    TexDisplayPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_TexDisplayPS", "ps_5_0");
+    TexDisplayVS = shaderCache->MakeVShader(hlsl, "RENDERDOC_TexDisplayVS", "vs_4_0");
+    TexDisplayPS = shaderCache->MakePShader(hlsl, "RENDERDOC_TexDisplayPS", "ps_5_0");
   }
 
   {
     rdcstr hlsl = GetEmbeddedResource(texremap_hlsl);
 
-    TexRemapPS[0] = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_TexRemapFloat", "ps_5_0");
-    TexRemapPS[1] = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_TexRemapUInt", "ps_5_0");
-    TexRemapPS[2] = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_TexRemapSInt", "ps_5_0");
+    TexRemapPS[0] = shaderCache->MakePShader(hlsl, "RENDERDOC_TexRemapFloat", "ps_5_0");
+    TexRemapPS[1] = shaderCache->MakePShader(hlsl, "RENDERDOC_TexRemapUInt", "ps_5_0");
+    TexRemapPS[2] = shaderCache->MakePShader(hlsl, "RENDERDOC_TexRemapSInt", "ps_5_0");
   }
 
   {
@@ -1132,31 +1128,27 @@ void D3D11Replay::OverlayRendering::Init(WrappedID3D11Device *device)
   {
     rdcstr hlsl = GetEmbeddedResource(misc_hlsl);
 
-    FullscreenVS = shaderCache->MakeVShader(hlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
+    FullscreenVS = shaderCache->MakeVShader(hlsl, "RENDERDOC_FullscreenVS", "vs_4_0");
 
     hlsl = GetEmbeddedResource(quadoverdraw_hlsl);
 
-    QuadOverdrawPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_QuadOverdrawPS", "ps_5_0");
-    QOResolvePS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_QOResolvePS", "ps_5_0");
+    QuadOverdrawPS = shaderCache->MakePShader(hlsl, "RENDERDOC_QuadOverdrawPS", "ps_5_0");
+    QOResolvePS = shaderCache->MakePShader(hlsl, "RENDERDOC_QOResolvePS", "ps_5_0");
   }
 
   {
     rdcstr meshhlsl = GetEmbeddedResource(mesh_hlsl);
 
-    TriangleSizeGS =
-        shaderCache->MakeGShader(meshhlsl.c_str(), "RENDERDOC_TriangleSizeGS", "gs_4_0");
-    TriangleSizePS =
-        shaderCache->MakePShader(meshhlsl.c_str(), "RENDERDOC_TriangleSizePS", "ps_4_0");
+    TriangleSizeGS = shaderCache->MakeGShader(meshhlsl, "RENDERDOC_TriangleSizeGS", "gs_4_0");
+    TriangleSizePS = shaderCache->MakePShader(meshhlsl, "RENDERDOC_TriangleSizePS", "ps_4_0");
   }
   {
     rdcstr hlsl = GetEmbeddedResource(depth_copy_hlsl);
 
-    DepthCopyPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_DepthCopyPS", "ps_5_0");
-    DepthCopyArrayPS =
-        shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_DepthCopyArrayPS", "ps_5_0");
-    DepthCopyMSPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_DepthCopyMSPS", "ps_5_0");
-    DepthCopyMSArrayPS =
-        shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_DepthCopyMSArrayPS", "ps_5_0");
+    DepthCopyPS = shaderCache->MakePShader(hlsl, "RENDERDOC_DepthCopyPS", "ps_5_0");
+    DepthCopyArrayPS = shaderCache->MakePShader(hlsl, "RENDERDOC_DepthCopyArrayPS", "ps_5_0");
+    DepthCopyMSPS = shaderCache->MakePShader(hlsl, "RENDERDOC_DepthCopyMSPS", "ps_5_0");
+    DepthCopyMSArrayPS = shaderCache->MakePShader(hlsl, "RENDERDOC_DepthCopyMSArrayPS", "ps_5_0");
   }
   {
     D3D11_BLEND_DESC blendDesc = {};
@@ -1298,10 +1290,10 @@ void D3D11Replay::MeshRendering::Init(WrappedID3D11Device *device)
 
     rdcarray<byte> bytecode;
 
-    MeshVS = shaderCache->MakeVShader(meshhlsl.c_str(), "RENDERDOC_MeshVS", "vs_4_0", 2,
-                                      inputDescSecondary, &GenericLayout, &bytecode);
-    MeshGS = shaderCache->MakeGShader(meshhlsl.c_str(), "RENDERDOC_MeshGS", "gs_4_0");
-    MeshPS = shaderCache->MakePShader(meshhlsl.c_str(), "RENDERDOC_MeshPS", "ps_4_0");
+    MeshVS = shaderCache->MakeVShader(meshhlsl, "RENDERDOC_MeshVS", "vs_4_0", 2, inputDescSecondary,
+                                      &GenericLayout, &bytecode);
+    MeshGS = shaderCache->MakeGShader(meshhlsl, "RENDERDOC_MeshGS", "gs_4_0");
+    MeshPS = shaderCache->MakePShader(meshhlsl, "RENDERDOC_MeshPS", "ps_4_0");
 
     MeshVSBytecode = new byte[bytecode.size()];
     MeshVSBytelen = (uint32_t)bytecode.size();
@@ -1413,7 +1405,7 @@ void D3D11Replay::VertexPicking::Init(WrappedID3D11Device *device)
 
   rdcstr meshhlsl = GetEmbeddedResource(mesh_hlsl);
 
-  MeshPickCS = shaderCache->MakeCShader(meshhlsl.c_str(), "RENDERDOC_MeshPickCS", "cs_5_0");
+  MeshPickCS = shaderCache->MakeCShader(meshhlsl, "RENDERDOC_MeshPickCS", "cs_5_0");
 
   D3D11_BUFFER_DESC bDesc;
 
@@ -1533,9 +1525,9 @@ void ShaderDebugging::Init(WrappedID3D11Device *device)
 
   rdcstr hlsl = GetEmbeddedResource(shaderdebug_hlsl);
 
-  MathCS = shaderCache->MakeCShader(hlsl.c_str(), "RENDERDOC_DebugMathOp", "cs_5_0");
-  SampleVS = shaderCache->MakeVShader(hlsl.c_str(), "RENDERDOC_DebugSampleVS", "vs_5_0");
-  SamplePS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_DebugSamplePS", "ps_5_0");
+  MathCS = shaderCache->MakeCShader(hlsl, "RENDERDOC_DebugMathOp", "cs_5_0");
+  SampleVS = shaderCache->MakeVShader(hlsl, "RENDERDOC_DebugSampleVS", "vs_5_0");
+  SamplePS = shaderCache->MakePShader(hlsl, "RENDERDOC_DebugSamplePS", "ps_5_0");
 
   D3D11_BUFFER_DESC bDesc;
 
@@ -1651,7 +1643,7 @@ ID3D11PixelShader *ShaderDebugging::GetSamplePS(const int8_t offsets[3])
                            offsets[1], offsets[2], hlsl.c_str());
 
   ps = m_OffsetSamplePS[offsKey] =
-      shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_DebugSamplePS", "ps_5_0");
+      shaderCache->MakePShader(hlsl, "RENDERDOC_DebugSamplePS", "ps_5_0");
 
   shaderCache->SetCaching(false);
 
@@ -1790,13 +1782,11 @@ void D3D11Replay::HistogramMinMax::Init(WrappedID3D11Device *device)
       hlsl += rdcstr("#define SHADER_BASETYPE ") + ToStr(i) + "\n";
       hlsl += histogramhlsl;
 
-      TileMinMaxCS[t][i] =
-          shaderCache->MakeCShader(hlsl.c_str(), "RENDERDOC_TileMinMaxCS", "cs_5_0");
-      HistogramCS[t][i] = shaderCache->MakeCShader(hlsl.c_str(), "RENDERDOC_HistogramCS", "cs_5_0");
+      TileMinMaxCS[t][i] = shaderCache->MakeCShader(hlsl, "RENDERDOC_TileMinMaxCS", "cs_5_0");
+      HistogramCS[t][i] = shaderCache->MakeCShader(hlsl, "RENDERDOC_HistogramCS", "cs_5_0");
 
       if(t == 1)
-        ResultMinMaxCS[i] =
-            shaderCache->MakeCShader(hlsl.c_str(), "RENDERDOC_ResultMinMaxCS", "cs_5_0");
+        ResultMinMaxCS[i] = shaderCache->MakeCShader(hlsl, "RENDERDOC_ResultMinMaxCS", "cs_5_0");
     }
   }
 }
@@ -1920,7 +1910,7 @@ void D3D11Replay::PixelHistory::Init(WrappedID3D11Device *device)
   {
     rdcstr hlsl = GetEmbeddedResource(pixelhistory_hlsl);
 
-    PrimitiveIDPS = shaderCache->MakePShader(hlsl.c_str(), "RENDERDOC_PrimitiveIDPS", "ps_5_0");
+    PrimitiveIDPS = shaderCache->MakePShader(hlsl, "RENDERDOC_PrimitiveIDPS", "ps_5_0");
   }
 }
 

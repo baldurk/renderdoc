@@ -340,7 +340,7 @@ void NVCounterEnumerator::Impl::InitEnumerateCounters()
       desc.uuid.words[0] = 0x25B624D0;
       desc.uuid.words[1] = 0x33244527;
       desc.uuid.words[2] = 0x9F71CD67;
-      desc.uuid.words[3] = 0x61B37980 ^ strhash(desc.name.c_str());
+      desc.uuid.words[3] = 0x61B37980 ^ strhash32(desc.name);
 
       m_ExternalIds.push_back(counterID);
       m_ExternalDescriptions.push_back(desc);

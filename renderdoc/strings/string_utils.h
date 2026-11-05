@@ -31,8 +31,10 @@
 rdcstr strlower(const rdcstr &str);
 rdcstr strupper(const rdcstr &str);
 
-uint32_t strhash(const char *str, uint32_t existingHash);
-uint32_t strhash(const char *str);
+// not a default parameter so this function can be pre-declared
+uint64_t strhash(const rdcstr &str, uint64_t existingHash);
+uint64_t strhash(const rdcstr &str);
+uint32_t strhash32(const rdcstr &str);
 
 rdcstr get_basename(const rdcstr &path);
 rdcstr get_dirname(const rdcstr &path);

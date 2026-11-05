@@ -342,8 +342,8 @@ VulkanShaderCache::VulkanShaderCache(WrappedVulkan *driver)
         SPIRVBlob &blob = m_BuiltinShaderBlobs[i][baseType][textureType];
         rdcstr source = GetDynamicEmbeddedResource(config.resource);
 
-        uint32_t inputHash = strhash(source.c_str());
-        inputHash = strhash(defines.c_str(), inputHash);
+        uint64_t inputHash = strhash(source);
+        inputHash = strhash(defines, inputHash);
 
         // bump this version if anything inside GenerateGLSLShader changes. This is used to
         // determine if we can skip the call to GenerateGLSLShader (which calls out to glslang).
@@ -507,9 +507,9 @@ rdcstr VulkanShaderCache::GetSPIRVBlob(const rdcspv::CompilationSettings &settin
 {
   RDCASSERT(!src.empty());
 
-  uint32_t hash = strhash(src.c_str());
+  uint64_t hash = strhash(src);
 
-  char typestr[3] = {'a', 'a', 0};
+  rdcstr typestr = "aa";
   typestr[0] += (char)settings.stage;
   typestr[1] += (char)settings.lang;
   hash = strhash(typestr, hash);
@@ -551,9 +551,8 @@ void VulkanShaderCache::GetPipeCacheBlob()
 {
   m_PipeCacheBlob.clear();
 
-  uint32_t hash = strhash(StringFormat::Fmt("PipelineCache%x%x", m_pDriver->GetDeviceProps().vendorID,
-                                            m_pDriver->GetDeviceProps().deviceID)
-                              .c_str());
+  uint64_t hash = strhash(StringFormat::Fmt("PipelineCache%x%x", m_pDriver->GetDeviceProps().vendorID,
+                                            m_pDriver->GetDeviceProps().deviceID));
 
   auto it = m_ShaderCache.find(hash);
 
@@ -581,8 +580,7 @@ void VulkanShaderCache::SetPipeCacheBlob(bytebuf &blob)
 
   VkPipeCacheHeader *header = (VkPipeCacheHeader *)blob.data();
 
-  uint32_t hash =
-      strhash(StringFormat::Fmt("PipelineCache%x%x", header->vendorID, header->deviceID).c_str());
+  uint64_t hash = strhash(StringFormat::Fmt("PipelineCache%x%x", header->vendorID, header->deviceID));
 
   rdcarray<uint32_t> *spirvBlob = new rdcarray<uint32_t>();
 

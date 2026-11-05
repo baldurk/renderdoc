@@ -398,23 +398,23 @@ D3D12ShaderCache::~D3D12ShaderCache()
   }
 }
 
-rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry,
+rdcstr D3D12ShaderCache::GetShaderBlob(const rdcstr &source, const rdcstr &entry,
                                        const ShaderCompileFlags &compileFlags,
-                                       const rdcarray<rdcstr> &includeDirs, const char *profile,
+                                       const rdcarray<rdcstr> &includeDirs, const rdcstr &profile,
                                        ID3DBlob **srcblob)
 {
   rdcstr cbuffers = GetEmbeddedResource(hlsl_cbuffers_h);
   rdcstr texsample = GetEmbeddedResource(hlsl_texsample_h);
 
-  uint32_t hash = strhash(source);
+  uint64_t hash = strhash(source);
   hash = strhash(entry, hash);
   hash = strhash(profile, hash);
-  hash = strhash(cbuffers.c_str(), hash);
-  hash = strhash(texsample.c_str(), hash);
+  hash = strhash(cbuffers, hash);
+  hash = strhash(texsample, hash);
   for(const ShaderCompileFlag &f : compileFlags.flags)
   {
-    hash = strhash(f.name.c_str(), hash);
-    hash = strhash(f.value.c_str(), hash);
+    hash = strhash(f.name, hash);
+    hash = strhash(f.value, hash);
   }
 
   if(m_ShaderCache.find(hash) != m_ShaderCache.end())
@@ -469,7 +469,7 @@ rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry,
       }
 
       IDxcBlobEncoding *sourceBlob = NULL;
-      hr = library->CreateBlobWithEncodingFromPinned(source, (UINT)strlen(source), CP_UTF8,
+      hr = library->CreateBlobWithEncodingFromPinned(source.c_str(), (UINT)source.size(), CP_UTF8,
                                                      &sourceBlob);
 
       if(FAILED(hr))
@@ -610,8 +610,8 @@ rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry,
 
     uint32_t flags = DXBC::DecodeFlags(compileFlags) & ~D3DCOMPILE_NO_PRESHADER;
 
-    hr = compileFunc(source, strlen(source), entry, NULL, &includer, entry, profile, flags, 0,
-                     &byteBlob, &errBlob);
+    hr = compileFunc(source.c_str(), source.size(), entry.c_str(), NULL, &includer, entry.c_str(),
+                     profile.c_str(), flags, 0, &byteBlob, &errBlob);
   }
 
   rdcstr errors = "";
@@ -624,7 +624,7 @@ rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry,
     if(logerror.length() > 1024)
       logerror = logerror.substr(0, 1024) + "...";
 
-    RDCWARN("Shader compile error in '%s':\n%s", entry, logerror.c_str());
+    RDCWARN("Shader compile error in '%s':\n%s", entry.c_str(), logerror.c_str());
 
     SAFE_RELEASE(errBlob);
 
@@ -648,9 +648,9 @@ rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry,
   return errors;
 }
 
-rdcstr D3D12ShaderCache::GetShaderBlob(const char *source, const char *entry, uint32_t compileFlags,
-                                       const rdcarray<rdcstr> &includeDirs, const char *profile,
-                                       ID3DBlob **srcblob)
+rdcstr D3D12ShaderCache::GetShaderBlob(const rdcstr &source, const rdcstr &entry,
+                                       uint32_t compileFlags, const rdcarray<rdcstr> &includeDirs,
+                                       const rdcstr &profile, ID3DBlob **srcblob)
 {
   return GetShaderBlob(source, entry, DXBC::EncodeFlags(compileFlags | m_CompileFlags, profile),
                        includeDirs, profile, srcblob);
@@ -663,7 +663,7 @@ ID3DBlob *D3D12ShaderCache::MakeFixedColShader(FixedColVariant variant, bool dxi
       StringFormat::Fmt("#define VARIANT %u\n\n", variant) + GetEmbeddedResource(fixedcol_hlsl);
   bool wasCaching = m_CacheShaders;
   m_CacheShaders = true;
-  GetShaderBlob(hlsl.c_str(), "main", ShaderCompileFlags(), {}, dxil ? "ps_6_0" : "ps_5_0", &ret);
+  GetShaderBlob(hlsl, "main", ShaderCompileFlags(), {}, dxil ? "ps_6_0" : "ps_5_0", &ret);
   m_CacheShaders = wasCaching;
 
   if(!ret)

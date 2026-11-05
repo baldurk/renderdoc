@@ -25,6 +25,7 @@
 #pragma once
 
 #include <map>
+#include "api/replay/version.h"
 #include "driver/dx/official/d3d11_4.h"
 
 class WrappedID3D11Device;
@@ -35,24 +36,26 @@ public:
   D3D11ShaderCache(WrappedID3D11Device *wrapper);
   ~D3D11ShaderCache();
 
-  rdcstr GetShaderBlob(const char *source, const char *entry, const uint32_t compileFlags,
-                       const rdcarray<rdcstr> &includeDirs, const char *profile, ID3DBlob **srcblob);
-  ID3D11VertexShader *MakeVShader(const char *source, const char *entry, const char *profile,
+  rdcstr GetShaderBlob(const rdcstr &source, const rdcstr &entry, const uint32_t compileFlags,
+                       const rdcarray<rdcstr> &includeDirs, const rdcstr &profile,
+                       ID3DBlob **srcblob);
+  ID3D11VertexShader *MakeVShader(const rdcstr &source, const rdcstr &entry, const rdcstr &profile,
                                   int numInputDescs = 0, D3D11_INPUT_ELEMENT_DESC *inputs = NULL,
                                   ID3D11InputLayout **ret = NULL, rdcarray<byte> *blob = NULL);
-  ID3D11GeometryShader *MakeGShader(const char *source, const char *entry, const char *profile);
-  ID3D11PixelShader *MakePShader(const char *source, const char *entry, const char *profile);
-  ID3D11ComputeShader *MakeCShader(const char *source, const char *entry, const char *profile);
+  ID3D11GeometryShader *MakeGShader(const rdcstr &source, const rdcstr &entry, const rdcstr &profile);
+  ID3D11PixelShader *MakePShader(const rdcstr &source, const rdcstr &entry, const rdcstr &profile);
+  ID3D11ComputeShader *MakeCShader(const rdcstr &source, const rdcstr &entry, const rdcstr &profile);
 
   void SetCaching(bool enabled) { m_CacheShaders = enabled; }
 private:
   static const uint32_t m_ShaderCacheMagic = 0xf000baba;
-  static const uint32_t m_ShaderCacheVersion = 3;
+  static const uint32_t m_ShaderCacheVersion =
+      RENDERDOC_VERSION_MAJOR * 1000 + RENDERDOC_VERSION_MINOR;
 
   ID3D11Device *m_pDevice = NULL;
 
   uint32_t m_CompileFlags = 0;
 
   bool m_ShaderCacheDirty = false, m_CacheShaders = false;
-  std::map<uint32_t, ID3DBlob *> m_ShaderCache;
+  std::map<uint64_t, ID3DBlob *> m_ShaderCache;
 };

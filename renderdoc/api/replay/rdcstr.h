@@ -1177,14 +1177,14 @@ public:
 #include <functional>
 
 // from string_utils.h
-uint32_t strhash(const char *str);
+uint64_t strhash(const rdcstr &s);
 
 namespace std
 {
 template <>
 struct hash<rdcstr>
 {
-  std::size_t operator()(const rdcstr &s) const { return strhash(s.c_str()); }
+  std::size_t operator()(const rdcstr &s) const { return size_t(strhash(s)); }
 };
 }
 #endif

@@ -117,9 +117,9 @@ void IntelGlCounters::addCounter(const IntelGlQuery &query, GLuint counterId)
   counter.desc.name.resize(strlen(&counter.desc.name[0]));
   counter.desc.description.resize(strlen(&counter.desc.description[0]));
 
-  uint32_t query_hash = strhash(query.name.c_str());
-  uint32_t name_hash = strhash(counter.desc.name.c_str());
-  uint32_t desc_hash = strhash(counter.desc.description.c_str());
+  uint32_t query_hash = strhash32(query.name);
+  uint32_t name_hash = strhash32(counter.desc.name);
+  uint32_t desc_hash = strhash32(counter.desc.description);
   counter.desc.uuid = Uuid(0x8086, query_hash, name_hash, desc_hash);
   counter.desc.resultType = glToRdcCounterType(counter.dataType);
   counter.desc.unit = CounterUnit::Absolute;

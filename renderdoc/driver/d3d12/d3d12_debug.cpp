@@ -304,12 +304,12 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   {
     rdcstr meshhlsl = GetEmbeddedResource(mesh_hlsl);
 
-    shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshVS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
-                               {}, "vs_5_0", &m_MeshVS);
-    shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshGS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
-                               {}, "gs_5_0", &m_MeshGS);
-    shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshPS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
-                               {}, "ps_5_0", &m_MeshPS);
+    shaderCache->GetShaderBlob(meshhlsl, "RENDERDOC_MeshVS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                               "vs_5_0", &m_MeshVS);
+    shaderCache->GetShaderBlob(meshhlsl, "RENDERDOC_MeshGS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                               "gs_5_0", &m_MeshGS);
+    shaderCache->GetShaderBlob(meshhlsl, "RENDERDOC_MeshPS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                               "ps_5_0", &m_MeshPS);
   }
 
   {
@@ -350,29 +350,29 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   {
     rdcstr hlsl = GetEmbeddedResource(misc_hlsl);
 
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_FullscreenVS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "vs_5_0", &m_FullscreenVS);
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DiscardFloatPS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &m_DiscardFloatPS);
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DiscardIntPS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &m_DiscardIntPS);
+    shaderCache->GetShaderBlob(hlsl, "RENDERDOC_FullscreenVS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                               "vs_5_0", &m_FullscreenVS);
+    shaderCache->GetShaderBlob(hlsl, "RENDERDOC_DiscardFloatPS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                               "ps_5_0", &m_DiscardFloatPS);
+    shaderCache->GetShaderBlob(hlsl, "RENDERDOC_DiscardIntPS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                               "ps_5_0", &m_DiscardIntPS);
   }
 
   {
     rdcstr multisamplehlsl = GetEmbeddedResource(multisample_hlsl);
 
-    shaderCache->GetShaderBlob(multisamplehlsl.c_str(), "RENDERDOC_CopyMSToArray",
+    shaderCache->GetShaderBlob(multisamplehlsl, "RENDERDOC_CopyMSToArray",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &m_IntMS2Array);
-    shaderCache->GetShaderBlob(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyMSToArray",
+    shaderCache->GetShaderBlob(multisamplehlsl, "RENDERDOC_FloatCopyMSToArray",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &m_FloatMS2Array);
-    shaderCache->GetShaderBlob(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyMSToArray",
+    shaderCache->GetShaderBlob(multisamplehlsl, "RENDERDOC_DepthCopyMSToArray",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &m_DepthMS2Array);
 
-    shaderCache->GetShaderBlob(multisamplehlsl.c_str(), "RENDERDOC_CopyArrayToMS",
+    shaderCache->GetShaderBlob(multisamplehlsl, "RENDERDOC_CopyArrayToMS",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &m_IntArray2MS);
-    shaderCache->GetShaderBlob(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyArrayToMS",
+    shaderCache->GetShaderBlob(multisamplehlsl, "RENDERDOC_FloatCopyArrayToMS",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &m_FloatArray2MS);
-    shaderCache->GetShaderBlob(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyArrayToMS",
+    shaderCache->GetShaderBlob(multisamplehlsl, "RENDERDOC_DepthCopyArrayToMS",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &m_DepthArray2MS);
   }
 
@@ -393,7 +393,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
     rdcstr hlsl = GetEmbeddedResource(d3d12_pixelhistory_hlsl);
 
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_PixelHistoryCopyPixel",
+    shaderCache->GetShaderBlob(hlsl, "RENDERDOC_PixelHistoryCopyPixel",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0", &m_PixelHistoryCopyCS);
 
     if(m_PixelHistoryCopyCS)
@@ -436,7 +436,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
     ID3DBlob *eiPatchCS;
 
-    shaderCache->GetShaderBlob(mischlsl.c_str(), "RENDERDOC_ExecuteIndirectPatchCS",
+    shaderCache->GetShaderBlob(mischlsl, "RENDERDOC_ExecuteIndirectPatchCS",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0", &eiPatchCS);
 
     RDCASSERT(eiPatchCS);
@@ -665,9 +665,8 @@ bool D3D12DebugManager::CreateShaderDebugResources()
   D3D12RootSignature rootSig;
 
   ID3DBlob *csBlob = NULL;
-  if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DebugMathOp",
-                                                D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0",
-                                                &csBlob) != "")
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(
+         hlsl, "RENDERDOC_DebugMathOp", D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0", &csBlob) != "")
   {
     RDCERR("Failed to create shader to calculate math intrinsic");
     return false;
@@ -794,7 +793,7 @@ bool D3D12DebugManager::CreateShaderDebugResources()
   m_pDevice->CreateUnorderedAccessView(m_ShaderDebugResultBuffer, NULL, &uavDesc, uav);
 
   ID3DBlob *vsBlob = NULL;
-  if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DebugSampleVS",
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl, "RENDERDOC_DebugSampleVS",
                                                 D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "vs_5_0",
                                                 &vsBlob) != "")
   {
@@ -804,7 +803,7 @@ bool D3D12DebugManager::CreateShaderDebugResources()
   }
 
   ID3DBlob *psBlob = NULL;
-  if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DebugSamplePS",
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl, "RENDERDOC_DebugSamplePS",
                                                 D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0",
                                                 &psBlob) != "")
   {
@@ -854,7 +853,7 @@ bool D3D12DebugManager::CreateShaderDebugResources()
   if(m_pDevice->UsedDXIL())
   {
     ID3DBlob *dxilCsBlob = NULL;
-    if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DebugMathOp",
+    if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl, "RENDERDOC_DebugMathOp",
                                                   D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_6_0",
                                                   &dxilCsBlob) != "")
     {
@@ -887,7 +886,7 @@ bool D3D12DebugManager::CreateShaderDebugResources()
   if(m_pDevice->UsedDXIL())
   {
     ID3DBlob *dxilVsBlob = NULL;
-    if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DebugSampleVS",
+    if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl, "RENDERDOC_DebugSampleVS",
                                                   D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "vs_6_0",
                                                   &dxilVsBlob) != "")
     {
@@ -933,7 +932,7 @@ bool D3D12DebugManager::CreateShaderDebugResources()
 
     ID3DBlob *dxilPsBlob = NULL;
     rdcstr psSM = StringFormat::Fmt("ps_%d_%d", smMajor, smMinor);
-    if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DebugSamplePS",
+    if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl, "RENDERDOC_DebugSamplePS",
                                                   D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, psSM.c_str(),
                                                   &dxilPsBlob) != "")
     {
@@ -984,7 +983,7 @@ ID3D12PipelineState *D3D12DebugManager::GetTexSamplePso(const int8_t offsets[3])
                            offsets[1], offsets[2], hlsl.c_str());
 
   ID3DBlob *vsBlob = NULL;
-  if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DebugSampleVS",
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl, "RENDERDOC_DebugSampleVS",
                                                 D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "vs_5_0",
                                                 &vsBlob) != "")
   {
@@ -994,7 +993,7 @@ ID3D12PipelineState *D3D12DebugManager::GetTexSamplePso(const int8_t offsets[3])
   }
 
   ID3DBlob *psBlob = NULL;
-  if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DebugSamplePS",
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl, "RENDERDOC_DebugSamplePS",
                                                 D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0",
                                                 &psBlob) != "")
   {
@@ -1069,7 +1068,7 @@ ID3D12PipelineState *D3D12DebugManager::GetDXILTexSamplePso(const int8_t offsets
                            offsets[1], offsets[2], hlsl.c_str());
 
   ID3DBlob *vsBlob = NULL;
-  if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DebugSampleVS",
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl, "RENDERDOC_DebugSampleVS",
                                                 D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "vs_6_0",
                                                 &vsBlob) != "")
   {
@@ -1080,7 +1079,7 @@ ID3D12PipelineState *D3D12DebugManager::GetDXILTexSamplePso(const int8_t offsets
   }
 
   ID3DBlob *psBlob = NULL;
-  if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DebugSamplePS",
+  if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl, "RENDERDOC_DebugSamplePS",
                                                 D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_6_0",
                                                 &psBlob) != "")
   {
@@ -2369,10 +2368,10 @@ void D3D12Replay::GeneralMisc::Init(WrappedID3D12Device *device, D3D12DebugManag
     ID3DBlob *FullscreenVS = NULL;
     ID3DBlob *CheckerboardPS = NULL;
 
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_FullscreenVS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "vs_5_0", &FullscreenVS);
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_CheckerboardPS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &CheckerboardPS);
+    shaderCache->GetShaderBlob(hlsl, "RENDERDOC_FullscreenVS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                               "vs_5_0", &FullscreenVS);
+    shaderCache->GetShaderBlob(hlsl, "RENDERDOC_CheckerboardPS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                               "ps_5_0", &CheckerboardPS);
 
     RDCASSERT(CheckerboardPS);
     RDCASSERT(FullscreenVS);
@@ -2499,12 +2498,12 @@ void D3D12Replay::TextureRendering::Init(WrappedID3D12Device *device, D3D12Debug
 
     ID3DBlob *TexDisplayPS = NULL;
 
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TexDisplayVS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "vs_5_0", &VS);
+    shaderCache->GetShaderBlob(hlsl, "RENDERDOC_TexDisplayVS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                               "vs_5_0", &VS);
     RDCASSERT(VS);
 
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TexDisplayPS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &TexDisplayPS);
+    shaderCache->GetShaderBlob(hlsl, "RENDERDOC_TexDisplayPS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                               "ps_5_0", &TexDisplayPS);
     RDCASSERT(TexDisplayPS);
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc = {};
@@ -2590,14 +2589,14 @@ void D3D12Replay::TextureRendering::Init(WrappedID3D12Device *device, D3D12Debug
         DXGI_FORMAT_R32G32B32A32_TYPELESS,
     };
 
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TexRemapFloat",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &TexRemap[0]);
+    shaderCache->GetShaderBlob(hlsl, "RENDERDOC_TexRemapFloat", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                               "ps_5_0", &TexRemap[0]);
     RDCASSERT(TexRemap[0]);
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TexRemapUInt",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &TexRemap[1]);
+    shaderCache->GetShaderBlob(hlsl, "RENDERDOC_TexRemapUInt", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                               "ps_5_0", &TexRemap[1]);
     RDCASSERT(TexRemap[1]);
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TexRemapSInt",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &TexRemap[2]);
+    shaderCache->GetShaderBlob(hlsl, "RENDERDOC_TexRemapSInt", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                               "ps_5_0", &TexRemap[2]);
     RDCASSERT(TexRemap[2]);
 
     for(int f = 0; f < 3; f++)
@@ -2661,28 +2660,27 @@ void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12Debug
   {
     rdcstr meshhlsl = GetEmbeddedResource(mesh_hlsl);
 
-    shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_TriangleSizeGS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "gs_5_0", &TriangleSizeGS);
-    shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_TriangleSizePS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &TriangleSizePS);
+    shaderCache->GetShaderBlob(meshhlsl, "RENDERDOC_TriangleSizeGS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+                               {}, "gs_5_0", &TriangleSizeGS);
+    shaderCache->GetShaderBlob(meshhlsl, "RENDERDOC_TriangleSizePS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+                               {}, "ps_5_0", &TriangleSizePS);
 
-    shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshVS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
-                               {}, "vs_5_0", &MeshVS);
+    shaderCache->GetShaderBlob(meshhlsl, "RENDERDOC_MeshVS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                               "vs_5_0", &MeshVS);
 
     rdcstr hlsl = GetEmbeddedResource(quadoverdraw_hlsl);
 
     hlsl = "#define D3D12 1\n\n" + hlsl;
 
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_QuadOverdrawPS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_1", &QuadOverdrawWritePS);
+    shaderCache->GetShaderBlob(hlsl, "RENDERDOC_QuadOverdrawPS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                               "ps_5_1", &QuadOverdrawWritePS);
 
     // only create DXIL shaders if DXIL was used by the application, since dxc/dxcompiler is really
     // flakey.
     if(device->UsedDXIL())
     {
-      shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_QuadOverdrawPS",
-                                 D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_6_0",
-                                 &QuadOverdrawWriteDXILPS);
+      shaderCache->GetShaderBlob(hlsl, "RENDERDOC_QuadOverdrawPS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+                                 {}, "ps_6_0", &QuadOverdrawWriteDXILPS);
 
       if(QuadOverdrawWriteDXILPS == NULL)
       {
@@ -2715,15 +2713,15 @@ void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12Debug
     rdcstr hlsl = GetEmbeddedResource(misc_hlsl);
 
     ID3DBlob *FullscreenVS = NULL;
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_FullscreenVS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "vs_5_0", &FullscreenVS);
+    shaderCache->GetShaderBlob(hlsl, "RENDERDOC_FullscreenVS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                               "vs_5_0", &FullscreenVS);
     RDCASSERT(FullscreenVS);
 
     hlsl = GetEmbeddedResource(quadoverdraw_hlsl);
 
     ID3DBlob *QOResolvePS = NULL;
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_QOResolvePS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &QOResolvePS);
+    shaderCache->GetShaderBlob(hlsl, "RENDERDOC_QOResolvePS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                               "ps_5_0", &QOResolvePS);
     RDCASSERT(QOResolvePS);
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc = {};
@@ -2791,8 +2789,8 @@ void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12Debug
 
     ID3DBlob *FullscreenVS = NULL;
     rdcstr hlsl = GetEmbeddedResource(misc_hlsl);
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_FullscreenVS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "vs_5_0", &FullscreenVS);
+    shaderCache->GetShaderBlob(hlsl, "RENDERDOC_FullscreenVS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                               "vs_5_0", &FullscreenVS);
     pipeDesc.VS.BytecodeLength = FullscreenVS->GetBufferSize();
     pipeDesc.VS.pShaderBytecode = FullscreenVS->GetBufferPointer();
 
@@ -2866,8 +2864,8 @@ void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12Debug
     ID3DBlob *FullscreenVS = NULL;
     {
       rdcstr hlsl = GetEmbeddedResource(misc_hlsl);
-      shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_FullscreenVS",
-                                 D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "vs_5_0", &FullscreenVS);
+      shaderCache->GetShaderBlob(hlsl, "RENDERDOC_FullscreenVS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                                 "vs_5_0", &FullscreenVS);
     }
     pipeDesc.VS.BytecodeLength = FullscreenVS->GetBufferSize();
     pipeDesc.VS.pShaderBytecode = FullscreenVS->GetBufferPointer();
@@ -2876,10 +2874,10 @@ void D3D12Replay::OverlayRendering::Init(WrappedID3D12Device *device, D3D12Debug
     ID3DBlob *DepthCopyMSPS = NULL;
     {
       rdcstr hlsl = GetEmbeddedResource(depth_copy_hlsl);
-      shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DepthCopyPS",
-                                 D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &DepthCopyPS);
-      shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_DepthCopyMSPS",
-                                 D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &DepthCopyMSPS);
+      shaderCache->GetShaderBlob(hlsl, "RENDERDOC_DepthCopyPS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                                 "ps_5_0", &DepthCopyPS);
+      shaderCache->GetShaderBlob(hlsl, "RENDERDOC_DepthCopyMSPS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+                                 {}, "ps_5_0", &DepthCopyMSPS);
     }
 
     pipeDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
@@ -3000,8 +2998,8 @@ void D3D12Replay::VertexPicking::Init(WrappedID3D12Device *device, D3D12DebugMan
 
     ID3DBlob *meshPickCS;
 
-    shaderCache->GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshPickCS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0", &meshPickCS);
+    shaderCache->GetShaderBlob(meshhlsl, "RENDERDOC_MeshPickCS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                               "cs_5_0", &meshPickCS);
 
     RDCASSERT(meshPickCS);
 
@@ -3149,21 +3147,21 @@ void D3D12Replay::PixelHistory::Init(WrappedID3D12Device *device, D3D12DebugMana
 
   rdcstr hlsl = GetEmbeddedResource(d3d12_pixelhistory_hlsl);
 
-  shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_PrimitiveIDPS",
-                             D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &PrimitiveIDPS);
+  shaderCache->GetShaderBlob(hlsl, "RENDERDOC_PrimitiveIDPS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                             "ps_5_0", &PrimitiveIDPS);
 
   for(int i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
   {
     rdcstr hlsl_variant = "#define RT " + ToStr(i) + "\n" + hlsl;
-    shaderCache->GetShaderBlob(hlsl_variant.c_str(), "RENDERDOC_PixelHistoryFixedColPS",
+    shaderCache->GetShaderBlob(hlsl_variant, "RENDERDOC_PixelHistoryFixedColPS",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0", &FixedColorPS[i]);
   }
 
   // only create DXIL shaders if DXIL was used by the application to reduce the chance of failure
   if(device->UsedDXIL())
   {
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_PrimitiveIDPS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_6_0", &PrimitiveIDPSDxil);
+    shaderCache->GetShaderBlob(hlsl, "RENDERDOC_PrimitiveIDPS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
+                               "ps_6_0", &PrimitiveIDPSDxil);
 
     if(PrimitiveIDPSDxil == NULL)
     {
@@ -3180,7 +3178,7 @@ void D3D12Replay::PixelHistory::Init(WrappedID3D12Device *device, D3D12DebugMana
     for(int i = 0; i < D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT; ++i)
     {
       rdcstr hlsl_variant = "#define RT " + ToStr(i) + "\n" + hlsl;
-      shaderCache->GetShaderBlob(hlsl_variant.c_str(), "RENDERDOC_PixelHistoryFixedColPS",
+      shaderCache->GetShaderBlob(hlsl_variant, "RENDERDOC_PixelHistoryFixedColPS",
                                  D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_6_0", &FixedColorPSDxil[i]);
       if(FixedColorPSDxil[i] == NULL)
       {
@@ -3260,8 +3258,8 @@ void D3D12Replay::HistogramMinMax::Init(WrappedID3D12Device *device, D3D12DebugM
         hlsl += rdcstr("#define SHADER_BASETYPE ") + ToStr(i) + "\n";
         hlsl += histogramhlsl;
 
-        shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TileMinMaxCS",
-                                   D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0", &tile);
+        shaderCache->GetShaderBlob(hlsl, "RENDERDOC_TileMinMaxCS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+                                   {}, "cs_5_0", &tile);
 
         compPipeDesc.CS.BytecodeLength = tile->GetBufferSize();
         compPipeDesc.CS.pShaderBytecode = tile->GetBufferPointer();
@@ -3274,8 +3272,8 @@ void D3D12Replay::HistogramMinMax::Init(WrappedID3D12Device *device, D3D12DebugM
           RDCERR("Couldn't create m_TileMinMaxPipe! HRESULT: %s", ToStr(hr).c_str());
         }
 
-        shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_HistogramCS",
-                                   D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0", &histogram);
+        shaderCache->GetShaderBlob(hlsl, "RENDERDOC_HistogramCS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+                                   {}, "cs_5_0", &histogram);
 
         compPipeDesc.CS.BytecodeLength = histogram->GetBufferSize();
         compPipeDesc.CS.pShaderBytecode = histogram->GetBufferPointer();
@@ -3290,7 +3288,7 @@ void D3D12Replay::HistogramMinMax::Init(WrappedID3D12Device *device, D3D12DebugM
 
         if(t == 1)
         {
-          shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_ResultMinMaxCS",
+          shaderCache->GetShaderBlob(hlsl, "RENDERDOC_ResultMinMaxCS",
                                      D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0", &result);
 
           compPipeDesc.CS.BytecodeLength = result->GetBufferSize();

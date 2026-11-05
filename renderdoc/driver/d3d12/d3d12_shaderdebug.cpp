@@ -1835,8 +1835,8 @@ ID3DBlob *D3D12Replay::CompileShaderDebugFetcher(const DXBC::DXBCContainer *dxbc
   UINT flags = D3DCOMPILE_WARNINGS_ARE_ERRORS;
   if(dxbc->GetDXBCByteCode())
   {
-    if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "ExtractInputs", flags, {},
-                                                  "ps_5_1", &psBlob) != "")
+    if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl, "ExtractInputs", flags, {}, "ps_5_1",
+                                                  &psBlob) != "")
     {
       RDCERR("Failed to create shader to extract inputs");
       SAFE_RELEASE(psBlob);
@@ -1868,7 +1868,7 @@ ID3DBlob *D3D12Replay::CompileShaderDebugFetcher(const DXBC::DXBCContainer *dxbc
     if(shaderFlags & DXBC::GlobalShaderFlags::NativeLowPrecision)
       compileFlags.flags.push_back({"@compile_option", "-enable-16bit-types"});
 
-    if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "ExtractInputs", compileFlags, {},
+    if(m_pDevice->GetShaderCache()->GetShaderBlob(hlsl, "ExtractInputs", compileFlags, {},
                                                   profile.c_str(), &psBlob) != "")
     {
       RDCERR("Failed to create shader to extract inputs");

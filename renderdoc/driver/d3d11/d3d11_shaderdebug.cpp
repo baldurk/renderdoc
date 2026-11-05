@@ -1908,7 +1908,7 @@ ShaderDebugTrace *D3D11Replay::DebugPixel(uint32_t eventId, uint32_t x, uint32_t
   DXDebug::CreateInputFetcher(dxbc, prevdxbc, cfg, fetcher);
 
   ID3D11PixelShader *extract =
-      m_pDevice->GetShaderCache()->MakePShader(fetcher.hlsl.c_str(), "ExtractInputs", "ps_5_0");
+      m_pDevice->GetShaderCache()->MakePShader(fetcher.hlsl, "ExtractInputs", "ps_5_0");
 
   uint32_t structStride = fetcher.hitBufferStride;
   RDCASSERT(fetcher.laneDataBufferStride == 0);

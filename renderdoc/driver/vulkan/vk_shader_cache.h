@@ -123,7 +123,8 @@ public:
   void SetCaching(bool enabled) { m_CacheShaders = enabled; }
 private:
   static const uint32_t m_ShaderCacheMagic = 0xf00d00d5;
-  static const uint32_t m_ShaderCacheVersion = 1;
+  static const uint32_t m_ShaderCacheVersion =
+      RENDERDOC_VERSION_MAJOR * 1000 + RENDERDOC_VERSION_MINOR;
 
   void GetPipeCacheBlob();
   void SetPipeCacheBlob(bytebuf &blob);
@@ -141,7 +142,7 @@ private:
   bool m_Buffer2MSSupported = false;
 
   bool m_ShaderCacheDirty = false, m_CacheShaders = false;
-  std::map<uint32_t, SPIRVBlob> m_ShaderCache;
+  std::map<uint64_t, SPIRVBlob> m_ShaderCache;
 
   SPIRVBlob m_BuiltinShaderBlobs[arraydim<BuiltinShader>()][arraydim<BuiltinShaderBaseType>()]
                                 [arraydim<BuiltinShaderTextureType>()] = {};

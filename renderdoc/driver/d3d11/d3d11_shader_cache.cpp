@@ -85,11 +85,8 @@ D3D11ShaderCache::D3D11ShaderCache(WrappedID3D11Device *wrapper)
 {
   m_pDevice = wrapper;
 
-  bool success = LoadShaderCache("d3dshaders.cache", m_ShaderCacheMagic, m_ShaderCacheVersion,
-                                 m_ShaderCache, D3D11ShaderCacheCallbacks);
-
-  // if we failed to load from the cache
-  m_ShaderCacheDirty = !success;
+  LoadShaderCache("d3dshaders.cache", m_ShaderCacheMagic, m_ShaderCacheVersion, m_ShaderCache,
+                  D3D11ShaderCacheCallbacks);
 
   m_CompileFlags = D3DCOMPILE_WARNINGS_ARE_ERRORS;
 
@@ -124,9 +121,9 @@ D3D11ShaderCache::~D3D11ShaderCache()
   }
 }
 
-rdcstr D3D11ShaderCache::GetShaderBlob(const char *source, const char *entry,
+rdcstr D3D11ShaderCache::GetShaderBlob(const rdcstr &source, const rdcstr &entry,
                                        const uint32_t compileFlags,
-                                       const rdcarray<rdcstr> &includeDirs, const char *profile,
+                                       const rdcarray<rdcstr> &includeDirs, const rdcstr &profile,
                                        ID3DBlob **srcblob)
 {
   rdcstr cbuffers = GetEmbeddedResource(hlsl_cbuffers_h);
@@ -137,11 +134,11 @@ rdcstr D3D11ShaderCache::GetShaderBlob(const char *source, const char *entry,
                                                 {"hlsl_cbuffers.h", cbuffers},
                                             });
 
-  uint32_t hash = strhash(source);
+  uint64_t hash = strhash(source);
   hash = strhash(entry, hash);
   hash = strhash(profile, hash);
-  hash = strhash(cbuffers.c_str(), hash);
-  hash = strhash(texsample.c_str(), hash);
+  hash = strhash(cbuffers, hash);
+  hash = strhash(texsample, hash);
   hash ^= compileFlags;
 
   if(m_ShaderCache.find(hash) != m_ShaderCache.end())
@@ -172,8 +169,8 @@ rdcstr D3D11ShaderCache::GetShaderBlob(const char *source, const char *entry,
 
   uint32_t flags = compileFlags & ~D3DCOMPILE_NO_PRESHADER;
 
-  hr = compileFunc(source, strlen(source), entry, NULL, &includer, entry, profile, flags, 0,
-                   &byteBlob, &errBlob);
+  hr = compileFunc(source.c_str(), source.size(), entry.c_str(), NULL, &includer, entry.c_str(),
+                   profile.c_str(), flags, 0, &byteBlob, &errBlob);
 
   rdcstr errors = "";
 
@@ -185,7 +182,7 @@ rdcstr D3D11ShaderCache::GetShaderBlob(const char *source, const char *entry,
     if(logerror.length() > 1024)
       logerror = logerror.substr(0, 1024) + "...";
 
-    RDCWARN("Shader compile error in '%s':\n%s", entry, logerror.c_str());
+    RDCWARN("Shader compile error in '%s':\n%s", entry.c_str(), logerror.c_str());
 
     SAFE_RELEASE(errBlob);
 
@@ -209,8 +206,8 @@ rdcstr D3D11ShaderCache::GetShaderBlob(const char *source, const char *entry,
   return errors;
 }
 
-ID3D11VertexShader *D3D11ShaderCache::MakeVShader(const char *source, const char *entry,
-                                                  const char *profile, int numInputDescs,
+ID3D11VertexShader *D3D11ShaderCache::MakeVShader(const rdcstr &source, const rdcstr &entry,
+                                                  const rdcstr &profile, int numInputDescs,
                                                   D3D11_INPUT_ELEMENT_DESC *inputs,
                                                   ID3D11InputLayout **ret, rdcarray<byte> *blob)
 {
@@ -218,7 +215,7 @@ ID3D11VertexShader *D3D11ShaderCache::MakeVShader(const char *source, const char
 
   if(GetShaderBlob(source, entry, m_CompileFlags, {}, profile, &byteBlob) != "")
   {
-    RDCERR("Couldn't get shader blob for %s", entry);
+    RDCERR("Couldn't get shader blob for %s", entry.c_str());
     return NULL;
   }
 
@@ -231,7 +228,7 @@ ID3D11VertexShader *D3D11ShaderCache::MakeVShader(const char *source, const char
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create vertex shader for %s %s", entry, ToStr(ret).c_str());
+    RDCERR("Couldn't create vertex shader for %s %s", entry.c_str(), ToStr(ret).c_str());
 
     SAFE_RELEASE(byteBlob);
 
@@ -244,7 +241,7 @@ ID3D11VertexShader *D3D11ShaderCache::MakeVShader(const char *source, const char
 
     if(FAILED(hr))
     {
-      RDCERR("Couldn't create input layout for %s %s", entry, ToStr(ret).c_str());
+      RDCERR("Couldn't create input layout for %s %s", entry.c_str(), ToStr(ret).c_str());
     }
   }
 
@@ -259,8 +256,8 @@ ID3D11VertexShader *D3D11ShaderCache::MakeVShader(const char *source, const char
   return ps;
 }
 
-ID3D11GeometryShader *D3D11ShaderCache::MakeGShader(const char *source, const char *entry,
-                                                    const char *profile)
+ID3D11GeometryShader *D3D11ShaderCache::MakeGShader(const rdcstr &source, const rdcstr &entry,
+                                                    const rdcstr &profile)
 {
   ID3DBlob *byteBlob = NULL;
 
@@ -280,15 +277,15 @@ ID3D11GeometryShader *D3D11ShaderCache::MakeGShader(const char *source, const ch
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create geometry shader for %s %s", entry, ToStr(hr).c_str());
+    RDCERR("Couldn't create geometry shader for %s %s", entry.c_str(), ToStr(hr).c_str());
     return NULL;
   }
 
   return gs;
 }
 
-ID3D11PixelShader *D3D11ShaderCache::MakePShader(const char *source, const char *entry,
-                                                 const char *profile)
+ID3D11PixelShader *D3D11ShaderCache::MakePShader(const rdcstr &source, const rdcstr &entry,
+                                                 const rdcstr &profile)
 {
   ID3DBlob *byteBlob = NULL;
 
@@ -308,15 +305,15 @@ ID3D11PixelShader *D3D11ShaderCache::MakePShader(const char *source, const char 
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create pixel shader for %s %s", entry, ToStr(hr).c_str());
+    RDCERR("Couldn't create pixel shader for %s %s", entry.c_str(), ToStr(hr).c_str());
     return NULL;
   }
 
   return ps;
 }
 
-ID3D11ComputeShader *D3D11ShaderCache::MakeCShader(const char *source, const char *entry,
-                                                   const char *profile)
+ID3D11ComputeShader *D3D11ShaderCache::MakeCShader(const rdcstr &source, const rdcstr &entry,
+                                                   const rdcstr &profile)
 {
   ID3DBlob *byteBlob = NULL;
 
@@ -336,7 +333,7 @@ ID3D11ComputeShader *D3D11ShaderCache::MakeCShader(const char *source, const cha
 
   if(FAILED(hr))
   {
-    RDCERR("Couldn't create compute shader for %s %s", entry, ToStr(hr).c_str());
+    RDCERR("Couldn't create compute shader for %s %s", entry.c_str(), ToStr(hr).c_str());
     return NULL;
   }
 

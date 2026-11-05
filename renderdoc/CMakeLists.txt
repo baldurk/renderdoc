@@ -227,6 +227,8 @@ set(sources
     3rdparty/jpeg-compressor/jpge.h
     3rdparty/catch/catch.cpp
     3rdparty/catch/catch.hpp
+    3rdparty/fasthash/fasthash.c
+    3rdparty/fasthash/fasthash.h
     3rdparty/pugixml/pugixml.cpp
     3rdparty/pugixml/pugixml.hpp
     3rdparty/pugixml/pugiconfig.hpp

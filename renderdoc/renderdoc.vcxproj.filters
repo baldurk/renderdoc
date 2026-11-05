@@ -145,6 +145,9 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{d8130624-7075-486d-91fc-b5ab8cd2b811}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rdparty\fasthash">
+      <UniqueIdentifier>{a761d17a-d803-4c21-9b08-97fb1fc204c3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -582,6 +585,9 @@
     <ClInclude Include="core\rdcbytetrie.h">
       <Filter>Core</Filter>
     </ClInclude>
+    <ClInclude Include="3rdparty\fasthash\fasthash.h">
+      <Filter>3rdparty\fasthash</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -988,6 +994,9 @@
     </ClCompile>
     <ClCompile Include="shaders\controlflow.cpp">
       <Filter>Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\fasthash\fasthash.c">
+      <Filter>3rdparty\fasthash</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

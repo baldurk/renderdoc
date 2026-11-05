@@ -36,10 +36,12 @@ public:
   D3D12ShaderCache(WrappedID3D12Device *device);
   ~D3D12ShaderCache();
 
-  rdcstr GetShaderBlob(const char *source, const char *entry, uint32_t compileFlags,
-                       const rdcarray<rdcstr> &includeDirs, const char *profile, ID3DBlob **srcblob);
-  rdcstr GetShaderBlob(const char *source, const char *entry, const ShaderCompileFlags &compileFlags,
-                       const rdcarray<rdcstr> &includeDirs, const char *profile, ID3DBlob **srcblob);
+  rdcstr GetShaderBlob(const rdcstr &source, const rdcstr &entry, uint32_t compileFlags,
+                       const rdcarray<rdcstr> &includeDirs, const rdcstr &profile,
+                       ID3DBlob **srcblob);
+  rdcstr GetShaderBlob(const rdcstr &source, const rdcstr &entry,
+                       const ShaderCompileFlags &compileFlags, const rdcarray<rdcstr> &includeDirs,
+                       const rdcstr &profile, ID3DBlob **srcblob);
 
   // must match the values in fixedcol.hlsl
   enum FixedColVariant
@@ -61,10 +63,11 @@ public:
 
 private:
   static const uint32_t m_ShaderCacheMagic = 0xf000baba;
-  static const uint32_t m_ShaderCacheVersion = 3;
+  static const uint32_t m_ShaderCacheVersion =
+      RENDERDOC_VERSION_MAJOR * 1000 + RENDERDOC_VERSION_MINOR;
 
   uint32_t m_CompileFlags = 0;
 
   bool m_ShaderCacheDirty = false, m_CacheShaders = false;
-  std::map<uint32_t, ID3DBlob *> m_ShaderCache;
+  std::map<uint64_t, ID3DBlob *> m_ShaderCache;
 };

@@ -383,10 +383,10 @@ D3D12TextRenderer::D3D12TextRenderer(WrappedID3D12Device *wrapper)
   ID3DBlob *TextVS = NULL;
   ID3DBlob *TextPS = NULL;
 
-  shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TextVS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
-                             "vs_5_0", &TextVS);
-  shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_TextPS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {},
-                             "ps_5_0", &TextPS);
+  shaderCache->GetShaderBlob(hlsl, "RENDERDOC_TextVS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "vs_5_0",
+                             &TextVS);
+  shaderCache->GetShaderBlob(hlsl, "RENDERDOC_TextPS", D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_0",
+                             &TextPS);
 
   RDCASSERT(TextVS);
   RDCASSERT(TextPS);

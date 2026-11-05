@@ -358,13 +358,13 @@ void D3D12Replay::PatchQuadWritePS(D3D12_EXPANDED_PIPELINE_STATE_STREAM_DESC &pi
 
     if(dxil)
     {
-      m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_QuadOverdrawPS",
+      m_pDevice->GetShaderCache()->GetShaderBlob(hlsl, "RENDERDOC_QuadOverdrawPS",
                                                  D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_6_0",
                                                  &quadWriteBlob);
     }
     else
     {
-      m_pDevice->GetShaderCache()->GetShaderBlob(hlsl.c_str(), "RENDERDOC_QuadOverdrawPS",
+      m_pDevice->GetShaderCache()->GetShaderBlob(hlsl, "RENDERDOC_QuadOverdrawPS",
                                                  D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "ps_5_1",
                                                  &quadWriteBlob);
     }

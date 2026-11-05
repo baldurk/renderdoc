@@ -26,31 +26,24 @@
 #include <ctype.h>
 #include <stdint.h>
 #include <algorithm>
+#include "3rdparty/fasthash/fasthash.h"
 #include "common/globalconfig.h"
 #include "os/os_specific.h"
 
-uint32_t strhash(const char *str, uint32_t seed)
+uint64_t strhash(const rdcstr &str, uint64_t seed)
 {
-  if(str == NULL)
-    return seed;
-
-  uint32_t hash = seed;
-  int c = *str;
-  str++;
-
-  while(c)
-  {
-    hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-    c = *str;
-    str++;
-  }
-
-  return hash;
+  return fasthash64(str.data(), str.size(), seed);
 }
 
-uint32_t strhash(const char *str)
+uint64_t strhash(const rdcstr &str)
 {
-  return strhash(str, 5381);
+  // arbitrary random value from GUID generation as starting seed
+  return strhash(str, 0x5E87F805F645ULL);
+}
+
+uint32_t strhash32(const rdcstr &str)
+{
+  return fasthash32(str.data(), str.size(), 0xF805F645ULL);
 }
 
 rdcstr strlower(const rdcstr &str)
@@ -239,24 +232,6 @@ TEST_CASE("String hashing", "[string]")
           strhash("test of a long string for strhash"));
   };
 
-  SECTION("hash of NULL or empty string returns the seed")
-  {
-    CHECK(strhash(NULL, 5) == 5);
-    CHECK(strhash(NULL, 50) == 50);
-    CHECK(strhash(NULL, 500) == 500);
-    CHECK(strhash(NULL, 5000) == 5000);
-
-    CHECK(strhash("", 5) == 5);
-    CHECK(strhash("", 50) == 50);
-    CHECK(strhash("", 500) == 500);
-    CHECK(strhash("", 5000) == 5000);
-
-    CHECK(strhash("0", 5) != 5);
-    CHECK(strhash("0", 50) != 50);
-    CHECK(strhash("0", 500) != 500);
-    CHECK(strhash("0", 5000) != 5000);
-  };
-
   SECTION("Different inputs have different hashes")
   {
     CHECK(strhash("foobar") != strhash("blah"));
@@ -270,19 +245,6 @@ TEST_CASE("String hashing", "[string]")
     CHECK(strhash("foobar", 1) != strhash("foobar", 2));
     CHECK(strhash("foobar", 100) != strhash("foobar", 256));
     CHECK(strhash("foobar", 1024) != strhash("foobar", 2048));
-  };
-
-  SECTION("Incremental hashing")
-  {
-    int complete = strhash("test of a long string for strhash");
-
-    int partial = strhash("test of");
-    partial = strhash(" a long", partial);
-    partial = strhash(" string", partial);
-    partial = strhash(" for ", partial);
-    partial = strhash("strhash", partial);
-
-    CHECK(partial == complete);
   };
 };
 

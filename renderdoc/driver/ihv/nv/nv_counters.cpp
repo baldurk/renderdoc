@@ -150,8 +150,8 @@ int NvPmGatherCounters(NVPMCounterID unCounterID, const char *pcCounterName, voi
 
   desc.uuid.words[0] = 0xC8958C90;
   desc.uuid.words[1] = 0xB7064F22;
-  desc.uuid.words[2] = 0x8AF5E0A3 ^ strhash(desc.name.c_str());
-  desc.uuid.words[3] = 0x831B2C39 ^ strhash(desc.description.c_str());
+  desc.uuid.words[2] = 0x8AF5E0A3 ^ strhash32(desc.name);
+  desc.uuid.words[3] = 0x831B2C39 ^ strhash32(desc.description);
 
   pEnumCtx->mCurrentCounterId += 1;
 

@@ -2836,8 +2836,8 @@ void D3D12RTManager::InitRayDispatchPatchingResources()
     // PipelineState
     ID3DBlob *shader = NULL;
     rdcstr hlsl = GetEmbeddedResource(raytracing_hlsl);
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_PatchShaderTableCS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0", &shader);
+    shaderCache->GetShaderBlob(hlsl, "RENDERDOC_PatchShaderTableCS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+                               {}, "cs_5_0", &shader);
 
     if(shader)
     {
@@ -2864,8 +2864,8 @@ void D3D12RTManager::InitRayDispatchPatchingResources()
 
     SAFE_RELEASE(shader);
 
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_CopyShaderTableCS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0", &shader);
+    shaderCache->GetShaderBlob(hlsl, "RENDERDOC_CopyShaderTableCS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+                               {}, "cs_5_0", &shader);
 
     if(shader)
     {
@@ -2980,7 +2980,7 @@ void D3D12RTManager::InitRayDispatchPatchingResources()
     // PipelineState
     ID3DBlob *shader = NULL;
     rdcstr hlsl = GetEmbeddedResource(raytracing_hlsl);
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_PrepareRayIndirectExecuteCS",
+    shaderCache->GetShaderBlob(hlsl, "RENDERDOC_PrepareRayIndirectExecuteCS",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0", &shader);
 
     if(shader)
@@ -3121,7 +3121,7 @@ void D3D12RTManager::InitTLASInstanceCopyingResources()
     // PipelineState
     ID3DBlob *shader = NULL;
     rdcstr hlsl = GetEmbeddedResource(raytracing_hlsl);
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_PrepareTLASCopyIndirectExecuteCS",
+    shaderCache->GetShaderBlob(hlsl, "RENDERDOC_PrepareTLASCopyIndirectExecuteCS",
                                D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0", &shader);
 
     if(shader)
@@ -3149,8 +3149,8 @@ void D3D12RTManager::InitTLASInstanceCopyingResources()
 
     SAFE_RELEASE(shader);
 
-    shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_CopyBLASInstanceCS",
-                               D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0", &shader);
+    shaderCache->GetShaderBlob(hlsl, "RENDERDOC_CopyBLASInstanceCS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+                               {}, "cs_5_0", &shader);
 
     if(shader)
     {
@@ -3258,7 +3258,7 @@ void D3D12RTManager::InitReplayBlasPatchingResources()
       // PipelineState
       ID3DBlob *shader = NULL;
       rdcstr hlsl = GetEmbeddedResource(raytracing_hlsl);
-      shaderCache->GetShaderBlob(hlsl.c_str(), "RENDERDOC_PatchAccStructAddressCS",
+      shaderCache->GetShaderBlob(hlsl, "RENDERDOC_PatchAccStructAddressCS",
                                  D3DCOMPILE_WARNINGS_ARE_ERRORS, {}, "cs_5_0", &shader);
 
       if(shader)

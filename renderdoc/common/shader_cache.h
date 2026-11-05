@@ -30,21 +30,24 @@
 #include "serialise/zstdio.h"
 
 static const uint32_t ShaderCacheMagic = MAKE_FOURCC('R', 'D', '$', '$');
+static const uint32_t ShaderCacheInternalVersion = 2;
 
 template <typename ResultType, typename ShaderCallbacks>
 bool LoadShaderCache(const rdcstr &filename, const uint32_t magicNumber, const uint32_t versionNumber,
-                     std::map<uint32_t, ResultType> &resultCache, const ShaderCallbacks &callbacks)
+                     std::map<uint64_t, ResultType> &resultCache, const ShaderCallbacks &callbacks)
 {
   rdcstr shadercache = FileIO::GetAppFolderFilename(filename);
 
   StreamReader fileReader(FileIO::fopen(shadercache, FileIO::ReadBinary));
 
-  uint32_t globalMagic = 0, localMagic = 0, version = 0;
+  uint32_t globalMagic = 0, internalVersion = 0, localMagic = 0, version = 0;
   fileReader.Read(globalMagic);
+  fileReader.Read(internalVersion);
   fileReader.Read(localMagic);
   fileReader.Read(version);
 
-  if(globalMagic != ShaderCacheMagic || localMagic != magicNumber || version != versionNumber)
+  if(globalMagic != ShaderCacheMagic || internalVersion != ShaderCacheInternalVersion ||
+     localMagic != magicNumber || version != versionNumber)
     return false;
 
   uint64_t uncompressedSize = 0;
@@ -62,7 +65,8 @@ bool LoadShaderCache(const rdcstr &filename, const uint32_t magicNumber, const u
 
   for(uint32_t i = 0; i < numentries; i++)
   {
-    uint32_t hash = 0, length = 0;
+    uint64_t hash = 0;
+    uint32_t length = 0;
     compressedReader.Read(hash);
     compressedReader.Read(length);
 
@@ -87,7 +91,7 @@ bool LoadShaderCache(const rdcstr &filename, const uint32_t magicNumber, const u
 
 template <typename ResultType, typename ShaderCallbacks>
 void SaveShaderCache(const rdcstr &filename, uint32_t magicNumber, uint32_t versionNumber,
-                     const std::map<uint32_t, ResultType> &cache, const ShaderCallbacks &callbacks)
+                     const std::map<uint64_t, ResultType> &cache, const ShaderCallbacks &callbacks)
 {
   rdcstr shadercache = FileIO::GetAppFolderFilename(filename);
 
@@ -102,6 +106,7 @@ void SaveShaderCache(const rdcstr &filename, uint32_t magicNumber, uint32_t vers
   StreamWriter fileWriter(f, Ownership::Stream);
 
   fileWriter.Write(ShaderCacheMagic);
+  fileWriter.Write(ShaderCacheInternalVersion);
   fileWriter.Write(magicNumber);
   fileWriter.Write(versionNumber);
 
@@ -111,7 +116,7 @@ void SaveShaderCache(const rdcstr &filename, uint32_t magicNumber, uint32_t vers
 
   // hash + length + data for each entry
   for(auto it = cache.begin(); it != cache.end(); ++it)
-    uncompressedSize += sizeof(uint32_t) * 2 + callbacks.GetSize(it->second);
+    uncompressedSize += sizeof(uint32_t) + sizeof(uint64_t) + callbacks.GetSize(it->second);
 
   fileWriter.Write(uncompressedSize);
 
@@ -122,7 +127,7 @@ void SaveShaderCache(const rdcstr &filename, uint32_t magicNumber, uint32_t vers
 
   for(auto it = cache.begin(); it != cache.end(); ++it)
   {
-    uint32_t hash = it->first;
+    uint64_t hash = it->first;
     uint32_t len = callbacks.GetSize(it->second);
     const byte *data = callbacks.GetData(it->second);
 
