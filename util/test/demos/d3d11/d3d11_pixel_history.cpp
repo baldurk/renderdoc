@@ -398,15 +398,21 @@ float4 ProcessColor(float4 col)
       scissorStencilStates.DepthStencilState.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
       scissorStencilStates.DepthStencilState.DepthEnable = FALSE;
 
+      scissorStencilStates.DepthStencilState.StencilEnable = TRUE;
+
       batch.scissorState.init(dev, scissorStencilStates);
+
+      scissorStencilStates.DepthStencilState.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
 
       batch.stencilRefState.init(dev, scissorStencilStates);
       batch.stencilRefState.ref = 0x67;
 
-      scissorStencilStates.DepthStencilState.StencilReadMask = 0;
-      scissorStencilStates.DepthStencilState.StencilWriteMask = 0;
+      scissorStencilStates.DepthStencilState.StencilReadMask = 0x33;
+      scissorStencilStates.DepthStencilState.StencilWriteMask = 0x33;
+      scissorStencilStates.DepthStencilState.FrontFace.StencilFunc = D3D11_COMPARISON_LESS;
 
       batch.stencilMaskState.init(dev, scissorStencilStates);
+      batch.stencilRefState.ref = 0x33;
     }
 
     stateInfo.DepthStencilState.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;

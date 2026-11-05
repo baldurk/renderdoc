@@ -419,14 +419,19 @@ float4 ProcessColor(float4 col)
       scissorStencilPipes.GraphicsDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
       scissorStencilPipes.GraphicsDesc.DepthStencilState.DepthEnable = FALSE;
 
+      scissorStencilPipes.GraphicsDesc.DepthStencilState.StencilEnable = TRUE;
+
       batch.scissorPipe = scissorStencilPipes;
       setName(batch.scissorPipe, batch.name + " scissorPipe");
+
+      scissorStencilPipes.GraphicsDesc.DepthStencilState.FrontFace.StencilFunc =
+          D3D12_COMPARISON_FUNC_EQUAL;
 
       batch.stencilRefPipe = scissorStencilPipes;
       setName(batch.stencilRefPipe, batch.name + " stencilRefPipe");
 
-      scissorStencilPipes.GraphicsDesc.DepthStencilState.StencilReadMask = 0;
-      scissorStencilPipes.GraphicsDesc.DepthStencilState.StencilWriteMask = 0;
+      scissorStencilPipes.GraphicsDesc.DepthStencilState.StencilReadMask = 0x33;
+      scissorStencilPipes.GraphicsDesc.DepthStencilState.StencilWriteMask = 0x33;
 
       batch.stencilMaskPipe = scissorStencilPipes;
       setName(batch.stencilMaskPipe, batch.name + " dynamicStencilMaskPipe");
@@ -606,11 +611,13 @@ float4 ProcessColor(float4 col)
     cmd->OMSetStencilRef(0x67);
     RunDraw(cmd, PixelHistory::StencilRef);
 
-    cmd->OMSetStencilRef(0x55);
+    cmd->OMSetStencilRef(0x33);
 
     setMarker(cmd, "Stencil Mask");
     cmd->SetPipelineState(b.stencilMaskPipe);
     RunDraw(cmd, PixelHistory::StencilMask);
+
+    cmd->OMSetStencilRef(0x55);
 
     setMarker(cmd, "Depth Test");
     cmd->SetPipelineState(b.depthPipe);

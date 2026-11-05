@@ -448,6 +448,8 @@ vec4 ProcessColor(vec4 col)
       dynamicPipe.depthStencilState.depthWriteEnable = VK_FALSE;
       dynamicPipe.depthStencilState.depthTestEnable = VK_FALSE;
 
+      dynamicPipe.depthStencilState.stencilTestEnable = VK_TRUE;
+
       dynamicPipe.dynamicState.dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT};
       dynamicPipe.viewportState.scissors = {{{95 >> mip, 245 >> mip}, {20U >> mip, 8U >> mip}}};
 
@@ -459,6 +461,8 @@ vec4 ProcessColor(vec4 col)
       batch.fixedScissorFailPipe = createGraphicsPipeline(dynamicPipe);
       setName(batch.fixedScissorFailPipe, batch.name + " fixedScissorFailPipe");
 
+      dynamicPipe.depthStencilState.front.compareOp = VK_COMPARE_OP_EQUAL;
+
       dynamicPipe.dynamicState.dynamicStates.push_back(VK_DYNAMIC_STATE_SCISSOR);
       dynamicPipe.dynamicState.dynamicStates.push_back(VK_DYNAMIC_STATE_STENCIL_REFERENCE);
 
@@ -467,6 +471,8 @@ vec4 ProcessColor(vec4 col)
 
       dynamicPipe.dynamicState.dynamicStates.push_back(VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK);
       dynamicPipe.dynamicState.dynamicStates.push_back(VK_DYNAMIC_STATE_STENCIL_WRITE_MASK);
+
+      dynamicPipe.depthStencilState.front.compareOp = VK_COMPARE_OP_LESS;
 
       batch.dynamicStencilMaskPipe = createGraphicsPipeline(dynamicPipe);
       setName(batch.dynamicStencilMaskPipe, batch.name + " dynamicStencilMaskPipe");
@@ -632,8 +638,9 @@ vec4 ProcessColor(vec4 col)
 
     setMarker(cmd, "Stencil Mask");
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, b.dynamicStencilMaskPipe);
-    vkCmdSetStencilCompareMask(cmd, VK_STENCIL_FACE_FRONT_AND_BACK, 0);
-    vkCmdSetStencilWriteMask(cmd, VK_STENCIL_FACE_FRONT_AND_BACK, 0);
+    vkCmdSetStencilCompareMask(cmd, VK_STENCIL_FACE_FRONT_AND_BACK, 0x33);
+    vkCmdSetStencilWriteMask(cmd, VK_STENCIL_FACE_FRONT_AND_BACK, 0x33);
+    vkCmdSetStencilReference(cmd, VK_STENCIL_FACE_FRONT_AND_BACK, 0x33);
     RunDraw(cmd, PixelHistory::StencilMask);
 
     setMarker(cmd, "Depth Test");

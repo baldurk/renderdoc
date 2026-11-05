@@ -462,15 +462,13 @@ class Pixel_History(rdtest.TestCase):
             },
             {
                 'event_name': 'Stencil Ref',
-                'passed': True,
-                'shader_out_col': fmt_adjusted(0, 0, 1, alpha_value),
-                'post_mod_col': fmt_clamped(0, 0, 1, alpha_value)
+                # failed due to wrong ref
+                with_stencil('stencil_test_failed'): True,
             },
             {
                 'event_name': 'Stencil Mask',
-                'passed': True,
-                'shader_out_col': fmt_adjusted(0, 1, 1, alpha_value),
-                'post_mod_col': fmt_clamped(0, 1, 1, alpha_value)
+                # failed due to right ref, but wrong mask
+                with_stencil('stencil_test_failed'): True,
             },
         ]
         with self.pixel_history(tex, x, y, sub, comp) as history:

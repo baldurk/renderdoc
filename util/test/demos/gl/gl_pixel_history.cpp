@@ -450,14 +450,20 @@ vec4 ProcessColor(vec4 col)
       scissorStencilStates.depthWrites = GL_FALSE;
       scissorStencilStates.depthTest = GL_FALSE;
 
+      scissorStencilStates.stencilTest = GL_TRUE;
+
       batch.scissorState = scissorStencilStates;
+
+      scissorStencilStates.stencilFunc = GL_EQUAL;
 
       batch.stencilRefState = scissorStencilStates;
       batch.stencilRefState.stencilRef = 0x67;
 
-      scissorStencilStates.stencilMask = 0;
+      scissorStencilStates.stencilMask = 0x33;
+      scissorStencilStates.stencilFunc = GL_LESS;
 
       batch.stencilMaskState = scissorStencilStates;
+      batch.stencilMaskState.stencilRef = 0x33;
     }
 
     stateInfo.depthFunc = GL_LEQUAL;
