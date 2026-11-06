@@ -8941,80 +8941,52 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorBuffersEXT(
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    size_t memSize = 0;
-    for(uint32_t b = 0; b < bufferCount; b++)
-      memSize += GetNextPatchSize(&pBindingInfos[b]);
-    byte *tempMem = GetTempMemory(memSize);
-    rdcarray<VkDescriptorBufferBindingInfoEXT> unwrappedInfos;
-    for(uint32_t b = 0; b < bufferCount; b++)
-      unwrappedInfos.push_back(*UnwrapStructAndChain(m_State, tempMem, &pBindingInfos[b]));
-
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        ObjDisp(commandBuffer)
-            ->CmdBindDescriptorBuffersEXT(Unwrap(commandBuffer), bufferCount, unwrappedInfos.data());
 
-        {
-          VulkanRenderState &renderstate = GetCmdRenderState();
+      size_t memSize = 0;
+      for(uint32_t b = 0; b < bufferCount; b++)
+        memSize += GetNextPatchSize(&pBindingInfos[b]);
+      byte *tempMem = GetTempMemory(memSize);
+      rdcarray<VkDescriptorBufferBindingInfoEXT> unwrappedInfos;
+      for(uint32_t b = 0; b < bufferCount; b++)
+        unwrappedInfos.push_back(*UnwrapStructAndChain(m_State, tempMem, &pBindingInfos[b]));
 
-          // all descriptor buffers above bufferCount are unbound
-          renderstate.descBufs.resize(bufferCount);
-          for(uint32_t i = 0; i < bufferCount; i++)
-          {
-            renderstate.descBufs[i].address = pBindingInfos[i].address;
-            renderstate.descBufs[i].usage = pBindingInfos[i].usage;
-            renderstate.descBufs[i].flags2 = false;
+      ObjDisp(commandBuffer)
+          ->CmdBindDescriptorBuffersEXT(Unwrap(commandBuffer), bufferCount, unwrappedInfos.data());
 
-            const VkBufferUsageFlags2CreateInfo *usage2 =
-                (const VkBufferUsageFlags2CreateInfo *)FindNextStruct(
-                    &pBindingInfos[i], VK_STRUCTURE_TYPE_BUFFER_USAGE_FLAGS_2_CREATE_INFO);
-            if(usage2)
-            {
-              renderstate.descBufs[i].usage = usage2->usage;
-              renderstate.descBufs[i].flags2 = true;
-            }
-
-            const VkDescriptorBufferBindingPushDescriptorBufferHandleEXT *push =
-                (const VkDescriptorBufferBindingPushDescriptorBufferHandleEXT *)FindNextStruct(
-                    &pBindingInfos[i],
-                    VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_PUSH_DESCRIPTOR_BUFFER_HANDLE_EXT);
-            if(push)
-            {
-              renderstate.descBufs[i].pushBuffer = GetResID(push->buffer);
-            }
-          }
-
-          // any offsets that refer to these buffers are invalidated, but then also other buffers
-          // are unbound meaning those are invalid - we can clear all bindings that refer to
-          // descriptor buffers however normal descriptor sets must remain as they are *not*
-          // invalidated and could still be used
-          for(VkPipelineBindPoint bindPoint :
-              {VK_PIPELINE_BIND_POINT_GRAPHICS, VK_PIPELINE_BIND_POINT_COMPUTE,
-               VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR})
-          {
-            VulkanStatePipeline &pipe = renderstate.GetPipeline(bindPoint);
-            pipe.lastBoundDescBufSet = -1;
-
-            for(uint32_t i = 0; i < pipe.descSets.size(); i++)
-              if(pipe.descSets[i].descSet == ResourceId())
-                pipe.descSets[i] = {};
-          }
-        }
-      }
-    }
-    else
-    {
-      // track while reading, for resource usage
       {
-        VulkanRenderState &renderstate = m_BakedCmdBufferInfo[m_LastCmdBufferID].state;
+        VulkanRenderState &renderstate = GetCmdRenderState();
 
         // all descriptor buffers above bufferCount are unbound
         renderstate.descBufs.resize(bufferCount);
         for(uint32_t i = 0; i < bufferCount; i++)
+        {
           renderstate.descBufs[i].address = pBindingInfos[i].address;
+          renderstate.descBufs[i].usage = pBindingInfos[i].usage;
+          renderstate.descBufs[i].flags2 = false;
+
+          const VkBufferUsageFlags2CreateInfo *usage2 =
+              (const VkBufferUsageFlags2CreateInfo *)FindNextStruct(
+                  &pBindingInfos[i], VK_STRUCTURE_TYPE_BUFFER_USAGE_FLAGS_2_CREATE_INFO);
+          if(usage2)
+          {
+            renderstate.descBufs[i].usage = usage2->usage;
+            renderstate.descBufs[i].flags2 = true;
+          }
+
+          const VkDescriptorBufferBindingPushDescriptorBufferHandleEXT *push =
+              (const VkDescriptorBufferBindingPushDescriptorBufferHandleEXT *)FindNextStruct(
+                  &pBindingInfos[i],
+                  VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_PUSH_DESCRIPTOR_BUFFER_HANDLE_EXT);
+          if(push)
+          {
+            renderstate.descBufs[i].pushBuffer = GetResID(push->buffer);
+          }
+        }
 
         // any offsets that refer to these buffers are invalidated, but then also other buffers
         // are unbound meaning those are invalid - we can clear all bindings that refer to
@@ -9025,17 +8997,16 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorBuffersEXT(
              VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR})
         {
           VulkanStatePipeline &pipe = renderstate.GetPipeline(bindPoint);
+          pipe.lastBoundDescBufSet = -1;
 
           for(uint32_t i = 0; i < pipe.descSets.size(); i++)
             if(pipe.descSets[i].descSet == ResourceId())
               pipe.descSets[i] = {};
         }
-
-        VersionDescriptorBuffers(commandBuffer);
       }
-
-      ObjDisp(commandBuffer)
-          ->CmdBindDescriptorBuffersEXT(Unwrap(commandBuffer), bufferCount, unwrappedInfos.data());
+      // this needs to happen after the renderstate has been updated
+      if(loading)
+        VersionDescriptorBuffers(commandBuffer);
     }
   }
 
@@ -9095,55 +9066,18 @@ bool WrappedVulkan::Serialise_vkCmdSetDescriptorBufferOffsetsEXT(
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        ObjDisp(commandBuffer)
-            ->CmdSetDescriptorBufferOffsetsEXT(Unwrap(commandBuffer), pipelineBindPoint,
-                                               Unwrap(layout), firstSet, setCount, pBufferIndices,
-                                               pOffsets);
 
-        {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-          VulkanStatePipeline &pipeline = renderstate.GetPipeline(pipelineBindPoint);
+      ObjDisp(commandBuffer)
+          ->CmdSetDescriptorBufferOffsetsEXT(Unwrap(commandBuffer), pipelineBindPoint, Unwrap(layout),
+                                             firstSet, setCount, pBufferIndices, pOffsets);
 
-          pipeline.lastBoundDescBufSet = firstSet;
-
-          // descriptor set bindings are overwritten/cleared by descriptor buffer bindings
-          for(uint32_t set = 0; set < setCount; set++)
-          {
-            pipeline.descSets.resize_for_index(firstSet + set);
-            pipeline.descSets[firstSet + set] = VulkanStatePipeline::DescriptorAndOffsets();
-
-            pipeline.descSets[firstSet + set].pipeLayout = GetResID(layout);
-            pipeline.descSets[firstSet + set].descBufferIdx = pBufferIndices[set];
-            pipeline.descSets[firstSet + set].descBufferOffset = pOffsets[set];
-            pipeline.descSets[firstSet + set].descBufferEmbeddedSamplers = false;
-            pipeline.descSets[firstSet + set].descBufferPush = false;
-          }
-
-          // any normal descriptor set bindings are invalidated
-          pipeline.lastBoundDescSet = -1;
-          for(VkPipelineBindPoint bindPoint :
-              {VK_PIPELINE_BIND_POINT_GRAPHICS, VK_PIPELINE_BIND_POINT_COMPUTE,
-               VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR})
-          {
-            VulkanStatePipeline &pipe = renderstate.GetPipeline(bindPoint);
-
-            for(uint32_t i = 0; i < pipe.descSets.size(); i++)
-              if(!pipe.descSets[i].IsDescBufferBound())
-                pipe.descSets[i] = {};
-          }
-        }
-      }
-    }
-    else
-    {
-      // track while reading, for resource usage
       {
-        VulkanRenderState &renderstate = m_BakedCmdBufferInfo[m_LastCmdBufferID].state;
+        VulkanRenderState &renderstate = GetCmdRenderState();
         VulkanStatePipeline &pipeline = renderstate.GetPipeline(pipelineBindPoint);
 
         pipeline.lastBoundDescBufSet = firstSet;
@@ -9174,10 +9108,6 @@ bool WrappedVulkan::Serialise_vkCmdSetDescriptorBufferOffsetsEXT(
               pipe.descSets[i] = {};
         }
       }
-
-      ObjDisp(commandBuffer)
-          ->CmdSetDescriptorBufferOffsetsEXT(Unwrap(commandBuffer), pipelineBindPoint, Unwrap(layout),
-                                             firstSet, setCount, pBufferIndices, pOffsets);
     }
   }
 
@@ -9231,47 +9161,41 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorBufferEmbeddedSamplersEXT(
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        ObjDisp(commandBuffer)
-            ->CmdBindDescriptorBufferEmbeddedSamplersEXT(Unwrap(commandBuffer), pipelineBindPoint,
-                                                         Unwrap(layout), set);
 
-        {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-          VulkanStatePipeline &pipeline = renderstate.GetPipeline(pipelineBindPoint);
-
-          pipeline.descSets.resize_for_index(set);
-
-          pipeline.descSets[set] = VulkanStatePipeline::DescriptorAndOffsets();
-          pipeline.descSets[set].pipeLayout = GetResID(layout);
-          pipeline.descSets[set].descBufferIdx = ~0U;
-          pipeline.descSets[set].descBufferOffset = 0;
-          pipeline.descSets[set].descBufferEmbeddedSamplers = true;
-          pipeline.descSets[set].descBufferPush = false;
-
-          // any normal descriptor set bindings are invalidated
-          for(VkPipelineBindPoint bindPoint :
-              {VK_PIPELINE_BIND_POINT_GRAPHICS, VK_PIPELINE_BIND_POINT_COMPUTE,
-               VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR})
-          {
-            VulkanStatePipeline &pipe = renderstate.GetPipeline(bindPoint);
-
-            for(uint32_t i = 0; i < pipe.descSets.size(); i++)
-              if(!pipe.descSets[i].IsDescBufferBound())
-                pipe.descSets[i] = {};
-          }
-        }
-      }
-    }
-    else
-    {
       ObjDisp(commandBuffer)
           ->CmdBindDescriptorBufferEmbeddedSamplersEXT(Unwrap(commandBuffer), pipelineBindPoint,
                                                        Unwrap(layout), set);
+
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+        VulkanStatePipeline &pipeline = renderstate.GetPipeline(pipelineBindPoint);
+
+        pipeline.descSets.resize_for_index(set);
+
+        pipeline.descSets[set] = VulkanStatePipeline::DescriptorAndOffsets();
+        pipeline.descSets[set].pipeLayout = GetResID(layout);
+        pipeline.descSets[set].descBufferIdx = ~0U;
+        pipeline.descSets[set].descBufferOffset = 0;
+        pipeline.descSets[set].descBufferEmbeddedSamplers = true;
+        pipeline.descSets[set].descBufferPush = false;
+
+        // any normal descriptor set bindings are invalidated
+        for(VkPipelineBindPoint bindPoint :
+            {VK_PIPELINE_BIND_POINT_GRAPHICS, VK_PIPELINE_BIND_POINT_COMPUTE,
+             VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR})
+        {
+          VulkanStatePipeline &pipe = renderstate.GetPipeline(bindPoint);
+
+          for(uint32_t i = 0; i < pipe.descSets.size(); i++)
+            if(!pipe.descSets[i].IsDescBufferBound())
+              pipe.descSets[i] = {};
+        }
+      }
     }
   }
 
@@ -9320,65 +9244,24 @@ bool WrappedVulkan::Serialise_vkCmdSetDescriptorBufferOffsets2EXT(
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    byte *tempMem = GetTempMemory(GetNextPatchSize(&SetDescriptorBufferOffsetsInfo));
-    VkSetDescriptorBufferOffsetsInfoEXT *unwrappedInfo =
-        UnwrapStructAndChain(m_State, tempMem, &SetDescriptorBufferOffsetsInfo);
-
-    rdcarray<VkPipelineBindPoint> pipelinesAffected =
-        PipelinesForStageMask(SetDescriptorBufferOffsetsInfo.stageFlags);
-    uint32_t firstSet = SetDescriptorBufferOffsetsInfo.firstSet;
-
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        ObjDisp(commandBuffer)->CmdSetDescriptorBufferOffsets2EXT(Unwrap(commandBuffer), unwrappedInfo);
 
-        VulkanRenderState &renderstate = GetCmdRenderState();
+      byte *tempMem = GetTempMemory(GetNextPatchSize(&SetDescriptorBufferOffsetsInfo));
+      VkSetDescriptorBufferOffsetsInfoEXT *unwrappedInfo =
+          UnwrapStructAndChain(m_State, tempMem, &SetDescriptorBufferOffsetsInfo);
 
-        for(VkPipelineBindPoint pipelineBindPoint : pipelinesAffected)
-        {
-          VulkanStatePipeline &pipeline = renderstate.GetPipeline(pipelineBindPoint);
+      rdcarray<VkPipelineBindPoint> pipelinesAffected =
+          PipelinesForStageMask(SetDescriptorBufferOffsetsInfo.stageFlags);
+      uint32_t firstSet = SetDescriptorBufferOffsetsInfo.firstSet;
 
-          pipeline.lastBoundDescBufSet = firstSet;
+      ObjDisp(commandBuffer)->CmdSetDescriptorBufferOffsets2EXT(Unwrap(commandBuffer), unwrappedInfo);
 
-          // descriptor set bindings are overwritten/cleared by descriptor buffer bindings
-          for(uint32_t set = 0; set < SetDescriptorBufferOffsetsInfo.setCount; set++)
-          {
-            pipeline.descSets.resize_for_index(firstSet + set);
+      VulkanRenderState &renderstate = GetCmdRenderState();
 
-            pipeline.descSets[firstSet + set] = VulkanStatePipeline::DescriptorAndOffsets();
-            pipeline.descSets[firstSet + set].pipeLayout =
-                GetResID(SetDescriptorBufferOffsetsInfo.layout);
-            pipeline.descSets[firstSet + set].descBufferIdx =
-                SetDescriptorBufferOffsetsInfo.pBufferIndices[set];
-            pipeline.descSets[firstSet + set].descBufferOffset =
-                SetDescriptorBufferOffsetsInfo.pOffsets[set];
-            pipeline.descSets[firstSet + set].descBufferEmbeddedSamplers = false;
-            pipeline.descSets[firstSet + set].descBufferPush = false;
-          }
-        }
-
-        // any normal descriptor set bindings are invalidated
-        for(VkPipelineBindPoint bindPoint :
-            {VK_PIPELINE_BIND_POINT_GRAPHICS, VK_PIPELINE_BIND_POINT_COMPUTE,
-             VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR})
-        {
-          VulkanStatePipeline &pipe = renderstate.GetPipeline(bindPoint);
-          pipe.lastBoundDescSet = -1;
-
-          for(uint32_t i = 0; i < pipe.descSets.size(); i++)
-            if(!pipe.descSets[i].IsDescBufferBound())
-              pipe.descSets[i] = {};
-        }
-      }
-    }
-    else
-    {
-      VulkanRenderState &renderstate = m_BakedCmdBufferInfo[m_LastCmdBufferID].state;
-
-      // track while reading, for resource usage
       for(VkPipelineBindPoint pipelineBindPoint : pipelinesAffected)
       {
         VulkanStatePipeline &pipeline = renderstate.GetPipeline(pipelineBindPoint);
@@ -9414,8 +9297,6 @@ bool WrappedVulkan::Serialise_vkCmdSetDescriptorBufferOffsets2EXT(
           if(!pipe.descSets[i].IsDescBufferBound())
             pipe.descSets[i] = {};
       }
-
-      ObjDisp(commandBuffer)->CmdSetDescriptorBufferOffsets2EXT(Unwrap(commandBuffer), unwrappedInfo);
     }
   }
 
@@ -9469,57 +9350,51 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorBufferEmbeddedSamplers2EXT(
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    byte *tempMem = GetTempMemory(GetNextPatchSize(&BindDescriptorBufferEmbeddedSamplersInfo));
-    VkBindDescriptorBufferEmbeddedSamplersInfoEXT *unwrappedInfo =
-        UnwrapStructAndChain(m_State, tempMem, &BindDescriptorBufferEmbeddedSamplersInfo);
-
-    rdcarray<VkPipelineBindPoint> pipelinesAffected =
-        PipelinesForStageMask(BindDescriptorBufferEmbeddedSamplersInfo.stageFlags);
-
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        ObjDisp(commandBuffer)
-            ->CmdBindDescriptorBufferEmbeddedSamplers2EXT(Unwrap(commandBuffer), unwrappedInfo);
 
-        uint32_t set = BindDescriptorBufferEmbeddedSamplersInfo.set;
+      byte *tempMem = GetTempMemory(GetNextPatchSize(&BindDescriptorBufferEmbeddedSamplersInfo));
+      VkBindDescriptorBufferEmbeddedSamplersInfoEXT *unwrappedInfo =
+          UnwrapStructAndChain(m_State, tempMem, &BindDescriptorBufferEmbeddedSamplersInfo);
 
-        VulkanRenderState &renderstate = GetCmdRenderState();
+      rdcarray<VkPipelineBindPoint> pipelinesAffected =
+          PipelinesForStageMask(BindDescriptorBufferEmbeddedSamplersInfo.stageFlags);
 
-        for(VkPipelineBindPoint pipelineBindPoint : pipelinesAffected)
-        {
-          VulkanStatePipeline &pipeline = renderstate.GetPipeline(pipelineBindPoint);
-
-          pipeline.descSets.resize_for_index(set);
-
-          pipeline.descSets[set] = VulkanStatePipeline::DescriptorAndOffsets();
-          pipeline.descSets[set].pipeLayout =
-              GetResID(BindDescriptorBufferEmbeddedSamplersInfo.layout);
-          pipeline.descSets[set].descBufferIdx = ~0U;
-          pipeline.descSets[set].descBufferOffset = 0;
-          pipeline.descSets[set].descBufferEmbeddedSamplers = true;
-          pipeline.descSets[set].descBufferPush = false;
-        }
-
-        // any normal descriptor set bindings are invalidated
-        for(VkPipelineBindPoint bindPoint :
-            {VK_PIPELINE_BIND_POINT_GRAPHICS, VK_PIPELINE_BIND_POINT_COMPUTE,
-             VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR})
-        {
-          VulkanStatePipeline &pipe = renderstate.GetPipeline(bindPoint);
-
-          for(uint32_t i = 0; i < pipe.descSets.size(); i++)
-            if(!pipe.descSets[i].IsDescBufferBound())
-              pipe.descSets[i] = {};
-        }
-      }
-    }
-    else
-    {
       ObjDisp(commandBuffer)
           ->CmdBindDescriptorBufferEmbeddedSamplers2EXT(Unwrap(commandBuffer), unwrappedInfo);
+
+      uint32_t set = BindDescriptorBufferEmbeddedSamplersInfo.set;
+
+      VulkanRenderState &renderstate = GetCmdRenderState();
+
+      for(VkPipelineBindPoint pipelineBindPoint : pipelinesAffected)
+      {
+        VulkanStatePipeline &pipeline = renderstate.GetPipeline(pipelineBindPoint);
+
+        pipeline.descSets.resize_for_index(set);
+
+        pipeline.descSets[set] = VulkanStatePipeline::DescriptorAndOffsets();
+        pipeline.descSets[set].pipeLayout = GetResID(BindDescriptorBufferEmbeddedSamplersInfo.layout);
+        pipeline.descSets[set].descBufferIdx = ~0U;
+        pipeline.descSets[set].descBufferOffset = 0;
+        pipeline.descSets[set].descBufferEmbeddedSamplers = true;
+        pipeline.descSets[set].descBufferPush = false;
+      }
+
+      // any normal descriptor set bindings are invalidated
+      for(VkPipelineBindPoint bindPoint :
+          {VK_PIPELINE_BIND_POINT_GRAPHICS, VK_PIPELINE_BIND_POINT_COMPUTE,
+           VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR})
+      {
+        VulkanStatePipeline &pipe = renderstate.GetPipeline(bindPoint);
+
+        for(uint32_t i = 0; i < pipe.descSets.size(); i++)
+          if(!pipe.descSets[i].IsDescBufferBound())
+            pipe.descSets[i] = {};
+      }
     }
   }
 
