@@ -3266,381 +3266,347 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(SerialiserType &ser, VkCommandBu
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        ResourceId id = GetResID(pipeline);
-
-        {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-          if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_COMPUTE)
-          {
-            renderstate.compute.pipeline = id;
-            renderstate.compute.shaderObject = false;
-
-            // disturb compute shader bound via vkCmdBindShadersEXT, if any
-            renderstate.shaderObjects[(uint32_t)ShaderStage::Compute] = ResourceId();
-          }
-          else if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR)
-          {
-            renderstate.rt.pipeline = id;
-          }
-          else
-          {
-            renderstate.graphics.pipeline = id;
-            renderstate.graphics.shaderObject = false;
-
-            // disturb graphics shaders bound via vkCmdBindShadersEXT, if any
-            for(uint32_t i = 0; i < (uint32_t)ShaderStage::Count; i++)
-            {
-              if(i == (uint32_t)ShaderStage::Compute)
-                continue;
-              renderstate.shaderObjects[i] = ResourceId();
-            }
-
-            const VulkanCreationInfo::Pipeline &pipeInfo = m_CreationInfo.m_Pipeline[id];
-
-            // any static state from the pipeline invalidates any dynamic state previously bound
-            for(uint32_t i = 0; i < VkDynamicCount; i++)
-              renderstate.dynamicStates[i] &= pipeInfo.dynamicStates[i];
-
-            if(!pipeInfo.dynamicStates[VkDynamicViewport] &&
-               !pipeInfo.dynamicStates[VkDynamicViewportCount])
-            {
-              renderstate.views = pipeInfo.viewports;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicScissor] &&
-               !pipeInfo.dynamicStates[VkDynamicScissorCount])
-            {
-              renderstate.scissors = pipeInfo.scissors;
-            }
-
-            if(!pipeInfo.dynamicStates[VkDynamicViewportCount])
-            {
-              renderstate.views.resize(RDCMIN(renderstate.views.size(), pipeInfo.viewports.size()));
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicScissorCount])
-            {
-              renderstate.scissors.resize(
-                  RDCMIN(renderstate.scissors.size(), pipeInfo.scissors.size()));
-            }
-
-            if(!pipeInfo.dynamicStates[VkDynamicLineWidth])
-            {
-              renderstate.lineWidth = pipeInfo.lineWidth;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicDepthBias])
-            {
-              renderstate.bias.depth = pipeInfo.depthBiasConstantFactor;
-              renderstate.bias.biasclamp = pipeInfo.depthBiasClamp;
-              renderstate.bias.slope = pipeInfo.depthBiasSlopeFactor;
-              renderstate.bias.exact = pipeInfo.depthBiasExact != VK_FALSE;
-              renderstate.bias.repr = pipeInfo.depthBiasRepresentation;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicBlendConstants])
-            {
-              memcpy(renderstate.blendConst, pipeInfo.blendConst, sizeof(float) * 4);
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicDepthBounds])
-            {
-              renderstate.mindepth = pipeInfo.minDepthBounds;
-              renderstate.maxdepth = pipeInfo.maxDepthBounds;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicStencilCompareMask])
-            {
-              renderstate.front.compare = pipeInfo.front.compareMask;
-              renderstate.back.compare = pipeInfo.back.compareMask;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicStencilWriteMask])
-            {
-              renderstate.front.write = pipeInfo.front.writeMask;
-              renderstate.back.write = pipeInfo.back.writeMask;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicStencilReference])
-            {
-              renderstate.front.ref = pipeInfo.front.reference;
-              renderstate.back.ref = pipeInfo.back.reference;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicSampleLocationsEXT])
-            {
-              renderstate.sampleLocations.locations = pipeInfo.sampleLocations.locations;
-              renderstate.sampleLocations.gridSize = pipeInfo.sampleLocations.gridSize;
-              renderstate.sampleLocations.sampleCount = pipeInfo.rasterizationSamples;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicDiscardRectangleEXT])
-            {
-              renderstate.discardRectangles = pipeInfo.discardRectangles;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicShadingRateKHR])
-            {
-              renderstate.pipelineShadingRate = pipeInfo.shadingRate;
-              renderstate.shadingRateCombiners[0] = pipeInfo.shadingRateCombiners[0];
-              renderstate.shadingRateCombiners[1] = pipeInfo.shadingRateCombiners[1];
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicLineStipple])
-            {
-              renderstate.stippleFactor = pipeInfo.stippleFactor;
-              renderstate.stipplePattern = pipeInfo.stipplePattern;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicCullMode])
-            {
-              renderstate.cullMode = pipeInfo.cullMode;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicFrontFace])
-            {
-              renderstate.frontFace = pipeInfo.frontFace;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicPrimitiveTopology])
-            {
-              renderstate.primitiveTopology = pipeInfo.topology;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicDepthTestEnable])
-            {
-              renderstate.depthTestEnable = pipeInfo.depthTestEnable;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicDepthWriteEnable])
-            {
-              renderstate.depthWriteEnable = pipeInfo.depthWriteEnable;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicDepthCompareOp])
-            {
-              renderstate.depthCompareOp = pipeInfo.depthCompareOp;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicDepthBoundsTestEnable])
-            {
-              renderstate.depthBoundsTestEnable = pipeInfo.depthBoundsEnable;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicStencilTestEnable])
-            {
-              renderstate.stencilTestEnable = pipeInfo.stencilTestEnable;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicStencilOp])
-            {
-              renderstate.front.passOp = pipeInfo.front.passOp;
-              renderstate.back.passOp = pipeInfo.back.passOp;
-
-              renderstate.front.failOp = pipeInfo.front.failOp;
-              renderstate.back.failOp = pipeInfo.back.failOp;
-
-              renderstate.front.depthFailOp = pipeInfo.front.depthFailOp;
-              renderstate.back.depthFailOp = pipeInfo.back.depthFailOp;
-
-              renderstate.front.compareOp = pipeInfo.front.compareOp;
-              renderstate.back.compareOp = pipeInfo.back.compareOp;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicVertexInputBindingStride])
-            {
-              for(const VulkanCreationInfo::Pipeline::VertBinding &bind : pipeInfo.vertexBindings)
-              {
-                renderstate.vbuffers.resize_for_index(bind.vbufferBinding);
-                renderstate.vbuffers[bind.vbufferBinding].stride = bind.bytestride;
-              }
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicColorWriteEXT])
-            {
-              renderstate.colorWriteEnable.resize(pipeInfo.attachments.size());
-              for(size_t i = 0; i < renderstate.colorWriteEnable.size(); i++)
-                renderstate.colorWriteEnable[i] = pipeInfo.attachments[i].writeEnable;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicDepthBiasEnable])
-            {
-              renderstate.depthBiasEnable = pipeInfo.depthBiasEnable;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicLogicOpEXT])
-            {
-              renderstate.logicOp = pipeInfo.logicOp;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicControlPointsEXT])
-            {
-              renderstate.patchControlPoints = pipeInfo.patchControlPoints;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicPrimRestart])
-            {
-              renderstate.primRestartEnable = pipeInfo.primitiveRestartEnable;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicRastDiscard])
-            {
-              renderstate.rastDiscardEnable = pipeInfo.rasterizerDiscardEnable;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicVertexInputEXT])
-            {
-              renderstate.vertexAttributes.resize(pipeInfo.vertexAttrs.size());
-              for(size_t i = 0; i < renderstate.vertexAttributes.size(); i++)
-              {
-                renderstate.vertexAttributes[i].sType =
-                    VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT;
-                renderstate.vertexAttributes[i].pNext = NULL;
-                renderstate.vertexAttributes[i].format = pipeInfo.vertexAttrs[i].format;
-                renderstate.vertexAttributes[i].binding = pipeInfo.vertexAttrs[i].binding;
-                renderstate.vertexAttributes[i].offset = pipeInfo.vertexAttrs[i].byteoffset;
-                renderstate.vertexAttributes[i].location = pipeInfo.vertexAttrs[i].location;
-              }
-              renderstate.vertexBindings.resize(pipeInfo.vertexBindings.size());
-              for(size_t i = 0; i < renderstate.vertexBindings.size(); i++)
-              {
-                renderstate.vertexBindings[i].sType =
-                    VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT;
-                renderstate.vertexBindings[i].pNext = NULL;
-                renderstate.vertexBindings[i].binding = pipeInfo.vertexBindings[i].vbufferBinding;
-                renderstate.vertexBindings[i].inputRate = pipeInfo.vertexBindings[i].perInstance
-                                                              ? VK_VERTEX_INPUT_RATE_INSTANCE
-                                                              : VK_VERTEX_INPUT_RATE_VERTEX;
-                renderstate.vertexBindings[i].stride = pipeInfo.vertexBindings[i].bytestride;
-                renderstate.vertexBindings[i].divisor = pipeInfo.vertexBindings[i].instanceDivisor;
-              }
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicAttachmentFeedbackLoopEnableEXT])
-            {
-              renderstate.feedbackAspects = VK_IMAGE_ASPECT_NONE;
-              if(pipeInfo.flags & VK_PIPELINE_CREATE_COLOR_ATTACHMENT_FEEDBACK_LOOP_BIT_EXT)
-                renderstate.feedbackAspects |= VK_IMAGE_ASPECT_COLOR_BIT;
-              if(pipeInfo.flags & VK_PIPELINE_CREATE_DEPTH_STENCIL_ATTACHMENT_FEEDBACK_LOOP_BIT_EXT)
-                renderstate.feedbackAspects |=
-                    VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicAlphaToCoverageEXT])
-            {
-              renderstate.alphaToCoverageEnable = pipeInfo.alphaToCoverageEnable;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicAlphaToOneEXT])
-            {
-              renderstate.alphaToOneEnable = pipeInfo.alphaToOneEnable;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicColorBlendEnableEXT])
-            {
-              renderstate.colorBlendEnable.resize(pipeInfo.attachments.size());
-              for(size_t i = 0; i < renderstate.colorBlendEnable.size(); i++)
-                renderstate.colorBlendEnable[i] = pipeInfo.attachments[i].blendEnable;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicColorBlendEquationEXT])
-            {
-              renderstate.colorBlendEquation.resize(pipeInfo.attachments.size());
-              for(size_t i = 0; i < renderstate.colorBlendEquation.size(); i++)
-              {
-                renderstate.colorBlendEquation[i].srcColorBlendFactor =
-                    pipeInfo.attachments[i].blend.Source;
-                renderstate.colorBlendEquation[i].dstColorBlendFactor =
-                    pipeInfo.attachments[i].blend.Destination;
-                renderstate.colorBlendEquation[i].colorBlendOp =
-                    pipeInfo.attachments[i].blend.Operation;
-                renderstate.colorBlendEquation[i].srcAlphaBlendFactor =
-                    pipeInfo.attachments[i].alphaBlend.Source;
-                renderstate.colorBlendEquation[i].dstAlphaBlendFactor =
-                    pipeInfo.attachments[i].alphaBlend.Destination;
-                renderstate.colorBlendEquation[i].alphaBlendOp =
-                    pipeInfo.attachments[i].alphaBlend.Operation;
-              }
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicColorWriteMaskEXT])
-            {
-              renderstate.colorWriteMask.resize(pipeInfo.attachments.size());
-              for(size_t i = 0; i < renderstate.colorWriteMask.size(); i++)
-              {
-                renderstate.colorWriteMask[i] = (uint32_t)pipeInfo.attachments[i].channelWriteMask;
-              }
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicConservativeRastModeEXT])
-            {
-              renderstate.conservativeRastMode = pipeInfo.conservativeRasterizationMode;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicDepthClampEnableEXT])
-            {
-              renderstate.depthClampEnable = pipeInfo.depthClampEnable;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicDepthClipEnableEXT])
-            {
-              renderstate.depthClipEnable = pipeInfo.depthClipEnable;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicDepthClipNegativeOneEXT])
-            {
-              renderstate.negativeOneToOne = pipeInfo.negativeOneToOne;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicOverstimationSizeEXT])
-            {
-              renderstate.primOverestimationSize = pipeInfo.extraPrimitiveOverestimationSize;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicLineRastModeEXT])
-            {
-              renderstate.lineRasterMode = pipeInfo.lineRasterMode;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicLineStippleEnableEXT])
-            {
-              renderstate.stippledLineEnable = pipeInfo.stippleEnabled;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicLogicOpEnableEXT])
-            {
-              renderstate.logicOpEnable = pipeInfo.logicOpEnable;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicPolygonModeEXT])
-            {
-              renderstate.polygonMode = pipeInfo.polygonMode;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicProvokingVertexModeEXT])
-            {
-              renderstate.provokingVertexMode = pipeInfo.provokingVertex;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicRasterizationSamplesEXT])
-            {
-              renderstate.rastSamples = pipeInfo.rasterizationSamples;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicRasterizationStreamEXT])
-            {
-              renderstate.rasterStream = pipeInfo.rasterizationStream;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicSampleLocationsEnableEXT])
-            {
-              renderstate.sampleLocEnable = pipeInfo.sampleLocations.enabled;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicSampleMaskEXT])
-            {
-              renderstate.sampleMask[0] = pipeInfo.sampleMask;
-            }
-            if(!pipeInfo.dynamicStates[VkDynamicTessDomainOriginEXT])
-            {
-              renderstate.domainOrigin = pipeInfo.tessellationDomainOrigin;
-            }
-          }
-        }
-      }
-      else
-      {
-        commandBuffer = VK_NULL_HANDLE;
-      }
-    }
-    else
-    {
       ResourceId id = GetResID(pipeline);
+      ResourceId prevPipeline;
 
-      // track while reading, as we need to bind current topology & index byte width in AddAction
-      if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_COMPUTE)
       {
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.pipeline = id;
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.shaderObject = false;
-      }
-      else if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR)
-      {
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.rt.pipeline = id;
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.rt.shaderObject = false;
-      }
-      else
-      {
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.pipeline = id;
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.shaderObject = false;
-
-        const VulkanCreationInfo::Pipeline &pipeInfo = m_CreationInfo.m_Pipeline[id];
-
-        if(!pipeInfo.dynamicStates[VkDynamicPrimitiveTopology])
+        VulkanRenderState &renderstate = GetCmdRenderState();
+        if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_COMPUTE)
         {
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.primitiveTopology = pipeInfo.topology;
+          prevPipeline = renderstate.compute.pipeline;
+          renderstate.compute.pipeline = id;
+          renderstate.compute.shaderObject = false;
+
+          // disturb compute shader bound via vkCmdBindShadersEXT, if any
+          renderstate.shaderObjects[(uint32_t)ShaderStage::Compute] = ResourceId();
+        }
+        else if(pipelineBindPoint == VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR)
+        {
+          prevPipeline = renderstate.rt.pipeline;
+          renderstate.rt.pipeline = id;
+        }
+        else
+        {
+          prevPipeline = renderstate.graphics.pipeline;
+          renderstate.graphics.pipeline = id;
+          renderstate.graphics.shaderObject = false;
+
+          // disturb graphics shaders bound via vkCmdBindShadersEXT, if any
+          for(uint32_t i = 0; i < (uint32_t)ShaderStage::Count; i++)
+          {
+            if(i == (uint32_t)ShaderStage::Compute)
+              continue;
+            renderstate.shaderObjects[i] = ResourceId();
+          }
+
+          const VulkanCreationInfo::Pipeline &pipeInfo = m_CreationInfo.m_Pipeline[id];
+
+          // any static state from the pipeline invalidates any dynamic state previously bound
+          for(uint32_t i = 0; i < VkDynamicCount; i++)
+            renderstate.dynamicStates[i] &= pipeInfo.dynamicStates[i];
+
+          if(!pipeInfo.dynamicStates[VkDynamicViewport] &&
+             !pipeInfo.dynamicStates[VkDynamicViewportCount])
+          {
+            renderstate.views = pipeInfo.viewports;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicScissor] &&
+             !pipeInfo.dynamicStates[VkDynamicScissorCount])
+          {
+            renderstate.scissors = pipeInfo.scissors;
+          }
+
+          if(!pipeInfo.dynamicStates[VkDynamicViewportCount])
+          {
+            renderstate.views.resize(RDCMIN(renderstate.views.size(), pipeInfo.viewports.size()));
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicScissorCount])
+          {
+            renderstate.scissors.resize(RDCMIN(renderstate.scissors.size(), pipeInfo.scissors.size()));
+          }
+
+          if(!pipeInfo.dynamicStates[VkDynamicLineWidth])
+          {
+            renderstate.lineWidth = pipeInfo.lineWidth;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicDepthBias])
+          {
+            renderstate.bias.depth = pipeInfo.depthBiasConstantFactor;
+            renderstate.bias.biasclamp = pipeInfo.depthBiasClamp;
+            renderstate.bias.slope = pipeInfo.depthBiasSlopeFactor;
+            renderstate.bias.exact = pipeInfo.depthBiasExact != VK_FALSE;
+            renderstate.bias.repr = pipeInfo.depthBiasRepresentation;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicBlendConstants])
+          {
+            memcpy(renderstate.blendConst, pipeInfo.blendConst, sizeof(float) * 4);
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicDepthBounds])
+          {
+            renderstate.mindepth = pipeInfo.minDepthBounds;
+            renderstate.maxdepth = pipeInfo.maxDepthBounds;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicStencilCompareMask])
+          {
+            renderstate.front.compare = pipeInfo.front.compareMask;
+            renderstate.back.compare = pipeInfo.back.compareMask;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicStencilWriteMask])
+          {
+            renderstate.front.write = pipeInfo.front.writeMask;
+            renderstate.back.write = pipeInfo.back.writeMask;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicStencilReference])
+          {
+            renderstate.front.ref = pipeInfo.front.reference;
+            renderstate.back.ref = pipeInfo.back.reference;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicSampleLocationsEXT])
+          {
+            renderstate.sampleLocations.locations = pipeInfo.sampleLocations.locations;
+            renderstate.sampleLocations.gridSize = pipeInfo.sampleLocations.gridSize;
+            renderstate.sampleLocations.sampleCount = pipeInfo.rasterizationSamples;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicDiscardRectangleEXT])
+          {
+            renderstate.discardRectangles = pipeInfo.discardRectangles;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicShadingRateKHR])
+          {
+            renderstate.pipelineShadingRate = pipeInfo.shadingRate;
+            renderstate.shadingRateCombiners[0] = pipeInfo.shadingRateCombiners[0];
+            renderstate.shadingRateCombiners[1] = pipeInfo.shadingRateCombiners[1];
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicLineStipple])
+          {
+            renderstate.stippleFactor = pipeInfo.stippleFactor;
+            renderstate.stipplePattern = pipeInfo.stipplePattern;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicCullMode])
+          {
+            renderstate.cullMode = pipeInfo.cullMode;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicFrontFace])
+          {
+            renderstate.frontFace = pipeInfo.frontFace;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicPrimitiveTopology])
+          {
+            renderstate.primitiveTopology = pipeInfo.topology;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicDepthTestEnable])
+          {
+            renderstate.depthTestEnable = pipeInfo.depthTestEnable;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicDepthWriteEnable])
+          {
+            renderstate.depthWriteEnable = pipeInfo.depthWriteEnable;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicDepthCompareOp])
+          {
+            renderstate.depthCompareOp = pipeInfo.depthCompareOp;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicDepthBoundsTestEnable])
+          {
+            renderstate.depthBoundsTestEnable = pipeInfo.depthBoundsEnable;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicStencilTestEnable])
+          {
+            renderstate.stencilTestEnable = pipeInfo.stencilTestEnable;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicStencilOp])
+          {
+            renderstate.front.passOp = pipeInfo.front.passOp;
+            renderstate.back.passOp = pipeInfo.back.passOp;
+
+            renderstate.front.failOp = pipeInfo.front.failOp;
+            renderstate.back.failOp = pipeInfo.back.failOp;
+
+            renderstate.front.depthFailOp = pipeInfo.front.depthFailOp;
+            renderstate.back.depthFailOp = pipeInfo.back.depthFailOp;
+
+            renderstate.front.compareOp = pipeInfo.front.compareOp;
+            renderstate.back.compareOp = pipeInfo.back.compareOp;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicVertexInputBindingStride])
+          {
+            for(const VulkanCreationInfo::Pipeline::VertBinding &bind : pipeInfo.vertexBindings)
+            {
+              renderstate.vbuffers.resize_for_index(bind.vbufferBinding);
+              renderstate.vbuffers[bind.vbufferBinding].stride = bind.bytestride;
+            }
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicColorWriteEXT])
+          {
+            renderstate.colorWriteEnable.resize(pipeInfo.attachments.size());
+            for(size_t i = 0; i < renderstate.colorWriteEnable.size(); i++)
+              renderstate.colorWriteEnable[i] = pipeInfo.attachments[i].writeEnable;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicDepthBiasEnable])
+          {
+            renderstate.depthBiasEnable = pipeInfo.depthBiasEnable;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicLogicOpEXT])
+          {
+            renderstate.logicOp = pipeInfo.logicOp;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicControlPointsEXT])
+          {
+            renderstate.patchControlPoints = pipeInfo.patchControlPoints;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicPrimRestart])
+          {
+            renderstate.primRestartEnable = pipeInfo.primitiveRestartEnable;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicRastDiscard])
+          {
+            renderstate.rastDiscardEnable = pipeInfo.rasterizerDiscardEnable;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicVertexInputEXT])
+          {
+            renderstate.vertexAttributes.resize(pipeInfo.vertexAttrs.size());
+            for(size_t i = 0; i < renderstate.vertexAttributes.size(); i++)
+            {
+              renderstate.vertexAttributes[i].sType =
+                  VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT;
+              renderstate.vertexAttributes[i].pNext = NULL;
+              renderstate.vertexAttributes[i].format = pipeInfo.vertexAttrs[i].format;
+              renderstate.vertexAttributes[i].binding = pipeInfo.vertexAttrs[i].binding;
+              renderstate.vertexAttributes[i].offset = pipeInfo.vertexAttrs[i].byteoffset;
+              renderstate.vertexAttributes[i].location = pipeInfo.vertexAttrs[i].location;
+            }
+            renderstate.vertexBindings.resize(pipeInfo.vertexBindings.size());
+            for(size_t i = 0; i < renderstate.vertexBindings.size(); i++)
+            {
+              renderstate.vertexBindings[i].sType =
+                  VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT;
+              renderstate.vertexBindings[i].pNext = NULL;
+              renderstate.vertexBindings[i].binding = pipeInfo.vertexBindings[i].vbufferBinding;
+              renderstate.vertexBindings[i].inputRate = pipeInfo.vertexBindings[i].perInstance
+                                                            ? VK_VERTEX_INPUT_RATE_INSTANCE
+                                                            : VK_VERTEX_INPUT_RATE_VERTEX;
+              renderstate.vertexBindings[i].stride = pipeInfo.vertexBindings[i].bytestride;
+              renderstate.vertexBindings[i].divisor = pipeInfo.vertexBindings[i].instanceDivisor;
+            }
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicAttachmentFeedbackLoopEnableEXT])
+          {
+            renderstate.feedbackAspects = VK_IMAGE_ASPECT_NONE;
+            if(pipeInfo.flags & VK_PIPELINE_CREATE_COLOR_ATTACHMENT_FEEDBACK_LOOP_BIT_EXT)
+              renderstate.feedbackAspects |= VK_IMAGE_ASPECT_COLOR_BIT;
+            if(pipeInfo.flags & VK_PIPELINE_CREATE_DEPTH_STENCIL_ATTACHMENT_FEEDBACK_LOOP_BIT_EXT)
+              renderstate.feedbackAspects |= VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicAlphaToCoverageEXT])
+          {
+            renderstate.alphaToCoverageEnable = pipeInfo.alphaToCoverageEnable;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicAlphaToOneEXT])
+          {
+            renderstate.alphaToOneEnable = pipeInfo.alphaToOneEnable;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicColorBlendEnableEXT])
+          {
+            renderstate.colorBlendEnable.resize(pipeInfo.attachments.size());
+            for(size_t i = 0; i < renderstate.colorBlendEnable.size(); i++)
+              renderstate.colorBlendEnable[i] = pipeInfo.attachments[i].blendEnable;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicColorBlendEquationEXT])
+          {
+            renderstate.colorBlendEquation.resize(pipeInfo.attachments.size());
+            for(size_t i = 0; i < renderstate.colorBlendEquation.size(); i++)
+            {
+              renderstate.colorBlendEquation[i].srcColorBlendFactor =
+                  pipeInfo.attachments[i].blend.Source;
+              renderstate.colorBlendEquation[i].dstColorBlendFactor =
+                  pipeInfo.attachments[i].blend.Destination;
+              renderstate.colorBlendEquation[i].colorBlendOp =
+                  pipeInfo.attachments[i].blend.Operation;
+              renderstate.colorBlendEquation[i].srcAlphaBlendFactor =
+                  pipeInfo.attachments[i].alphaBlend.Source;
+              renderstate.colorBlendEquation[i].dstAlphaBlendFactor =
+                  pipeInfo.attachments[i].alphaBlend.Destination;
+              renderstate.colorBlendEquation[i].alphaBlendOp =
+                  pipeInfo.attachments[i].alphaBlend.Operation;
+            }
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicColorWriteMaskEXT])
+          {
+            renderstate.colorWriteMask.resize(pipeInfo.attachments.size());
+            for(size_t i = 0; i < renderstate.colorWriteMask.size(); i++)
+              renderstate.colorWriteMask[i] = (uint32_t)pipeInfo.attachments[i].channelWriteMask;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicConservativeRastModeEXT])
+          {
+            renderstate.conservativeRastMode = pipeInfo.conservativeRasterizationMode;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicDepthClampEnableEXT])
+          {
+            renderstate.depthClampEnable = pipeInfo.depthClampEnable;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicDepthClipEnableEXT])
+          {
+            renderstate.depthClipEnable = pipeInfo.depthClipEnable;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicDepthClipNegativeOneEXT])
+          {
+            renderstate.negativeOneToOne = pipeInfo.negativeOneToOne;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicOverstimationSizeEXT])
+          {
+            renderstate.primOverestimationSize = pipeInfo.extraPrimitiveOverestimationSize;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicLineRastModeEXT])
+          {
+            renderstate.lineRasterMode = pipeInfo.lineRasterMode;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicLineStippleEnableEXT])
+          {
+            renderstate.stippledLineEnable = pipeInfo.stippleEnabled;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicLogicOpEnableEXT])
+          {
+            renderstate.logicOpEnable = pipeInfo.logicOpEnable;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicPolygonModeEXT])
+          {
+            renderstate.polygonMode = pipeInfo.polygonMode;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicProvokingVertexModeEXT])
+          {
+            renderstate.provokingVertexMode = pipeInfo.provokingVertex;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicRasterizationSamplesEXT])
+          {
+            renderstate.rastSamples = pipeInfo.rasterizationSamples;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicRasterizationStreamEXT])
+          {
+            renderstate.rasterStream = pipeInfo.rasterizationStream;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicSampleLocationsEnableEXT])
+          {
+            renderstate.sampleLocEnable = pipeInfo.sampleLocations.enabled;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicSampleMaskEXT])
+          {
+            renderstate.sampleMask[0] = pipeInfo.sampleMask;
+          }
+          if(!pipeInfo.dynamicStates[VkDynamicTessDomainOriginEXT])
+          {
+            renderstate.domainOrigin = pipeInfo.tessellationDomainOrigin;
+          }
         }
       }
-    }
 
-    if(commandBuffer != VK_NULL_HANDLE)
       ObjDisp(commandBuffer)->CmdBindPipeline(Unwrap(commandBuffer), pipelineBindPoint, Unwrap(pipeline));
+    }
   }
 
   return true;
@@ -3693,91 +3659,62 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-
-        ObjDisp(commandBuffer)
-            ->CmdBindDescriptorSets(Unwrap(commandBuffer), pipelineBindPoint, Unwrap(layout),
-                                    firstSet, setCount, UnwrapArray(pDescriptorSets, setCount),
-                                    dynamicOffsetCount, pDynamicOffsets);
-
-        {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-
-          VulkanStatePipeline &pipeline = renderstate.GetPipeline(pipelineBindPoint);
-          rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets = pipeline.descSets;
-
-          // descriptor buffers and descriptor sets can't co-exist, each invalidates the other
-          if(pipeline.UsingDescBufs())
-          {
-            renderstate.descBufs.clear();
-            descsets.clear();
-          }
-
-          // expand as necessary
-          if(descsets.size() < firstSet + setCount)
-            descsets.resize(firstSet + setCount);
-
-          pipeline.lastBoundDescSet = firstSet;
-          pipeline.lastBoundDescBufSet = -1;
-
-          const rdcarray<ResourceId> &descSetLayouts =
-              m_CreationInfo.m_PipelineLayout[GetResID(layout)].descSetLayouts;
-
-          const uint32_t *offsIter = pDynamicOffsets;
-          uint32_t dynConsumed = 0;
-
-          // consume the offsets linearly along the descriptor set layouts
-          for(uint32_t i = 0; i < setCount; i++)
-          {
-            descsets[firstSet + i] = VulkanStatePipeline::DescriptorAndOffsets();
-            descsets[firstSet + i].pipeLayout = GetResID(layout);
-            descsets[firstSet + i].descSet = GetResID(pDescriptorSets[i]);
-
-            if(descSetLayouts[firstSet + i] == ResourceId())
-              continue;
-
-            uint32_t dynCount =
-                m_CreationInfo.m_DescSetLayout[descSetLayouts[firstSet + i]].dynamicCount;
-            descsets[firstSet + i].offsets.assign(offsIter, dynCount);
-            offsIter += dynCount;
-            dynConsumed += dynCount;
-            RDCASSERT(dynConsumed <= dynamicOffsetCount);
-          }
-        }
-      }
-    }
-    else
-    {
-      // track while reading, as we need to track resource usage
-      rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetPipeline(pipelineBindPoint).descSets;
-
-      // descriptor buffers and descriptor sets can't co-exist, each invalidates the other
-      if(m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetPipeline(pipelineBindPoint).UsingDescBufs())
-      {
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.descBufs.clear();
-        descsets.clear();
-      }
-
-      // expand as necessary
-      if(descsets.size() < firstSet + setCount)
-        descsets.resize(firstSet + setCount);
-
-      for(uint32_t i = 0; i < setCount; i++)
-      {
-        descsets[firstSet + i] = VulkanStatePipeline::DescriptorAndOffsets();
-        descsets[firstSet + i].descSet = GetResID(pDescriptorSets[i]);
-        descsets[firstSet + i].push = false;
-      }
 
       ObjDisp(commandBuffer)
           ->CmdBindDescriptorSets(Unwrap(commandBuffer), pipelineBindPoint, Unwrap(layout),
                                   firstSet, setCount, UnwrapArray(pDescriptorSets, setCount),
                                   dynamicOffsetCount, pDynamicOffsets);
+
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+
+        VulkanStatePipeline &pipeline = renderstate.GetPipeline(pipelineBindPoint);
+        rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets = pipeline.descSets;
+
+        // descriptor buffers and descriptor sets can't co-exist, each invalidates the other
+        if(pipeline.UsingDescBufs())
+        {
+          renderstate.descBufs.clear();
+          descsets.clear();
+        }
+
+        // expand as necessary
+        if(descsets.size() < firstSet + setCount)
+          descsets.resize(firstSet + setCount);
+
+        pipeline.lastBoundDescSet = firstSet;
+        pipeline.lastBoundDescBufSet = -1;
+
+        const rdcarray<ResourceId> &descSetLayouts =
+            m_CreationInfo.m_PipelineLayout[GetResID(layout)].descSetLayouts;
+
+        const uint32_t *offsIter = pDynamicOffsets;
+        uint32_t dynConsumed = 0;
+
+        // consume the offsets linearly along the descriptor set layouts
+        for(uint32_t i = 0; i < setCount; i++)
+        {
+          descsets[firstSet + i] = VulkanStatePipeline::DescriptorAndOffsets();
+          descsets[firstSet + i].pipeLayout = GetResID(layout);
+          descsets[firstSet + i].descSet = GetResID(pDescriptorSets[i]);
+          descsets[firstSet + i].push = false;
+
+          if(descSetLayouts[firstSet + i] == ResourceId())
+            continue;
+
+          uint32_t dynCount =
+              m_CreationInfo.m_DescSetLayout[descSetLayouts[firstSet + i]].dynamicCount;
+          descsets[firstSet + i].offsets.assign(offsIter, dynCount);
+          offsIter += dynCount;
+          dynConsumed += dynCount;
+          RDCASSERT(dynConsumed <= dynamicOffsetCount);
+        }
+      }
     }
   }
 
@@ -3836,100 +3773,69 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets2(
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    byte *tempMem = GetTempMemory(GetNextPatchSize(&BindDescriptorSetsInfo));
-    VkBindDescriptorSetsInfo *unwrappedInfo =
-        UnwrapStructAndChain(m_State, tempMem, &BindDescriptorSetsInfo);
-
-    rdcarray<VkPipelineBindPoint> pipelinesAffected =
-        PipelinesForStageMask(BindDescriptorSetsInfo.stageFlags);
-
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        ObjDisp(commandBuffer)->CmdBindDescriptorSets2(Unwrap(commandBuffer), unwrappedInfo);
+      byte *tempMem = GetTempMemory(GetNextPatchSize(&BindDescriptorSetsInfo));
+      VkBindDescriptorSetsInfo *unwrappedInfo =
+          UnwrapStructAndChain(m_State, tempMem, &BindDescriptorSetsInfo);
 
+      rdcarray<VkPipelineBindPoint> pipelinesAffected =
+          PipelinesForStageMask(BindDescriptorSetsInfo.stageFlags);
+
+      ObjDisp(commandBuffer)->CmdBindDescriptorSets2(Unwrap(commandBuffer), unwrappedInfo);
+
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+
+        for(VkPipelineBindPoint bindPoint : pipelinesAffected)
         {
-          VulkanRenderState &renderstate = GetCmdRenderState();
+          VulkanStatePipeline &pipeline = renderstate.GetPipeline(bindPoint);
+          rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets = pipeline.descSets;
 
-          for(VkPipelineBindPoint bindPoint : pipelinesAffected)
+          // descriptor buffers and descriptor sets can't co-exist, each invalidates the other
+          if(pipeline.UsingDescBufs())
           {
-            VulkanStatePipeline &pipeline = renderstate.GetPipeline(bindPoint);
-            rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets = pipeline.descSets;
+            renderstate.descBufs.clear();
+            descsets.clear();
+          }
 
-            // descriptor buffers and descriptor sets can't co-exist, each invalidates the other
-            if(pipeline.UsingDescBufs())
-            {
-              renderstate.descBufs.clear();
-              descsets.clear();
-            }
+          uint32_t firstSet = BindDescriptorSetsInfo.firstSet;
 
-            uint32_t firstSet = BindDescriptorSetsInfo.firstSet;
+          // expand as necessary
+          descsets.resize_for_index(firstSet + BindDescriptorSetsInfo.descriptorSetCount - 1);
 
-            // expand as necessary
-            descsets.resize_for_index(firstSet + BindDescriptorSetsInfo.descriptorSetCount - 1);
+          pipeline.lastBoundDescSet = firstSet;
+          pipeline.lastBoundDescBufSet = -1;
 
-            pipeline.lastBoundDescSet = firstSet;
-            pipeline.lastBoundDescBufSet = -1;
+          const rdcarray<ResourceId> &descSetLayouts =
+              m_CreationInfo.m_PipelineLayout[GetResID(BindDescriptorSetsInfo.layout)].descSetLayouts;
 
-            const rdcarray<ResourceId> &descSetLayouts =
-                m_CreationInfo.m_PipelineLayout[GetResID(BindDescriptorSetsInfo.layout)].descSetLayouts;
+          const uint32_t *offsIter = BindDescriptorSetsInfo.pDynamicOffsets;
+          uint32_t dynConsumed = 0;
 
-            const uint32_t *offsIter = BindDescriptorSetsInfo.pDynamicOffsets;
-            uint32_t dynConsumed = 0;
+          // consume the offsets linearly along the descriptor set layouts
+          for(uint32_t i = 0; i < BindDescriptorSetsInfo.descriptorSetCount; i++)
+          {
+            descsets[firstSet + i] = VulkanStatePipeline::DescriptorAndOffsets();
+            descsets[firstSet + i].pipeLayout = GetResID(BindDescriptorSetsInfo.layout);
+            descsets[firstSet + i].descSet = GetResID(BindDescriptorSetsInfo.pDescriptorSets[i]);
 
-            // consume the offsets linearly along the descriptor set layouts
-            for(uint32_t i = 0; i < BindDescriptorSetsInfo.descriptorSetCount; i++)
-            {
-              descsets[firstSet + i] = VulkanStatePipeline::DescriptorAndOffsets();
-              descsets[firstSet + i].pipeLayout = GetResID(BindDescriptorSetsInfo.layout);
-              descsets[firstSet + i].descSet = GetResID(BindDescriptorSetsInfo.pDescriptorSets[i]);
+            if(descSetLayouts[firstSet + i] == ResourceId())
+              continue;
 
-              if(descSetLayouts[firstSet + i] == ResourceId())
-                continue;
-
-              uint32_t dynCount =
-                  m_CreationInfo.m_DescSetLayout[descSetLayouts[firstSet + i]].dynamicCount;
-              descsets[firstSet + i].offsets.assign(offsIter, dynCount);
-              offsIter += dynCount;
-              dynConsumed += dynCount;
-              RDCASSERT(dynConsumed <= BindDescriptorSetsInfo.dynamicOffsetCount);
-            }
+            uint32_t dynCount =
+                m_CreationInfo.m_DescSetLayout[descSetLayouts[firstSet + i]].dynamicCount;
+            descsets[firstSet + i].offsets.assign(offsIter, dynCount);
+            offsIter += dynCount;
+            dynConsumed += dynCount;
+            RDCASSERT(dynConsumed <= BindDescriptorSetsInfo.dynamicOffsetCount);
           }
         }
       }
-    }
-    else
-    {
-      for(VkPipelineBindPoint bindPoint : pipelinesAffected)
-      {
-        // track while reading, as we need to track resource usage
-        rdcarray<VulkanStatePipeline::DescriptorAndOffsets> &descsets =
-            m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetPipeline(bindPoint).descSets;
-
-        // descriptor buffers and descriptor sets can't co-exist, each invalidates the other
-        if(m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetPipeline(bindPoint).UsingDescBufs())
-        {
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.descBufs.clear();
-          descsets.clear();
-        }
-
-        uint32_t firstSet = BindDescriptorSetsInfo.firstSet;
-
-        // expand as necessary
-        descsets.resize_for_index(firstSet + BindDescriptorSetsInfo.descriptorSetCount - 1);
-
-        for(uint32_t i = 0; i < BindDescriptorSetsInfo.descriptorSetCount; i++)
-        {
-          descsets[firstSet + i] = VulkanStatePipeline::DescriptorAndOffsets();
-          descsets[firstSet + i].descSet = GetResID(BindDescriptorSetsInfo.pDescriptorSets[i]);
-          descsets[firstSet + i].push = false;
-        }
-      }
-
-      ObjDisp(commandBuffer)->CmdBindDescriptorSets2(Unwrap(commandBuffer), unwrappedInfo);
     }
   }
 
@@ -3990,42 +3896,28 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(SerialiserType &ser,
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        ObjDisp(commandBuffer)
-            ->CmdBindVertexBuffers(Unwrap(commandBuffer), firstBinding, bindingCount,
-                                   UnwrapArray(pBuffers, bindingCount), pOffsets);
-
-        {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-          if(renderstate.vbuffers.size() < firstBinding + bindingCount)
-            renderstate.vbuffers.resize(firstBinding + bindingCount);
-
-          for(uint32_t i = 0; i < bindingCount; i++)
-          {
-            renderstate.vbuffers[firstBinding + i].buf = GetResID(pBuffers[i]);
-            renderstate.vbuffers[firstBinding + i].offs = pOffsets[i];
-            renderstate.vbuffers[firstBinding + i].size = VK_WHOLE_SIZE;
-          }
-        }
-      }
-    }
-    else
-    {
-      // track while reading, as we need to track resource usage
-      if(m_BakedCmdBufferInfo[m_LastCmdBufferID].state.vbuffers.size() < firstBinding + bindingCount)
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.vbuffers.resize(firstBinding + bindingCount);
-
-      for(uint32_t i = 0; i < bindingCount; i++)
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.vbuffers[firstBinding + i].buf =
-            GetResID(pBuffers[i]);
 
       ObjDisp(commandBuffer)
           ->CmdBindVertexBuffers(Unwrap(commandBuffer), firstBinding, bindingCount,
                                  UnwrapArray(pBuffers, bindingCount), pOffsets);
+
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+        if(renderstate.vbuffers.size() < firstBinding + bindingCount)
+          renderstate.vbuffers.resize(firstBinding + bindingCount);
+
+        for(uint32_t i = 0; i < bindingCount; i++)
+        {
+          renderstate.vbuffers[firstBinding + i].buf = GetResID(pBuffers[i]);
+          renderstate.vbuffers[firstBinding + i].offs = pOffsets[i];
+          renderstate.vbuffers[firstBinding + i].size = VK_WHOLE_SIZE;
+        }
+      }
     }
   }
 
@@ -4085,57 +3977,43 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers2(
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        ObjDisp(commandBuffer)
-            ->CmdBindVertexBuffers2(Unwrap(commandBuffer), firstBinding, bindingCount,
-                                    UnwrapArray(pBuffers, bindingCount), pOffsets, pSizes, pStrides);
-
-        {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-          if(renderstate.vbuffers.size() < firstBinding + bindingCount)
-            renderstate.vbuffers.resize(firstBinding + bindingCount);
-
-          for(uint32_t i = 0; i < bindingCount; i++)
-          {
-            renderstate.vbuffers[firstBinding + i].buf = GetResID(pBuffers[i]);
-            renderstate.vbuffers[firstBinding + i].offs = pOffsets[i];
-            renderstate.vbuffers[firstBinding + i].size = pSizes ? pSizes[i] : VK_WHOLE_SIZE;
-
-            // if strides is NULL the pipeline bound must have had no dynamic state for stride and
-            // so stride was filled out then, we leave it as-is.
-            if(pStrides)
-            {
-              renderstate.dynamicStates[VkDynamicVertexInputBindingStride] = true;
-
-              renderstate.vbuffers[firstBinding + i].stride = pStrides[i];
-
-              // if we have dynamic vertex input data, update the strides. If we don't have any
-              // that's fine we can skip this, it means the application must provide a later
-              // vkCmdSetVertexInput which overrides anything we'd set here
-              if(firstBinding + i < renderstate.vertexBindings.size())
-                renderstate.vertexBindings[firstBinding + i].stride = (uint32_t)pStrides[i];
-            }
-          }
-        }
-      }
-    }
-    else
-    {
-      // track while reading, as we need to track resource usage
-      if(m_BakedCmdBufferInfo[m_LastCmdBufferID].state.vbuffers.size() < firstBinding + bindingCount)
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.vbuffers.resize(firstBinding + bindingCount);
-
-      for(uint32_t i = 0; i < bindingCount; i++)
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.vbuffers[firstBinding + i].buf =
-            GetResID(pBuffers[i]);
 
       ObjDisp(commandBuffer)
           ->CmdBindVertexBuffers2(Unwrap(commandBuffer), firstBinding, bindingCount,
                                   UnwrapArray(pBuffers, bindingCount), pOffsets, pSizes, pStrides);
+
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+        if(renderstate.vbuffers.size() < firstBinding + bindingCount)
+          renderstate.vbuffers.resize(firstBinding + bindingCount);
+
+        for(uint32_t i = 0; i < bindingCount; i++)
+        {
+          renderstate.vbuffers[firstBinding + i].buf = GetResID(pBuffers[i]);
+          renderstate.vbuffers[firstBinding + i].offs = pOffsets[i];
+          renderstate.vbuffers[firstBinding + i].size = pSizes ? pSizes[i] : VK_WHOLE_SIZE;
+
+          // if strides is NULL the pipeline bound must have had no dynamic state for stride and
+          // so stride was filled out then, we leave it as-is.
+          if(pStrides)
+          {
+            renderstate.dynamicStates[VkDynamicVertexInputBindingStride] = true;
+
+            renderstate.vbuffers[firstBinding + i].stride = pStrides[i];
+
+            // if we have dynamic vertex input data, update the strides. If we don't have any
+            // that's fine we can skip this, it means the application must provide a later
+            // vkCmdSetVertexInput which overrides anything we'd set here
+            if(firstBinding + i < renderstate.vertexBindings.size())
+              renderstate.vertexBindings[firstBinding + i].stride = (uint32_t)pStrides[i];
+          }
+        }
+      }
     }
   }
 
@@ -4193,43 +4071,27 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(SerialiserType &ser,
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        ObjDisp(commandBuffer)
-            ->CmdBindIndexBuffer(Unwrap(commandBuffer), Unwrap(buffer), offset, indexType);
-
-        {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-          renderstate.ibuffer.buf = GetResID(buffer);
-          renderstate.ibuffer.offs = offset;
-          renderstate.ibuffer.size = VK_WHOLE_SIZE;
-
-          if(indexType == VK_INDEX_TYPE_UINT32)
-            renderstate.ibuffer.bytewidth = 4;
-          else if(indexType == VK_INDEX_TYPE_UINT8)
-            renderstate.ibuffer.bytewidth = 1;
-          else
-            renderstate.ibuffer.bytewidth = 2;
-        }
-      }
-    }
-    else
-    {
-      // track while reading, as we need to bind current topology & index byte width in AddAction
-      if(indexType == VK_INDEX_TYPE_UINT32)
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.bytewidth = 4;
-      else if(indexType == VK_INDEX_TYPE_UINT8)
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.bytewidth = 1;
-      else
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.bytewidth = 2;
-
-      // track while reading, as we need to track resource usage
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.buf = GetResID(buffer);
 
       ObjDisp(commandBuffer)->CmdBindIndexBuffer(Unwrap(commandBuffer), Unwrap(buffer), offset, indexType);
+
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+        renderstate.ibuffer.buf = GetResID(buffer);
+        renderstate.ibuffer.offs = offset;
+        renderstate.ibuffer.size = VK_WHOLE_SIZE;
+
+        if(indexType == VK_INDEX_TYPE_UINT32)
+          renderstate.ibuffer.bytewidth = 4;
+        else if(indexType == VK_INDEX_TYPE_UINT8)
+          renderstate.ibuffer.bytewidth = 1;
+        else
+          renderstate.ibuffer.bytewidth = 2;
+      }
     }
   }
 
@@ -7370,43 +7232,35 @@ bool WrappedVulkan::Serialise_vkCmdSetVertexInputEXT(
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        ObjDisp(commandBuffer)
-            ->CmdSetVertexInputEXT(Unwrap(commandBuffer), vertexBindingDescriptionCount,
-                                   pVertexBindingDescriptions, vertexAttributeDescriptionCount,
-                                   pVertexAttributeDescriptions);
 
-        {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-
-          renderstate.dynamicStates[VkDynamicVertexInputEXT] = true;
-
-          renderstate.vertexBindings.assign(pVertexBindingDescriptions,
-                                            vertexBindingDescriptionCount);
-          renderstate.vertexAttributes.assign(pVertexAttributeDescriptions,
-                                              vertexAttributeDescriptionCount);
-
-          for(uint32_t i = 0; i < vertexBindingDescriptionCount; i++)
-          {
-            // set strides whether or not the vertex buffers have been bound, so that the stride is
-            // available if a later call to BindVertexBuffers2 doesn't pass any strides (it should
-            // use the strides from here)
-            renderstate.vbuffers.resize_for_index(i);
-            renderstate.vbuffers[i].stride = pVertexBindingDescriptions[i].stride;
-          }
-        }
-      }
-    }
-    else
-    {
       ObjDisp(commandBuffer)
           ->CmdSetVertexInputEXT(Unwrap(commandBuffer), vertexBindingDescriptionCount,
                                  pVertexBindingDescriptions, vertexAttributeDescriptionCount,
                                  pVertexAttributeDescriptions);
+
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+
+        renderstate.dynamicStates[VkDynamicVertexInputEXT] = true;
+
+        renderstate.vertexBindings.assign(pVertexBindingDescriptions, vertexBindingDescriptionCount);
+        renderstate.vertexAttributes.assign(pVertexAttributeDescriptions,
+                                            vertexAttributeDescriptionCount);
+
+        for(uint32_t i = 0; i < vertexBindingDescriptionCount; i++)
+        {
+          // set strides whether or not the vertex buffers have been bound, so that the stride is
+          // available if a later call to BindVertexBuffers2 doesn't pass any strides (it should
+          // use the strides from here)
+          renderstate.vbuffers.resize_for_index(i);
+          renderstate.vbuffers[i].stride = pVertexBindingDescriptions[i].stride;
+        }
+      }
     }
   }
 
@@ -8923,69 +8777,42 @@ bool WrappedVulkan::Serialise_vkCmdBindShadersEXT(SerialiserType &ser,
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+
+        for(uint32_t i = 0; i < stageCount; i++)
         {
-          VulkanRenderState &renderstate = GetCmdRenderState();
+          int stageIndex = StageIndex(pStages[i]);
+          ResourceId shader =
+              pShaders && (pShaders[i] != VK_NULL_HANDLE) ? GetResID(pShaders[i]) : ResourceId();
 
-          for(uint32_t i = 0; i < stageCount; i++)
+          renderstate.shaderObjects[stageIndex] = shader;
+
+          // calling vkCmdBindShadersEXT disturbs the corresponding pipeline bind points
+          // such that any pipelines previously bound to those points are no longer bound
+          if(stageIndex == (int)ShaderStage::Compute)
           {
-            int stageIndex = StageIndex(pStages[i]);
-
-            renderstate.shaderObjects[stageIndex] =
-                pShaders && (pShaders[i] != VK_NULL_HANDLE) ? GetResID(pShaders[i]) : ResourceId();
-
-            // calling vkCmdBindShadersEXT disturbs the corresponding pipeline bind points
-            // such that any pipelines previously bound to those points are no longer bound
-            if(stageIndex == (int)ShaderStage::Compute)
-            {
-              renderstate.compute.shaderObject = true;
-              renderstate.compute.pipeline = ResourceId();
-            }
-            else
-            {
-              renderstate.graphics.shaderObject = true;
-              renderstate.graphics.pipeline = ResourceId();
-            }
+            renderstate.compute.shaderObject = true;
+            renderstate.compute.pipeline = ResourceId();
+          }
+          else
+          {
+            renderstate.graphics.shaderObject = true;
+            renderstate.graphics.pipeline = ResourceId();
           }
         }
       }
-      else
-      {
-        commandBuffer = VK_NULL_HANDLE;
-      }
-    }
-    else
-    {
-      // track while reading since Serialise_vkCmdBindPipeline does as well
-      for(uint32_t i = 0; i < stageCount; i++)
-      {
-        int stageIndex = StageIndex(pStages[i]);
 
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.shaderObjects[stageIndex] =
-            pShaders && (pShaders[i] != VK_NULL_HANDLE) ? GetResID(pShaders[i]) : ResourceId();
-
-        if(stageIndex == (int)ShaderStage::Compute)
-        {
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.pipeline = ResourceId();
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.compute.shaderObject = true;
-        }
-        else
-        {
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.pipeline = ResourceId();
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.graphics.shaderObject = true;
-        }
-      }
-    }
-
-    if(commandBuffer != VK_NULL_HANDLE)
       ObjDisp(commandBuffer)
           ->CmdBindShadersEXT(Unwrap(commandBuffer), stageCount, pStages,
                               UnwrapArray(pShaders, stageCount));
+    }
   }
 
   return true;
@@ -9043,44 +8870,29 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer2(SerialiserType &ser,
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        ObjDisp(commandBuffer)
-            ->CmdBindIndexBuffer2(Unwrap(commandBuffer), Unwrap(buffer), offset, size, indexType);
-
-        {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-          renderstate.ibuffer.buf = GetResID(buffer);
-          renderstate.ibuffer.offs = offset;
-          renderstate.ibuffer.size = size;
-
-          if(indexType == VK_INDEX_TYPE_UINT32)
-            renderstate.ibuffer.bytewidth = 4;
-          else if(indexType == VK_INDEX_TYPE_UINT8)
-            renderstate.ibuffer.bytewidth = 1;
-          else
-            renderstate.ibuffer.bytewidth = 2;
-        }
-      }
-    }
-    else
-    {
-      // track while reading, as we need to bind current topology & index byte width in AddAction
-      if(indexType == VK_INDEX_TYPE_UINT32)
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.bytewidth = 4;
-      else if(indexType == VK_INDEX_TYPE_UINT8)
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.bytewidth = 1;
-      else
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.bytewidth = 2;
-
-      // track while reading, as we need to track resource usage
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.buf = GetResID(buffer);
 
       ObjDisp(commandBuffer)
           ->CmdBindIndexBuffer2(Unwrap(commandBuffer), Unwrap(buffer), offset, size, indexType);
+
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+
+        renderstate.ibuffer.buf = GetResID(buffer);
+        renderstate.ibuffer.offs = offset;
+        renderstate.ibuffer.size = size;
+
+        if(indexType == VK_INDEX_TYPE_UINT32)
+          renderstate.ibuffer.bytewidth = 4;
+        else if(indexType == VK_INDEX_TYPE_UINT8)
+          renderstate.ibuffer.bytewidth = 1;
+        else
+          renderstate.ibuffer.bytewidth = 2;
+      }
     }
   }
 
@@ -10247,43 +10059,27 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer3KHR(SerialiserType &ser,
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        ObjDisp(commandBuffer)->CmdBindIndexBuffer3KHR(Unwrap(commandBuffer), &Info);
-
-        {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-          GetResIDFromAddr(Info.addressRange.address, renderstate.ibuffer.buf,
-                           renderstate.ibuffer.offs);
-          renderstate.ibuffer.size = Info.addressRange.size;
-
-          if(Info.indexType == VK_INDEX_TYPE_UINT32)
-            renderstate.ibuffer.bytewidth = 4;
-          else if(Info.indexType == VK_INDEX_TYPE_UINT8)
-            renderstate.ibuffer.bytewidth = 1;
-          else
-            renderstate.ibuffer.bytewidth = 2;
-        }
-      }
-    }
-    else
-    {
-      // track while reading, as we need to bind current topology & index byte width in AddAction
-      if(Info.indexType == VK_INDEX_TYPE_UINT32)
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.bytewidth = 4;
-      else if(Info.indexType == VK_INDEX_TYPE_UINT8)
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.bytewidth = 1;
-      else
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.bytewidth = 2;
-
-      // track while reading, as we need to track resource usage
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.ibuffer.buf =
-          GetResIDFromAddr(Info.addressRange.address);
 
       ObjDisp(commandBuffer)->CmdBindIndexBuffer3KHR(Unwrap(commandBuffer), &Info);
+
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+        GetResIDFromAddr(Info.addressRange.address, renderstate.ibuffer.buf,
+                         renderstate.ibuffer.offs);
+        renderstate.ibuffer.size = Info.addressRange.size;
+
+        if(Info.indexType == VK_INDEX_TYPE_UINT32)
+          renderstate.ibuffer.bytewidth = 4;
+        else if(Info.indexType == VK_INDEX_TYPE_UINT8)
+          renderstate.ibuffer.bytewidth = 1;
+        else
+          renderstate.ibuffer.bytewidth = 2;
+      }
     }
   }
 
@@ -10330,57 +10126,43 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers3KHR(
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        ObjDisp(commandBuffer)
-            ->CmdBindVertexBuffers3KHR(Unwrap(commandBuffer), firstBinding, bindingCount,
-                                       pBindingInfos);
-
-        {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-          if(renderstate.vbuffers.size() < firstBinding + bindingCount)
-            renderstate.vbuffers.resize(firstBinding + bindingCount);
-
-          for(uint32_t i = 0; i < bindingCount; i++)
-          {
-            GetResIDFromAddr(pBindingInfos[i].addressRange.address,
-                             renderstate.vbuffers[firstBinding + i].buf,
-                             renderstate.vbuffers[firstBinding + i].offs);
-            renderstate.vbuffers[firstBinding + i].size = pBindingInfos[i].addressRange.size;
-
-            if(pBindingInfos[i].setStride)
-            {
-              renderstate.dynamicStates[VkDynamicVertexInputBindingStride] = true;
-
-              renderstate.vbuffers[firstBinding + i].stride = pBindingInfos[i].addressRange.stride;
-
-              // if we have dynamic vertex input data, update the strides. If we don't have any
-              // that's fine we can skip this, it means the application must provide a later
-              // vkCmdSetVertexInput which overrides anything we'd set here
-              if(firstBinding + i < renderstate.vertexBindings.size())
-                renderstate.vertexBindings[firstBinding + i].stride =
-                    (uint32_t)pBindingInfos[i].addressRange.stride;
-            }
-          }
-        }
-      }
-    }
-    else
-    {
-      // track while reading, as we need to track resource usage
-      if(m_BakedCmdBufferInfo[m_LastCmdBufferID].state.vbuffers.size() < firstBinding + bindingCount)
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.vbuffers.resize(firstBinding + bindingCount);
-
-      for(uint32_t i = 0; i < bindingCount; i++)
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.vbuffers[firstBinding + i].buf =
-            GetResIDFromAddr(pBindingInfos[i].addressRange.address);
 
       ObjDisp(commandBuffer)
           ->CmdBindVertexBuffers3KHR(Unwrap(commandBuffer), firstBinding, bindingCount,
                                      pBindingInfos);
+
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+        if(renderstate.vbuffers.size() < firstBinding + bindingCount)
+          renderstate.vbuffers.resize(firstBinding + bindingCount);
+
+        for(uint32_t i = 0; i < bindingCount; i++)
+        {
+          GetResIDFromAddr(pBindingInfos[i].addressRange.address,
+                           renderstate.vbuffers[firstBinding + i].buf,
+                           renderstate.vbuffers[firstBinding + i].offs);
+          renderstate.vbuffers[firstBinding + i].size = pBindingInfos[i].addressRange.size;
+
+          if(pBindingInfos[i].setStride)
+          {
+            renderstate.dynamicStates[VkDynamicVertexInputBindingStride] = true;
+
+            renderstate.vbuffers[firstBinding + i].stride = pBindingInfos[i].addressRange.stride;
+
+            // if we have dynamic vertex input data, update the strides. If we don't have any
+            // that's fine we can skip this, it means the application must provide a later
+            // vkCmdSetVertexInput which overrides anything we'd set here
+            if(firstBinding + i < renderstate.vertexBindings.size())
+              renderstate.vertexBindings[firstBinding + i].stride =
+                  (uint32_t)pBindingInfos[i].addressRange.stride;
+          }
+        }
+      }
     }
   }
 
