@@ -94,8 +94,7 @@ void CheckHook()
   if(exepath)
   {
     // no memset :).
-    for(int i = 0; i < exepathLen; i++)
-      exepath[i] = 0;
+    SecureZeroMemory(exepath, exepathLen);
 
     GetModuleFileNameW(NULL, exepath, exepathLen - 1);
 
