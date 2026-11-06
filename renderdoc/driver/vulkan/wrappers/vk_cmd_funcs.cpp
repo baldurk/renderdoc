@@ -6621,43 +6621,28 @@ bool WrappedVulkan::Serialise_vkCmdBindTransformFeedbackBuffersEXT(
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        ObjDisp(commandBuffer)
-            ->CmdBindTransformFeedbackBuffersEXT(Unwrap(commandBuffer), firstBinding, bindingCount,
-                                                 UnwrapArray(pBuffers, bindingCount), pOffsets,
-                                                 pSizes);
-
-        {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-          if(renderstate.xfbbuffers.size() < firstBinding + bindingCount)
-            renderstate.xfbbuffers.resize(firstBinding + bindingCount);
-
-          for(uint32_t i = 0; i < bindingCount; i++)
-          {
-            renderstate.xfbbuffers[firstBinding + i].buf = GetResID(pBuffers[i]);
-            renderstate.xfbbuffers[firstBinding + i].offs = pOffsets[i];
-            renderstate.xfbbuffers[firstBinding + i].size = pSizes ? pSizes[i] : VK_WHOLE_SIZE;
-          }
-        }
-      }
-    }
-    else
-    {
-      // track while reading, as we need to track resource usage
-      if(m_BakedCmdBufferInfo[m_LastCmdBufferID].state.xfbbuffers.size() < firstBinding + bindingCount)
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.xfbbuffers.resize(firstBinding + bindingCount);
-
-      for(uint32_t i = 0; i < bindingCount; i++)
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.xfbbuffers[firstBinding + i].buf =
-            GetResID(pBuffers[i]);
 
       ObjDisp(commandBuffer)
           ->CmdBindTransformFeedbackBuffersEXT(Unwrap(commandBuffer), firstBinding, bindingCount,
                                                UnwrapArray(pBuffers, bindingCount), pOffsets, pSizes);
+
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+        if(renderstate.xfbbuffers.size() < firstBinding + bindingCount)
+          renderstate.xfbbuffers.resize(firstBinding + bindingCount);
+
+        for(uint32_t i = 0; i < bindingCount; i++)
+        {
+          renderstate.xfbbuffers[firstBinding + i].buf = GetResID(pBuffers[i]);
+          renderstate.xfbbuffers[firstBinding + i].offs = pOffsets[i];
+          renderstate.xfbbuffers[firstBinding + i].size = pSizes ? pSizes[i] : VK_WHOLE_SIZE;
+        }
+      }
     }
   }
 
@@ -6720,41 +6705,29 @@ bool WrappedVulkan::Serialise_vkCmdBeginTransformFeedbackEXT(
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+        renderstate.firstxfbcounter = firstBuffer;
+        renderstate.xfbcounters.resize(bufferCount);
+
+        for(uint32_t i = 0; i < bufferCount; i++)
         {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-          renderstate.firstxfbcounter = firstBuffer;
-          renderstate.xfbcounters.resize(bufferCount);
-
-          for(uint32_t i = 0; i < bufferCount; i++)
-          {
-            renderstate.xfbcounters[i].buf =
-                pCounterBuffers ? GetResID(pCounterBuffers[i]) : ResourceId();
-            renderstate.xfbcounters[i].offs = pCounterBufferOffsets ? pCounterBufferOffsets[i] : 0;
-          }
+          ResourceId buf = pCounterBuffers ? GetResID(pCounterBuffers[i]) : ResourceId();
+          renderstate.xfbcounters[i].buf = buf;
+          renderstate.xfbcounters[i].offs = pCounterBufferOffsets ? pCounterBufferOffsets[i] : 0;
         }
-
-        ObjDisp(commandBuffer)
-            ->CmdBeginTransformFeedbackEXT(Unwrap(commandBuffer), firstBuffer, bufferCount,
-                                           UnwrapArray(pCounterBuffers, bufferCount),
-                                           pCounterBufferOffsets);
       }
-    }
-    else
-    {
+
       ObjDisp(commandBuffer)
           ->CmdBeginTransformFeedbackEXT(Unwrap(commandBuffer), firstBuffer, bufferCount,
                                          UnwrapArray(pCounterBuffers, bufferCount),
                                          pCounterBufferOffsets);
-
-      // track while reading, for fetching the right set of outputs in AddAction
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.firstxfbcounter = firstBuffer;
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.xfbcounters.resize(bufferCount);
     }
   }
 
@@ -6815,34 +6788,22 @@ bool WrappedVulkan::Serialise_vkCmdEndTransformFeedbackEXT(
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-          renderstate.firstxfbcounter = 0;
-          renderstate.xfbcounters.clear();
-        }
-
-        ObjDisp(commandBuffer)
-            ->CmdEndTransformFeedbackEXT(Unwrap(commandBuffer), firstBuffer, bufferCount,
-                                         UnwrapArray(pCounterBuffers, bufferCount),
-                                         pCounterBufferOffsets);
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+        renderstate.firstxfbcounter = 0;
+        renderstate.xfbcounters.clear();
       }
-    }
-    else
-    {
+
       ObjDisp(commandBuffer)
           ->CmdEndTransformFeedbackEXT(Unwrap(commandBuffer), firstBuffer, bufferCount,
                                        UnwrapArray(pCounterBuffers, bufferCount),
                                        pCounterBufferOffsets);
-
-      // track while reading, for fetching the right set of outputs in AddAction
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.firstxfbcounter = 0;
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.xfbcounters.clear();
     }
   }
 
@@ -10227,36 +10188,25 @@ bool WrappedVulkan::Serialise_vkCmdBeginTransformFeedback2EXT(
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-          renderstate.firstxfbcounter = firstCounterRange;
-          renderstate.xfbcounters.resize(counterRangeCount);
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+        renderstate.firstxfbcounter = firstCounterRange;
+        renderstate.xfbcounters.resize(counterRangeCount);
 
-          for(uint32_t i = 0; i < counterRangeCount; i++)
-            GetResIDFromAddr(pCounterInfos[i].addressRange.address, renderstate.xfbcounters[i].buf,
-                             renderstate.xfbcounters[i].offs);
-        }
-
-        ObjDisp(commandBuffer)
-            ->CmdBeginTransformFeedback2EXT(Unwrap(commandBuffer), firstCounterRange,
-                                            counterRangeCount, pCounterInfos);
+        for(uint32_t i = 0; i < counterRangeCount; i++)
+          GetResIDFromAddr(pCounterInfos[i].addressRange.address, renderstate.xfbcounters[i].buf,
+                           renderstate.xfbcounters[i].offs);
       }
-    }
-    else
-    {
+
       ObjDisp(commandBuffer)
           ->CmdBeginTransformFeedback2EXT(Unwrap(commandBuffer), firstCounterRange,
                                           counterRangeCount, pCounterInfos);
-
-      // track while reading, for fetching the right set of outputs in AddAction
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.firstxfbcounter = firstCounterRange;
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.xfbcounters.resize(counterRangeCount);
     }
   }
 
@@ -10307,43 +10257,29 @@ bool WrappedVulkan::Serialise_vkCmdBindTransformFeedbackBuffers2EXT(
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        ObjDisp(commandBuffer)
-            ->CmdBindTransformFeedbackBuffers2EXT(Unwrap(commandBuffer), firstBinding, bindingCount,
-                                                  pBindingInfos);
-
-        {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-          if(renderstate.xfbbuffers.size() < firstBinding + bindingCount)
-            renderstate.xfbbuffers.resize(firstBinding + bindingCount);
-
-          for(uint32_t i = 0; i < bindingCount; i++)
-          {
-            GetResIDFromAddr(pBindingInfos[i].addressRange.address,
-                             renderstate.xfbbuffers[firstBinding + i].buf,
-                             renderstate.xfbbuffers[firstBinding + i].offs);
-            renderstate.xfbbuffers[firstBinding + i].size = pBindingInfos[i].addressRange.size;
-          }
-        }
-      }
-    }
-    else
-    {
-      // track while reading, as we need to track resource usage
-      if(m_BakedCmdBufferInfo[m_LastCmdBufferID].state.xfbbuffers.size() < firstBinding + bindingCount)
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.xfbbuffers.resize(firstBinding + bindingCount);
-
-      for(uint32_t i = 0; i < bindingCount; i++)
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.xfbbuffers[firstBinding + i].buf =
-            GetResIDFromAddr(pBindingInfos[i].addressRange.address);
 
       ObjDisp(commandBuffer)
           ->CmdBindTransformFeedbackBuffers2EXT(Unwrap(commandBuffer), firstBinding, bindingCount,
                                                 pBindingInfos);
+
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+        if(renderstate.xfbbuffers.size() < firstBinding + bindingCount)
+          renderstate.xfbbuffers.resize(firstBinding + bindingCount);
+
+        for(uint32_t i = 0; i < bindingCount; i++)
+        {
+          GetResIDFromAddr(pBindingInfos[i].addressRange.address,
+                           renderstate.xfbbuffers[firstBinding + i].buf,
+                           renderstate.xfbbuffers[firstBinding + i].offs);
+          renderstate.xfbbuffers[firstBinding + i].size = pBindingInfos[i].addressRange.size;
+        }
+      }
     }
   }
 
@@ -10394,32 +10330,21 @@ bool WrappedVulkan::Serialise_vkCmdEndTransformFeedback2EXT(
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-          renderstate.firstxfbcounter = 0;
-          renderstate.xfbcounters.clear();
-        }
-
-        ObjDisp(commandBuffer)
-            ->CmdEndTransformFeedback2EXT(Unwrap(commandBuffer), firstCounterRange,
-                                          counterRangeCount, pCounterInfos);
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+        renderstate.firstxfbcounter = 0;
+        renderstate.xfbcounters.clear();
       }
-    }
-    else
-    {
+
       ObjDisp(commandBuffer)
           ->CmdEndTransformFeedback2EXT(Unwrap(commandBuffer), firstCounterRange, counterRangeCount,
                                         pCounterInfos);
-
-      // track while reading, for fetching the right set of outputs in AddAction
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.firstxfbcounter = 0;
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.xfbcounters.clear();
     }
   }
 
