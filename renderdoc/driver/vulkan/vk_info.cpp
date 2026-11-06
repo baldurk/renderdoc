@@ -1695,6 +1695,9 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
       {
         attachments[i].blendEnable =
             pCreateInfo->pColorBlendState->pAttachments[i].blendEnable ? true : false;
+        // Write is implicitly enabled, unless overriden by VkPipelineColorWriteCreateInfoEXT
+        // (below) or dynamic state.
+        attachments[i].writeEnable = true;
 
         attachments[i].blend.Source =
             pCreateInfo->pColorBlendState->pAttachments[i].srcColorBlendFactor;
@@ -1734,8 +1737,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan,
     RDCASSERTEQUAL(attachments.size(), colorWriteEnable->attachmentCount);
     for(size_t i = 0; i < attachments.size() && i < colorWriteEnable->attachmentCount; i++)
     {
-      if(!colorWriteEnable->pColorWriteEnables[i])
-        attachments[i].channelWriteMask = 0;
+      attachments[i].writeEnable = colorWriteEnable->pColorWriteEnables[i] ? true : false;
     }
   }
 

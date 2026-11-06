@@ -962,6 +962,7 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
   cb.attachmentCount = (uint32_t)pipeInfo.attachments.size();
   cb.pAttachments = atts;
 
+  bool anyWriteDisables = false;
   for(uint32_t i = 0; i < cb.attachmentCount; i++)
   {
     atts[i].blendEnable = pipeInfo.attachments[i].blendEnable;
@@ -972,6 +973,25 @@ void VulkanShaderCache::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &p
     atts[i].colorBlendOp = pipeInfo.attachments[i].blend.Operation;
     atts[i].srcColorBlendFactor = pipeInfo.attachments[i].blend.Source;
     atts[i].dstColorBlendFactor = pipeInfo.attachments[i].blend.Destination;
+
+    anyWriteDisables = anyWriteDisables || !pipeInfo.attachments[i].writeEnable;
+  }
+
+  static VkPipelineColorWriteCreateInfoEXT cw = {
+      VK_STRUCTURE_TYPE_PIPELINE_COLOR_WRITE_CREATE_INFO_EXT};
+
+  static VkBool32 writeEnables[32] = {};
+  cw.attachmentCount = cb.attachmentCount;
+  cw.pColorWriteEnables = writeEnables;
+
+  if(anyWriteDisables)
+  {
+    for(uint32_t i = 0; i < cb.attachmentCount; i++)
+    {
+      writeEnables[i] = pipeInfo.attachments[i].writeEnable;
+    }
+    cw.pNext = rs.pNext;
+    rs.pNext = &cw;
   }
 
   RDCASSERT(ARRAY_COUNT(atts) >= pipeInfo.attachments.size());
