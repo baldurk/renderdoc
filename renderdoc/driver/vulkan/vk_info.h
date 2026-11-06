@@ -447,6 +447,7 @@ struct VulkanCreationInfo
     struct CBAttachment
     {
       bool blendEnable;
+      bool writeEnable;
 
       struct BlendOp
       {
