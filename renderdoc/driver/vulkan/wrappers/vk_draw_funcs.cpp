@@ -5188,38 +5188,35 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToMemoryKHR(
 
   if(IsReplayingAndReading())
   {
-    VkCopyDeviceMemoryImageInfoKHR unwrappedInfo = CopyInfo;
-    unwrappedInfo.image = Unwrap(unwrappedInfo.image);
-
-    byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext));
-
-    UnwrapNextChain(m_State, "VkCopyDeviceMemoryImageInfoKHR", tempMem,
-                    (VkBaseInStructure *)&unwrappedInfo);
-
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Copy);
+      uint32_t eventId =
+          !loading ? HandlePreCallback(commandBuffer, ActionFlags(ActionFlags::Copy)) : 0;
 
-        ObjDisp(commandBuffer)->CmdCopyImageToMemoryKHR(Unwrap(commandBuffer), &unwrappedInfo);
+      VkCopyDeviceMemoryImageInfoKHR unwrappedInfo = CopyInfo;
+      unwrappedInfo.image = Unwrap(unwrappedInfo.image);
 
-        if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::Copy, commandBuffer))
-        {
-          ObjDisp(commandBuffer)->CmdCopyImageToMemoryKHR(Unwrap(commandBuffer), &unwrappedInfo);
+      byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext));
 
-          m_ActionCallback->PostRemisc(eventId, ActionFlags::Copy, commandBuffer);
-        }
-      }
-    }
-    else
-    {
+      UnwrapNextChain(m_State, "VkCopyDeviceMemoryImageInfoKHR", tempMem,
+                      (VkBaseInStructure *)&unwrappedInfo);
+
       ObjDisp(commandBuffer)->CmdCopyImageToMemoryKHR(Unwrap(commandBuffer), &unwrappedInfo);
 
+      if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::Copy, commandBuffer))
+      {
+        ObjDisp(commandBuffer)->CmdCopyImageToMemoryKHR(Unwrap(commandBuffer), &unwrappedInfo);
+
+        m_ActionCallback->PostRemisc(eventId, ActionFlags::Copy, commandBuffer);
+      }
+
+      if(loading)
       {
         AddEvent();
 
@@ -5307,28 +5304,25 @@ bool WrappedVulkan::Serialise_vkCmdCopyMemoryKHR(SerialiserType &ser, VkCommandB
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Copy);
+      uint32_t eventId =
+          !loading ? HandlePreCallback(commandBuffer, ActionFlags(ActionFlags::Copy)) : 0;
 
-        ObjDisp(commandBuffer)->CmdCopyMemoryKHR(Unwrap(commandBuffer), &CopyInfo);
-
-        if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::Copy, commandBuffer))
-        {
-          ObjDisp(commandBuffer)->CmdCopyMemoryKHR(Unwrap(commandBuffer), &CopyInfo);
-
-          m_ActionCallback->PostRemisc(eventId, ActionFlags::Copy, commandBuffer);
-        }
-      }
-    }
-    else
-    {
       ObjDisp(commandBuffer)->CmdCopyMemoryKHR(Unwrap(commandBuffer), &CopyInfo);
 
+      if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::Copy, commandBuffer))
+      {
+        ObjDisp(commandBuffer)->CmdCopyMemoryKHR(Unwrap(commandBuffer), &CopyInfo);
+
+        m_ActionCallback->PostRemisc(eventId, ActionFlags::Copy, commandBuffer);
+      }
+
+      if(loading)
       {
         AddEvent();
 
@@ -5396,28 +5390,25 @@ bool WrappedVulkan::Serialise_vkCmdFillMemoryKHR(SerialiserType &ser, VkCommandB
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Clear);
+      uint32_t eventId =
+          !loading ? HandlePreCallback(commandBuffer, ActionFlags(ActionFlags::Clear)) : 0;
 
-        ObjDisp(commandBuffer)->CmdFillMemoryKHR(Unwrap(commandBuffer), &DstRange, dstFlags, data);
-
-        if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::Clear, commandBuffer))
-        {
-          ObjDisp(commandBuffer)->CmdFillMemoryKHR(Unwrap(commandBuffer), &DstRange, dstFlags, data);
-
-          m_ActionCallback->PostRemisc(eventId, ActionFlags::Clear, commandBuffer);
-        }
-      }
-    }
-    else
-    {
       ObjDisp(commandBuffer)->CmdFillMemoryKHR(Unwrap(commandBuffer), &DstRange, dstFlags, data);
 
+      if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::Clear, commandBuffer))
+      {
+        ObjDisp(commandBuffer)->CmdFillMemoryKHR(Unwrap(commandBuffer), &DstRange, dstFlags, data);
+
+        m_ActionCallback->PostRemisc(eventId, ActionFlags::Clear, commandBuffer);
+      }
+
+      if(loading)
       {
         AddEvent();
 
@@ -5483,31 +5474,27 @@ bool WrappedVulkan::Serialise_vkCmdUpdateMemoryKHR(SerialiserType &ser, VkComman
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Copy);
+      uint32_t eventId =
+          !loading ? HandlePreCallback(commandBuffer, ActionFlags(ActionFlags::Copy)) : 0;
 
-        ObjDisp(commandBuffer)
-            ->CmdUpdateMemoryKHR(Unwrap(commandBuffer), &DstRange, dstFlags, dataSize, Data);
-
-        if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::Copy, commandBuffer))
-        {
-          ObjDisp(commandBuffer)
-              ->CmdUpdateMemoryKHR(Unwrap(commandBuffer), &DstRange, dstFlags, dataSize, Data);
-
-          m_ActionCallback->PostRemisc(eventId, ActionFlags::Copy, commandBuffer);
-        }
-      }
-    }
-    else
-    {
       ObjDisp(commandBuffer)
           ->CmdUpdateMemoryKHR(Unwrap(commandBuffer), &DstRange, dstFlags, dataSize, Data);
 
+      if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::Copy, commandBuffer))
+      {
+        ObjDisp(commandBuffer)
+            ->CmdUpdateMemoryKHR(Unwrap(commandBuffer), &DstRange, dstFlags, dataSize, Data);
+
+        m_ActionCallback->PostRemisc(eventId, ActionFlags::Copy, commandBuffer);
+      }
+
+      if(loading)
       {
         AddEvent();
 
