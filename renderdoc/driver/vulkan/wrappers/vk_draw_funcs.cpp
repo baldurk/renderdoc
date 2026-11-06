@@ -330,31 +330,25 @@ bool WrappedVulkan::Serialise_vkCmdDraw(SerialiserType &ser, VkCommandBuffer com
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        uint32_t eventId = HandlePreCallback(commandBuffer);
+      uint32_t eventId = !loading ? HandlePreCallback(commandBuffer) : 0;
 
-        ObjDisp(commandBuffer)
-            ->CmdDraw(Unwrap(commandBuffer), vertexCount, instanceCount, firstVertex, firstInstance);
-
-        if(eventId && m_ActionCallback->PostDraw(eventId, ActionFlags::Drawcall, commandBuffer))
-        {
-          ObjDisp(commandBuffer)
-              ->CmdDraw(Unwrap(commandBuffer), vertexCount, instanceCount, firstVertex,
-                        firstInstance);
-          m_ActionCallback->PostRedraw(eventId, ActionFlags::Drawcall, commandBuffer);
-        }
-      }
-    }
-    else
-    {
       ObjDisp(commandBuffer)
           ->CmdDraw(Unwrap(commandBuffer), vertexCount, instanceCount, firstVertex, firstInstance);
 
+      if(eventId && m_ActionCallback->PostDraw(eventId, ActionFlags::Drawcall, commandBuffer))
+      {
+        ObjDisp(commandBuffer)
+            ->CmdDraw(Unwrap(commandBuffer), vertexCount, instanceCount, firstVertex, firstInstance);
+        m_ActionCallback->PostRedraw(eventId, ActionFlags::Drawcall, commandBuffer);
+      }
+
+      if(loading)
       {
         AddEvent();
 
@@ -419,32 +413,27 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(SerialiserType &ser, VkCommandBuf
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        uint32_t eventId = HandlePreCallback(commandBuffer);
+      uint32_t eventId = !loading ? HandlePreCallback(commandBuffer) : 0;
 
-        ObjDisp(commandBuffer)
-            ->CmdDrawIndexed(Unwrap(commandBuffer), indexCount, instanceCount, firstIndex,
-                             vertexOffset, firstInstance);
-
-        if(eventId && m_ActionCallback->PostDraw(eventId, ActionFlags::Drawcall, commandBuffer))
-        {
-          ObjDisp(commandBuffer)
-              ->CmdDrawIndexed(Unwrap(commandBuffer), indexCount, instanceCount, firstIndex,
-                               vertexOffset, firstInstance);
-          m_ActionCallback->PostRedraw(eventId, ActionFlags::Drawcall, commandBuffer);
-        }
-      }
-    }
-    else
-    {
       ObjDisp(commandBuffer)
           ->CmdDrawIndexed(Unwrap(commandBuffer), indexCount, instanceCount, firstIndex,
                            vertexOffset, firstInstance);
+
+      if(eventId && m_ActionCallback->PostDraw(eventId, ActionFlags::Drawcall, commandBuffer))
+      {
+        ObjDisp(commandBuffer)
+            ->CmdDrawIndexed(Unwrap(commandBuffer), indexCount, instanceCount, firstIndex,
+                             vertexOffset, firstInstance);
+        m_ActionCallback->PostRedraw(eventId, ActionFlags::Drawcall, commandBuffer);
+      }
+
+      if(loading)
       {
         AddEvent();
 
@@ -1220,27 +1209,22 @@ bool WrappedVulkan::Serialise_vkCmdDispatch(SerialiserType &ser, VkCommandBuffer
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Dispatch);
+      uint32_t eventId = !loading ? HandlePreCallback(commandBuffer, ActionFlags::Dispatch) : 0;
 
-        ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), x, y, z);
-
-        if(eventId && m_ActionCallback->PostDispatch(eventId, ActionFlags::Dispatch, commandBuffer))
-        {
-          ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), x, y, z);
-          m_ActionCallback->PostRedispatch(eventId, ActionFlags::Dispatch, commandBuffer);
-        }
-      }
-    }
-    else
-    {
       ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), x, y, z);
 
+      if(eventId && m_ActionCallback->PostDispatch(eventId, ActionFlags::Dispatch, commandBuffer))
+      {
+        ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), x, y, z);
+        m_ActionCallback->PostRedispatch(eventId, ActionFlags::Dispatch, commandBuffer);
+      }
+      if(loading)
       {
         AddEvent();
 
@@ -1296,30 +1280,29 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(SerialiserType &ser,
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Dispatch);
+      uint32_t eventId =
+          !loading ? HandlePreCallback(commandBuffer, ActionFlags(ActionFlags::Dispatch)) : 0;
 
-        ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset);
-
-        if(eventId && m_ActionCallback->PostDispatch(eventId, ActionFlags::Dispatch, commandBuffer))
-        {
-          ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset);
-          m_ActionCallback->PostRedispatch(eventId, ActionFlags::Dispatch, commandBuffer);
-        }
-      }
-    }
-    else
-    {
-      VkIndirectPatchData indirectPatch =
-          FetchIndirectData(VkIndirectPatchType::DispatchIndirect, commandBuffer, buffer, offset, 1);
+      VkIndirectPatchData indirectPatch;
+      if(loading)
+        indirectPatch = FetchIndirectData(VkIndirectPatchType::DispatchIndirect, commandBuffer,
+                                          buffer, offset, 1);
 
       ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset);
 
+      if(eventId && m_ActionCallback->PostDispatch(eventId, ActionFlags::Dispatch, commandBuffer))
+      {
+        ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offset);
+        m_ActionCallback->PostRedispatch(eventId, ActionFlags::Dispatch, commandBuffer);
+      }
+
+      if(loading)
       {
         AddEvent();
 
@@ -2697,33 +2680,28 @@ bool WrappedVulkan::Serialise_vkCmdDispatchBase(SerialiserType &ser, VkCommandBu
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Dispatch);
+      uint32_t eventId =
+          !loading ? HandlePreCallback(commandBuffer, ActionFlags(ActionFlags::Dispatch)) : 0;
 
-        ObjDisp(commandBuffer)
-            ->CmdDispatchBase(Unwrap(commandBuffer), baseGroupX, baseGroupY, baseGroupZ,
-                              groupCountX, groupCountY, groupCountZ);
-
-        if(eventId && m_ActionCallback->PostDispatch(eventId, ActionFlags::Dispatch, commandBuffer))
-        {
-          ObjDisp(commandBuffer)
-              ->CmdDispatchBase(Unwrap(commandBuffer), baseGroupX, baseGroupY, baseGroupZ,
-                                groupCountX, groupCountY, groupCountZ);
-          m_ActionCallback->PostRedispatch(eventId, ActionFlags::Dispatch, commandBuffer);
-        }
-      }
-    }
-    else
-    {
       ObjDisp(commandBuffer)
           ->CmdDispatchBase(Unwrap(commandBuffer), baseGroupX, baseGroupY, baseGroupZ, groupCountX,
                             groupCountY, groupCountZ);
 
+      if(eventId && m_ActionCallback->PostDispatch(eventId, ActionFlags::Dispatch, commandBuffer))
+      {
+        ObjDisp(commandBuffer)
+            ->CmdDispatchBase(Unwrap(commandBuffer), baseGroupX, baseGroupY, baseGroupZ,
+                              groupCountX, groupCountY, groupCountZ);
+        m_ActionCallback->PostRedispatch(eventId, ActionFlags::Dispatch, commandBuffer);
+      }
+
+      if(loading)
       {
         AddEvent();
 
@@ -4270,30 +4248,26 @@ bool WrappedVulkan::Serialise_vkCmdDrawMeshTasksEXT(SerialiserType &ser,
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::MeshDispatch);
+      uint32_t eventId =
+          !loading ? HandlePreCallback(commandBuffer, ActionFlags(ActionFlags::MeshDispatch)) : 0;
 
-        ObjDisp(commandBuffer)
-            ->CmdDrawMeshTasksEXT(Unwrap(commandBuffer), groupCountX, groupCountY, groupCountZ);
-
-        if(eventId && m_ActionCallback->PostDraw(eventId, ActionFlags::MeshDispatch, commandBuffer))
-        {
-          ObjDisp(commandBuffer)
-              ->CmdDrawMeshTasksEXT(Unwrap(commandBuffer), groupCountX, groupCountY, groupCountZ);
-          m_ActionCallback->PostRedraw(eventId, ActionFlags::MeshDispatch, commandBuffer);
-        }
-      }
-    }
-    else
-    {
       ObjDisp(commandBuffer)
           ->CmdDrawMeshTasksEXT(Unwrap(commandBuffer), groupCountX, groupCountY, groupCountZ);
 
+      if(eventId && m_ActionCallback->PostDraw(eventId, ActionFlags::MeshDispatch, commandBuffer))
+      {
+        ObjDisp(commandBuffer)
+            ->CmdDrawMeshTasksEXT(Unwrap(commandBuffer), groupCountX, groupCountY, groupCountZ);
+        m_ActionCallback->PostRedraw(eventId, ActionFlags::MeshDispatch, commandBuffer);
+      }
+
+      if(loading)
       {
         AddEvent();
 
@@ -5793,35 +5767,36 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect2KHR(SerialiserType &ser,
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::Dispatch);
+      uint32_t eventId =
+          !loading ? HandlePreCallback(commandBuffer, ActionFlags(ActionFlags::Dispatch)) : 0;
 
-        ObjDisp(commandBuffer)->CmdDispatchIndirect2KHR(Unwrap(commandBuffer), &Info);
+      VkIndirectPatchData indirectPatch;
 
-        if(eventId && m_ActionCallback->PostDispatch(eventId, ActionFlags::Dispatch, commandBuffer))
-        {
-          ObjDisp(commandBuffer)->CmdDispatchIndirect2KHR(Unwrap(commandBuffer), &Info);
-          m_ActionCallback->PostRedispatch(eventId, ActionFlags::Dispatch, commandBuffer);
-        }
+      if(loading)
+      {
+        ResourceId id;
+        uint64_t offs;
+        GetResIDFromAddr(Info.addressRange.address, id, offs);
+
+        indirectPatch = FetchIndirectData(VkIndirectPatchType::DispatchIndirect, commandBuffer,
+                                          GetResourceManager()->GetHandle<VkBuffer>(id), offs, 1);
       }
-    }
-    else
-    {
-      ResourceId id;
-      uint64_t offs;
-      GetResIDFromAddr(Info.addressRange.address, id, offs);
-
-      VkIndirectPatchData indirectPatch =
-          FetchIndirectData(VkIndirectPatchType::DispatchIndirect, commandBuffer,
-                            GetResourceManager()->GetHandle<VkBuffer>(id), offs, 1);
 
       ObjDisp(commandBuffer)->CmdDispatchIndirect2KHR(Unwrap(commandBuffer), &Info);
 
+      if(eventId && m_ActionCallback->PostDispatch(eventId, ActionFlags::Dispatch, commandBuffer))
+      {
+        ObjDisp(commandBuffer)->CmdDispatchIndirect2KHR(Unwrap(commandBuffer), &Info);
+        m_ActionCallback->PostRedispatch(eventId, ActionFlags::Dispatch, commandBuffer);
+      }
+
+      if(loading)
       {
         AddEvent();
 
@@ -7240,56 +7215,55 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirectByteCount2EXT(
     m_LastCmdBufferID = GetResID(commandBuffer);
 
     // do execution (possibly partial)
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        uint32_t eventId = HandlePreCallback(commandBuffer);
+      uint32_t eventId = !loading ? HandlePreCallback(commandBuffer) : 0;
 
-        ObjDisp(commandBuffer)
-            ->CmdDrawIndirectByteCount2EXT(Unwrap(commandBuffer), instanceCount, firstInstance,
-                                           &CounterInfo, counterOffset, vertexStride);
+      VkIndirectPatchData indirectPatch;
 
-        if(eventId && m_ActionCallback->PostDraw(eventId, ActionFlags::Drawcall, commandBuffer))
-        {
-          ObjDisp(commandBuffer)
-              ->CmdDrawIndirectByteCount2EXT(Unwrap(commandBuffer), instanceCount, firstInstance,
-                                             &CounterInfo, counterOffset, vertexStride);
-          m_ActionCallback->PostRedraw(eventId, ActionFlags::Drawcall, commandBuffer);
-        }
+      if(loading)
+      {
+        ResourceId id;
+        uint64_t offs;
+        GetResIDFromAddr(CounterInfo.addressRange.address, id, offs);
+
+        indirectPatch =
+            FetchIndirectData(VkIndirectPatchType::DrawIndirectByteCount, commandBuffer,
+                              GetResourceManager()->GetHandle<VkBuffer>(id), offs, 1, vertexStride);
+        indirectPatch.vertexoffset = counterOffset;
       }
-    }
-    else
-    {
-      ResourceId id;
-      uint64_t offs;
-      GetResIDFromAddr(CounterInfo.addressRange.address, id, offs);
-
-      VkIndirectPatchData indirectPatch =
-          FetchIndirectData(VkIndirectPatchType::DrawIndirectByteCount, commandBuffer,
-                            GetResourceManager()->GetHandle<VkBuffer>(id), offs, 1, vertexStride);
-      indirectPatch.vertexoffset = counterOffset;
 
       ObjDisp(commandBuffer)
           ->CmdDrawIndirectByteCount2EXT(Unwrap(commandBuffer), instanceCount, firstInstance,
                                          &CounterInfo, counterOffset, vertexStride);
 
-      ActionDescription action;
+      if(eventId && m_ActionCallback->PostDraw(eventId, ActionFlags::Drawcall, commandBuffer))
+      {
+        ObjDisp(commandBuffer)
+            ->CmdDrawIndirectByteCount2EXT(Unwrap(commandBuffer), instanceCount, firstInstance,
+                                           &CounterInfo, counterOffset, vertexStride);
+        m_ActionCallback->PostRedraw(eventId, ActionFlags::Drawcall, commandBuffer);
+      }
 
-      AddEvent();
+      if(loading)
+      {
+        ActionDescription action;
 
-      action.instanceOffset = firstInstance;
-      action.numInstances = instanceCount;
-      action.flags = ActionFlags::Drawcall | ActionFlags::Instanced | ActionFlags::Indirect;
+        AddEvent();
 
-      AddAction(action);
+        action.instanceOffset = firstInstance;
+        action.numInstances = instanceCount;
+        action.flags = ActionFlags::Drawcall | ActionFlags::Instanced | ActionFlags::Indirect;
 
-      VulkanEventNode &eventNode = GetLastEventNode();
-      eventNode.indirectPatch = indirectPatch;
+        AddAction(action);
 
-      return true;
+        VulkanEventNode &eventNode = GetLastEventNode();
+        eventNode.indirectPatch = indirectPatch;
+      }
     }
   }
 
