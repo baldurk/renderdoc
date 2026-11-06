@@ -2096,70 +2096,73 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
 
   if(IsReplayingAndReading())
   {
-    VkRenderPassBeginInfo unwrappedInfo = RenderPassBegin;
-    unwrappedInfo.renderPass = Unwrap(unwrappedInfo.renderPass);
-    unwrappedInfo.framebuffer = Unwrap(unwrappedInfo.framebuffer);
-
-    byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext));
-
-    UnwrapNextChain(m_State, "VkRenderPassBeginInfo", tempMem, (VkBaseInStructure *)&unwrappedInfo);
-
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      bool replaySingleEvent = !loading && (m_FirstEventID == m_LastEventID);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        // only if we're partially recording do we update this state
-        if(ShouldUpdateRenderpassActive(m_LastCmdBufferID, false))
+      VkRenderPassBeginInfo unwrappedInfo = RenderPassBegin;
+      unwrappedInfo.renderPass = Unwrap(unwrappedInfo.renderPass);
+      unwrappedInfo.framebuffer = Unwrap(unwrappedInfo.framebuffer);
+
+      byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext));
+
+      UnwrapNextChain(m_State, "VkRenderPassBeginInfo", tempMem, (VkBaseInStructure *)&unwrappedInfo);
+
+      // only if we're partially recording do we update this state
+      if(ShouldUpdateRenderpassActive(m_LastCmdBufferID, false))
+      {
+        GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassActive =
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = true;
+      }
+
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].activeSubpass = 0;
+
+      ResourceId fb = GetResID(RenderPassBegin.framebuffer);
+      VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
+      ResourceId rp = GetResID(RenderPassBegin.renderPass);
+
+      rdcarray<ResourceId> attachments;
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+        renderstate.subpass = 0;
+        renderstate.SetRenderPass(rp);
+        renderstate.renderArea = RenderPassBegin.renderArea;
+        renderstate.subpassContents = contents;
+
+        renderstate.fragmentDensityMapOffsets.clear();
+
+        const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
+            (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
+                &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
+
+        attachments.resize(fbinfo.attachments.size());
+
+        // set framebuffer attachments - by default from the ones used to create it, but if it is
+        // imageless then look for the attachments in our pNext chain
+        if(!fbinfo.imageless)
         {
-          GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassActive =
-              m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = true;
+          for(size_t i = 0; i < fbinfo.attachments.size(); i++)
+            attachments[i] = fbinfo.attachments[i].createdView;
         }
-
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].activeSubpass = 0;
-
-        ResourceId fb = GetResID(RenderPassBegin.framebuffer);
-        VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
-
+        else
         {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-          renderstate.subpass = 0;
-          renderstate.SetRenderPass(GetResID(RenderPassBegin.renderPass));
-          renderstate.renderArea = RenderPassBegin.renderArea;
-          renderstate.subpassContents = contents;
-
-          renderstate.fragmentDensityMapOffsets.clear();
-
-          const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
-              (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
-                  &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
-
-          rdcarray<ResourceId> attachments;
-          attachments.resize(fbinfo.attachments.size());
-
-          // set framebuffer attachments - by default from the ones used to create it, but if it is
-          // imageless then look for the attachments in our pNext chain
-          if(!fbinfo.imageless)
-          {
-            for(size_t i = 0; i < fbinfo.attachments.size(); i++)
-              attachments[i] = fbinfo.attachments[i].createdView;
-          }
-          else
-          {
-            for(size_t i = 0; i < fbinfo.attachments.size(); i++)
-              attachments[i] = GetResID(attachmentsInfo->pAttachments[i]);
-          }
-          renderstate.SetFramebuffer(GetResID(RenderPassBegin.framebuffer), attachments);
+          for(size_t i = 0; i < fbinfo.attachments.size(); i++)
+            attachments[i] = GetResID(attachmentsInfo->pAttachments[i]);
         }
+        renderstate.SetFramebuffer(fb, attachments);
+      }
 
-        const VulkanCreationInfo::RenderPass &rpinfo =
-            m_CreationInfo.m_RenderPass[GetCmdRenderState().GetRenderPass()];
+      const VulkanCreationInfo::RenderPass &rpinfo = m_CreationInfo.m_RenderPass[rp];
 
-        rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
+      rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
+      if(!loading)
+      {
         ApplyRPLoadDiscards(commandBuffer, RenderPassBegin.renderArea);
 
         // if we're just replaying the vkCmdBeginRenderPass on its own, we use the first loadRP
@@ -2167,7 +2170,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
         // we need to manually do the subpass 0 barriers, since loadRP expects the image to already
         // be in subpass 0's layout
         // we also need to manually do any clears, since the loadRP will load all attachments
-        if(m_FirstEventID == m_LastEventID)
+        if(replaySingleEvent)
         {
           unwrappedInfo.renderPass = Unwrap(rpinfo.loadRPs[0]);
           unwrappedInfo.framebuffer = Unwrap(fbinfo.loadFBs[0]);
@@ -2180,153 +2183,108 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
                 barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
             }
           }
-
-          DoPipelineBarrier(commandBuffer, imgBarriers.size(), imgBarriers.data());
         }
 
-        ActionFlags drawFlags = ActionFlags::PassBoundary | ActionFlags::BeginPass;
-        uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
-
-        ObjDisp(commandBuffer)->CmdBeginRenderPass(Unwrap(commandBuffer), &unwrappedInfo, contents);
-
-        if(m_FirstEventID == m_LastEventID)
-        {
-          const rdcarray<ResourceId> &fbattachments =
-              m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetFramebufferAttachments();
-
-          rdcarray<VkClearAttachment> clearatts;
-          rdcarray<VkClearRect> clearrects;
-          for(int32_t c = 0; c < rpinfo.subpasses[0].colorAttachments.count() + 1; c++)
-          {
-            uint32_t att = ~0U;
-
-            if(c < rpinfo.subpasses[0].colorAttachments.count())
-              att = rpinfo.subpasses[0].colorAttachments[c];
-            else if(rpinfo.subpasses[0].depthstencilAttachment >= 0)
-              att = (uint32_t)rpinfo.subpasses[0].depthstencilAttachment;
-
-            if(att >= rpinfo.attachments.size())
-              continue;
-
-            VkImageAspectFlags clearAspects = 0;
-
-            // loadOp governs color, and depth
-            if(rpinfo.attachments[att].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
-              clearAspects |= VK_IMAGE_ASPECT_COLOR_BIT | VK_IMAGE_ASPECT_DEPTH_BIT;
-            // stencilLoadOp governs the stencil
-            if(rpinfo.attachments[att].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
-              clearAspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
-
-            // if any aspect is set to clear, go check it in more detail
-            if(clearAspects != 0)
-            {
-              VulkanCreationInfo::ImageView viewinfo = m_CreationInfo.m_ImageView[fbattachments[att]];
-              bool isMultiview = rpinfo.subpasses[0].multiviews.size() > 1;
-
-              VkClearRect rect = {unwrappedInfo.renderArea, 0,
-                                  isMultiview ? 1 : viewinfo.range.layerCount};
-              VkClearAttachment clear = {};
-              clear.aspectMask = FormatImageAspects(rpinfo.attachments[att].format) & clearAspects;
-              clear.colorAttachment = c;
-              if(att < unwrappedInfo.clearValueCount)
-                clear.clearValue = unwrappedInfo.pClearValues[att];
-              else
-                RDCWARN("Missing clear value for attachment %u", att);
-
-              // check that the actual aspects in the attachment overlap with those being cleared.
-              // In particular this means we ignore stencil load op being CLEAR for a color
-              // attachment - that doesn't mean we should clear the color. This also means we don't
-              // clear the stencil if it's not specified, even when clearing depth *is*
-              if(clear.aspectMask != 0)
-              {
-                clearrects.push_back(rect);
-                clearatts.push_back(clear);
-              }
-            }
-          }
-
-          if(!clearatts.empty())
-            ObjDisp(commandBuffer)
-                ->CmdClearAttachments(Unwrap(commandBuffer), (uint32_t)clearatts.size(),
-                                      clearatts.data(), (uint32_t)clearrects.size(),
-                                      clearrects.data());
-        }
-
-        if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
-        {
-          // Do not call vkCmdBeginRenderPass again.
-          m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
-        }
-
-        GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
-                                             FindCommandQueueFamily(m_LastCmdBufferID),
-                                             (uint32_t)imgBarriers.size(), imgBarriers.data());
+        DoPipelineBarrier(commandBuffer, imgBarriers.size(), imgBarriers.data());
       }
-    }
-    else
-    {
+
+      ActionFlags drawFlags = ActionFlags::PassBoundary | ActionFlags::BeginPass;
+      uint32_t eventId = !loading ? HandlePreCallback(commandBuffer, drawFlags) : 0;
+
       ObjDisp(commandBuffer)->CmdBeginRenderPass(Unwrap(commandBuffer), &unwrappedInfo, contents);
 
-      // track while reading, for fetching the right set of outputs in AddAction
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].activeSubpass = 0;
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass = 0;
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.SetRenderPass(
-          GetResID(RenderPassBegin.renderPass));
-
-      ResourceId fb = GetResID(RenderPassBegin.framebuffer);
-
-      // set framebuffer attachments - by default from the ones used to create it, but if it is
-      // imageless then look for the attachments in our pNext chain
+      if(replaySingleEvent)
       {
-        VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
-        rdcarray<ResourceId> attachments;
-        attachments.resize(fbinfo.attachments.size());
+        const rdcarray<ResourceId> &fbattachments =
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetFramebufferAttachments();
 
-        if(!fbinfo.imageless)
+        rdcarray<VkClearAttachment> clearatts;
+        rdcarray<VkClearRect> clearrects;
+        for(int32_t c = 0; c < rpinfo.subpasses[0].colorAttachments.count() + 1; c++)
         {
-          for(size_t i = 0; i < fbinfo.attachments.size(); i++)
-            attachments[i] = fbinfo.attachments[i].createdView;
-        }
-        else
-        {
-          const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
-              (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
-                  &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
+          uint32_t att = ~0U;
 
-          for(size_t i = 0; i < fbinfo.attachments.size(); i++)
-            attachments[i] = GetResID(attachmentsInfo->pAttachments[i]);
+          if(c < rpinfo.subpasses[0].colorAttachments.count())
+            att = rpinfo.subpasses[0].colorAttachments[c];
+          else if(rpinfo.subpasses[0].depthstencilAttachment >= 0)
+            att = (uint32_t)rpinfo.subpasses[0].depthstencilAttachment;
+
+          if(att >= rpinfo.attachments.size())
+            continue;
+
+          VkImageAspectFlags clearAspects = 0;
+
+          // loadOp governs color, and depth
+          if(rpinfo.attachments[att].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
+            clearAspects |= VK_IMAGE_ASPECT_COLOR_BIT | VK_IMAGE_ASPECT_DEPTH_BIT;
+          // stencilLoadOp governs the stencil
+          if(rpinfo.attachments[att].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
+            clearAspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
+
+          // if any aspect is set to clear, go check it in more detail
+          if(clearAspects != 0)
+          {
+            VulkanCreationInfo::ImageView viewinfo = m_CreationInfo.m_ImageView[fbattachments[att]];
+            bool isMultiview = rpinfo.subpasses[0].multiviews.size() > 1;
+
+            VkClearRect rect = {unwrappedInfo.renderArea, 0,
+                                isMultiview ? 1 : viewinfo.range.layerCount};
+            VkClearAttachment clear = {};
+            clear.aspectMask = FormatImageAspects(rpinfo.attachments[att].format) & clearAspects;
+            clear.colorAttachment = c;
+            if(att < unwrappedInfo.clearValueCount)
+              clear.clearValue = unwrappedInfo.pClearValues[att];
+            else
+              RDCWARN("Missing clear value for attachment %u", att);
+
+            // check that the actual aspects in the attachment overlap with those being cleared.
+            // In particular this means we ignore stencil load op being CLEAR for a color
+            // attachment - that doesn't mean we should clear the color. This also means we don't
+            // clear the stencil if it's not specified, even when clearing depth *is*
+            if(clear.aspectMask != 0)
+            {
+              clearrects.push_back(rect);
+              clearatts.push_back(clear);
+            }
+          }
         }
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.SetFramebuffer(fb, attachments);
+
+        if(!clearatts.empty())
+          ObjDisp(commandBuffer)
+              ->CmdClearAttachments(Unwrap(commandBuffer), (uint32_t)clearatts.size(),
+                                    clearatts.data(), (uint32_t)clearrects.size(), clearrects.data());
       }
 
-      // Record image usage for images cleared in the beginning of the render pass.
-      const VulkanCreationInfo::RenderPass &rpinfo =
-          m_CreationInfo.m_RenderPass[GetResID(RenderPassBegin.renderPass)];
-      const rdcarray<ResourceId> &fbattachments =
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetFramebufferAttachments();
-      for(size_t i = 0; i < rpinfo.attachments.size(); i++)
+      if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
       {
-        if(rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ||
-           rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
-          AddEventResourceUsage(m_CreationInfo.m_ImageView[fbattachments[i]].image,
-                                rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR
-                                    ? ResourceUsage::Clear
-                                    : ResourceUsage::Discard);
+        // Do not call vkCmdBeginRenderPass again.
+        m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
       }
-
-      rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
       GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
                                            FindCommandQueueFamily(m_LastCmdBufferID),
                                            (uint32_t)imgBarriers.size(), imgBarriers.data());
+      if(loading)
+      {
+        // Record image usage for images cleared in the beginning of the render pass.
+        for(size_t i = 0; i < rpinfo.attachments.size(); i++)
+        {
+          if(rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ||
+             rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+            AddEventResourceUsage(m_CreationInfo.m_ImageView[attachments[i]].image,
+                                  rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR
+                                      ? ResourceUsage::Clear
+                                      : ResourceUsage::Discard);
+        }
 
-      AddEvent();
-      ActionDescription action;
-      action.customName =
-          StringFormat::Fmt("vkCmdBeginRenderPass(%s)", MakeRenderPassOpString(false).c_str());
-      action.flags |= ActionFlags::PassBoundary | ActionFlags::BeginPass;
+        AddEvent();
+        ActionDescription action;
+        action.customName =
+            StringFormat::Fmt("vkCmdBeginRenderPass(%s)", MakeRenderPassOpString(false).c_str());
+        action.flags |= ActionFlags::PassBoundary | ActionFlags::BeginPass;
 
-      AddAction(action);
+        AddAction(action);
+      }
     }
   }
 
@@ -2457,69 +2415,59 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(SerialiserType &ser, VkCommandBuf
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    bool loading = IsLoading(m_State);
+    bool replaySingleEvent = !loading && (m_FirstEventID == m_LastEventID);
+    // don't do anything if we're executing a single draw, NextSubpass is meaningless (and invalid
+    // on a partial render pass)
+    if(InRerecordRange(m_LastCmdBufferID) && !replaySingleEvent)
     {
-      // don't do anything if we're executing a single draw, NextSubpass is meaningless (and invalid
-      // on a partial render pass)
-      if(InRerecordRange(m_LastCmdBufferID) && m_FirstEventID != m_LastEventID)
-      {
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        {
-          GetCmdRenderState().subpass++;
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].activeSubpass++;
-        }
+      // Track usage before the renderstate is modified
+      if(loading)
+        AddImplicitResolveResourceUsage();
 
-        ActionFlags drawFlags =
-            ActionFlags::PassBoundary | ActionFlags::BeginPass | ActionFlags::EndPass;
-        uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
-
-        ObjDisp(commandBuffer)->CmdNextSubpass(Unwrap(commandBuffer), contents);
-
-        if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
-        {
-          // Do not call vkCmdNextSubpass again.
-          m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
-        }
-
-        rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
-
-        GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
-                                             FindCommandQueueFamily(m_LastCmdBufferID),
-                                             (uint32_t)imgBarriers.size(), imgBarriers.data());
-      }
-      else if(IsRenderpassOpen(m_LastCmdBufferID) && m_FirstEventID != m_LastEventID)
       {
-        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        ObjDisp(commandBuffer)->CmdNextSubpass(Unwrap(commandBuffer), contents);
-
+        GetCmdRenderState().subpass++;
         m_BakedCmdBufferInfo[m_LastCmdBufferID].activeSubpass++;
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].endBarriers.append(GetImplicitRenderPassBarriers());
       }
-    }
-    else
-    {
+
+      ActionFlags drawFlags =
+          ActionFlags::PassBoundary | ActionFlags::BeginPass | ActionFlags::EndPass;
+      uint32_t eventId = !loading ? HandlePreCallback(commandBuffer, drawFlags) : 0;
+
       ObjDisp(commandBuffer)->CmdNextSubpass(Unwrap(commandBuffer), contents);
 
-      AddImplicitResolveResourceUsage();
-
-      // track while reading, for fetching the right set of outputs in AddAction
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass++;
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].activeSubpass++;
+      if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
+      {
+        // Do not call vkCmdNextSubpass again.
+        m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
+      }
 
       rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
       GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
                                            FindCommandQueueFamily(m_LastCmdBufferID),
                                            (uint32_t)imgBarriers.size(), imgBarriers.data());
+      if(loading)
+      {
+        AddEvent();
+        ActionDescription action;
+        action.customName = StringFormat::Fmt(
+            "vkCmdNextSubpass() => %u", m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass);
+        action.flags |= ActionFlags::PassBoundary | ActionFlags::BeginPass | ActionFlags::EndPass;
 
-      AddEvent();
-      ActionDescription action;
-      action.customName = StringFormat::Fmt("vkCmdNextSubpass() => %u",
-                                            m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass);
-      action.flags |= ActionFlags::PassBoundary | ActionFlags::BeginPass | ActionFlags::EndPass;
+        AddAction(action);
+      }
+    }
+    else if(IsRenderpassOpen(m_LastCmdBufferID) && m_FirstEventID != m_LastEventID)
+    {
+      commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+      ObjDisp(commandBuffer)->CmdNextSubpass(Unwrap(commandBuffer), contents);
 
-      AddAction(action);
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].activeSubpass++;
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].endBarriers.append(GetImplicitRenderPassBarriers());
     }
   }
 
@@ -2558,115 +2506,105 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(SerialiserType &ser, VkCommandB
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-
-        rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
-
-        // only if we're partially recording do we update this state
-        if(ShouldUpdateRenderpassActive(m_LastCmdBufferID, false))
-        {
-          GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassActive =
-              m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = false;
-        }
-
-        rdcarray<ResourceId> attachments;
-        VkRect2D renderArea;
-
-        // save the renderpass that we were in here, so we can look up the rpinfo below
-        ResourceId currentRP = GetCmdRenderState().GetRenderPass();
-
-        {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-
-          attachments = GetCmdRenderState().GetFramebufferAttachments();
-          renderArea = GetCmdRenderState().renderArea;
-
-          renderstate.SetRenderPass(ResourceId());
-          renderstate.SetFramebuffer(ResourceId(), rdcarray<ResourceId>());
-          renderstate.subpassContents = VK_SUBPASS_CONTENTS_MAX_ENUM;
-        }
-
-        ActionFlags drawFlags = ActionFlags::PassBoundary | ActionFlags::EndPass;
-        uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
-
-        ObjDisp(commandBuffer)->CmdEndRenderPass(Unwrap(commandBuffer));
-
-        if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
-        {
-          // Do not call vkCmdEndRenderPass again.
-          m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
-        }
-
-        if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest &&
-           !m_FeedbackRPs.contains(currentRP))
-        {
-          ApplyRPStoreDiscards(commandBuffer, renderArea, currentRP, attachments);
-        }
-
-        GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
-                                             FindCommandQueueFamily(m_LastCmdBufferID),
-                                             (uint32_t)imgBarriers.size(), imgBarriers.data());
-      }
-      else if(IsRenderpassOpen(m_LastCmdBufferID))
-      {
-        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        ObjDisp(commandBuffer)->CmdEndRenderPass(Unwrap(commandBuffer));
-
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = false;
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].endBarriers.append(GetImplicitRenderPassBarriers(~0U));
-
-        ResourceId currentRP = GetCmdRenderState().GetRenderPass();
-
-        if(Vulkan_Hack_DisableRPNormalisation() && !m_FeedbackRPs.contains(currentRP))
-        {
-          ApplyRPStoreDiscards(commandBuffer, GetCmdRenderState().renderArea, currentRP,
-                               GetCmdRenderState().GetFramebufferAttachments());
-        }
-      }
-    }
-    else
-    {
-      ObjDisp(commandBuffer)->CmdEndRenderPass(Unwrap(commandBuffer));
-
-      // fetch any queued indirect readbacks here
-      for(const VkIndirectRecordData &indirectcopy :
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies)
-        ExecuteIndirectReadback(commandBuffer, indirectcopy);
-
-      // and deferred descriptor buffer versions here
-      for(const BakedCmdBufferInfo::DeferredDescBufCopy &descVersion :
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufDeferredCopies)
-        CopyVersionedDescriptorBuffer(commandBuffer, descVersion.unwrappedDstBuffer,
-                                      descVersion.copyOffsets);
-
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies.clear();
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufDeferredCopies.clear();
 
       rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
+
+      // only if we're partially recording do we update this state
+      if(ShouldUpdateRenderpassActive(m_LastCmdBufferID, false))
+      {
+        GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassActive =
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = false;
+      }
+
+      rdcarray<ResourceId> attachments;
+      VkRect2D renderArea;
+
+      // save the renderpass that we were in here, so we can look up the rpinfo below
+      ResourceId currentRP = GetCmdRenderState().GetRenderPass();
+
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+        if(loading)
+        {
+          // Track usage and action outputs before the renderstate is modified
+          AddImplicitResolveResourceUsage(~0U);
+
+          AddEvent();
+          ActionDescription action;
+          action.customName =
+              StringFormat::Fmt("vkCmdEndRenderPass(%s)", MakeRenderPassOpString(true).c_str());
+          action.flags |= ActionFlags::PassBoundary | ActionFlags::EndPass;
+
+          AddAction(action);
+        }
+
+        attachments = renderstate.GetFramebufferAttachments();
+        renderArea = renderstate.renderArea;
+
+        renderstate.SetRenderPass(ResourceId());
+        renderstate.SetFramebuffer(ResourceId(), rdcarray<ResourceId>());
+        renderstate.subpassContents = VK_SUBPASS_CONTENTS_MAX_ENUM;
+      }
+
+      ActionFlags drawFlags = ActionFlags::PassBoundary | ActionFlags::EndPass;
+      uint32_t eventId = !loading ? HandlePreCallback(commandBuffer, drawFlags) : 0;
+
+      ObjDisp(commandBuffer)->CmdEndRenderPass(Unwrap(commandBuffer));
+
+      if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
+      {
+        // Do not call vkCmdEndRenderPass again.
+        m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
+      }
+
+      if(!loading && m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest &&
+         !m_FeedbackRPs.contains(currentRP))
+      {
+        ApplyRPStoreDiscards(commandBuffer, renderArea, currentRP, attachments);
+      }
 
       GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
                                            FindCommandQueueFamily(m_LastCmdBufferID),
                                            (uint32_t)imgBarriers.size(), imgBarriers.data());
 
-      AddImplicitResolveResourceUsage(~0U);
+      if(loading)
+      {
+        // After the renderpass is ended
+        // fetch any queued indirect readbacks
+        for(const VkIndirectRecordData &indirectcopy :
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies)
+          ExecuteIndirectReadback(commandBuffer, indirectcopy);
 
-      AddEvent();
-      ActionDescription action;
-      action.customName =
-          StringFormat::Fmt("vkCmdEndRenderPass(%s)", MakeRenderPassOpString(true).c_str());
-      action.flags |= ActionFlags::PassBoundary | ActionFlags::EndPass;
+        // and deferred descriptor buffer versions here
+        for(const BakedCmdBufferInfo::DeferredDescBufCopy &descVersion :
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufDeferredCopies)
+          CopyVersionedDescriptorBuffer(commandBuffer, descVersion.unwrappedDstBuffer,
+                                        descVersion.copyOffsets);
 
-      AddAction(action);
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies.clear();
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufDeferredCopies.clear();
+      }
+    }
+    else if(IsRenderpassOpen(m_LastCmdBufferID))
+    {
+      commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+      ObjDisp(commandBuffer)->CmdEndRenderPass(Unwrap(commandBuffer));
 
-      // track while reading, reset this to empty so AddAction sets no outputs,
-      // but only AFTER the above AddAction (we want it grouped together)
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.SetRenderPass(ResourceId());
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.SetFramebuffer(ResourceId(),
-                                                                   rdcarray<ResourceId>());
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = false;
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].endBarriers.append(GetImplicitRenderPassBarriers(~0U));
+
+      ResourceId currentRP = GetCmdRenderState().GetRenderPass();
+
+      if(Vulkan_Hack_DisableRPNormalisation() && !m_FeedbackRPs.contains(currentRP))
+      {
+        ApplyRPStoreDiscards(commandBuffer, GetCmdRenderState().renderArea, currentRP,
+                             GetCmdRenderState().GetFramebufferAttachments());
+      }
     }
   }
 
@@ -2715,71 +2653,77 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
 
   if(IsReplayingAndReading())
   {
-    VkRenderPassBeginInfo unwrappedInfo = RenderPassBegin;
-    unwrappedInfo.renderPass = Unwrap(unwrappedInfo.renderPass);
-    unwrappedInfo.framebuffer = Unwrap(unwrappedInfo.framebuffer);
-
-    VkSubpassBeginInfo unwrappedBeginInfo = SubpassBegin;
-
-    byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext) +
-                                  GetNextPatchSize(unwrappedBeginInfo.pNext));
-
-    UnwrapNextChain(m_State, "VkRenderPassBeginInfo", tempMem, (VkBaseInStructure *)&unwrappedInfo);
-    UnwrapNextChain(m_State, "VkSubpassBeginInfo", tempMem, (VkBaseInStructure *)&unwrappedBeginInfo);
-
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      bool replaySingleEvent = !loading && (m_FirstEventID == m_LastEventID);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        // only if we're partially recording do we update this state
-        if(ShouldUpdateRenderpassActive(m_LastCmdBufferID, false))
+      VkRenderPassBeginInfo unwrappedInfo = RenderPassBegin;
+      unwrappedInfo.renderPass = Unwrap(unwrappedInfo.renderPass);
+      unwrappedInfo.framebuffer = Unwrap(unwrappedInfo.framebuffer);
+
+      VkSubpassBeginInfo unwrappedBeginInfo = SubpassBegin;
+
+      byte *tempMem = GetTempMemory(GetNextPatchSize(unwrappedInfo.pNext) +
+                                    GetNextPatchSize(unwrappedBeginInfo.pNext));
+
+      UnwrapNextChain(m_State, "VkRenderPassBeginInfo", tempMem, (VkBaseInStructure *)&unwrappedInfo);
+      UnwrapNextChain(m_State, "VkSubpassBeginInfo", tempMem,
+                      (VkBaseInStructure *)&unwrappedBeginInfo);
+
+      // only if we're partially recording do we update this state
+      if(ShouldUpdateRenderpassActive(m_LastCmdBufferID, false))
+      {
+        GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassActive =
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = true;
+      }
+
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].activeSubpass = 0;
+
+      ResourceId fb = GetResID(RenderPassBegin.framebuffer);
+      VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
+      ResourceId rp = GetResID(RenderPassBegin.renderPass);
+
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+
+        renderstate.subpass = 0;
+        renderstate.SetRenderPass(GetResID(RenderPassBegin.renderPass));
+        renderstate.renderArea = RenderPassBegin.renderArea;
+        renderstate.subpassContents = SubpassBegin.contents;
+        renderstate.fragmentDensityMapOffsets.clear();
+
+        const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
+            (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
+                &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
+
+        rdcarray<ResourceId> attachments;
+        attachments.resize(fbinfo.attachments.size());
+
+        // set framebuffer attachments - by default from the ones used to create it, but if it is
+        // imageless then look for the attachments in our pNext chain
+        if(!fbinfo.imageless)
         {
-          GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassActive =
-              m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = true;
+          for(size_t i = 0; i < fbinfo.attachments.size(); i++)
+            attachments[i] = fbinfo.attachments[i].createdView;
         }
-
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].activeSubpass = 0;
-
-        ResourceId fb = GetResID(RenderPassBegin.framebuffer);
-        VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
+        else
         {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-          renderstate.subpass = 0;
-          renderstate.SetRenderPass(GetResID(RenderPassBegin.renderPass));
-          renderstate.renderArea = RenderPassBegin.renderArea;
-          renderstate.subpassContents = SubpassBegin.contents;
-
-          renderstate.fragmentDensityMapOffsets.clear();
-
-          const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
-              (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
-                  &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
-
-          rdcarray<ResourceId> attachments;
-          attachments.resize(fbinfo.attachments.size());
-
-          // set framebuffer attachments - by default from the ones used to create it, but if it is
-          // imageless then look for the attachments in our pNext chain
-          if(!fbinfo.imageless)
-          {
-            for(size_t i = 0; i < fbinfo.attachments.size(); i++)
-              attachments[i] = fbinfo.attachments[i].createdView;
-          }
-          else
-          {
-            for(size_t i = 0; i < fbinfo.attachments.size(); i++)
-              attachments[i] = GetResID(attachmentsInfo->pAttachments[i]);
-          }
-          renderstate.SetFramebuffer(GetResID(RenderPassBegin.framebuffer), attachments);
+          for(size_t i = 0; i < fbinfo.attachments.size(); i++)
+            attachments[i] = GetResID(attachmentsInfo->pAttachments[i]);
         }
+        renderstate.SetFramebuffer(GetResID(RenderPassBegin.framebuffer), attachments);
+      }
 
-        const VulkanCreationInfo::RenderPass &rpinfo =
-            m_CreationInfo.m_RenderPass[GetCmdRenderState().GetRenderPass()];
+      const VulkanCreationInfo::RenderPass &rpinfo =
+          m_CreationInfo.m_RenderPass[GetCmdRenderState().GetRenderPass()];
 
+      if(!loading)
+      {
         ApplyRPLoadDiscards(commandBuffer, RenderPassBegin.renderArea);
 
         rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
@@ -2789,161 +2733,114 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
         // we need to manually do the subpass 0 barriers, since loadRP expects the image to already
         // be in subpass 0's layout
         // we also need to manually do any clears, since the loadRP will load all attachments
-        if(m_FirstEventID == m_LastEventID)
+        if(replaySingleEvent)
         {
           unwrappedInfo.renderPass = Unwrap(rpinfo.loadRPs[0]);
           unwrappedInfo.framebuffer = Unwrap(fbinfo.loadFBs[0]);
 
           DoPipelineBarrier(commandBuffer, imgBarriers.size(), imgBarriers.data());
         }
-
-        ActionFlags drawFlags = ActionFlags::PassBoundary | ActionFlags::BeginPass;
-        uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
-
-        ObjDisp(commandBuffer)
-            ->CmdBeginRenderPass2(Unwrap(commandBuffer), &unwrappedInfo, &unwrappedBeginInfo);
-
-        if(m_FirstEventID == m_LastEventID)
-        {
-          const rdcarray<ResourceId> &fbattachments =
-              m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetFramebufferAttachments();
-
-          rdcarray<VkClearAttachment> clearatts;
-          rdcarray<VkClearRect> clearrects;
-          RDCASSERT(unwrappedInfo.clearValueCount <= (uint32_t)rpinfo.attachments.size(),
-                    unwrappedInfo.clearValueCount, rpinfo.attachments.size());
-          for(int32_t c = 0; c < rpinfo.subpasses[0].colorAttachments.count() + 1; c++)
-          {
-            uint32_t att = ~0U;
-
-            if(c < rpinfo.subpasses[0].colorAttachments.count())
-              att = rpinfo.subpasses[0].colorAttachments[c];
-            else if(rpinfo.subpasses[0].depthstencilAttachment >= 0)
-              att = (uint32_t)rpinfo.subpasses[0].depthstencilAttachment;
-
-            if(att >= rpinfo.attachments.size())
-              continue;
-
-            VkImageAspectFlags clearAspects = 0;
-
-            // loadOp governs color, and depth
-            if(rpinfo.attachments[att].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
-              clearAspects |= VK_IMAGE_ASPECT_COLOR_BIT | VK_IMAGE_ASPECT_DEPTH_BIT;
-            // stencilLoadOp governs the stencil
-            if(rpinfo.attachments[att].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
-              clearAspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
-
-            // if any aspect is set to clear, go check it in more detail
-            if(clearAspects != 0)
-            {
-              VulkanCreationInfo::ImageView viewinfo = m_CreationInfo.m_ImageView[fbattachments[att]];
-              bool isMultiview = rpinfo.subpasses[0].multiviews.size() > 1;
-
-              VkClearRect rect = {unwrappedInfo.renderArea, 0,
-                                  isMultiview ? 1 : viewinfo.range.layerCount};
-              VkClearAttachment clear = {};
-              clear.aspectMask = FormatImageAspects(rpinfo.attachments[att].format) & clearAspects;
-              clear.colorAttachment = c;
-              if(att < unwrappedInfo.clearValueCount)
-                clear.clearValue = unwrappedInfo.pClearValues[att];
-              else
-                RDCWARN("Missing clear value for attachment %u", att);
-
-              // check that the actual aspects in the attachment overlap with those being cleared.
-              // In particular this means we ignore stencil load op being CLEAR for a color
-              // attachment - that doesn't mean we should clear the color. This also means we don't
-              // clear the stencil if it's not specified, even when clearing depth *is*
-              if(clear.aspectMask != 0)
-              {
-                clearrects.push_back(rect);
-                clearatts.push_back(clear);
-              }
-            }
-          }
-
-          if(!clearatts.empty())
-            ObjDisp(commandBuffer)
-                ->CmdClearAttachments(Unwrap(commandBuffer), (uint32_t)clearatts.size(),
-                                      clearatts.data(), (uint32_t)clearrects.size(),
-                                      clearrects.data());
-        }
-
-        if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
-        {
-          // Do not call vkCmdBeginRenderPass2 again.
-          m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
-        }
-
-        GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
-                                             FindCommandQueueFamily(m_LastCmdBufferID),
-                                             (uint32_t)imgBarriers.size(), imgBarriers.data());
       }
-    }
-    else
-    {
+
+      ActionFlags drawFlags = ActionFlags::PassBoundary | ActionFlags::BeginPass;
+      uint32_t eventId = !loading ? HandlePreCallback(commandBuffer, drawFlags) : 0;
+
       ObjDisp(commandBuffer)
           ->CmdBeginRenderPass2(Unwrap(commandBuffer), &unwrappedInfo, &unwrappedBeginInfo);
 
-      // track while reading, for fetching the right set of outputs in AddAction
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].activeSubpass = 0;
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass = 0;
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.SetRenderPass(
-          GetResID(RenderPassBegin.renderPass));
-
-      ResourceId fb = GetResID(RenderPassBegin.framebuffer);
-
-      // set framebuffer attachments - by default from the ones used to create it, but if it is
-      // imageless then look for the attachments in our pNext chain
+      if(replaySingleEvent)
       {
-        VulkanCreationInfo::Framebuffer fbinfo = m_CreationInfo.m_Framebuffer[fb];
-        rdcarray<ResourceId> attachments;
-        attachments.resize(fbinfo.attachments.size());
+        const rdcarray<ResourceId> &fbattachments =
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetFramebufferAttachments();
 
-        if(!fbinfo.imageless)
+        rdcarray<VkClearAttachment> clearatts;
+        rdcarray<VkClearRect> clearrects;
+        RDCASSERT(unwrappedInfo.clearValueCount <= (uint32_t)rpinfo.attachments.size(),
+                  unwrappedInfo.clearValueCount, rpinfo.attachments.size());
+        for(int32_t c = 0; c < rpinfo.subpasses[0].colorAttachments.count() + 1; c++)
         {
-          for(size_t i = 0; i < fbinfo.attachments.size(); i++)
-            attachments[i] = fbinfo.attachments[i].createdView;
-        }
-        else
-        {
-          const VkRenderPassAttachmentBeginInfo *attachmentsInfo =
-              (const VkRenderPassAttachmentBeginInfo *)FindNextStruct(
-                  &RenderPassBegin, VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO);
+          uint32_t att = ~0U;
 
-          for(size_t i = 0; i < fbinfo.attachments.size(); i++)
-            attachments[i] = GetResID(attachmentsInfo->pAttachments[i]);
+          if(c < rpinfo.subpasses[0].colorAttachments.count())
+            att = rpinfo.subpasses[0].colorAttachments[c];
+          else if(rpinfo.subpasses[0].depthstencilAttachment >= 0)
+            att = (uint32_t)rpinfo.subpasses[0].depthstencilAttachment;
+
+          if(att >= rpinfo.attachments.size())
+            continue;
+
+          VkImageAspectFlags clearAspects = 0;
+
+          // loadOp governs color, and depth
+          if(rpinfo.attachments[att].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
+            clearAspects |= VK_IMAGE_ASPECT_COLOR_BIT | VK_IMAGE_ASPECT_DEPTH_BIT;
+          // stencilLoadOp governs the stencil
+          if(rpinfo.attachments[att].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
+            clearAspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
+
+          // if any aspect is set to clear, go check it in more detail
+          if(clearAspects != 0)
+          {
+            VulkanCreationInfo::ImageView viewinfo = m_CreationInfo.m_ImageView[fbattachments[att]];
+            bool isMultiview = rpinfo.subpasses[0].multiviews.size() > 1;
+
+            VkClearRect rect = {unwrappedInfo.renderArea, 0,
+                                isMultiview ? 1 : viewinfo.range.layerCount};
+            VkClearAttachment clear = {};
+            clear.aspectMask = FormatImageAspects(rpinfo.attachments[att].format) & clearAspects;
+            clear.colorAttachment = c;
+            if(att < unwrappedInfo.clearValueCount)
+              clear.clearValue = unwrappedInfo.pClearValues[att];
+            else
+              RDCWARN("Missing clear value for attachment %u", att);
+
+            // check that the actual aspects in the attachment overlap with those being cleared.
+            // In particular this means we ignore stencil load op being CLEAR for a color
+            // attachment - that doesn't mean we should clear the color. This also means we don't
+            // clear the stencil if it's not specified, even when clearing depth *is*
+            if(clear.aspectMask != 0)
+            {
+              clearrects.push_back(rect);
+              clearatts.push_back(clear);
+            }
+          }
         }
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].state.SetFramebuffer(fb, attachments);
+
+        if(!clearatts.empty())
+          ObjDisp(commandBuffer)
+              ->CmdClearAttachments(Unwrap(commandBuffer), (uint32_t)clearatts.size(),
+                                    clearatts.data(), (uint32_t)clearrects.size(), clearrects.data());
       }
 
-      // Record image usage for images cleared in the beginning of the render pass.
-      const VulkanCreationInfo::RenderPass &rpinfo =
-          m_CreationInfo.m_RenderPass[GetResID(RenderPassBegin.renderPass)];
-      const rdcarray<ResourceId> &fbattachments =
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetFramebufferAttachments();
-      for(size_t i = 0; i < rpinfo.attachments.size(); i++)
+      if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
       {
-        if(rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ||
-           rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
-          AddEventResourceUsage(m_CreationInfo.m_ImageView[fbattachments[i]].image,
-                                rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR
-                                    ? ResourceUsage::Clear
-                                    : ResourceUsage::Discard);
+        // Do not call vkCmdBeginRenderPass2 again.
+        m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
       }
 
-      rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
+      if(loading)
+      {
+        // Record image usage for images cleared in the beginning of the render pass.
+        const rdcarray<ResourceId> &fbattachments =
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].state.GetFramebufferAttachments();
+        for(size_t i = 0; i < rpinfo.attachments.size(); i++)
+        {
+          if(rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ||
+             rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+            AddEventResourceUsage(m_CreationInfo.m_ImageView[fbattachments[i]].image,
+                                  rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR
+                                      ? ResourceUsage::Clear
+                                      : ResourceUsage::Discard);
+        }
 
-      GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
-                                           FindCommandQueueFamily(m_LastCmdBufferID),
-                                           (uint32_t)imgBarriers.size(), imgBarriers.data());
+        AddEvent();
+        ActionDescription action;
+        action.customName =
+            StringFormat::Fmt("vkCmdBeginRenderPass2(%s)", MakeRenderPassOpString(false).c_str());
+        action.flags |= ActionFlags::PassBoundary | ActionFlags::BeginPass;
 
-      AddEvent();
-      ActionDescription action;
-      action.customName =
-          StringFormat::Fmt("vkCmdBeginRenderPass2(%s)", MakeRenderPassOpString(false).c_str());
-      action.flags |= ActionFlags::PassBoundary | ActionFlags::BeginPass;
-
-      AddAction(action);
+        AddAction(action);
+      }
     }
   }
 
@@ -3089,58 +2986,32 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass2(SerialiserType &ser, VkCommandBu
 
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    bool loading = IsLoading(m_State);
+    bool replaySingleEvent = !loading && (m_FirstEventID == m_LastEventID);
+    // don't do anything if we're executing a single draw, NextSubpass is meaningless (and invalid
+    // on a partial render pass)
+    if(InRerecordRange(m_LastCmdBufferID) && !replaySingleEvent)
     {
-      // don't do anything if we're executing a single draw, NextSubpass is meaningless (and invalid
-      // on a partial render pass)
-      if(InRerecordRange(m_LastCmdBufferID) && m_FirstEventID != m_LastEventID)
-      {
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        {
-          GetCmdRenderState().subpass++;
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].activeSubpass++;
-        }
-
-        ActionFlags drawFlags =
-            ActionFlags::PassBoundary | ActionFlags::BeginPass | ActionFlags::EndPass;
-        uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
-
-        ObjDisp(commandBuffer)
-            ->CmdNextSubpass2(Unwrap(commandBuffer), &unwrappedBeginInfo, &unwrappedEndInfo);
-
-        if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
-        {
-          // Do not call vkCmdNextSubpass2 again.
-          m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
-        }
-
-        rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
-
-        GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
-                                             FindCommandQueueFamily(m_LastCmdBufferID),
-                                             (uint32_t)imgBarriers.size(), imgBarriers.data());
-      }
-      else if(IsRenderpassOpen(m_LastCmdBufferID) && m_FirstEventID != m_LastEventID)
       {
-        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        ObjDisp(commandBuffer)
-            ->CmdNextSubpass2(Unwrap(commandBuffer), &unwrappedBeginInfo, &unwrappedEndInfo);
-
+        GetCmdRenderState().subpass++;
         m_BakedCmdBufferInfo[m_LastCmdBufferID].activeSubpass++;
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].endBarriers.append(GetImplicitRenderPassBarriers());
       }
-    }
-    else
-    {
+
+      ActionFlags drawFlags =
+          ActionFlags::PassBoundary | ActionFlags::BeginPass | ActionFlags::EndPass;
+      uint32_t eventId = !loading ? HandlePreCallback(commandBuffer, drawFlags) : 0;
+
       ObjDisp(commandBuffer)
           ->CmdNextSubpass2(Unwrap(commandBuffer), &unwrappedBeginInfo, &unwrappedEndInfo);
 
-      AddImplicitResolveResourceUsage();
-
-      // track while reading, for fetching the right set of outputs in AddAction
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].activeSubpass++;
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass++;
+      if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
+      {
+        // Do not call vkCmdNextSubpass2 again.
+        m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
+      }
 
       rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
@@ -3148,13 +3019,27 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass2(SerialiserType &ser, VkCommandBu
                                            FindCommandQueueFamily(m_LastCmdBufferID),
                                            (uint32_t)imgBarriers.size(), imgBarriers.data());
 
-      AddEvent();
-      ActionDescription action;
-      action.customName = StringFormat::Fmt("vkCmdNextSubpass2() => %u",
-                                            m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass);
-      action.flags |= ActionFlags::PassBoundary | ActionFlags::BeginPass | ActionFlags::EndPass;
+      if(loading)
+      {
+        AddImplicitResolveResourceUsage();
 
-      AddAction(action);
+        AddEvent();
+        ActionDescription action;
+        action.customName = StringFormat::Fmt(
+            "vkCmdNextSubpass2() => %u", m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass);
+        action.flags |= ActionFlags::PassBoundary | ActionFlags::BeginPass | ActionFlags::EndPass;
+
+        AddAction(action);
+      }
+    }
+    else if(IsRenderpassOpen(m_LastCmdBufferID) && m_FirstEventID != m_LastEventID)
+    {
+      commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+      ObjDisp(commandBuffer)
+          ->CmdNextSubpass2(Unwrap(commandBuffer), &unwrappedBeginInfo, &unwrappedEndInfo);
+
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].activeSubpass++;
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].endBarriers.append(GetImplicitRenderPassBarriers());
     }
   }
 
@@ -3214,125 +3099,116 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass2(SerialiserType &ser, VkCommand
 
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-
-        rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
-
-        // only if we're partially recording do we update this state
-        if(ShouldUpdateRenderpassActive(m_LastCmdBufferID, false))
-        {
-          GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassActive =
-              m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = false;
-        }
-
-        ResourceId currentRP = GetCmdRenderState().GetRenderPass();
-
-        rdcarray<ResourceId> attachments;
-        VkRect2D renderArea;
-
-        {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-
-          attachments = GetCmdRenderState().GetFramebufferAttachments();
-          renderArea = GetCmdRenderState().renderArea;
-
-          renderstate.SetRenderPass(ResourceId());
-          renderstate.SetFramebuffer(ResourceId(), rdcarray<ResourceId>());
-          renderstate.subpassContents = VK_SUBPASS_CONTENTS_MAX_ENUM;
-        }
-
-        ActionFlags drawFlags = ActionFlags::PassBoundary | ActionFlags::EndPass;
-        uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
-        ObjDisp(commandBuffer)->CmdEndRenderPass2(Unwrap(commandBuffer), &unwrappedEndInfo);
-
-        if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
-        {
-          // Do not call vkCmdEndRenderPass2 again.
-          m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
-        }
-
-        if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest &&
-           !m_FeedbackRPs.contains(currentRP))
-        {
-          ApplyRPStoreDiscards(commandBuffer, renderArea, currentRP, attachments);
-        }
-
-        GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
-                                             FindCommandQueueFamily(m_LastCmdBufferID),
-                                             (uint32_t)imgBarriers.size(), imgBarriers.data());
-      }
-      else if(IsRenderpassOpen(m_LastCmdBufferID))
-      {
-        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        ObjDisp(commandBuffer)->CmdEndRenderPass2(Unwrap(commandBuffer), &unwrappedEndInfo);
-
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = false;
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].endBarriers.append(GetImplicitRenderPassBarriers(~0U));
-
-        const VkRenderPassFragmentDensityMapOffsetEndInfoEXT *fragmentDensityOffsetStruct =
-            (const VkRenderPassFragmentDensityMapOffsetEndInfoEXT *)FindNextStruct(
-                &unwrappedEndInfo,
-                VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_OFFSET_END_INFO_EXT);
-
-        if(fragmentDensityOffsetStruct)
-        {
-          rdcarray<VkOffset2D> &stateOffsets = GetCmdRenderState().fragmentDensityMapOffsets;
-          stateOffsets.resize(fragmentDensityOffsetStruct->fragmentDensityOffsetCount);
-          for(uint32_t i = 0; i < fragmentDensityOffsetStruct->fragmentDensityOffsetCount; i++)
-          {
-            stateOffsets[i] = fragmentDensityOffsetStruct->pFragmentDensityOffsets[i];
-          }
-        }
-
-        ResourceId currentRP = GetCmdRenderState().GetRenderPass();
-        if(Vulkan_Hack_DisableRPNormalisation() && !m_FeedbackRPs.contains(currentRP))
-        {
-          ApplyRPStoreDiscards(commandBuffer, GetCmdRenderState().renderArea, currentRP,
-                               GetCmdRenderState().GetFramebufferAttachments());
-        }
-      }
-    }
-    else
-    {
-      ObjDisp(commandBuffer)->CmdEndRenderPass2(Unwrap(commandBuffer), &unwrappedEndInfo);
-
-      // fetch any queued indirect readbacks here
-      for(const VkIndirectRecordData &indirectcopy :
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies)
-        ExecuteIndirectReadback(commandBuffer, indirectcopy);
-
-      // and deferred descriptor buffer versions here
-      for(const BakedCmdBufferInfo::DeferredDescBufCopy &descVersion :
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufDeferredCopies)
-        CopyVersionedDescriptorBuffer(commandBuffer, descVersion.unwrappedDstBuffer,
-                                      descVersion.copyOffsets);
-
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies.clear();
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufDeferredCopies.clear();
 
       rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers(~0U);
+
+      // only if we're partially recording do we update this state
+      if(ShouldUpdateRenderpassActive(m_LastCmdBufferID, false))
+      {
+        GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassActive =
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = false;
+      }
+
+      ResourceId currentRP = GetCmdRenderState().GetRenderPass();
+
+      rdcarray<ResourceId> attachments;
+      VkRect2D renderArea;
+
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+        if(loading)
+        {
+          // Track usage and action outputs before the renderstate is modified
+          AddImplicitResolveResourceUsage(~0U);
+
+          AddEvent();
+          ActionDescription action;
+          action.customName =
+              StringFormat::Fmt("vkCmdEndRenderPass2(%s)", MakeRenderPassOpString(true).c_str());
+          action.flags |= ActionFlags::PassBoundary | ActionFlags::EndPass;
+
+          AddAction(action);
+        }
+
+        attachments = GetCmdRenderState().GetFramebufferAttachments();
+        renderArea = GetCmdRenderState().renderArea;
+
+        renderstate.SetRenderPass(ResourceId());
+        renderstate.SetFramebuffer(ResourceId(), rdcarray<ResourceId>());
+        renderstate.subpassContents = VK_SUBPASS_CONTENTS_MAX_ENUM;
+      }
+
+      ActionFlags drawFlags = ActionFlags::PassBoundary | ActionFlags::EndPass;
+      uint32_t eventId = !loading ? HandlePreCallback(commandBuffer, drawFlags) : 0;
+
+      ObjDisp(commandBuffer)->CmdEndRenderPass2(Unwrap(commandBuffer), &unwrappedEndInfo);
+
+      if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
+      {
+        // Do not call vkCmdEndRenderPass2 again.
+        m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
+      }
+
+      if(!loading && m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest &&
+         !m_FeedbackRPs.contains(currentRP))
+      {
+        ApplyRPStoreDiscards(commandBuffer, renderArea, currentRP, attachments);
+      }
 
       GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[m_LastCmdBufferID].imageStates,
                                            FindCommandQueueFamily(m_LastCmdBufferID),
                                            (uint32_t)imgBarriers.size(), imgBarriers.data());
+      if(loading)
+      {
+        // fetch any queued indirect readbacks here
+        for(const VkIndirectRecordData &indirectcopy :
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies)
+          ExecuteIndirectReadback(commandBuffer, indirectcopy);
 
-      AddEvent();
-      ActionDescription action;
-      action.customName =
-          StringFormat::Fmt("vkCmdEndRenderPass2(%s)", MakeRenderPassOpString(true).c_str());
-      action.flags |= ActionFlags::PassBoundary | ActionFlags::EndPass;
+        // and deferred descriptor buffer versions here
+        for(const BakedCmdBufferInfo::DeferredDescBufCopy &descVersion :
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufDeferredCopies)
+          CopyVersionedDescriptorBuffer(commandBuffer, descVersion.unwrappedDstBuffer,
+                                        descVersion.copyOffsets);
 
-      AddAction(action);
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies.clear();
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufDeferredCopies.clear();
+      }
+    }
+    else if(IsRenderpassOpen(m_LastCmdBufferID))
+    {
+      commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+      ObjDisp(commandBuffer)->CmdEndRenderPass2(Unwrap(commandBuffer), &unwrappedEndInfo);
 
-      // track while reading, reset this to empty so AddAction sets no outputs,
-      // but only AFTER the above AddAction (we want it grouped together)
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.SetRenderPass(ResourceId());
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].state.SetFramebuffer(ResourceId(),
-                                                                   rdcarray<ResourceId>());
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = false;
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].endBarriers.append(GetImplicitRenderPassBarriers(~0U));
+
+      const VkRenderPassFragmentDensityMapOffsetEndInfoEXT *fragmentDensityOffsetStruct =
+          (const VkRenderPassFragmentDensityMapOffsetEndInfoEXT *)FindNextStruct(
+              &unwrappedEndInfo,
+              VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_OFFSET_END_INFO_EXT);
+
+      if(fragmentDensityOffsetStruct)
+      {
+        rdcarray<VkOffset2D> &stateOffsets = GetCmdRenderState().fragmentDensityMapOffsets;
+        stateOffsets.resize(fragmentDensityOffsetStruct->fragmentDensityOffsetCount);
+        for(uint32_t i = 0; i < fragmentDensityOffsetStruct->fragmentDensityOffsetCount; i++)
+        {
+          stateOffsets[i] = fragmentDensityOffsetStruct->pFragmentDensityOffsets[i];
+        }
+      }
+
+      ResourceId currentRP = GetCmdRenderState().GetRenderPass();
+      if(Vulkan_Hack_DisableRPNormalisation() && !m_FeedbackRPs.contains(currentRP))
+      {
+        ApplyRPStoreDiscards(commandBuffer, GetCmdRenderState().renderArea, currentRP,
+                             GetCmdRenderState().GetFramebufferAttachments());
+      }
     }
   }
 
@@ -7581,240 +7457,32 @@ bool WrappedVulkan::Serialise_vkCmdBeginRendering(SerialiserType &ser, VkCommand
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    byte *tempMem = GetTempMemory(GetNextPatchSize(&RenderingInfo));
-    VkRenderingInfo *unwrappedInfo = UnwrapStructAndChain(m_State, tempMem, &RenderingInfo);
-
-    // do not replay with suspend/resume, explicitly load and store everything.
-    unwrappedInfo->flags &= ~(VK_RENDERING_SUSPENDING_BIT | VK_RENDERING_RESUMING_BIT);
-
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        // only if we're partially recording do we update this state
-        if(ShouldUpdateRenderpassActive(m_LastCmdBufferID, true))
-        {
-          GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassActive =
-              m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = true;
-          GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassSuspended = false;
-        }
-        m_BakedCmdBufferInfo[m_LastCmdBufferID].activeSubpass = 0;
+      byte *tempMem = GetTempMemory(GetNextPatchSize(&RenderingInfo));
+      VkRenderingInfo *unwrappedInfo = UnwrapStructAndChain(m_State, tempMem, &RenderingInfo);
 
-        VulkanRenderState &renderstate = GetCmdRenderState();
+      // do not replay with suspend/resume, explicitly load and store everything.
+      unwrappedInfo->flags &= ~(VK_RENDERING_SUSPENDING_BIT | VK_RENDERING_RESUMING_BIT);
 
-        {
-          renderstate.subpass = 0;
-          renderstate.SetRenderPass(ResourceId());
-          renderstate.renderArea = RenderingInfo.renderArea;
-          renderstate.dynamicRendering = VulkanRenderState::DynamicRendering();
-          renderstate.dynamicRendering.active = true;
-          renderstate.dynamicRendering.suspended = false;
-          renderstate.dynamicRendering.flags = RenderingInfo.flags;
-          renderstate.dynamicRendering.layerCount = RenderingInfo.layerCount;
-          renderstate.dynamicRendering.viewMask = RenderingInfo.viewMask;
-          renderstate.dynamicRendering.color.assign(RenderingInfo.pColorAttachments,
-                                                    RenderingInfo.colorAttachmentCount);
-          if(RenderingInfo.pDepthAttachment)
-            renderstate.dynamicRendering.depth = *RenderingInfo.pDepthAttachment;
-          if(RenderingInfo.pStencilAttachment)
-            renderstate.dynamicRendering.stencil = *RenderingInfo.pStencilAttachment;
-
-          renderstate.dynamicRendering.CopyAttachmentNexts();
-
-          renderstate.fragmentDensityMapOffsets.clear();
-
-          const VkRenderingFragmentDensityMapAttachmentInfoEXT *fragmentDensityAttachment =
-              (const VkRenderingFragmentDensityMapAttachmentInfoEXT *)FindNextStruct(
-                  &RenderingInfo,
-                  VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_DENSITY_MAP_ATTACHMENT_INFO_EXT);
-
-          if(fragmentDensityAttachment)
-          {
-            renderstate.dynamicRendering.fragmentDensityView = fragmentDensityAttachment->imageView;
-            renderstate.dynamicRendering.fragmentDensityLayout =
-                fragmentDensityAttachment->imageLayout;
-          }
-
-          const VkRenderingFragmentShadingRateAttachmentInfoKHR *shadingRateAttachment =
-              (const VkRenderingFragmentShadingRateAttachmentInfoKHR *)FindNextStruct(
-                  &RenderingInfo,
-                  VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR);
-
-          if(shadingRateAttachment)
-          {
-            renderstate.dynamicRendering.shadingRateView = shadingRateAttachment->imageView;
-            renderstate.dynamicRendering.shadingRateLayout = shadingRateAttachment->imageLayout;
-            renderstate.dynamicRendering.shadingRateTexelSize =
-                shadingRateAttachment->shadingRateAttachmentTexelSize;
-          }
-
-          const VkMultisampledRenderToSingleSampledInfoEXT *tileOnlyMSAA =
-              (const VkMultisampledRenderToSingleSampledInfoEXT *)FindNextStruct(
-                  &RenderingInfo, VK_STRUCTURE_TYPE_MULTISAMPLED_RENDER_TO_SINGLE_SAMPLED_INFO_EXT);
-
-          if(tileOnlyMSAA)
-          {
-            renderstate.dynamicRendering.tileOnlyMSAAEnable =
-                tileOnlyMSAA->multisampledRenderToSingleSampledEnable != VK_FALSE;
-            renderstate.dynamicRendering.tileOnlyMSAASampleCount = tileOnlyMSAA->rasterizationSamples;
-          }
-
-          renderstate.dynamicRendering.beginCustomResolve = false;
-
-          rdcarray<ResourceId> attachments;
-
-          for(size_t i = 0; i < renderstate.dynamicRendering.color.size(); i++)
-            attachments.push_back(GetResID(renderstate.dynamicRendering.color[i].imageView));
-
-          attachments.push_back(GetResID(renderstate.dynamicRendering.depth.imageView));
-          attachments.push_back(GetResID(renderstate.dynamicRendering.stencil.imageView));
-
-          renderstate.SetFramebuffer(ResourceId(), attachments);
-        }
-
-        // only do discards when not resuming!
-        if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest &&
-           (RenderingInfo.flags & VK_RENDERING_RESUMING_BIT) == 0)
-        {
-          rdcarray<VkRenderingAttachmentInfo> dynAtts = renderstate.dynamicRendering.color;
-
-          size_t depthIdx = ~0U;
-          size_t stencilIdx = ~0U;
-          VkImageAspectFlags depthAspects = VK_IMAGE_ASPECT_DEPTH_BIT;
-
-          if(renderstate.dynamicRendering.depth.imageView != VK_NULL_HANDLE)
-          {
-            dynAtts.push_back(renderstate.dynamicRendering.depth);
-            depthIdx = dynAtts.size() - 1;
-          }
-
-          // if we have different images attached, or different store ops, treat stencil separately
-          if(renderstate.dynamicRendering.depth.imageView != VK_NULL_HANDLE &&
-             renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE &&
-             (renderstate.dynamicRendering.depth.imageView !=
-                  renderstate.dynamicRendering.stencil.imageView ||
-              renderstate.dynamicRendering.depth.loadOp !=
-                  renderstate.dynamicRendering.stencil.loadOp))
-          {
-            dynAtts.push_back(renderstate.dynamicRendering.stencil);
-            stencilIdx = dynAtts.size() - 1;
-          }
-          // otherwise if the same image is bound and the storeOp is the same then include it
-          else if(renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE)
-          {
-            depthAspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
-
-            if(renderstate.dynamicRendering.depth.imageView == VK_NULL_HANDLE)
-            {
-              dynAtts.push_back(renderstate.dynamicRendering.stencil);
-              stencilIdx = dynAtts.size() - 1;
-            }
-          }
-
-          for(size_t i = 0; i < dynAtts.size(); i++)
-          {
-            // Color target
-            if(dynAtts[i].imageView != VK_NULL_HANDLE)
-            {
-              const VulkanCreationInfo::ImageView &viewInfo =
-                  m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)];
-              VkImage image = GetResourceManager()->GetHandle<VkImage>(viewInfo.image);
-
-              if(dynAtts[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
-              {
-                VkImageSubresourceRange range = viewInfo.range;
-
-                if(i == depthIdx)
-                  range.aspectMask = depthAspects;
-
-                // if this is a stencil-only attachment this will override depthAspects
-                if(i == stencilIdx)
-                  range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-
-                GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassLoad,
-                                                          image, dynAtts[i].imageLayout, range,
-                                                          renderstate.renderArea);
-              }
-            }
-            // Custom Resolve target
-            if(dynAtts[i].resolveMode & VK_RESOLVE_MODE_CUSTOM_BIT_EXT)
-            {
-              const VulkanCreationInfo::ImageView &viewInfo =
-                  m_CreationInfo.m_ImageView[GetResID(dynAtts[i].resolveImageView)];
-              VkImage image = GetResourceManager()->GetHandle<VkImage>(viewInfo.image);
-              VkImageSubresourceRange range = viewInfo.range;
-              GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassLoad,
-                                                        image, dynAtts[i].resolveImageLayout, range,
-                                                        renderstate.renderArea);
-            }
-          }
-        }
-
-        ActionFlags drawFlags = ActionFlags::PassBoundary | ActionFlags::BeginPass;
-        uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
-
-        // do the same load/store op patching that we do for regular renderpass creates to enable
-        // introspection. It doesn't matter that we don't do this before during load because the
-        // effects of that are never user-visible.
-        // we must do this when resuming/suspending to ensure we promote to load/store
-        if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest ||
-           (RenderingInfo.flags & (VK_RENDERING_SUSPENDING_BIT | VK_RENDERING_RESUMING_BIT)))
-        {
-          if(Vulkan_Hack_DisableRPNormalisation())
-          {
-            static bool warned = false;
-
-            if(!warned)
-              RDCWARN("RP attachment normalisation not applied!");
-
-            warned = true;
-          }
-          else
-          {
-            for(uint32_t i = 0; i < unwrappedInfo->colorAttachmentCount + 2; i++)
-            {
-              VkRenderingAttachmentInfo *att =
-                  (VkRenderingAttachmentInfo *)unwrappedInfo->pColorAttachments + i;
-
-              if(i == unwrappedInfo->colorAttachmentCount)
-                att = (VkRenderingAttachmentInfo *)unwrappedInfo->pDepthAttachment;
-              else if(i == unwrappedInfo->colorAttachmentCount + 1)
-                att = (VkRenderingAttachmentInfo *)unwrappedInfo->pStencilAttachment;
-
-              if(!att)
-                continue;
-
-              if(att->storeOp != VK_ATTACHMENT_STORE_OP_NONE)
-                att->storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-              if(att->loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
-                att->loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-
-              // if this is supposed to be resuming, don't apply any clears!
-              if(RenderingInfo.flags & VK_RENDERING_RESUMING_BIT)
-                att->loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-            }
-          }
-        }
-
-        ObjDisp(commandBuffer)->CmdBeginRendering(Unwrap(commandBuffer), unwrappedInfo);
-
-        if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
-        {
-          // Do not call vkCmdBeginRendering again.
-          m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
-        }
+      // only if we're partially recording do we update this state
+      if(ShouldUpdateRenderpassActive(m_LastCmdBufferID, true))
+      {
+        GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassActive =
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = true;
+        GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassSuspended = false;
       }
-    }
-    else
-    {
-      ObjDisp(commandBuffer)->CmdBeginRendering(Unwrap(commandBuffer), unwrappedInfo);
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].activeSubpass = 0;
 
-      VulkanRenderState &renderstate = m_BakedCmdBufferInfo[m_LastCmdBufferID].state;
+      VulkanRenderState &renderstate = GetCmdRenderState();
 
       {
+        renderstate.subpass = 0;
+        renderstate.SetRenderPass(ResourceId());
         renderstate.renderArea = RenderingInfo.renderArea;
         renderstate.dynamicRendering = VulkanRenderState::DynamicRendering();
         renderstate.dynamicRendering.active = true;
@@ -7830,6 +7498,8 @@ bool WrappedVulkan::Serialise_vkCmdBeginRendering(SerialiserType &ser, VkCommand
           renderstate.dynamicRendering.stencil = *RenderingInfo.pStencilAttachment;
 
         renderstate.dynamicRendering.CopyAttachmentNexts();
+
+        renderstate.fragmentDensityMapOffsets.clear();
 
         const VkRenderingFragmentDensityMapAttachmentInfoEXT *fragmentDensityAttachment =
             (const VkRenderingFragmentDensityMapAttachmentInfoEXT *)FindNextStruct(
@@ -7870,44 +7540,178 @@ bool WrappedVulkan::Serialise_vkCmdBeginRendering(SerialiserType &ser, VkCommand
         rdcarray<ResourceId> attachments;
 
         for(size_t i = 0; i < renderstate.dynamicRendering.color.size(); i++)
-          attachments.push_back(
-              m_CreationInfo.m_ImageView[GetResID(renderstate.dynamicRendering.color[i].imageView)].image);
+          attachments.push_back(GetResID(renderstate.dynamicRendering.color[i].imageView));
 
-        attachments.push_back(
-            m_CreationInfo.m_ImageView[GetResID(renderstate.dynamicRendering.depth.imageView)].image);
-        attachments.push_back(
-            m_CreationInfo.m_ImageView[GetResID(renderstate.dynamicRendering.stencil.imageView)].image);
+        attachments.push_back(GetResID(renderstate.dynamicRendering.depth.imageView));
+        attachments.push_back(GetResID(renderstate.dynamicRendering.stencil.imageView));
 
         renderstate.SetFramebuffer(ResourceId(), attachments);
       }
 
-      for(size_t i = 0; i < renderstate.dynamicRendering.color.size() + 2; i++)
+      // only do discards when not resuming!
+      if(!loading && m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest &&
+         (RenderingInfo.flags & VK_RENDERING_RESUMING_BIT) == 0)
       {
-        const VkRenderingAttachmentInfo *att =
-            (const VkRenderingAttachmentInfo *)&renderstate.dynamicRendering.color[i];
+        rdcarray<VkRenderingAttachmentInfo> dynAtts = renderstate.dynamicRendering.color;
 
-        if(i == renderstate.dynamicRendering.color.size())
-          att = (const VkRenderingAttachmentInfo *)&renderstate.dynamicRendering.depth;
-        else if(i == renderstate.dynamicRendering.color.size() + 1)
-          att = (const VkRenderingAttachmentInfo *)&renderstate.dynamicRendering.stencil;
+        size_t depthIdx = ~0U;
+        size_t stencilIdx = ~0U;
+        VkImageAspectFlags depthAspects = VK_IMAGE_ASPECT_DEPTH_BIT;
 
-        if(!att || att->imageView == VK_NULL_HANDLE)
-          continue;
+        if(renderstate.dynamicRendering.depth.imageView != VK_NULL_HANDLE)
+        {
+          dynAtts.push_back(renderstate.dynamicRendering.depth);
+          depthIdx = dynAtts.size() - 1;
+        }
 
-        if(att->loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ||
-           att->loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
-          AddEventResourceUsage(m_CreationInfo.m_ImageView[GetResID(att->imageView)].image,
-                                att->loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ? ResourceUsage::Clear
-                                                                           : ResourceUsage::Discard);
+        // if we have different images attached, or different store ops, treat stencil separately
+        if(renderstate.dynamicRendering.depth.imageView != VK_NULL_HANDLE &&
+           renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE &&
+           (renderstate.dynamicRendering.depth.imageView !=
+                renderstate.dynamicRendering.stencil.imageView ||
+            renderstate.dynamicRendering.depth.loadOp != renderstate.dynamicRendering.stencil.loadOp))
+        {
+          dynAtts.push_back(renderstate.dynamicRendering.stencil);
+          stencilIdx = dynAtts.size() - 1;
+        }
+        // otherwise if the same image is bound and the storeOp is the same then include it
+        else if(renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE)
+        {
+          depthAspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
+
+          if(renderstate.dynamicRendering.depth.imageView == VK_NULL_HANDLE)
+          {
+            dynAtts.push_back(renderstate.dynamicRendering.stencil);
+            stencilIdx = dynAtts.size() - 1;
+          }
+        }
+
+        for(size_t i = 0; i < dynAtts.size(); i++)
+        {
+          // Color target
+          if(dynAtts[i].imageView != VK_NULL_HANDLE)
+          {
+            const VulkanCreationInfo::ImageView &viewInfo =
+                m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)];
+            VkImage image = GetResourceManager()->GetHandle<VkImage>(viewInfo.image);
+
+            if(dynAtts[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+            {
+              VkImageSubresourceRange range = viewInfo.range;
+
+              if(i == depthIdx)
+                range.aspectMask = depthAspects;
+
+              // if this is a stencil-only attachment this will override depthAspects
+              if(i == stencilIdx)
+                range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+
+              GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassLoad,
+                                                        image, dynAtts[i].imageLayout, range,
+                                                        renderstate.renderArea);
+            }
+          }
+          // Custom Resolve target
+          if(dynAtts[i].resolveMode & VK_RESOLVE_MODE_CUSTOM_BIT_EXT)
+          {
+            const VulkanCreationInfo::ImageView &viewInfo =
+                m_CreationInfo.m_ImageView[GetResID(dynAtts[i].resolveImageView)];
+            VkImage image = GetResourceManager()->GetHandle<VkImage>(viewInfo.image);
+            VkImageSubresourceRange range = viewInfo.range;
+            GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassLoad,
+                                                      image, dynAtts[i].resolveImageLayout, range,
+                                                      renderstate.renderArea);
+          }
+        }
       }
 
-      AddEvent();
-      ActionDescription action;
-      action.customName =
-          StringFormat::Fmt("vkCmdBeginRendering(%s)", MakeRenderPassOpString(false).c_str());
-      action.flags |= ActionFlags::PassBoundary | ActionFlags::BeginPass;
+      ActionFlags drawFlags = ActionFlags::PassBoundary | ActionFlags::BeginPass;
+      uint32_t eventId = !loading ? HandlePreCallback(commandBuffer, drawFlags) : 0;
 
-      AddAction(action);
+      // do the same load/store op patching that we do for regular renderpass creates to enable
+      // introspection. It doesn't matter that we don't do this before during load because the
+      // effects of that are never user-visible.
+      // we must do this when resuming/suspending to ensure we promote to load/store
+      if(!loading &&
+         (m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest ||
+          (RenderingInfo.flags & (VK_RENDERING_SUSPENDING_BIT | VK_RENDERING_RESUMING_BIT))))
+      {
+        if(Vulkan_Hack_DisableRPNormalisation())
+        {
+          static bool warned = false;
+
+          if(!warned)
+            RDCWARN("RP attachment normalisation not applied!");
+
+          warned = true;
+        }
+        else
+        {
+          for(uint32_t i = 0; i < unwrappedInfo->colorAttachmentCount + 2; i++)
+          {
+            VkRenderingAttachmentInfo *att =
+                (VkRenderingAttachmentInfo *)unwrappedInfo->pColorAttachments + i;
+
+            if(i == unwrappedInfo->colorAttachmentCount)
+              att = (VkRenderingAttachmentInfo *)unwrappedInfo->pDepthAttachment;
+            else if(i == unwrappedInfo->colorAttachmentCount + 1)
+              att = (VkRenderingAttachmentInfo *)unwrappedInfo->pStencilAttachment;
+
+            if(!att)
+              continue;
+
+            if(att->storeOp != VK_ATTACHMENT_STORE_OP_NONE)
+              att->storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+            if(att->loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+              att->loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+
+            // if this is supposed to be resuming, don't apply any clears!
+            if(RenderingInfo.flags & VK_RENDERING_RESUMING_BIT)
+              att->loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+          }
+        }
+      }
+
+      ObjDisp(commandBuffer)->CmdBeginRendering(Unwrap(commandBuffer), unwrappedInfo);
+
+      if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
+      {
+        // Do not call vkCmdBeginRendering again.
+        m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
+      }
+
+      if(loading)
+      {
+        for(size_t i = 0; i < renderstate.dynamicRendering.color.size() + 2; i++)
+        {
+          const VkRenderingAttachmentInfo *att =
+              (const VkRenderingAttachmentInfo *)&renderstate.dynamicRendering.color[i];
+
+          if(i == renderstate.dynamicRendering.color.size())
+            att = (const VkRenderingAttachmentInfo *)&renderstate.dynamicRendering.depth;
+          else if(i == renderstate.dynamicRendering.color.size() + 1)
+            att = (const VkRenderingAttachmentInfo *)&renderstate.dynamicRendering.stencil;
+
+          if(!att || att->imageView == VK_NULL_HANDLE)
+            continue;
+
+          if(att->loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ||
+             att->loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+            AddEventResourceUsage(m_CreationInfo.m_ImageView[GetResID(att->imageView)].image,
+                                  att->loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR
+                                      ? ResourceUsage::Clear
+                                      : ResourceUsage::Discard);
+        }
+
+        AddEvent();
+        ActionDescription action;
+        action.customName =
+            StringFormat::Fmt("vkCmdBeginRendering(%s)", MakeRenderPassOpString(false).c_str());
+        action.flags |= ActionFlags::PassBoundary | ActionFlags::BeginPass;
+
+        AddAction(action);
+      }
     }
   }
 
@@ -8020,228 +7824,213 @@ bool WrappedVulkan::Serialise_vkCmdEndRendering(SerialiserType &ser, VkCommandBu
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    VulkanRenderState &renderstate = GetCmdRenderState();
+
+    bool suspending = (renderstate.dynamicRendering.flags & VK_RENDERING_SUSPENDING_BIT) != 0;
+
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      VulkanRenderState &renderstate = GetCmdRenderState();
-
-      bool suspending = (renderstate.dynamicRendering.flags & VK_RENDERING_SUSPENDING_BIT) != 0;
-
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(ShouldUpdateRenderpassActive(m_LastCmdBufferID, true))
-        {
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = false;
-
-          if(IsCommandBufferPartial(m_LastCmdBufferID))
-          {
-            // if this rendering is just being suspended, the pass is still active
-            if(!suspending)
-              GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassActive = false;
-            GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassSuspended = suspending;
-          }
-        }
-
-        ActionFlags drawFlags = ActionFlags::PassBoundary | ActionFlags::EndPass;
-        uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
-
-        ObjDisp(commandBuffer)->CmdEndRendering(Unwrap(commandBuffer));
-
-        if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
-        {
-          // Do not call vkCmdEndRendering again.
-          m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
-        }
-
-        // only do discards when not suspending!
-        if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest && !suspending)
-        {
-          rdcarray<VkRenderingAttachmentInfo> dynAtts = renderstate.dynamicRendering.color;
-          dynAtts.push_back(renderstate.dynamicRendering.depth);
-
-          size_t depthIdx = dynAtts.size() - 1;
-          size_t stencilIdx = ~0U;
-          VkImageAspectFlags depthAspects = VK_IMAGE_ASPECT_DEPTH_BIT;
-
-          // if we have different images attached, or different store ops, treat stencil separately
-          if(renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE &&
-             (renderstate.dynamicRendering.depth.imageView !=
-                  renderstate.dynamicRendering.stencil.imageView ||
-              renderstate.dynamicRendering.depth.storeOp !=
-                  renderstate.dynamicRendering.stencil.storeOp))
-          {
-            dynAtts.push_back(renderstate.dynamicRendering.stencil);
-            stencilIdx = dynAtts.size() - 1;
-          }
-          // otherwise if the same image is bound and the storeOp is the same then include it
-          else if(renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE)
-          {
-            depthAspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
-          }
-
-          for(size_t i = 0; i < dynAtts.size(); i++)
-          {
-            if(dynAtts[i].imageView == VK_NULL_HANDLE)
-              continue;
-
-            const VulkanCreationInfo::ImageView &viewInfo =
-                m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)];
-            VkImage image = GetResourceManager()->GetHandle<VkImage>(viewInfo.image);
-
-            if(dynAtts[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
-            {
-              VkImageSubresourceRange range = viewInfo.range;
-
-              if(i == depthIdx)
-                range.aspectMask = depthAspects;
-
-              if(i == stencilIdx)
-                range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-
-              GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassStore,
-                                                        image, dynAtts[i].imageLayout, range,
-                                                        renderstate.renderArea);
-            }
-          }
-        }
-
-        if(suspending)
-        {
-          renderstate.dynamicRendering.suspended = true;
-        }
-        else
-        {
-          renderstate.dynamicRendering = VulkanRenderState::DynamicRendering();
-          renderstate.SetFramebuffer(ResourceId(), rdcarray<ResourceId>());
-        }
-      }
-      else if(IsRenderpassOpen(m_LastCmdBufferID))
+      if(ShouldUpdateRenderpassActive(m_LastCmdBufferID, true))
       {
-        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        ObjDisp(commandBuffer)->CmdEndRendering(Unwrap(commandBuffer));
-
         m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = false;
 
-        // only do discards when not suspending!
-        if(Vulkan_Hack_DisableRPNormalisation() && !suspending)
+        if(IsCommandBufferPartial(m_LastCmdBufferID))
         {
-          rdcarray<VkRenderingAttachmentInfo> dynAtts = renderstate.dynamicRendering.color;
-          dynAtts.push_back(renderstate.dynamicRendering.depth);
-
-          size_t depthIdx = dynAtts.size() - 1;
-          size_t stencilIdx = ~0U;
-          VkImageAspectFlags depthAspects = VK_IMAGE_ASPECT_DEPTH_BIT;
-
-          // if we have different images attached, or different store ops, treat stencil separately
-          if(renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE &&
-             (renderstate.dynamicRendering.depth.imageView !=
-                  renderstate.dynamicRendering.stencil.imageView ||
-              renderstate.dynamicRendering.depth.storeOp !=
-                  renderstate.dynamicRendering.stencil.storeOp))
-          {
-            dynAtts.push_back(renderstate.dynamicRendering.stencil);
-            stencilIdx = dynAtts.size() - 1;
-          }
-          // otherwise if the same image is bound and the storeOp is the same then include it
-          else if(renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE)
-          {
-            depthAspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
-          }
-
-          for(size_t i = 0; i < dynAtts.size(); i++)
-          {
-            if(dynAtts[i].imageView == VK_NULL_HANDLE)
-              continue;
-
-            const VulkanCreationInfo::ImageView &viewInfo =
-                m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)];
-            VkImage image = GetResourceManager()->GetHandle<VkImage>(viewInfo.image);
-
-            if(dynAtts[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
-            {
-              VkImageSubresourceRange range = viewInfo.range;
-
-              if(i == depthIdx)
-                range.aspectMask = depthAspects;
-
-              if(i == stencilIdx)
-                range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-
-              GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassStore,
-                                                        image, VK_IMAGE_LAYOUT_UNDEFINED, range,
-                                                        renderstate.renderArea);
-            }
-          }
+          // if this rendering is just being suspended, the pass is still active
+          if(!suspending)
+            GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassActive = false;
+          GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassSuspended = suspending;
         }
       }
-    }
-    else
-    {
+
+      ActionFlags drawFlags = ActionFlags::PassBoundary | ActionFlags::EndPass;
+      uint32_t eventId = !loading ? HandlePreCallback(commandBuffer, drawFlags) : 0;
+
       ObjDisp(commandBuffer)->CmdEndRendering(Unwrap(commandBuffer));
 
-      // fetch any queued indirect readbacks here
-      for(const VkIndirectRecordData &indirectcopy :
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies)
-        ExecuteIndirectReadback(commandBuffer, indirectcopy);
-
-      // and deferred descriptor buffer versions here
-      for(const BakedCmdBufferInfo::DeferredDescBufCopy &descVersion :
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufDeferredCopies)
-        CopyVersionedDescriptorBuffer(commandBuffer, descVersion.unwrappedDstBuffer,
-                                      descVersion.copyOffsets);
-
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies.clear();
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufDeferredCopies.clear();
-
-      VulkanRenderState &state = m_BakedCmdBufferInfo[m_LastCmdBufferID].state;
-
-      VulkanRenderState::DynamicRendering &dyn = state.dynamicRendering;
-
-      bool suspending = (dyn.flags & VK_RENDERING_SUSPENDING_BIT) != 0;
-
-      rdcarray<VkRenderingAttachmentInfo> dynAtts = dyn.color;
-      dynAtts.push_back(dyn.depth);
-
-      // if stencil attachment is different, or only one is resolving, add the stencil attachment.
-      // Otherwise depth will cover both (at most)
-      if((dyn.depth.imageView != dyn.stencil.imageView) ||
-         (dyn.depth.resolveMode != 0) != (dyn.stencil.resolveMode != 0))
-        dynAtts.push_back(dyn.stencil);
-
-      for(size_t i = 0; i < dynAtts.size(); i++)
+      if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
       {
-        if((dynAtts[i].resolveMode && !(dynAtts[i].resolveMode & VK_RESOLVE_MODE_CUSTOM_BIT_EXT)) &&
-           dynAtts[i].imageView != VK_NULL_HANDLE && dynAtts[i].resolveImageView != VK_NULL_HANDLE)
-        {
-          AddEventResourceUsage(m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
-                                ResourceUsage::ResolveSrc);
-
-          AddEventResourceUsage(
-              m_CreationInfo.m_ImageView[GetResID(dynAtts[i].resolveImageView)].image,
-              ResourceUsage::ResolveDst);
-        }
-
-        // also add any discards
-        if(dynAtts[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
-          AddEventResourceUsage(m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
-                                ResourceUsage::Discard);
+        // Do not call vkCmdEndRendering again.
+        m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
       }
 
-      AddEvent();
-      ActionDescription action;
-      action.customName =
-          StringFormat::Fmt("vkCmdEndRendering(%s)", MakeRenderPassOpString(true).c_str());
-      action.flags |= ActionFlags::PassBoundary | ActionFlags::EndPass;
-
-      AddAction(action);
-
-      if(!suspending)
+      // only do discards when not suspending!
+      if(!loading && m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest && !suspending)
       {
-        // track while reading, reset this to empty so AddAction sets no outputs,
-        // but only AFTER the above AddAction (we want it grouped together)
-        state.dynamicRendering = VulkanRenderState::DynamicRendering();
-        state.SetFramebuffer(ResourceId(), rdcarray<ResourceId>());
+        rdcarray<VkRenderingAttachmentInfo> dynAtts = renderstate.dynamicRendering.color;
+        dynAtts.push_back(renderstate.dynamicRendering.depth);
+
+        size_t depthIdx = dynAtts.size() - 1;
+        size_t stencilIdx = ~0U;
+        VkImageAspectFlags depthAspects = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+        // if we have different images attached, or different store ops, treat stencil separately
+        if(renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE &&
+           (renderstate.dynamicRendering.depth.imageView !=
+                renderstate.dynamicRendering.stencil.imageView ||
+            renderstate.dynamicRendering.depth.storeOp !=
+                renderstate.dynamicRendering.stencil.storeOp))
+        {
+          dynAtts.push_back(renderstate.dynamicRendering.stencil);
+          stencilIdx = dynAtts.size() - 1;
+        }
+        // otherwise if the same image is bound and the storeOp is the same then include it
+        else if(renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE)
+        {
+          depthAspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+
+        for(size_t i = 0; i < dynAtts.size(); i++)
+        {
+          if(dynAtts[i].imageView == VK_NULL_HANDLE)
+            continue;
+
+          const VulkanCreationInfo::ImageView &viewInfo =
+              m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)];
+          VkImage image = GetResourceManager()->GetHandle<VkImage>(viewInfo.image);
+
+          if(dynAtts[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
+          {
+            VkImageSubresourceRange range = viewInfo.range;
+
+            if(i == depthIdx)
+              range.aspectMask = depthAspects;
+
+            if(i == stencilIdx)
+              range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+
+            GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassStore,
+                                                      image, dynAtts[i].imageLayout, range,
+                                                      renderstate.renderArea);
+          }
+        }
+      }
+
+      if(loading)
+      {
+        // fetch any queued indirect readbacks here
+        for(const VkIndirectRecordData &indirectcopy :
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies)
+          ExecuteIndirectReadback(commandBuffer, indirectcopy);
+
+        // and deferred descriptor buffer versions here
+        for(const BakedCmdBufferInfo::DeferredDescBufCopy &descVersion :
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufDeferredCopies)
+          CopyVersionedDescriptorBuffer(commandBuffer, descVersion.unwrappedDstBuffer,
+                                        descVersion.copyOffsets);
+
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies.clear();
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufDeferredCopies.clear();
+
+        const VulkanRenderState::DynamicRendering &dyn = renderstate.dynamicRendering;
+
+        rdcarray<VkRenderingAttachmentInfo> dynAtts = dyn.color;
+        dynAtts.push_back(dyn.depth);
+
+        // if stencil attachment is different, or only one is resolving, add the stencil attachment.
+        // Otherwise depth will cover both (at most)
+        if((dyn.depth.imageView != dyn.stencil.imageView) ||
+           (dyn.depth.resolveMode != 0) != (dyn.stencil.resolveMode != 0))
+          dynAtts.push_back(dyn.stencil);
+
+        for(size_t i = 0; i < dynAtts.size(); i++)
+        {
+          if((dynAtts[i].resolveMode && !(dynAtts[i].resolveMode & VK_RESOLVE_MODE_CUSTOM_BIT_EXT)) &&
+             dynAtts[i].imageView != VK_NULL_HANDLE && dynAtts[i].resolveImageView != VK_NULL_HANDLE)
+          {
+            AddEventResourceUsage(m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
+                                  ResourceUsage::ResolveSrc);
+
+            AddEventResourceUsage(
+                m_CreationInfo.m_ImageView[GetResID(dynAtts[i].resolveImageView)].image,
+                ResourceUsage::ResolveDst);
+          }
+
+          // also add any discards
+          if(dynAtts[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
+            AddEventResourceUsage(m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
+                                  ResourceUsage::Discard);
+        }
+
+        AddEvent();
+        ActionDescription action;
+        action.customName =
+            StringFormat::Fmt("vkCmdEndRendering(%s)", MakeRenderPassOpString(true).c_str());
+        action.flags |= ActionFlags::PassBoundary | ActionFlags::EndPass;
+
+        AddAction(action);
+      }
+      if(suspending)
+      {
+        renderstate.dynamicRendering.suspended = true;
+      }
+      else
+      {
+        renderstate.dynamicRendering = VulkanRenderState::DynamicRendering();
+        renderstate.SetFramebuffer(ResourceId(), rdcarray<ResourceId>());
+      }
+    }
+    else if(IsRenderpassOpen(m_LastCmdBufferID))
+    {
+      commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+      ObjDisp(commandBuffer)->CmdEndRendering(Unwrap(commandBuffer));
+
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = false;
+
+      // only do discards when not suspending!
+      if(Vulkan_Hack_DisableRPNormalisation() && !suspending)
+      {
+        rdcarray<VkRenderingAttachmentInfo> dynAtts = renderstate.dynamicRendering.color;
+        dynAtts.push_back(renderstate.dynamicRendering.depth);
+
+        size_t depthIdx = dynAtts.size() - 1;
+        size_t stencilIdx = ~0U;
+        VkImageAspectFlags depthAspects = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+        // if we have different images attached, or different store ops, treat stencil separately
+        if(renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE &&
+           (renderstate.dynamicRendering.depth.imageView !=
+                renderstate.dynamicRendering.stencil.imageView ||
+            renderstate.dynamicRendering.depth.storeOp !=
+                renderstate.dynamicRendering.stencil.storeOp))
+        {
+          dynAtts.push_back(renderstate.dynamicRendering.stencil);
+          stencilIdx = dynAtts.size() - 1;
+        }
+        // otherwise if the same image is bound and the storeOp is the same then include it
+        else if(renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE)
+        {
+          depthAspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+
+        for(size_t i = 0; i < dynAtts.size(); i++)
+        {
+          if(dynAtts[i].imageView == VK_NULL_HANDLE)
+            continue;
+
+          const VulkanCreationInfo::ImageView &viewInfo =
+              m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)];
+          VkImage image = GetResourceManager()->GetHandle<VkImage>(viewInfo.image);
+
+          if(dynAtts[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
+          {
+            VkImageSubresourceRange range = viewInfo.range;
+
+            if(i == depthIdx)
+              range.aspectMask = depthAspects;
+
+            if(i == stencilIdx)
+              range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+
+            GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassStore,
+                                                      image, VK_IMAGE_LAYOUT_UNDEFINED, range,
+                                                      renderstate.renderArea);
+          }
+        }
       }
     }
   }
@@ -8287,243 +8076,228 @@ bool WrappedVulkan::Serialise_vkCmdEndRendering2EXT(SerialiserType &ser,
         UnwrapStructAndChain(m_State, tempMem, pRenderingEndInfo);
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    VulkanRenderState &renderstate = GetCmdRenderState();
+
+    bool suspending = (renderstate.dynamicRendering.flags & VK_RENDERING_SUSPENDING_BIT) != 0;
+
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      VulkanRenderState &renderstate = GetCmdRenderState();
-
-      bool suspending = (renderstate.dynamicRendering.flags & VK_RENDERING_SUSPENDING_BIT) != 0;
-
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        if(ShouldUpdateRenderpassActive(m_LastCmdBufferID, true))
-        {
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = false;
-
-          if(IsCommandBufferPartial(m_LastCmdBufferID))
-          {
-            // if this rendering is just being suspended, the pass is still active
-            if(!suspending)
-              GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassActive = false;
-            GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassSuspended = suspending;
-          }
-        }
-
-        ActionFlags drawFlags = ActionFlags::PassBoundary | ActionFlags::EndPass;
-        uint32_t eventId = HandlePreCallback(commandBuffer, drawFlags);
-
-        ObjDisp(commandBuffer)->CmdEndRendering2EXT(Unwrap(commandBuffer), unwrappedEndInfo);
-
-        if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
-        {
-          // Do not call vkCmdEndRendering2EXT again.
-          m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
-        }
-
-        // only do discards when not suspending!
-        if(m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest && !suspending)
-        {
-          rdcarray<VkRenderingAttachmentInfo> dynAtts = renderstate.dynamicRendering.color;
-          dynAtts.push_back(renderstate.dynamicRendering.depth);
-
-          size_t depthIdx = dynAtts.size() - 1;
-          size_t stencilIdx = ~0U;
-          VkImageAspectFlags depthAspects = VK_IMAGE_ASPECT_DEPTH_BIT;
-
-          // if we have different images attached, or different store ops, treat stencil separately
-          if(renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE &&
-             (renderstate.dynamicRendering.depth.imageView !=
-                  renderstate.dynamicRendering.stencil.imageView ||
-              renderstate.dynamicRendering.depth.storeOp !=
-                  renderstate.dynamicRendering.stencil.storeOp))
-          {
-            dynAtts.push_back(renderstate.dynamicRendering.stencil);
-            stencilIdx = dynAtts.size() - 1;
-          }
-          // otherwise if the same image is bound and the storeOp is the same then include it
-          else if(renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE)
-          {
-            depthAspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
-          }
-
-          for(size_t i = 0; i < dynAtts.size(); i++)
-          {
-            if(dynAtts[i].imageView == VK_NULL_HANDLE)
-              continue;
-
-            const VulkanCreationInfo::ImageView &viewInfo =
-                m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)];
-            VkImage image = GetResourceManager()->GetHandle<VkImage>(viewInfo.image);
-
-            if(dynAtts[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
-            {
-              VkImageSubresourceRange range = viewInfo.range;
-
-              if(i == depthIdx)
-                range.aspectMask = depthAspects;
-
-              if(i == stencilIdx)
-                range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-
-              GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassStore,
-                                                        image, dynAtts[i].imageLayout, range,
-                                                        renderstate.renderArea);
-            }
-          }
-        }
-
-        if(suspending)
-        {
-          renderstate.dynamicRendering.suspended = true;
-        }
-        else
-        {
-          renderstate.dynamicRendering = VulkanRenderState::DynamicRendering();
-          renderstate.SetFramebuffer(ResourceId(), rdcarray<ResourceId>());
-        }
-      }
-      else if(IsRenderpassOpen(m_LastCmdBufferID))
+      if(ShouldUpdateRenderpassActive(m_LastCmdBufferID, true))
       {
-        commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        ObjDisp(commandBuffer)->CmdEndRendering2EXT(Unwrap(commandBuffer), unwrappedEndInfo);
-
         m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = false;
 
-        const VkRenderPassFragmentDensityMapOffsetEndInfoEXT *fragmentDensityOffsetStruct =
-            (const VkRenderPassFragmentDensityMapOffsetEndInfoEXT *)FindNextStruct(
-                unwrappedEndInfo,
-                VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_OFFSET_END_INFO_EXT);
-
-        if(fragmentDensityOffsetStruct)
+        if(IsCommandBufferPartial(m_LastCmdBufferID))
         {
-          rdcarray<VkOffset2D> &stateOffsets = GetCmdRenderState().fragmentDensityMapOffsets;
-          stateOffsets.resize(fragmentDensityOffsetStruct->fragmentDensityOffsetCount);
-          for(uint32_t i = 0; i < fragmentDensityOffsetStruct->fragmentDensityOffsetCount; i++)
-          {
-            stateOffsets[i] = fragmentDensityOffsetStruct->pFragmentDensityOffsets[i];
-          }
-        }
-
-        // only do discards when not suspending!
-        if(Vulkan_Hack_DisableRPNormalisation() && !suspending)
-        {
-          rdcarray<VkRenderingAttachmentInfo> dynAtts = renderstate.dynamicRendering.color;
-          dynAtts.push_back(renderstate.dynamicRendering.depth);
-
-          size_t depthIdx = dynAtts.size() - 1;
-          size_t stencilIdx = ~0U;
-          VkImageAspectFlags depthAspects = VK_IMAGE_ASPECT_DEPTH_BIT;
-
-          // if we have different images attached, or different store ops, treat stencil separately
-          if(renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE &&
-             (renderstate.dynamicRendering.depth.imageView !=
-                  renderstate.dynamicRendering.stencil.imageView ||
-              renderstate.dynamicRendering.depth.storeOp !=
-                  renderstate.dynamicRendering.stencil.storeOp))
-          {
-            dynAtts.push_back(renderstate.dynamicRendering.stencil);
-            stencilIdx = dynAtts.size() - 1;
-          }
-          // otherwise if the same image is bound and the storeOp is the same then include it
-          else if(renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE)
-          {
-            depthAspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
-          }
-
-          for(size_t i = 0; i < dynAtts.size(); i++)
-          {
-            if(dynAtts[i].imageView == VK_NULL_HANDLE)
-              continue;
-
-            const VulkanCreationInfo::ImageView &viewInfo =
-                m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)];
-            VkImage image = GetResourceManager()->GetHandle<VkImage>(viewInfo.image);
-
-            if(dynAtts[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
-            {
-              VkImageSubresourceRange range = viewInfo.range;
-
-              if(i == depthIdx)
-                range.aspectMask = depthAspects;
-
-              if(i == stencilIdx)
-                range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-
-              GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassStore,
-                                                        image, VK_IMAGE_LAYOUT_UNDEFINED, range,
-                                                        renderstate.renderArea);
-            }
-          }
+          // if this rendering is just being suspended, the pass is still active
+          if(!suspending)
+            GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassActive = false;
+          GetCommandBufferPartialSubmission(m_LastCmdBufferID)->renderPassSuspended = suspending;
         }
       }
-    }
-    else
-    {
+
+      ActionFlags drawFlags = ActionFlags::PassBoundary | ActionFlags::EndPass;
+      uint32_t eventId = !loading ? HandlePreCallback(commandBuffer, drawFlags) : 0;
+
       ObjDisp(commandBuffer)->CmdEndRendering2EXT(Unwrap(commandBuffer), unwrappedEndInfo);
 
-      // fetch any queued indirect readbacks here
-      for(const VkIndirectRecordData &indirectcopy :
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies)
-        ExecuteIndirectReadback(commandBuffer, indirectcopy);
-
-      // and deferred descriptor buffer versions here
-      for(const BakedCmdBufferInfo::DeferredDescBufCopy &descVersion :
-          m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufDeferredCopies)
-        CopyVersionedDescriptorBuffer(commandBuffer, descVersion.unwrappedDstBuffer,
-                                      descVersion.copyOffsets);
-
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies.clear();
-      m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufDeferredCopies.clear();
-
-      VulkanRenderState &state = m_BakedCmdBufferInfo[m_LastCmdBufferID].state;
-
-      VulkanRenderState::DynamicRendering &dyn = state.dynamicRendering;
-
-      bool suspending = (dyn.flags & VK_RENDERING_SUSPENDING_BIT) != 0;
-
-      rdcarray<VkRenderingAttachmentInfo> dynAtts = dyn.color;
-      dynAtts.push_back(dyn.depth);
-
-      // if stencil attachment is different, or only one is resolving, add the stencil attachment.
-      // Otherwise depth will cover both (at most)
-      if((dyn.depth.imageView != dyn.stencil.imageView) ||
-         (dyn.depth.resolveMode != 0) != (dyn.stencil.resolveMode != 0))
-        dynAtts.push_back(dyn.stencil);
-
-      for(size_t i = 0; i < dynAtts.size(); i++)
+      if(eventId && m_ActionCallback->PostMisc(eventId, drawFlags, commandBuffer))
       {
-        if((dynAtts[i].resolveMode && !(dynAtts[i].resolveMode & VK_RESOLVE_MODE_CUSTOM_BIT_EXT)) &&
-           dynAtts[i].imageView != VK_NULL_HANDLE && dynAtts[i].resolveImageView != VK_NULL_HANDLE)
-        {
-          AddEventResourceUsage(m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
-                                ResourceUsage::ResolveSrc);
-
-          AddEventResourceUsage(
-              m_CreationInfo.m_ImageView[GetResID(dynAtts[i].resolveImageView)].image,
-              ResourceUsage::ResolveDst);
-        }
-
-        // also add any discards
-        if(dynAtts[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
-          AddEventResourceUsage(m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
-                                ResourceUsage::Discard);
+        // Do not call vkCmdEndRendering2EXT again.
+        m_ActionCallback->PostRemisc(eventId, drawFlags, commandBuffer);
       }
 
-      AddEvent();
-      ActionDescription action;
-      action.customName =
-          StringFormat::Fmt("vkCmdEndRendering2EXT(%s)", MakeRenderPassOpString(true).c_str());
-      action.flags |= ActionFlags::PassBoundary | ActionFlags::EndPass;
-
-      AddAction(action);
-
-      if(!suspending)
+      // only do discards when not suspending!
+      if(!loading && m_ReplayOptions.optimisation != ReplayOptimisationLevel::Fastest && !suspending)
       {
-        // track while reading, reset this to empty so AddAction sets no outputs,
-        // but only AFTER the above AddAction (we want it grouped together)
-        state.dynamicRendering = VulkanRenderState::DynamicRendering();
-        state.SetFramebuffer(ResourceId(), rdcarray<ResourceId>());
+        rdcarray<VkRenderingAttachmentInfo> dynAtts = renderstate.dynamicRendering.color;
+        dynAtts.push_back(renderstate.dynamicRendering.depth);
+
+        size_t depthIdx = dynAtts.size() - 1;
+        size_t stencilIdx = ~0U;
+        VkImageAspectFlags depthAspects = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+        // if we have different images attached, or different store ops, treat stencil separately
+        if(renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE &&
+           (renderstate.dynamicRendering.depth.imageView !=
+                renderstate.dynamicRendering.stencil.imageView ||
+            renderstate.dynamicRendering.depth.storeOp !=
+                renderstate.dynamicRendering.stencil.storeOp))
+        {
+          dynAtts.push_back(renderstate.dynamicRendering.stencil);
+          stencilIdx = dynAtts.size() - 1;
+        }
+        // otherwise if the same image is bound and the storeOp is the same then include it
+        else if(renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE)
+        {
+          depthAspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+
+        for(size_t i = 0; i < dynAtts.size(); i++)
+        {
+          if(dynAtts[i].imageView == VK_NULL_HANDLE)
+            continue;
+
+          const VulkanCreationInfo::ImageView &viewInfo =
+              m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)];
+          VkImage image = GetResourceManager()->GetHandle<VkImage>(viewInfo.image);
+
+          if(dynAtts[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
+          {
+            VkImageSubresourceRange range = viewInfo.range;
+
+            if(i == depthIdx)
+              range.aspectMask = depthAspects;
+
+            if(i == stencilIdx)
+              range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+
+            GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassStore,
+                                                      image, dynAtts[i].imageLayout, range,
+                                                      renderstate.renderArea);
+          }
+        }
+      }
+
+      if(loading)
+      {
+        // fetch any queued indirect readbacks here
+        for(const VkIndirectRecordData &indirectcopy :
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies)
+          ExecuteIndirectReadback(commandBuffer, indirectcopy);
+
+        // and deferred descriptor buffer versions here
+        for(const BakedCmdBufferInfo::DeferredDescBufCopy &descVersion :
+            m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufDeferredCopies)
+          CopyVersionedDescriptorBuffer(commandBuffer, descVersion.unwrappedDstBuffer,
+                                        descVersion.copyOffsets);
+
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].indirectCopies.clear();
+        m_BakedCmdBufferInfo[m_LastCmdBufferID].descBufDeferredCopies.clear();
+
+        const VulkanRenderState::DynamicRendering &dyn = renderstate.dynamicRendering;
+
+        rdcarray<VkRenderingAttachmentInfo> dynAtts = dyn.color;
+        dynAtts.push_back(dyn.depth);
+
+        // if stencil attachment is different, or only one is resolving, add the stencil
+        // attachment. Otherwise depth will cover both (at most)
+        if((dyn.depth.imageView != dyn.stencil.imageView) ||
+           (dyn.depth.resolveMode != 0) != (dyn.stencil.resolveMode != 0))
+          dynAtts.push_back(dyn.stencil);
+
+        for(size_t i = 0; i < dynAtts.size(); i++)
+        {
+          if((dynAtts[i].resolveMode && !(dynAtts[i].resolveMode & VK_RESOLVE_MODE_CUSTOM_BIT_EXT)) &&
+             dynAtts[i].imageView != VK_NULL_HANDLE && dynAtts[i].resolveImageView != VK_NULL_HANDLE)
+          {
+            AddEventResourceUsage(m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
+                                  ResourceUsage::ResolveSrc);
+
+            AddEventResourceUsage(
+                m_CreationInfo.m_ImageView[GetResID(dynAtts[i].resolveImageView)].image,
+                ResourceUsage::ResolveDst);
+          }
+
+          // also add any discards
+          if(dynAtts[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
+            AddEventResourceUsage(m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
+                                  ResourceUsage::Discard);
+        }
+
+        AddEvent();
+        ActionDescription action;
+        action.customName =
+            StringFormat::Fmt("vkCmdEndRendering2EXT(%s)", MakeRenderPassOpString(true).c_str());
+        action.flags |= ActionFlags::PassBoundary | ActionFlags::EndPass;
+
+        AddAction(action);
+      }
+      if(suspending)
+      {
+        renderstate.dynamicRendering.suspended = true;
+      }
+      else
+      {
+        renderstate.dynamicRendering = VulkanRenderState::DynamicRendering();
+        renderstate.SetFramebuffer(ResourceId(), rdcarray<ResourceId>());
+      }
+    }
+    else if(IsRenderpassOpen(m_LastCmdBufferID))
+    {
+      commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
+      ObjDisp(commandBuffer)->CmdEndRendering2EXT(Unwrap(commandBuffer), unwrappedEndInfo);
+
+      m_BakedCmdBufferInfo[m_LastCmdBufferID].renderPassOpen = false;
+
+      const VkRenderPassFragmentDensityMapOffsetEndInfoEXT *fragmentDensityOffsetStruct =
+          (const VkRenderPassFragmentDensityMapOffsetEndInfoEXT *)FindNextStruct(
+              unwrappedEndInfo,
+              VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_OFFSET_END_INFO_EXT);
+
+      if(fragmentDensityOffsetStruct)
+      {
+        rdcarray<VkOffset2D> &stateOffsets = GetCmdRenderState().fragmentDensityMapOffsets;
+        stateOffsets.resize(fragmentDensityOffsetStruct->fragmentDensityOffsetCount);
+        for(uint32_t i = 0; i < fragmentDensityOffsetStruct->fragmentDensityOffsetCount; i++)
+        {
+          stateOffsets[i] = fragmentDensityOffsetStruct->pFragmentDensityOffsets[i];
+        }
+      }
+
+      // only do discards when not suspending!
+      if(Vulkan_Hack_DisableRPNormalisation() && !suspending)
+      {
+        rdcarray<VkRenderingAttachmentInfo> dynAtts = renderstate.dynamicRendering.color;
+        dynAtts.push_back(renderstate.dynamicRendering.depth);
+
+        size_t depthIdx = dynAtts.size() - 1;
+        size_t stencilIdx = ~0U;
+        VkImageAspectFlags depthAspects = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+        // if we have different images attached, or different store ops, treat stencil separately
+        if(renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE &&
+           (renderstate.dynamicRendering.depth.imageView !=
+                renderstate.dynamicRendering.stencil.imageView ||
+            renderstate.dynamicRendering.depth.storeOp !=
+                renderstate.dynamicRendering.stencil.storeOp))
+        {
+          dynAtts.push_back(renderstate.dynamicRendering.stencil);
+          stencilIdx = dynAtts.size() - 1;
+        }
+        // otherwise if the same image is bound and the storeOp is the same then include it
+        else if(renderstate.dynamicRendering.stencil.imageView != VK_NULL_HANDLE)
+        {
+          depthAspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+
+        for(size_t i = 0; i < dynAtts.size(); i++)
+        {
+          if(dynAtts[i].imageView == VK_NULL_HANDLE)
+            continue;
+
+          const VulkanCreationInfo::ImageView &viewInfo =
+              m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)];
+          VkImage image = GetResourceManager()->GetHandle<VkImage>(viewInfo.image);
+
+          if(dynAtts[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
+          {
+            VkImageSubresourceRange range = viewInfo.range;
+
+            if(i == depthIdx)
+              range.aspectMask = depthAspects;
+
+            if(i == stencilIdx)
+              range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+
+            GetDebugManager()->FillWithDiscardPattern(commandBuffer, DiscardType::RenderPassStore,
+                                                      image, VK_IMAGE_LAYOUT_UNDEFINED, range,
+                                                      renderstate.renderArea);
+          }
+        }
       }
     }
   }
@@ -10335,50 +10109,19 @@ bool WrappedVulkan::Serialise_vkCmdBeginCustomResolveEXT(
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        ObjDisp(commandBuffer)->CmdBeginCustomResolveEXT(Unwrap(commandBuffer), pBeginCustomResolveInfo);
 
-        VulkanRenderState &renderstate = GetCmdRenderState();
-        renderstate.dynamicRendering.beginCustomResolve = true;
-
-        // The resolve images are now the framebuffer not the color images
-        rdcarray<ResourceId> attachments;
-        for(size_t i = 0; i < renderstate.dynamicRendering.color.size(); i++)
-        {
-          VkRenderingAttachmentInfo &attInfo = renderstate.dynamicRendering.color[i];
-          if(attInfo.resolveMode & VK_RESOLVE_MODE_CUSTOM_BIT_EXT)
-          {
-            attachments.push_back(GetResID(attInfo.resolveImageView));
-            // The resolve images data is undefined and has an implicit store
-            renderstate.dynamicRendering.color[i].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            renderstate.dynamicRendering.color[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-          }
-          else
-          {
-            attachments.push_back(GetResID(attInfo.imageView));
-          }
-        }
-
-        attachments.push_back(GetResID(renderstate.dynamicRendering.depth.resolveImageView));
-        attachments.push_back(GetResID(renderstate.dynamicRendering.stencil.resolveImageView));
-
-        renderstate.SetFramebuffer(ResourceId(), attachments);
-      }
-    }
-    else
-    {
       ObjDisp(commandBuffer)->CmdBeginCustomResolveEXT(Unwrap(commandBuffer), pBeginCustomResolveInfo);
 
-      VulkanRenderState &renderstate = m_BakedCmdBufferInfo[m_LastCmdBufferID].state;
+      VulkanRenderState &renderstate = GetCmdRenderState();
       renderstate.dynamicRendering.beginCustomResolve = true;
 
       // The resolve images are now the framebuffer not the color images
       rdcarray<ResourceId> attachments;
-
       for(size_t i = 0; i < renderstate.dynamicRendering.color.size(); i++)
       {
         VkRenderingAttachmentInfo &attInfo = renderstate.dynamicRendering.color[i];
@@ -10386,12 +10129,12 @@ bool WrappedVulkan::Serialise_vkCmdBeginCustomResolveEXT(
         {
           ResourceId resolveImageView = GetResID(attInfo.resolveImageView);
           attachments.push_back(resolveImageView);
+          if(loading)
+            AddEventResourceUsage(m_CreationInfo.m_ImageView[resolveImageView].image,
+                                  ResourceUsage::Discard);
           // The resolve images data is undefined and has an implicit store
           renderstate.dynamicRendering.color[i].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
           renderstate.dynamicRendering.color[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-          AddEventResourceUsage(m_CreationInfo.m_ImageView[resolveImageView].image,
-                                ResourceUsage::Discard);
         }
         else
         {
@@ -10403,12 +10146,14 @@ bool WrappedVulkan::Serialise_vkCmdBeginCustomResolveEXT(
       attachments.push_back(GetResID(renderstate.dynamicRendering.stencil.resolveImageView));
 
       renderstate.SetFramebuffer(ResourceId(), attachments);
-
-      AddEvent();
-      ActionDescription action;
-      action.customName = "vkCmdBeginCustomResolveEXT()";
-      action.flags |= ActionFlags::PassBoundary | ActionFlags::BeginPass | ActionFlags::EndPass;
-      AddAction(action);
+      if(loading)
+      {
+        AddEvent();
+        ActionDescription action;
+        action.customName = "vkCmdBeginCustomResolveEXT()";
+        action.flags |= ActionFlags::PassBoundary | ActionFlags::BeginPass | ActionFlags::EndPass;
+        AddAction(action);
+      }
     }
   }
   return true;
