@@ -6981,25 +6981,19 @@ bool WrappedVulkan::Serialise_vkCmdBeginConditionalRenderingEXT(
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-          renderstate.conditionalRendering.buffer = GetResID(BeginInfo.buffer);
-          renderstate.conditionalRendering.offset = BeginInfo.offset;
-          renderstate.conditionalRendering.flags = BeginInfo.flags;
-        }
-
-        BeginInfo.buffer = Unwrap(BeginInfo.buffer);
-        ObjDisp(commandBuffer)->CmdBeginConditionalRenderingEXT(Unwrap(commandBuffer), &BeginInfo);
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+        renderstate.conditionalRendering.buffer = GetResID(BeginInfo.buffer);
+        renderstate.conditionalRendering.offset = BeginInfo.offset;
+        renderstate.conditionalRendering.flags = BeginInfo.flags;
       }
-    }
-    else
-    {
+
       BeginInfo.buffer = Unwrap(BeginInfo.buffer);
       ObjDisp(commandBuffer)->CmdBeginConditionalRenderingEXT(Unwrap(commandBuffer), &BeginInfo);
     }
@@ -7053,22 +7047,17 @@ bool WrappedVulkan::Serialise_vkCmdEndConditionalRenderingEXT(SerialiserType &se
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-          renderstate.conditionalRendering.buffer = ResourceId();
-        }
-
-        ObjDisp(commandBuffer)->CmdEndConditionalRenderingEXT(Unwrap(commandBuffer));
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+        renderstate.conditionalRendering.buffer = ResourceId();
       }
-    }
-    else
-    {
+
       ObjDisp(commandBuffer)->CmdEndConditionalRenderingEXT(Unwrap(commandBuffer));
     }
   }
@@ -10120,24 +10109,19 @@ bool WrappedVulkan::Serialise_vkCmdBeginConditionalRendering2EXT(
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        {
-          VulkanRenderState &renderstate = GetCmdRenderState();
-          GetResIDFromAddr(BeginInfo.addressRange.address, renderstate.conditionalRendering.buffer,
-                           renderstate.conditionalRendering.offset);
-          renderstate.conditionalRendering.flags = BeginInfo.flags;
-        }
-
-        ObjDisp(commandBuffer)->CmdBeginConditionalRendering2EXT(Unwrap(commandBuffer), &BeginInfo);
+      {
+        VulkanRenderState &renderstate = GetCmdRenderState();
+        GetResIDFromAddr(BeginInfo.addressRange.address, renderstate.conditionalRendering.buffer,
+                         renderstate.conditionalRendering.offset);
+        renderstate.conditionalRendering.flags = BeginInfo.flags;
       }
-    }
-    else
-    {
+
       ObjDisp(commandBuffer)->CmdBeginConditionalRendering2EXT(Unwrap(commandBuffer), &BeginInfo);
     }
   }
