@@ -4916,37 +4916,31 @@ bool WrappedVulkan::Serialise_vkCmdTraceRaysKHR(
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::DispatchRay);
+      uint32_t eventId =
+          !loading ? HandlePreCallback(commandBuffer, ActionFlags(ActionFlags::DispatchRay)) : 0;
 
-        ObjDisp(commandBuffer)
-            ->CmdTraceRaysKHR(Unwrap(commandBuffer), &RaygenShaderBindingTable,
-                              &MissShaderBindingTable, &HitShaderBindingTable,
-                              &CallableShaderBindingTable, width, height, depth);
-
-        if(eventId && m_ActionCallback->PostDispatch(eventId, ActionFlags::DispatchRay, commandBuffer))
-        {
-          ObjDisp(commandBuffer)
-              ->CmdTraceRaysKHR(Unwrap(commandBuffer), &RaygenShaderBindingTable,
-                                &MissShaderBindingTable, &HitShaderBindingTable,
-                                &CallableShaderBindingTable, width, height, depth);
-
-          m_ActionCallback->PostRemisc(eventId, ActionFlags::Clear, commandBuffer);
-        }
-      }
-    }
-    else
-    {
       ObjDisp(commandBuffer)
           ->CmdTraceRaysKHR(Unwrap(commandBuffer), &RaygenShaderBindingTable,
                             &MissShaderBindingTable, &HitShaderBindingTable,
                             &CallableShaderBindingTable, width, height, depth);
 
+      if(eventId && m_ActionCallback->PostDispatch(eventId, ActionFlags::DispatchRay, commandBuffer))
+      {
+        ObjDisp(commandBuffer)
+            ->CmdTraceRaysKHR(Unwrap(commandBuffer), &RaygenShaderBindingTable,
+                              &MissShaderBindingTable, &HitShaderBindingTable,
+                              &CallableShaderBindingTable, width, height, depth);
+
+        m_ActionCallback->PostRemisc(eventId, ActionFlags::Clear, commandBuffer);
+      }
+
+      if(loading)
       {
         AddEvent();
 
@@ -5020,37 +5014,31 @@ bool WrappedVulkan::Serialise_vkCmdTraceRaysIndirectKHR(
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::DispatchRay);
+      uint32_t eventId =
+          !loading ? HandlePreCallback(commandBuffer, ActionFlags(ActionFlags::DispatchRay)) : 0;
 
-        ObjDisp(commandBuffer)
-            ->CmdTraceRaysIndirectKHR(Unwrap(commandBuffer), &RaygenShaderBindingTable,
-                                      &MissShaderBindingTable, &HitShaderBindingTable,
-                                      &CallableShaderBindingTable, indirectDeviceAddress);
-
-        if(eventId && m_ActionCallback->PostDispatch(eventId, ActionFlags::DispatchRay, commandBuffer))
-        {
-          ObjDisp(commandBuffer)
-              ->CmdTraceRaysIndirectKHR(Unwrap(commandBuffer), &RaygenShaderBindingTable,
-                                        &MissShaderBindingTable, &HitShaderBindingTable,
-                                        &CallableShaderBindingTable, indirectDeviceAddress);
-
-          m_ActionCallback->PostRemisc(eventId, ActionFlags::Clear, commandBuffer);
-        }
-      }
-    }
-    else
-    {
       ObjDisp(commandBuffer)
           ->CmdTraceRaysIndirectKHR(Unwrap(commandBuffer), &RaygenShaderBindingTable,
                                     &MissShaderBindingTable, &HitShaderBindingTable,
                                     &CallableShaderBindingTable, indirectDeviceAddress);
 
+      if(eventId && m_ActionCallback->PostDispatch(eventId, ActionFlags::DispatchRay, commandBuffer))
+      {
+        ObjDisp(commandBuffer)
+            ->CmdTraceRaysIndirectKHR(Unwrap(commandBuffer), &RaygenShaderBindingTable,
+                                      &MissShaderBindingTable, &HitShaderBindingTable,
+                                      &CallableShaderBindingTable, indirectDeviceAddress);
+
+        m_ActionCallback->PostRemisc(eventId, ActionFlags::Clear, commandBuffer);
+      }
+
+      if(loading)
       {
         AddEvent();
 
@@ -5114,28 +5102,25 @@ bool WrappedVulkan::Serialise_vkCmdTraceRaysIndirect2KHR(SerialiserType &ser,
   {
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::DispatchRay);
+      uint32_t eventId =
+          !loading ? HandlePreCallback(commandBuffer, ActionFlags(ActionFlags::DispatchRay)) : 0;
 
-        ObjDisp(commandBuffer)->CmdTraceRaysIndirect2KHR(Unwrap(commandBuffer), indirectDeviceAddress);
-
-        if(eventId && m_ActionCallback->PostDispatch(eventId, ActionFlags::DispatchRay, commandBuffer))
-        {
-          ObjDisp(commandBuffer)->CmdTraceRaysIndirect2KHR(Unwrap(commandBuffer), indirectDeviceAddress);
-
-          m_ActionCallback->PostRemisc(eventId, ActionFlags::Clear, commandBuffer);
-        }
-      }
-    }
-    else
-    {
       ObjDisp(commandBuffer)->CmdTraceRaysIndirect2KHR(Unwrap(commandBuffer), indirectDeviceAddress);
 
+      if(eventId && m_ActionCallback->PostDispatch(eventId, ActionFlags::DispatchRay, commandBuffer))
+      {
+        ObjDisp(commandBuffer)->CmdTraceRaysIndirect2KHR(Unwrap(commandBuffer), indirectDeviceAddress);
+
+        m_ActionCallback->PostRemisc(eventId, ActionFlags::Clear, commandBuffer);
+      }
+
+      if(loading)
       {
         AddEvent();
 
