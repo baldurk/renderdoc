@@ -33,6 +33,7 @@
 #include <string>
 
 #define DEBUG_BREAK() raise(SIGTRAP)
+#define UNCONDITIONAL_DEBUG_BREAK() raise(SIGTRAP)
 
 #define MAX_PATH 256
 

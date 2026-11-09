@@ -35,6 +35,7 @@
 
 typedef HRESULT(WINAPI *PFN_CREATE_DXGI_FACTORY1)(REFIID, void **);
 typedef HRESULT(WINAPI *PFN_CREATE_DXGI_FACTORY2)(UINT, REFIID, void **);
+typedef HRESULT(WINAPI *PFN_GET_DEBUG_INTERFACE1)(UINT, REFIID, _COM_Outptr_ void **);
 
 typedef DXC_API_IMPORT HRESULT(__stdcall *pDxcCreateInstance)(REFCLSID rclsid, REFIID riid,
                                                               LPVOID *ppv);
@@ -488,6 +489,20 @@ bool D3D12GraphicsTest::Init()
   if(!dev)
     return false;
 
+  if(breakOnDebug)
+  {
+    ID3D12InfoQueuePtr info = dev;
+    info->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
+    info->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
+    info->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
+
+    D3D12_INFO_QUEUE_FILTER filter = {};
+    filter.DenyList.NumIDs = (UINT)mutedMessages.size();
+    filter.DenyList.pIDList = mutedMessages.data();
+
+    info->PushStorageFilter(&filter);
+  }
+
   {
     LUID luid = dev->GetAdapterLuid();
 
@@ -837,6 +852,21 @@ void D3D12GraphicsTest::Shutdown()
   queue = NULL;
   dev = NULL;
   devConfig = NULL;
+
+  PFN_GET_DEBUG_INTERFACE1 getDebug =
+      (PFN_GET_DEBUG_INTERFACE1)GetProcAddress(dxgi, "DXGIGetDebugInterface1");
+
+  if(debugDevice && getDebug && !subtest)
+  {
+    IDXGIDebug1Ptr dxgiDebug;
+    if(SUCCEEDED(getDebug(0, __uuidof(IDXGIDebug1), (void **)&dxgiDebug)))
+    {
+      HRESULT hr = dxgiDebug->ReportLiveObjects(
+          DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_FLAGS(DXGI_DEBUG_RLO_SUMMARY | DXGI_DEBUG_RLO_DETAIL |
+                                               DXGI_DEBUG_RLO_IGNORE_INTERNAL));
+      TEST_ASSERT(hr == S_OK, "Some objects are not released");
+    }
+  }
 }
 
 bool D3D12GraphicsTest::Running()

@@ -445,6 +445,7 @@ std::string GraphicsTest::dataRoot;
 int GraphicsTest::screenWidth = 400;
 int GraphicsTest::screenHeight = 300;
 bool GraphicsTest::debugDevice = false;
+bool GraphicsTest::breakOnDebug = false;
 
 void GraphicsTest::Prepare(int argc, char **argv)
 {
@@ -474,6 +475,11 @@ void GraphicsTest::Prepare(int argc, char **argv)
     if(!strcmp(argv[i], "--debug") || !strcmp(argv[i], "--validate"))
     {
       debugDevice = true;
+    }
+
+    if(!strcmp(argv[i], "--break-on-debug"))
+    {
+      breakOnDebug = true;
     }
 
     if(i + 1 < argc && (!strcmp(argv[i], "--frames") || !strcmp(argv[i], "--framecount") ||

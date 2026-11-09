@@ -85,6 +85,8 @@ struct OpenGLGraphicsTest : public GraphicsTest
   void *mainContext = NULL;
   bool inited = false;
 
+  bool ignoreErrors = false;
+
   struct
   {
     std::vector<GLuint> bufs, texs, progs, pipes, vaos, fbos;

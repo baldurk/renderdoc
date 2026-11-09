@@ -82,11 +82,15 @@ void main()
 static void APIENTRY debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
                                    GLsizei length, const GLchar *message, const void *userParam)
 {
+  OpenGLGraphicsTest *test = (OpenGLGraphicsTest *)userParam;
+
   // too much spam on these types
   if(type != GL_DEBUG_TYPE_PERFORMANCE && type != GL_DEBUG_TYPE_OTHER &&
      source != GL_DEBUG_SOURCE_APPLICATION)
   {
-    TEST_ERROR("Debug message: %s", message);
+    TEST_WARN("Debug message: %s", message);
+    if(test && test->breakOnDebug && !test->ignoreErrors)
+      UNCONDITIONAL_DEBUG_BREAK();
   }
 }
 
@@ -96,7 +100,7 @@ void OpenGLGraphicsTest::PostInit()
 
   if(GLAD_GL_KHR_debug)
   {
-    glDebugMessageCallback(&debugCallback, NULL);
+    glDebugMessageCallback(&debugCallback, this);
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
   }
 

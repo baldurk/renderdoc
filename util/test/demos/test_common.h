@@ -222,6 +222,7 @@ struct GraphicsTest
   const char *screenTitle = "RenderDoc test program";
 
   bool headless = false;
+  bool subtest = false;
 
   RENDERDOC_API_1_7_0 *rdoc = NULL;
 
@@ -233,6 +234,7 @@ struct GraphicsTest
   static int screenWidth;
   static int screenHeight;
   static bool debugDevice;
+  static bool breakOnDebug;
 };
 
 enum class TestAPI

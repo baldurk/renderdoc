@@ -31,6 +31,7 @@
 #include "../win32/win32_window.h"
 
 typedef HRESULT(WINAPI *PFN_CREATE_DXGI_FACTORY)(REFIID, void **);
+typedef HRESULT(WINAPI *PFN_GET_DEBUG_INTERFACE1)(UINT, REFIID, _COM_Outptr_ void **);
 
 namespace
 {
@@ -321,6 +322,20 @@ void D3D11GraphicsTest::PostDeviceCreate()
     }
   }
 
+  if(breakOnDebug)
+  {
+    ID3D11InfoQueuePtr info = dev;
+    info->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, TRUE);
+    info->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR, TRUE);
+    info->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_WARNING, TRUE);
+
+    D3D11_INFO_QUEUE_FILTER filter = {};
+    filter.DenyList.NumIDs = (UINT)mutedMessages.size();
+    filter.DenyList.pIDList = mutedMessages.data();
+
+    info->PushStorageFilter(&filter);
+  }
+
   dev1 = dev;
   dev2 = dev;
   dev3 = dev;
@@ -390,6 +405,20 @@ void D3D11GraphicsTest::Shutdown()
   DefaultTriPS = NULL;
 
   DefaultTriVB = NULL;
+
+  PFN_GET_DEBUG_INTERFACE1 getDebug =
+      (PFN_GET_DEBUG_INTERFACE1)GetProcAddress(dxgi, "DXGIGetDebugInterface1");
+
+  if(debugDevice && getDebug && !subtest)
+  {
+    IDXGIDebug1Ptr dxgiDebug;
+    if(SUCCEEDED(getDebug(0, __uuidof(IDXGIDebug1), (void **)&dxgiDebug)))
+    {
+      dxgiDebug->ReportLiveObjects(
+          DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_FLAGS(DXGI_DEBUG_RLO_SUMMARY | DXGI_DEBUG_RLO_DETAIL |
+                                               DXGI_DEBUG_RLO_IGNORE_INTERNAL));
+    }
+  }
 }
 
 bool D3D11GraphicsTest::Running()

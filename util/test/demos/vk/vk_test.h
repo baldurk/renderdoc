@@ -343,6 +343,8 @@ struct VulkanGraphicsTest : public GraphicsTest
   bool vmaBDA = false;
   VmaAllocator allocator = VK_NULL_HANDLE;
 
+  std::vector<std::string> mutedMessages;
+
 private:
   static bool prepared_vk;
 

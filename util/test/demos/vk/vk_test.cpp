@@ -120,10 +120,29 @@ static VkBool32 VKAPI_PTR vulkanCallback(VkDebugUtilsMessageSeverityFlagBitsEXT 
                                          const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
                                          void *pUserData)
 {
+  VulkanGraphicsTest *test = (VulkanGraphicsTest *)pUserData;
+
+  // semaphore nonsense
   if(strstr(pCallbackData->pMessageIdName, "-01779"))
     return false;
 
+  // GPU-VA enabling features
+  if(strstr(pCallbackData->pMessageIdName, "WARNING-Setting-Limit-Adjusted"))
+    return false;
+
+  if(test)
+  {
+    for(std::string &msg : test->mutedMessages)
+    {
+      if(strstr(pCallbackData->pMessageIdName, msg.c_str()))
+        return false;
+    }
+  }
+
   TEST_WARN("Vulkan message: [%s] %s", pCallbackData->pMessageIdName, pCallbackData->pMessage);
+
+  if(test && test->breakOnDebug)
+    UNCONDITIONAL_DEBUG_BREAK();
 
   return false;
 }
@@ -688,7 +707,7 @@ bool VulkanGraphicsTest::Init()
   {
     CHECK_VKR(vkCreateDebugUtilsMessengerEXT(
         instance,
-        vkh::DebugUtilsMessengerCreateInfoEXT(&vulkanCallback, NULL,
+        vkh::DebugUtilsMessengerCreateInfoEXT(&vulkanCallback, this,
                                               VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
                                                   VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT),
         NULL, &debugUtilsMessenger));

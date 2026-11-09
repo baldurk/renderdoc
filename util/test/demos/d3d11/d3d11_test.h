@@ -222,6 +222,8 @@ struct D3D11GraphicsTest : public GraphicsTest
   ID3D11DeviceContext4Ptr ctx4;
   ID3DUserDefinedAnnotationPtr annot;
 
+  std::vector<D3D11_MESSAGE_ID> mutedMessages;
+
 private:
   static bool prepared_d3d11;
 };

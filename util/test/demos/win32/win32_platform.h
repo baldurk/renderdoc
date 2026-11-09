@@ -44,6 +44,8 @@ uint32_t GetPID();
       __debugbreak();       \
   } while(0)
 
+#define UNCONDITIONAL_DEBUG_BREAK() __debugbreak()
+
 #define popen _popen
 #define pclose _pclose
 

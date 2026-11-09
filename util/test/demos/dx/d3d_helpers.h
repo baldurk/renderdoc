@@ -28,6 +28,7 @@
 #include <string>
 #include <vector>
 #include "dx/official/dxgi1_4.h"
+#include "dx/official/dxgidebug.h"
 
 #include "dx/official/d3dcompiler.h"
 
@@ -59,6 +60,8 @@ COM_SMARTPTR(IDXGIFactory4);
 COM_SMARTPTR(IDXGIAdapter);
 COM_SMARTPTR(IDXGISurface);
 COM_SMARTPTR(IDXGIResource);
+COM_SMARTPTR(IDXGIDebug);
+COM_SMARTPTR(IDXGIDebug1);
 
 template <typename T>
 ULONG GetRefcount(T *ptr)
