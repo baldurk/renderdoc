@@ -8094,58 +8094,54 @@ bool WrappedVulkan::Serialise_vkCmdBuildAccelerationStructuresIndirectKHR(
 
   if(IsReplayingAndReading())
   {
-    size_t tempmemSize = sizeof(VkAccelerationStructureBuildGeometryInfoKHR) * infoCount;
-    for(uint32_t i = 0; i < infoCount; ++i)
-      tempmemSize += GetNextPatchSize(&pInfos[i]);
-
-    byte *memory = GetTempMemory(tempmemSize);
-    VkAccelerationStructureBuildGeometryInfoKHR *unwrappedInfos =
-        (VkAccelerationStructureBuildGeometryInfoKHR *)memory;
-    memory += sizeof(VkAccelerationStructureBuildGeometryInfoKHR) * infoCount;
-
-    for(uint32_t i = 0; i < infoCount; ++i)
-      unwrappedInfos[i] = *UnwrapStructAndChain(m_State, memory, &pInfos[i]);
-
-    // Convert the maxPrimitives back to a C-style array-of-arrays
-    rdcarray<const uint32_t *> tmpMaxPrimitiveCounts(NULL, infoCount);
-    for(uint32_t i = 0; i < infoCount; ++i)
-      tmpMaxPrimitiveCounts[i] = maxPrimitives[i].data();
-
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::BuildAccStruct);
 
-        ObjDisp(commandBuffer)
-            ->CmdBuildAccelerationStructuresIndirectKHR(
-                Unwrap(commandBuffer), infoCount, unwrappedInfos, pIndirectDeviceAddresses,
-                pIndirectStrides, tmpMaxPrimitiveCounts.data());
+      uint32_t eventId = !loading ? HandlePreCallback(commandBuffer, ActionFlags::BuildAccStruct) : 0;
 
-        if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::BuildAccStruct, commandBuffer))
-        {
-          ObjDisp(commandBuffer)
-              ->CmdBuildAccelerationStructuresIndirectKHR(
-                  Unwrap(commandBuffer), infoCount, unwrappedInfos, pIndirectDeviceAddresses,
-                  pIndirectStrides, tmpMaxPrimitiveCounts.data());
-          m_ActionCallback->PostRemisc(eventId, ActionFlags::BuildAccStruct, commandBuffer);
-        }
-      }
-    }
-    else
-    {
+      size_t tempmemSize = sizeof(VkAccelerationStructureBuildGeometryInfoKHR) * infoCount;
+      for(uint32_t i = 0; i < infoCount; ++i)
+        tempmemSize += GetNextPatchSize(&pInfos[i]);
+
+      byte *memory = GetTempMemory(tempmemSize);
+      VkAccelerationStructureBuildGeometryInfoKHR *unwrappedInfos =
+          (VkAccelerationStructureBuildGeometryInfoKHR *)memory;
+      memory += sizeof(VkAccelerationStructureBuildGeometryInfoKHR) * infoCount;
+
+      for(uint32_t i = 0; i < infoCount; ++i)
+        unwrappedInfos[i] = *UnwrapStructAndChain(m_State, memory, &pInfos[i]);
+
+      // Convert the maxPrimitives back to a C-style array-of-arrays
+      rdcarray<const uint32_t *> tmpMaxPrimitiveCounts(NULL, infoCount);
+      for(uint32_t i = 0; i < infoCount; ++i)
+        tmpMaxPrimitiveCounts[i] = maxPrimitives[i].data();
+
       ObjDisp(commandBuffer)
           ->CmdBuildAccelerationStructuresIndirectKHR(
               Unwrap(commandBuffer), infoCount, unwrappedInfos, pIndirectDeviceAddresses,
               pIndirectStrides, tmpMaxPrimitiveCounts.data());
 
-      AddEvent();
-      ActionDescription action;
-      action.flags = ActionFlags::BuildAccStruct;
-      AddAction(action);
+      if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::BuildAccStruct, commandBuffer))
+      {
+        ObjDisp(commandBuffer)
+            ->CmdBuildAccelerationStructuresIndirectKHR(
+                Unwrap(commandBuffer), infoCount, unwrappedInfos, pIndirectDeviceAddresses,
+                pIndirectStrides, tmpMaxPrimitiveCounts.data());
+        m_ActionCallback->PostRemisc(eventId, ActionFlags::BuildAccStruct, commandBuffer);
+      }
+
+      if(loading)
+      {
+        AddEvent();
+        ActionDescription action;
+        action.flags = ActionFlags::BuildAccStruct;
+        AddAction(action);
+      }
     }
   }
 
@@ -8232,57 +8228,53 @@ bool WrappedVulkan::Serialise_vkCmdBuildAccelerationStructuresKHR(
 
   if(IsReplayingAndReading())
   {
-    size_t tempmemSize = sizeof(VkAccelerationStructureBuildGeometryInfoKHR) * infoCount;
-    for(uint32_t i = 0; i < infoCount; ++i)
-      tempmemSize += GetNextPatchSize(&pInfos[i]);
-
-    byte *memory = GetTempMemory(tempmemSize);
-    VkAccelerationStructureBuildGeometryInfoKHR *unwrappedInfos =
-        (VkAccelerationStructureBuildGeometryInfoKHR *)memory;
-    memory += sizeof(VkAccelerationStructureBuildGeometryInfoKHR) * infoCount;
-
-    for(uint32_t i = 0; i < infoCount; ++i)
-      unwrappedInfos[i] = *UnwrapStructAndChain(m_State, memory, &pInfos[i]);
-
-    // Convert the rangeInfos back to a C-style array-of-arrays
-    rdcarray<const VkAccelerationStructureBuildRangeInfoKHR *> tmpBuildRangeInfos;
-    tmpBuildRangeInfos.resize(infoCount);
-    for(uint32_t i = 0; i < infoCount; ++i)
-      tmpBuildRangeInfos[i] = rangeInfos[i].data();
-
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::BuildAccStruct);
+      uint32_t eventId = !loading ? HandlePreCallback(commandBuffer, ActionFlags::BuildAccStruct) : 0;
 
-        ObjDisp(commandBuffer)
-            ->CmdBuildAccelerationStructuresKHR(Unwrap(commandBuffer), infoCount, unwrappedInfos,
-                                                tmpBuildRangeInfos.data());
+      size_t tempmemSize = sizeof(VkAccelerationStructureBuildGeometryInfoKHR) * infoCount;
+      for(uint32_t i = 0; i < infoCount; ++i)
+        tempmemSize += GetNextPatchSize(&pInfos[i]);
 
-        if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::BuildAccStruct, commandBuffer))
-        {
-          ObjDisp(commandBuffer)
-              ->CmdBuildAccelerationStructuresKHR(Unwrap(commandBuffer), infoCount, unwrappedInfos,
-                                                  tmpBuildRangeInfos.data());
-          m_ActionCallback->PostRemisc(eventId, ActionFlags::BuildAccStruct, commandBuffer);
-        }
-      }
-    }
-    else
-    {
+      byte *memory = GetTempMemory(tempmemSize);
+      VkAccelerationStructureBuildGeometryInfoKHR *unwrappedInfos =
+          (VkAccelerationStructureBuildGeometryInfoKHR *)memory;
+      memory += sizeof(VkAccelerationStructureBuildGeometryInfoKHR) * infoCount;
+
+      for(uint32_t i = 0; i < infoCount; ++i)
+        unwrappedInfos[i] = *UnwrapStructAndChain(m_State, memory, &pInfos[i]);
+
+      // Convert the rangeInfos back to a C-style array-of-arrays
+      rdcarray<const VkAccelerationStructureBuildRangeInfoKHR *> tmpBuildRangeInfos;
+      tmpBuildRangeInfos.resize(infoCount);
+      for(uint32_t i = 0; i < infoCount; ++i)
+        tmpBuildRangeInfos[i] = rangeInfos[i].data();
+
       ObjDisp(commandBuffer)
           ->CmdBuildAccelerationStructuresKHR(Unwrap(commandBuffer), infoCount, unwrappedInfos,
                                               tmpBuildRangeInfos.data());
 
-      AddEvent();
-      ActionDescription action;
-      action.flags = ActionFlags::BuildAccStruct;
-      AddAction(action);
+      if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::BuildAccStruct, commandBuffer))
+      {
+        ObjDisp(commandBuffer)
+            ->CmdBuildAccelerationStructuresKHR(Unwrap(commandBuffer), infoCount, unwrappedInfos,
+                                                tmpBuildRangeInfos.data());
+        m_ActionCallback->PostRemisc(eventId, ActionFlags::BuildAccStruct, commandBuffer);
+      }
+
+      if(loading)
+      {
+        AddEvent();
+        ActionDescription action;
+        action.flags = ActionFlags::BuildAccStruct;
+        AddAction(action);
+      }
     }
   }
 
@@ -8360,38 +8352,36 @@ bool WrappedVulkan::Serialise_vkCmdCopyAccelerationStructureKHR(
 
   if(IsReplayingAndReading())
   {
-    VkCopyAccelerationStructureInfoKHR unwrappedInfo = Info;
-    unwrappedInfo.src = Unwrap(unwrappedInfo.src);
-    unwrappedInfo.dst = Unwrap(unwrappedInfo.dst);
-
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
 
-        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::BuildAccStruct);
+      uint32_t eventId = !loading ? HandlePreCallback(commandBuffer, ActionFlags::BuildAccStruct) : 0;
 
-        ObjDisp(commandBuffer)->CmdCopyAccelerationStructureKHR(Unwrap(commandBuffer), &unwrappedInfo);
+      VkCopyAccelerationStructureInfoKHR unwrappedInfo = Info;
+      unwrappedInfo.src = Unwrap(unwrappedInfo.src);
+      unwrappedInfo.dst = Unwrap(unwrappedInfo.dst);
 
-        if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::BuildAccStruct, commandBuffer))
-        {
-          ObjDisp(commandBuffer)->CmdCopyAccelerationStructureKHR(Unwrap(commandBuffer), &unwrappedInfo);
-
-          m_ActionCallback->PostRemisc(eventId, ActionFlags::BuildAccStruct, commandBuffer);
-        }
-      }
-    }
-    else
-    {
       ObjDisp(commandBuffer)->CmdCopyAccelerationStructureKHR(Unwrap(commandBuffer), &unwrappedInfo);
 
-      AddEvent();
-      ActionDescription action;
-      action.flags = ActionFlags::BuildAccStruct;
-      AddAction(action);
+      if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::BuildAccStruct, commandBuffer))
+      {
+        ObjDisp(commandBuffer)->CmdCopyAccelerationStructureKHR(Unwrap(commandBuffer), &unwrappedInfo);
+
+        m_ActionCallback->PostRemisc(eventId, ActionFlags::BuildAccStruct, commandBuffer);
+      }
+
+      if(loading)
+      {
+        AddEvent();
+        ActionDescription action;
+        action.flags = ActionFlags::BuildAccStruct;
+        AddAction(action);
+      }
     }
   }
 
@@ -8467,29 +8457,27 @@ bool WrappedVulkan::Serialise_vkCmdCopyMemoryToAccelerationStructureKHR(
 
   if(IsReplayingAndReading())
   {
-    VkCopyMemoryToAccelerationStructureInfoKHR unwrappedInfo = Info;
-    unwrappedInfo.dst = Unwrap(unwrappedInfo.dst);
-
     m_LastCmdBufferID = GetResID(commandBuffer);
 
-    if(IsActiveReplaying(m_State))
+    if(InRerecordRange(m_LastCmdBufferID))
     {
-      if(InRerecordRange(m_LastCmdBufferID))
-      {
+      bool loading = IsLoading(m_State);
+      if(!loading)
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-        ObjDisp(commandBuffer)
-            ->CmdCopyMemoryToAccelerationStructureKHR(Unwrap(commandBuffer), &unwrappedInfo);
-      }
-    }
-    else
-    {
+
+      VkCopyMemoryToAccelerationStructureInfoKHR unwrappedInfo = Info;
+      unwrappedInfo.dst = Unwrap(unwrappedInfo.dst);
+
       ObjDisp(commandBuffer)
           ->CmdCopyMemoryToAccelerationStructureKHR(Unwrap(commandBuffer), &unwrappedInfo);
 
-      AddEvent();
-      ActionDescription action;
-      action.flags = ActionFlags::BuildAccStruct;
-      AddAction(action);
+      if(loading)
+      {
+        AddEvent();
+        ActionDescription action;
+        action.flags = ActionFlags::BuildAccStruct;
+        AddAction(action);
+      }
     }
   }
 
