@@ -247,6 +247,10 @@ void main(void)
       VkCommandBuffer cmd = GetCommandBuffer();
       CHECK_VKR(vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo()));
       vkCmdBuildAccelerationStructuresKHR(cmd, 1, &blasBuildGeometryInfo, &asBuildRangeInfos);
+      vkh::cmdPipelineBarrier(cmd, {},
+                              {vkh::BufferMemoryBarrier(
+                                  VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
+                                  VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR, blasBuffer.buffer)});
       CHECK_VKR(vkEndCommandBuffer(cmd));
       Submit(99, 99, {cmd});
     }

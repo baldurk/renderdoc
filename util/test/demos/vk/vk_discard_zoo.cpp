@@ -67,14 +67,28 @@ void main()
     else if(img.createInfo.format == VK_FORMAT_S8_UINT)
       range.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
 
-    vkh::cmdPipelineBarrier(
-        cmd, {
-                 vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT |
-                                             VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-                                             VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                                         VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
-                                         VK_IMAGE_LAYOUT_GENERAL, img.image, range),
-             });
+    if(range.aspectMask & (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT))
+    {
+      vkh::cmdPipelineBarrier(
+          cmd, {
+                   vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT |
+                                               VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                                               VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                           VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                           VK_IMAGE_LAYOUT_GENERAL, img.image, range),
+               });
+    }
+    else
+    {
+      vkh::cmdPipelineBarrier(
+          cmd, {
+                   vkh::ImageMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT |
+                                               VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+                                               VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                           VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                           VK_IMAGE_LAYOUT_GENERAL, img.image, range),
+               });
+    }
 
     VkClearDepthStencilValue val = {0.4f, 0x40};
 
@@ -105,6 +119,16 @@ void main()
 
       vkCmdCopyBufferToImage(cmd, emptyBuf.buffer, img.image, VK_IMAGE_LAYOUT_GENERAL,
                              (uint32_t)regions.size(), regions.data());
+
+      vkh::cmdPipelineBarrier(
+          cmd, {
+                   vkh::ImageMemoryBarrier(
+                       VK_ACCESS_TRANSFER_WRITE_BIT,
+                       VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+                           VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                       VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL, img.image, range),
+               });
+
       return;
     }
 
@@ -118,10 +142,28 @@ void main()
       else
         vkCmdClearColorImage(cmd, img.image, VK_IMAGE_LAYOUT_GENERAL,
                              vkh::ClearColorValue(0.0f, 1.0f, 0.0f, 1.0f), 1, range);
+
+      vkh::cmdPipelineBarrier(
+          cmd, {
+                   vkh::ImageMemoryBarrier(
+                       VK_ACCESS_TRANSFER_WRITE_BIT,
+                       VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+                           VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                       VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL, img.image, range),
+               });
     }
     else
     {
       vkCmdClearDepthStencilImage(cmd, img.image, VK_IMAGE_LAYOUT_GENERAL, &val, 1, range);
+
+      vkh::cmdPipelineBarrier(
+          cmd, {
+                   vkh::ImageMemoryBarrier(
+                       VK_ACCESS_TRANSFER_WRITE_BIT,
+                       VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                           VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                       VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL, img.image, range),
+               });
     }
   }
 

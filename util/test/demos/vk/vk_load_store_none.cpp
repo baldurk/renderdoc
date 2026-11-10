@@ -110,6 +110,12 @@ void main()
 
     vkh::RenderPassCreator renderPassCreateInfo;
 
+    renderPassCreateInfo.dependencies.clear();
+    renderPassCreateInfo.dependencies.push_back(vkh::SubpassDependency(
+        ~0U, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT));
+
     renderPassCreateInfo.attachments.push_back(
         vkh::AttachmentDescription(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
                                    VK_IMAGE_LAYOUT_GENERAL, VK_ATTACHMENT_LOAD_OP_CLEAR));

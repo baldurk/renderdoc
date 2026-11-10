@@ -107,6 +107,10 @@ RD_TEST(VK_Misaligned_Dirty, VulkanGraphicsTest)
       vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
       setMarker(cmd, "First Submit");
       vkCmdUpdateBuffer(cmd, copy_src.buffer, sizeof(Vec3f), sizeof(Vec4f), &tri[0].col);
+      vkh::cmdPipelineBarrier(
+          cmd, {},
+          {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
+                                    copy_src.buffer)});
       vkEndCommandBuffer(cmd);
       Submit(0, 3, {cmd});
 
@@ -133,6 +137,11 @@ RD_TEST(VK_Misaligned_Dirty, VulkanGraphicsTest)
       region.dstOffset = sizeof(DefaultA2V) * 3;
       region.size = sizeof(DefaultA2V);
       vkCmdCopyBuffer(cmd, copy_src.buffer, vb.buffer, 1, &region);
+
+      vkh::cmdPipelineBarrier(
+          cmd, {},
+          {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_WRITE_BIT,
+                                    VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, vb.buffer)});
 
       vkCmdBeginRenderPass(
           cmd, vkh::RenderPassBeginInfo(mainWindow->rp, mainWindow->GetFB(), mainWindow->scissor),
@@ -161,6 +170,10 @@ RD_TEST(VK_Misaligned_Dirty, VulkanGraphicsTest)
       // (we don't create reference data until after this)
       vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
       setMarker(cmd, "Third Submit");
+      vkh::cmdPipelineBarrier(
+          cmd, {},
+          {vkh::BufferMemoryBarrier(VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT,
+                                    VK_ACCESS_TRANSFER_WRITE_BIT, copy_src.buffer)});
       vkCmdUpdateBuffer(cmd, copy_src.buffer, sizeof(Vec3f), sizeof(Vec4f), &tri[0].col);
       vkEndCommandBuffer(cmd);
       Submit(2, 3, {cmd});

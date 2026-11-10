@@ -481,7 +481,7 @@ void main()
 
       vkCmdEndRenderPass(cmd);
 
-      FinishUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
+      FinishUsingBackbuffer(cmd, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
       vkEndCommandBuffer(cmd);
 

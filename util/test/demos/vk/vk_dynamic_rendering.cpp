@@ -240,7 +240,8 @@ void main()
       vkh::cmdPipelineBarrier(
           cmd, {
                    vkh::ImageMemoryBarrier(
-                       VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                       VK_ACCESS_TRANSFER_WRITE_BIT,
+                       VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
                        VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL, swapimg),
                });
 

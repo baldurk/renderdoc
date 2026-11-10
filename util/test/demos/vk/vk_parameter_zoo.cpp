@@ -1022,7 +1022,8 @@ void main()
       VkCommandBuffer cmd = GetCommandBuffer();
       vkBeginCommandBuffer(cmd, vkh::CommandBufferBeginInfo());
       vkh::cmdPipelineBarrier(cmd, {
-                                       vkh::ImageMemoryBarrier(0, 0, VK_IMAGE_LAYOUT_UNDEFINED,
+                                       vkh::ImageMemoryBarrier(0, VK_ACCESS_TRANSFER_WRITE_BIT,
+                                                               VK_IMAGE_LAYOUT_UNDEFINED,
                                                                VK_IMAGE_LAYOUT_GENERAL, img.image),
                                    });
       vkCmdClearColorImage(cmd, img.image, VK_IMAGE_LAYOUT_GENERAL,

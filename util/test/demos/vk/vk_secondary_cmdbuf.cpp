@@ -136,10 +136,6 @@ RD_TEST(VK_Secondary_CmdBuf, VulkanGraphicsTest)
       VkImage swapimg =
           StartUsingBackbuffer(cmd, VK_ACCESS_TRANSFER_WRITE_BIT, VK_IMAGE_LAYOUT_GENERAL);
 
-      vkCmdClearColorImage(cmd, swapimg, VK_IMAGE_LAYOUT_GENERAL,
-                           vkh::ClearColorValue(0.2f, 0.2f, 0.2f, 1.0f), 1,
-                           vkh::ImageSubresourceRange());
-
       vkCmdBeginRenderPass(cmd,
                            vkh::RenderPassBeginInfo(renderPass, framebuffer, size,
                                                     {vkh::ClearValue(0.2f, 0.2f, 0.2f, 1.0f)}),
