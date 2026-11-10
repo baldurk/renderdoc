@@ -161,7 +161,7 @@ void main()
     if(!Init())
       return 3;
 
-    const static uint32_t numDescriptorSets = 10 * 1024;
+    const static uint32_t numDescriptorSets = 7 * 1024;
     const static uint32_t numDescriptorsPerSet = 2;
 
     VkDescriptorSetLayoutBindingFlagsCreateInfoEXT descFlags = {
