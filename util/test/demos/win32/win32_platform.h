@@ -55,4 +55,6 @@ uint32_t GetPID();
 
 #define WEXITSTATUS(code) code
 
+#define SetEnv(name, value) SetEnvironmentVariableA(name, value)
+
 #define EXECUTABLE_SUFFIX ".exe"
