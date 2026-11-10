@@ -830,6 +830,10 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
         {vkh::BufferMemoryBarrier(VK_ACCESS_NONE, VK_ACCESS_NONE, barrierBuffer.buffer)});
     vkEndCommandBuffer(barrierCmd);
 
+    VkEvent testEvent;
+    CHECK_VKR(vkCreateEvent(device, vkh::EventCreateInfo(), NULL, &testEvent));
+    setName(testEvent, "Test Event");
+
     VkFence barrierCmdSubmitFence;
     CHECK_VKR(vkCreateFence(device, vkh::FenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT), NULL,
                             &barrierCmdSubmitFence));
@@ -1615,6 +1619,9 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
       submit = vkh::SubmitInfo(cmds3);
       vkWaitForFences(device, 1, &barrierCmdSubmitFence, VK_TRUE, UINT64_MAX);
       vkResetFences(device, 1, &barrierCmdSubmitFence);
+      vkSetEvent(device, testEvent);
+      vkResetEvent(device, testEvent);
+      vkGetEventStatus(device, testEvent);
       CHECK_VKR(vkQueueSubmit(queue, 1, &submit, barrierCmdSubmitFence));
       vkWaitForFences(device, 1, &barrierCmdSubmitFence, VK_TRUE, UINT64_MAX);
 
