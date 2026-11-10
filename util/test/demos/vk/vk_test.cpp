@@ -166,6 +166,8 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
 {
   GraphicsTest::Prepare(argc, argv);
 
+  SetEnv("DISABLE_VULKAN_OBS_CAPTURE", "1");
+
   static bool prepared = false;
 
   std::vector<VkLayerProperties> availInstLayers;
