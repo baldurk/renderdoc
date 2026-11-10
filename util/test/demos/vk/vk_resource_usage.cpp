@@ -1265,12 +1265,12 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
             uint32_t strideDraw = sizeof(uvec4);
 
             vkCmdSetScissor(indirectDrawSecCmd, 0, 1, &mainWindow->scissor);
+            setMarker(indirectDrawSecCmd, "DrawIndirect: Single");
             vkh::cmdBindDescriptorSets(indirectDrawSecCmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                        descSetPipeLayout, 0, {descSet}, {});
             vkh::cmdBindVertexBuffers(indirectDrawSecCmd, 0, {vb.buffer}, {0});
             vkCmdBindIndexBuffer(indirectDrawSecCmd, ib.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-            setMarker(indirectDrawSecCmd, "DrawIndirect: Single");
             vkCmdBindPipeline(indirectDrawSecCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, descSetPipe);
             vkCmdSetViewport(indirectDrawSecCmd, 0, 1, &viewPort);
             vkCmdDrawIndirect(indirectDrawSecCmd, indirectData.buffer, offset, 1, strideDraw);
@@ -1311,12 +1311,12 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
         vkCmdBeginRenderPass(cmd, mainWindow->beginRP(), VK_SUBPASS_CONTENTS_INLINE);
 
         vkCmdSetScissor(cmd, 0, 1, &mainWindow->scissor);
+        setMarker(cmd, "DrawIndirect: Single");
         vkh::cmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, descSetPipeLayout, 0,
                                    {descSet}, {});
         vkh::cmdBindVertexBuffers(cmd, 0, {vb.buffer}, {0});
         vkCmdBindIndexBuffer(cmd, ib.buffer, 0, VK_INDEX_TYPE_UINT32);
 
-        setMarker(cmd, "DrawIndirect: Single");
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, descSetPipe);
         vkCmdSetViewport(cmd, 0, 1, &viewPort);
         size_t drawIndirectOffset = offset;
@@ -1338,9 +1338,11 @@ RD_TEST(VK_Resource_Usage, VulkanGraphicsTest)
                                  strideDrawIndexed);
         NextTest();
 
+        setMarker(cmd, "DrawIndexedIndirect-UnBind");
         vkCmdSetViewport(cmd, 0, 1, &viewPort);
         vkCmdBindIndexBuffer(cmd, indirectData.buffer, 1024, VK_INDEX_TYPE_UINT32);
         vkCmdDrawIndexedIndirect(cmd, indirectData.buffer, offset, 1, strideDrawIndexed);
+        setMarker(cmd, "DrawIndexedIndirect-Bind");
         vkCmdBindIndexBuffer(cmd, ib.buffer, 0, VK_INDEX_TYPE_UINT32);
         NextTest();
         offset += countDrawIndexed * strideDrawIndexed;
