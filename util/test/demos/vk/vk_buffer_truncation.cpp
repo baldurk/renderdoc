@@ -71,8 +71,28 @@ void main()
     features.robustBufferAccess = VK_TRUE;
 
     devExts.push_back(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
+    optDevExts.push_back(VK_EXT_ROBUSTNESS_2_EXTENSION_NAME);
 
     VulkanGraphicsTest::Prepare(argc, argv);
+
+    VkPhysicalDeviceRobustness2FeaturesEXT robustFeatsAvail = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
+    };
+
+    getPhysFeatures2(&robustFeatsAvail);
+
+    static VkPhysicalDeviceRobustness2FeaturesEXT robustFeats = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT,
+    };
+
+    // enable robustBufferAccess2 as well for index buffers
+    if(hasExt(VK_EXT_ROBUSTNESS_2_EXTENSION_NAME) && robustFeatsAvail.robustBufferAccess2)
+    {
+      robustFeats.robustBufferAccess2 = VK_TRUE;
+
+      robustFeats.pNext = (void *)devInfoNext;
+      devInfoNext = &robustFeats;
+    }
   }
 
   int main()

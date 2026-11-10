@@ -229,6 +229,18 @@ void main()
     devExts.push_back(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
 
     VulkanGraphicsTest::Prepare(argc, argv);
+
+    static VkPhysicalDeviceSamplerYcbcrConversionFeatures ycbcrFeats = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES,
+    };
+
+    getPhysFeatures2(&ycbcrFeats);
+
+    if(!ycbcrFeats.samplerYcbcrConversion)
+      Avail = "feature 'samplerYcbcrConversion' not available";
+
+    ycbcrFeats.pNext = (void *)devInfoNext;
+    devInfoNext = &ycbcrFeats;
   }
 
   int main()

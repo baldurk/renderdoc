@@ -133,6 +133,11 @@ void main()
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR,
     };
 
+    static VkPhysicalDeviceScalarBlockLayoutFeaturesEXT scalarFeatures = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES_EXT,
+    };
+
+    getPhysFeatures2(&scalarFeatures);
     getPhysFeatures2(&bufaddrFeatures);
 
     if(!bufaddrFeatures.bufferDeviceAddress)
@@ -142,6 +147,7 @@ void main()
     bufaddrFeatures.bufferDeviceAddressMultiDevice = 0;
 
     devInfoNext = &bufaddrFeatures;
+    bufaddrFeatures.pNext = &scalarFeatures;
   }
 
   int main()

@@ -97,6 +97,7 @@ void main()
     devExts.push_back(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME);
 
     features.geometryShader = VK_TRUE;
+    features.fragmentStoresAndAtomics = VK_TRUE;
 
     VulkanGraphicsTest::Prepare(argc, argv);
 
