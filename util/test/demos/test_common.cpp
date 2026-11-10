@@ -253,27 +253,38 @@ void LoadXPM(const char **XPM, Texture &tex)
 }
 
 static std::string externalCompiler;
+static std::string externalASMCompiler;
+
+bool CheckCompiler(std::string compiler)
+{
+  FILE *pipe = popen((compiler + EXECUTABLE_SUFFIX " --version 2>&1").c_str(), "r");
+
+  if(!pipe)
+    return false;
+
+  char dummy[512];
+  while(!feof(pipe))
+  {
+    fread(dummy, 1, 512, pipe);
+  }
+
+  int code = pclose(pipe);
+
+  return (WEXITSTATUS(code) == 0);
+}
 
 bool SpvCompilationSupported()
 {
+  if(CheckCompiler("spirv-as"))
+    externalASMCompiler = "spirv-as";
+
   for(std::string compiler : {"glslc", "glslangValidator"})
   {
-    FILE *pipe = popen((compiler + EXECUTABLE_SUFFIX " --version 2>&1").c_str(), "r");
-
-    if(!pipe)
-      continue;
-
-    char dummy[512];
-    while(!feof(pipe))
-    {
-      fread(dummy, 1, 512, pipe);
-    }
-
-    int code = pclose(pipe);
-
-    if(WEXITSTATUS(code) == 0)
+    if(CheckCompiler(compiler))
     {
       externalCompiler = compiler;
+      if(externalASMCompiler.empty())
+        externalASMCompiler = compiler;
       return true;
     }
   }
@@ -302,7 +313,25 @@ std::vector<uint32_t> CompileShaderToSpv(const char *demo_name, const std::strin
   std::string infile = path + "/input";
   std::string outfile = path + "/output";
 
-  if(externalCompiler == "glslc")
+  if(lang == ShaderLang::spvasm && externalASMCompiler == "spirv-as")
+  {
+    command_line = "spirv-as" EXECUTABLE_SUFFIX;
+
+    if(target == SPIRVTarget::opengl)
+      command_line += " --target-env=opengl";
+    else if(target == SPIRVTarget::vulkan)
+      command_line += " --target-env=vulkan1.0";
+    else if(target == SPIRVTarget::vulkan11)
+      command_line += " --target-env=vulkan1.1";
+    else if(target == SPIRVTarget::vulkan12)
+      command_line += " --target-env=vulkan1.2";
+
+    command_line += " -o ";
+    command_line += outfile;
+    command_line += " ";
+    command_line += infile;
+  }
+  else if(externalCompiler == "glslc")
   {
     command_line = "glslc" EXECUTABLE_SUFFIX;
     if(debug_info)

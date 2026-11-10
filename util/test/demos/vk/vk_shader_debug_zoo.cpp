@@ -3339,7 +3339,7 @@ OpBranch %_bottomlabel
 %_addr_bda_data_struct = OpLoad %uint2 %_ptr_addr_bda_data_struct
 %_ptr_bda_data_struct = OpBitcast %ptr_PhysicalStorageBuffer_bda_data_struct_f32_4 %_addr_bda_data_struct
 %_ptr_f32 = OpPtrAccessChain %ptr_PhysicalStorageBuffer_f32 %_ptr_bda_data_struct %int_dyn_1
-%_out_float = OpLoad %float %_ptr_f32 Aligned 16
+%_out_float = OpLoad %float %_ptr_f32 Aligned 4
 )EOTEST",
           // OpPtrAccessChain : float[] : ArrayStride 8
           R"EOTEST(
@@ -3347,7 +3347,7 @@ OpBranch %_bottomlabel
 %_addr_bda_data_struct = OpLoad %uint2 %_ptr_addr_bda_data_struct
 %_ptr_bda_data_struct = OpBitcast %ptr_PhysicalStorageBuffer_bda_data_struct_f32_8 %_addr_bda_data_struct
 %_ptr_f32 = OpPtrAccessChain %ptr_PhysicalStorageBuffer_f32 %_ptr_bda_data_struct %int_dyn_1
-%_out_float = OpLoad %float %_ptr_f32 Aligned 16
+%_out_float = OpLoad %float %_ptr_f32 Aligned 4
 )EOTEST",
           // OpPtrAccessChain : float[] : ArrayStride 12
           R"EOTEST(
@@ -3355,7 +3355,7 @@ OpBranch %_bottomlabel
 %_addr_bda_data_struct = OpLoad %uint2 %_ptr_addr_bda_data_struct
 %_ptr_bda_data_struct = OpBitcast %ptr_PhysicalStorageBuffer_bda_data_struct_f32_12 %_addr_bda_data_struct
 %_ptr_f32 = OpPtrAccessChain %ptr_PhysicalStorageBuffer_f32 %_ptr_bda_data_struct %int_dyn_1
-%_out_float = OpLoad %float %_ptr_f32 Aligned 16
+%_out_float = OpLoad %float %_ptr_f32 Aligned 4
 )EOTEST",
           // Load through a bda ptr array which is a member of a structure pointed to by a uint2 address
           R"EOTEST(
@@ -5020,11 +5020,6 @@ OpMemberDecorate %cbuffer_struct 17 Offset 216    ; double doublePackSource
     VkPipeline glslpipe2 = createGraphicsPipeline(pipeCreateInfo);
 
     SPIRVTarget target = SPIRVTarget::vulkan;
-
-    if(vk_version >= 0x11)
-      target = SPIRVTarget::vulkan11;
-    if(vk_version >= 0x12)
-      target = SPIRVTarget::vulkan12;
 
     pipeCreateInfo.stages = {
         CompileShaderModule(vertex, ShaderLang::glsl, ShaderStage::vert, "main"),

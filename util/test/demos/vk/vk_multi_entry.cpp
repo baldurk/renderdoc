@@ -35,10 +35,10 @@ RD_TEST(VK_Multi_Entry, VulkanGraphicsTest)
                OpMemoryModel Logical GLSL450
 
                OpEntryPoint Vertex %fakev "fake" %posout
-               OpEntryPoint Fragment %fakef "fake" %ColorF
+               OpEntryPoint Fragment %fakef "fake" %ColorF %push %tex1
 
                OpEntryPoint Vertex %mainv "main" %vertOut %Position %_ %Color %UV
-               OpEntryPoint Fragment %mainf "main" %ColorF %vertIn
+               OpEntryPoint Fragment %mainf "main" %ColorF %vertIn %push %tex
 
                OpExecutionMode %fakef OriginUpperLeft
                OpExecutionMode %mainf OriginUpperLeft
@@ -241,7 +241,7 @@ RD_TEST(VK_Multi_Entry, VulkanGraphicsTest)
     };
 
     VkPipelineShaderStageCreateInfo shad = CompileShaderModule(
-        combined_asm, ShaderLang::spvasm, ShaderStage::vert, "main", {}, SPIRVTarget::vulkan);
+        combined_asm, ShaderLang::spvasm, ShaderStage::vert, "main", {}, SPIRVTarget::vulkan12);
 
     pipeCreateInfo.stages = {
         shad,
