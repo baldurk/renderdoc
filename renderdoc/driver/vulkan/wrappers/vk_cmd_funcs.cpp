@@ -8615,15 +8615,37 @@ bool WrappedVulkan::Serialise_vkCmdBuildAccelerationStructuresIndirectKHR(
     if(IsActiveReplaying(m_State))
     {
       if(InRerecordRange(m_LastCmdBufferID))
+      {
         commandBuffer = RerecordCmdBuf(m_LastCmdBufferID);
-      else
-        return true;
-    }
+        uint32_t eventId = HandlePreCallback(commandBuffer, ActionFlags::BuildAccStruct);
 
-    ObjDisp(commandBuffer)
-        ->CmdBuildAccelerationStructuresIndirectKHR(Unwrap(commandBuffer), infoCount,
-                                                    unwrappedInfos, pIndirectDeviceAddresses,
-                                                    pIndirectStrides, tmpMaxPrimitiveCounts.data());
+        ObjDisp(commandBuffer)
+            ->CmdBuildAccelerationStructuresIndirectKHR(
+                Unwrap(commandBuffer), infoCount, unwrappedInfos, pIndirectDeviceAddresses,
+                pIndirectStrides, tmpMaxPrimitiveCounts.data());
+
+        if(eventId && m_ActionCallback->PostMisc(eventId, ActionFlags::BuildAccStruct, commandBuffer))
+        {
+          ObjDisp(commandBuffer)
+              ->CmdBuildAccelerationStructuresIndirectKHR(
+                  Unwrap(commandBuffer), infoCount, unwrappedInfos, pIndirectDeviceAddresses,
+                  pIndirectStrides, tmpMaxPrimitiveCounts.data());
+          m_ActionCallback->PostRemisc(eventId, ActionFlags::BuildAccStruct, commandBuffer);
+        }
+      }
+    }
+    else
+    {
+      ObjDisp(commandBuffer)
+          ->CmdBuildAccelerationStructuresIndirectKHR(
+              Unwrap(commandBuffer), infoCount, unwrappedInfos, pIndirectDeviceAddresses,
+              pIndirectStrides, tmpMaxPrimitiveCounts.data());
+
+      AddEvent();
+      ActionDescription action;
+      action.flags = ActionFlags::BuildAccStruct;
+      AddAction(action);
+    }
   }
 
   return true;
