@@ -164,7 +164,7 @@ struct VulkanWindow : public GraphicsWindow, public VulkanCommands
   void Submit(int index, int totalSubmits, const std::vector<VkCommandBuffer> &cmds,
               const std::vector<VkCommandBuffer> &seccmds, VkQueue q);
   static void MultiPresent(VkQueue queue, std::vector<VulkanWindow *> windows);
-  void Present(VkQueue q);
+  void Present(VkQueue q, bool queueWaitIdle = false);
 
   // forward GraphicsWindow functions to internal window
   void Resize(int width, int height) { m_Win->Resize(width, height); }

@@ -148,9 +148,12 @@ void main()
   AllocatedImage MakeTex2D(VkFormat fmt, uint32_t width, uint32_t height, uint32_t mips = 1,
                            uint32_t arraySlices = 1)
   {
-    return AllocatedImage(this,
-                          vkh::ImageCreateInfo(width, height, 0, fmt,
-                                               VK_IMAGE_USAGE_TRANSFER_DST_BIT, mips, arraySlices),
+    VkImageCreateFlags flags = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    if(fmt == VK_FORMAT_D32_SFLOAT_S8_UINT || fmt == VK_FORMAT_D24_UNORM_S8_UINT ||
+       fmt == VK_FORMAT_D32_SFLOAT || fmt == VK_FORMAT_D16_UNORM || fmt == VK_FORMAT_S8_UINT)
+      flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+    return AllocatedImage(this, vkh::ImageCreateInfo(width, height, 0, fmt, flags, mips, arraySlices),
                           VmaAllocationCreateInfo({0, VMA_MEMORY_USAGE_GPU_ONLY}));
   }
 
@@ -319,10 +322,10 @@ void main()
 
     renderPassCreateInfo.attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     renderPassCreateInfo.attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    renderPassCreateInfo.attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-    renderPassCreateInfo.attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-    renderPassCreateInfo.attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-    renderPassCreateInfo.attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    renderPassCreateInfo.attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    renderPassCreateInfo.attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    renderPassCreateInfo.attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    renderPassCreateInfo.attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     renderPassCreateInfo.attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     renderPassCreateInfo.attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     renderPassCreateInfo.attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;

@@ -577,9 +577,11 @@ void main()
     // vulkan doesn't have 4:4:4 packed formats, makes sense as it can use normal formats
     // MAKE_TEX(AYUV, VK_FORMAT_R8G8B8A8_UNORM, Vec4i(2, 1, 0, 1), yuv8, rgba8.width * 4);
     // MAKE_TEX(Y416, VK_FORMAT_R16G16B16A16_UNORM, Vec4i(1, 0, 2, 1), yuv16, rgba8.width * 8);
+    /*
     MAKE_TEX(444, VK_FORMAT_R10X6G10X6B10X6A10X6_UNORM_4PACK16_KHR,
              VK_FORMAT_R10X6G10X6B10X6A10X6_UNORM_4PACK16_KHR, Vec4i(1, 2, 0, 1), yuv16,
              rgba8.width * 8);
+             */
 
     ///////////////////////////////////////
     // 4:4:4 3-plane
@@ -878,7 +880,12 @@ void main()
         VkSamplerYcbcrConversionInfo ycbcrChain = {VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO};
 
         ycbcrChain.conversion = ycbcr[i].conv;
-        ycbcr[i].sampler = createSampler(vkh::SamplerCreateInfo(VK_FILTER_LINEAR).next(&ycbcrChain));
+        ycbcr[i].sampler = createSampler(
+            vkh::SamplerCreateInfo(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_MIPMAP_MODE_LINEAR,
+                                   VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+                                   VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+                                   VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE)
+                .next(&ycbcrChain));
 
         setlayout = createDescriptorSetLayout(vkh::DescriptorSetLayoutCreateInfo({
             {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,

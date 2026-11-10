@@ -179,6 +179,7 @@ void main()
     tests.push_back({VK_NULL_HANDLE});
 
     lineRasterSetup.stippledLineEnable = VK_TRUE;
+    lineRasterSetup.lineStippleFactor = 1;
     pipeCreateInfo.dynamicState.dynamicStates.push_back(VK_DYNAMIC_STATE_LINE_STIPPLE_EXT);
 
     if(lineRasterFeatures.rectangularLines && lineRasterFeatures.stippledRectangularLines)

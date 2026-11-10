@@ -133,7 +133,7 @@ RD_TEST(VK_Multi_Thread_Windows, VulkanGraphicsTest)
 
         win->Submit(0, 1, {cmd}, {}, q);
 
-        win->Present(q);
+        win->Present(q, true);
       } while(win);
     };
 

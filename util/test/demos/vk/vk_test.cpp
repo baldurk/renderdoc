@@ -1885,12 +1885,15 @@ void VulkanWindow::MultiPresent(VkQueue queue, std::vector<VulkanWindow *> windo
   }
 }
 
-void VulkanWindow::Present(VkQueue queue)
+void VulkanWindow::Present(VkQueue queue, bool queueWaitIdle)
 {
   if(swap == VK_NULL_HANDLE)
     return;
 
-  vkDeviceWaitIdle(m_Test->device);
+  if(queueWaitIdle)
+    vkQueueWaitIdle(queue);
+  else
+    vkDeviceWaitIdle(m_Test->device);
 
   VkResult vkr =
       vkQueuePresentKHR(queue, vkh::PresentInfoKHR(swap, imgIndex, &renderEndSemaphore[semIdx]));
