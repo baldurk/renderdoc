@@ -1268,10 +1268,16 @@ private:
 
   VulkanEventNode &GetLastEventNode()
   {
+    RDCASSERT(IsLoading(m_State));
     rdcarray<VulkanEventNode> &eventNodes =
         (m_LastCmdBufferID != ResourceId() ? m_BakedCmdBufferInfo[m_LastCmdBufferID].eventNodes
                                            : m_EventNodes);
     return eventNodes.back();
+  }
+  VulkanEventNode &GetLoadingEventNode()
+  {
+    RDCASSERT(IsLoading(m_State));
+    return m_LoadingEventNode;
   }
 
   void BakeEventNodes(ActionDescription &rootAction);

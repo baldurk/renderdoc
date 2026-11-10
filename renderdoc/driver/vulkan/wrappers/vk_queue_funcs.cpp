@@ -1324,7 +1324,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(SerialiserType &ser, VkQueue queue, 
 
     // add an action use for this submission, to tally up with any debug messages that come from it
     if(IsLoading(m_State))
-      m_LoadingEventNode.addActionUse = true;
+      GetLoadingEventNode().addActionUse = true;
 
     rdcarray<VkCommandBufferSubmitInfo> cmds;
 
@@ -1553,7 +1553,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit2(SerialiserType &ser, VkQueue queue,
 
     // add an action use for this submission, to tally up with any debug messages that come from it
     if(IsLoading(m_State))
-      m_LoadingEventNode.addActionUse = true;
+      GetLoadingEventNode().addActionUse = true;
 
     for(uint32_t sub = 0; sub < submitCount; sub++)
     {

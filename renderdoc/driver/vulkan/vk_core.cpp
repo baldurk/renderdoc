@@ -5632,7 +5632,7 @@ void WrappedVulkan::AddDebugMessage(MessageCategory c, MessageSeverity sv, Messa
 void WrappedVulkan::AddDebugMessage(DebugMessage msg)
 {
   if(IsLoading(m_State))
-    m_LoadingEventNode.debugMessages.push_back(msg);
+    GetLoadingEventNode().debugMessages.push_back(msg);
   else
     m_DebugMessages.push_back(msg);
 }
