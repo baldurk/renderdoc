@@ -554,10 +554,9 @@ void main()
     if(f.cfg.type == TextureType::A8)
       props1D = {};
 
-    // rendering to depth 3D textures is broken on NV, fixed in a future driver version (guess
-    // made, will be updated once fix ships)
-    if(depth && physProperties.vendorID == PCI_VENDOR_NV &&
-       physProperties.driverVersion < VK_MAKE_VERSION_NV(445, 0, 0, 0))
+    // unclear if rendering to slices of depth textures is supported and most other APIs don't
+    // support this at all, just disable it as unlikely anyone ever uses it
+    if(depth)
       props3D = {};
 
     if(!renderable && !depth)
