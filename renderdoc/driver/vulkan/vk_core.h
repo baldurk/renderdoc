@@ -1199,6 +1199,12 @@ private:
 
   void ApplyInitialContents();
 
+  void AddEventResourceUsage(ResourceId id, ResourceUsage usage)
+  {
+    RDCASSERT(IsLoading(m_State));
+    m_LoadingEventNode.AddResourceUsage(id, usage);
+  }
+
   rdcarray<APIEvent> m_Events;
   VulkanEventNode m_LoadingEventNode;
   rdcarray<VulkanEventNode> m_EventNodes;

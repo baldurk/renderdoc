@@ -425,14 +425,14 @@ void WrappedVulkan::AddImplicitResolveResourceUsage(uint32_t subpass)
     uint32_t attIdx = rpinfo.subpasses[subpass].resolveAttachments[i];
     if(attIdx == VK_ATTACHMENT_UNUSED)
       continue;
-    ResourceId image = m_CreationInfo.m_ImageView[fbattachments[attIdx]].image;
-    m_LoadingEventNode.AddResourceUsage(image, ResourceUsage::ResolveDst);
+    AddEventResourceUsage(m_CreationInfo.m_ImageView[fbattachments[attIdx]].image,
+                          ResourceUsage::ResolveDst);
 
     attIdx = rpinfo.subpasses[subpass].colorAttachments[i];
     if(attIdx == VK_ATTACHMENT_UNUSED)
       continue;
-    image = m_CreationInfo.m_ImageView[fbattachments[attIdx]].image;
-    m_LoadingEventNode.AddResourceUsage(image, ResourceUsage::ResolveSrc);
+    AddEventResourceUsage(m_CreationInfo.m_ImageView[fbattachments[attIdx]].image,
+                          ResourceUsage::ResolveSrc);
   }
 
   // also add any discards on the final subpass
@@ -441,10 +441,8 @@ void WrappedVulkan::AddImplicitResolveResourceUsage(uint32_t subpass)
     for(size_t i = 0; i < rpinfo.attachments.size(); i++)
     {
       if(rpinfo.attachments[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
-      {
-        ResourceId image = m_CreationInfo.m_ImageView[fbattachments[i]].image;
-        m_LoadingEventNode.AddResourceUsage(image, ResourceUsage::Discard);
-      }
+        AddEventResourceUsage(m_CreationInfo.m_ImageView[fbattachments[i]].image,
+                              ResourceUsage::Discard);
     }
   }
 }
@@ -2310,13 +2308,10 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(SerialiserType &ser, VkComman
       {
         if(rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ||
            rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
-        {
-          ResourceId image = m_CreationInfo.m_ImageView[fbattachments[i]].image;
-          m_LoadingEventNode.AddResourceUsage(
-              image, rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR
-                         ? ResourceUsage::Clear
-                         : ResourceUsage::Discard);
-        }
+          AddEventResourceUsage(m_CreationInfo.m_ImageView[fbattachments[i]].image,
+                                rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR
+                                    ? ResourceUsage::Clear
+                                    : ResourceUsage::Discard);
       }
 
       rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
@@ -2930,13 +2925,10 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass2(SerialiserType &ser,
       {
         if(rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ||
            rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
-        {
-          ResourceId image = m_CreationInfo.m_ImageView[fbattachments[i]].image;
-          m_LoadingEventNode.AddResourceUsage(
-              image, rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR
-                         ? ResourceUsage::Clear
-                         : ResourceUsage::Discard);
-        }
+          AddEventResourceUsage(m_CreationInfo.m_ImageView[fbattachments[i]].image,
+                                rpinfo.attachments[i].loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR
+                                    ? ResourceUsage::Clear
+                                    : ResourceUsage::Discard);
       }
 
       rdcarray<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
@@ -4598,10 +4590,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
                                 bufBarriers.back().dstQueueFamilyIndex);
 
         if(IsLoading(m_State))
-        {
-          m_LoadingEventNode.AddResourceUsage(GetResID(pBufferMemoryBarriers[i].buffer),
-                                              ResourceUsage::Barrier);
-        }
+          AddEventResourceUsage(GetResID(pBufferMemoryBarriers[i].buffer), ResourceUsage::Barrier);
       }
     }
 
@@ -4616,10 +4605,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
                                 imgBarriers.back().dstQueueFamilyIndex);
 
         if(IsLoading(m_State))
-        {
-          m_LoadingEventNode.AddResourceUsage(GetResID(pImageMemoryBarriers[i].image),
-                                              ResourceUsage::Barrier);
-        }
+          AddEventResourceUsage(GetResID(pImageMemoryBarriers[i].image), ResourceUsage::Barrier);
       }
     }
 
@@ -4639,9 +4625,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
         {
           VulkanCreationInfo::Image &imgInfo = m_CreationInfo.m_Image[GetResID(b.image)];
           if(!imgInfo.external)
-          {
-            m_LoadingEventNode.AddResourceUsage(GetResID(b.image), ResourceUsage::Discard);
-          }
+            AddEventResourceUsage(GetResID(b.image), ResourceUsage::Discard);
         }
       }
     }
@@ -4845,10 +4829,8 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier2(SerialiserType &ser,
                                 bufBarriers.back().dstQueueFamilyIndex);
 
         if(IsLoading(m_State))
-        {
-          m_LoadingEventNode.AddResourceUsage(
-              GetResID(DependencyInfo.pBufferMemoryBarriers[i].buffer), ResourceUsage::Barrier);
-        }
+          AddEventResourceUsage(GetResID(DependencyInfo.pBufferMemoryBarriers[i].buffer),
+                                ResourceUsage::Barrier);
       }
     }
 
@@ -4863,10 +4845,8 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier2(SerialiserType &ser,
                                 imgBarriers.back().dstQueueFamilyIndex);
 
         if(IsLoading(m_State))
-        {
-          m_LoadingEventNode.AddResourceUsage(
-              GetResID(DependencyInfo.pImageMemoryBarriers[i].image), ResourceUsage::Barrier);
-        }
+          AddEventResourceUsage(GetResID(DependencyInfo.pImageMemoryBarriers[i].image),
+                                ResourceUsage::Barrier);
       }
     }
 
@@ -4894,9 +4874,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier2(SerialiserType &ser,
         {
           VulkanCreationInfo::Image &imgInfo = m_CreationInfo.m_Image[GetResID(b.image)];
           if(!imgInfo.external)
-          {
-            m_LoadingEventNode.AddResourceUsage(GetResID(b.image), ResourceUsage::Discard);
-          }
+            AddEventResourceUsage(GetResID(b.image), ResourceUsage::Discard);
         }
       }
     }
@@ -7918,12 +7896,9 @@ bool WrappedVulkan::Serialise_vkCmdBeginRendering(SerialiserType &ser, VkCommand
 
         if(att->loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ||
            att->loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
-        {
-          ResourceId image = m_CreationInfo.m_ImageView[GetResID(att->imageView)].image;
-          m_LoadingEventNode.AddResourceUsage(image, att->loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR
-                                                         ? ResourceUsage::Clear
-                                                         : ResourceUsage::Discard);
-        }
+          AddEventResourceUsage(m_CreationInfo.m_ImageView[GetResID(att->imageView)].image,
+                                att->loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR ? ResourceUsage::Clear
+                                                                           : ResourceUsage::Discard);
       }
 
       AddEvent();
@@ -8239,22 +8214,18 @@ bool WrappedVulkan::Serialise_vkCmdEndRendering(SerialiserType &ser, VkCommandBu
         if((dynAtts[i].resolveMode && !(dynAtts[i].resolveMode & VK_RESOLVE_MODE_CUSTOM_BIT_EXT)) &&
            dynAtts[i].imageView != VK_NULL_HANDLE && dynAtts[i].resolveImageView != VK_NULL_HANDLE)
         {
-          m_LoadingEventNode.AddResourceUsage(
-              m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
-              ResourceUsage::ResolveSrc);
+          AddEventResourceUsage(m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
+                                ResourceUsage::ResolveSrc);
 
-          m_LoadingEventNode.AddResourceUsage(
+          AddEventResourceUsage(
               m_CreationInfo.m_ImageView[GetResID(dynAtts[i].resolveImageView)].image,
               ResourceUsage::ResolveDst);
         }
 
         // also add any discards
         if(dynAtts[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
-        {
-          m_LoadingEventNode.AddResourceUsage(
-              m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
-              ResourceUsage::Discard);
-        }
+          AddEventResourceUsage(m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
+                                ResourceUsage::Discard);
       }
 
       AddEvent();
@@ -8525,22 +8496,18 @@ bool WrappedVulkan::Serialise_vkCmdEndRendering2EXT(SerialiserType &ser,
         if((dynAtts[i].resolveMode && !(dynAtts[i].resolveMode & VK_RESOLVE_MODE_CUSTOM_BIT_EXT)) &&
            dynAtts[i].imageView != VK_NULL_HANDLE && dynAtts[i].resolveImageView != VK_NULL_HANDLE)
         {
-          m_LoadingEventNode.AddResourceUsage(
-              m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
-              ResourceUsage::ResolveSrc);
+          AddEventResourceUsage(m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
+                                ResourceUsage::ResolveSrc);
 
-          m_LoadingEventNode.AddResourceUsage(
+          AddEventResourceUsage(
               m_CreationInfo.m_ImageView[GetResID(dynAtts[i].resolveImageView)].image,
               ResourceUsage::ResolveDst);
         }
 
         // also add any discards
         if(dynAtts[i].storeOp == VK_ATTACHMENT_STORE_OP_DONT_CARE)
-        {
-          m_LoadingEventNode.AddResourceUsage(
-              m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
-              ResourceUsage::Discard);
-        }
+          AddEventResourceUsage(m_CreationInfo.m_ImageView[GetResID(dynAtts[i].imageView)].image,
+                                ResourceUsage::Discard);
       }
 
       AddEvent();
@@ -10401,8 +10368,8 @@ bool WrappedVulkan::Serialise_vkCmdBeginCustomResolveEXT(
           renderstate.dynamicRendering.color[i].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
           renderstate.dynamicRendering.color[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
-          ResourceId image = m_CreationInfo.m_ImageView[resolveImageView].image;
-          m_LoadingEventNode.AddResourceUsage(image, ResourceUsage::Discard);
+          AddEventResourceUsage(m_CreationInfo.m_ImageView[resolveImageView].image,
+                                ResourceUsage::Discard);
         }
         else
         {
