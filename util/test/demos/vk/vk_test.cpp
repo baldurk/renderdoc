@@ -1170,6 +1170,12 @@ void VulkanGraphicsTest::setName(VkSemaphore obj, const std::string &name)
 }
 
 template <>
+void VulkanGraphicsTest::setName(VkEvent obj, const std::string &name)
+{
+  setName(VK_OBJECT_TYPE_EVENT, (uint64_t)obj, name);
+}
+
+template <>
 void VulkanGraphicsTest::setName(VkFence obj, const std::string &name)
 {
   setName(VK_OBJECT_TYPE_FENCE, (uint64_t)obj, name);
