@@ -358,9 +358,6 @@
     <ClCompile Include="vk\vk_texture_zoo.cpp">
       <Filter>Vulkan\demos</Filter>
     </ClCompile>
-    <ClCompile Include="vk\vk_ext_buffer_address.cpp">
-      <Filter>Vulkan\demos</Filter>
-    </ClCompile>
     <ClCompile Include="vk\vk_khr_buffer_address.cpp">
       <Filter>Vulkan\demos</Filter>
     </ClCompile>
