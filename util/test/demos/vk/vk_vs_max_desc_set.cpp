@@ -77,6 +77,9 @@ void main()
 
   int main()
   {
+    // GPUVA needs a spare desc set but this test is deliberately not allowing that
+    mutedMessages.push_back("WARNING-GPU-Assisted-Validation");
+
     // initialise, create window, create context, etc
     if(!Init())
       return 3;

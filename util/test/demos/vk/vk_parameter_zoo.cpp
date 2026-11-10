@@ -440,6 +440,9 @@ void main()
 
   int main()
   {
+    // we deliberately test this behaviour, it's not invalid and we expectt the NULL this is warning us about
+    mutedMessages.push_back("WARNING-vkGetDeviceProcAddr-device");
+
     // initialise, create window, create context, etc
     if(!Init())
       return 3;
