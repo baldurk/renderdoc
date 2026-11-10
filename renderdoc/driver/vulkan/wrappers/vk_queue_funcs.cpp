@@ -1559,7 +1559,12 @@ bool WrappedVulkan::Serialise_vkQueueSubmit2(SerialiserType &ser, VkQueue queue,
     {
       rdcstr basename = StringFormat::Fmt("vkQueueSubmit2(%u)", pSubmits[sub].commandBufferInfoCount);
 
-      ReplayQueueSubmit(queue, pSubmits[sub], basename);
+      VkSubmitInfo2 submitInfo = pSubmits[sub];
+      submitInfo.waitSemaphoreInfoCount = 0;
+      submitInfo.pWaitSemaphoreInfos = NULL;
+      submitInfo.signalSemaphoreInfoCount = 0;
+      submitInfo.pSignalSemaphoreInfos = NULL;
+      ReplayQueueSubmit(queue, submitInfo, basename);
     }
     if(submitCount == 0)
     {
