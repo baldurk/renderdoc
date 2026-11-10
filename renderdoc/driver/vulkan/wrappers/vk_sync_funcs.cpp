@@ -426,6 +426,7 @@ VkResult WrappedVulkan::vkSetEvent(VkDevice device, VkEvent event)
     Serialise_vkSetEvent(ser, device, event);
 
     m_FrameCaptureRecord->AddChunk(scope.Get());
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(event), eFrameRef_Read);
   }
 
   return ret;
@@ -464,6 +465,7 @@ VkResult WrappedVulkan::vkResetEvent(VkDevice device, VkEvent event)
     Serialise_vkResetEvent(ser, device, event);
 
     m_FrameCaptureRecord->AddChunk(scope.Get());
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(event), eFrameRef_Read);
   }
 
   return ret;
@@ -514,6 +516,7 @@ VkResult WrappedVulkan::vkGetEventStatus(VkDevice device, VkEvent event)
       Serialise_vkGetEventStatus(ser, device, event);
 
       m_FrameCaptureRecord->AddChunk(scope.Get());
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(event), eFrameRef_Read);
     }
   }
 
