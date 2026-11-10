@@ -172,6 +172,8 @@ RD_TEST(VK_Multi_Present, VulkanGraphicsTest)
     for(size_t i = 0; i < windows.size(); i++)
       delete windows[i];
 
+    mainWindow = NULL;
+
     return 0;
   }
 };
