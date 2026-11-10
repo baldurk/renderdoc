@@ -70,6 +70,9 @@ void ResumeProcess(pid_t childPid, uint32_t delay = 0);
 
 #endif
 
+// to know if we actually have a valid empty env var, or if it was missing entirely
+#define EMPTY_ENV_VAR_SENTINEL ":::;;;_____RD_EMPTY_ENV_VAR:::"
+
 Threading::SpinLock zombieLock;
 
 struct PIDNode
@@ -807,12 +810,19 @@ void GetHookingEnvMods(rdcarray<EnvironmentModification> &modifications, const C
 
   rdcstr optstr = opts.EncodeAsString();
 
-  modifications.push_back(EnvironmentModification(EnvMod::Append, EnvSep::Platform,
-                                                  "RENDERDOC_ORIGLIBPATH",
-                                                  Process::GetEnvVariable(LIB_PATH_ENV_VAR)));
-  modifications.push_back(EnvironmentModification(EnvMod::Append, EnvSep::Platform,
-                                                  "RENDERDOC_ORIGPRELOAD",
-                                                  Process::GetEnvVariable(PRELOAD_ENV_VAR)));
+  rdcstr envvar = Process::GetEnvVariable(LIB_PATH_ENV_VAR);
+  if(envvar.empty())
+    envvar = EMPTY_ENV_VAR_SENTINEL;
+
+  modifications.push_back(
+      EnvironmentModification(EnvMod::Append, EnvSep::Platform, "RENDERDOC_ORIGLIBPATH", envvar));
+
+  envvar = Process::GetEnvVariable(PRELOAD_ENV_VAR);
+  if(envvar.empty())
+    envvar = EMPTY_ENV_VAR_SENTINEL;
+
+  modifications.push_back(
+      EnvironmentModification(EnvMod::Append, EnvSep::Platform, "RENDERDOC_ORIGPRELOAD", envvar));
   modifications.push_back(
       EnvironmentModification(EnvMod::Append, EnvSep::Platform, LIB_PATH_ENV_VAR, ownlibpath));
   modifications.push_back(
@@ -921,11 +931,18 @@ void ResetHookingEnvVars()
 
   if(!origpath.empty())
   {
+    if(origpath == EMPTY_ENV_VAR_SENTINEL)
+      origpath.clear();
+
     direct_setenv(LIB_PATH_ENV_VAR, origpath.c_str(), true);
     direct_setenv("RENDERDOC_ORIGLIBPATH", "", true);
   }
+
   if(!origpreload.empty())
   {
+    if(origpreload == EMPTY_ENV_VAR_SENTINEL)
+      origpreload.clear();
+
     direct_setenv(PRELOAD_ENV_VAR, origpreload.c_str(), true);
     direct_setenv("RENDERDOC_ORIGPRELOAD", "", true);
   }
