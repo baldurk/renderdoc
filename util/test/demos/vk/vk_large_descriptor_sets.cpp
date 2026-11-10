@@ -311,6 +311,8 @@ void main()
       Present();
     }
 
+    vkDestroyDescriptorPool(device, descpool, NULL);
+
     return 0;
   }
 };

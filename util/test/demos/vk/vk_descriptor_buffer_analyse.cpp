@@ -1101,7 +1101,7 @@ RD_TEST(VK_Descriptor_Buffer_Analyse, VulkanGraphicsTest)
     VkBuffer sparseBuffer = {};
     Image sparseImage = {};
 
-    VkAccelerationStructureKHR blas[16];
+    VkAccelerationStructureKHR blas[16] = {};
     VkDeviceAddress blasAddr[16] = {};
     SizedBytes blasCapData[16] = {};
 
@@ -1208,6 +1208,8 @@ RD_TEST(VK_Descriptor_Buffer_Analyse, VulkanGraphicsTest)
 
             img.name = "yuv3_combined";
             img.view = createImageView(viewCreateInfo);
+
+            vkDestroySamplerYcbcrConversionKHR(device, ycbcrChain.conversion, NULL);
           }
 
           if(makeImage(img, memory[i], i, offset, "yuv3_plane1",
@@ -1246,6 +1248,8 @@ RD_TEST(VK_Descriptor_Buffer_Analyse, VulkanGraphicsTest)
 
             img.name = "yuv2_combined";
             img.view = createImageView(viewCreateInfo);
+
+            vkDestroySamplerYcbcrConversionKHR(device, ycbcrChain.conversion, NULL);
           }
 
           if(makeImage(img, memory[i], i, offset, "yuv2_plane1",
@@ -2340,6 +2344,26 @@ RD_TEST(VK_Descriptor_Buffer_Analyse, VulkanGraphicsTest)
     TEST_LOG(" Sampled: %s", name(sampled).c_str());
     TEST_LOG(" Storage: %s", name(storage).c_str());
     TEST_LOG(" Input: %s", name(input).c_str());
+
+    if(sparseBuffer != VK_NULL_HANDLE)
+      vkDestroyBuffer(device, sparseBuffer, NULL);
+    if(sparseImage.img != VK_NULL_HANDLE)
+      vkDestroyImage(device, sparseImage.img, NULL);
+
+    for(uint32_t i = 0; i < memProps->memoryTypeCount; i++)
+    {
+      if(memory[i] != VK_NULL_HANDLE)
+        vkFreeMemory(device, memory[i], NULL);
+
+      if(buffer[i] != VK_NULL_HANDLE)
+        vkDestroyBuffer(device, buffer[i], NULL);
+      if(blas[i] != VK_NULL_HANDLE)
+        vkDestroyAccelerationStructureKHR(device, blas[i], NULL);
+
+      for(const Image &img : images[i])
+        if(img.img != VK_NULL_HANDLE)
+          vkDestroyImage(device, img.img, NULL);
+    }
 
     return 0;
   }

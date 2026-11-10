@@ -540,6 +540,7 @@ void main()
     vkDestroyRenderPass(device, renderPass, NULL);
 
     vkDestroyImageView(device, depthStencilView, NULL);
+    vkDestroyImageView(device, depthOnlyView, NULL);
     vkDestroyImageView(device, colorView, NULL);
     vkDestroyFramebuffer(device, frameBuffer, NULL);
 

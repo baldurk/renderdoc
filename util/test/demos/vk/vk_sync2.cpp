@@ -293,6 +293,7 @@ RD_TEST(VK_Synchronization_2, VulkanGraphicsTest)
       undefImg.free();
     }
 
+    vkDestroyImage(device, unboundImg, NULL);
     vkDestroyQueryPool(device, pool, NULL);
     vkDestroyEvent(device, ev, NULL);
 
