@@ -339,6 +339,7 @@ void VulkanGraphicsTest::Prepare(int argc, char **argv)
             {
               featuresEXT.pNext = instInfoNext;
               instInfoNext = &featuresEXT;
+              break;
             }
           }
         }
