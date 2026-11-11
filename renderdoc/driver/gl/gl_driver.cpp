@@ -742,9 +742,9 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
   GLuint col = 0, depth = 0;
 
   WrappedOpenGL &drv = *this;
+  GLRenderState state;
+  state.FetchState(this);
 
-  GLuint unpackbuf = 0;
-  GL.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&unpackbuf);
   GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
 
   GL.glGenFramebuffers(1, &fbo);
@@ -816,8 +816,6 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
   }
   drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, target, col, 0);
 
-  drv.glViewport(0, 0, width, height);
-
   if(params.depthBits > 0 || params.stencilBits > 0)
   {
     drv.glGenTextures(1, &depth);
@@ -877,12 +875,18 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
       drv.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, target, depth, 0);
   }
 
+  GL.glViewport(0, 0, width, height);
+  GL.glDisable(eGL_SCISSOR_TEST);
+  GL.glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+  GL.glStencilMask(0xff);
+  GL.glDepthMask(GL_TRUE);
+
   // give the backbuffer a default clear color
   float clearcol[] = {0.0f, 0.0f, 0.0f, 1.0f};
-  drv.glClearBufferfv(eGL_COLOR, 0, clearcol);
+  GL.glClearBufferfv(eGL_COLOR, 0, clearcol);
 
   if(params.depthBits > 0 || params.stencilBits > 0)
-    drv.glClearBufferfi(eGL_DEPTH_STENCIL, 0, 1.0f, 0);
+    GL.glClearBufferfi(eGL_DEPTH_STENCIL, 0, 1.0f, 0);
 
   AddResource(fboId, ResourceType::SwapchainImage, "");
   GetReplay()->GetResourceDesc(fboId).SetCustomName(bbname + " FBO");
@@ -931,7 +935,7 @@ void WrappedOpenGL::CreateReplayBackbuffer(const GLInitParams &params, ResourceI
     }
   }
 
-  GL.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
+  state.ApplyState(this);
 }
 
 rdcstr WrappedOpenGL::GetChunkName(uint32_t idx)
@@ -1413,6 +1417,27 @@ bool WrappedOpenGL::Serialise_ContextConfiguration(SerialiserType &ser, void *ct
 
       GLuint fbo = 0;
       CreateReplayBackbuffer(InitParams, FBO, fbo, name);
+
+      // there is a slight legacy ordering issue here. We serialise the initial renderstate in
+      // BeginCaptureFrame but then initialise the context as event 1. Because of this, the default
+      // FBO is not set on first renderstate apply and so if the default FBO was bound it wouldn't
+      // be correctly rebound during the loading pass. We catch that here, as we should never have
+      // *actual* fbo 0 bound, and rebind the fake backbuffer we just created.
+      // we don't have to worry about drawbuffers/readbuffer state as that is trivial for the backbuffer FBO
+
+      GLint curfbo = 0;
+      GL.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &curfbo);
+
+      if(curfbo == 0)
+        GL.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, fbo);
+
+      GL.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &curfbo);
+
+      if(curfbo == 0)
+      {
+        GL.glBindFramebuffer(eGL_READ_FRAMEBUFFER, fbo);
+        GL.glReadBuffer(eGL_COLOR_ATTACHMENT0);
+      }
     }
 
     m_CurrentDefaultFBO = GetResourceManager()->GetResource(FBO).name;
