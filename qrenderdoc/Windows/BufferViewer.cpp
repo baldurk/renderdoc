@@ -3584,7 +3584,7 @@ void BufferViewer::OnEventChanged(uint32_t eventId)
   // no data to fetch if we don't have a buffer yet. This happens when BufferViewer() is created
   // because the capture viewer being registered automatically calls OnEventChanged but we haven't
   // had ViewBuffer() etc yet
-  if(!m_MeshView && m_BufferID == ResourceId())
+  if(!m_MeshView && m_BufferID == ResourceId() && (!bufdata->cb.valid || bufdata->cb.bytesBacked))
     return;
 
   QPointer<BufferViewer> me(this);
