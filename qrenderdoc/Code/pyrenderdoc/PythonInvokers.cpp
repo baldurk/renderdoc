@@ -448,6 +448,108 @@ struct ExtensionInvoker : UIThreadInvoker<IExtensionManager>
   }
 };
 
+struct ReplayOutputInvoker : IReplayOutput
+{
+  ReplayOutputInvoker(ICaptureContext &ctx, IReplayOutput *out) : m_Ctx(ctx), m_Output(out) {}
+  virtual ~ReplayOutputInvoker() {}
+  ICaptureContext &m_Ctx;
+  IReplayOutput *m_Output;
+
+  template <typename F, typename... paramTypes>
+  void InvokeVoidFunction(F ptr, paramTypes... params)
+  {
+    void *ctx = PythonContext::PausePythonThreading();
+    m_Ctx.Replay().BlockInvoke(
+        [this, ptr, params...](IReplayController *) { (m_Output->*ptr)(params...); });
+    PythonContext::ResumePythonThreading(ctx);
+  }
+
+  template <typename R, typename F, typename... paramTypes>
+  R InvokeRetFunction(F ptr, paramTypes... params)
+  {
+    R ret = R();
+    void *ctx = PythonContext::PausePythonThreading();
+    m_Ctx.Replay().BlockInvoke(
+        [&ret, this, ptr, params...](IReplayController *) { ret = (m_Output->*ptr)(params...); });
+    PythonContext::ResumePythonThreading(ctx);
+    return ret;
+  }
+
+  virtual void Shutdown()
+  {
+    InvokeVoidFunction(&IReplayOutput::Shutdown);
+    delete this;
+  }
+
+  virtual void SetTextureDisplay(const TextureDisplay &config)
+  {
+    return InvokeVoidFunction(&IReplayOutput::SetTextureDisplay, config);
+  }
+
+  virtual void SetMeshDisplay(const MeshDisplay &config)
+  {
+    return InvokeVoidFunction(&IReplayOutput::SetMeshDisplay, config);
+  }
+
+  virtual bytebuf ReadbackOutputTexture()
+  {
+    return InvokeRetFunction<bytebuf>(&IReplayOutput::ReadbackOutputTexture);
+  }
+
+  virtual rdcpair<int32_t, int32_t> GetDimensions()
+  {
+    return InvokeRetFunction<rdcpair<int32_t, int32_t>>(&IReplayOutput::GetDimensions);
+  }
+
+  virtual void ClearThumbnails() { return InvokeVoidFunction(&IReplayOutput::ClearThumbnails); }
+
+  virtual ResultDetails AddThumbnail(WindowingData window, ResourceId textureId,
+                                     const Subresource &sub, CompType typeCast)
+  {
+    return InvokeRetFunction<ResultDetails>(&IReplayOutput::AddThumbnail, window, textureId, sub,
+                                            typeCast);
+  }
+
+  virtual bytebuf DrawThumbnail(int32_t width, int32_t height, ResourceId textureId,
+                                const Subresource &sub, CompType typeCast)
+  {
+    return InvokeRetFunction<bytebuf>(&IReplayOutput::DrawThumbnail, width, height, textureId, sub,
+                                      typeCast);
+  }
+
+  virtual void Display() { return InvokeVoidFunction(&IReplayOutput::Display); }
+
+  virtual ResultDetails SetPixelContext(WindowingData window)
+  {
+    return InvokeRetFunction<ResultDetails>(&IReplayOutput::SetPixelContext, window);
+  }
+
+  virtual void SetPixelContextLocation(uint32_t x, uint32_t y)
+  {
+    return InvokeVoidFunction(&IReplayOutput::SetPixelContextLocation, x, y);
+  }
+
+  virtual void DisablePixelContext()
+  {
+    return InvokeVoidFunction(&IReplayOutput::DisablePixelContext);
+  }
+
+  virtual ResourceId GetCustomShaderTexID()
+  {
+    return InvokeRetFunction<ResourceId>(&IReplayOutput::GetCustomShaderTexID);
+  }
+
+  virtual ResourceId GetDebugOverlayTexID()
+  {
+    return InvokeRetFunction<ResourceId>(&IReplayOutput::GetDebugOverlayTexID);
+  }
+
+  virtual rdcpair<uint32_t, uint32_t> PickVertex(uint32_t x, uint32_t y)
+  {
+    return InvokeRetFunction<rdcpair<uint32_t, uint32_t>>(&IReplayOutput::PickVertex, x, y);
+  }
+};
+
 struct ReplayControllerInvoker : IReplayController
 {
   ReplayControllerInvoker(ICaptureContext &ctx) : m_Ctx(ctx) {}
@@ -497,7 +599,9 @@ struct ReplayControllerInvoker : IReplayController
 
   IReplayOutput *CreateOutput(WindowingData window, ReplayOutputType type)
   {
-    return InvokeRetFunction<IReplayOutput *>(&IReplayController::CreateOutput, window, type);
+    IReplayOutput *out =
+        InvokeRetFunction<IReplayOutput *>(&IReplayController::CreateOutput, window, type);
+    return new ReplayOutputInvoker(m_Ctx, out);
   }
 
   void Shutdown()
