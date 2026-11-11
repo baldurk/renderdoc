@@ -2,7 +2,7 @@ from __future__ import annotations
 import renderdoc as rd
 import qrenderdoc as qrd
 
-from typing import IO, Any, Dict, TYPE_CHECKING
+from typing import IO, Any, Dict, TYPE_CHECKING, List
 
 if TYPE_CHECKING:
     pyrenderdoc = qrd.CaptureContext()
@@ -240,10 +240,6 @@ def run_test(pyrenderdoc: qrd.CaptureContext, widget: qrd.QWidget, data: str):
     if name == "":
         return
 
-    if name not in rdtest.fetch_tests():
-        ext.ErrorDialog(f"{name} unsupported")
-        return
-
     watcher.test = rdtest.get_current_test()()
 
     pyrenderdoc.ShowCaptureDialog()
@@ -275,12 +271,16 @@ def fast_fail_changed(pyrenderdoc: qrd.CaptureContext, widget: qrd.QWidget, data
 
     rdtest.log.fast_fail = mqt.IsWidgetChecked(widget)
 
+test_avail: List[str] = []
 
 def filter_updated(selector: qrd.QWidget, filter: qrd.QWidget):
+    global test_avail
+
     ext = pyrenderdoc.Extensions()
     mqt = ext.GetMiniQtHelper()
 
     test_names = sorted([x.__name__ for x in rdtest.get_tests()]) 
+
     filter_text = mqt.GetWidgetText(filter)
 
     import re
@@ -288,6 +288,13 @@ def filter_updated(selector: qrd.QWidget, filter: qrd.QWidget):
     cur = mqt.GetWidgetText(selector)
 
     tests = [x for x in test_names if re.search(filter_text.lower(), x.lower()) is not None]
+
+    # filter by tests available in the demos (mostly eliminates D3D tests on linux)
+    if len(test_avail) == 0:
+        demo_tests = rdtest.fetch_tests()
+        test_avail = [x for x in demo_tests.keys() if demo_tests[x][0]]
+
+    tests = [x for x in tests if x in test_avail]
 
     mqt.SetComboOptions(selector, tests)
 
