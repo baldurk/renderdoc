@@ -47,134 +47,117 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Barrier(SerialiserType &ser, UI
 
     m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
-    rdcarray<D3D12_BUFFER_BARRIER> filteredUnwrappedBuf;
-    rdcarray<D3D12_TEXTURE_BARRIER> filteredUnwrappedTex;
-    rdcarray<D3D12_BARRIER_GROUP> filteredUnwrapped;
-
-    // resize so we can take pointers
-    for(UINT i = 0; i < NumBarrierGroups; i++)
+    if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
     {
-      if(pBarrierGroups[i].Type == D3D12_BARRIER_TYPE_BUFFER)
-        filteredUnwrappedBuf.resize(filteredUnwrappedBuf.size() + pBarrierGroups[i].NumBarriers);
-      else if(pBarrierGroups[i].Type == D3D12_BARRIER_TYPE_TEXTURE)
-        filteredUnwrappedTex.resize(filteredUnwrappedTex.size() + pBarrierGroups[i].NumBarriers);
-    }
+      bool loading = IsLoading(m_State);
+      ID3D12GraphicsCommandListX *list = !loading ? m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID)
+                                                  : (ID3D12GraphicsCommandListX *)pCommandList;
 
-    D3D12_TEXTURE_BARRIER *tex = filteredUnwrappedTex.data();
-    D3D12_BUFFER_BARRIER *buf = filteredUnwrappedBuf.data();
+      rdcarray<D3D12_BUFFER_BARRIER> filteredUnwrappedBuf;
+      rdcarray<D3D12_TEXTURE_BARRIER> filteredUnwrappedTex;
+      rdcarray<D3D12_BARRIER_GROUP> filteredUnwrapped;
 
-    // filter out any barriers that reference a NULL resource - this means the resource wasn't used
-    // elsewhere so was discarded from the capture
-    for(UINT i = 0; i < NumBarrierGroups; i++)
-    {
-      D3D12_BARRIER_GROUP group = pBarrierGroups[i];
-
-      if(pBarrierGroups[i].Type == D3D12_BARRIER_TYPE_BUFFER)
+      // resize so we can take pointers
+      for(UINT i = 0; i < NumBarrierGroups; i++)
       {
-        const UINT num = group.NumBarriers;
-
-        group.NumBarriers = 0;
-
-        for(UINT b = 0; b < num; b++)
-        {
-          ID3D12Resource *res = group.pBufferBarriers[b].pResource;
-          if(res)
-          {
-            buf[group.NumBarriers] = group.pBufferBarriers[b];
-            buf[group.NumBarriers].pResource = Unwrap(res);
-            group.NumBarriers++;
-
-            if(IsLoading(m_State))
-              m_Cmd->AddEventResourceUsage(GetResID(res), ResourceUsage::Barrier);
-          }
-        }
-
-        group.pBufferBarriers = buf;
-        buf += group.NumBarriers;
-
-        if(group.NumBarriers > 0)
-          filteredUnwrapped.push_back(group);
+        if(pBarrierGroups[i].Type == D3D12_BARRIER_TYPE_BUFFER)
+          filteredUnwrappedBuf.resize(filteredUnwrappedBuf.size() + pBarrierGroups[i].NumBarriers);
+        else if(pBarrierGroups[i].Type == D3D12_BARRIER_TYPE_TEXTURE)
+          filteredUnwrappedTex.resize(filteredUnwrappedTex.size() + pBarrierGroups[i].NumBarriers);
       }
-      else if(pBarrierGroups[i].Type == D3D12_BARRIER_TYPE_TEXTURE)
+
+      D3D12_TEXTURE_BARRIER *tex = filteredUnwrappedTex.data();
+      D3D12_BUFFER_BARRIER *buf = filteredUnwrappedBuf.data();
+
+      // filter out any barriers that reference a NULL resource - this means the resource wasn't
+      // used elsewhere so was discarded from the capture
+      for(UINT i = 0; i < NumBarrierGroups; i++)
       {
-        const UINT num = group.NumBarriers;
+        D3D12_BARRIER_GROUP group = pBarrierGroups[i];
 
-        group.NumBarriers = 0;
-
-        for(UINT b = 0; b < num; b++)
+        if(pBarrierGroups[i].Type == D3D12_BARRIER_TYPE_BUFFER)
         {
-          ID3D12Resource *res = group.pTextureBarriers[b].pResource;
-          if(res)
+          const UINT num = group.NumBarriers;
+
+          group.NumBarriers = 0;
+
+          for(UINT b = 0; b < num; b++)
           {
-            tex[group.NumBarriers] = group.pTextureBarriers[b];
-            tex[group.NumBarriers].pResource = Unwrap(res);
-            group.NumBarriers++;
-
-            if(IsLoading(m_State))
-              m_Cmd->AddEventResourceUsage(GetResID(res), ResourceUsage::Barrier);
-          }
-        }
-
-        group.pTextureBarriers = tex;
-        tex += group.NumBarriers;
-
-        if(group.NumBarriers > 0)
-          filteredUnwrapped.push_back(group);
-      }
-      else
-      {
-        filteredUnwrapped.push_back(group);
-      }
-    }
-
-    if(IsActiveReplaying(m_State))
-    {
-      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
-      {
-        ID3D12GraphicsCommandListX *rerecord = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
-        pCommandList = rerecord;
-
-        if(!filteredUnwrapped.empty())
-        {
-          Unwrap7(pCommandList)->Barrier((UINT)filteredUnwrapped.size(), filteredUnwrapped.data());
-
-          if(m_pDevice->GetReplayOptions().optimisation != ReplayOptimisationLevel::Fastest)
-          {
-            for(UINT i = 0; i < NumBarrierGroups; i++)
+            ID3D12Resource *res = group.pBufferBarriers[b].pResource;
+            if(res)
             {
-              if(pBarrierGroups[i].Type == D3D12_BARRIER_TYPE_TEXTURE)
+              buf[group.NumBarriers] = group.pBufferBarriers[b];
+              buf[group.NumBarriers].pResource = Unwrap(res);
+              group.NumBarriers++;
+
+              if(IsLoading(m_State))
+                m_Cmd->AddEventResourceUsage(GetResID(res), ResourceUsage::Barrier);
+            }
+          }
+
+          group.pBufferBarriers = buf;
+          buf += group.NumBarriers;
+
+          if(group.NumBarriers > 0)
+            filteredUnwrapped.push_back(group);
+        }
+        else if(pBarrierGroups[i].Type == D3D12_BARRIER_TYPE_TEXTURE)
+        {
+          const UINT num = group.NumBarriers;
+
+          group.NumBarriers = 0;
+
+          for(UINT b = 0; b < num; b++)
+          {
+            ID3D12Resource *res = group.pTextureBarriers[b].pResource;
+            if(res)
+            {
+              tex[group.NumBarriers] = group.pTextureBarriers[b];
+              tex[group.NumBarriers].pResource = Unwrap(res);
+              group.NumBarriers++;
+
+              if(IsLoading(m_State))
+                m_Cmd->AddEventResourceUsage(GetResID(res), ResourceUsage::Barrier);
+            }
+          }
+
+          group.pTextureBarriers = tex;
+          tex += group.NumBarriers;
+
+          if(group.NumBarriers > 0)
+            filteredUnwrapped.push_back(group);
+        }
+        else
+        {
+          filteredUnwrapped.push_back(group);
+        }
+      }
+
+      if(!filteredUnwrapped.empty())
+      {
+        Unwrap7(list)->Barrier((UINT)filteredUnwrapped.size(), filteredUnwrapped.data());
+
+        if(!loading && m_pDevice->GetReplayOptions().optimisation != ReplayOptimisationLevel::Fastest)
+        {
+          for(UINT i = 0; i < NumBarrierGroups; i++)
+          {
+            if(pBarrierGroups[i].Type == D3D12_BARRIER_TYPE_TEXTURE)
+            {
+              for(UINT b = 0; b < pBarrierGroups[i].NumBarriers; b++)
               {
-                for(UINT b = 0; b < pBarrierGroups[i].NumBarriers; b++)
+                const D3D12_TEXTURE_BARRIER &barrier = pBarrierGroups[i].pTextureBarriers[b];
+                if(barrier.pResource && (barrier.Flags & D3D12_TEXTURE_BARRIER_FLAG_DISCARD))
                 {
-                  const D3D12_TEXTURE_BARRIER &barrier = pBarrierGroups[i].pTextureBarriers[b];
-                  if(barrier.pResource && (barrier.Flags & D3D12_TEXTURE_BARRIER_FLAG_DISCARD))
-                  {
-                    m_pDevice->GetDebugManager()->FillWithDiscardPattern(
-                        rerecord, m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state,
-                        DiscardType::UndefinedTransition, barrier.pResource, NULL,
-                        barrier.LayoutAfter);
-                  }
+                  m_pDevice->GetDebugManager()->FillWithDiscardPattern(
+                      list, m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state,
+                      DiscardType::UndefinedTransition, barrier.pResource, NULL, barrier.LayoutAfter);
                 }
               }
             }
           }
         }
       }
-      else
-      {
-        pCommandList = NULL;
-      }
-    }
-    else
-    {
-      if(!filteredUnwrapped.empty())
-      {
-        Unwrap7(pCommandList)->Barrier((UINT)filteredUnwrapped.size(), filteredUnwrapped.data());
-      }
-    }
 
-    if(pCommandList)
-    {
       ResourceId cmd = GetResID(pCommandList);
 
       for(UINT i = 0; i < NumBarrierGroups; i++)
