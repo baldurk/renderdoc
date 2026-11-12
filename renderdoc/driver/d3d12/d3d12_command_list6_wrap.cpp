@@ -56,35 +56,33 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DispatchMesh(SerialiserType &se
 
     m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
-    if(IsActiveReplaying(m_State))
+    if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
     {
-      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
+      bool loading = IsLoading(m_State);
+      ID3D12GraphicsCommandListX *list = !loading ? m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID)
+                                                  : (ID3D12GraphicsCommandListX *)pCommandList;
+
+      uint32_t eventId = !loading ? m_Cmd->HandlePreCallback(list, ActionFlags::MeshDispatch) : 0;
+      Unwrap6(list)->DispatchMesh(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
+      if(eventId && m_Cmd->m_ActionCallback->PostDraw(eventId, list))
       {
-        ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
-
-        uint32_t eventId = m_Cmd->HandlePreCallback(list, ActionFlags::MeshDispatch);
         Unwrap6(list)->DispatchMesh(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
-        if(eventId && m_Cmd->m_ActionCallback->PostDraw(eventId, list))
-        {
-          Unwrap6(list)->DispatchMesh(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
-          m_Cmd->m_ActionCallback->PostRedraw(eventId, list);
-        }
+        m_Cmd->m_ActionCallback->PostRedraw(eventId, list);
       }
-    }
-    else
-    {
-      Unwrap6(pCommandList)->DispatchMesh(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 
-      m_Cmd->AddEvent();
+      if(loading)
+      {
+        m_Cmd->AddEvent();
 
-      ActionDescription action;
-      action.dispatchDimension[0] = ThreadGroupCountX;
-      action.dispatchDimension[1] = ThreadGroupCountY;
-      action.dispatchDimension[2] = ThreadGroupCountZ;
+        ActionDescription action;
+        action.dispatchDimension[0] = ThreadGroupCountX;
+        action.dispatchDimension[1] = ThreadGroupCountY;
+        action.dispatchDimension[2] = ThreadGroupCountZ;
 
-      action.flags |= ActionFlags::MeshDispatch;
+        action.flags |= ActionFlags::MeshDispatch;
 
-      m_Cmd->AddAction(action);
+        m_Cmd->AddAction(action);
+      }
     }
   }
 
