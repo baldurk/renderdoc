@@ -54,32 +54,21 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT(
 
     m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
-    if(IsActiveReplaying(m_State))
+    if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
     {
-      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
-      {
-        rdcarray<ID3D12Resource *> deps;
-        deps.resize(Dependencies);
-        for(size_t i = 0; i < deps.size(); i++)
-          deps[i] = Unwrap(ppDependentResources[i]);
+      bool loading = IsLoading(m_State);
+      ID3D12GraphicsCommandListX *list = !loading ? m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID)
+                                                  : (ID3D12GraphicsCommandListX *)pCommandList;
 
-        ID3D12GraphicsCommandList1 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
-        Unwrap1(list)->AtomicCopyBufferUINT(Unwrap(pDstBuffer), DstOffset, Unwrap(pSrcBuffer),
-                                            SrcOffset, Dependencies, deps.data(),
-                                            pDependentSubresourceRanges);
-      }
-    }
-    else
-    {
       rdcarray<ID3D12Resource *> deps;
       deps.resize(Dependencies);
       for(size_t i = 0; i < deps.size(); i++)
         deps[i] = Unwrap(ppDependentResources[i]);
 
-      Unwrap1(pCommandList)
-          ->AtomicCopyBufferUINT(Unwrap(pDstBuffer), DstOffset, Unwrap(pSrcBuffer), SrcOffset,
-                                 Dependencies, deps.data(), pDependentSubresourceRanges);
-
+      Unwrap1(list)->AtomicCopyBufferUINT(Unwrap(pDstBuffer), DstOffset, Unwrap(pSrcBuffer),
+                                          SrcOffset, Dependencies, deps.data(),
+                                          pDependentSubresourceRanges);
+      if(loading)
       {
         m_Cmd->AddEvent();
 
@@ -164,32 +153,21 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT64(
 
     m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
-    if(IsActiveReplaying(m_State))
+    if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
     {
-      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
-      {
-        rdcarray<ID3D12Resource *> deps;
-        deps.resize(Dependencies);
-        for(size_t i = 0; i < deps.size(); i++)
-          deps[i] = Unwrap(ppDependentResources[i]);
+      bool loading = IsLoading(m_State);
+      ID3D12GraphicsCommandListX *list = !loading ? m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID)
+                                                  : (ID3D12GraphicsCommandListX *)pCommandList;
 
-        ID3D12GraphicsCommandList1 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
-        Unwrap1(list)->AtomicCopyBufferUINT64(Unwrap(pDstBuffer), DstOffset, Unwrap(pSrcBuffer),
-                                              SrcOffset, Dependencies, deps.data(),
-                                              pDependentSubresourceRanges);
-      }
-    }
-    else
-    {
       rdcarray<ID3D12Resource *> deps;
       deps.resize(Dependencies);
       for(size_t i = 0; i < deps.size(); i++)
         deps[i] = Unwrap(ppDependentResources[i]);
 
-      Unwrap1(pCommandList)
-          ->AtomicCopyBufferUINT64(Unwrap(pDstBuffer), DstOffset, Unwrap(pSrcBuffer), SrcOffset,
-                                   Dependencies, deps.data(), pDependentSubresourceRanges);
-
+      Unwrap1(list)->AtomicCopyBufferUINT64(Unwrap(pDstBuffer), DstOffset, Unwrap(pSrcBuffer),
+                                            SrcOffset, Dependencies, deps.data(),
+                                            pDependentSubresourceRanges);
+      if(loading)
       {
         m_Cmd->AddEvent();
 
@@ -285,23 +263,18 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetDepthBounds(SerialiserType
 
     bool stateUpdate = false;
 
-    if(IsActiveReplaying(m_State))
+    if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
     {
-      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
-      {
-        Unwrap1(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->OMSetDepthBounds(Min, Max);
+      bool loading = IsLoading(m_State);
+      ID3D12GraphicsCommandListX *list = !loading ? m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID)
+                                                  : (ID3D12GraphicsCommandListX *)pCommandList;
 
-        stateUpdate = true;
-      }
-      else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
-      {
-        stateUpdate = true;
-      }
+      Unwrap1(list)->OMSetDepthBounds(Min, Max);
+
+      stateUpdate = true;
     }
-    else
+    else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
     {
-      Unwrap1(pCommandList)->OMSetDepthBounds(Min, Max);
-
       stateUpdate = true;
     }
 
@@ -373,24 +346,18 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetSamplePositions(
 
     bool stateUpdate = false;
 
-    if(IsActiveReplaying(m_State))
+    if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
     {
-      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
-      {
-        Unwrap1(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-            ->SetSamplePositions(NumSamplesPerPixel, NumPixels, pSamplePositions);
+      bool loading = IsLoading(m_State);
+      ID3D12GraphicsCommandListX *list = !loading ? m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID)
+                                                  : (ID3D12GraphicsCommandListX *)pCommandList;
 
-        stateUpdate = true;
-      }
-      else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
-      {
-        stateUpdate = true;
-      }
+      Unwrap1(list)->SetSamplePositions(NumSamplesPerPixel, NumPixels, pSamplePositions);
+
+      stateUpdate = true;
     }
-    else
+    else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
     {
-      Unwrap1(pCommandList)->SetSamplePositions(NumSamplesPerPixel, NumPixels, pSamplePositions);
-
       stateUpdate = true;
     }
 
@@ -453,23 +420,16 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresourceRegion(
 
     m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
-    if(IsActiveReplaying(m_State))
+    if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
     {
-      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
-      {
-        ID3D12GraphicsCommandList1 *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
-        Unwrap1(list)->ResolveSubresourceRegion(Unwrap(pDstResource), DstSubresource, DstX, DstY,
-                                                Unwrap(pSrcResource), SrcSubresource, pSrcRect,
-                                                Format, ResolveMode);
-      }
-    }
-    else
-    {
-      Unwrap1(pCommandList)
-          ->ResolveSubresourceRegion(Unwrap(pDstResource), DstSubresource, DstX, DstY,
-                                     Unwrap(pSrcResource), SrcSubresource, pSrcRect, Format,
-                                     ResolveMode);
+      bool loading = IsLoading(m_State);
+      ID3D12GraphicsCommandListX *list = !loading ? m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID)
+                                                  : (ID3D12GraphicsCommandListX *)pCommandList;
 
+      Unwrap1(list)->ResolveSubresourceRegion(Unwrap(pDstResource), DstSubresource, DstX, DstY,
+                                              Unwrap(pSrcResource), SrcSubresource, pSrcRect,
+                                              Format, ResolveMode);
+      if(loading)
       {
         m_Cmd->AddEvent();
 
@@ -557,23 +517,18 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetViewInstanceMask(SerialiserT
 
     bool stateUpdate = false;
 
-    if(IsActiveReplaying(m_State))
+    if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
     {
-      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
-      {
-        Unwrap1(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->SetViewInstanceMask(Mask);
+      bool loading = IsLoading(m_State);
+      ID3D12GraphicsCommandListX *list = !loading ? m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID)
+                                                  : (ID3D12GraphicsCommandListX *)pCommandList;
 
-        stateUpdate = true;
-      }
-      else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
-      {
-        stateUpdate = true;
-      }
+      Unwrap1(list)->SetViewInstanceMask(Mask);
+
+      stateUpdate = true;
     }
-    else
+    else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
     {
-      Unwrap1(pCommandList)->SetViewInstanceMask(Mask);
-
       stateUpdate = true;
     }
 
