@@ -213,161 +213,106 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginRenderPass(
 
     m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
-    // patch the parameters so that we point into our local CPU descriptor handles that are up
-    // to date
-    {
-      D3D12_RENDER_PASS_RENDER_TARGET_DESC *rts =
-          (D3D12_RENDER_PASS_RENDER_TARGET_DESC *)pRenderTargets;
-      D3D12_RENDER_PASS_DEPTH_STENCIL_DESC *ds =
-          (D3D12_RENDER_PASS_DEPTH_STENCIL_DESC *)pDepthStencil;
-
-      for(UINT i = 0; i < NumRenderTargets; i++)
-        rts[i].cpuDescriptor = Unwrap(m_pDevice->GetDebugManager()->GetTempDescriptor(RTVs[i], i));
-
-      if(ds)
-        ds->cpuDescriptor = Unwrap(m_pDevice->GetDebugManager()->GetTempDescriptor(DSV));
-    }
-
     bool stateUpdate = false;
 
-    if(IsActiveReplaying(m_State))
+    if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
     {
-      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
+      bool loading = IsLoading(m_State);
+      ID3D12GraphicsCommandListX *list = !loading ? m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID)
+                                                  : (ID3D12GraphicsCommandListX *)pCommandList;
+
+      // patch the parameters so that we point into our local CPU descriptor handles that are up
+      // to date
       {
-        // perform any clears needed
+        D3D12_RENDER_PASS_RENDER_TARGET_DESC *rts =
+            (D3D12_RENDER_PASS_RENDER_TARGET_DESC *)pRenderTargets;
+        D3D12_RENDER_PASS_DEPTH_STENCIL_DESC *ds =
+            (D3D12_RENDER_PASS_DEPTH_STENCIL_DESC *)pDepthStencil;
 
-        if((Flags & D3D12_RENDER_PASS_FLAG_RESUMING_PASS) == 0)
+        for(UINT i = 0; i < NumRenderTargets; i++)
+          rts[i].cpuDescriptor = Unwrap(m_pDevice->GetDebugManager()->GetTempDescriptor(RTVs[i], i));
+
+        if(ds)
+          ds->cpuDescriptor = Unwrap(m_pDevice->GetDebugManager()->GetTempDescriptor(DSV));
+      }
+
+      // perform any clears needed
+      if((Flags & D3D12_RENDER_PASS_FLAG_RESUMING_PASS) == 0)
+      {
+        for(UINT i = 0; i < NumRenderTargets; i++)
         {
-          for(UINT i = 0; i < NumRenderTargets; i++)
+          if(pRenderTargets[i].BeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
           {
-            if(pRenderTargets[i].BeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
-            {
-              Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-                  ->ClearRenderTargetView(pRenderTargets[i].cpuDescriptor,
-                                          pRenderTargets[i].BeginningAccess.Clear.ClearValue.Color,
-                                          0, NULL);
-            }
-          }
-
-          if(pDepthStencil)
-          {
-            D3D12_CLEAR_FLAGS flags = {};
-
-            if(pDepthStencil->DepthBeginningAccess.Type ==
-               D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
-              flags |= D3D12_CLEAR_FLAG_DEPTH;
-            if(pDepthStencil->StencilBeginningAccess.Type ==
-               D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
-              flags |= D3D12_CLEAR_FLAG_STENCIL;
-
-            if(flags != 0)
-            {
-              // we can safely read from either depth/stencil clear values because if the access
-              // type isn't clear the corresponding flag will be unset - so whatever garbage value
-              // we have isn't used.
-              Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-                  ->ClearDepthStencilView(
-                      pDepthStencil->cpuDescriptor, flags,
-                      pDepthStencil->DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth,
-                      pDepthStencil->StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil,
-                      0, NULL);
-            }
+            Unwrap(list)->ClearRenderTargetView(
+                pRenderTargets[i].cpuDescriptor,
+                pRenderTargets[i].BeginningAccess.Clear.ClearValue.Color, 0, NULL);
           }
         }
 
+        if(pDepthStencil)
         {
-          D3D12_CPU_DESCRIPTOR_HANDLE rtHandles[8];
-          D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
+          D3D12_CLEAR_FLAGS flags = {};
 
-          if(pDepthStencil)
-            dsvHandle = pDepthStencil->cpuDescriptor;
+          if(pDepthStencil->DepthBeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
+            flags |= D3D12_CLEAR_FLAG_DEPTH;
+          if(pDepthStencil->StencilBeginningAccess.Type ==
+             D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
+            flags |= D3D12_CLEAR_FLAG_STENCIL;
 
-          for(UINT i = 0; i < NumRenderTargets; i++)
-            rtHandles[i] = pRenderTargets[i].cpuDescriptor;
-
-          // need to unwrap here, as FromPortableHandle unwraps too.
-          Unwrap(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-              ->OMSetRenderTargets(NumRenderTargets, rtHandles, FALSE,
-                                   dsvHandle.ptr ? &dsvHandle : NULL);
+          if(flags != 0)
+          {
+            // we can safely read from either depth/stencil clear values because if the access
+            // type isn't clear the corresponding flag will be unset - so whatever garbage value
+            // we have isn't used.
+            Unwrap(list)->ClearDepthStencilView(
+                pDepthStencil->cpuDescriptor, flags,
+                pDepthStencil->DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth,
+                pDepthStencil->StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil, 0, NULL);
+          }
         }
-
-        // Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->BeginRenderPass(NumRenderTargets,
-        // pRenderTargets, pDepthStencil, Flags);
-
-        if(m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
-        {
-          m_Cmd->m_Partial[D3D12CommandData::Primary].renderPassActive = true;
-        }
-
-        stateUpdate = true;
       }
-      else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
+
       {
-        stateUpdate = true;
+        D3D12_CPU_DESCRIPTOR_HANDLE rtHandles[8];
+        D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
+
+        if(pDepthStencil)
+          dsvHandle = pDepthStencil->cpuDescriptor;
+
+        for(UINT i = 0; i < NumRenderTargets; i++)
+          rtHandles[i] = pRenderTargets[i].cpuDescriptor;
+
+        // need to unwrap here, as FromPortableHandle unwraps too.
+        Unwrap(list)->OMSetRenderTargets(NumRenderTargets, rtHandles, FALSE,
+                                         dsvHandle.ptr ? &dsvHandle : NULL);
       }
+
+      // Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->BeginRenderPass(NumRenderTargets,
+      // pRenderTargets, pDepthStencil, Flags);
+
+      if(m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
+      {
+        m_Cmd->m_Partial[D3D12CommandData::Primary].renderPassActive = true;
+      }
+
+      if(loading)
+      {
+        m_Cmd->AddEvent();
+
+        ActionDescription action;
+        action.customName = StringFormat::Fmt(
+            "BeginRenderPass(%s)",
+            MakeRenderPassOpString(false, NumRenderTargets, pRenderTargets, pDepthStencil, Flags)
+                .c_str());
+        action.flags |= ActionFlags::BeginPass | ActionFlags::PassBoundary;
+
+        m_Cmd->AddAction(action);
+      }
+
+      stateUpdate = true;
     }
-    else
+    else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
     {
-      for(UINT i = 0; i < NumRenderTargets; i++)
-      {
-        if(pRenderTargets[i].BeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
-        {
-          Unwrap(pCommandList)
-              ->ClearRenderTargetView(pRenderTargets[i].cpuDescriptor,
-                                      pRenderTargets[i].BeginningAccess.Clear.ClearValue.Color, 0,
-                                      NULL);
-        }
-      }
-
-      if(pDepthStencil)
-      {
-        D3D12_CLEAR_FLAGS flags = {};
-
-        if(pDepthStencil->DepthBeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
-          flags |= D3D12_CLEAR_FLAG_DEPTH;
-        if(pDepthStencil->StencilBeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
-          flags |= D3D12_CLEAR_FLAG_STENCIL;
-
-        if(flags != 0)
-        {
-          // we can safely read from either depth/stencil clear values because if the access
-          // type isn't clear the corresponding flag will be unset - so whatever garbage value
-          // we have isn't used.
-          Unwrap(pCommandList)
-              ->ClearDepthStencilView(
-                  pDepthStencil->cpuDescriptor, flags,
-                  pDepthStencil->DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth,
-                  pDepthStencil->StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil, 0,
-                  NULL);
-        }
-      }
-
-      D3D12_CPU_DESCRIPTOR_HANDLE rtHandles[8];
-      D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
-
-      if(pDepthStencil)
-        dsvHandle = pDepthStencil->cpuDescriptor;
-
-      for(UINT i = 0; i < NumRenderTargets; i++)
-        rtHandles[i] = pRenderTargets[i].cpuDescriptor;
-
-      // need to unwrap here, as FromPortableHandle unwraps too.
-      Unwrap(pCommandList)
-          ->OMSetRenderTargets(NumRenderTargets, rtHandles, FALSE, dsvHandle.ptr ? &dsvHandle : NULL);
-
-      // Unwrap4(pCommandList)->BeginRenderPass(NumRenderTargets, pRenderTargets, pDepthStencil,
-      // Flags);
-
-      m_Cmd->AddEvent();
-
-      ActionDescription action;
-      action.customName = StringFormat::Fmt(
-          "BeginRenderPass(%s)",
-          MakeRenderPassOpString(false, NumRenderTargets, pRenderTargets, pDepthStencil, Flags).c_str());
-      action.flags |= ActionFlags::BeginPass | ActionFlags::PassBoundary;
-
-      m_Cmd->AddAction(action);
-
       stateUpdate = true;
     }
 
@@ -559,126 +504,121 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndRenderPass(SerialiserType &s
 
     bool stateUpdate = false;
 
-    if(IsActiveReplaying(m_State))
+    if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
     {
-      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
+      bool loading = IsLoading(m_State);
+      ID3D12GraphicsCommandListX *list = !loading ? m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID)
+                                                  : (ID3D12GraphicsCommandListX *)pCommandList;
+
+      const D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
+
+      // perform any resolves requested. We assume the presence of List1 to do the subregion resolve
+      for(size_t i = 0; i < state.rpRTs.size(); i++)
       {
-        const D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
-
-        // perform any resolves requested. We assume the presence of List1 to do the subregion
-        // resolve
-        for(size_t i = 0; i < state.rpRTs.size(); i++)
+        if(state.rpRTs[i].EndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
         {
-          if(state.rpRTs[i].EndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
-          {
-            const D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_PARAMETERS &r =
-                state.rpRTs[i].EndingAccess.Resolve;
+          const D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_PARAMETERS &r =
+              state.rpRTs[i].EndingAccess.Resolve;
 
-            D3D12_RESOURCE_BARRIER barrier = {};
-            barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-            barrier.Transition.pResource = Unwrap(r.pSrcResource);
-            barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-            barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
-
-            Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->ResourceBarrier(1, &barrier);
-
-            for(UINT s = 0; s < r.SubresourceCount; s++)
-            {
-              const D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS &sub =
-                  r.pSubresourceParameters[s];
-              Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-                  ->ResolveSubresourceRegion(Unwrap(r.pDstResource), sub.DstSubresource, sub.DstX,
-                                             sub.DstY, Unwrap(r.pSrcResource), sub.SrcSubresource,
-                                             (D3D12_RECT *)&sub.SrcRect, r.Format, r.ResolveMode);
-            }
-
-            std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
-
-            Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->ResourceBarrier(1, &barrier);
-          }
-        }
-
-        if(state.rpDSV.cpuDescriptor.ptr != 0 &&
-           (state.rpDSV.DepthEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE ||
-            state.rpDSV.StencilEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE))
-        {
           D3D12_RESOURCE_BARRIER barrier = {};
           barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-          barrier.Transition.pResource = Unwrap(state.rpDSV.DepthEndingAccess.Resolve.pSrcResource);
-          barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+          barrier.Transition.pResource = Unwrap(r.pSrcResource);
+          barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
           barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
 
-          Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->ResourceBarrier(1, &barrier);
+          Unwrap4(list)->ResourceBarrier(1, &barrier);
 
-          if(state.rpDSV.DepthEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
+          for(UINT s = 0; s < r.SubresourceCount; s++)
           {
-            const D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_PARAMETERS &r =
-                state.rpDSV.DepthEndingAccess.Resolve;
-
-            for(UINT s = 0; s < r.SubresourceCount; s++)
-            {
-              const D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS &sub =
-                  r.pSubresourceParameters[s];
-              Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-                  ->ResolveSubresourceRegion(Unwrap(r.pDstResource), sub.DstSubresource, sub.DstX,
-                                             sub.DstY, Unwrap(r.pSrcResource), sub.SrcSubresource,
-                                             (D3D12_RECT *)&sub.SrcRect, r.Format, r.ResolveMode);
-            }
-          }
-
-          if(state.rpDSV.StencilEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
-          {
-            const D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_PARAMETERS &r =
-                state.rpDSV.StencilEndingAccess.Resolve;
-
-            for(UINT s = 0; s < r.SubresourceCount; s++)
-            {
-              const D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS &sub =
-                  r.pSubresourceParameters[s];
-              Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-                  ->ResolveSubresourceRegion(Unwrap(r.pDstResource), sub.DstSubresource, sub.DstX,
-                                             sub.DstY, Unwrap(r.pSrcResource), sub.SrcSubresource,
-                                             (D3D12_RECT *)&sub.SrcRect, r.Format, r.ResolveMode);
-            }
+            const D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS &sub =
+                r.pSubresourceParameters[s];
+            Unwrap4(list)->ResolveSubresourceRegion(Unwrap(r.pDstResource), sub.DstSubresource,
+                                                    sub.DstX, sub.DstY, Unwrap(r.pSrcResource),
+                                                    sub.SrcSubresource, (D3D12_RECT *)&sub.SrcRect,
+                                                    r.Format, r.ResolveMode);
           }
 
           std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
 
-          Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->ResourceBarrier(1, &barrier);
+          Unwrap4(list)->ResourceBarrier(1, &barrier);
         }
-
-        // Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->EndRenderPass();
-
-        if(m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
-        {
-          m_Cmd->m_Partial[D3D12CommandData::Primary].renderPassActive = false;
-        }
-
-        stateUpdate = true;
       }
-      else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
+
+      if(state.rpDSV.cpuDescriptor.ptr != 0 &&
+         (state.rpDSV.DepthEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE ||
+          state.rpDSV.StencilEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE))
       {
-        stateUpdate = true;
+        D3D12_RESOURCE_BARRIER barrier = {};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Transition.pResource = Unwrap(state.rpDSV.DepthEndingAccess.Resolve.pSrcResource);
+        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
+
+        Unwrap4(list)->ResourceBarrier(1, &barrier);
+
+        if(state.rpDSV.DepthEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
+        {
+          const D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_PARAMETERS &r =
+              state.rpDSV.DepthEndingAccess.Resolve;
+
+          for(UINT s = 0; s < r.SubresourceCount; s++)
+          {
+            const D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS &sub =
+                r.pSubresourceParameters[s];
+            Unwrap4(list)->ResolveSubresourceRegion(Unwrap(r.pDstResource), sub.DstSubresource,
+                                                    sub.DstX, sub.DstY, Unwrap(r.pSrcResource),
+                                                    sub.SrcSubresource, (D3D12_RECT *)&sub.SrcRect,
+                                                    r.Format, r.ResolveMode);
+          }
+        }
+
+        if(state.rpDSV.StencilEndingAccess.Type == D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE)
+        {
+          const D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_PARAMETERS &r =
+              state.rpDSV.StencilEndingAccess.Resolve;
+
+          for(UINT s = 0; s < r.SubresourceCount; s++)
+          {
+            const D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS &sub =
+                r.pSubresourceParameters[s];
+            Unwrap4(list)->ResolveSubresourceRegion(Unwrap(r.pDstResource), sub.DstSubresource,
+                                                    sub.DstX, sub.DstY, Unwrap(r.pSrcResource),
+                                                    sub.SrcSubresource, (D3D12_RECT *)&sub.SrcRect,
+                                                    r.Format, r.ResolveMode);
+          }
+        }
+
+        std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+
+        Unwrap4(list)->ResourceBarrier(1, &barrier);
       }
+
+      // Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->EndRenderPass();
+
+      if(m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
+      {
+        m_Cmd->m_Partial[D3D12CommandData::Primary].renderPassActive = false;
+      }
+
+      if(loading)
+      {
+        m_Cmd->AddEvent();
+
+        ActionDescription action;
+        action.customName = StringFormat::Fmt(
+            "EndRenderPass(%s)",
+            MakeRenderPassOpString(true, (UINT)state.rpRTs.size(), state.rpRTs.data(),
+                                   state.rpDSV.cpuDescriptor.ptr ? &state.rpDSV : NULL, state.rpFlags)
+                .c_str());
+        action.flags |= ActionFlags::EndPass | ActionFlags::PassBoundary;
+
+        m_Cmd->AddAction(action);
+      }
+
+      stateUpdate = true;
     }
-    else
+    else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
     {
-      // Unwrap4(pCommandList)->EndRenderPass();
-
-      m_Cmd->AddEvent();
-
-      D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].state;
-
-      ActionDescription action;
-      action.customName = StringFormat::Fmt(
-          "EndRenderPass(%s)",
-          MakeRenderPassOpString(true, (UINT)state.rpRTs.size(), state.rpRTs.data(),
-                                 state.rpDSV.cpuDescriptor.ptr ? &state.rpDSV : NULL, state.rpFlags)
-              .c_str());
-      action.flags |= ActionFlags::EndPass | ActionFlags::PassBoundary;
-
-      m_Cmd->AddAction(action);
-
       stateUpdate = true;
     }
 
@@ -1372,40 +1312,37 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EmitRaytracingAccelerationStruc
 
     m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
-    if(IsActiveReplaying(m_State))
+    if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
     {
-      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
+      bool loading = IsLoading(m_State);
+      ID3D12GraphicsCommandListX *list = !loading ? m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID)
+                                                  : (ID3D12GraphicsCommandListX *)pCommandList;
+
+      Unwrap4(list)->EmitRaytracingAccelerationStructurePostbuildInfo(
+          &Desc, NumSourceAccelerationStructures, pSourceAccelerationStructureData);
+
+      if(loading)
       {
-        Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-            ->EmitRaytracingAccelerationStructurePostbuildInfo(
-                &Desc, NumSourceAccelerationStructures, pSourceAccelerationStructureData);
-      }
-    }
-    else
-    {
-      Unwrap4(pCommandList)
-          ->EmitRaytracingAccelerationStructurePostbuildInfo(&Desc, NumSourceAccelerationStructures,
-                                                             pSourceAccelerationStructureData);
+        m_Cmd->AddEvent();
 
-      m_Cmd->AddEvent();
+        ActionDescription action;
+        action.copyDestination = WrappedID3D12Resource::GetResIDFromAddr(Desc.DestBuffer);
+        action.copyDestinationSubresource = Subresource();
 
-      ActionDescription action;
-      action.copyDestination = WrappedID3D12Resource::GetResIDFromAddr(Desc.DestBuffer);
-      action.copyDestinationSubresource = Subresource();
+        action.flags |= ActionFlags::Copy;
 
-      action.flags |= ActionFlags::Copy;
+        m_Cmd->AddAction(action);
 
-      m_Cmd->AddAction(action);
+        D3D12EventNode &eventNode = m_Cmd->GetLastEventNode();
 
-      D3D12EventNode &eventNode = m_Cmd->GetLastEventNode();
-
-      eventNode.AddResourceUsage(WrappedID3D12Resource::GetResIDFromAddr(Desc.DestBuffer),
-                                 ResourceUsage::CopyDst);
-      for(UINT i = 0; i < NumSourceAccelerationStructures; i++)
-      {
-        eventNode.AddResourceUsage(
-            WrappedID3D12Resource::GetResIDFromAddr(pSourceAccelerationStructureData[i]),
-            ResourceUsage::CopySrc);
+        eventNode.AddResourceUsage(WrappedID3D12Resource::GetResIDFromAddr(Desc.DestBuffer),
+                                   ResourceUsage::CopyDst);
+        for(UINT i = 0; i < NumSourceAccelerationStructures; i++)
+        {
+          eventNode.AddResourceUsage(
+              WrappedID3D12Resource::GetResIDFromAddr(pSourceAccelerationStructureData[i]),
+              ResourceUsage::CopySrc);
+        }
       }
     }
   }
@@ -1479,37 +1416,17 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyRaytracingAccelerationStruc
       .Important();
   SERIALISE_ELEMENT(Mode);
 
+  SERIALISE_CHECK_READ_ERRORS();
+
   if(IsReplayingAndReading())
   {
     m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
-    if(IsActiveReplaying(m_State))
+    if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
     {
-      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
-      {
-        ID3D12GraphicsCommandList4 *list = Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID));
-
-        if(D3D12_Debug_RT_Auditing())
-        {
-          RDCLOG("Recording copy from %llx to %llx on %s", SourceAccelerationStructureData,
-                 DestAccelerationStructureData, ToStr(m_Cmd->m_LastCmdListID).c_str());
-        }
-
-        if(!D3D12_Debug_RT_Auditing())
-        {
-          list->CopyRaytracingAccelerationStructure(DestAccelerationStructureData,
-                                                    SourceAccelerationStructureData, Mode);
-        }
-      }
-    }
-    else
-    {
-      if(!D3D12_Debug_RT_Auditing())
-      {
-        Unwrap4(pCommandList)
-            ->CopyRaytracingAccelerationStructure(DestAccelerationStructureData,
-                                                  SourceAccelerationStructureData, Mode);
-      }
+      bool loading = IsLoading(m_State);
+      ID3D12GraphicsCommandListX *list = !loading ? m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID)
+                                                  : (ID3D12GraphicsCommandListX *)pCommandList;
 
       if(D3D12_Debug_RT_Auditing())
       {
@@ -1517,15 +1434,23 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyRaytracingAccelerationStruc
                DestAccelerationStructureData, ToStr(m_Cmd->m_LastCmdListID).c_str());
       }
 
-      m_Cmd->AddEvent();
+      if(!D3D12_Debug_RT_Auditing())
+      {
+        Unwrap4(list)->CopyRaytracingAccelerationStructure(DestAccelerationStructureData,
+                                                           SourceAccelerationStructureData, Mode);
+      }
 
-      ActionDescription actionDesc;
-      actionDesc.flags |= ActionFlags::BuildAccStruct;
-      m_Cmd->AddAction(actionDesc);
+      if(loading)
+      {
+        m_Cmd->AddEvent();
+
+        ActionDescription actionDesc;
+        actionDesc.flags |= ActionFlags::BuildAccStruct;
+        m_Cmd->AddAction(actionDesc);
+      }
     }
   }
 
-  SERIALISE_CHECK_READ_ERRORS();
   return true;
 }
 
@@ -1742,23 +1667,18 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetPipelineState1(SerialiserTyp
 
     bool stateUpdate = false;
 
-    if(IsActiveReplaying(m_State))
+    if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
     {
-      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
-      {
-        Unwrap4(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))->SetPipelineState1(Unwrap(pStateObject));
+      bool loading = IsLoading(m_State);
+      ID3D12GraphicsCommandListX *list = !loading ? m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID)
+                                                  : (ID3D12GraphicsCommandListX *)pCommandList;
 
-        stateUpdate = true;
-      }
-      else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
-      {
-        stateUpdate = true;
-      }
+      Unwrap4(list)->SetPipelineState1(Unwrap(pStateObject));
+
+      stateUpdate = true;
     }
-    else
+    else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
     {
-      Unwrap4(pCommandList)->SetPipelineState1(Unwrap(pStateObject));
-
       stateUpdate = true;
     }
 
@@ -1826,67 +1746,48 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DispatchRays(SerialiserType &se
       Desc.Width = Desc.Height = Desc.Depth = 0;
     }
 
-    if(IsActiveReplaying(m_State))
+    if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
     {
-      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
-      {
-        ID3D12GraphicsCommandListX *list = m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID);
+      bool loading = IsLoading(m_State);
+      ID3D12GraphicsCommandListX *list = !loading ? m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID)
+                                                  : (ID3D12GraphicsCommandListX *)pCommandList;
 
-        // this call will copy the specified buffers containing shader records and patch them. We get
-        // a reference to the lookup buffer used as well as a reference to the scratch buffer
-        // containing the patched shader records.
-        PatchedRayDispatch patchedDispatch =
-            GetResourceManager()->GetRTManager()->PatchRayDispatch(Unwrap4(list), state.heaps, Desc);
-
-        // restore state that would have been mutated by the patching process
-        Unwrap4(list)->SetComputeRootSignature(
-            Unwrap(GetResourceManager()->GetResAs<ID3D12RootSignature>(state.compute.rootsig)));
-        Unwrap4(list)->SetPipelineState1(
-            Unwrap(GetResourceManager()->GetResAs<ID3D12StateObject>(state.stateobj)));
-        state.ApplyComputeRootElementsUnwrapped(Unwrap4(list));
-
-        m_Cmd->m_RayDispatches.push_back(std::move(patchedDispatch));
-
-        uint32_t eventId = m_Cmd->HandlePreCallback(list, ActionFlags::DispatchRay);
-        Unwrap4(list)->DispatchRays(&patchedDispatch.desc);
-        if(eventId && m_Cmd->m_ActionCallback->PostDispatch(eventId, list))
-        {
-          Unwrap4(list)->DispatchRays(&patchedDispatch.desc);
-          m_Cmd->m_ActionCallback->PostRedispatch(eventId, list);
-        }
-      }
-    }
-    else
-    {
-      // this call will copy the specified buffers containing shader records and patch them. We get
-      // a reference to the lookup buffer used as well as a reference to the scratch buffer
-      // containing the patched shader records.
-      PatchedRayDispatch patchedDispatch = GetResourceManager()->GetRTManager()->PatchRayDispatch(
-          Unwrap4(pCommandList), state.heaps, Desc);
+      // this call will copy the specified buffers containing shader records and patch them.
+      // We get a reference to the lookup buffer used as well as a reference to the scratch
+      // buffer containing the patched shader records.
+      PatchedRayDispatch patchedDispatch =
+          GetResourceManager()->GetRTManager()->PatchRayDispatch(Unwrap4(list), state.heaps, Desc);
 
       // restore state that would have been mutated by the patching process
-      Unwrap4(pCommandList)
-          ->SetComputeRootSignature(
-              Unwrap(GetResourceManager()->GetResAs<ID3D12RootSignature>(state.compute.rootsig)));
-      Unwrap4(pCommandList)
-          ->SetPipelineState1(
-              Unwrap(GetResourceManager()->GetResAs<ID3D12StateObject>(state.stateobj)));
-      state.ApplyComputeRootElementsUnwrapped(Unwrap4(pCommandList));
+      Unwrap4(list)->SetComputeRootSignature(
+          Unwrap(GetResourceManager()->GetResAs<ID3D12RootSignature>(state.compute.rootsig)));
+      Unwrap4(list)->SetPipelineState1(
+          Unwrap(GetResourceManager()->GetResAs<ID3D12StateObject>(state.stateobj)));
+      state.ApplyComputeRootElementsUnwrapped(Unwrap4(list));
 
-      m_Cmd->m_RayDispatches.push_back(patchedDispatch);
+      m_Cmd->m_RayDispatches.push_back(std::move(patchedDispatch));
 
-      Unwrap4(pCommandList)->DispatchRays(&patchedDispatch.desc);
+      uint32_t eventId = !loading ? m_Cmd->HandlePreCallback(list, ActionFlags::DispatchRay) : 0;
+      Unwrap4(list)->DispatchRays(&patchedDispatch.desc);
+      if(eventId && m_Cmd->m_ActionCallback->PostDispatch(eventId, list))
+      {
+        Unwrap4(list)->DispatchRays(&patchedDispatch.desc);
+        m_Cmd->m_ActionCallback->PostRedispatch(eventId, list);
+      }
 
-      m_Cmd->AddEvent();
+      if(loading)
+      {
+        m_Cmd->AddEvent();
 
-      ActionDescription action;
-      action.dispatchDimension[0] = Desc.Width;
-      action.dispatchDimension[1] = Desc.Height;
-      action.dispatchDimension[2] = Desc.Depth;
+        ActionDescription action;
+        action.dispatchDimension[0] = Desc.Width;
+        action.dispatchDimension[1] = Desc.Height;
+        action.dispatchDimension[2] = Desc.Depth;
 
-      action.flags |= ActionFlags::DispatchRay;
+        action.flags |= ActionFlags::DispatchRay;
 
-      m_Cmd->AddAction(action);
+        m_Cmd->AddAction(action);
+      }
     }
   }
 
@@ -1895,9 +1796,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DispatchRays(SerialiserType &se
 
 void WrappedID3D12GraphicsCommandList::DispatchRays(_In_ const D3D12_DISPATCH_RAYS_DESC *pDesc)
 {
-  // this call will copy the specified buffers containing shader records and patch them. We get a
-  // reference to the lookup buffer used as well as a reference to the scratch buffer containing the
-  // patched shader records.
+  // this call will copy the specified buffers containing shader records and patch them. We get
+  // a reference to the lookup buffer used as well as a reference to the scratch buffer
+  // containing the patched shader records.
   PatchedRayDispatch patchedDispatch = GetResourceManager()->GetRTManager()->PatchRayDispatch(
       m_pList4, m_CaptureComputeState.heaps, *pDesc);
 
