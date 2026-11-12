@@ -50,24 +50,18 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetDepthBias(SerialiserType &
 
     bool stateUpdate = false;
 
-    if(IsActiveReplaying(m_State))
+    if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
     {
-      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
-      {
-        Unwrap9(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-            ->RSSetDepthBias(DepthBias, DepthBiasClamp, SlopeScaledDepthBias);
+      bool loading = IsLoading(m_State);
+      ID3D12GraphicsCommandListX *list = !loading ? m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID)
+                                                  : (ID3D12GraphicsCommandListX *)pCommandList;
 
-        stateUpdate = true;
-      }
-      else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
-      {
-        stateUpdate = true;
-      }
+      Unwrap9(list)->RSSetDepthBias(DepthBias, DepthBiasClamp, SlopeScaledDepthBias);
+
+      stateUpdate = true;
     }
-    else
+    else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
     {
-      Unwrap9(pCommandList)->RSSetDepthBias(DepthBias, DepthBiasClamp, SlopeScaledDepthBias);
-
       stateUpdate = true;
     }
 
@@ -122,24 +116,18 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBufferStripCutValue(
 
     bool stateUpdate = false;
 
-    if(IsActiveReplaying(m_State))
+    if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
     {
-      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
-      {
-        Unwrap9(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-            ->IASetIndexBufferStripCutValue(IBStripCutValue);
+      bool loading = IsLoading(m_State);
+      ID3D12GraphicsCommandListX *list = !loading ? m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID)
+                                                  : (ID3D12GraphicsCommandListX *)pCommandList;
 
-        stateUpdate = true;
-      }
-      else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
-      {
-        stateUpdate = true;
-      }
+      Unwrap9(list)->IASetIndexBufferStripCutValue(IBStripCutValue);
+
+      stateUpdate = true;
     }
-    else
+    else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
     {
-      Unwrap9(pCommandList)->IASetIndexBufferStripCutValue(IBStripCutValue);
-
       stateUpdate = true;
     }
 
