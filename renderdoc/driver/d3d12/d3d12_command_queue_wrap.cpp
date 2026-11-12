@@ -460,7 +460,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(SerialiserType &se
       if(m_pDevice->GetReplayOptions().apiValidation)
         DebugMessages.clear();
 
-      D3D12EventNode &eventNode = m_Cmd.m_LoadingEventNode;
+      D3D12EventNode &eventNode = m_Cmd.GetLoadingEventNode();
       for(const DebugMessage &msg : DebugMessages)
         eventNode.debugMessages.push_back(msg);
     }

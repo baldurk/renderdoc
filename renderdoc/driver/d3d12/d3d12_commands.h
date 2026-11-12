@@ -395,6 +395,7 @@ struct D3D12CommandData
                                          : m_EventNodes);
     return eventNodes.back();
   }
+  D3D12EventNode &GetLoadingEventNode() { return m_LoadingEventNode; }
 
   void BakeEventNodes(ActionDescription &rootAction);
 
