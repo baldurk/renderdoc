@@ -365,6 +365,7 @@ struct D3D12CommandData
   D3D12EventNode m_LoadingEventNode;
   rdcarray<D3D12EventNode> m_EventNodes;
   bool m_AddedEventNode;
+  bool m_Loading;
 
   uint64_t m_CurChunkOffset;
   SDChunkMetaData m_ChunkMetadata;

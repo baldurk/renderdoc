@@ -745,6 +745,7 @@ bool WrappedID3D12CommandQueue::ProcessChunk(ReadSerialiser &ser, D3D12Chunk chu
     m_Cmd.m_AddedEventNode = false;
     m_Cmd.m_LoadingEventNode = D3D12EventNode();
   }
+  m_Cmd.m_Loading = IsLoading(m_State);
 
   bool ret = false;
 
@@ -1145,6 +1146,7 @@ RDResult WrappedID3D12CommandQueue::ReplayLog(CaptureState readType, uint32_t st
                                               uint32_t endEventID, bool partial)
 {
   m_State = readType;
+  m_Cmd.m_Loading = IsLoading(m_State);
 
   if(!partial)
   {
@@ -1801,6 +1803,7 @@ D3D12CommandData::D3D12CommandData()
   m_ActionCallback = NULL;
 
   m_AddedEventNode = false;
+  m_Loading = false;
 }
 
 void D3D12CommandData::GetIndirectBuffer(size_t size, ID3D12Resource **buf, uint64_t *offs)

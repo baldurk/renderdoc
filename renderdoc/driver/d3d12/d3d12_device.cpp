@@ -5823,6 +5823,7 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
 
   {
     D3D12CommandData &cmd = *m_Queue->GetCommandData();
+    cmd.m_Loading = false;
 
     if(!partial)
     {
