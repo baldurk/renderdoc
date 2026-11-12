@@ -1914,6 +1914,10 @@ uint32_t D3D12CommandData::HandlePreCallback(ID3D12GraphicsCommandListX *list, A
 
 bool D3D12CommandData::InRerecordRange(ResourceId cmdid)
 {
+  // loading will replay all events
+  if(m_Loading)
+    return true;
+
   // if we have an outside command list, assume the range is valid and we're replaying all events
   // onto it.
   if(m_OutsideCmdList != NULL)
@@ -1945,6 +1949,9 @@ bool D3D12CommandData::HasRerecordCmdList(ResourceId cmdid)
 
 bool D3D12CommandData::IsPartialCmdList(ResourceId cmdid)
 {
+  if(m_Loading)
+    return false;
+
   if(m_OutsideCmdList != NULL)
     return true;
 
