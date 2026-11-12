@@ -69,24 +69,18 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetShadingRate(
 
     bool stateUpdate = false;
 
-    if(IsActiveReplaying(m_State))
+    if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
     {
-      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
-      {
-        Unwrap5(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-            ->RSSetShadingRate(baseShadingRate, combiners);
+      bool loading = IsLoading(m_State);
+      ID3D12GraphicsCommandListX *list = !loading ? m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID)
+                                                  : (ID3D12GraphicsCommandListX *)pCommandList;
 
-        stateUpdate = true;
-      }
-      else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
-      {
-        stateUpdate = true;
-      }
+      Unwrap5(list)->RSSetShadingRate(baseShadingRate, combiners);
+
+      stateUpdate = true;
     }
-    else
+    else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
     {
-      Unwrap5(pCommandList)->RSSetShadingRate(baseShadingRate, combiners);
-
       stateUpdate = true;
     }
 
@@ -163,24 +157,18 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetShadingRateImage(Serialise
 
     bool stateUpdate = false;
 
-    if(IsActiveReplaying(m_State))
+    if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
     {
-      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
-      {
-        Unwrap5(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-            ->RSSetShadingRateImage(Unwrap(shadingRateImage));
+      bool loading = IsLoading(m_State);
+      ID3D12GraphicsCommandListX *list = !loading ? m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID)
+                                                  : (ID3D12GraphicsCommandListX *)pCommandList;
 
-        stateUpdate = true;
-      }
-      else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
-      {
-        stateUpdate = true;
-      }
+      Unwrap5(list)->RSSetShadingRateImage(Unwrap(shadingRateImage));
+
+      stateUpdate = true;
     }
-    else
+    else if(!m_Cmd->IsPartialCmdList(m_Cmd->m_LastCmdListID))
     {
-      Unwrap5(pCommandList)->RSSetShadingRateImage(Unwrap(shadingRateImage));
-
       stateUpdate = true;
     }
 
