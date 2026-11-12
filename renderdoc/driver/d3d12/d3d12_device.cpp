@@ -2268,7 +2268,7 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(SerialiserType &ser, ID3D12Reso
 
     if(IsLoading(m_State))
     {
-      cmd.AddCPUUsage(GetResID(Resource), ResourceUsage::CPUWrite);
+      cmd.AddEventResourceUsage(GetResID(Resource), ResourceUsage::CPUWrite);
 
       // when CPU uploading we just save the range (wouldn't be necessary if the range was
       // serialised before the blob)
@@ -2443,7 +2443,7 @@ bool WrappedID3D12Device::Serialise_WriteToSubresource(SerialiserType &ser, ID3D
     D3D12CommandData &cmd = *m_Queue->GetCommandData();
 
     if(IsLoading(m_State))
-      cmd.AddCPUUsage(GetResID(Resource), ResourceUsage::CPUWrite);
+      cmd.AddEventResourceUsage(GetResID(Resource), ResourceUsage::CPUWrite);
 
     ResourceId id = GetResID(Resource);
     if(m_UploadResourceIds.find(id) != m_UploadResourceIds.end())

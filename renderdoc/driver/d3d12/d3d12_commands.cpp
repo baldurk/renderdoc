@@ -2001,11 +2001,6 @@ void D3D12CommandData::AddEvent()
   m_AddedEventNode = true;
 }
 
-void D3D12CommandData::AddCPUUsage(ResourceId id, ResourceUsage usage)
-{
-  m_LoadingEventNode.resourceUsage.push_back(make_rdcpair<ResourceId, ResourceUsage>(id, usage));
-}
-
 void D3D12CommandData::AddUsageForBindInRootSig(const D3D12RenderState &state,
                                                 D3D12EventNode &eventNode,
                                                 const D3D12RenderState::RootSignature *rootsig,

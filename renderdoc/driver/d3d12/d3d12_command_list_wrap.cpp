@@ -510,16 +510,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResourceBarrier(
 
           if(IsLoading(m_State) && (res1 || res2))
           {
-            D3D12EventNode &eventNode = m_Cmd->m_LoadingEventNode;
-
             if(res1)
-            {
-              eventNode.resourceUsage.push_back(make_rdcpair(GetResID(res1), ResourceUsage::Barrier));
-            }
+              m_Cmd->AddEventResourceUsage(GetResID(res1), ResourceUsage::Barrier);
             if(res2)
-            {
-              eventNode.resourceUsage.push_back(make_rdcpair(GetResID(res2), ResourceUsage::Barrier));
-            }
+              m_Cmd->AddEventResourceUsage(GetResID(res2), ResourceUsage::Barrier);
           }
         }
       }

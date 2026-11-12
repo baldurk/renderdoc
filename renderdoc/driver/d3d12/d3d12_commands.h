@@ -412,5 +412,8 @@ struct D3D12CommandData
 
     eventNode.AddResourceUsage(id, usage);
   }
-  void AddCPUUsage(ResourceId id, ResourceUsage usage);
+  void AddEventResourceUsage(ResourceId id, ResourceUsage usage)
+  {
+    m_LoadingEventNode.AddResourceUsage(id, usage);
+  }
 };
