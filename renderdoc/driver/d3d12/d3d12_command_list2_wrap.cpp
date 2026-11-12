@@ -48,17 +48,13 @@ bool WrappedID3D12GraphicsCommandList::Serialise_WriteBufferImmediate(
 
     m_Cmd->m_LastCmdListID = GetResID(pCommandList);
 
-    if(IsActiveReplaying(m_State))
+    if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
     {
-      if(m_Cmd->InRerecordRange(m_Cmd->m_LastCmdListID))
-      {
-        Unwrap2(m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID))
-            ->WriteBufferImmediate(Count, pParams, pModes);
-      }
-    }
-    else
-    {
-      Unwrap2(pCommandList)->WriteBufferImmediate(Count, pParams, pModes);
+      bool loading = IsLoading(m_State);
+      ID3D12GraphicsCommandListX *list = !loading ? m_Cmd->RerecordCmdList(m_Cmd->m_LastCmdListID)
+                                                  : (ID3D12GraphicsCommandListX *)pCommandList;
+
+      Unwrap2(list)->WriteBufferImmediate(Count, pParams, pModes);
     }
   }
 
