@@ -2001,14 +2001,6 @@ void D3D12CommandData::AddEvent()
   m_AddedEventNode = true;
 }
 
-void D3D12CommandData::AddResourceUsage(D3D12EventNode &eventNode, ResourceId id, ResourceUsage usage)
-{
-  if(id == ResourceId())
-    return;
-
-  eventNode.resourceUsage.push_back(make_rdcpair(id, usage));
-}
-
 void D3D12CommandData::AddCPUUsage(ResourceId id, ResourceUsage usage)
 {
   m_LoadingEventNode.resourceUsage.push_back(make_rdcpair<ResourceId, ResourceUsage>(id, usage));
@@ -2252,25 +2244,22 @@ void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12EventNode &e
     }
 
     if(a.flags & ActionFlags::Indexed && state.ibuffer.buf != ResourceId())
-      eventNode.resourceUsage.push_back(make_rdcpair(state.ibuffer.buf, ResourceUsage::IndexBuffer));
+      eventNode.AddResourceUsage(state.ibuffer.buf, ResourceUsage::IndexBuffer);
 
     if(a.flags & ActionFlags::Drawcall)
     {
       for(size_t i = 0; i < state.vbuffers.size(); i++)
       {
         if(state.vbuffers[i].buf != ResourceId())
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(state.vbuffers[i].buf, ResourceUsage::VertexBuffer));
+          eventNode.AddResourceUsage(state.vbuffers[i].buf, ResourceUsage::VertexBuffer);
       }
 
       for(size_t i = 0; i < state.streamouts.size(); i++)
       {
         if(state.streamouts[i].buf != ResourceId())
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(state.streamouts[i].buf, ResourceUsage::StreamOut));
+          eventNode.AddResourceUsage(state.streamouts[i].buf, ResourceUsage::StreamOut);
         if(state.streamouts[i].countbuf != ResourceId())
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(state.streamouts[i].countbuf, ResourceUsage::StreamOut));
+          eventNode.AddResourceUsage(state.streamouts[i].countbuf, ResourceUsage::StreamOut);
       }
     }
 
@@ -2279,12 +2268,12 @@ void D3D12CommandData::AddUsage(const D3D12RenderState &state, D3D12EventNode &e
     for(size_t i = 0; i < rts.size(); i++)
     {
       if(rts[i] != ResourceId())
-        eventNode.resourceUsage.push_back(make_rdcpair(rts[i], ResourceUsage::ColorTarget));
+        eventNode.AddResourceUsage(rts[i], ResourceUsage::ColorTarget);
     }
 
     ResourceId id = state.GetDSVID();
     if(id != ResourceId())
-      eventNode.resourceUsage.push_back(make_rdcpair(id, ResourceUsage::DepthStencilTarget));
+      eventNode.AddResourceUsage(id, ResourceUsage::DepthStencilTarget);
   }
 
   if(rootsig)

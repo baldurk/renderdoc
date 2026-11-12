@@ -1399,13 +1399,13 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EmitRaytracingAccelerationStruc
 
       D3D12EventNode &eventNode = m_Cmd->GetLastEventNode();
 
-      eventNode.resourceUsage.push_back(make_rdcpair(
-          WrappedID3D12Resource::GetResIDFromAddr(Desc.DestBuffer), ResourceUsage::CopyDst));
+      eventNode.AddResourceUsage(WrappedID3D12Resource::GetResIDFromAddr(Desc.DestBuffer),
+                                 ResourceUsage::CopyDst);
       for(UINT i = 0; i < NumSourceAccelerationStructures; i++)
       {
-        eventNode.resourceUsage.push_back(make_rdcpair(
+        eventNode.AddResourceUsage(
             WrappedID3D12Resource::GetResIDFromAddr(pSourceAccelerationStructureData[i]),
-            ResourceUsage::CopySrc));
+            ResourceUsage::CopySrc);
       }
     }
   }

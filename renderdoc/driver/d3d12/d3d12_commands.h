@@ -67,6 +67,10 @@ struct D3D12EventNode
     hasExecuteData = a.hasExecuteData;
     return *this;
   }
+  void AddResourceUsage(ResourceId id, ResourceUsage usage)
+  {
+    resourceUsage.push_back(make_rdcpair(id, usage));
+  }
 
   // eventId is not used
   APIEvent event;
@@ -401,6 +405,12 @@ struct D3D12CommandData
                                 D3D12_DESCRIPTOR_RANGE_TYPE type, uint32_t space, uint32_t bind,
                                 uint32_t rangeSize);
 
-  void AddResourceUsage(D3D12EventNode &eventNode, ResourceId id, ResourceUsage usage);
+  void AddResourceUsage(D3D12EventNode &eventNode, ResourceId id, ResourceUsage usage)
+  {
+    if(id == ResourceId())
+      return;
+
+    eventNode.AddResourceUsage(id, usage);
+  }
   void AddCPUUsage(ResourceId id, ResourceUsage usage);
 };

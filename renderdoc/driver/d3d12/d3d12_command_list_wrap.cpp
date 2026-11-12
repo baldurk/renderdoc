@@ -3017,8 +3017,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveQueryData(
         m_Cmd->AddAction(action);
 
         D3D12EventNode &eventNode = m_Cmd->GetLastEventNode();
-        eventNode.resourceUsage.push_back(
-            make_rdcpair(GetResID(pDestinationBuffer), ResourceUsage::ResolveDst));
+        eventNode.AddResourceUsage(GetResID(pDestinationBuffer), ResourceUsage::ResolveDst);
       }
     }
   }
@@ -4568,12 +4567,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
         eventNode.hasExecuteData = true;
         cmdInfo.hasExecuteDatas = true;
 
-        eventNode.resourceUsage.push_back(
-            make_rdcpair(GetResID(pArgumentBuffer), ResourceUsage::Indirect));
+        eventNode.AddResourceUsage(GetResID(pArgumentBuffer), ResourceUsage::Indirect);
         if(pCountBuffer)
         {
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(pCountBuffer), ResourceUsage::Indirect));
+          eventNode.AddResourceUsage(GetResID(pCountBuffer), ResourceUsage::Indirect);
         }
       }
 
@@ -4773,8 +4770,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
         m_Cmd->AddAction(action);
 
         D3D12EventNode &eventNode = m_Cmd->GetLastEventNode();
-        eventNode.resourceUsage.push_back(
-            make_rdcpair(descriptor->GetResResourceId(), ResourceUsage::Clear));
+        eventNode.AddResourceUsage(descriptor->GetResResourceId(), ResourceUsage::Clear);
       }
     }
   }
@@ -4872,8 +4868,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
         m_Cmd->AddAction(action);
 
         D3D12EventNode &eventNode = m_Cmd->GetLastEventNode();
-        eventNode.resourceUsage.push_back(
-            make_rdcpair(descriptor->GetResResourceId(), ResourceUsage::Clear));
+        eventNode.AddResourceUsage(descriptor->GetResResourceId(), ResourceUsage::Clear);
       }
     }
   }
@@ -4974,7 +4969,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewUint(
         m_Cmd->AddAction(action);
 
         D3D12EventNode &eventNode = m_Cmd->GetLastEventNode();
-        eventNode.resourceUsage.push_back(make_rdcpair(GetResID(pResource), ResourceUsage::Clear));
+        eventNode.AddResourceUsage(GetResID(pResource), ResourceUsage::Clear);
       }
     }
   }
@@ -5083,7 +5078,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewFloat(
         m_Cmd->AddAction(action);
 
         D3D12EventNode &eventNode = m_Cmd->GetLastEventNode();
-        eventNode.resourceUsage.push_back(make_rdcpair(GetResID(pResource), ResourceUsage::Clear));
+        eventNode.AddResourceUsage(GetResID(pResource), ResourceUsage::Clear);
       }
     }
   }
@@ -5170,7 +5165,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DiscardResource(SerialiserType 
         m_Cmd->AddAction(action);
 
         D3D12EventNode &eventNode = m_Cmd->GetLastEventNode();
-        eventNode.resourceUsage.push_back(make_rdcpair(GetResID(pResource), ResourceUsage::Discard));
+        eventNode.AddResourceUsage(GetResID(pResource), ResourceUsage::Discard);
       }
     }
   }
@@ -5258,14 +5253,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(SerialiserType
 
         if(pSrcBuffer == pDstBuffer)
         {
-          eventNode.resourceUsage.push_back(make_rdcpair(GetResID(pSrcBuffer), ResourceUsage::Copy));
+          eventNode.AddResourceUsage(GetResID(pSrcBuffer), ResourceUsage::Copy);
         }
         else
         {
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(pSrcBuffer), ResourceUsage::CopySrc));
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(pDstBuffer), ResourceUsage::CopyDst));
+          eventNode.AddResourceUsage(GetResID(pSrcBuffer), ResourceUsage::CopySrc);
+          eventNode.AddResourceUsage(GetResID(pDstBuffer), ResourceUsage::CopyDst);
         }
       }
     }
@@ -5374,12 +5367,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTextureRegion(
 
         if(origSrc == origDst)
         {
-          eventNode.resourceUsage.push_back(make_rdcpair(liveSrc, ResourceUsage::Copy));
+          eventNode.AddResourceUsage(liveSrc, ResourceUsage::Copy);
         }
         else
         {
-          eventNode.resourceUsage.push_back(make_rdcpair(liveSrc, ResourceUsage::CopySrc));
-          eventNode.resourceUsage.push_back(make_rdcpair(liveDst, ResourceUsage::CopyDst));
+          eventNode.AddResourceUsage(liveSrc, ResourceUsage::CopySrc);
+          eventNode.AddResourceUsage(liveDst, ResourceUsage::CopyDst);
         }
       }
     }
@@ -5466,14 +5459,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyResource(SerialiserType &se
 
         if(pSrcResource == pDstResource)
         {
-          eventNode.resourceUsage.push_back(make_rdcpair(GetResID(pSrcResource), ResourceUsage::Copy));
+          eventNode.AddResourceUsage(GetResID(pSrcResource), ResourceUsage::Copy);
         }
         else
         {
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(pSrcResource), ResourceUsage::CopySrc));
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(pDstResource), ResourceUsage::CopyDst));
+          eventNode.AddResourceUsage(GetResID(pSrcResource), ResourceUsage::CopySrc);
+          eventNode.AddResourceUsage(GetResID(pDstResource), ResourceUsage::CopyDst);
         }
       }
     }
@@ -5563,15 +5554,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresource(
 
         if(pSrcResource == pDstResource)
         {
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(pSrcResource), ResourceUsage::Resolve));
+          eventNode.AddResourceUsage(GetResID(pSrcResource), ResourceUsage::Resolve);
         }
         else
         {
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(pSrcResource), ResourceUsage::ResolveSrc));
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(pDstResource), ResourceUsage::ResolveDst));
+          eventNode.AddResourceUsage(GetResID(pSrcResource), ResourceUsage::ResolveSrc);
+          eventNode.AddResourceUsage(GetResID(pDstResource), ResourceUsage::ResolveDst);
         }
       }
     }
@@ -5677,8 +5665,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTiles(
         m_Cmd->AddAction(action);
 
         D3D12EventNode &eventNode = m_Cmd->GetLastEventNode();
-        eventNode.resourceUsage.push_back(make_rdcpair(liveSrc, ResourceUsage::CopySrc));
-        eventNode.resourceUsage.push_back(make_rdcpair(liveDst, ResourceUsage::CopyDst));
+        eventNode.AddResourceUsage(liveSrc, ResourceUsage::CopySrc);
+        eventNode.AddResourceUsage(liveDst, ResourceUsage::CopyDst);
       }
     }
   }

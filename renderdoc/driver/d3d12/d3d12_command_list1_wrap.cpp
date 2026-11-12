@@ -95,14 +95,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT(
 
         if(pSrcBuffer == pDstBuffer)
         {
-          eventNode.resourceUsage.push_back(make_rdcpair(GetResID(pSrcBuffer), ResourceUsage::Copy));
+          eventNode.AddResourceUsage(GetResID(pSrcBuffer), ResourceUsage::Copy);
         }
         else
         {
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(pSrcBuffer), ResourceUsage::CopySrc));
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(pDstBuffer), ResourceUsage::CopyDst));
+          eventNode.AddResourceUsage(GetResID(pSrcBuffer), ResourceUsage::CopySrc);
+          eventNode.AddResourceUsage(GetResID(pDstBuffer), ResourceUsage::CopyDst);
         }
       }
     }
@@ -207,14 +205,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_AtomicCopyBufferUINT64(
 
         if(pSrcBuffer == pDstBuffer)
         {
-          eventNode.resourceUsage.push_back(make_rdcpair(GetResID(pSrcBuffer), ResourceUsage::Copy));
+          eventNode.AddResourceUsage(GetResID(pSrcBuffer), ResourceUsage::Copy);
         }
         else
         {
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(pSrcBuffer), ResourceUsage::CopySrc));
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(pDstBuffer), ResourceUsage::CopyDst));
+          eventNode.AddResourceUsage(GetResID(pSrcBuffer), ResourceUsage::CopySrc);
+          eventNode.AddResourceUsage(GetResID(pDstBuffer), ResourceUsage::CopyDst);
         }
       }
     }
@@ -489,15 +485,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresourceRegion(
 
         if(pSrcResource == pDstResource)
         {
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(pSrcResource), ResourceUsage::Resolve));
+          eventNode.AddResourceUsage(GetResID(pSrcResource), ResourceUsage::Resolve);
         }
         else
         {
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(pSrcResource), ResourceUsage::ResolveSrc));
-          eventNode.resourceUsage.push_back(
-              make_rdcpair(GetResID(pDstResource), ResourceUsage::ResolveDst));
+          eventNode.AddResourceUsage(GetResID(pSrcResource), ResourceUsage::ResolveSrc);
+          eventNode.AddResourceUsage(GetResID(pDstResource), ResourceUsage::ResolveDst);
         }
       }
     }
