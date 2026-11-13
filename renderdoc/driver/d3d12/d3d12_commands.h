@@ -50,11 +50,28 @@ struct D3D12EventNode
   {
     event = a.event;
     action = a.action;
+    SAFE_DELETE(state);
     if(a.state)
-    {
-      state = new D3D12RenderState();
-      *state = *a.state;
-    }
+      state = new D3D12RenderState(*a.state);
+    executeData = a.executeData;
+    resourceUsage = a.resourceUsage;
+    debugMessages = a.debugMessages;
+    annotations = a.annotations;
+    cmdListID = a.cmdListID;
+    primaryCmdId = a.primaryCmdId;
+    childCmdBufId = a.childCmdBufId;
+    addActionUse = a.addActionUse;
+    addPrimaryExecute = a.addPrimaryExecute;
+    hasExecuteData = a.hasExecuteData;
+    return *this;
+  }
+  D3D12EventNode &operator=(D3D12EventNode &&a)
+  {
+    event = a.event;
+    action = a.action;
+    SAFE_DELETE(state);
+    state = a.state;
+    a.state = NULL;
     executeData = a.executeData;
     resourceUsage = a.resourceUsage;
     debugMessages = a.debugMessages;
