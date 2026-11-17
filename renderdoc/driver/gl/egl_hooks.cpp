@@ -46,6 +46,7 @@ RDOC_CONFIG(bool, Android_AllowAllEGLExtensions, false,
 namespace Keyboard
 {
 void UseXlibDisplay(Display *dpy);
+void UseXcbConnection(xcb_connection_t *conn);
 WindowingSystem UseUnknownDisplay(void *disp);
 void UseWaylandDisplay(wl_display *disp);
 }
@@ -217,6 +218,8 @@ HOOK_EXPORT EGLDisplay EGLAPIENTRY eglGetPlatformDisplay_renderdoc_hooked(EGLenu
 #if ENABLED(RDOC_LINUX)
   if(platform == EGL_PLATFORM_X11_KHR)
     Keyboard::UseXlibDisplay((Display *)native_display);
+  else if(platform == EGL_PLATFORM_XCB_EXT)
+    Keyboard::UseXcbConnection((xcb_connection_t *)native_display);
   else if(platform == EGL_PLATFORM_WAYLAND_KHR)
     Keyboard::UseWaylandDisplay((wl_display *)native_display);
   else
@@ -467,10 +470,30 @@ HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurface_renderdoc_hook
   return ret;
 }
 
-HOOK_EXPORT EGLDisplay EGLAPIENTRY eglCreatePlatformWindowSurfaceEXT_renderdoc_hooked(
+HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurfaceEXT_renderdoc_hooked(
     EGLDisplay dpy, EGLConfig config, void *native_window, const EGLAttrib *attrib_list)
 {
-  return eglCreatePlatformWindowSurface_renderdoc_hooked(dpy, config, native_window, attrib_list);
+  if(RenderDoc::Inst().IsReplayApp())
+  {
+    if(!EGL.CreatePlatformWindowSurfaceEXT)
+      EGL.PopulateForReplay();
+
+    return EGL.CreatePlatformWindowSurfaceEXT(dpy, config, native_window, attrib_list);
+  }
+
+  EnsureRealLibraryLoaded();
+
+  EGLSurface ret = EGL.CreatePlatformWindowSurfaceEXT(dpy, config, native_window, attrib_list);
+
+  if(ret)
+  {
+    SCOPED_LOCK(glLock);
+
+    // spec guarantees that we're using the same window system as the display
+    eglhook.windows[ret] = {eglhook.displays[dpy].system, native_window};
+  }
+
+  return ret;
 }
 
 HOOK_EXPORT EGLBoolean EGLAPIENTRY eglMakeCurrent_renderdoc_hooked(EGLDisplay display,
@@ -813,6 +836,13 @@ HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurface(EGLDisplay dpy
                                                                   const EGLAttrib *attrib_list)
 {
   return eglCreatePlatformWindowSurface_renderdoc_hooked(dpy, config, native_window, attrib_list);
+}
+
+HOOK_EXPORT EGLSurface EGLAPIENTRY eglCreatePlatformWindowSurfaceEXT(EGLDisplay dpy, EGLConfig config,
+                                                                     void *native_window,
+                                                                     const EGLAttrib *attrib_list)
+{
+  return eglCreatePlatformWindowSurfaceEXT_renderdoc_hooked(dpy, config, native_window, attrib_list);
 }
 
 HOOK_EXPORT EGLBoolean EGLAPIENTRY eglMakeCurrent(EGLDisplay display, EGLSurface draw,
