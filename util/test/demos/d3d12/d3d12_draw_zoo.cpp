@@ -271,7 +271,7 @@ float4 main(v2f IN) : SV_Target0
 
     ID3D12ResourcePtr vb = MakeBuffer().Data(vbData).Size(UINT(vbData.size() * sizeof(DefaultA2V)));
 
-    Vec4f instData[256] = {};
+    Vec4f instData[512] = {};
     for(int i = 0; i < ARRAY_COUNT(instData); i++)
       instData[i] = Vec4f(-100.0f, -100.0f, -100.0f, -100.0f);
 
@@ -286,7 +286,7 @@ float4 main(v2f IN) : SV_Target0
       instData[14] = Vec4f(0.5f, 0.9f, 0.1f, 0.5f);
     }
 
-    ID3D12ResourcePtr instvb = MakeBuffer().Data(instData).Size(8192);
+    ID3D12ResourcePtr instvb = MakeBuffer().Data(instData);
 
     std::vector<uint16_t> idxData;
     idxData.resize(2048);
