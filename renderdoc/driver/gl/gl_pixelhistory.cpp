@@ -1819,7 +1819,14 @@ void QueryShaderOutPerFragment(WrappedOpenGL *driver, GLReplay *replay,
 
     driver->glClearStencil(0);
     driver->glClearColor(0, 0, 0, 0);
-    driver->glClearDepth(0);
+    if(driver->isGLESMode())
+    {
+      driver->glClearDepthf(0.0f);
+    }
+    else
+    {
+      driver->glClearDepth(0);
+    }
     driver->glClearStencil(0);
 
     driver->glEnable(eGL_DEPTH_TEST);
@@ -2224,7 +2231,14 @@ void QueryPrePostModPerFragment(WrappedOpenGL *driver, GLReplay *replay,
       driver->glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, forcedDepth,
                                    0);
 
-      driver->glClearDepth(historyIndex->preMod.depth);
+      if(driver->isGLESMode())
+      {
+        driver->glClearDepthf(historyIndex->preMod.depth);
+      }
+      else
+      {
+        driver->glClearDepth(historyIndex->preMod.depth);
+      }
       driver->glClear(eGL_DEPTH_BUFFER_BIT);
     }
 
