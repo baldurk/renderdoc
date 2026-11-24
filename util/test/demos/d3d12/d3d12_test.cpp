@@ -835,7 +835,7 @@ void D3D12GraphicsTest::Shutdown()
   m_ReadbackBuffer = NULL;
   m_UploadBuffer = NULL;
 
-  m_RTV = m_DSV = m_CBVUAVSRV = m_Sampler = NULL;
+  m_RTV = m_DSV = m_CBVUAVSRV = m_Sampler = m_Clear = NULL;
 
   m_Alloc = NULL;
   m_DebugList = NULL;
