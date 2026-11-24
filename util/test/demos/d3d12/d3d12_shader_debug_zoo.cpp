@@ -2761,17 +2761,17 @@ void main(uint3 inDTID : SV_DispatchThreadID, uint3 inGID : SV_GroupThreadID, ui
       Vec4u index;
       Vec4f padding[14];
     };
-    Data data;
-    data.zeroes = Vec4f(0.0f, 0.0f, 0.0f, 0.0f);
+    Data datas[16];
+    datas[0].zeroes = Vec4f(0.0f, 0.0f, 0.0f, 0.0f);
     for(size_t j = 0; j < 14; ++j)
-      data.padding[j] = data.zeroes;
+      datas[0].padding[j] = datas[0].zeroes;
 
     std::vector<ID3D12ResourcePtr> cbuffers;
 
     for(uint32_t idx : {1, 2, 3, 4})
     {
-      data.index = Vec4u(idx * 4 + 1, idx * 4 + 2, idx * 4 + 3, idx * 4 + 4);
-      ID3D12ResourcePtr cbuf = MakeBuffer().Size(16 * sizeof(Data)).Data(&data).Upload();
+      datas[0].index = Vec4u(idx * 4 + 1, idx * 4 + 2, idx * 4 + 3, idx * 4 + 4);
+      ID3D12ResourcePtr cbuf = MakeBuffer().Size(16 * sizeof(Data)).Data(datas).Upload();
       cbuf->SetName((L"cbuffers_" + std::to_wstring(idx)).c_str());
       MakeCBV(cbuf).SizeBytes(sizeof(Data)).CreateGPU(300 + idx);
       cbuffers.push_back(cbuf);
@@ -2788,8 +2788,8 @@ void main(uint3 inDTID : SV_DispatchThreadID, uint3 inGID : SV_GroupThreadID, ui
     // unbounded_cbuffers[14] GPU Base = 450 Used Indices: 3, 5, 6, 7, 8, 9, 11
     for(uint32_t idx : {3, 5, 6, 7, 8, 9, 11})
     {
-      data.index = Vec4u(idx * 4 + 1, idx * 4 + 2, idx * 4 + 3, idx * 4 + 4);
-      ID3D12ResourcePtr cbuf = MakeBuffer().Size(16 * sizeof(Data)).Data(&data).Upload();
+      datas[0].index = Vec4u(idx * 4 + 1, idx * 4 + 2, idx * 4 + 3, idx * 4 + 4);
+      ID3D12ResourcePtr cbuf = MakeBuffer().Size(16 * sizeof(Data)).Data(datas).Upload();
       cbuf->SetName((L"unbounded_cbuffers_" + std::to_wstring(idx)).c_str());
       MakeCBV(cbuf).SizeBytes(sizeof(Data)).CreateGPU(450 + idx);
       cbuffers.push_back(cbuf);
