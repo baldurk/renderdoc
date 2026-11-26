@@ -27,7 +27,7 @@ Configuration is available for cmake, [documented elsewhere](https://cmake.org/d
 
 First check that you have all of the [required dependencies](Dependencies.md#mac).
 
-Mac support is pretty early and while it will compile, it's not usable for debugging yet and is not officially supported. 
+Mac is not officially supported and the code is pretty early. While it will compile, it's not usable for debugging yet. 
 
 To build with make, use cmake the same way as Linux.
 

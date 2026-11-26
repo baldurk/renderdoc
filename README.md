@@ -40,6 +40,7 @@ API Support
 | Metal                    |  N/A                     |  N/A                     |  N/A                      |
 
 * Nintendo Switch&trade; support is distributed separately for authorized developers as part of the NintendoSDK. For more information, consult the Nintendo Developer Portal.
+** Other platforms or APIs not listed here are not officially supported.
 
 Downloads
 --------------
