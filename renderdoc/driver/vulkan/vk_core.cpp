@@ -3036,7 +3036,6 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
   }
 
   // gather backbuffer screenshot
-  const uint32_t maxSize = 2048;
   RenderDoc::FramePixels fp;
 
   if(backbuffer != VK_NULL_HANDLE)
@@ -3180,9 +3179,8 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
     CHECK_VKR(this, vkr);
     RDCASSERT(pData != NULL);
 
-    fp.len = (uint32_t)readbackMem.size;
-    fp.data = new uint8_t[fp.len];
-    memcpy(fp.data, pData, fp.len);
+    fp.pixels.resize(readbackMem.size);
+    memcpy(fp.pixels.data(), pData, fp.pixels.size());
 
     VkMappedMemoryRange range = {
         VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
@@ -3208,7 +3206,6 @@ bool WrappedVulkan::EndFrameCapture(DeviceOwnedWindow devWnd)
     fp.stride = fmt.compByteWidth * fmt.compCount;
     fp.bpc = fmt.compByteWidth;
     fp.bgra = fmt.BGRAOrder();
-    fp.max_width = maxSize;
     fp.pitch_requirement = 8;
     switch(fmt.type)
     {

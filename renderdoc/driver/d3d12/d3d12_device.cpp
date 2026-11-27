@@ -3079,7 +3079,6 @@ bool WrappedID3D12Device::EndFrameCapture(DeviceOwnedWindow devWnd)
   for(auto it = maps.begin(); it != maps.end(); ++it)
     GetWrapped(it->res)->FreeShadow();
 
-  const uint32_t maxSize = 2048;
   RenderDoc::FramePixels fp;
 
   // gather backbuffer screenshot
@@ -3159,9 +3158,8 @@ bool WrappedID3D12Device::EndFrameCapture(DeviceOwnedWindow devWnd)
 
       if(SUCCEEDED(hr) && data)
       {
-        fp.len = (uint32_t)bufDesc.Width;
-        fp.data = new uint8_t[fp.len];
-        memcpy(fp.data, data, fp.len);
+        fp.pixels.resize(bufDesc.Width);
+        memcpy(fp.pixels.data(), data, fp.pixels.size());
 
         ResourceFormat fmt = MakeResourceFormat(desc.Format);
         fp.width = (uint32_t)desc.Width;
@@ -3170,7 +3168,6 @@ bool WrappedID3D12Device::EndFrameCapture(DeviceOwnedWindow devWnd)
         fp.stride = fmt.compByteWidth * fmt.compCount;
         fp.bpc = fmt.compByteWidth;
         fp.bgra = fmt.BGRAOrder();
-        fp.max_width = maxSize;
         fp.pitch_requirement = 8;
         switch(fmt.type)
         {

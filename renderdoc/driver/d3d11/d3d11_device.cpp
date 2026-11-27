@@ -2143,7 +2143,6 @@ bool WrappedID3D11Device::EndFrameCapture(DeviceOwnedWindow devWnd)
       }
     }
 
-    const uint32_t maxSize = 2048;
     RenderDoc::FramePixels fp;
 
     if(swapper != NULL)
@@ -2224,9 +2223,8 @@ bool WrappedID3D11Device::EndFrameCapture(DeviceOwnedWindow devWnd)
           }
           else
           {
-            fp.len = (uint32_t)mapped.RowPitch * desc.Height;
-            fp.data = new uint8_t[fp.len];
-            memcpy(fp.data, mapped.pData, fp.len);
+            fp.pixels.resize(mapped.RowPitch * desc.Height);
+            memcpy(fp.pixels.data(), mapped.pData, fp.pixels.size());
 
             m_pImmediateContext->GetReal()->Unmap(stagingTex, 0);
 
@@ -2236,7 +2234,6 @@ bool WrappedID3D11Device::EndFrameCapture(DeviceOwnedWindow devWnd)
             fp.stride = fmt.compByteWidth * fmt.compCount;
             fp.bpc = fmt.compByteWidth;
             fp.bgra = fmt.BGRAOrder();
-            fp.max_width = maxSize;
             fp.pitch_requirement = 8;
             switch(fmt.type)
             {

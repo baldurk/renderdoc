@@ -412,8 +412,7 @@ class RenderDoc
 public:
   struct FramePixels
   {
-    uint8_t *data = NULL;
-    uint32_t len = 0;
+    bytebuf pixels;
     uint32_t width = 0;
     uint32_t pitch = 0;
     uint32_t height = 0;
@@ -425,9 +424,6 @@ public:
     bool bgra = false;
     bool is_y_flipped = true;
     uint32_t pitch_requirement = 0;
-    uint32_t max_width = 0;
-    FramePixels() {}
-    ~FramePixels() { SAFE_DELETE_ARRAY(data); }
   };
 
   static RenderDoc &Inst();
@@ -500,7 +496,7 @@ public:
   void UnloadCrashHandler();
   void RegisterMemoryRegion(void *mem, size_t size);
   void UnregisterMemoryRegion(void *mem);
-  void ResamplePixels(const FramePixels &in, RDCThumb &out);
+  void ResamplePixels(const FramePixels &in, RDCThumb &out, uint32_t maxWidth = 2048);
   void EncodeThumbPixels(const RDCThumb &in, RDCThumb &out);
   RDCFile *CreateRDC(RDCDriver driver, uint32_t frameNum, const FramePixels &fp);
   void FinishCaptureWriting(RDCFile *rdc, uint32_t frameNumber);

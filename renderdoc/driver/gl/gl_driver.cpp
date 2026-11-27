@@ -2735,7 +2735,6 @@ void WrappedOpenGL::FirstFrame(void *ctx, void *wndHandle)
 
 RenderDoc::FramePixels *WrappedOpenGL::SaveBackbufferImage()
 {
-  const uint16_t maxSize = 2048;
   RenderDoc::FramePixels *fp = new RenderDoc::FramePixels();
 
   if(GL.glGetIntegerv && GL.glReadBuffer && GL.glBindFramebuffer && GL.glBindBuffer && GL.glReadPixels)
@@ -2770,14 +2769,12 @@ RenderDoc::FramePixels *WrappedOpenGL::SaveBackbufferImage()
     fp->bpc = 1;
     fp->stride = fp->bpc * 4;
     fp->pitch = dat.initParams.width * fp->stride;
-    fp->max_width = maxSize;
     fp->pitch_requirement = 4;
-    fp->len = (uint32_t)fp->pitch * fp->height;
-    fp->data = new uint8_t[fp->len];
+    fp->pixels.resize(fp->pitch * fp->height);
     fp->is_y_flipped = dat.initParams.isYFlipped;
 
     // GLES only supports GL_RGBA
-    GL.glReadPixels(0, 0, fp->width, fp->height, eGL_RGBA, eGL_UNSIGNED_BYTE, fp->data);
+    GL.glReadPixels(0, 0, fp->width, fp->height, eGL_RGBA, eGL_UNSIGNED_BYTE, fp->pixels.data());
 
     GL.glBindBuffer(eGL_PIXEL_PACK_BUFFER, packBufBind);
     GL.glBindFramebuffer(eGL_READ_FRAMEBUFFER, prevBuf);

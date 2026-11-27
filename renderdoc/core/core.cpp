@@ -1524,7 +1524,7 @@ bool RenderDoc::ShouldTriggerCapture(uint32_t frameNumber)
   return ret;
 }
 
-void RenderDoc::ResamplePixels(const FramePixels &in, RDCThumb &out)
+void RenderDoc::ResamplePixels(const FramePixels &in, RDCThumb &out, uint32_t maxWidth)
 {
   if(in.width == 0 || in.height == 0)
   {
@@ -1535,14 +1535,14 @@ void RenderDoc::ResamplePixels(const FramePixels &in, RDCThumb &out)
   // code below assumes pitch_requirement is a power of 2 number
   RDCASSERT((in.pitch_requirement & (in.pitch_requirement - 1)) == 0);
 
-  out.width = (uint16_t)RDCMIN(in.max_width, in.width);
+  out.width = (uint16_t)RDCMIN(maxWidth, in.width);
   out.width &= ~(in.pitch_requirement - 1);    // align down to multiple of in.
   out.height = uint16_t(out.width * in.height / in.width);
   out.pixels.resize(3 * out.width * out.height);
   out.format = FileType::Raw;
 
-  byte *dst = (byte *)out.pixels.data();
-  byte *source = (byte *)in.data;
+  byte *dst = out.pixels.data();
+  const byte *source = in.pixels.data();
 
   for(uint32_t y = 0; y < out.height; y++)
   {
@@ -1550,7 +1550,7 @@ void RenderDoc::ResamplePixels(const FramePixels &in, RDCThumb &out)
     {
       uint32_t xSource = x * in.width / out.width;
       uint32_t ySource = y * in.height / out.height;
-      byte *src = &source[in.stride * xSource + in.pitch * ySource];
+      const byte *src = &source[in.stride * xSource + in.pitch * ySource];
 
       if(in.buf1010102)
       {
@@ -1703,7 +1703,7 @@ RDCFile *RenderDoc::CreateRDC(RDCDriver driver, uint32_t frameNum, const FramePi
   }
 
   RDCThumb outRaw, outThumb;
-  if(fp.data)
+  if(!fp.pixels.empty())
   {
     // point sample info into raw buffer
     ResamplePixels(fp, outRaw);
@@ -2798,8 +2798,7 @@ TEST_CASE("Check ResamplePixels", "[core][resamplepixels]")
   uint32_t countComponents = 3;
   uint32_t stride = bytesPerComponent * countComponents;
   uint32_t pitch = width * stride;
-  sourcePixels.data = new byte[pitch * height];
-  sourcePixels.len = 0;
+  sourcePixels.pixels.resize(pitch * height);
   sourcePixels.width = width;
   sourcePixels.pitch = width * stride;
   sourcePixels.height = height;
@@ -2810,9 +2809,8 @@ TEST_CASE("Check ResamplePixels", "[core][resamplepixels]")
   sourcePixels.buf5551 = false;
   sourcePixels.bgra = false;
   sourcePixels.pitch_requirement = width;
-  sourcePixels.max_width = width;
 
-  byte *source = (byte *)sourcePixels.data;
+  byte *source = (byte *)sourcePixels.pixels.data();
   for(uint32_t y = 0; y < height; ++y)
   {
     for(uint32_t x = 0; x < width; ++x)
@@ -2881,9 +2879,8 @@ TEST_CASE("Check ResamplePixels", "[core][resamplepixels]")
 
   RDCThumb thumbOutDownsample;
   sourcePixels.bgra = false;
-  sourcePixels.max_width = 2;
   sourcePixels.pitch_requirement = 2;
-  RenderDoc::Inst().ResamplePixels(sourcePixels, thumbOutDownsample);
+  RenderDoc::Inst().ResamplePixels(sourcePixels, thumbOutDownsample, 2);
   CHECK(thumbOutDownsample.width == 2);
   CHECK(thumbOutDownsample.height == 2);
   dest = (byte *)thumbOutDownsample.pixels.data();
