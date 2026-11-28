@@ -35,6 +35,9 @@ RDOC_CONFIG(bool, D3D12_Debug_EnableGPUVA, false,
 
 RDOC_CONFIG(bool, D3D12_Debug_EnableDRED, false, "Enable DRED when enabling D3D12 validation.");
 
+RDOC_CONFIG(bool, D3D12_Debug_ForcePIXMarkers, true,
+            "Use new over-engineered pix markers internally.");
+
 D3D12MarkerRegion::D3D12MarkerRegion(ID3D12GraphicsCommandList *l, const rdcstr &marker)
 {
   list = l;
@@ -62,7 +65,7 @@ D3D12MarkerRegion::~D3D12MarkerRegion()
 UINT MakeMarkerText(bool begin, const rdcstr &marker, bytebuf &storage)
 {
   // DRED needs encoded PIX markers, blerch
-  if(D3D12_Debug_EnableDRED())
+  if(D3D12_Debug_EnableDRED() || D3D12_Debug_ForcePIXMarkers())
   {
     uint64_t header[3] = {
         begin ? (2ULL << 10) : (8ULL << 10),    // begin or set event
